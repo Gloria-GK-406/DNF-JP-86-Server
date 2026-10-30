@@ -62,7 +62,7 @@ public sealed partial class ItemDeliveryTests
         s.AddSingleton<IEquipmentDefinitionSource>(new EquipmentDefinitions());
     });
     private static IItemDeliveryDomainService Delivery(ShopFixture f) => f.Services.GetRequiredService<IItemDeliveryDomainService>();
-    private static IMailboxDomainService Mail(ShopFixture f) => f.Services.GetRequiredService<IMailboxDomainService>();
+    private static IMailboxDomainService Mail(ShopFixture f) => TestUseCase.Mailbox(f.Services);
     private static DomainTransactionScope Scope(ShopFixture f) => (DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
     private static async Task FillQuick(ShopFixture f)
     {
@@ -89,7 +89,7 @@ public sealed partial class ItemDeliveryTests
             Assert.Equal(5, result.MailedCount);
             Assert.Equal(10, f.Count(9001));
             Assert.Equal(new MailAsset.Stackable(9001, 5), Assert.Single(Assert.Single(await Mail(f).InboxAsync(new(1))).Attachments).Asset);
-            Assert.Equal(5, await Delivery(f).PendingQuantityAsync(new(1), 9001, default));
+            Assert.Equal(5, await TestUseCase.ReadAsync(f.Services, () => Delivery(f).PendingQuantityAsync(new(1), 9001, default)));
         });
     }
 
@@ -296,7 +296,7 @@ public sealed partial class ItemDeliveryTests
                 await tx.CommitAsync(default);
             }
             Assert.Equal(10,f.Count(9001));
-            Assert.Equal(5,await Delivery(f).PendingQuantityAsync(new(1),9001,default));
+            Assert.Equal(5,await TestUseCase.ReadAsync(f.Services,()=>Delivery(f).PendingQuantityAsync(new(1),9001,default)));
             Assert.Single(await Mail(f).InboxAsync(new(1)));
         });
     }

@@ -142,6 +142,8 @@ public sealed class CreatureLifecycleTests
             var session = SelectedSessionIdentity.Create(new(3), Owner, new("Game:creature"), 1, 10021);
             var sessions = new Sessions(session);
             var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock, inventories: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>());
+            // Each tick settles as the use case that drives it would.
+            Task<IReadOnlyList<CreatureRuntimeChange>> Advance() => TestUseCase.RunAsync(scope, () => runtime.AdvanceAsync(session, default));
             await using (var seed = scope.Begin())
             {
                 var items = db.Items.SessionIn(scope.Current!);
@@ -149,8 +151,8 @@ public sealed class CreatureLifecycleTests
                     { CreatureDetail = Pet().CreatureDetail! with { Field04 = 50 } }, default), default);
                 await seed.CommitAsync(default);
             }
-            runtime.Enter(session); await runtime.AdvanceAsync(session, default);
-            clock.Advance(180); await runtime.AdvanceAsync(session, default);
+            runtime.Enter(session); await Advance();
+            clock.Advance(180); await Advance();
             await using (var rename = scope.Begin())
             {
                 var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;
@@ -159,7 +161,7 @@ public sealed class CreatureLifecycleTests
                 await pet.RenameAsync([65], default);
                 await rename.CommitAsync(default);
             }
-            clock.Advance(120); await runtime.AdvanceAsync(session, default);
+            clock.Advance(120); await Advance();
             await using (var external = scope.Begin())
             {
                 var items = db.Items.SessionIn(scope.Current!); var reference = (await items.GetAsync(Worn, 25, default))!;
@@ -167,8 +169,8 @@ public sealed class CreatureLifecycleTests
                 await items.UpdateAsync(reference, x => x with { CreatureDetail = x.CreatureDetail! with { Field04 = 80 } }, default);
                 await external.CommitAsync(default);
             }
-            clock.Advance(3600); await runtime.AdvanceAsync(session, default);
-            clock.Advance(180); await runtime.AdvanceAsync(session, default);
+            clock.Advance(3600); await Advance();
+            clock.Advance(180); await Advance();
             await using (var read = scope.Begin())
             {
                 var pet = (await runtime.Of(Owner).CurrentPetAsync(default))!;

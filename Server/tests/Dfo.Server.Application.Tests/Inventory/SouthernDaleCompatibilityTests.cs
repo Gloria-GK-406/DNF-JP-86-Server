@@ -152,9 +152,9 @@ public sealed class SouthernDaleCompatibilityTests
                 await tx.CommitAsync(default);
             }
             Assert.Equal(0, fixture.Host.Count(2680738));
-            Assert.Equal(2, await fixture.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>()
-                .PendingQuantityAsync(new(1), 2680738, default));
-            Assert.Single(await fixture.Host.Services.GetRequiredService<Dfo.Server.Abstractions.Mail.IMailboxDomainService>().InboxAsync(new(1)));
+            Assert.Equal(2, await TestUseCase.ReadAsync(fixture.Host.Services, () => fixture.Host.Services
+                .GetRequiredService<Dfo.Server.Abstractions.Inventory.IItemDeliveryDomainService>().PendingQuantityAsync(new(1), 2680738, default)));
+            Assert.Single(await TestUseCase.Mailbox(fixture.Host.Services).InboxAsync(new(1)));
         });
     }
 

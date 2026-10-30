@@ -52,6 +52,7 @@
     <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
     <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
     <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+    <Compile Include="../Support/TestUseCase.cs" Link="Support/TestUseCase.cs" />
     <Compile Include="../Support/TestParties.cs" Link="Support/TestParties.cs" />
     <Compile Include="../Support/TowerAlgorithmDrivers.cs" Link="Support/TowerAlgorithmDrivers.cs" />
     <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />

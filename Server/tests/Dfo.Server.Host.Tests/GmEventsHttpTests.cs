@@ -118,7 +118,7 @@ public sealed class GmEventsHttpTests
         Assert.All(missing.CumulativeRewards,r=>Assert.Null(r.ItemName));Assert.Equal(3,missing.WeeklyRewards[0].ItemId);
         Assert.Equal(before,await host.ReadAsync("SELECT input FROM event_configuration"));
         Assert.True(await DomainCommandFixture.Bus(host.Services).SendAsync(new Act(new(1),Claim:true)));
-        Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        Assert.Single(await TestUseCase.Mailbox(host.Services).InboxAsync(new(1)));
     }
     [Fact]
     public async Task Specific_settings_require_full_permission_and_missing_rules_do_not_fabricate_targets()
@@ -196,7 +196,7 @@ public sealed class GmEventsHttpTests
             await Clears(host,3);
             var claims=await Task.WhenAll(Enumerable.Range(0,8).Select(_=>bus.SendAsync(new Act(new(1),Claim:true)).AsTask()));
             Assert.Single(claims,b=>b);
-            var mail=Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            var mail=Assert.Single(await TestUseCase.Mailbox(host.Services).InboxAsync(new(1)));
             var reward=Assert.IsType<Dfo.Server.Data.Mail.MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset);Assert.Equal(3,reward.ItemId);Assert.Equal(1,reward.Count);
             Assert.Equal(1,(await host.Services.GetRequiredService<IWeeklyAttendanceDomainService>().StateAsync(new(1),DateTimeOffset.UtcNow,default)).CurrentAttendanceNo);
             await Change(host,csrf,new(2208,2,"disable"));Assert.False(await bus.SendAsync(new Act(new(1),RunId:Guid.NewGuid())));
@@ -208,7 +208,7 @@ public sealed class GmEventsHttpTests
         var state=await restart.Services.GetRequiredService<IWeeklyAttendanceDomainService>().StateAsync(new(1),DateTimeOffset.UtcNow,default);Assert.Equal(1,state.AttendanceCount);Assert.False(state.CanClaim);
         var next=await Change(restart,token,Configure(4,"new-season"));Assert.NotEqual(season,next.SeasonId);Assert.False(next.Enabled);
         await Change(restart,token,new(2208,5,"enable"));state=await restart.Services.GetRequiredService<IWeeklyAttendanceDomainService>().StateAsync(new(1),DateTimeOffset.UtcNow,default);Assert.Equal(0,state.AttendanceCount);Assert.Equal(0,state.RecommendedClears);
-        Assert.Single(await restart.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        Assert.Single(await TestUseCase.Mailbox(restart.Services).InboxAsync(new(1)));
     }
     [Fact]
     public async Task Transaction_failure_rolls_back_runs_rewards_and_claims_and_retry_is_available()
@@ -218,9 +218,9 @@ public sealed class GmEventsHttpTests
         await Assert.ThrowsAsync<InvalidOperationException>(()=>bus.SendAsync(new Act(new(1),RunId:run,Fail:true)).AsTask());
         Assert.True(await bus.SendAsync(new Act(new(1),RunId:run)));await Clears(host,3);
         await Assert.ThrowsAsync<InvalidOperationException>(()=>bus.SendAsync(new Act(new(1),Claim:true,Fail:true)).AsTask());
-        Assert.Empty(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        Assert.Empty(await TestUseCase.Mailbox(host.Services).InboxAsync(new(1)));
         var state=await host.Services.GetRequiredService<IWeeklyAttendanceDomainService>().StateAsync(new(1),DateTimeOffset.UtcNow,default);Assert.True(state.CanClaim);Assert.Equal(0,state.AttendanceCount);
-        Assert.True(await bus.SendAsync(new Act(new(1),Claim:true)));Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        Assert.True(await bus.SendAsync(new Act(new(1),Claim:true)));Assert.Single(await TestUseCase.Mailbox(host.Services).InboxAsync(new(1)));
     }
     [Fact]
     public async Task Weekly_reset_cumulative_rewards_expiry_and_missing_content_follow_server_authority()
@@ -232,7 +232,7 @@ public sealed class GmEventsHttpTests
         Assert.Equal(DateTimeOffset.Parse("2026-09-27T22:00:00Z"),reset.WeekStart(DateTimeOffset.Parse("2026-10-05T05:59:59+08:00")));
         for(var week=1;week<=4;week++)
         { await Clears(host);Assert.True(await bus.SendAsync(new Act(new(1),Claim:true)));Assert.False(await bus.SendAsync(new Act(new(1),Claim:true)));if(week<4)clock.Advance(TimeSpan.FromDays(7)); }
-        var mails=await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1));Assert.Equal(4,mails.Count);Assert.Equal(5,mails.Sum(m=>m.Attachments.Length));
+        var mails=await TestUseCase.Mailbox(host.Services).InboxAsync(new(1));Assert.Equal(4,mails.Count);Assert.Equal(5,mails.Sum(m=>m.Attachments.Length));
         Assert.Contains(mails.SelectMany(m=>m.Attachments),a=>a.Asset is Dfo.Server.Data.Mail.MailAsset.Stackable { ItemId:3033,Count:2 });
         csrf=await GmCeraHttpTests.Login(host);
         rules.Broken=true;Assert.Equal("unavailable",(await Get(host)).Status);Assert.False((await attendance.StateAsync(new(1),clock.GetUtcNow(),default)).Active);
@@ -258,7 +258,7 @@ public sealed class GmEventsHttpTests
             Assert.Equal((await names.FindAsync(reward.ItemId,default))!.Name,reward.ItemName);
         }
         await Clears(host);Assert.True(await DomainCommandFixture.Bus(host.Services).SendAsync(new Act(new(1),Claim:true)));
-        var mail=Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        var mail=Assert.Single(await TestUseCase.Mailbox(host.Services).InboxAsync(new(1)));
         Assert.Equal(490003187,Assert.IsType<Dfo.Server.Data.Mail.MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset).ItemId);
     }
     /// <summary>
@@ -303,7 +303,7 @@ public sealed class GmEventsHttpTests
         var beforeIds=ReadEventIds(Assert.Single(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x006C)[15..]);
         Assert.Contains((ushort)2208,beforeIds);
         Assert.Equal(19,ack.Length);Assert.Equal(0u,BinaryPrimitives.ReadUInt32LittleEndian(ack.AsSpan(15)));Assert.Contains(frames,f=>BinaryPrimitives.ReadUInt16LittleEndian(f.AsSpan(1))==0x042D && f.Length==465);
-        Assert.Single(await host.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        Assert.Single(await TestUseCase.Mailbox(host.Services).InboxAsync(new(1)));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);
         sender.Messages.Clear();await Change(host,csrf,new(2208,2,"disable"));
         await host.Services.GetRequiredService<Dfo.Server.Application.DomainEvents.DomainEventDispatcher>().DrainOnceAsync();await Settled(host);frames=Frames(host,sender);

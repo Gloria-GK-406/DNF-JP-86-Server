@@ -32,17 +32,17 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Dfo.Server.Application.Tests.Execution;
 
 /// <summary>
-/// RQ-061, the half without the outbox (TASK-18): a write unit of work, the three bare write sites and every write
+/// RQ-061, the half without the outbox (TASK-18): a write unit of work, the two bare write sites and every write
 /// member of the appendix F "move onto the executor" types throw off the executor and report it; the same call in a
 /// job runs; reads, and the appendix B exemptions, run anywhere.
 /// </summary>
 /// <remarks>
-/// A counterexample class the zero-violation evidence subtracts: 24 write violations per run, one per off-executor
-/// write below (Begin 1, ChangeAsync 2, AloneAsync 1, the creature fallback 2 (through AdvanceAsync and direct),
-/// the fourteen types 14, a finished job's continuation 1, a cancelled caller 1, two tower members that open
-/// their own unit of work 2: 1 + 2 + 1 + 2 + 14 + 1 + 1 + 2 = 24), plus one per write entry the TASK-30 census
-/// added (Application 10 + Protocol 7 + the ten daily refreshes 10 = 27, the weakness handle's case reporting three
-/// writes: 27 + 2 = 29): 24 + 29 = 53. Every case throws before it touches any state.
+/// A counterexample class the zero-violation evidence subtracts: 22 write violations per run, one per off-executor
+/// write below (Begin 1, ChangeAsync 2, the creature advance 1, the fourteen types 14, a finished job's continuation
+/// 1, a cancelled caller 1, two tower members that open their own unit of work 2: 1 + 2 + 1 + 14 + 1 + 1 + 2 = 22),
+/// plus one per write entry the TASK-30 census added (Application 10 + Protocol 7 + the ten daily refreshes 10 = 27,
+/// the weakness handle's case reporting three writes: 27 + 2 = 29): 22 + 29 = 51. Every case throws before it
+/// touches any state.
 /// </remarks>
 public sealed class GameplayWriteAssertionTests
 {
@@ -130,28 +130,22 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public async Task A_teardown_position_save_without_a_use_case_throws_off_the_executor()
+    public async Task A_position_save_without_a_use_case_is_refused_and_writes_nothing()
     {
+        // Teardown opens its own step for this write; the persistence itself never opens a boundary.
         var store = new RecordingPositions();
         var persistence = new SelectedSessionPositionPersistence(store, new NoTransactions(), new StubEntryPlacementRuleService());
         var position = new CharacterPositionState(1, 2, 3, 4, 5);
-        var seen = ViolationCapture.Attach();
 
-        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () =>
-            await persistence.PersistAsync(Account, Character, position, CancellationToken.None));
+        await TestGameplay.RunAsync(async () => await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await persistence.PersistAsync(Account, Character, position, CancellationToken.None)));
 
-        AssertOneViolation(seen, "SelectedSessionPositionPersistence.AloneAsync");
         Assert.Equal(0, store.Sessions);
-        await TestGameplay.RunAsync(async () =>
-            await persistence.PersistAsync(Account, Character, position, CancellationToken.None));
-        Assert.Equal(1, store.Sessions);
     }
 
     [Fact]
-    public async Task The_creature_fallback_transaction_refuses_off_the_executor_through_its_member()
+    public async Task A_creature_advance_refuses_off_the_executor_and_without_a_use_case_on_it()
     {
-        // :274 is reached only with an accessor that is not the configured scope: no test or production path
-        // builds one, so this one is made for the purpose (entry reconciliation section 1.5).
         var service = Creatures(new NoTransactions());
         var session = Session();
         var seen = ViolationCapture.Attach();
@@ -160,35 +154,9 @@ public sealed class GameplayWriteAssertionTests
             await service.AdvanceAsync(session, CancellationToken.None));
 
         AssertOneViolation(seen, "CreatureRuntimeDomainService.AdvanceAsync");
-        var changes = await TestGameplay.RunAsync(async () =>
-            await service.AdvanceAsync(session, CancellationToken.None));
-        Assert.Empty(changes);
-    }
-
-    [Fact]
-    public async Task The_creature_fallback_transaction_itself_asserts_before_it_opens()
-    {
-        // The member asserts first, so the fallback's own assertion is reached directly here.
-        var service = Creatures(new NoTransactions());
-        var within = typeof(CreatureRuntimeDomainService)
-            .GetMethod("WithinAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .MakeGenericMethod(typeof(bool));
-        var ran = 0;
-        Func<IDomainTransaction, ValueTask<bool>> action = transaction =>
-        {
-            ran++;
-            return ValueTask.FromResult(transaction is not null);
-        };
-        ValueTask<bool> Within() =>
-            (ValueTask<bool>)within.Invoke(service, [action, CancellationToken.None])!;
-        var seen = ViolationCapture.Attach();
-
-        await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Within());
-
-        AssertOneViolation(seen, "CreatureRuntimeDomainService.WithinAsync");
-        Assert.Equal(0, ran);
-        Assert.True(await TestGameplay.RunAsync(async () => await Within()));
-        Assert.Equal(1, ran);
+        // On the executor the member passes its assertion, but the service never opens a boundary of its own.
+        await TestGameplay.RunAsync(async () => await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await service.AdvanceAsync(session, CancellationToken.None)));
     }
 
     [Fact]

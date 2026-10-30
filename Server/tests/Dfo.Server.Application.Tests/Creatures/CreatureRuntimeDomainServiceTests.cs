@@ -83,7 +83,7 @@ public sealed class CreatureRuntimeDomainServiceTests
         {
             await using var f = new Fixture();
             await f.SeedAsync(); f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+            await f.AdvanceAsync(f.Session, default, combat: true);
             f.Clock.Advance(TimeSpan.FromSeconds(60));
             await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(f.Path)))
             {
@@ -93,14 +93,14 @@ public sealed class CreatureRuntimeDomainServiceTests
             }
             f.Runtime.QueueRoomExperience(f.Session, DungeonRunId.New(), new(0,0), 10);
             f.Runtime.DiscardExact(f.Session);
-            await f.Runtime.LeaveAsync(f.Session, default);
+            await f.LeaveAsync(f.Session, default);
             Assert.Equal(80, await f.StomachAsync());
             Assert.Empty(f.Runtime.DrainProjections()); Assert.Empty(f.Runtime.DueSessions());
             var replacement = f.Session with { ConnectionGeneration = 2 };
             f.Enter(replacement);
             f.Runtime.QueueRoomExperience(replacement, DungeonRunId.New(), new(0,0), 10);
             f.Runtime.DiscardExact(f.Session);
-            await f.Runtime.LeaveAsync(f.Session, default);
+            await f.LeaveAsync(f.Session, default);
             Assert.Contains(replacement, f.Runtime.DueSessions());
             Assert.Equal(80, await f.StomachAsync());
         });
@@ -115,11 +115,11 @@ public sealed class CreatureRuntimeDomainServiceTests
             {
                 await using var f = new Fixture();
                 await f.SeedAsync(); f.Enter();
-                await f.Runtime.AdvanceAsync(f.Session, default);
+                await f.AdvanceAsync(f.Session, default);
                 f.Clock.Advance(TimeSpan.FromHours(1));
                 f.Runtime.QueueRoomExperience(f.Session, DungeonRunId.New(), new(0, 0), 10);
                 if (revoke) f.Sessions.Revoke(f.Session);
-                await f.Runtime.LeaveAsync(f.Session, default);
+                await f.LeaveAsync(f.Session, default);
                 Assert.Empty(f.Runtime.DueSessions());
                 return (await f.StomachAsync(), await f.ExperienceAsync());
             }
@@ -138,9 +138,9 @@ public sealed class CreatureRuntimeDomainServiceTests
         {
             await using var f = new Fixture();
             await f.SeedAsync(); f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+            await f.AdvanceAsync(f.Session, default, combat: true);
             f.Clock.Advance(TimeSpan.FromSeconds(60));
-            Assert.NotEmpty(await f.Runtime.AdvanceAsync(f.Session, default, combat: true));
+            Assert.NotEmpty(await f.AdvanceAsync(f.Session, default, combat: true));
             await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(f.Path)))
             {
                 await connection.OpenAsync();
@@ -168,7 +168,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             Assert.Equal(LogLevel.Warning,blocked.Level);Assert.Null(blocked.Error);Assert.Contains("generation=1",blocked.Message);
             Assert.Empty(f.Runtime.DueSessions());
             Assert.Empty(f.Runtime.DrainProjections());
-            await f.Runtime.LeaveAsync(f.Session, default);
+            await f.LeaveAsync(f.Session, default);
             Assert.Equal(80, await f.StomachAsync());
             Assert.Equal(90, await f.ExperienceAsync());
 
@@ -177,7 +177,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             f.Runtime.QueueRoomExperience(replacement, DungeonRunId.New(), new(0, 0), 10);
             await safety.BlockAsync(new(f.Session, null), new IOException("old uncertainty"), "old generation");
             Assert.Contains(replacement, f.Runtime.DueSessions());
-            await f.Runtime.LeaveAsync(f.Session, default);
+            await f.LeaveAsync(f.Session, default);
             Assert.Contains(replacement, f.Runtime.DueSessions());
             Assert.Equal(80, await f.StomachAsync());
         });
@@ -215,7 +215,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+            await f.AdvanceAsync(f.Session, default, combat: true);
             f.Clock.Advance(TimeSpan.FromSeconds(30));
             f.Runtime.ChangeCombat(f.Session.CharacterId, false);
             await using var tx = f.Scope.Begin();
@@ -235,7 +235,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default, combat: true);
+            await f.AdvanceAsync(f.Session, default, combat: true);
             f.Clock.Advance(TimeSpan.FromSeconds(30));
             IPetInstance first;
             await using (var tx = f.Scope.Begin())
@@ -255,7 +255,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             }
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await first.AddStomachAsync(1, default));
             f.Clock.Advance(TimeSpan.FromSeconds(30));
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             Assert.Equal(64, await f.StomachAsync());
             Assert.Equal(110, await f.ExperienceAsync());
         });
@@ -269,7 +269,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             IPetInstance pet;
             await using (f.Scope.Begin())
             {
@@ -313,7 +313,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             var run = new DungeonRunId(Guid.NewGuid());
             var first = new MazeCell(1, 2);
             var second = new MazeCell(2, 2);
@@ -325,15 +325,15 @@ public sealed class CreatureRuntimeDomainServiceTests
                     f.Runtime.QueueRoomExperience(f.Session, run, second, 5);
                     f.Runtime.QueueRoomExperience(f.Session, run, first, 5);
                 }));
-                await f.Runtime.AdvanceAsync(f.Session, default);
-                await f.Runtime.AdvanceAsync(f.Session, default);
+                await f.AdvanceAsync(f.Session, default);
+                await f.AdvanceAsync(f.Session, default);
                 await tx.CommitAsync(default);
             }
             Assert.Equal(95L, await f.ExperienceAsync());
             Assert.Contains(f.Session, f.Runtime.DueSessions());
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             Assert.Equal(100L, await f.ExperienceAsync());
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             Assert.Equal(100L, await f.ExperienceAsync());
         });
     }
@@ -345,18 +345,18 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync(stomach: 1);
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             f.Runtime.ChangeCombat(f.Session.CharacterId, true);
             f.Clock.Advance(TimeSpan.FromSeconds(60));
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             f.Runtime.DrainProjections();
             f.Runtime.ChangeCombat(f.Session.CharacterId, false);
             f.Clock.Advance(TimeSpan.FromSeconds(5));
-            var revived = Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default));
+            var revived = Assert.Single(await f.AdvanceAsync(f.Session, default));
             Assert.Equal(0, revived.Before.ExactStomach);
             Assert.Equal(1, revived.After.Stomach);
             Assert.Equal(1L, await f.StomachAsync());
-            Assert.Empty(await f.Runtime.AdvanceAsync(f.Session, default));
+            Assert.Empty(await f.AdvanceAsync(f.Session, default));
         });
     }
 
@@ -368,13 +368,13 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             var run = new DungeonRunId(Guid.NewGuid());
             var cell = new MazeCell(1, 2);
             f.Runtime.QueueRoomExperience(f.Session, run, cell, 5);
             f.Runtime.QueueRoomExperience(f.Session, run, cell, 5);
             await using (f.Scope.Begin())
-                await f.Runtime.AdvanceAsync(f.Session, default);
+                await f.AdvanceAsync(f.Session, default);
             Assert.Equal(90L, await f.ExperienceAsync());
             Assert.Contains(f.Session, f.Runtime.DueSessions());
             await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(f.Path)))
@@ -384,10 +384,10 @@ public sealed class CreatureRuntimeDomainServiceTests
                 command.CommandText = "UPDATE item_slots SET list_type=7,slot_index=0 WHERE core_uid=101";
                 await command.ExecuteNonQueryAsync();
             }
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             Assert.Equal(95L, await f.ExperienceAsync());
             f.Runtime.QueueRoomExperience(f.Session, run, cell, 5);
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             Assert.Equal(95L, await f.ExperienceAsync());
             var award = Assert.Single(f.Runtime.DrainProjections());
             Assert.False(Assert.Single(award.Changes).Equipped);
@@ -402,15 +402,15 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            Assert.Empty(await f.Runtime.AdvanceAsync(f.Session, default));
+            Assert.Empty(await f.AdvanceAsync(f.Session, default));
             f.Clock.Advance(TimeSpan.FromSeconds(180));
-            Assert.Empty(await f.Runtime.AdvanceAsync(f.Session, default));
+            Assert.Empty(await f.AdvanceAsync(f.Session, default));
             Assert.Equal(50L, await f.StomachAsync());
             f.Clock.Advance(TimeSpan.FromSeconds(180));
-            Assert.Equal(51, Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default)).After.Stomach);
+            Assert.Equal(51, Assert.Single(await f.AdvanceAsync(f.Session, default)).After.Stomach);
             f.Runtime.ChangeCombat(f.Session.CharacterId, true);
             f.Clock.Advance(TimeSpan.FromSeconds(60));
-            Assert.Equal(50, Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default)).After.Stomach);
+            Assert.Equal(50, Assert.Single(await f.AdvanceAsync(f.Session, default)).After.Stomach);
             Assert.Equal(50L, await f.StomachAsync());
         });
     }
@@ -423,15 +423,15 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
-            await f.Runtime.LeaveAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
+            await f.LeaveAsync(f.Session, default);
             f.Clock.Advance(TimeSpan.FromDays(2));
             var replacement = f.Session with
             {
                 ConnectionId = new NetworkConnectionId("Game:pet-2"), ConnectionGeneration = 2
             };
             f.Enter(replacement);
-            Assert.Empty(await f.Runtime.AdvanceAsync(replacement, default));
+            Assert.Empty(await f.AdvanceAsync(replacement, default));
             Assert.Equal(50L, await f.StomachAsync());
         });
     }
@@ -479,12 +479,12 @@ public sealed class CreatureRuntimeDomainServiceTests
             };
             await using (var tx = f.Scope.Begin())
             {
-                await f.Runtime.AdvanceAsync(f.Session, default);
+                await f.AdvanceAsync(f.Session, default);
                 f.Scope.Current!.Enlist(new object(), () => new PrepareCallback(() => f.Enter(replacement)));
                 await tx.CommitAsync(default);
             }
             Assert.Equal(replacement, Assert.Single(f.Runtime.DueSessions()));
-            Assert.Empty(await f.Runtime.AdvanceAsync(f.Session, default));
+            Assert.Empty(await f.AdvanceAsync(f.Session, default));
         });
     }
 
@@ -496,13 +496,13 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync(stomach: 0);
             f.Enter();
-            Assert.Equal(1, Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default)).After.Stomach);
+            Assert.Equal(1, Assert.Single(await f.AdvanceAsync(f.Session, default)).After.Stomach);
             Assert.Equal(1L, await f.StomachAsync());
 
             f.Rules.HungerEnabled = false;
             f.Runtime.ChangeCombat(f.Session.CharacterId, true);
             f.Clock.Advance(TimeSpan.FromHours(1));
-            Assert.Equal(100, Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default)).After.Stomach);
+            Assert.Equal(100, Assert.Single(await f.AdvanceAsync(f.Session, default)).After.Stomach);
             Assert.Equal(100L, await f.StomachAsync());
         });
     }
@@ -515,7 +515,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             var run = new DungeonRunId(Guid.NewGuid());
             var cell = new MazeCell(1, 2);
 
@@ -557,18 +557,18 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
 
             f.Clock.Advance(TimeSpan.FromSeconds(180));
             f.Runtime.ChangeCombat(f.Session.CharacterId, true); // Rest credited half a point.
             f.Clock.Advance(TimeSpan.FromSeconds(30));
-            Assert.Empty(await f.Runtime.AdvanceAsync(f.Session, default)); // 50.5 - 0.5 = 50.
+            Assert.Empty(await f.AdvanceAsync(f.Session, default)); // 50.5 - 0.5 = 50.
             f.Clock.Advance(TimeSpan.FromSeconds(30));
-            Assert.Equal(49, Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default)).After.Stomach);
+            Assert.Equal(49, Assert.Single(await f.AdvanceAsync(f.Session, default)).After.Stomach);
 
             f.Runtime.ChangeCombat(f.Session.CharacterId, false);
             f.Clock.Advance(TimeSpan.FromSeconds(180));
-            Assert.Equal(50, Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default)).After.Stomach);
+            Assert.Equal(50, Assert.Single(await f.AdvanceAsync(f.Session, default)).After.Stomach);
             Assert.Equal(50L, await f.StomachAsync());
         });
     }
@@ -581,16 +581,16 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync(stomach: 1);
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             f.Runtime.ChangeCombat(f.Session.CharacterId, true);
 
             f.Clock.Advance(TimeSpan.FromSeconds(59));
-            var nearlyEmpty = Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default));
+            var nearlyEmpty = Assert.Single(await f.AdvanceAsync(f.Session, default));
             Assert.Equal(0, nearlyEmpty.After.Stomach);
             Assert.True(nearlyEmpty.After.ExactStomach > 0);
 
             f.Clock.Advance(TimeSpan.FromSeconds(1));
-            var exhausted = Assert.Single(await f.Runtime.AdvanceAsync(f.Session, default));
+            var exhausted = Assert.Single(await f.AdvanceAsync(f.Session, default));
             Assert.Equal(0, exhausted.After.Stomach);
             Assert.Equal(0, exhausted.After.ExactStomach);
         });
@@ -604,7 +604,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             await using var f = new Fixture();
             await f.SeedAsync();
             f.Enter();
-            await f.Runtime.AdvanceAsync(f.Session, default);
+            await f.AdvanceAsync(f.Session, default);
             Assert.Empty(f.Runtime.DrainProjections());
 
             await using (var tx = f.Scope.Begin())
@@ -661,6 +661,14 @@ public sealed class CreatureRuntimeDomainServiceTests
             this.Sessions.Select(selected);
             this.Runtime.Enter(selected);
         }
+
+        // A tick or a leave settles in the transaction the test opened, or as the use case that drives it.
+        public Task<IReadOnlyList<CreatureRuntimeChange>> AdvanceAsync(
+            SelectedSessionIdentity session, CancellationToken cancellationToken, bool? combat = null) =>
+            TestUseCase.RunAsync(this.Scope, () => this.Runtime.AdvanceAsync(session, cancellationToken, combat));
+
+        public Task LeaveAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+            TestUseCase.RunAsync(this.Scope, () => this.Runtime.LeaveAsync(session, cancellationToken));
 
         public async Task SeedAsync(int stomach = 50)
         {

@@ -110,8 +110,9 @@ public sealed class OutsideTransactionTests
     /// <remarks>
     /// This seam is reached both ways and has to behave differently in each. Inside a use case it
     /// must write through that one, or the place a character is standing would settle on a second
-    /// connection independently of everything else the use case decided. Outside one -- connection
-    /// teardown, which is not a command -- it must open a boundary rather than skip having one.
+    /// connection independently of everything else the use case decided. Connection teardown, which
+    /// is not a command, opens that boundary itself for this step; the seam never opens one, so
+    /// reached with none open it refuses rather than write unsettled.
     /// </remarks>
     [Fact]
     public async Task WhereACharacterWasStandingIsSavedThroughAnOpenUseCase()
@@ -139,7 +140,7 @@ public sealed class OutsideTransactionTests
     }
 
     [Fact]
-    public async Task WhereACharacterWasStandingIsSavedWhenNoUseCaseIsOpen()
+    public async Task WhereACharacterWasStandingIsRefusedWhenNoUseCaseIsOpen()
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -148,10 +149,10 @@ public sealed class OutsideTransactionTests
                 fixture.Characters, new ClosedTransactionAccessor(), new StubEntryPlacementRuleService());
             var moved = new CharacterPositionState(11, 22, 33, 44, 1);
 
-            await persistence.PersistAsync(
-                Owned.Account, Owned.Character, moved, CancellationToken.None);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await persistence.PersistAsync(
+                Owned.Account, Owned.Character, moved, CancellationToken.None));
 
-            Assert.Equal(moved, await ReadPositionAsync(fixture));
+            Assert.NotEqual(moved, await ReadPositionAsync(fixture));
         });
     }
 
@@ -227,12 +228,16 @@ public sealed class OutsideTransactionTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var fixture = await Fixture.CreateAsync();
-            var persistence = new SelectedSessionPositionPersistence(fixture.Characters, new ClosedTransactionAccessor(),
+            var scope = TestRequired.TransactionScope();
+            var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope,
                 new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
-            await persistence.PersistAsync(Owned.Account, Owned.Character, new(11, 0, 10, 20, 5), default);
+            // Each teardown settles its position step on its own, as the session cleanup does.
+            Task Teardown(CharacterPositionState position) =>
+                TestUseCase.RunAsync(scope, () => persistence.PersistAsync(Owned.Account, Owned.Character, position, default));
+            await Teardown(new(11, 0, 10, 20, 5));
             var destination = new CharacterPositionState(12, 0, 562, 183, 5);
-            await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
-            await persistence.PersistAsync(Owned.Account, Owned.Character, destination, default);
+            await Teardown(destination);
+            await Teardown(destination);
             Assert.Equal(11, await ReadInnAsync(fixture));
             Assert.Equal(destination, await ReadPositionAsync(fixture));
         });

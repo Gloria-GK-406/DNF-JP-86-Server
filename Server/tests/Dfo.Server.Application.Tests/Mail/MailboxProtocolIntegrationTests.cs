@@ -417,7 +417,7 @@ public sealed class MailboxProtocolIntegrationTests
     });
     private static Task<MailSendReceipt> SendDomain(ShopFixture shop, Dfo.Server.Data.Mail.Mail request) =>
         TestGameplay.RunAsync(shop.Services, async () => await Mail(shop).SendAsync(request));
-    private static IMailboxDomainService Mail(ShopFixture shop) => shop.Services.GetRequiredService<IMailboxDomainService>();
+    private static IMailboxDomainService Mail(ShopFixture shop) => TestUseCase.Mailbox(shop.Services);
     private static async Task<MailboxResult> Command(ShopFixture shop, MailboxOperation operation) =>
         (await MailboxTestWire.Command(shop, new MailboxOpenRequest(GameMessageMetadata.Empty))).Result;
     private sealed class FreeMailItemDefinitions : IMailItemDefinitionSource

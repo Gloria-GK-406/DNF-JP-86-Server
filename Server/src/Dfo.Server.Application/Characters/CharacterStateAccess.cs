@@ -114,14 +114,14 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
 /// <remarks>
 /// It is reached two ways. Inside a use case -- a session starting, or one ending because another
 /// displaced it -- it writes through that use case. On connection teardown there is no use case at
-/// all, because the server deliberately does not model teardown as a command, and rather than
-/// exempting the write from needing a boundary it opens one of its own. The guarantee that matters
-/// is that a change to a character's stored state is settled by a transaction, not that a command
-/// was dispatched.
+/// all, because the server deliberately does not model teardown as a command; the session cleanup
+/// opens a boundary for this step itself, so the write is never exempted from one. The guarantee
+/// that matters is that a change to a character's stored state is settled by a transaction, not
+/// that a command was dispatched.
 ///
-/// It lives beside the domain rather than in the persistence implementation because deciding which
-/// of those two it is doing is the whole of its job; the persistence side is only asked to hold
-/// the place.
+/// It lives beside the domain rather than in the persistence implementation because deciding what
+/// to store (a couple room is never stored, an inn is remembered only where the rules allow) is
+/// the whole of its job; the persistence side is only asked to hold the place.
 /// </remarks>
 internal sealed class SelectedSessionPositionPersistence(
     ICharacterDomainStore store, IDomainTransactionAccessor transactions, IEntryPlacementRuleService placement)
@@ -139,32 +139,11 @@ internal sealed class SelectedSessionPositionPersistence(
         var owned = new OwnedCharacterId(accountId, characterId);
         byte? innTown = await placement.CanRememberInnAsync(position.TownId, cancellationToken).ConfigureAwait(false)
             ? position.TownId : null;
-        if (transactions.Current is { } ambient)
-        {
-            // The use case settles this one. Opening a second boundary beside it would put the
-            // same database on another connection and leave the two to finish independently --
-            // the very thing a boundary exists to prevent.
-            store.SessionIn(ambient).WritePosition(owned, position, innTown);
-            return;
-        }
-
-        await this.AloneAsync(owned, position, innTown, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async ValueTask AloneAsync(
-        OwnedCharacterId owned, CharacterPositionState position, byte? innTown, CancellationToken cancellationToken)
-    {
-        GameplayWriteAssertion.Writing(nameof(SelectedSessionPositionPersistence) + "." + nameof(AloneAsync));
-        var alone = new DomainTransaction();
-        try
-        {
-            store.SessionIn(alone).WritePosition(owned, position, innTown);
-            await alone.CommitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            await alone.RollbackAsync().ConfigureAwait(false);
-            throw;
-        }
+        // The use case settles this one -- for teardown, the session cleanup's own step. Opening a
+        // second boundary beside it would put the same database on another connection and leave
+        // the two to finish independently -- the very thing a boundary exists to prevent.
+        var ambient = transactions.Current
+            ?? throw new InvalidOperationException("Position persistence requires the caller's transaction.");
+        store.SessionIn(ambient).WritePosition(owned, position, innTown);
     }
 }

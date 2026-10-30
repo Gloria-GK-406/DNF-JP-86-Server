@@ -60,7 +60,7 @@ public sealed class MailboxProtocolCommandFlowTests
             Assert.DoesNotContain(f.Sender.Outbound.Entries, entry => entry.IsClose);
         }
         if (mode != "nonfallible") Assert.Equal(before, Task31Assets.Read(f.Services));
-        else { Assert.Equal(99970, f.Gold); Assert.Single(await f.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(2))); }
+        else { Assert.Equal(99970, f.Gold); Assert.Single(await TestUseCase.Mailbox(f.Services).InboxAsync(new(2))); }
         if (mode == "native")
         {
             var fact = Assert.IsType<TransactionFailureFact>(trace.Transaction.CommitFailure);

@@ -581,9 +581,7 @@ public sealed class GameplayWriteEntryTableTests
             [("Dfo.Server.Application/Transactions/DomainTransactionScope.cs", "BeginSnapshot")] = Site.Snapshot,
             [("Dfo.Server.Application/Characters/CharacterStateAccess.cs", "ReadAsync")] = Site.Read,
             [("Dfo.Server.Application/Characters/CharacterStateAccess.cs", "ChangeAsync")] = Site.Write,
-            [("Dfo.Server.Application/Characters/CharacterStateAccess.cs", "AloneAsync")] = Site.Write,
             [("Dfo.Server.Application/Inventory/ItemContainers.cs", "ReadAsync")] = Site.Read,
-            [("Dfo.Server.Application/Creatures/CreatureRuntimeDomainService.cs", "WithinAsync")] = Site.Write,
         };
 
     internal enum Site { Read, Write, Snapshot }

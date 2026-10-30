@@ -1,3 +1,6 @@
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -178,6 +181,35 @@ public sealed class SessionGenerationOwnershipTests
     }
 
     [Fact]
+    public async Task Cleanup_SettlesThePositionAndTheCreatureLeaveEachInItsOwnTransaction()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            // Teardown is not a command: no unit is open, so the cleanup opens one per step.
+            var session = Session("own-steps", 9);
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
+            var directory = Dfo.Server.Testing.TestSessions.Directory();
+            directory.Select(session);
+            var scope = TestRequired.TransactionScope();
+            var persistence = new RecordingPositionPersistence(scope);
+            var (creatures, leaves) = RecordingCreatureLeave.Create(scope);
+            var service = Cleanup(directory, runtime: runtime, channels: new KindChannels(ChannelEntryKind.General),
+                persistence: persistence, scope: scope, creatures: creatures);
+
+            await TestEffectFootprints.Run(session, cap => service.CleanupAsync(session, false, cap, CancellationToken.None));
+
+            Assert.Equal(1, persistence.Writes);
+            var position = Assert.IsType<DomainTransaction>(persistence.Transaction);
+            var leave = Assert.IsType<DomainTransaction>(Assert.Single(leaves.Transactions));
+            Assert.NotSame(position, leave);
+            Assert.Equal(DomainTransactionCompletion.Committed, position.Completion);
+            Assert.Equal(DomainTransactionCompletion.Committed, leave.Completion);
+            Assert.Null(scope.Current);
+        });
+    }
+
+    [Fact]
     public async Task Cleanup_DoesNotPersistAPositionForASessionThatNeverEnteredTheWorld()
     {
         await TestGameplay.RunAsync(async () =>
@@ -324,7 +356,9 @@ public sealed class SessionGenerationOwnershipTests
         IChannelEntryDomainService? channels = null,
         RecordingPositionPersistence? persistence = null,
         DungeonRunDomainService? runs = null,
-        IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null)
+        IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null,
+        DomainTransactionScope? scope = null,
+        ICreatureRuntimeDomainService? creatures = null)
     {
         var areas = presence ?? new SessionPresenceDomainService();
         return new(directory, new CharacterContainerDomainService(TestRequired.TransactionScope()),
@@ -332,7 +366,7 @@ public sealed class SessionGenerationOwnershipTests
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),
-            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
+            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
     }
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>
@@ -427,11 +461,13 @@ public sealed class SessionGenerationOwnershipTests
 
     }
 
-    private sealed class RecordingPositionPersistence : ISelectedSessionPositionPersistence
+    private sealed class RecordingPositionPersistence(DomainTransactionScope? scope = null) : ISelectedSessionPositionPersistence
     {
         public int Writes { get; private set; }
 
         public CharacterPositionState? Position { get; private set; }
+
+        public IDomainTransaction? Transaction { get; private set; }
 
         public ValueTask PersistAsync(AccountId accountId, CharacterId characterId,
             Dfo.Server.Data.Characters.CharacterPositionState position,
@@ -439,6 +475,31 @@ public sealed class SessionGenerationOwnershipTests
         {
             this.Writes++;
             this.Position = position;
+            this.Transaction = scope?.Current;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>Records the transaction each creature leave ran in; every other member is unused here.</summary>
+    public class RecordingCreatureLeave : System.Reflection.DispatchProxy
+    {
+        private DomainTransactionScope scope = null!;
+
+        internal List<IDomainTransaction?> Transactions { get; } = [];
+
+        internal static (ICreatureRuntimeDomainService Proxy, RecordingCreatureLeave Recorder) Create(DomainTransactionScope scope)
+        {
+            var proxy = Create<ICreatureRuntimeDomainService, RecordingCreatureLeave>();
+            var recorder = (RecordingCreatureLeave)(object)proxy;
+            recorder.scope = scope;
+            return (proxy, recorder);
+        }
+
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            if (method!.Name != nameof(ICreatureRuntimeDomainService.LeaveAsync))
+                throw new NotSupportedException(method.Name);
+            Transactions.Add(scope.Current);
             return ValueTask.CompletedTask;
         }
     }

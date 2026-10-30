@@ -275,26 +275,9 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
         }, ct).ConfigureAwait(false);
     }
 
-    private async ValueTask<T> WithinAsync<T>(Func<IDomainTransaction, ValueTask<T>> action, CancellationToken ct)
-    {
-        if (transactions.Current is { } current) return await action(current).ConfigureAwait(false);
-        if (transactions is DomainTransactionScope scope)
-        {
-            await using var lease = scope.Begin();
-            var result = await action(scope.Current!).ConfigureAwait(false);
-            await lease.CommitAsync(ct).ConfigureAwait(false);
-            return result;
-        }
-        GameplayWriteAssertion.Writing(nameof(CreatureRuntimeDomainService) + "." + nameof(WithinAsync));
-        var transaction = new DomainTransaction();
-        try
-        {
-            var result = await action(transaction).ConfigureAwait(false);
-            await transaction.CommitAsync(ct).ConfigureAwait(false);
-            return result;
-        }
-        catch { await transaction.RollbackAsync().ConfigureAwait(false); throw; }
-    }
+    // The caller's unit (or the session cleanup's own step) settles the runtime; never opened here.
+    private ValueTask<T> WithinAsync<T>(Func<IDomainTransaction, ValueTask<T>> action, CancellationToken ct) =>
+        action(transactions.Current ?? throw new InvalidOperationException("Creature runtime changes require a use case."));
 
     private sealed class InstanceRuntime(CreatureRuntimeDomainService owner, ISelectedSessionDomainService sessions,
         IDomainTransaction tx, SelectedSessionIdentity session, bool leaving) : ICreatureInstanceRuntime

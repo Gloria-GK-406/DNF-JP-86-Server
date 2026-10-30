@@ -200,7 +200,7 @@ public sealed class QuestInventoryEventTests
         await TestGameplay.RunAsync(f.Services, async () =>
         {
             f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().EnsureInWorld(f.Session);
-            var mail = f.Services.GetRequiredService<IMailboxDomainService>();
+            var mail = TestUseCase.Mailbox(f.Services);
             var sent = await mail.SendAsync(MailBuilder.FromSystem(new(1)).AddStackable(1000, 10).Build());
             var attachment = Assert.Single((await mail.ReadAsync(new(1), sent.MailId)).Attachments);
             Assert.Equal(0, f.Count(1000));

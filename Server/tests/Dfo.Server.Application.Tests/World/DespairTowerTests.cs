@@ -278,7 +278,7 @@ public sealed class DespairTowerTests
             Assert.NotNull((await Enter(f)).Entry);
             var award = Assert.IsType<DespairTowerSettlement>(await Clear(f));
             Assert.NotEmpty(award.Rewards);
-            var inbox = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Mail.IMailboxDomainService>().InboxAsync(new(71));
+            var inbox = await TestUseCase.Mailbox(f.Services).InboxAsync(new(71));
             Assert.Equal(award.Rewards.Sum(x => x.Count), inbox.SelectMany(x => x.Attachments).Count());
             Assert.Equal(1, (await f.Services.GetRequiredService<IDespairTowerDomainStore>().ReadAsync(new(71), default)).HighestClearedFloor);
             Assert.All(inbox.SelectMany(x => x.Attachments), item => Assert.False(item.Claimed));
