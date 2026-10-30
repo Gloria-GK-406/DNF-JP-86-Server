@@ -635,6 +635,77 @@ public sealed class GameplayWriteEntryTableTests
         Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
     }
 
+    /// <summary>Who may open a boundary through the scope, and why it is theirs to open.</summary>
+    /// <remarks>
+    /// Domain services join the caller's transaction and refuse without one (#181); a service that
+    /// opens its own when the caller has none hides a missing boundary.
+    /// </remarks>
+    internal static readonly IReadOnlyDictionary<(string File, string Method), string> ScopeBeginSites =
+        new Dictionary<(string, string), string>
+        {
+            [("Dfo.Server.Application/Transactions/CommandWorkUnits.cs", "RunSelfSettledAsync")] = "The executor's work units own command boundaries.",
+            [("Dfo.Server.Application/Transactions/CommandWorkUnits.cs", "RunAsync")] = "The executor's work units own command boundaries.",
+            [("Dfo.Server.Application/Transactions/CommandFailureAudit.cs", "RunAsync")] = "The failure audit settles after its command's own unit has ended.",
+            [("Dfo.Server.Application/Sessions/SelectCharacterLifecycleServices.cs", "SettleStepAsync")] = "Disconnect cleanup is not a command; each of its steps settles alone.",
+            [("Dfo.Server.Application/Inventory/EpicBookDomainService.cs", "InitializeAsync")] = "Startup migration runs before any command exists.",
+        };
+
+    private static readonly System.Text.RegularExpressions.Regex ScopeBegin =
+        new(@"\b\w*(?:transactions|scope)\.Begin\(", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    private static List<string> ScopeBeginViolations(IReadOnlyDictionary<string, string> files)
+    {
+        var violations = new List<string>();
+        var found = new HashSet<(string, string)>();
+        foreach (var (path, text) in files)
+        {
+            var code = WithoutComments(text);
+            foreach (System.Text.RegularExpressions.Match match in ScopeBegin.Matches(code))
+            {
+                var (method, _) = EnclosingMethod(code, match.Index);
+                found.Add((path, method));
+                if (!ScopeBeginSites.ContainsKey((path, method)))
+                    violations.Add($"{path}: {method} opens a transaction through the scope but is not a listed site");
+            }
+        }
+        foreach (var site in ScopeBeginSites.Keys.Where(site => !found.Contains(site)))
+            violations.Add($"{site.File}: listed site {site.Method} no longer opens a transaction");
+        return violations;
+    }
+
+    [Fact]
+    public void Only_the_listed_owners_open_a_transaction_through_the_scope()
+    {
+        var source = Path.Combine(Repository(), "Server", "src");
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(source, "*.cs", SearchOption.AllDirectories))
+        {
+            var path = Path.GetRelativePath(source, file).Replace('\\', '/');
+            if (path.Contains("/bin/", StringComparison.Ordinal) || path.Contains("/obj/", StringComparison.Ordinal))
+                continue;
+            files[path] = File.ReadAllText(file);
+        }
+
+        var violations = ScopeBeginViolations(files);
+
+        Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
+    }
+
+    [Fact]
+    public void A_domain_service_opening_its_own_transaction_is_refused()
+    {
+        var files = ScopeBeginSites.Keys.Distinct().GroupBy(site => site.File).ToDictionary(group => group.Key,
+            group => "class L\n{\n" + string.Concat(group.Select(site => $"    private void {site.Method}()\n    {{\n        transactions.Begin();\n    }}\n")) + "}\n");
+        Assert.Empty(ScopeBeginViolations(files));
+
+        files["Dfo.Server.Application/World/NewDomainService.cs"] =
+            "class S\n{\n    private void Execute()\n    {\n        if (scope.Current is null) scope.Begin();\n    }\n}\n";
+        Assert.Contains(ScopeBeginViolations(files), violation => violation.Contains("NewDomainService.cs: Execute opens", StringComparison.Ordinal));
+
+        files.Remove("Dfo.Server.Application/Inventory/EpicBookDomainService.cs");
+        Assert.Contains(ScopeBeginViolations(files), violation => violation.Contains("InitializeAsync no longer opens", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void A_transaction_at_an_unlisted_site_is_refused()
     {
