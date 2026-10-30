@@ -103,7 +103,7 @@ public sealed class SealedTreasureTests
             await using (var tx = f.Scope.Begin())
                 Assert.NotNull((await service.EnterAsync(Entry(), default)).Entry);
             Assert.Equal(1, await Count(f, 10003235));
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
             await using (var tx = f.Scope.Begin())
             {
                 Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await service.EnterAsync(Entry() with { PracticeMode = 1 }, default)).Failure);
@@ -118,7 +118,7 @@ public sealed class SealedTreasureTests
                 await tx.CommitAsync(default);
             }
             Assert.Equal(0, await Count(f, 10003235)); Assert.Equal(2, await Count(f, 10003196));
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(new CharacterId(71))!;
             var target = run.Layout.Cells.Keys.First(x => run.Layout.CanTraverse(run.CurrentCell, x));
             await using (var tx = f.Scope.Begin())

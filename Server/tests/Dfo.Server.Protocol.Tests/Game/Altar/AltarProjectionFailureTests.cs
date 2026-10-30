@@ -79,7 +79,7 @@ public sealed class AltarProjectionFailureTests
 
     private sealed class AltarWorld : IAsyncDisposable
     {
-        private readonly DungeonRunDomainService runs = TestParties.Runs();
+        private readonly IDungeonRunDomainService runs = TestParties.Runs();
         private readonly DungeonRunDeliveryRegistry registry = new();
         private DungeonRunId runId;
         private readonly IAltarDungeonDomainService altars = DispatchProxy.Create<IAltarDungeonDomainService, AltarProbe>();
@@ -95,7 +95,7 @@ public sealed class AltarProjectionFailureTests
             {
                 services.AddSingleton<ISelectedSessionDomainService>(directory);
                 services.AddSingleton<IOnlineUserQueryDomainService>(users);
-                services.AddSingleton<IDungeonRunDomainService>(runs);
+                services.AddDungeonRunsAs(runs);
                 services.AddDungeonRunViews();
                 services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
                 services.AddSingleton(altars);

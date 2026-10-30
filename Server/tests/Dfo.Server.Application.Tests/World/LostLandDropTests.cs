@@ -111,7 +111,7 @@ public sealed class LostLandDropTests
             Participants=[new(fixture.Session.AccountId,fixture.Session.CharacterId,0,true)] };
         var plan = await fixture.Services.GetRequiredService<ILostLandDropRuleService>()
             .PrepareAsync(context,new(new(69668,85,3),false),1,default);
-        var runs=fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs=fixture.Services.DungeonRuns();
         var run=fixture.InTransaction(() => runs.PreparePartyEntry(context.Participants,context.Layout,0,
             new(context.Cell,11248,1,[new(1,new(69668,85,3),false,false,plan.Regular) {LostLandBonus=plan.Bonus}],[]),
             context.RunId,fixture.Clock.GetUtcNow()).Run);

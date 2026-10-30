@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
@@ -13,7 +14,7 @@ public sealed class MarriageCapsuleItemUseTests
     {
         Skip.If(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PVF_ARCHIVE_PATH")),"Real PVF required.");
         using var fixture=new CeraShopFixture(useArchive:true);var f=fixture.Host;
-        var runs=f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonRunDomainService>();
+        var runs=f.Services.DungeonRuns();
         var cell=new Dfo.Server.Abstractions.Content.MazeCell(0,0);
         var layout=new Dfo.Server.Abstractions.World.DungeonLayout(3541,0,1,1,cell,cell,1,1,
             new Dictionary<Dfo.Server.Abstractions.Content.MazeCell,Dfo.Server.Abstractions.Content.DungeonCellDefinition> { [cell]=Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(1) });

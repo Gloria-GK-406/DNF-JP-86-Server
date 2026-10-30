@@ -124,7 +124,7 @@ public sealed class SouthernDaleTests
             }
             Assert.Equal(2, await Count(f, 71, 2680738));
             await using (var tx = f.Scope.Begin()) Assert.NotNull((await southern.EnterAsync(context, default)).Entry);
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
             Assert.Equal(2, await Count(f, 71, 2680738));
             Assert.Equal(2, await Count(f, 72, 2680738));
             await using (var tx = f.Scope.Begin())
@@ -178,7 +178,7 @@ public sealed class SouthernDaleTests
                 new(2), new(72), "southern-second");
             var players = new[] { f.Session, second };
             MakeParty(f);
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var cell = new MazeCell(0, 0);
             var layout = new DungeonLayout(100, 0, 1, 1, cell, cell, 12006, 1,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(12006) })

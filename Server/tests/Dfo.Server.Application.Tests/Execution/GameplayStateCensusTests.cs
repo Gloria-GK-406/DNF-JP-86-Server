@@ -151,6 +151,22 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
     {
         [typeof(Dfo.Server.Protocol.Game.Joust.GameJoustBetCommandHandler)] =
             "writes through domain services and the request-owned EffectOperationEntry; has no static operation-id table or mutable state of its own",
+        [typeof(DungeonRunStore.EntryService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.CombatService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.ParticipantService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.GroundDropService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.SettlementService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.CardService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.TimerService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
+        [typeof(DungeonRunStore.DepartureService)] =
+            "a dungeon run service: it writes the runs the DungeonRunStore owns, under the store's lock, and keeps only its dependencies",
         [typeof(AltarDungeonEngine)] = "named by appendix F; works on the AltarStateStore each caller passes in, which is a write entry of its own",
         [GameplayWriteEntryTableTests.WeaknessHandle] =
             "the handle WeaknessDomainService.For hands out; it writes its owner's entries and pending penalties, the owner being a write entry",

@@ -204,7 +204,7 @@ public sealed class CardRewardDomainServiceTests
         }
     }
 
-    private static (CardRewardDomainService Service, DungeonRunDomainService Runs, RecordingRules Rules)
+    private static (CardRewardDomainService Service, IDungeonRunDomainService Runs, RecordingRules Rules)
         Build(DungeonLayout layout)
     {
         var runs = TestParties.Runs();

@@ -184,7 +184,7 @@ public sealed class DungeonCardSelectionProjectionDeliveryTests
 
     private sealed record World(
         CardSelectionProjectionFixture Projection,
-        DungeonRunDomainService Runs,
+        IDungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender);
 

@@ -101,7 +101,7 @@ public sealed class SealedTreasureRunTests
             [new(3, 2)] = DungeonCellDefinition.Fixed(10), [new(2, 1)] = DungeonCellDefinition.Fixed(10),
             [start] = DungeonCellDefinition.Fixed(10), [Center] = DungeonCellDefinition.Fixed(11)
         }) { ConsumesFatigue = false };
-    private static DungeonRunState Start(DungeonRunDomainService runs, DungeonLayout layout, DungeonCellSeed seed) =>
+    private static DungeonRunState Start(IDungeonRunDomainService runs, DungeonLayout layout, DungeonCellSeed seed) =>
         runs.PreparePartyEntry([new(new(1), Character, 0, true)], layout, DungeonDifficulty.Tier2,
             seed, DungeonRunId.New(), DateTimeOffset.UtcNow).Run;
 }

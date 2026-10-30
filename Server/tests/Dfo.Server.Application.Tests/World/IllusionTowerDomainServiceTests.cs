@@ -1330,7 +1330,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             s.AddSingleton<ITournamentDungeonContentSource, NoTournamentContent>();
             s.AddSingleton<IGoldSilverHornContentSource, SyntheticGoldSilverHornContent>();
             s.AddSingleton<IDungeonCellFactory, OrdinaryCells>();
-            s.AddSingleton<IDungeonRunDomainService>(p => TestParties.Runs(p.GetRequiredService<IDomainTransactionAccessor>(), p.GetService<IPartyService>()));
+            s.AddDungeonRunsAs(p => TestParties.Runs(p.GetRequiredService<IDomainTransactionAccessor>(), p.GetService<IPartyService>()));
             s.AddDungeonRunViews();
             configure?.Invoke(s);
         }, useArchive: useArchive);

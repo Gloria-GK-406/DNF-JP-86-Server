@@ -52,7 +52,7 @@ public sealed class GuardianAltarLifecycleTests
             { Assert.Null(await altar.OpenAsync(f.Session, default)); Assert.Null((await altar.EnterAsync(Entry, default)).Entry); }
             await using (var tx = f.Scope.Begin()) { await events.ChangeAsync(new(119, 1, "enable"), "test", clock.At, default); await tx.CommitAsync(default); }
             await using (var tx = f.Scope.Begin()) { Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry); await tx.CommitAsync(default); }
-            var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71))!;
+            var run = f.Services.DungeonRuns().Find(new CharacterId(71))!;
             var old = altar.Find(run.RunId)!;
             Assert.True(f.Services.GetRequiredService<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>().ReleaseExact(f.Session));
             await using (var tx = f.Scope.Begin())
@@ -73,7 +73,7 @@ public sealed class GuardianAltarLifecycleTests
         {
             var clock = new Clock(); await using var f = await Fixture(clock);
             var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { await altar.OpenAsync(f.Session, default); await tx.CommitAsync(default); }
             await using (var tx = f.Scope.Begin()) { Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry); await tx.CommitAsync(default); }
             var run = runs.Find(new CharacterId(71))!;
@@ -113,7 +113,7 @@ public sealed class GuardianAltarLifecycleTests
         {
             var clock = new Clock(); await using var f = await Fixture(clock);
             var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { await altar.OpenAsync(f.Session, default); await tx.CommitAsync(default); }
             await using (var tx = f.Scope.Begin()) { Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry); await tx.CommitAsync(default); }
             var run = runs.Find(new CharacterId(71))!; var loading = altar.Find(run.RunId)!;
@@ -136,7 +136,7 @@ public sealed class GuardianAltarLifecycleTests
             var clock = new Clock(); await using var f = await Fixture(clock);
             var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
             var store = f.Services.GetRequiredService<IGuardianAltarProgressDomainStore>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { await altar.OpenAsync(f.Session, default); await tx.CommitAsync(default); }
             var old = (await store.ReadAsync(new(71), default))!;
             await using (var tx = f.Scope.Begin()) { await store.SaveAsync(new(71), old with { Revision = old.Revision + 1, ExtraTickets = 100 }, old.Revision, default); await tx.CommitAsync(default); }
@@ -186,7 +186,7 @@ public sealed class GuardianAltarLifecycleTests
             await using (var tx = f.Scope.Begin())
                 Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry);
             Assert.Equal(System.Text.Json.JsonSerializer.Serialize(before), System.Text.Json.JsonSerializer.Serialize(await store.ReadAsync(new(71), default)));
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
             await using (var tx = f.Scope.Begin())
             {
                 var updated = before! with { Revision = before!.Revision + 1, FreeTickets = 0, ExtraTickets = 2 };
@@ -208,7 +208,7 @@ public sealed class GuardianAltarLifecycleTests
         {
             var clock = new Clock(); await using var f = await Fixture(clock);
             var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { await altar.OpenAsync(f.Session, default); await tx.CommitAsync(default); }
             await using (var tx = f.Scope.Begin())
             { Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry); await tx.CommitAsync(default); }
@@ -257,7 +257,7 @@ public sealed class GuardianAltarLifecycleTests
         {
             var clock = new Clock(); await using var f = await Fixture(clock);
             var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { await altar.OpenAsync(f.Session, default); await tx.CommitAsync(default); }
             await using (var tx = f.Scope.Begin()) { Assert.NotNull((await altar.EnterAsync(Entry, default)).Entry); await tx.CommitAsync(default); }
             var run = runs.Find(new CharacterId(71))!; runs.TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);
@@ -289,7 +289,7 @@ public sealed class GuardianAltarLifecycleTests
             var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
             var rules = f.Services.GetRequiredService<IGuardianAltarRuleService>();
             var store = f.Services.GetRequiredService<IGuardianAltarProgressDomainStore>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { await altar.OpenAsync(f.Session, default); await tx.CommitAsync(default); }
             var old = (await store.ReadAsync(new(71), default))!; var unlocked = old;
             foreach (var stage in rules.Catalog.Stages.Where(x => !x.Survival))

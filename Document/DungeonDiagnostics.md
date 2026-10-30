@@ -12,7 +12,7 @@
       "Dfo.Server.Protocol.Game.DungeonEntry": "Debug",
       "Dfo.Server.Protocol.Game.MonsterDeath": "Debug",
       "Dfo.Server.Application.World.DungeonVisitDomainService": "Debug",
-      "Dfo.Server.Application.World.DungeonRunDomainService": "Debug",
+      "Dfo.Server.Application.World.DungeonRunStore": "Debug",
       "Dfo.Server.Application.World.MonsterDeathDomainService": "Debug"
     }
   }

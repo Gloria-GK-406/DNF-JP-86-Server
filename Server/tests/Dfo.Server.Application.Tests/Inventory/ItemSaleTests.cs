@@ -39,7 +39,7 @@ public sealed class ItemSaleTests
             { Mode = tower ? new DungeonRunMode.Despair(new(1, new(2026, 10, 11))) : DungeonRunMode.Ordinary };
         TestGameplay.Run(shop.Services, () =>
         {
-            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = shop.Services.DungeonRuns();
             var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
                 shop.Session.CharacterId, 0, true)], layout, 0)).Run;
             if (clear) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);
@@ -68,7 +68,7 @@ public sealed class ItemSaleTests
                 : new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611), [other] = DungeonCellDefinition.Fixed(55611)});
         TestGameplay.Run(shop.Services, () =>
         {
-            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = shop.Services.DungeonRuns();
             var run = shop.InTransaction(() => runs.PreparePartyEntry([new(shop.Session.AccountId,
                 shop.Session.CharacterId, 0, true)], layout, 0)).Run;
             if (open) runs.TryOpenClear(shop.Session.CharacterId, run.RunId, run.RoomVersion);

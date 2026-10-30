@@ -52,11 +52,11 @@ public sealed class GroundPickupTests
         },
         BasisLevel: 86);
 
-    private static (GroundPickupAlgorithmDriver Handler, DungeonRunDomainService Runs,
+    private static (GroundPickupAlgorithmDriver Handler, IDungeonRunDomainService Runs,
         FakeContainer Bag, CarriedGold Carried) Build()
         => Build(new NoSeekingProgress());
 
-    private static (GroundPickupAlgorithmDriver Handler, DungeonRunDomainService Runs,
+    private static (GroundPickupAlgorithmDriver Handler, IDungeonRunDomainService Runs,
         FakeContainer Bag, CarriedGold Carried) Build(
         ISeekingQuestProgressDomainService seeking)
     {
@@ -85,7 +85,7 @@ public sealed class GroundPickupTests
         new(Weapon, 1, DropRarity.Epic, DropItemKind.Equipment, WeaponDurability);
 
     private static DungeonRunState BeginWithItems(
-        DungeonRunDomainService runs,
+        IDungeonRunDomainService runs,
         IReadOnlyList<DungeonGroundItem> items,
         IReadOnlyList<DungeonRunParticipant>? participants = null)
     {

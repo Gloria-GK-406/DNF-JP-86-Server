@@ -46,7 +46,7 @@ public sealed class DungeonRunClaimsTests
         });
     }
 
-    private static DungeonRunState Enter(Dfo.Server.Application.World.DungeonRunDomainService runs)
+    private static DungeonRunState Enter(IDungeonRunDomainService runs)
     {
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 61000, 1,

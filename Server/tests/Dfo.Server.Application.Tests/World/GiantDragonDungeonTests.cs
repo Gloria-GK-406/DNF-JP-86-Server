@@ -90,9 +90,9 @@ public sealed partial class GiantDragonDungeonTests
         Assert.NotNull(Assert.IsType<DungeonRunMode.GiantDragon>(result.Entry.Layout.Mode).TimeReward);
         Assert.NotEmpty(result.Entry.Visits[new(71)].Actors);
         Assert.Equal(8, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
-        var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71))!;
+        var run = f.Services.DungeonRuns().Find(new Dfo.Server.Data.Characters.CharacterId(71))!;
         Assert.Equal(DungeonEntryFailure.AlreadyInDungeon, (await DungeonEntryRouteDriver.EnterAsync(f.Services, context)).Failure);
-        Assert.Equal(run.RunId, f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71))!.RunId);
+        Assert.Equal(run.RunId, f.Services.DungeonRuns().Find(new Dfo.Server.Data.Characters.CharacterId(71))!.RunId);
         Assert.Equal(8, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
     }
 
@@ -152,7 +152,7 @@ public sealed partial class GiantDragonDungeonTests
         Assert.Equal(DungeonEntryFailure.MissingPrerequisite, refusal.Failure);
         Assert.Equal((byte)1, refusal.BlockedSlot);
         Assert.Equal(0, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
-        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+        Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
     }
 
     [SkippableFact]
@@ -175,7 +175,7 @@ public sealed partial class GiantDragonDungeonTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await DungeonEntryRouteDriver.EnterAsync(f.Services, context));
         Assert.Equal(2, await CountTicket(f, 10002519));
         Assert.Equal(0, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
-        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+        Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
     }
 
     private sealed class BrokenCellFactory : IDungeonCellFactory

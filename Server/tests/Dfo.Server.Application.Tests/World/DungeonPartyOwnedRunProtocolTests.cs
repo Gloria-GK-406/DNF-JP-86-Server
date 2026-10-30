@@ -31,7 +31,7 @@ public sealed class DungeonPartyOwnedRunProtocolTests
         Assert.Equal(departures + 1, run.F.Scalar(ParticipantLeft));
         TestGameplay.Run(run.F.Services, () =>
         {
-            var runs = run.F.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = run.F.Services.DungeonRuns();
             Assert.Null(runs.Find(run.RunId));
             Assert.Null(runs.Find(run.Leader.CharacterId));
             Assert.Empty(run.Deliveries.Find(run.RunId));
@@ -54,7 +54,7 @@ public sealed class DungeonPartyOwnedRunProtocolTests
         Assert.Equal(departures, run.F.Scalar(ParticipantLeft));
         TestGameplay.Run(run.F.Services, () =>
         {
-            var runs = run.F.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = run.F.Services.DungeonRuns();
             var participation = run.F.Services.GetRequiredService<IDungeonParticipationDomainService>();
             foreach (var member in new[] { run.Leader, run.Member })
             {

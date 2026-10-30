@@ -40,14 +40,14 @@ public sealed class LostLandFeverTests
     [InlineData(true)]
     public async Task Expiry_command_uses_real_transaction_and_projects_zero_only_to_a_ready_run(bool loading)
     {
-        using var fixture = new ShopFixture(services => services.AddSingleton<IDungeonRunDomainService>(provider =>
+        using var fixture = new ShopFixture(services => services.AddDungeonRunsAs(provider =>
             global::Dfo.Server.Testing.TestParties.Runs(provider.GetRequiredService<IDomainTransactionAccessor>(),
                 parties: provider.GetRequiredService<Dfo.Server.Abstractions.Parties.IPartyService>(),
                 participation: provider.GetRequiredService<IDungeonParticipationDomainService>(),
                 clock: provider.GetRequiredService<TimeProvider>())));
         var run = TestGameplay.Run(fixture.Services, () =>
         {
-            var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = fixture.Services.DungeonRuns();
             var run = fixture.InTransaction(() => Begin(runs));
             for (ushort actor = 1; actor <= 99; actor++) Death(runs, actor, fixture.Clock.GetUtcNow());
             fixture.Services.GetRequiredService<IDungeonRunProjectionDomainService>().Register(run.RunId, [fixture.Session]);
@@ -64,7 +64,7 @@ public sealed class LostLandFeverTests
         Assert.True(await commands.SendInternalAsync(new ExpireLostLandFeverCommand(expiry), Origin()));
         Assert.False(await commands.SendInternalAsync(new ExpireLostLandFeverCommand(expiry), Origin()));
         TestGameplay.Run(fixture.Services, () => Assert.Equal(new LostLandFeverState(),
-            fixture.Services.GetRequiredService<IDungeonRunDomainService>().Find(Character)!.LostLandFever()));
+            fixture.Services.DungeonRuns().Find(Character)!.LostLandFever()));
         var notices = fixture.Sender.Messages.OfType<DungeonFeverGaugeMessage>().ToArray();
         if (loading) Assert.Empty(notices);
         else Assert.Equal(0, Assert.Single(notices).Percent);

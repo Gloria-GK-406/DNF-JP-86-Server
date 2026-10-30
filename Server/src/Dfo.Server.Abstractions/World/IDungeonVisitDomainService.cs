@@ -63,7 +63,7 @@ public sealed record DungeonMoveAttempt(DungeonRoomVisit? Visit, DungeonMoveFail
 /// character lands in — three things that have to happen together and in that order, because the
 /// layout cannot be recomputed later and still describe the run the client is in.
 /// <para>
-/// It orchestrates: the run is world state and lives in <see cref="IDungeonRunDomainService"/>,
+/// It orchestrates: the run is world state and lives in the dungeon run services (<see cref="IDungeonRunQueryDomainService"/> and its narrower interfaces),
 /// while what a dungeon's maze is, what a room holds and what kind a piece is are rules. Nothing
 /// about the wire is decided here; a caller is handed values and builds its own frames.
 /// </para>

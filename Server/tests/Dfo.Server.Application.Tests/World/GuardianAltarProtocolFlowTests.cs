@@ -33,7 +33,7 @@ public sealed class GuardianAltarProtocolFlowTests
         await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, 8), entry);
         await EffectRequestTransport.SendRaw(f, new(1, 0x25, 0, 9), new byte[8]);
         var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
-        var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!;
+        var run = f.Services.DungeonRuns().Find(f.Session.CharacterId)!;
         var commands = f.Services.GetRequiredService<ICommandBus>();
         InternalCommandOrigin Origin() => new(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), "test:guardian-death", InternalCommandCancellation.BodyOnly);
         var stale = altar.Find(run.RunId)!;
@@ -65,7 +65,7 @@ public sealed class GuardianAltarProtocolFlowTests
         var coin = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>()
             .FindContainer(f.Session.CharacterId, Dfo.Server.Data.Inventory.InventoryContainerType.Main)!.GetAsync(1, default);
         Assert.Equal(10, coin!.Snapshot.ToCore().Value);
-        Assert.Contains(f.Session.CharacterId, f.Services.GetRequiredService<IDungeonRunDomainService>().Find(run.RunId)!.DeadParticipants);
+        Assert.Contains(f.Session.CharacterId, f.Services.DungeonRuns().Find(run.RunId)!.DeadParticipants);
         Assert.Equal(pending.Generation, altar.Find(run.RunId)!.Generation);
         f.Clock.Advance(TimeSpan.FromMilliseconds(749));
         await commands.SendInternalAsync(new AdvanceGuardianAltarCommand(pending), Origin());
@@ -91,7 +91,7 @@ public sealed class GuardianAltarProtocolFlowTests
         f.Clock.Advance(TimeSpan.FromSeconds(50));
         Assert.Equal(f.Session, Assert.Single(await commands.SendInternalAsync(new ReturnGuardianAltarCommand(ended), Origin())));
         Assert.True(await commands.SendInternalAsync(new Dfo.Server.Protocol.Game.ProjectDungeonReturnCommand(f.Session, run.RunId, false), Origin()));
-        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+        Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId));
     }
     [SkippableFact]
     public void Cleared_difficulty_unlocks_the_next_map_without_treating_its_combat_basis_as_a_star_cost()
@@ -160,7 +160,7 @@ public sealed class GuardianAltarProtocolFlowTests
         var body = new byte[15]; BinaryPrimitives.WriteInt32LittleEndian(body, 3511);
         body[5] = requestMode;
         await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, 8), body);
-        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = f.Services.DungeonRuns();
         var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
         var run = Assert.IsType<Dfo.Server.Abstractions.World.DungeonRunState>(runs.Find(f.Session.CharacterId));
         var types = f.Sender.Outbound.Frames.Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1))).ToArray();
@@ -227,7 +227,7 @@ public sealed class GuardianAltarProtocolFlowTests
             var beforeReturn = f.Sender.Outbound.Frames.Count;
             await EffectRequestTransport.SendRaw(f, new(1, giveUp ? (ushort)0x2A : (ushort)0x48, 0, sequence++), giveUp ? [] : [1, 1]);
             var types = f.Sender.Outbound.Frames.Skip(beforeReturn).Select(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1))).ToList();
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+            Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId));
             Assert.Contains((ushort)0x0D, types);
             Assert.True(types.IndexOf(0x0D) < types.IndexOf(0x17));
         }
@@ -274,7 +274,7 @@ public sealed class GuardianAltarProtocolFlowTests
             var refusal = f.Sender.Outbound.Frames.Last();
             Assert.Equal((ushort)0x10, BinaryPrimitives.ReadUInt16LittleEndian(refusal.AsSpan(1)));
             Assert.Equal(new byte[] { 0, 0x13, 0 }, refusal[15..]);
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+            Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId));
             var after = await altar.ReadProgressAsync(f.Session.CharacterId, default);
             Assert.Equal(before.Revision, after.Revision);
             Assert.Equal((before.FreeTickets, before.ExtraTickets, before.AvailableStars, before.GameStars, before.PurchasedStars),

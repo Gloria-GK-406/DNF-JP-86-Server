@@ -244,8 +244,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddAccounts();
         services.TryAddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService, DailyResetRuleService>();
         services.AddRental();
-        services.TryAddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
-        services.AddDungeonRunViews();
+        services.AddDungeonRuns();
         services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
 
         // The compensation seam and its first-phase implementation, which never compensates. It is

@@ -8,7 +8,7 @@ namespace Dfo.Server.Protocol.Tests.Support;
 
 internal static class SettledCardRun
 {
-    internal static DungeonRunDomainService Create(SelectedSessionIdentity session)
+    internal static IDungeonRunDomainService Create(SelectedSessionIdentity session)
     {
         var runs = TestParties.Runs();
         var cell = new MazeCell(0, 0);

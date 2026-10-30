@@ -188,14 +188,14 @@ public sealed class RepairCouponTests
             var layout = new DungeonLayout(dungeonId, 0, 1, 1, cell, cell, 61000, 17,
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000) })
                 { Mode = new DungeonRunMode.LostLand(new(600, 1200, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), [], [])) };
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.PreparePartyEntry([new(f.Session.AccountId, f.Session.CharacterId, 0, true)],
                 layout, 0, DungeonCellSeed.CompleteEmpty(cell, 61000), DungeonRunId.New(), f.Clock.GetUtcNow()).Run;
             return true;
         });
         if (dungeon && ready) TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(f.Session.CharacterId)!;
             runs.TryMarkParticipantReady(f.Session.CharacterId, run.RunId, run.RoomVersion);
             Assert.Contains(f.Session.CharacterId, runs.Find(f.Session.CharacterId)!.ReadyParticipants);

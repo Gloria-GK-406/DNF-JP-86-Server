@@ -323,7 +323,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
         public readonly Dfo.Server.Application.Transactions.DomainTransactionScope Scope = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
         public readonly Dfo.Server.Application.Sessions.SelectedSessionDomainService Sessions;
         public readonly Dfo.Server.Application.Users.OnlineStateRegistry State;
-        private readonly Dfo.Server.Application.World.DungeonRunDomainService runs;
+        private readonly IDungeonRunDomainService runs;
         private readonly ObjectDestructionAlgorithmDriver handler;
         public readonly ObjectDestructionFacts Command;
         public readonly DirectGrantBag FirstBag;

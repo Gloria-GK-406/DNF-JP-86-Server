@@ -50,7 +50,7 @@ public sealed class PostCommitFailureWireTests(Xunit.Abstractions.ITestOutputHel
                             fences.Enqueue((SelectedSessionIdentity)args![0]!);
                     }));
                 // Not a decorator: the run service itself, kept so the test can read which room has a monster.
-                services.Decorate<IDungeonRunDomainService>((_, inner) => runs = inner);
+                services.Decorate<IDungeonRunQueryDomainService>((provider, inner) => { runs = provider.DungeonRuns(); return inner; });
             },
         }, timeout.Token);
         var (leader, member) = await TwoPlayersInTownAsync(server, timeout.Token);

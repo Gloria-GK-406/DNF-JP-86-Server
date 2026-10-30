@@ -29,7 +29,7 @@ public sealed class LostLandDungeonTests
             await transaction.CommitAsync(default);
         });
         var originalFatigue = await fatigue.BalanceOfAsync(new(71), default);
-        var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = fixture.Services.DungeonRuns();
         for (var attempt = 0; attempt < 3; attempt++)
         {
             var quota = await domain.ReadQuotaAsync(new(71), default);
@@ -106,7 +106,7 @@ public sealed class LostLandDungeonTests
         var structures = fixture.Services.GetRequiredService<IDungeonStructureRuleService>();
         Assert.Null((await structures.SelectMapAsync(layout, null, layout.BossCell, default)).MapId);
         Assert.NotNull((await structures.SelectMapAsync(layout, new(8, 6), new(1, 6), default)).MapId);
-        var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = fixture.Services.DungeonRuns();
         TestGameplay.Run(fixture.Services, () => Assert.Null(runs.TryOpenClear(new(71),
             entry.Entry.Change!.Run.RunId, entry.Entry.Change.Run.RoomVersion)));
     }
@@ -125,7 +125,7 @@ public sealed class LostLandDungeonTests
         Assert.Equal(2, (await domain.ReadQuotaAsync(new(71), default)).Remaining);
         await ChangeFatigue(100, true);
         Assert.Equal(2, (await domain.ReadQuotaAsync(new(71), default)).Remaining);
-        var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = fixture.Services.DungeonRuns();
         for (var i = 0; i < 2; i++)
         {
             Assert.NotNull((await DungeonEntryRouteDriver.EnterAsync(fixture.Services, Entry())).Entry);
@@ -179,7 +179,7 @@ public sealed class LostLandDungeonTests
             // Disposing without commit simulates a later failure in the entry work unit.
         });
         Assert.Equal(1, (await domain.ReadQuotaAsync(new(71), default)).Remaining);
-        TestGameplay.Run(fixture.Services, () => Assert.Null(fixture.Services.GetRequiredService<IDungeonRunDomainService>()
+        TestGameplay.Run(fixture.Services, () => Assert.Null(fixture.Services.DungeonRuns()
             .Find(new Dfo.Server.Data.Characters.CharacterId(71))));
     }
 

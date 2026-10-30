@@ -478,7 +478,7 @@ await TestGameplay.RunAsync(async () =>
     private sealed record World(
         SelectedSessionIdentity Session,
         MutableSessions Sessions,
-        DungeonRunDomainService Runs,
+        IDungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender,
         CardSelectionProjectionFixture Projection,
@@ -499,7 +499,7 @@ await TestGameplay.RunAsync(async () =>
 
     private sealed record PartyWorld(
         PartySessions Sessions,
-        DungeonRunDomainService Runs,
+        IDungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender,
         CardSelectionProjectionFixture Projection,
@@ -517,7 +517,7 @@ await TestGameplay.RunAsync(async () =>
     }
 
     private sealed class CardCommandBus(
-        DungeonRunDomainService runs,
+        IDungeonRunDomainService runs,
         FirstAttemptGate? firstAttemptGate = null,
         CharacterId? transientConflict = null) : ICommandBus
     {

@@ -288,7 +288,7 @@ public sealed class PickedUpAvatarStaysWholeTests
             AnnouncedDurability);
 
     private static DungeonGroundItem[] BeginWithDrops(
-        DungeonRunDomainService runs,
+        IDungeonRunDomainService runs,
         params (ushort ActorSequence, IReadOnlyList<RolledDrop> Drops)[] groups)
     {
         ushort number = 1;
@@ -353,7 +353,7 @@ public sealed class PickedUpAvatarStaysWholeTests
     /// </remarks>
     private static async Task WithASeededCharacterAsync(
         ServiceProvider content,
-        Func<InventorySide, GroundPickupAlgorithmDriver, DungeonRunDomainService, Task> body)
+        Func<InventorySide, GroundPickupAlgorithmDriver, IDungeonRunDomainService, Task> body)
     {
         var placements = content.GetRequiredService<IItemPlacementDefinitionSource>();
         var path = Path.Combine(Path.GetTempPath(), $"dfo-picked-avatar-{Guid.NewGuid():N}.db");

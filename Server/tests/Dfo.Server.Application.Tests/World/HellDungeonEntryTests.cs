@@ -87,7 +87,7 @@ public sealed class HellDungeonEntryTests
         Assert.NotNull(result.Entry);
         TestGameplay.Run(f.Services, () =>
         {
-            var run = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71));
+            var run = f.Services.DungeonRuns().Find(new CharacterId(71));
             Assert.NotNull(run);
             Assert.IsType<DungeonRunMode.Hell>(run.Layout.Mode);
         });
@@ -446,7 +446,7 @@ public sealed class HellDungeonEntryTests
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
     private static HellDungeonEntryRuleService RuleService(Content content) => new(content, new RoomActors());
 
-    private static (IHellDungeonEntryDomainService, DungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null, IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null)
+    private static (IHellDungeonEntryDomainService, IDungeonRunDomainService) Service(LearningFixture f, HellDungeonDefinition? rules = null, IReadOnlyList<DungeonRequiredItem>? required = null, string? failureBoundary = null)
     {
         var structures = new Structures(required, failureBoundary);
         var runs = TestParties.Runs(f.Scope);

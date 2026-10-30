@@ -13,7 +13,7 @@ using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed partial class DungeonRunDomainService
+internal sealed partial class DungeonRunStore
 {
     private sealed class DungeonRunAggregate
     {
@@ -448,4 +448,9 @@ internal sealed partial class DungeonRunDomainService
         /// <summary>Set once the character has departed; the progress itself is kept.</summary>
         public bool Released { get; set; }
     }
+
+    private readonly record struct ParticipantEffectKey(RoomActorId Actor, CharacterId CharacterId);
+    private readonly record struct GroundDropClaimKey(GroundDropId Drop, CharacterId CharacterId);
+    private readonly record struct ClearRewardCardClaimKey(CharacterId CharacterId, ClearRewardCardId Card);
+    private readonly record struct ClearRewardReservation(CharacterId CharacterId, long Token);
 }

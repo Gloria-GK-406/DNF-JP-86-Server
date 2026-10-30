@@ -7,7 +7,7 @@
 
 | 轴 | 类型 | 回答的问题 |
 |---|---|---|
-| 运行引擎 | `DungeonParticipationMode { Ordinary, IllusionTower, BossTower }` | 哪个运行时持有这局：普通 `DungeonRunDomainService`，还是两座塔各自的 run。Protocol 用 `DungeonLocator` 按副本占用登记分派 |
+| 运行引擎 | `DungeonParticipationMode { Ordinary, IllusionTower, BossTower }` | 哪个运行时持有这局：普通 `DungeonRunStore`，还是两座塔各自的 run。Protocol 用 `DungeonLocator` 按副本占用登记分派 |
 | 玩法种类 | `DungeonRunKind` + `DungeonRunMode`（`Abstractions/World/DungeonRunMode.cs`） | 普通引擎内这一局是哪种玩法，以及入场时冻结的计划 |
 
 两塔不进入 `DungeonRunKind`：它们的事务、成员表与投影自成体系，并入后每个按种类分支的地方都要写“不适用”。
@@ -76,7 +76,7 @@
 - **拉取，不存副本。** 截止时间只在玩法自己的领域状态里。每轮调度器向来源要截止时间：来源提交扫描命令、逐项提交推进命令，
   返回最近的下一个截止时间。来源只组织类型化内部命令，不在执行器外读写状态。
 - **由状态所有者唤醒。** 截止时间所在的状态提交时，所有者调用 `IDungeonDeadlineWake.Wake(kind)`：祭坛与守护者祭坛在各自运行态存储的提交里，
-  房间机关和“击杀改变了存活怪物”在 `DungeonRunDomainService` 里。在事务内唤醒是安全的，重扫是执行器上之后的作业。
+  房间机关和“击杀改变了存活怪物”在地下城运行服务（`DungeonRunStore` 的入场与战斗服务）里。在事务内唤醒是安全的，重扫是执行器上之后的作业。
   CMD handler 不注入唤醒，`CommandHandlerArchitectureTests` 拒绝这个依赖。
 - 唤醒按种类合并，只重扫被唤醒或已到期的来源。没有截止时间时等待唤醒；来源可声明空闲轮询（守护者祭坛 30 秒，借扫描清理离线的选择状态）。
   等待下限 50ms；扫描失败的来源 1 秒后重扫。

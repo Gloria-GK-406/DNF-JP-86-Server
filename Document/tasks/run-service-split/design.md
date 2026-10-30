@@ -80,3 +80,20 @@ C 之前先把 9 个服务的依赖图画出来，确认无环；有环的那段
 
 每个 PR：`dotnet build` 0 错误，全量 `dotnet test` 0 失败，Codex 审核通过当前提交。A 补上 §4 的两条反例；C 前后各跑一次全部金样本测试并比对。
 结构判据（#195）：C 合入时加一条结构测试，拒绝在任何 `DungeonRun*Service` 上声明实例字段状态（只允许 Store 持有），并带一个违规反例。
+
+## 7. 实施结果与偏差
+
+用户裁定：按 9 个服务拆分，生产代码删除聚合接口，三个阶段放进同一个 PR。
+
+- **阶段 A**（单独提交）：7 张认领表与 2 张时刻表搬进 `DungeonRunAggregate.Claims`（`RunClaims`）。删局只调一次 `ReleaseOnRemoval`，
+  已进入事务准备阶段的拾取与翻牌保留，随捕获它的事务完成。补 `DungeonRunClaimsTests`：删局前的击杀认领不能提交；一局的认领到不了另一局。
+- **阶段 B 与 C 合成一个提交**：状态普查（`GameplayStateCensusTests`）要求可变的局聚合不能被任何 public／internal 成员交出去。
+  单独抽出顶层 Store 再让服务来取聚合会违反这条，所以不保留中间形态：
+  - `DungeonRunStore` 是外层类，持有目录、锁、认领序号，以及结束一局、释放参与者、打开 clear 这些跨服务的局级操作；聚合与认领是它的私有嵌套类型。
+  - 9 个服务（查询由 Store 自己实现）是 Store 的嵌套类，每个在自己的文件里，有独立的依赖、DI 登记和写入断言名；
+    它们登记在普查的 `StatelessEntries` 里，普查会拒绝它们持有状态，这就是“服务不得持有状态”的结构判据，没有另写测试。
+  - 生产代码删除 `IDungeonRunDomainService` 与 `AddDungeonRunViews`；锦标赛服务改注入入场与结算两个窄接口，翻牌 CMD 改注入翻牌与计时两个窄接口，
+    入场准入服务改注入查询接口。
+  - 测试：聚合接口挪进 `tests/Support/DungeonRunTestComposition.cs`。`TestParties.Runs()` 手工组装一套 Store 与服务；
+    `provider.DungeonRuns()` 组合生产容器里的服务；`AddDungeonRunsAs(...)` 用替身替换全部窄接口；只留给测试的四个重载改为扩展方法。
+- 日志类别从 `DungeonRunDomainService` 变为 `DungeonRunStore.<服务名>`，诊断文档已改为按 `DungeonRunStore` 前缀配置。

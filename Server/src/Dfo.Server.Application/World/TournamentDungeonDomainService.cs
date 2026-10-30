@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.World;
 
 /// <summary>Owns the tournament lifecycle; the shared dungeon run owns its single Cell.</summary>
 internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleService rules,
-    IDungeonAdmissionDomainService admission, IDungeonRunDomainService runs,
+    IDungeonAdmissionDomainService admission, IDungeonRunEntryDomainService runs, IDungeonRunSettlementDomainService clears,
     ICharacterDomainService characters, ICharacterFatigueDomainService fatigue,
     IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     ISelectedSessionDomainService sessions, IDomainTransactionAccessor transactions, TimeProvider clock,
@@ -25,7 +25,8 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
     IUsageQuotaDomainService quotas, IDailyResetRuleService daily)
     : ITournamentDungeonDomainService, IDomainEventSubscriber<DungeonParticipantLeft>
 {
-    private readonly IDungeonRunDomainService dungeonRuns = runs;
+    private readonly IDungeonRunEntryDomainService dungeonRuns = runs;
+    private readonly IDungeonRunSettlementDomainService clears = clears;
     private readonly Lock gate = new();
     private readonly Dictionary<CharacterId, TournamentDungeonState> states = [];
     public bool Supports(int dungeonId) => rules.IsSupported(dungeonId);
@@ -266,7 +267,7 @@ internal sealed class TournamentDungeonDomainService(ITournamentDungeonRuleServi
                 {
                     owner.states[character] = state;
                     if (state.IsFinished && owner.dungeonRuns.Find(character) is { ClearOpen: false } run && run.RunId == state.RunId)
-                        owner.dungeonRuns.TryOpenClear(character, state.RunId, run.RoomVersion);
+                        owner.clears.TryOpenClear(character, state.RunId, run.RoomVersion);
                 }
             return ValueTask.CompletedTask;
         }

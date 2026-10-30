@@ -443,6 +443,24 @@ public sealed record GroundDrop(ushort Number, DungeonRoomDrop Drop);
 public readonly record struct GroundDropId(MazeCell Cell, ushort Number);
 
 /// <summary>Reads which run a character or run identity names; every narrower dungeon run service starts here.</summary>
+/// <remarks>
+/// This is the process-local dungeon-instance boundary. It owns the entry roster, layout,
+/// current Cell reference and the set of already-created Cells. Each Cell exclusively owns its
+/// Actors, pending loot, ground items, clear state and Cell revision; the Run does not rebuild
+/// those facts in parallel collections.
+/// <para>
+/// In memory only. There is no reconnect in this game -- a character who drops in a dungeon
+/// reappears in town -- so a run has nothing to survive and nothing to restore.
+/// </para>
+/// <para>
+/// A run belongs to one party, real or a character's virtual one, by its <c>PartyKey</c>, and has its
+/// own identifier. Who is in it is the party's answer: its members are the party's current members
+/// who are on the entry roster, and slots and leader are the party's. The run keeps no roster of its
+/// own beyond that entry roster and each entrant's state in the run. A character reaches a run
+/// through the party they belong to; leaving the run means leaving that party first, and a party
+/// bound to a run takes no new members.
+/// </para>
+/// </remarks>
 public interface IDungeonRunQueryDomainService
 {
     /// <summary>The run this character is in, or null when they are not in one.</summary>
@@ -731,34 +749,3 @@ public interface IDungeonRunDepartureDomainService : IDungeonRunQueryDomainServi
     /// <summary>Ends only the named run, leaving a replacement run untouched.</summary>
     bool End(CharacterId characterId, DungeonRunId expectedRunId);
 }
-
-/// <summary>The dungeon runs the server currently has going, and who is in them.</summary>
-/// <remarks>
-/// This is the process-local dungeon-instance boundary. It owns the entry roster, layout,
-/// current Cell reference and the set of already-created Cells. Each Cell exclusively owns its
-/// Actors, pending loot, ground items, clear state and Cell revision; the Run does not rebuild
-/// those facts in parallel collections.
-/// <para>
-/// In memory only. There is no reconnect in this game -- a character who drops in a dungeon
-/// reappears in town -- so a run has nothing to survive and nothing to restore.
-/// </para>
-/// <para>
-/// A run belongs to one party, real or a character's virtual one, by its <c>PartyKey</c>, and has its
-/// own identifier. Who is in it is the party's answer: its members are the party's current members
-/// who are on the entry roster, and slots and leader are the party's. The run keeps no roster of its
-/// own beyond that entry roster and each entrant's state in the run. A character reaches a run
-/// through the party they belong to; leaving the run means leaving that party first, and a party
-/// bound to a run takes no new members.
-/// </para>
-/// </remarks>
-public interface IDungeonRunDomainService :
-    IDungeonRunQueryDomainService,
-    IDungeonRunEntryDomainService,
-    IDungeonRunCombatDomainService,
-    IDungeonRunParticipantDomainService,
-    IDungeonRunGroundDropDomainService,
-    IDungeonRunSettlementDomainService,
-    IDungeonRunCardDomainService,
-    IDungeonRunTimerDomainService,
-    IDungeonRunDepartureDomainService;
-

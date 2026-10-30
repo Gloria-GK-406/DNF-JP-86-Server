@@ -104,13 +104,14 @@ public sealed class CardRewardReconnectIntegrationTests
             new ApplicationModule().ConfigureServices(builder.Services, builder.Configuration);
             new NetworkingModule().ConfigureServices(builder.Services, builder.Configuration);
             new ProtocolModule().ConfigureServices(builder.Services, builder.Configuration);
+            builder.Services.AddComposedDungeonRuns();
             builder.Services.AddFixtureCommand<SeedReconnectRunCommand, DungeonRunState, SeedReconnectRunCommandHandler>(FixtureUnitKind.Transactional);
 
             using var host = builder.Build();
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             await host.StartAsync(timeout.Token);
 
-            var runs = host.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = host.Services.DungeonRuns();
             var sessions = host.Services.GetRequiredService<ISelectedSessionDomainService>();
             var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
             var gameService = host.Services.GetRequiredService<IGameTcpService>();

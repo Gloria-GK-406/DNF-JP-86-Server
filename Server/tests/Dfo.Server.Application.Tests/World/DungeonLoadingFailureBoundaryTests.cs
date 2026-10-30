@@ -164,7 +164,7 @@ public sealed partial class BossTowerDomainServiceTests
             var entered = await visits.TryEnterPreparedPartyAsync([new(f.Session.AccountId, f.Session.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)], layout,
                 Dfo.Server.Abstractions.World.DungeonEntryFacts.None, default);
             Assert.NotNull(entered.Entry);
-            var runs = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(f.Session.CharacterId)!;
             f.Services.GetRequiredService<Dfo.Server.Protocol.Game.Dungeons.DungeonRunDeliveryRegistry>().Register(run.RunId, [f.Session, peer]);
             if (move)
@@ -191,7 +191,7 @@ public sealed partial class BossTowerDomainServiceTests
         else Assert.Empty(probe.Transactions);
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var runs = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(f.Session.CharacterId)!;
             Assert.Equal(move ? 1 : 0, run.CurrentCell.X);
             Assert.Contains(f.Session.CharacterId, move ? new[] { f.Session.CharacterId } : run.ReadyParticipants);

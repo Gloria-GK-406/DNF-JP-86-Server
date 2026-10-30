@@ -59,7 +59,7 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback, tx.Completion); Assert.Empty(f.Sender.Outbound.Frames);
         if (protocol == 0) { Assert.Equal(0, f.Count(8474)); Assert.Equal(0, f.Scalar("SELECT tutorial_completed FROM characters WHERE character_id=1")); }
         if (protocol == 1) Assert.Equal((ushort)2, await f.Durability(InventoryContainerType.Equipment, 12));
-        if (protocol == 2) { Assert.Equal(0, f.Scalar("SELECT count(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'")); TestGameplay.Run(f.Services, () => Assert.False(f.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(f.Session.CharacterId, trace.Run))); }
+        if (protocol == 2) { Assert.Equal(0, f.Scalar("SELECT count(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'")); TestGameplay.Run(f.Services, () => Assert.False(f.Services.DungeonRuns().HasUsedDungeonBuff(f.Session.CharacterId, trace.Run))); }
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         trace.SqlFault = false; await Send(f, protocol); Changed(f, protocol);
     }
@@ -114,13 +114,13 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
     public async Task Captured_old_run_does_not_consume_and_the_next_report_consumes_current_run()
     {
         var trace=new Trace(); using var f=await Create(2,trace);var old=trace.Run;DungeonRunId next=default;
-        trace.BeforeWorld=()=> { trace.BeforeWorld=null; var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();
+        trace.BeforeWorld=()=> { trace.BeforeWorld=null; var runs=f.Services.DungeonRuns();
             f.InTransaction(()=> {runs.End(f.Session.CharacterId,old);next=runs.Begin(f.Session.CharacterId,new DungeonLayout(144,0,1,1,new(0,0),new(0,0),55611,0,new Dictionary<MazeCell,DungeonCellDefinition>{[new(0,0)]=DungeonCellDefinition.Fixed(55611)}),difficulty:0).RunId;return true;}); };
         await Send(f,2);Assert.NotEqual(old,next);
         Assert.Equal(0,f.Scalar("SELECT count(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));
-        TestGameplay.Run(f.Services,()=> {var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();Assert.Equal(next,runs.Find(f.Session.CharacterId)!.RunId);Assert.False(runs.HasUsedDungeonBuff(f.Session.CharacterId,next));});
+        TestGameplay.Run(f.Services,()=> {var runs=f.Services.DungeonRuns();Assert.Equal(next,runs.Find(f.Session.CharacterId)!.RunId);Assert.False(runs.HasUsedDungeonBuff(f.Session.CharacterId,next));});
         await Send(f,2);Assert.Equal(1,f.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));
-        TestGameplay.Run(f.Services,()=>Assert.True(f.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(f.Session.CharacterId,next)));
+        TestGameplay.Run(f.Services,()=>Assert.True(f.Services.DungeonRuns().HasUsedDungeonBuff(f.Session.CharacterId,next)));
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
         });
         await f.SeedCore(12, StackableItemCore.Create(1,3000,1234) with { Durability = 2 }, InventoryContainerType.Equipment);
         f.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,583,4000000000)");
-        trace.Run = f.InTransaction(() => f.Services.GetRequiredService<IDungeonRunDomainService>().Begin(f.Session.CharacterId, new DungeonLayout(144,0,1,1,new(0,0),new(0,0),55611,0,new Dictionary<MazeCell,DungeonCellDefinition> { [new(0,0)] = DungeonCellDefinition.Fixed(55611) }), difficulty:0)).RunId;
+        trace.Run = f.InTransaction(() => f.Services.DungeonRuns().Begin(f.Session.CharacterId, new DungeonLayout(144,0,1,1,new(0,0),new(0,0),55611,0,new Dictionary<MazeCell,DungeonCellDefinition> { [new(0,0)] = DungeonCellDefinition.Fixed(55611) }), difficulty:0)).RunId;
         trace.Armed = true; return f;
     }
     private static object Actual(ServiceDescriptor d,IServiceProvider p) => d.ImplementationInstance ?? d.ImplementationFactory?.Invoke(p) ?? ActivatorUtilities.CreateInstance(p,d.ImplementationType!);

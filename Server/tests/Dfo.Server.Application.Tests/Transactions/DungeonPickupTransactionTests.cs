@@ -52,16 +52,15 @@ public sealed class DungeonPickupTransactionTests
             services.AddCommandDispatching();
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(TestParties.Create());
             services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
-            services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+            services.AddDungeonRuns().AddComposedDungeonRuns();
             services.AddAbsentDungeonRunDependencies();
-            services.AddDungeonRunViews();
             services.AddSingleton<IQuestDomainStore>(new SqliteQuestDomainStore(path));
             services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
             services.AddFixtureCommand<StaleQuestPickupCommand, PickupReceipt,
                 StaleQuestPickupHandler>(FixtureUnitKind.Transactional);
             await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
-            var runs = provider.GetRequiredService<IDungeonRunDomainService>();
+            var runs = provider.DungeonRuns();
             var drop = new DungeonGroundItem(
                 Number: 1,
                 ItemId: 10149163,

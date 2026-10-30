@@ -83,7 +83,7 @@ public sealed partial class GiantDragonDungeonTests
             DungeonEntryFacts.None with { Difficulty = DungeonDifficulty.Adventure }, 0, 0,
             [new(new(1), new(71), 0, true)]));
         Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, attempt.Failure);
-        Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+        Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
         Assert.Equal(0, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
     }
 
@@ -148,7 +148,7 @@ public sealed partial class GiantDragonDungeonTests
                 f.Services.GetRequiredService<IMonsterDeathDomainService>().SettleAsync(request, cap, default));
             throw new InvalidOperationException("Abort the complete death transaction before commit");
         }));
-        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = f.Services.DungeonRuns();
         var rolledBack = runs.Find(new CharacterId(71))!;
         Assert.False(rolledBack.CurrentCellState!.FindActor(boss.Sequence)!.IsDead);
         Assert.Equal(beforeLoot, rolledBack.CurrentCellState.FindActor(boss.Sequence)!.PendingLoot);
@@ -192,7 +192,7 @@ public sealed partial class GiantDragonDungeonTests
         var bossRun = await ReachRewardBoss(f, dungeonId);
         await TestGameplay.RunAsync(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var boss = Assert.Single(bossRun.CurrentCellState!.Actors, x => x.Actor.IsBoss && x.IsMonster);
             var originalBreath = boss.PendingLoot.Where(x => x.ItemId == 3326).Sum(x => x.Count);
             clock.Now = bossRun.StartedAt.AddMilliseconds(elapsedMilliseconds);
@@ -221,7 +221,7 @@ public sealed partial class GiantDragonDungeonTests
         Assert.True(result.Entry is not null, $"{result.Failure}: {result.Detail}");
         return await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(new CharacterId(71))!;
             var queue = new Queue<MazeCell>();
             var previous = new Dictionary<MazeCell, MazeCell?> { [run.CurrentCell] = null };

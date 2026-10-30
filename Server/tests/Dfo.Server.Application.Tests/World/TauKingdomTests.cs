@@ -61,7 +61,7 @@ public sealed class TauKingdomTests
                 Assert.Equal(50, entry.Entry.Visits[new(71)].Actors.Count);
                 // No commit: both runtime publication and material debit must roll back.
             }
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
             var held = await containers.GetContainer(new(71), InventoryContainerType.Main).GetAllAsync(default);
             Assert.Equal(2, held.Where(x => x.ItemId == 690001556).Sum(x => x.Count));
             await using (var tx = f.Scope.Begin())

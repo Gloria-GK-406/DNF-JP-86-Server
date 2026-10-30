@@ -1278,7 +1278,7 @@ public sealed class CardRewardTests
             BasisLevel: 5,
             ExperienceWeight: 1.45);
 
-        private readonly DungeonRunDomainService _runs;
+        private readonly IDungeonRunDomainService _runs;
         private readonly RefusingRules _rules;
         private readonly CardAwardAlgorithmDriver _handler;
 

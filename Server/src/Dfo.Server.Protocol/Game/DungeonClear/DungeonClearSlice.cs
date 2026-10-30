@@ -115,7 +115,7 @@ internal sealed record ClearDungeonRewardNotification(
 /// <remarks>
 /// An empty body. It is what the client sends once the result screen is done with, and it is the
 /// only thing in this server that ends a run: until 2026-08-26 nothing called
-/// <c>IDungeonRunDomainService.End</c> at all, so a character who had walked back to town was
+/// <c>IDungeonRunDepartureDomainService.End</c> at all, so a character who had walked back to town was
 /// still, as far as the server knew, standing in a dungeon -- which is half of why that session
 /// could walk back into the boss room after clearing it.
 /// <para>

@@ -95,7 +95,7 @@ public sealed class HellRewardSettlementTests
         new(sequence, new DungeonRoomActor(20444, 75, 5), true, false, loot, false)
         { IsHellTemplate = true, HellGroupIndex = group, EligibleForHellGroupReward = true };
 
-    private static DungeonRunDomainService Start(DungeonCellSeed seed)
+    private static IDungeonRunDomainService Start(DungeonCellSeed seed)
     {
         var service = TestParties.Runs();
         service.PreparePartyEntry([new(new(1), Character, 0, true)], Layout, DungeonDifficulty.Normal,

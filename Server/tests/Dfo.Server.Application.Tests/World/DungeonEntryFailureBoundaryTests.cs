@@ -150,7 +150,7 @@ public sealed partial class BossTowerDomainServiceTests
         Assert.Equal(3, f.Count(2749110));
         TestGameplay.Run(f.Services, () =>
         {
-            Assert.Equal(scopeFailure, f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId) is not null);
+            Assert.Equal(scopeFailure, f.Services.DungeonRuns().Find(f.Session.CharacterId) is not null);
             Assert.Equal(1, f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(f.Session.CharacterId, default).AsTask().GetAwaiter().GetResult().Used);
         });
     }
@@ -179,7 +179,7 @@ public sealed partial class BossTowerDomainServiceTests
         var frames=Assert.Single(physical.Sends); Assert.Equal((byte)1,frames[0]); Assert.Equal((ushort)0x10,BinaryPrimitives.ReadUInt16LittleEndian(frames.AsSpan(1)));
         Assert.Equal(lateFailure ? SelectDungeonRefusal.DungeonUnavailable : SelectDungeonRefusal.LevelTooLow,frames[16]); Assert.Equal(0,physical.CloseCalls);
         TestGameplay.Run(f.Services,()=> {
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+            Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId));
             Assert.Equal(DungeonEntryIntent.Directed(150),f.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Find(f.Session));
         });
         Assert.Equal(0,(await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(f.Session.CharacterId,default)).Used);
