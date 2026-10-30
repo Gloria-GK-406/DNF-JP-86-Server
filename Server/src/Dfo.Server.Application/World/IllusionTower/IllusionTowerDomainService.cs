@@ -43,13 +43,11 @@ internal sealed class IllusionTowerDomainService(
     }
     public bool IsInTower(CharacterId characterId) => Lookup(characterId) is not null;
 
-    private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
+    // The caller's unit (or the session cleanup's own step) settles this; it is never opened here.
+    private ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
     {
-        if (scope.Current is not null) return await action().ConfigureAwait(false);
-        await using var transaction = scope.Begin();
-        var result = await action().ConfigureAwait(false);
-        await transaction.CommitAsync(token).ConfigureAwait(false);
-        return result;
+        if (scope.Current is null) throw new InvalidOperationException("Illusion tower changes require the caller's transaction.");
+        return action();
     }
 
     public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members)
@@ -142,7 +140,7 @@ internal sealed class IllusionTowerDomainService(
         if (run is null || run.RunId != context.RunId || run.Room.State.Version != context.RoomVersion
             || !run.Members.Any(x => x.Session == context.Session)
             || (!leaving && !sessions.IsInWorld(context.Session))) return null;
-        if (!leaving) Pending.AuthenticatedSessions.Add(context.Session);
+        if (!leaving && scope.Current is { IsReadOnly: false }) Pending.AuthenticatedSessions.Add(context.Session);
         return run;
     }
     private ValueTask<TowerActionResult> Mutate(TowerActionContext context,
@@ -255,11 +253,11 @@ internal sealed class IllusionTowerDomainService(
     public async ValueTask<bool> SupportsDungeonAsync(int dungeonId, CancellationToken token) =>
         rules.Supports(dungeonId) && (await rules.GetDefinitionAsync(token, dungeonId).ConfigureAwait(false)).DungeonId == dungeonId;
 
-    public ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token)
+    // A read: the settlement projection asks it after the action's unit has committed, and a
+    // result choice asks it inside its own unit. It opens nothing either way.
+    public async ValueTask<bool> CanContinueAsync(TowerActionContext context, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(CanContinueAsync));
-        return Execute(async () =>
-    {
         var run = Match(context);
         if (run?.Completion is not { Settled: true }) return false;
         var definition = await rules.GetDefinitionAsync(token, run.DungeonId).ConfigureAwait(false);
@@ -267,7 +265,7 @@ internal sealed class IllusionTowerDomainService(
         if (members.Length == 0) return false;
         foreach (var member in members)
         {
-            Pending.AuthenticatedSessions.Add(member.Session);
+            if (scope.Current is { IsReadOnly: false }) Pending.AuthenticatedSessions.Add(member.Session);
             var store = inventory.GetStore(member.Session.CharacterId, BusinessInventoryStoreKind.Item);
             foreach (var requirement in definition.RequiredItems)
             {
@@ -281,7 +279,6 @@ internal sealed class IllusionTowerDomainService(
             }
         }
         return true;
-    }, token);
     }
 
     private ValueTask<TowerActionResult> RewardingMutation(TowerActionContext context,

@@ -73,11 +73,11 @@ internal static class TowerReturnAuthorizedCases
             foreach (var session in new[] { fixture.Session, peer })
             {
                 if (boss)
-                    Assert.NotNull((await fixture.Services.GetRequiredService<IBossTowerDomainService>()
+                    Assert.NotNull((await UseCaseDungeons.Boss(fixture.Services)
                         .EnterAsync([new(session, 0)], session, 42, default)).Run);
                 else
                 {
-                    var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+                    var towers = UseCaseDungeons.Illusion(fixture.Services);
                     var run = (await towers.EnterAsync([new(session, 0)], session, 42, default, 11001)).Run!;
                     var context = new TowerActionContext(session, run.RunId, run.Room.Version);
                     await towers.LoadAsync(context, default);
@@ -150,11 +150,11 @@ internal static class TowerReturnAuthorizedCases
             await TestGameplay.RunAsync(fixture.Services, async () =>
             {
                 if (boss)
-                    Assert.NotNull((await fixture.Services.GetRequiredService<IBossTowerDomainService>()
+                    Assert.NotNull((await UseCaseDungeons.Boss(fixture.Services)
                         .EnterAsync([new(peer, 0)], peer, 44, default)).Run);
                 else
                 {
-                    var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+                    var towers = UseCaseDungeons.Illusion(fixture.Services);
                     var run = (await towers.EnterAsync([new(peer, 0)], peer, 44, default, 11001)).Run!;
                     var context = new TowerActionContext(peer, run.RunId, run.Room.Version);
                     await towers.LoadAsync(context, default);

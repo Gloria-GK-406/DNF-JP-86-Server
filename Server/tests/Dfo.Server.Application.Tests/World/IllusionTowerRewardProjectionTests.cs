@@ -151,7 +151,7 @@ public sealed class IllusionTowerRewardProjectionTests
         (fixture.Scalar("SELECT exp FROM characters WHERE character_id=1"), fixture.Gold, fixture.Count(3000));
 
     private static IIllusionTowerDomainService Tower(ShopFixture fixture) =>
-        fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+        UseCaseDungeons.Illusion(fixture.Services);
 
     private static IllusionTowerProjectionDriver Delivery(ShopFixture fixture) =>
         TowerTestAlgorithms.Illusion(fixture);

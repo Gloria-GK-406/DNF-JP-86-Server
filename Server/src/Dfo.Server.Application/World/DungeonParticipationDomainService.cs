@@ -27,7 +27,7 @@ internal sealed class DungeonParticipationDomainService(IDomainTransactionAccess
     public void Release(CharacterId id, DungeonParticipationOwner expected)
     {
         GameplayWriteAssertion.Writing(nameof(DungeonParticipationDomainService) + "." + nameof(Release));
-        if (transactions.Current is null) { ReleaseCommitted(id, expected); return; }
+        if (transactions.Current is null) throw new InvalidOperationException("Releasing a participation requires the caller's transaction; use ReleaseCommitted outside one.");
         if (Find(id) == expected) Pending.Set(id, null);
     }
     public void ReleaseCommitted(CharacterId id, DungeonParticipationOwner expected)

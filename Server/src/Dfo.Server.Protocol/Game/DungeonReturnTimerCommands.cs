@@ -63,8 +63,11 @@ internal sealed partial class TowerReturnCommandHandler
             case DungeonPartyWipePolicy.TournamentElimination when !cleared:
                 return await EliminateTournamentAsync(context, runId, token).ConfigureAwait(false);
         }
-        var ended = cleared ? await wipeRuns.TryEndClearReturnAsync(runId, clock.GetUtcNow()).ConfigureAwait(false)
-            : await wipeRuns.TryEndPartyWipeAsync(runId, clock.GetUtcNow()).ConfigureAwait(false);
+        var ended = (await workUnits.WriteAsync(context, new("dungeon-return",
+            frozen.Where(sessions.IsInWorld).Select(session => new SelectedSessionRecipient(session, null)).ToArray()),
+            async (_, _) => new DungeonReturnEnded(cleared
+                ? await wipeRuns.TryEndClearReturnAsync(runId, clock.GetUtcNow()).ConfigureAwait(false)
+                : await wipeRuns.TryEndPartyWipeAsync(runId, clock.GetUtcNow()).ConfigureAwait(false)), token).ConfigureAwait(false)).Run;
         if (ended is null) return [];
         foreach (var session in frozen)
         {
@@ -75,6 +78,8 @@ internal sealed partial class TowerReturnCommandHandler
         return frozen.Where(session => ended.Participants.Any(participant => participant.CharacterId == session.CharacterId))
             .ToImmutableArray();
     }
+
+    private sealed record DungeonReturnEnded(DungeonRunState? Run);
 
     private async ValueTask<ImmutableArray<SelectedSessionIdentity>> FailAltarAsync(CommandExecutionContext context, DungeonRunId runId, CancellationToken token)
     {

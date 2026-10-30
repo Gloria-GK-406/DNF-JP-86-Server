@@ -68,11 +68,11 @@ internal static class TowerReturnCancellationCases
             await fixture.Seed(65, boss ? 2749110 : 4183, 3);
             peer = await TowerSourceMembers.AddAsync(fixture, 3, 2, boss ? 65 : 50, boss ? 2749110 : 4183);
             if (boss)
-                Assert.NotNull((await fixture.Services.GetRequiredService<IBossTowerDomainService>()
+                Assert.NotNull((await UseCaseDungeons.Boss(fixture.Services)
                     .EnterAsync([new(fixture.Session, 0), new(peer, 1)], fixture.Session, 42, default)).Run);
             else
             {
-                var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+                var towers = UseCaseDungeons.Illusion(fixture.Services);
                 var run = (await towers.EnterAsync([new(fixture.Session, 0), new(peer, 1)], fixture.Session, 42, default, 11001)).Run!;
                 var context = new TowerActionContext(fixture.Session, run.RunId, run.Room.Version);
                 await towers.LoadAsync(context, default);

@@ -54,13 +54,11 @@ internal sealed class BossTowerDomainService(
     }
     public bool IsInTower(CharacterId characterId) => Lookup(characterId) is not null;
 
-    private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
+    // The caller's unit (or the session cleanup's own step) settles this; it is never opened here.
+    private ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
     {
-        if (scope.Current is not null) return await action().ConfigureAwait(false);
-        await using var transaction = scope.Begin();
-        var result = await action().ConfigureAwait(false);
-        await transaction.CommitAsync(token).ConfigureAwait(false);
-        return result;
+        if (scope.Current is null) throw new InvalidOperationException("Boss tower changes require the caller's transaction.");
+        return action();
     }
 
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
@@ -126,7 +124,7 @@ internal sealed class BossTowerDomainService(
         if (run is null || run.RunId != context.RunId || run.Room.State.Version != context.RoomVersion
             || !run.Members.Any(x => x.Session == context.Session)
             || (!leaving && !sessions.IsInWorld(context.Session))) return null;
-        if (!leaving) Pending.AuthenticatedSessions.Add(context.Session);
+        if (!leaving && scope.Current is { IsReadOnly: false }) Pending.AuthenticatedSessions.Add(context.Session);
         return run;
     }
     private ValueTask<BossTowerActionResult> Mutate(TowerActionContext context,
@@ -281,11 +279,11 @@ internal sealed class BossTowerDomainService(
         }
     }
 
-    public ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken token)
+    // A read: the settlement projection asks it after the action's unit has committed, and a
+    // result choice asks it inside its own unit. It opens nothing either way.
+    public async ValueTask<bool> CanRetryAsync(TowerActionContext context, CancellationToken token)
     {
         GameplayWriteAssertion.Writing(nameof(BossTowerDomainService) + "." + nameof(CanRetryAsync));
-        return Execute(async () =>
-    {
         var run = Match(context);
         if (run?.Completion is not { Settled: true } || !run.Members.Any(x => x.Session == context.Session && x.IsLeader)) return false;
         if (!await activities.IsOpenAsync(rules.EventId, clock.GetUtcNow(), token).ConfigureAwait(false)) return false;
@@ -305,7 +303,6 @@ internal sealed class BossTowerDomainService(
             if (held < 1) return false;
         }
         return true;
-    }, token);
     }
 
     private async ValueTask<(ImmutableArray<TowerInventoryUpdate> Updates, int? Gold, QuestProgressSnapshot? QuestProgress)> GrantDropAsync(

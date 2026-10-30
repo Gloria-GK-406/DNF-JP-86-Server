@@ -47,7 +47,7 @@ internal static class TowerDepartureProjectionCases
             {
                 if (boss)
                 {
-                    var towers = fixture.Services.GetRequiredService<IBossTowerDomainService>();
+                    var towers = UseCaseDungeons.Boss(fixture.Services);
                     var run = (await towers.EnterAsync([new(cohort[0], 0), new(cohort[1], 1)], cohort[0], 42, default)).Run!;
                     await towers.LoadAsync(new(cohort[0], run.RunId, run.Room.Version), default);
                     await towers.LoadAsync(new(cohort[1], run.RunId, run.Room.Version), default);
@@ -57,7 +57,7 @@ internal static class TowerDepartureProjectionCases
                 }
                 else
                 {
-                    var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+                    var towers = UseCaseDungeons.Illusion(fixture.Services);
                     var run = (await towers.EnterAsync([new(cohort[0], 0), new(cohort[1], 1)], cohort[0], 42, default, 11001)).Run!;
                     await towers.LoadAsync(new(cohort[0], run.RunId, run.Room.Version), default);
                     await towers.LoadAsync(new(cohort[1], run.RunId, run.Room.Version), default);
@@ -85,13 +85,13 @@ internal static class TowerDepartureProjectionCases
         {
             if (boss)
             {
-                var towers = fixture.Services.GetRequiredService<IBossTowerDomainService>();
+                var towers = UseCaseDungeons.Boss(fixture.Services);
                 Assert.Equal(TowerRoomPhase.Fighting, towers.Find(first)!.Room.Phase);
                 Assert.Equal(TowerRoomPhase.Fighting, towers.Find(second)!.Room.Phase);
             }
             else
             {
-                var towers = fixture.Services.GetRequiredService<IIllusionTowerDomainService>();
+                var towers = UseCaseDungeons.Illusion(fixture.Services);
                 Assert.Equal(TowerRoomPhase.Ready, towers.Find(first)!.Room.Phase);
                 Assert.Equal(TowerRoomPhase.Ready, towers.Find(second)!.Room.Phase);
             }

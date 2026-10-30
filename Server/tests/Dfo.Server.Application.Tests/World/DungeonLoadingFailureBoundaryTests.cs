@@ -160,7 +160,7 @@ public sealed partial class BossTowerDomainServiceTests
             var layout = new Dfo.Server.Abstractions.World.DungeonLayout(150, 0, 3, 1, new(0, 0), new(2, 0), 800, 42,
                 new Dictionary<Dfo.Server.Abstractions.Content.MazeCell, Dfo.Server.Abstractions.Content.DungeonCellDefinition>
                 { [new(0, 0)] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(800), [new(1, 0)] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(801), [new(2, 0)] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(802) });
-            var visits = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonVisitDomainService>();
+            var visits = Dfo.Server.Application.Tests.Support.UseCaseDungeons.Visits(f.Services);
             var entered = await visits.TryEnterPreparedPartyAsync([new(f.Session.AccountId, f.Session.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)], layout,
                 Dfo.Server.Abstractions.World.DungeonEntryFacts.None, default);
             Assert.NotNull(entered.Entry);

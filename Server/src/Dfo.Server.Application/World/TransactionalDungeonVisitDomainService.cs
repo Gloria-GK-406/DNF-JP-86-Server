@@ -11,13 +11,11 @@ internal sealed class TransactionalDungeonVisitDomainService(DungeonVisitDomainS
     DomainTransactionScope scope) : IDungeonVisitDomainService
 {
     public bool DefersSelectionState(byte level, bool tutorialCompleted = false) => inner.DefersSelectionState(level, tutorialCompleted);
-    private async ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
+    // The entry or move unit settles the visit; it is never opened here.
+    private ValueTask<T> Execute<T>(Func<ValueTask<T>> action, CancellationToken token)
     {
-        if (scope.Current is not null) return await action().ConfigureAwait(false);
-        await using var transaction = scope.Begin();
-        var result = await action().ConfigureAwait(false);
-        await transaction.CommitAsync(token).ConfigureAwait(false);
-        return result;
+        if (scope.Current is null) throw new InvalidOperationException("Dungeon visits require the caller's transaction.");
+        return action();
     }
     public ValueTask<DungeonEntry?> EnterAsync(CharacterId id, int dungeon, DungeonDifficulty difficulty, DungeonEntryFacts facts, CancellationToken token) =>
         Execute(() => inner.EnterAsync(id, dungeon, difficulty, facts, token), token);
