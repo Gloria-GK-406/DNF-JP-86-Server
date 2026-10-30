@@ -14,8 +14,6 @@ internal static class TournamentRegistration
 {
     internal static IServiceCollection AddTournamentSlice(this IServiceCollection services)
     {
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<TournamentRewardSweepService>();
         services.AddInternalCommandHandler<SweepTournamentRewardsCommand, bool, SweepTournamentRewardsCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddInternalCommandHandler<SweepTournamentCandidateCommand, bool, SweepTournamentRewardsCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);

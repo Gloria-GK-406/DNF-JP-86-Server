@@ -34,9 +34,7 @@ public sealed class TimerRegistrationAcceptanceTests
         using var shop = new ShopFixture();
         shop.Sender.Outbound.Connections.AddOnFirstSight = false;
         shop.Sender.Outbound.Connections.Remove(shop.Connection.ConnectionId);
-        var source = topic == SelectedSessionRefreshTopic.Fatigue
-            ? (SelectedSessionRefreshSource)ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services)
-            : ActivatorUtilities.CreateInstance<ReviveCoinQuotaDailyRefreshService>(shop.Services);
+        var source = ActivatorUtilities.CreateInstance<SelectedSessionRefreshService>(shop.Services, new SelectedSessionRefreshTopics([topic]));
         var state = shop.Services.GetRequiredService<ISelectedSessionRefreshDomainService>();
         await source.RefreshAsync(default);
         Assert.Null(state.Previous(topic, shop.Session)); Assert.Empty(shop.Sender.Messages);

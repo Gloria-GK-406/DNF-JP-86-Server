@@ -79,7 +79,7 @@ public sealed class TimerSourceJobFailureTests
     [Fact]
     public async Task A_timer_cmd_that_fails_with_a_program_error_does_not_stop_the_host()
     {
-        const string commandType = "timer:FatigueDailyRefreshService";
+        const string commandType = "timer:SelectedSessionRefreshService/fatigue";
         var directory = Path.Combine(Path.GetTempPath(), "dfo-timer-failure-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try
@@ -107,7 +107,7 @@ public sealed class TimerSourceJobFailureTests
             using var host = builder.Build();
             var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
             var fatigue = host.Services.GetServices<IHostedService>().OfType<BackgroundService>()
-                .Single(x => x.GetType().Name == "FatigueDailyRefreshService");
+                .Single(x => x.GetType().Name == "SelectedSessionRefreshService");
             await host.StartAsync();
             try
             {
