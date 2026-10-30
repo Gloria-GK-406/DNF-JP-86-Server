@@ -181,6 +181,8 @@ public sealed class GameplayWriteEntryTableTests
         ["DepartureService.Find(CharacterId)"] = R,
         ["DepartureService.Find(DungeonRunId)"] = R,
         ["TimerService.FindDueLostLandCompletions(DateTimeOffset)"] = R,
+        ["TimerService.NextLostLandCompletionAt()"] = R,
+        ["TimerService.NextLostLandFeverExpiryAt()"] = R,
         ["TimerService.StageLostLandCompletion(LostLandCompletion, DateTimeOffset, Boolean)"] = W,
         ["TimerService.FindExpiredLostLandFevers(DateTimeOffset)"] = R,
         ["TimerService.StageLostLandFeverExpiry(LostLandFeverExpiry, DateTimeOffset)"] = W,

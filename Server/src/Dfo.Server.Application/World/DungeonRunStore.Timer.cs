@@ -140,9 +140,15 @@ internal sealed partial class DungeonRunStore
             }
         }
         public IReadOnlyList<LostLandCompletion> FindDueLostLandCompletions(DateTimeOffset now) =>
-            this.store.runsById.Values.Where(run => run.LostLandExploration is { NoticeRegistered: false } state
-                    && state.EndsAt <= now && (!state.IsEnding || run.ReadyParticipants.Count > 0))
+            this.PendingLostLandCompletions().Where(run => run.LostLandExploration!.EndsAt <= now)
                 .Select(run => new LostLandCompletion(run.RunId, run.LostLandExploration!.EndsAt)).ToArray();
+
+        public DateTimeOffset? NextLostLandCompletionAt() =>
+            this.PendingLostLandCompletions().Select(run => (DateTimeOffset?)run.LostLandExploration!.EndsAt).Min();
+
+        private IEnumerable<DungeonRunAggregate> PendingLostLandCompletions() =>
+            this.store.runsById.Values.Where(run => run.LostLandExploration is { NoticeRegistered: false } state
+                && (!state.IsEnding || run.ReadyParticipants.Count > 0));
 
         public bool StageLostLandCompletion(LostLandCompletion completion, DateTimeOffset now, bool notifyReady)
         {
@@ -178,8 +184,14 @@ internal sealed partial class DungeonRunStore
         }
 
         public IReadOnlyList<LostLandFeverExpiry> FindExpiredLostLandFevers(DateTimeOffset now) =>
-            this.store.runsById.Values.Where(run => run.LostLandExploration?.IsEnding != true && run.LostLandFever?.ActiveUntil <= now)
+            this.ActiveLostLandFevers().Where(run => run.LostLandFever!.ActiveUntil <= now)
                 .Select(run => new LostLandFeverExpiry(run.RunId, run.LostLandFever!.ActiveUntil!.Value)).ToArray();
+
+        public DateTimeOffset? NextLostLandFeverExpiryAt() =>
+            this.ActiveLostLandFevers().Select(run => run.LostLandFever!.ActiveUntil).Min();
+
+        private IEnumerable<DungeonRunAggregate> ActiveLostLandFevers() =>
+            this.store.runsById.Values.Where(run => run.LostLandExploration?.IsEnding != true && run.LostLandFever?.ActiveUntil is not null);
 
         public bool StageLostLandFeverExpiry(LostLandFeverExpiry expiry, DateTimeOffset now)
         {

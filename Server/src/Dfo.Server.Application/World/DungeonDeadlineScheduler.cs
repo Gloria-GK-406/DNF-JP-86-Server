@@ -95,6 +95,8 @@ internal sealed class DungeonDeadlineScheduler : TypedGameplayTimerSource, IDung
         DungeonDeadlineKind.RoomMechanism => "timer:DungeonDeadlineScheduler/room-mechanism",
         DungeonDeadlineKind.Altar => "timer:DungeonDeadlineScheduler/altar",
         DungeonDeadlineKind.GuardianAltar => "timer:DungeonDeadlineScheduler/guardian-altar",
+        DungeonDeadlineKind.LostLandCompletion => "timer:DungeonDeadlineScheduler/lost-land-completion",
+        DungeonDeadlineKind.LostLandFever => "timer:DungeonDeadlineScheduler/lost-land-fever",
     };
 
     protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)

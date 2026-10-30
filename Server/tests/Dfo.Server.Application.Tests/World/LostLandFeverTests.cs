@@ -59,7 +59,7 @@ public sealed class LostLandFeverTests
         InternalCommandOrigin Origin() => new(GameplayCallSource.Timer,
             GameplayCallChain.NewRoot(GameplayCallSource.Timer), "timer:lost-land-fever-test");
         var due = await commands.SendInternalAsync(new CaptureLostLandFeverExpiriesCommand(), Origin());
-        var expiry = Assert.Single(due);
+        var expiry = Assert.Single(due.Due);
         Assert.Equal(run.RunId, expiry.RunId);
         Assert.True(await commands.SendInternalAsync(new ExpireLostLandFeverCommand(expiry), Origin()));
         Assert.False(await commands.SendInternalAsync(new ExpireLostLandFeverCommand(expiry), Origin()));
@@ -68,6 +68,31 @@ public sealed class LostLandFeverTests
         var notices = fixture.Sender.Messages.OfType<DungeonFeverGaugeMessage>().ToArray();
         if (loading) Assert.Empty(notices);
         else Assert.Equal(0, Assert.Single(notices).Percent);
+    }
+
+    [Fact]
+    public void Only_the_kill_that_starts_the_fever_wakes_its_deadline()
+    {
+        TestGameplay.Run(() =>
+        {
+            var wake = new FeverWakes();
+            IDungeonRunDomainService runs = global::Dfo.Server.Testing.TestParties.Runs(deadlines: wake);
+            Begin(runs);
+            for (ushort actor = 1; actor <= 98; actor++) Death(runs, actor, At);
+            Assert.Equal(0, wake.Count);
+            Assert.Null(runs.NextLostLandFeverExpiryAt());
+
+            Death(runs, 99, At);
+
+            Assert.Equal(1, wake.Count);
+            Assert.Equal(At.AddSeconds(60), runs.NextLostLandFeverExpiryAt());
+        });
+    }
+
+    private sealed class FeverWakes : IDungeonDeadlineWake
+    {
+        public int Count { get; private set; }
+        public void Wake(DungeonDeadlineKind kind) { if (kind == DungeonDeadlineKind.LostLandFever) Count++; }
     }
 
     [Fact]

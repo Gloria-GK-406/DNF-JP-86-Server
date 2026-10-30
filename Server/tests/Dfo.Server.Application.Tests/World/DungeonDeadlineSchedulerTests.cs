@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Execution;
 using Dfo.Server.Application.Transactions;
@@ -96,6 +97,30 @@ public sealed class DungeonDeadlineSchedulerTests
         }
         Assert.Equal([DungeonDeadlineKind.GuardianAltar], wake.Kinds);
     });
+
+    [Fact]
+    public void A_lost_land_limit_starts_on_ready_and_wakes_its_source()
+    {
+        TestGameplay.Run(() =>
+        {
+            var wake = new RecordingWake();
+            var runs = TestParties.Runs(deadlines: wake);
+            var cell = new MazeCell(0, 0);
+            var layout = new DungeonLayout(4000, 0, 1, 1, cell, cell, 61000, 1,
+                new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(61000) })
+                { Mode = new DungeonRunMode.LostLand(new(60, 1200, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), [], [])) };
+            DungeonRunParticipant[] members = [new(new(1), new(2), 0, true)];
+            var run = runs.PreparePartyEntry(members, layout, DungeonDifficulty.Normal,
+                DungeonCellSeed.CompleteEmpty(cell, 61000), DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
+            Assert.Null(runs.NextLostLandCompletionAt());
+            wake.Kinds.Clear();
+
+            Assert.NotNull(runs.TryMarkParticipantReady(new(2), run.RunId, run.RoomVersion));
+
+            Assert.Contains(DungeonDeadlineKind.LostLandCompletion, wake.Kinds);
+            Assert.NotNull(runs.NextLostLandCompletionAt());
+        });
+    }
 
     private static int Scans(TimerSourceHost host, string label) => host.Queue.Ran.Count(x => x.CommandType == label && x.Completed);
 

@@ -116,6 +116,8 @@ internal sealed partial class DungeonRunStore
                 if (aggregate.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration } && aggregate.LostLandExploration is null)
                     aggregate.LostLandExploration = new(this.clock.GetUtcNow().AddSeconds(exploration.FirstLimitSeconds));
                 aggregate.EntryRevision++;
+                // Starts the limit, or lets a completion that was waiting for a ready participant come due.
+                if (aggregate.Layout.Mode is DungeonRunMode.LostLand) this.deadlines.Wake(DungeonDeadlineKind.LostLandCompletion);
                 if (aggregate.Participants.All(member => aggregate.ReadyParticipants.Contains(member.CharacterId)))
                 {
                     var cell = aggregate.Cells[aggregate.CurrentCell];

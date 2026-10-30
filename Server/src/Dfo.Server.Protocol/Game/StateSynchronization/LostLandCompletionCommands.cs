@@ -5,24 +5,26 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Execution;
+using Dfo.Server.Application.World;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
 
-internal sealed record CaptureLostLandCompletionsCommand : ICommand<IReadOnlyList<LostLandCompletion>>;
+internal sealed record LostLandCompletionSchedule(IReadOnlyList<LostLandCompletion> Due, DateTimeOffset? Next);
+internal sealed record CaptureLostLandCompletionsCommand : ICommand<LostLandCompletionSchedule>;
 internal sealed record CompleteLostLandCommand(LostLandCompletion Completion) : ICommand<bool>;
 
 internal sealed class LostLandCompletionCommandHandler(IDungeonRunTimerDomainService runs,
     IDungeonRunProjectionDomainService registry, ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService users, ICommandWorkUnits units, IGameCommandOutbox outbox,
     TimeProvider clock, ILogger<LostLandCompletionCommandHandler> logger)
-    : ICommandHandler<CaptureLostLandCompletionsCommand, IReadOnlyList<LostLandCompletion>>,
+    : ICommandHandler<CaptureLostLandCompletionsCommand, LostLandCompletionSchedule>,
         ICommandHandler<CompleteLostLandCommand, bool>
 {
-    public ValueTask<IReadOnlyList<LostLandCompletion>> HandleAsync(CommandExecutionContext context,
+    public ValueTask<LostLandCompletionSchedule> HandleAsync(CommandExecutionContext context,
         CaptureLostLandCompletionsCommand command, CancellationToken token) =>
-        ValueTask.FromResult(runs.FindDueLostLandCompletions(clock.GetUtcNow()));
+        ValueTask.FromResult(new LostLandCompletionSchedule(runs.FindDueLostLandCompletions(clock.GetUtcNow()), runs.NextLostLandCompletionAt()));
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, CompleteLostLandCommand command,
         CancellationToken token)
@@ -47,24 +49,18 @@ internal sealed class LostLandCompletionCommandHandler(IDungeonRunTimerDomainSer
     }
 }
 
-internal sealed class LostLandCompletionMaintenanceService(ICommandBus commands, TimeProvider clock,
-    ILogger<LostLandCompletionMaintenanceService> logger) : TypedGameplayTimerSource(commands, logger)
+internal sealed class LostLandCompletionDeadlineSource(TimeProvider clock) : DungeonDeadlineSource
 {
-    protected override string SourceName => "timer:LostLandCompletionMaintenanceService";
-    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
+    // A due item its command could not settle stays due; it is retried at this pace, not at the scheduler's floor.
+    private static readonly TimeSpan Retry = TimeSpan.FromMilliseconds(250);
+    public override DungeonDeadlineKind Kind => DungeonDeadlineKind.LostLandCompletion;
+    public override async ValueTask<DateTimeOffset?> RunAsync(DungeonDeadlineRound round, CancellationToken token)
     {
-        var due = await SubmitAsync(new CaptureLostLandCompletionsCommand(), root, SourceName, token).ConfigureAwait(false);
-        foreach (var completion in due)
-            await ItemAsync(new CompleteLostLandCommand(completion), root, SourceName + "/run", token).ConfigureAwait(false);
-    }
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250), clock);
-        try
-        {
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
-                await HostedAsync(stoppingToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        var scan = await round.SubmitAsync(new CaptureLostLandCompletionsCommand(), token).ConfigureAwait(false);
+        foreach (var due in scan.Due)
+            await round.ItemAsync(new CompleteLostLandCommand(due), "run", token).ConfigureAwait(false);
+        var next = (await round.SubmitAsync(new CaptureLostLandCompletionsCommand(), token).ConfigureAwait(false)).Next;
+        var now = clock.GetUtcNow();
+        return next <= now ? now + Retry : next;
     }
 }

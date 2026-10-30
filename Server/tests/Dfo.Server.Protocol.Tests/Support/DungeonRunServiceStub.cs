@@ -279,6 +279,8 @@ internal abstract class DungeonRunServiceStub : IDungeonRunDomainService
 
     public virtual IReadOnlyList<DungeonRoomMechanismView> AdvanceRoomMechanisms(DateTimeOffset now) => [];
 
+    public virtual DateTimeOffset? NextLostLandCompletionAt() => null;
+    public virtual DateTimeOffset? NextLostLandFeverExpiryAt() => null;
     public virtual IReadOnlyList<LostLandCompletion> FindDueLostLandCompletions(DateTimeOffset now) => [];
 
     public virtual bool StageLostLandCompletion(LostLandCompletion completion, DateTimeOffset now, bool notifyReady) => false;
