@@ -82,13 +82,12 @@ internal sealed partial class GameMarriageCommandHandler
             if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not {} observed
                 || await currentViews.TryLoadAsync(actor, token).ConfigureAwait(false) is not {} currentView) return;
             previous = observed; view = currentView;
-            var instance = CoupleRoomTown.Is(location.TownId) ? await housing.InstanceAsync(actor, token).ConfigureAwait(false) : 0;
-            if (CoupleRoomTown.Is(location.TownId) && instance is not > 0) return;
-            if (onlineCharacters.CrossInto(actor, new(channel, location.TownId, location.AreaId, instance ?? 0), location.X, location.Y, true) is null) return;
+            if (await transit.CrossAsync(actor, channel, location.TownId, location.AreaId, location.X, location.Y, true, token)
+                    .ConfigureAwait(false) is null) return;
         }
         catch (Exception error) when (IsWeddingBusinessFailure(error))
         { context.Request!.DemandCurrent(); logger.LogWarning(error, "Committed wedding projection failed for one recipient; other recipients continue."); return; }
-        await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, previous, token).ConfigureAwait(false);
+        await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, token).ConfigureAwait(false);
     }
     private static bool IsWeddingBusinessFailure(Exception error) => error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error);
     private async ValueTask WeddingPositionAsync(CommandExecutionContext context, MarriageWeddingStanding standing, CancellationToken token)

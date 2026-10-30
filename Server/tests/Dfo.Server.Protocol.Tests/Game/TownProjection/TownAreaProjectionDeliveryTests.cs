@@ -114,7 +114,7 @@ public sealed class TownAreaProjectionDeliveryTests
                 Standing = [new MarriageWeddingStanding(bride, new(2, 12, 670, 330, 5)), new MarriageWeddingStanding(groom, new(2, 12, 685, 360, 5))],
             };
             // Projection oracle with controlled committed transition; production timer/bus tests own lifecycle/FIFO.
-            var handler = new GameMarriageCommandHandler(sessions,new OneWedding(ceremony.Id),ProtocolAlgorithmFixture.Default<IMarriageCoupleDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageVenueDomainService>(),ProtocolAlgorithmFixture.Default<IQuestOfferRefreshDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),views,                positions,areas,SharedTownMovementDomainService.Instance,ProtocolAlgorithmFixture.Default<IPartyService>(),new PartyProjectionStreamRegistry(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(sessions),                new WeddingTransitionUnits(transition),new global::Dfo.Server.Testing.TestCommandProjections(new RecordingNotificationBus()),                new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(outbound.Game),TimeProvider.System,                NullLogger<GameMarriageCommandHandler>.Instance,ordering: outbound.Ordering,housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),housingSessions: ProtocolAlgorithmFixture.Default<IMarriageHousingSessionDomainService>());
+            var handler = new GameMarriageCommandHandler(sessions,new OneWedding(ceremony.Id),ProtocolAlgorithmFixture.Default<IMarriageCoupleDomainService>(),ProtocolAlgorithmFixture.Default<IMarriageVenueDomainService>(),ProtocolAlgorithmFixture.Default<IQuestOfferRefreshDomainService>(),ProtocolAlgorithmFixture.Default<ICharacterDomainService>(),views,                positions,areas,ProtocolAlgorithmFixture.Default<IPartyService>(),new PartyProjectionStreamRegistry(),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.QueryFor(sessions),                new WeddingTransitionUnits(transition),new global::Dfo.Server.Testing.TestCommandProjections(new RecordingNotificationBus()),                new Dfo.Server.Protocol.Tests.Support.GameOutboxFixture(outbound.Game),TimeProvider.System,                NullLogger<GameMarriageCommandHandler>.Instance,ordering: outbound.Ordering,housing: ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),transit: ProtocolAlgorithmFixture.TownTransit(null, sessions, areas, positions, SharedTownMovementDomainService.Instance));
             var origin = new InternalCommandOrigin(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer,
                 Dfo.Server.Abstractions.Execution.GameplayCallChain.NewRoot(Dfo.Server.Abstractions.Execution.GameplayCallSource.Timer), "test:wedding");
             var request = new CommandRequestContext.TrustedInternal(origin);
@@ -225,7 +225,7 @@ public sealed class TownAreaProjectionDeliveryTests
             AwayFrom(areas, returning, key);
             var notifications = new RecordingNotificationBus();
             var sender = new RecordingSender();
-            var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, notifications, new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance));
+            var delivery = new TownArrivalProjectionDriver(areas, sessions, currentViews, notifications, new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
 
             Assert.Equal(1, await delivery.EnterAsync(
                 [new TownAreaEntry(
@@ -287,7 +287,7 @@ public sealed class TownAreaProjectionDeliveryTests
             AwayFrom(areas, returning, key);
             var notifications = new RecordingNotificationBus();
             var sender = new RecordingSender();
-            var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, notifications, new NoopPartyProjection(), sender, new SharedTownMovement()));
+            var delivery = new TownArrivalProjectionDriver(areas, sessions, currentViews, notifications, new NoopPartyProjection(), sender, new SharedTownMovement());
 
             Assert.Equal(1, await delivery.EnterAsync(
                 [new TownAreaEntry(
@@ -329,7 +329,7 @@ public sealed class TownAreaProjectionDeliveryTests
             AwayFrom(areas, first, key);
             AwayFrom(areas, second, key);
             var sender = new RecordingSender();
-            var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, new RecordingNotificationBus(), new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance));
+            var delivery = new TownArrivalProjectionDriver(areas, sessions, currentViews, new RecordingNotificationBus(), new NoopPartyProjection(), sender, SharedTownMovementDomainService.Instance);
             Assert.Equal(2, await delivery.EnterAsync(
                 [new TownAreaEntry(
                      first, firstResult, new CharacterPositionState(3, 6, 100, 200, 1)),
@@ -409,7 +409,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var store = (ITownAreaDomainService)areas;
             var key = new TownAreaKey(11, 3, 6);
             store.Enter(Member(replacement, key, 300));
-            var delivery = new TownArrivalProjectionDriver(global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.TownProjection.TownAreaProjectionDelivery>(areas, sessions, currentViews, new RecordingNotificationBus(), new NoopPartyProjection(), new RecordingSender(), SharedTownMovementDomainService.Instance));
+            var delivery = new TownArrivalProjectionDriver(areas, sessions, currentViews, new RecordingNotificationBus(), new NoopPartyProjection(), new RecordingSender(), SharedTownMovementDomainService.Instance);
 
             Assert.Equal(0, await delivery.EnterAsync(
                 [new TownAreaEntry(

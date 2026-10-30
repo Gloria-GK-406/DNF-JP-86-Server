@@ -76,8 +76,7 @@ internal sealed partial class TowerReturnCommandHandler :
     private readonly ICharacterStateProjectionDomainService currentState;
     private readonly ICharacterDomainService characters;
     private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
-    private readonly ITownMovementDomainService towns;
-    private readonly IMarriageHousingQueryDomainService housing;
+    private readonly ITownTransitDomainService transit;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
     private readonly ITowerRunKind bossKind;
@@ -99,8 +98,7 @@ internal sealed partial class TowerReturnCommandHandler :
         ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState,
         ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState,
         ICharacterDomainService characters, IOnlineCharacterRuntimeDomainService onlineCharacters,
-        ITownMovementDomainService towns, IMarriageHousingQueryDomainService housing,
-        IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
+        ITownTransitDomainService transit, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, IBossTowerDepartureProjectionDomainService bossDepartures,
         IIllusionTowerDepartureProjectionDomainService illusionDepartures, TimeProvider clock,
@@ -111,7 +109,7 @@ internal sealed partial class TowerReturnCommandHandler :
         IOutboundOrdering ordering, IWeaknessDomainService weaknessState)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weaknessState; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties; this.ordering = ordering; this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; this.wipeRuns = wipeRuns; this.wipeRegistry = wipeRegistry;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weaknessState; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties; this.ordering = ordering; this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; this.wipeRuns = wipeRuns; this.wipeRegistry = wipeRegistry;
       this.wipeCards = cards; this.wipeAltars = altars; this.wipeTournaments = tournaments; this.wipeSlots = slots; this.wipeWake = wake;
         Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
             this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,

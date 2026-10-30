@@ -47,31 +47,19 @@ namespace Dfo.Server.Protocol.Game.Party;
 
 internal static class TownDepartureProjection
 {
-    internal static async ValueTask<IReadOnlyList<TownAreaMembershipChange>> TownLeaveManyAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, IOnlineCharacterRuntimeDomainService onlineCharacters, ICommandProjections projections, IPartyProjectionStateDomainService projectionState, ISelectedCharacterCurrentViewDomainService currentViews, IPartyService parties, 
-        IReadOnlyList<SelectedSessionIdentity> leavingSessions,
-        TownAreaDepartureReason reason,
+    /// <summary>Projects committed departures to the areas they left and to their parties.</summary>
+    internal static async ValueTask<IReadOnlyList<TownAreaMembershipChange>> TownProjectDeparturesAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState, ISelectedCharacterCurrentViewDomainService currentViews, IPartyService parties, 
+        IReadOnlyList<TownDepartureResult> departed,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(leavingSessions);
-        var departures = new List<TownAreaDeparture>(leavingSessions.Count);
-        foreach (var session in leavingSessions.Distinct())
-        {
-            ArgumentNullException.ThrowIfNull(session);
-            if (onlineCharacters.StandingOf(session) is not { } current)
-                continue;
-            var previousScope = current.SharesTownPresence ? TownArrivalProjection.TownScope(current.Area) : null;
-            var change = onlineCharacters.LeaveTown(session, reason);
-            if (change is not null)
-            {
-                departures.Add(new TownAreaDeparture(
-                    session,
-                    change,
-                    current.Area,
-                    current.SharesTownPresence,
-                    previousScope));
-            }
-        }
-        if (departures.Count == 0)
+        ArgumentNullException.ThrowIfNull(departed);
+        var departures = departed.Select(departure => new TownAreaDeparture(
+            departure.Session,
+            departure.Change,
+            departure.PreviousArea,
+            departure.SharedTownPresence,
+            departure.SharedTownPresence ? TownArrivalProjection.TownScope(departure.PreviousArea) : null)).ToArray();
+        if (departures.Length == 0)
             return [];
 
         foreach (var area in departures

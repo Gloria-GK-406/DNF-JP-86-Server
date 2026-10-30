@@ -543,6 +543,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IDungeonPremiumBuffDomainService, DungeonPremiumBuffDomainService>();
         // Whether a character may stand where they say, and what a tutorial step declares.
         services.TryAddSingleton<ITownMovementDomainService, TownMovementDomainService>();
+        services.TryAddSingleton<ITownTransitDomainService, TownTransitDomainService>();
         services.TryAddSingleton<ITutorialRewardDomainService, TutorialRewardDomainService>();
         services.TryAddSingleton<ITutorialCompletionDomainService, TutorialCompletionDomainService>();
         // The seams the command handlers reach the rules through, so that none of them holds a

@@ -85,10 +85,15 @@ internal sealed partial class GamePartyTransitionCommandHandler
         SelectedSessionIdentity reporter) => participants.Select(session => session == reporter
             ? CaptureParticipant(session) : new SelectedSessionRecipient(session, null)).ToArray();
 
-    internal ValueTask<int> TownEnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) =>
-        TownArrivalProjection.EnterAsync(sessions, towns, housing, townAreas, onlineCharacters, currentViews, outbox,
+    internal async ValueTask<int> TownEnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token)
+    {
+        var requests = TownArrivalProjection.TownReturnRequests(entries);
+        var admitted = await transit.ReturnToTownAsync(requests, token).ConfigureAwait(false);
+        return await TownArrivalProjection.ProjectAsync(sessions, townAreas, currentViews, outbox,
             weaknessState, projectWeakness, projections,
-            new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), entries, token);
+            new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState),
+            TownArrivalProjection.TownAdmissions(entries, requests, admitted), token).ConfigureAwait(false);
+    }
 
     internal ValueTask<int> ReturnTownAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token) => TownEnterAsync(entries, token);
 

@@ -47,75 +47,40 @@ namespace Dfo.Server.Protocol.Game.Party;
 
 internal static class TownArrivalProjection
 {
-    /// <summary>Commits town admissions, then registers owner, previous-area and peer projections in their fixed order.</summary>
-    internal static async ValueTask<int> EnterAsync(
-        ISelectedSessionDomainService sessions, ITownMovementDomainService towns,
-        IMarriageHousingQueryDomainService housing, ITownAreaDomainService townAreas,
-        IOnlineCharacterRuntimeDomainService onlineCharacters,
+    /// <summary>The return requests for these entries, one per entry and in its order.</summary>
+    internal static TownReturnRequest[] TownReturnRequests(IReadOnlyList<TownAreaEntry> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        return entries.Select(entry =>
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            return new TownReturnRequest(entry.Session, entry.Runtime.World.Channel.ChannelId, entry.Position);
+        }).ToArray();
+    }
+
+    /// <summary>Pairs committed admissions back with the entries their requests were made from.</summary>
+    internal static List<TownAreaAdmission> TownAdmissions(IReadOnlyList<TownAreaEntry> entries,
+        IReadOnlyList<TownReturnRequest> requests, IReadOnlyList<TownReturnAdmission> admitted)
+    {
+        var entryOf = new Dictionary<TownReturnRequest, TownAreaEntry>(ReferenceEqualityComparer.Instance);
+        for (var index = 0; index < requests.Count; index++) entryOf.Add(requests[index], entries[index]);
+        return admitted.Select(admission => new TownAreaAdmission(entryOf[admission.Request], admission.Change,
+            admission.Previous is { SharesTownPresence: true } previous ? TownScope(previous.Area) : null)).ToList();
+    }
+
+    /// <summary>Registers owner, previous-area and peer projections of committed admissions in their fixed order.</summary>
+    internal static async ValueTask<int> ProjectAsync(
+        ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
         ISelectedCharacterCurrentViewDomainService currentViews, IGameCommandOutbox outbox,
         IWeaknessDomainService weaknessState, bool projectWeakness, ICommandProjections projections,
         IPartyTownProjectionDelivery partyTown,
-        IReadOnlyList<TownAreaEntry> entries, CancellationToken token)
+        List<TownAreaAdmission> admissions, CancellationToken token)
     {
-        var candidates = await TownPrepareCandidatesAsync(sessions, towns, housing, entries, token).ConfigureAwait(false);
-        var admissions = TownCommitAdmissions(sessions, townAreas, onlineCharacters, candidates);
         var deliveries = await TownCaptureDeliveriesAsync(sessions, townAreas, currentViews, admissions, token).ConfigureAwait(false);
         await TownProjectOwnersAsync(sessions, outbox, weaknessState, projectWeakness, deliveries, token).ConfigureAwait(false);
         await TownProjectPreviousAreasAsync(sessions, townAreas, projections, currentViews, admissions, token).ConfigureAwait(false);
         await TownProjectPeersAsync(sessions, townAreas, projections, partyTown, admissions, deliveries, token).ConfigureAwait(false);
         return deliveries.Count;
-    }
-
-    internal static async ValueTask<List<(TownAreaEntry Entry, bool SharesTownPresence, int Instance)>> TownPrepareCandidatesAsync(ISelectedSessionDomainService sessions, ITownMovementDomainService towns, IMarriageHousingQueryDomainService housing, 
-        IReadOnlyList<TownAreaEntry> entries, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(entries);
-        var candidates = new List<(TownAreaEntry Entry, bool SharesTownPresence, int Instance)>();
-        foreach (var entry in entries)
-        {
-            ArgumentNullException.ThrowIfNull(entry);
-            if (!sessions.IsInWorld(entry.Session))
-                continue;
-            var sharesTownPresence = await towns.SharesTownPresenceAsync(
-                entry.Position.TownId,
-                entry.Position.AreaId,
-                cancellationToken).ConfigureAwait(false);
-            var instance = CoupleRoomTown.Is(entry.Position.TownId) ? await housing.InstanceAsync(entry.Session, cancellationToken).ConfigureAwait(false) : 0;
-            if (CoupleRoomTown.Is(entry.Position.TownId) && instance is not > 0) continue;
-            candidates.Add((entry, CoupleRoomTown.Is(entry.Position.TownId) || sharesTownPresence, instance ?? 0));
-        }
-        if (candidates.Count == 0)
-            return [];
-
-        return candidates;
-    }
-
-    internal static List<TownAreaAdmission> TownCommitAdmissions(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, IOnlineCharacterRuntimeDomainService onlineCharacters, List<(TownAreaEntry Entry, bool SharesTownPresence, int Instance)> candidates)
-    {
-        var admissions = new List<TownAreaAdmission>(candidates.Count);
-        foreach (var candidate in candidates)
-        {
-            var entry = candidate.Entry;
-            if (!sessions.IsInWorld(entry.Session))
-                continue;
-            var previous = townAreas.Find(entry.Session.CharacterId);
-            var previousScope = previous is { SharesTownPresence: true }
-                ? TownArrivalProjection.TownScope(previous.Area)
-                : null;
-            var change = onlineCharacters.ReturnToTown(
-                entry.Session,
-                new TownAreaKey(
-                    entry.Runtime.World.Channel.ChannelId,
-                    entry.Position.TownId,
-                    entry.Position.AreaId, candidate.Instance),
-                entry.Position,
-                candidate.SharesTownPresence);
-            if (change is null)
-                continue;
-            admissions.Add(new TownAreaAdmission(entry, change, previousScope));
-        }
-
-        return admissions;
     }
 
     internal static async ValueTask<List<TownReturnDelivery>> TownCaptureDeliveriesAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ISelectedCharacterCurrentViewDomainService currentViews, List<TownAreaAdmission> admissions, CancellationToken cancellationToken)
