@@ -38,8 +38,16 @@ public static class HttpGameplay
         {
             return await bus.SendInternalAsync(command, origin, context.RequestAborted).ConfigureAwait(false);
         }
-        catch (CommandHttpAuditedFailureException failure) when (failure.BelongsTo(command, origin.Chain.Id))
-        { return failure.Reply with { ExecutorFailed = true }; }
+        catch (CommandAuditedFailureException failure) when (failure.BelongsTo(command, origin.Chain.Id))
+        {
+            return new(Error: failure.AuditedCause, ExecutorFailed: true, Outcome: failure.Outcome switch
+            {
+                CommandFailureAuditOutcome.AuditFailed => "auditFailed",
+                CommandFailureAuditOutcome.Unknown => "unknown",
+                CommandFailureAuditOutcome.Rejected => "rejected",
+                _ => "rolledBack",
+            });
+        }
     }
 
     /// <summary>

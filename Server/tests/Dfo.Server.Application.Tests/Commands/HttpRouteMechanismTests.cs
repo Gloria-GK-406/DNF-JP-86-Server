@@ -39,11 +39,12 @@ public sealed class HttpRouteMechanismTests
         Assert.NotNull(state.Context.Request.Failure);
         Assert.Equal(0, state.IllicitWrites);
         Assert.Equal(mode is "rollback" or "fake-completion" ? 0 : 1, state.AuditCalls);
-        if (defaultFailure) Assert.IsNotType<CommandHttpAuditedFailureException>(failure);
+        if (defaultFailure) Assert.IsNotType<CommandAuditedFailureException>(failure);
         else
         {
-            var carrier = Assert.IsType<CommandHttpAuditedFailureException>(failure);
-            Assert.Equal(mode == "audit-action" ? "auditFailed" : mode == "self-abort" ? "rolledBack" : "unknown", carrier.Reply.Outcome);
+            var carrier = Assert.IsType<CommandAuditedFailureException>(failure);
+            Assert.Equal(mode == "audit-action" ? CommandFailureAuditOutcome.AuditFailed : mode == "self-abort"
+                ? CommandFailureAuditOutcome.RolledBack : CommandFailureAuditOutcome.Unknown, carrier.Outcome);
             Assert.True(Contains(carrier, state.Cause));
             Assert.Equal(mode == "self-abort" ? "RolledBack" : "Unknown", state.AuditOutcome);
         }
@@ -98,11 +99,11 @@ public sealed class HttpRouteMechanismTests
     public async Task A_closed_request_audit_guard_poisons_the_current_job_even_when_the_caller_catches_it()
     {
         var state = new ProbeState { Mode = "cera" }; await using var world = World(state); state.Services = world.Services;
-        await Assert.ThrowsAsync<CommandHttpAuditedFailureException>(() => world.Bus.SendInternalAsync(Command(false), Origin()).AsTask());
+        await Assert.ThrowsAsync<CommandAuditedFailureException>(() => world.Bus.SendInternalAsync(Command(false), Origin()).AsTask());
         var closed = state.Context!;
         world.Settings.Action = async context =>
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => world.Services.GetRequiredService<ICommandHttpFailureAudit>().RecordAsync(closed, state.Cause, default).AsTask());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => world.Services.GetRequiredService<ICommandFailureAudit>().RecordAsync(closed, state.Cause, (_, _) => ValueTask.CompletedTask, default).AsTask());
             return 1;
         };
         var error = await Record.ExceptionAsync(() => world.Internal(new ProtocolCommandExecutionTests.InternalProbe()).AsTask());
@@ -126,7 +127,8 @@ public sealed class HttpRouteMechanismTests
             var proxy = DispatchProxy.Create(type, typeof(DomainProxy)); ((DomainProxy)proxy).State = state;
             services.AddSingleton(type, proxy);
         }
-        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
+        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead,
+            failureAudit: CommandFailureAuditCapability.AuditedFailure);
         services.AddScoped<HttpRouteCommandHandler>();
         services.AddScoped<ICommandHandler<HttpRouteCommand, HttpRouteReply>>(provider =>
             new ObservingHandler(provider.GetRequiredService<HttpRouteCommandHandler>(), provider.GetRequiredService<ICommandWorkUnits>(), state, new Resource(state)));

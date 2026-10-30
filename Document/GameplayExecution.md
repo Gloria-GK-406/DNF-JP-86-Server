@@ -75,8 +75,10 @@ footprint 只在获准 ordinary 写单元的活跃 action 使用，不扩大 Mai
 
 - 健康确认回滚结果只认真实阶段／participant／cause／完成事实及完整清理。Mailbox 的领域自结算事实独立，
   不能从 `IsSettled`、异常类型或已经回滚推断该许可。
-- 选角／回选精确 cleanup 只做固定动作，失败后不能恢复普通写或登记。HTTP Cera／Mail 审计必须匹配实际
-  输入、request、command、origin／job和唯一完整失败；外侧响应搬运不把原作业改为成功。
+- 选角／回选精确 cleanup 只做固定动作，失败后不能恢复普通写或登记。失败审计只给注册时声明
+  `CommandFailureAudit` 的 HTTP／GM 命令：工作单元以 `CommandFailureAuditRole` 声明自己是执行单元
+  （确认回滚或不确定时审计）还是准备单元（仅请求取消时审计），机制不按命令或单元名判断；审计必须匹配
+  request、command、origin／job 和唯一完整失败，写什么记录由命令自己决定。外侧响应搬运不把原作业改为成功。
 - BodyOnly 取消仅在本次 producer token 已取消、批准的实际 action/body 发生、健康清理且无其它失败时回给
   producer；DI、commit、guard、scope-only、未知取消和提交后取消不能借用。只读单元的 action 取消另须
   命令注册时声明 `ReadOnlyActionCancellation`（仅内部路由），且来源为 Timer／Http／Gm 的 BodyOnly；

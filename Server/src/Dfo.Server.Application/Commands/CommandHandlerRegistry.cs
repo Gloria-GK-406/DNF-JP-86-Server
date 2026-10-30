@@ -21,7 +21,8 @@ public sealed record CommandHandlerRegistration(
     CommandSelfSettlementCapability SelfSettlement = CommandSelfSettlementCapability.None,
     CommandSelectedSessionCleanupCapability SelectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
     ReadOnlyActionCancellationCapability ReadOnlyActionCancellation = ReadOnlyActionCancellationCapability.None,
-    InternalActionCancellationCapability InternalActionCancellation = InternalActionCancellationCapability.None)
+    InternalActionCancellationCapability InternalActionCancellation = InternalActionCancellationCapability.None,
+    CommandFailureAuditCapability FailureAudit = CommandFailureAuditCapability.None)
 {
     internal CommandHandlerRegistration Freeze() => ProtocolMessages is null && RegistrationExits is null ? this : this with
     { ProtocolMessages = ProtocolMessages is null ? null : Array.AsReadOnly(ProtocolMessages.ToArray()),
@@ -61,6 +62,8 @@ public sealed class CommandHandlerRegistry
                 throw new InvalidOperationException("Action cancellation requires its named internal registration.");
             if (!Enum.IsDefined(item.ReadOnlyActionCancellation) || item.ReadOnlyActionCancellation != ReadOnlyActionCancellationCapability.None && item.Route != CommandRouteKind.Internal)
                 throw new InvalidOperationException("Read-only cancellation requires its named internal registration.");
+            if (!Enum.IsDefined(item.FailureAudit) || item.FailureAudit != CommandFailureAuditCapability.None && item.Route != CommandRouteKind.Internal)
+                throw new InvalidOperationException("A failure audit requires its named internal registration.");
             if (!Enum.IsDefined(item.SelectedSessionCleanup)
                 || item.SelectedSessionCleanup != CommandSelectedSessionCleanupCapability.None
                     && (item.Route != CommandRouteKind.Protocol || item.ProtocolMessages is not { Count: 1 }

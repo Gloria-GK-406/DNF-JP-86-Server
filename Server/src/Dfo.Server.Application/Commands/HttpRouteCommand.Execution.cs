@@ -60,8 +60,9 @@ internal sealed partial class HttpRouteCommandHandler
         && !TransactionOutcomeUncertainException.Contains(error);
     private sealed record Stage<T>(T? Value, Exception? Error) where T : notnull;
     private async ValueTask<T> Write<T>(CommandExecutionContext context, string name,
-        Func<CancellationToken, ValueTask<T>> action, CancellationToken ct) where T : notnull =>
-        Unwrap(await units.WriteAsync(context, new(name, []), (unit, token) => Action(context, unit, action, token), ct));
+        Func<CancellationToken, ValueTask<T>> action, CancellationToken ct,
+        CommandFailureAuditRole audit = CommandFailureAuditRole.None) where T : notnull =>
+        Unwrap(await units.WriteAsync(context, new(name, [], FailureAudit: audit), (unit, token) => Action(context, unit, action, token), ct));
     private async ValueTask<T> Read<T>(CommandExecutionContext context, string name,
         Func<CancellationToken, ValueTask<T>> action, CancellationToken ct) where T : notnull =>
         Unwrap(await units.ReadOnlyAsync(context, new(name, []), (unit, token) => Action(context, unit, action, token), ct));

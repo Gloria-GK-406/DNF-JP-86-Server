@@ -134,7 +134,7 @@ public abstract class CommandRequestContext
         if (closed || GameplayJob.Current?.Id != job)
             throw new InvalidOperationException("The command request is closed or belongs to another job.");
         GameplayJob.DemandHealthy();
-        if (failure is { } error) { HttpFailure?.Invalidate(); ExceptionDispatchInfo.Capture(error).Throw(); }
+        if (failure is { } error) { FailureAudit?.Invalidate(); ExceptionDispatchInfo.Capture(error).Throw(); }
         DemandAuthority();
     }
     protected virtual void DemandAuthority() { }
@@ -176,20 +176,20 @@ public abstract class CommandRequestContext
         }
         FailedIndependent(error, new object());
     }
-    internal HttpCommandFailureState? HttpFailure { get; set; }
+    internal CommandFailureAuditState? FailureAudit { get; set; }
     internal object[] FailureSources() => failures.Select(item => item.Source).ToArray();
-    internal void DemandHttpFailureAuditLifetime()
+    internal void DemandFailureAuditLifetime()
     {
         if (closed || GameplayJob.Current?.Id != job || this is not TrustedInternal { Origin.Kind: GameplayCallSource.Http or GameplayCallSource.Gm }
-            || HttpFailure is null || failure is null)
-            throw new InvalidOperationException("The HTTP failure audit is outside its owning failed request.");
+            || FailureAudit is null || failure is null)
+            throw new InvalidOperationException("The failure audit is outside its owning failed request.");
         GameplayJob.DemandHealthy();
     }
-    internal void BeginHttpFailureAuditUnit()
+    internal void BeginFailureAuditUnit()
     {
-        DemandHttpFailureAuditLifetime();
+        DemandFailureAuditLifetime();
         if (unitOpen || selectedSessionCleanup is not null || pendingSelfSettlement is not null)
-            throw new InvalidOperationException("The HTTP failure audit cannot overlap another operation.");
+            throw new InvalidOperationException("The failure audit cannot overlap another operation.");
         unitOpen = true;
     }
     internal ProducerCancellationObservation? ProducerCancellation { get; set; }

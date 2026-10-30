@@ -18,7 +18,7 @@ public static class CommandDispatchingExtensions
         services.TryAddSingleton<ICommandBus, CommandBus>();
         services.TryAddSingleton<CommandJobEntry>();
         services.TryAddSingleton<ICommandWorkUnits, CommandWorkUnits>();
-        services.TryAddSingleton<ICommandHttpFailureAudit, CommandHttpFailureAudit>();
+        services.TryAddSingleton<ICommandFailureAudit, CommandFailureAudit>();
         services.TryAddSingleton<ICommandSelectedSessionCleanup, CommandSelectedSessionCleanup>();
         services.TryAddSingleton<SelectedSessionSafety>();
         services.TryAddSingleton<EffectOperationLedger>();
@@ -59,17 +59,20 @@ public static class CommandDispatchingExtensions
 
     public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
         ReadOnlyActionCancellationCapability readOnlyActionCancellation = ReadOnlyActionCancellationCapability.None,
-        InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None)
+        InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None,
+        CommandFailureAuditCapability failureAudit = CommandFailureAuditCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Internal, null, readOnlyActionCancellation: readOnlyActionCancellation, internalActionCancellation: internalActionCancellation);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Internal, null, readOnlyActionCancellation: readOnlyActionCancellation,
+            internalActionCancellation: internalActionCancellation, failureAudit: failureAudit);
 
     private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
         CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null,
         CommandSelfSettlementCapability selfSettlement = CommandSelfSettlementCapability.None,
         CommandSelectedSessionCleanupCapability selectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
         ReadOnlyActionCancellationCapability readOnlyActionCancellation = ReadOnlyActionCancellationCapability.None,
-        InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None)
+        InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None,
+        CommandFailureAuditCapability failureAudit = CommandFailureAuditCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
     {
@@ -80,7 +83,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            route, messages, exits, selfSettlement, selectedSessionCleanup, readOnlyActionCancellation, internalActionCancellation).Freeze());
+            route, messages, exits, selfSettlement, selectedSessionCleanup, readOnlyActionCancellation, internalActionCancellation, failureAudit).Freeze());
         return services;
     }
 }

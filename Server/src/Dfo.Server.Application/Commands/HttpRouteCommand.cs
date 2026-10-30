@@ -58,14 +58,12 @@ internal sealed partial class HttpRouteCommandHandler(
     IAuthenticationDomainService authentication, IGmAccessDomainService access, IGmAuditDomainService audit,
     IGmPlayerDirectoryDomainService players, IGmCeraDomainService cera, IGmCeraReminderDomainService reminders,
     IGmOfficialMailDomainService mail, IGmInitializationDomainService initialization, IGmDailyRefillDomainService daily,
-    IGmEventsDomainService events, IGmJoustDomainService joust, ICommandWorkUnits units, ICommandHttpFailureAudit failureAudit)
+    IGmEventsDomainService events, IGmJoustDomainService joust, ICommandWorkUnits units, ICommandFailureAudit failureAudit)
     : ICommandHandler<HttpRouteCommand, HttpRouteReply>
 {
     public async ValueTask<HttpRouteReply> HandleAsync(CommandExecutionContext context, HttpRouteCommand command, CancellationToken token)
     {
         Validate(context, command);
-        if (command.Operation is HttpRouteOperation.CeraGrant or HttpRouteOperation.MailSend && command.Input is not HttpRouteInput.Failed)
-            context.Request!.HttpFailure = new(context.Request, command, token);
         if (command.Input is HttpRouteInput.Failed failed)
         {
             if (failed.Cause is OperationCanceledException) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(failed.Cause);

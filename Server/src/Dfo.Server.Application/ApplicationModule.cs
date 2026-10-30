@@ -845,7 +845,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddTypedGameplayTimer<LoginSessionMaintenanceService>();
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
         services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();
-        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
+        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead,
+            failureAudit: CommandFailureAuditCapability.AuditedFailure);
         services.AddNetworkMessageDispatching();
         services.AddNotificationDispatching();
         AddContentWarmups(services);
