@@ -532,6 +532,7 @@ public sealed class ExplicitEffectExecutionTests
     }
     private sealed class CleanupApply(IApplyEffectsDomainService effects, DomainTransactionScope transactions) : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => new HashSet<SelectedSessionIdentity> { session };
         public IEffectFootprintRecorder? Cap;
         public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(SelectedSessionIdentity session, bool includeOwner, IEffectFootprintRecorder footprint, CancellationToken ct)
         {

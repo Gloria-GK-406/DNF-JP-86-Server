@@ -47,6 +47,15 @@ internal sealed class SelectedSessionCleanupService(
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null,
     IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink>? bossTowerDepartures = null) : ISelectedSessionCleanupDomainService
 {
+    public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
+    {
+        var affected = new HashSet<SelectedSessionIdentity> { session };
+        // A tower departure settles the members it leaves behind, so they are inside its footprint.
+        foreach (var tower in new ITowerRunSnapshot?[] { illusionTower?.Find(session), bossTower?.Find(session) })
+            if (tower is not null) affected.UnionWith(tower.Members.Select(member => member.Session));
+        return affected;
+    }
+
     public async ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
         SelectedSessionIdentity session, bool includeOwner, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
     {

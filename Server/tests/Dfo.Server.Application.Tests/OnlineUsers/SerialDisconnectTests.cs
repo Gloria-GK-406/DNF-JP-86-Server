@@ -146,6 +146,7 @@ public sealed class SerialDisconnectTests : IDisposable
     private sealed class RecordingCleanup(ISelectedSessionCleanupDomainService inner, ConcurrentQueue<SelectedSessionIdentity> cleaned)
         : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => inner.AffectedSessions(session);
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
         {

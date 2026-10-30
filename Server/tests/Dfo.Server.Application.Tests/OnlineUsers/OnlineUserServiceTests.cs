@@ -790,6 +790,7 @@ public sealed class UserServiceTests
 
     private sealed class NoopCleanup : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => new HashSet<SelectedSessionIdentity> { session };
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
             Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
@@ -799,6 +800,7 @@ public sealed class UserServiceTests
     private sealed class FailingCleanup(SelectedSessionCleanupNotificationPlan plan)
         : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => new HashSet<SelectedSessionIdentity> { session };
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner,
             Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
@@ -836,6 +838,7 @@ public sealed class UserServiceTests
 
     private sealed class ClearingCleanup(UserDomainServices active) : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => new HashSet<SelectedSessionIdentity> { session };
         public SelectedSessionIdentity? Cleaned { get; private set; }
 
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
