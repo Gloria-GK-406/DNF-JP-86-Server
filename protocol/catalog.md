@@ -61,7 +61,7 @@ CurrentImplementation / ClientStatic / 70Reference：入口4／10、0392–039A�
 
 ClientStatic / Confirmed：[CMD002A](game/client-to-server/0x002A.md#遗忘之地专用模块的退出构包)有来自遗忘之地专用更新模块的空体构包点，受本地奖励界面状态及一次发送标记控制。当前客户端内容将DGN4000置于世界地图101「黄金梦」，暗黑城区域2、3绑定该选图页；用户确认乔安入场按钮打开选图页，页内可选择遗忘之地，界面显示1/1及100疲劳加次提示。CurrentImplementation：已接专用探索准入及持久次数，普通解析仍保留Boss不可达拒绝；准入/次数及邻近回归44项通过，首次加载[025C](game/server-to-client/NOTI-0x025C.md)按用户确定的20分钟策略发送1200/1200，第二字段用途仍未知；60秒到点原生结束、宝箱及追击者已有用户反馈，当前20分钟及其他边界见[验收结果](../Document/tasks/forgotten-land/Human-Test.md)。本条不增加WireCaptured，不将菜单可见或内容读取测试扩大为完整玩法ClientVerified。见[取证与实现边界](../Document/tasks/forgotten-land/README.md)。
 
-## 暗精灵遗迹专用流程（待 A21 实机）
+## 暗精灵遗迹专用流程（核心路径已获限定 A21 确认）
 
 CurrentImplementation / ClientStatic：遗迹使用专用成绩、奖励和状态流程；宽度、静态锚点、上游参照及未裁定字段见[流程记录](patterns/flow-darkelf-ruins.md)。服务端自动测试不构成 WireCaptured 或 ClientVerified。升星及装备概率采用[本次用户确定的规则](../Document/tasks/darkelf-ruins/README.md)。
 

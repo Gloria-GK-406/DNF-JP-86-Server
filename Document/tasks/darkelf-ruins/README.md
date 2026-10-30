@@ -1,8 +1,9 @@
 # 暗精灵遗迹（#75）
 
 范围为 DGN5006–5009、5016–5019、5026–5029，对应 [#75](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/75) 和 [#170](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/170)。
-工作区基线 `main@81be4dfd`，开发分支 `codex/darkelf-ruins-75`。
-候选版本 `0.2.11` 已完成服务端自动验证，并按用户授权在默认端口接管原玩家库。尚未取得本次 A21 实机验收，未创建功能 PR。
+工作区基线 `main@d6002078`，开发分支 `codex/darkelf-ruins-75`；PR沿用主干版本号，不修改版本声明。
+用户2026-10-30确认首次选图星级、累计显示及额外一次无复活通关升星正常，授权准备PR。
+实机候选为 `0.2.11+21a083d4`；变基后的源码验证与未覆盖场景分别见验证记录，不以变基自动获得新的实机证明。
 连接方式和具体操作见 [实机测试流程](user-test.md)。
 具体结果与保留边界见 [验证记录](verification.md)。
 
@@ -36,7 +37,8 @@
 | 上游参考 | `E:/Project/DNF/ServerS4A21/Server/DfoServer/GameWorld/LicensedDungeonCatalog.cs`、`Game/Dungeon/LicensedDungeonService.cs`、`LicensedDungeonRewardService.cs`、`Network/Builders/Dungeon/LicensedDungeonPacketBuilder.cs`、`Network/Handlers/Dungeon/DungeonSettlementHandler.cs` | 业务与专用流程参照；该目录没有可读取的 Git 提交身份，用文件 SHA256 固定输入 |
 | 历史说明 | [2016-08-03 日服上线公告转载](https://www.4gamer.net/games/030/G003013/20160803103/)、[当期官方竞速说明](https://arad.nexon.co.jp/campaign/2016duel_tournament_timeattack.aspx) | 历史玩法与三星守护者入口；不替代当前客户端证明 |
 | CurrentImplementation | 本工作区源码及本任务测试 | 仅证明本仓实现与自动覆盖范围 |
-| WireCaptured / ClientVerified | 本次未新增 | 等待用户实机验收与双向抓包；不引用上游自测为本仓实机证据 |
+| ClientVerified | 用户2026-10-30在候选 `21a083d4` 的反馈 | 首次选图与重开显示正常，累计推进及3/3后另行无复活通关升三星；不扩展为守护者或组队验收 |
+| WireCaptured | 本次未新增完整双向样本 | 运行日志与只读缓存分别保留，不等同于完整抓包 |
 
 客户端 EXE SHA256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。
 探查档案：`E:/Project/DNF/DNFClient-A21-protocol3/Script.pvf`，SHA256 `D45CF58B1A2B3D16D6B35ABE0D4E302E052F0B6BC43E9D3E98D815FED54AEF84`。

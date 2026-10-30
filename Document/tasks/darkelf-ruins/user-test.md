@@ -1,6 +1,7 @@
 # 暗精灵遗迹实机测试
 
-服务端候选为 `codex/darkelf-ruins-75`，基于 `main@81be4dfd` 重新变基，运行版本 `0.2.11`。
+开发分支为 `codex/darkelf-ruins-75`，基于 `main@d6002078`；PR沿用主干版本声明。
+当前实机已验收候选为 `0.2.11+21a083d4`，其运行身份与当前源码提交分开记录。
 使用现有账号与原玩家库，不重建角色、不重置资产或遗迹进度。
 
 ## 连接与证据
@@ -9,7 +10,7 @@
 - GM：[本机管理页](http://127.0.0.1:18081/gm/)。仅保留现有管理能力，不需要为测试重置任务或次数。
 - 数据库：`E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db`。
 - 当前实例、最终备份、启动配置及完整日志：工作区 `artifacts/darkelf-login-cache-20261030/`；其中 `live-result.json` 记录PID/EXE，`live-stdout.log`、`live-stderr.log` 用于定位。
-- 启动和健康检查已通过；以下原生操作仍等待用户反馈，不将就绪检查记作实机验收。
+- 核心选图、累计显示及二星升三星已获用户确认；各步骤已验证与未覆盖范围见[验证记录](verification.md)，不将就绪检查记作实机验收。
 
 ## 先做核心流程
 

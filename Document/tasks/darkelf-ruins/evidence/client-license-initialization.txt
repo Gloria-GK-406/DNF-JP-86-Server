@@ -25,8 +25,10 @@ RuntimeObserved:
 
 CurrentImplementation: prime the exact character's current selection at login
 once published, and keep the normal selection refresh. No progress DB changes.
-ClientVerified boundary: user confirms 2/3 counter; cold first-open fix and
-cross-region star display still require a fresh-client acceptance test.
+ClientVerified boundary: user confirms first-open/reopened selection and 2/3
+counter on candidate21a083d4, then a separate no-revival clear after 3/3
+upgraded to three stars (2026-10-30). Other regions and character switching
+are not independently accepted by this evidence.
 
 VA 004C0C50, length 79
 004C0C50 push     ebx

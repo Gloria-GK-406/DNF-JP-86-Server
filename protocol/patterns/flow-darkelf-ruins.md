@@ -54,6 +54,7 @@ CurrentImplementation：按合法所选星级确定实际难度0/1/2/3，保留�
 RuntimeObserved：23:31:53及23:32:18两次选图均发送02F7；第二次随后进入5007，实例难度Adventure、客户端请求难度Normal。服务器持久星级没有回退。
 ClientObserved：2026-10-30用户确认选图内调整顺序仍未解决首次一星；不能以服务端报文次序断言原生界面正确。
 ClientStatic：004C0C50按座位就绪标记仅首次复制全局记录，02F7的004C0DF0不更新座位副本。当前登录没有遗迹记录，选图响应才补发，存在首次读取空缓存的缺口。
-CurrentImplementation：选角发布完成后预先发送当前角色遗迹状态，保留选图刷新；冷启动首次界面与换角色仍待验收。[有界初始化链及只读缓存](../../Document/tasks/darkelf-ruins/evidence/client-license-initialization.txt)。未将旧A12的ACK定位用作A21因果证据。
+CurrentImplementation：选角发布完成后预先发送当前角色遗迹状态，保留选图刷新。[有界初始化链及只读缓存](../../Document/tasks/darkelf-ruins/evidence/client-license-initialization.txt)。未将旧A12的ACK定位用作A21因果证据。
+ClientVerified / 限定：用户2026-10-30确认候选21a083d4首次打开及重开星级正常、累计2/3正常，并在3/3后另行无复活通关升至三星。换角色、守护者及其他未覆盖项仍见任务验证记录；没有新增完整WireCaptured样本。
 
 用户截图已确认0/3属于遗迹选图的下一星达成条件。服务端累计已落库，第三字段固定0造成展示缺失；当前改为投影该累计。用户2026-10-30已反馈显示2/3，计数字段取得限定界面确认，读取链见[02F7](../game/server-to-client/NOTI-0x02F7.md)。
