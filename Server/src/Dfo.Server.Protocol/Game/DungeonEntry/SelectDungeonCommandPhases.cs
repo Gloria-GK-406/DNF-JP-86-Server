@@ -25,10 +25,6 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.DungeonEntry;
 internal sealed partial class GameSelectDungeonCommandHandler
 {
-    private void RestoreEntryIntent(SelectedSessionIdentity requester, DungeonEntryIntent intent)
-    {
-        if (sessions.IsInWorld(requester)) entryIntents.RestoreIfAbsent(requester, intent);
-    }
     internal async ValueTask SelectDungeonAsync(
         CommandExecutionContext execution,
         NetworkDispatchContext context,
@@ -55,16 +51,15 @@ internal sealed partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        var authorized = entryIntents.Authorize(session, message.DungeonId, message.MirrorQuestId is not null);
-        var intent = entryIntents.Consume(session);
-        if (authorized is null || intent is null)
+        // Only looked at here: a refusal leaves the selection as it was, and the intent is spent
+        // once the entry has committed.
+        var intent = entryIntents.Authorize(session, message.DungeonId, message.MirrorQuestId is not null);
+        if (intent is null)
         {
-            if (intent is { } refusedIntent && sessions.IsInWorld(session))
-                entryIntents.RestoreIfAbsent(session, refusedIntent);
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: invalid selection context intent={Intent} dungeon={DungeonId}",
                 context.Connection.ConnectionId,
-                intent,
+                entryIntents.Find(session),
                 message.DungeonId);
             await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
@@ -98,8 +93,6 @@ internal sealed partial class GameSelectDungeonCommandHandler
             session.AccountId, session.CharacterId, session.WireUserId, null));
         if (roster.LeaderWireUserId != session.WireUserId)
         {
-            if (sessions.IsInWorld(session))
-                entryIntents.RestoreIfAbsent(session, intent.Value);
             await RefuseAsync(
                 context.Connection.ConnectionId,
                 SelectDungeonRefusal.NotPartyLeader,
@@ -112,11 +105,10 @@ internal sealed partial class GameSelectDungeonCommandHandler
         {
             if (message.MirrorQuestId is not null)
             {
-                entryIntents.RestoreIfAbsent(session, intent.Value);
                 await RefuseAsync(context.Connection.ConnectionId, SelectDungeonRefusal.InvalidSelectionState, 0, cancellationToken, true).ConfigureAwait(false);
                 return;
             }
-            _ = await EnterBossAsync(execution, context.Connection.ConnectionId, session, roster, intent.Value,
+            _ = await EnterBossAsync(execution, context.Connection.ConnectionId, session, roster,
                 cancellationToken, message.RequestMode, (byte)message.Difficulty, message.PracticeMode).ConfigureAwait(false);
             return;
         }
@@ -130,12 +122,11 @@ internal sealed partial class GameSelectDungeonCommandHandler
                 context.Connection.ConnectionId,
                 session,
                 roster,
-                intent.Value,
                 cancellationToken, message.DungeonId).ConfigureAwait(false);
             return;
         }
 
-        await EnterOrdinaryAsync(execution, context.Connection.ConnectionId, session, result, roster, message, facts, intent.Value, cancellationToken).ConfigureAwait(false);
+        await EnterOrdinaryAsync(execution, context.Connection.ConnectionId, session, result, roster, message, facts, cancellationToken).ConfigureAwait(false);
     }
 
 

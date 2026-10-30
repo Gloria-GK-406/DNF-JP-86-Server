@@ -47,13 +47,11 @@ internal sealed partial class GameSelectDungeonCommandHandler
         NetworkConnectionId requesterConnection,
         SelectedSessionIdentity requester,
         PartySnapshot roster,
-        DungeonEntryIntent intent,
         CancellationToken token, int dungeonId)
     {
         var attachments = await IllusionEntryResolveAttachmentsAsync(requester, roster, token).ConfigureAwait(false);
         if (attachments is null)
         {
-            RestoreEntryIntent(requester, intent);
             await IllusionEntryRefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
             return true;
         }
@@ -66,7 +64,6 @@ internal sealed partial class GameSelectDungeonCommandHandler
         {
             if (!IllusionEntryCurrent(attachments) || !IllusionEntryPartyCurrent(requester, roster, attachments))
             {
-                RestoreEntryIntent(requester, intent);
                 await IllusionEntryRefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, token).ConfigureAwait(false);
                 return true;
             }
@@ -74,7 +71,6 @@ internal sealed partial class GameSelectDungeonCommandHandler
             var entered = await AdmitIllusionAsync(execution, attachments.Select(value => new TowerEntryMember(value.Session, value.Slot)).ToArray(), requester, unchecked((uint)Random.Shared.Next()), token, dungeonId).ConfigureAwait(false);
             if (entered.Run is null)
             {
-                RestoreEntryIntent(requester, intent);
                 await IllusionEntryRefuseAsync(requesterConnection,
                     entered.Rejection switch
                     {
@@ -93,7 +89,8 @@ internal sealed partial class GameSelectDungeonCommandHandler
             if (!IllusionEntryCurrent(attachments, run))
                 throw new InvalidOperationException("Tower cohort changed after committed admission.");
 
-            foreach (var member in attachments.Where(value => value.Session != requester))
+            // Admission committed: the whole cohort's selection is spent, the requester's included.
+            foreach (var member in attachments)
             {
                 if (sessions.IsInWorld(member.Session))
                     entryIntents.Consume(member.Session);
