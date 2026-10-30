@@ -252,7 +252,7 @@ public sealed class DungeonClearProjectionDeliveryTests
 
     private sealed record TestWorld(
         DungeonClearProjectionDriver Projection,
-        DungeonRunDomainService Runs,
+        IDungeonRunDomainService Runs,
         DungeonRunState Run,
         RecordingSender Sender);
 

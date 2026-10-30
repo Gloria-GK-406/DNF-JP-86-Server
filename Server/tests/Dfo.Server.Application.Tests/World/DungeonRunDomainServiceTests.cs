@@ -1794,7 +1794,7 @@ public sealed partial class DungeonRunDomainServiceTests
         });
     }
 
-    private static DungeonRunState PrepareCardPanel(DungeonRunDomainService service)
+    private static DungeonRunState PrepareCardPanel(IDungeonRunDomainService service)
     {
         var run = service.Begin(Character, Tutorial, difficulty: 0);
         var free = new ClearRewardCardFace(
@@ -1811,7 +1811,7 @@ public sealed partial class DungeonRunDomainServiceTests
     }
 
     private static DungeonRunState PreparePartyCardPanel(
-        DungeonRunDomainService service,
+        IDungeonRunDomainService service,
         params DungeonRunParticipant[] participants)
     {
         var run = service.BeginParty(participants, Tutorial, difficulty: 0);
@@ -2229,7 +2229,7 @@ public sealed partial class DungeonRunDomainServiceTests
     }
 
     private static DungeonRunState BeginWithCell(
-        DungeonRunDomainService service,
+        IDungeonRunDomainService service,
         IReadOnlyList<DungeonCellActorState>? actors = null,
         IReadOnlyList<DungeonGroundItem>? groundItems = null)
     {
@@ -2249,7 +2249,7 @@ public sealed partial class DungeonRunDomainServiceTests
     }
 
     private static DungeonRunState BeginPartyWithCell(
-        DungeonRunDomainService service,
+        IDungeonRunDomainService service,
         IReadOnlyList<DungeonRunParticipant> participants,
         IReadOnlyList<DungeonCellActorState>? actors = null,
         IReadOnlyList<DungeonGroundItem>? groundItems = null,
@@ -2270,7 +2270,7 @@ public sealed partial class DungeonRunDomainServiceTests
     }
 
     private static DungeonRunState? MoveToEmptyCell(
-        DungeonRunDomainService service,
+        IDungeonRunDomainService service,
         DungeonRunState run,
         MazeCell target) =>
         service.TryMove(
@@ -2316,7 +2316,7 @@ public sealed partial class DungeonRunDomainServiceTests
             Kind: DropItemKind.Equipment);
 
     private static DungeonRunState? Take(
-        DungeonRunDomainService service,
+        IDungeonRunDomainService service,
         DungeonRunState run,
         ushort number)
     {

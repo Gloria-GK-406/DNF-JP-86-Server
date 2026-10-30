@@ -39,7 +39,7 @@ public sealed class MirrorEntryProtocolCommandFlowTests
         var body = new byte[8]; BinaryPrimitives.WriteUInt32LittleEndian(body, 32);
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4), validPair ? 14299u : 13801u);
         await EffectRequestTransport.SendRaw(f, new(1, 0x02B6, 0, 7), body);
-        var run = TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId));
+        var run = TestGameplay.Run(f.Services, () => f.Services.DungeonRuns().Find(f.Session.CharacterId));
         if (validPair)
         {
             Assert.NotNull(run); Assert.Equal(new MirrorDungeonRunIdentity(8000, 31, 14299), Assert.IsType<DungeonRunMode.Mirror>(run.Layout.Mode).Plan);

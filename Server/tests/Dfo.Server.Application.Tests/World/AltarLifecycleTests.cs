@@ -31,7 +31,7 @@ public sealed class AltarLifecycleTests
             var clock = new TestClock();
             await using var f = await Fixture(clock);
             var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var character = f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71));
             DungeonEntryAttempt entered;
             await using (var tx = f.Scope.Begin())
@@ -117,7 +117,7 @@ public sealed class AltarLifecycleTests
             Assert.Equal(3, Assert.Single(initial.Public.Extras.Dimensions, x => x.Key == dungeonId).Value2);
             f.Sql("INSERT INTO character_dimensions(character_id,sort_order,dim_key,val1,val2) VALUES(71,0,11006,7,3),(71,1,11007,8,3),(71,2,11006,99,99),(71,3,122,4,9)");
             var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             for (var used = 1; used <= 3; used++)
             {
                 await using (var tx = f.Scope.Begin())
@@ -177,7 +177,7 @@ public sealed class AltarLifecycleTests
             var clock = new TestClock();
             await using var f = await Fixture(clock);
             var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var character = f.Services.GetRequiredService<ICharacterDomainService>().Get(new(71));
             if (dungeonId == 11006)
             {
@@ -230,7 +230,7 @@ public sealed class AltarLifecycleTests
             var clock = new TestClock();
             await using var f = await Fixture(clock);
             var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             MakeParty(f);
             await using (var tx = f.Scope.Begin())
             {
@@ -287,7 +287,7 @@ public sealed class AltarLifecycleTests
             await using var f = await Fixture(clock);
             var parties = MakeParty(f);
             var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin())
             {
                 Assert.NotNull((await altars.EnterAsync(Entry(11007) with { Participants =
@@ -345,7 +345,7 @@ public sealed class AltarLifecycleTests
             var clock = new TestClock();
             await using var f = await Fixture(clock);
             var altars = f.Services.GetRequiredService<IAltarDungeonDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin()) { Assert.NotNull((await altars.EnterAsync(Entry(11007), default)).Entry); await tx.CommitAsync(default); }
             var run = runs.Find(new CharacterId(71))!;
             runs.TryMarkParticipantReady(new(71), run.RunId, run.RoomVersion);

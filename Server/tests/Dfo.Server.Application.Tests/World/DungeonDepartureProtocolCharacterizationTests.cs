@@ -108,7 +108,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
         Assert.Empty(run.F.Sender.Outbound.Closes);
         TestGameplay.Run(run.F.Services, () =>
         {
-            var runs = run.F.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = run.F.Services.DungeonRuns();
             foreach (var side in new[] { Side.Leader, Side.Member })
             {
                 var view = Assert.IsType<DungeonRunState>(runs.Find(run.Session(side).CharacterId));
@@ -182,7 +182,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
         Assert.Empty(run.F.Sender.Outbound.Closes);
         TestGameplay.Run(run.F.Services, () =>
         {
-            var runs = run.F.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = run.F.Services.DungeonRuns();
             Assert.Null(runs.Find(run.RunId));
             Assert.Null(runs.Find(run.Leader.CharacterId));
             Assert.Empty(run.Deliveries.Find(run.RunId));
@@ -267,7 +267,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             Assert.Empty(F.Sender.Outbound.Closes);
             TestGameplay.Run(F.Services, () =>
             {
-                var runs = F.Services.GetRequiredService<IDungeonRunDomainService>();
+                var runs = F.Services.DungeonRuns();
                 Assert.Null(runs.Find(Session(departing).CharacterId));
                 var view = Assert.IsType<DungeonRunState>(runs.Find(Session(remaining).CharacterId));
                 Assert.Equal(RunId, view.RunId);
@@ -287,7 +287,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             DepartureBaseline baseline = null!;
             TestGameplay.Run(F.Services, () =>
             {
-                var current = Assert.IsType<DungeonRunState>(F.Services.GetRequiredService<IDungeonRunDomainService>().Find(RunId));
+                var current = Assert.IsType<DungeonRunState>(F.Services.DungeonRuns().Find(RunId));
                 var weakness = F.Services.GetRequiredService<IWeaknessDomainService>();
                 var rules = F.Services.GetRequiredService<IWeaknessRuleService>();
                 var failed = current.Layout.AppliesFailureWeakness && !current.CurrentCellState.ClearOpen;
@@ -329,7 +329,7 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
             Assert.Empty(F.Sender.Outbound.Closes);
             TestGameplay.Run(F.Services, () =>
             {
-                var runs = F.Services.GetRequiredService<IDungeonRunDomainService>();
+                var runs = F.Services.DungeonRuns();
                 Assert.Null(runs.Find(RunId));
                 Assert.Null(runs.Find(Leader.CharacterId));
                 Assert.Null(runs.Find(Member.CharacterId));

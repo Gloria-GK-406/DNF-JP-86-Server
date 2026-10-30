@@ -355,7 +355,7 @@ public sealed class SessionGenerationOwnershipTests
         IOnlineCharacterRuntimeDomainService? runtime = null,
         IChannelEntryDomainService? channels = null,
         RecordingPositionPersistence? persistence = null,
-        DungeonRunDomainService? runs = null,
+        IDungeonRunDomainService? runs = null,
         IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null,
         DomainTransactionScope? scope = null,
         ICreatureRuntimeDomainService? creatures = null)

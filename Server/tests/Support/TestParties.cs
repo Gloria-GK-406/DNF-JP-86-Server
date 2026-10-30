@@ -33,7 +33,7 @@ internal static class TestParties
 
     /// <summary>A run service over <paramref name="parties"/>, or over a fresh real party service.</summary>
     /// <remarks>A missing transaction accessor gives a scope with no ambient transaction: the immediate-apply path.</remarks>
-    public static DungeonRunDomainService Runs(
+    public static IDungeonRunDomainService Runs(
         IDomainTransactionAccessor? transactions = null,
         IPartyService? parties = null,
         IWeaknessDomainService? weakness = null,
@@ -47,8 +47,8 @@ internal static class TestParties
         IGiantDragonRuleService? giantDragons = null)
     {
         parties ??= Create();
-        var runs = new DungeonRunDomainService(
-            transactions ?? Dfo.Server.Testing.TestRequired.TransactionScope(), parties, new LostLandFeverRuleService(),
+        var runs = DungeonRunTestComposition.Build(
+            transactions ?? Dfo.Server.Testing.TestRequired.TransactionScope(), parties,
             weakness ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Characters.IWeaknessDomainService>(),
             creatures ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(),
             lifecycle ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonLifecycleDomainService>(), clock ?? TimeProvider.System,
@@ -56,8 +56,7 @@ internal static class TestParties
             deadlines ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonDeadlineWake>(),
             sealedTreasureRules ?? new SealedTreasureRuleService(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IDungeonDefinitionSource>()),
             participation ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(),
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonRunDomainService>.Instance,
-            new DungeonSettlementRuleService(), giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IGiantDragonRuleService>());
+            giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IGiantDragonRuleService>());
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;
     }

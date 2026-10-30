@@ -38,7 +38,7 @@ public sealed class DungeonBuffUsageTests
     {
         return TestGameplay.Run(shop.Services, () =>
         {
-            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = shop.Services.DungeonRuns();
             var id = shop.Session.CharacterId;
             if (runs.Find(id) is { } old) runs.End(id, old.RunId);
             var cell = new MazeCell(0, 0);
@@ -83,7 +83,7 @@ public sealed class DungeonBuffUsageTests
         Assert.Equal(0, await Report(shop));
         shop.Sql("UPDATE account_premiums SET end_time=4000000000");
         Enter(shop);
-        Assert.NotEqual(old, shop.Services.GetRequiredService<IDungeonRunDomainService>().Find(shop.Session.CharacterId)!.RunId);
+        Assert.NotEqual(old, shop.Services.DungeonRuns().Find(shop.Session.CharacterId)!.RunId);
         Assert.Equal(1, await Report(shop));
         shop.Select(2);
         Enter(shop);
@@ -100,7 +100,7 @@ public sealed class DungeonBuffUsageTests
         Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'"));
         TestGameplay.Run(shop.Services, () =>
         {
-            Assert.False(shop.Services.GetRequiredService<IDungeonRunDomainService>().HasUsedDungeonBuff(shop.Session.CharacterId, run));
+            Assert.False(shop.Services.DungeonRuns().HasUsedDungeonBuff(shop.Session.CharacterId, run));
         });
         shop.Sql("DELETE FROM character_daily_counters WHERE counter_key='lottery_double_reward_used'");
         Assert.Equal(1, await Report(shop));

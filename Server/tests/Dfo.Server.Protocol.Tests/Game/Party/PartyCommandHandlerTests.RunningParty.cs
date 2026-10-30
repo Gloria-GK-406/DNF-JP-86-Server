@@ -131,14 +131,14 @@ public sealed partial class PartyCommandHandlerTests
         private readonly FixedPresence town = new(Inviter, Invitee, Outsider);
         private readonly TestProjection projection = new(new NoopNotificationBus());
 
-        private RunningPartyFixture(PartyClientProjectionService parties, DungeonRunDomainService runs)
+        private RunningPartyFixture(PartyClientProjectionService parties, IDungeonRunDomainService runs)
         {
             Parties = parties;
             Runs = runs;
         }
 
         public PartyClientProjectionService Parties { get; }
-        public DungeonRunDomainService Runs { get; }
+        public IDungeonRunDomainService Runs { get; }
 
         public static RunningPartyFixture Create()
         {

@@ -25,7 +25,7 @@ public sealed class DungeonEntryMaterialTests
         services.AddSingleton<ICharacterStatDefinitionSource>(new Dfo.Server.Application.Tests.Support.TestCharacterContent());
     });
     private static ICharacterFatigueDomainService Fatigue(LearningFixture f) => f.Services.GetRequiredService<ICharacterFatigueDomainService>();
-    private static (DungeonVisitDomainService Visits, DungeonRunDomainService Runs) Service(LearningFixture f, bool throwCell = false)
+    private static (DungeonVisitDomainService Visits, IDungeonRunDomainService Runs) Service(LearningFixture f, bool throwCell = false)
     {
         var runs = TestParties.Runs(f.Scope);
         return (Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(throwCell),

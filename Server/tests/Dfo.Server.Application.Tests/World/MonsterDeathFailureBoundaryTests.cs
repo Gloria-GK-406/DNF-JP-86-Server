@@ -179,7 +179,7 @@ public sealed partial class BossTowerDomainServiceTests
             Assert.True(parties.RequestInvite(Member(f.Session),Member(peer),new(0,0,0,0)).Succeeded);
             Assert.True(parties.AcceptInvite(Member(peer),Member(f.Session)).Succeeded);
             await using var setup=Scope(f).Begin();
-            var runs = f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var layout = new Dfo.Server.Abstractions.World.DungeonLayout(144, 0, 3, 1, new(0,0), new(2,0), 61000, 42,
                 new Dictionary<Dfo.Server.Abstractions.Content.MazeCell,Dfo.Server.Abstractions.Content.DungeonCellDefinition>
                 { [new(0,0)] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(61000), [new(1,0)] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(61001), [new(2,0)] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(61002) });
@@ -211,7 +211,7 @@ public sealed partial class BossTowerDomainServiceTests
         }
         TestGameplay.Run(f.Services,()=>
         {
-            var run=f.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDungeonRunDomainService>().Find(f.Session.CharacterId)!;
+            var run=f.Services.DungeonRuns().Find(f.Session.CharacterId)!;
             Assert.Equal(!passive,run.CurrentCellState.FindActor(1)!.IsDead);Assert.Equal(passive,run.CurrentCellState.Objects.Single().IsConsumed);
             foreach(var member in new[]{f.Session,peer}) Assert.Equal(!passive && (fault==2 || whole && fault==1),f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(member)!.Fenced);
         });

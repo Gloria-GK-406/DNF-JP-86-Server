@@ -50,15 +50,15 @@ public sealed class SaoTowerDomainTests
         public ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<ManagedEventList> ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct) => throw new NotSupportedException();
     }
-    private static LearningFixture Fixture(DungeonRunDomainService runs, Delivery delivery, bool enabled = true) => new(configure: s =>
+    private static LearningFixture Fixture(IDungeonRunDomainService runs, Delivery delivery, bool enabled = true) => new(configure: s =>
     {
         s.AddSingleton<ISaoTowerContentSource>(new Source());
-        s.AddSingleton<IDungeonRunDomainService>(runs);
+        s.AddDungeonRunsAs(runs);
         s.AddDungeonRunViews();
         s.AddSingleton<IItemDeliveryDomainService>(delivery);
         s.AddSingleton<IEventManagementDomainService>(new Activities(enabled));
     });
-    private static DungeonActorDeathClaim Claim(DungeonRunDomainService runs, SaoTowerProgress? progress = null)
+    private static DungeonActorDeathClaim Claim(IDungeonRunDomainService runs, SaoTowerProgress? progress = null)
     {
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(3600, 0, 1, 1, cell, cell, 27000, 1,
@@ -193,7 +193,7 @@ public sealed class SaoTowerDomainTests
                 Assert.Equal(2, Assert.IsType<DungeonRunMode.Sao>(entered.Entry.Layout.Mode).Plan.Progress.NextFloor);
                 // Deliberate transaction rollback: no run publication and no ticket charge.
             }
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
             var held = await containers.GetContainer(new(71), Dfo.Server.Data.Inventory.InventoryContainerType.Main).GetAllAsync(default);
             Assert.Equal(4, held.Where(x => x.ItemId == 10004322).Sum(x => x.Count));
             await using (var tx = f.Scope.Begin())
@@ -206,7 +206,7 @@ public sealed class SaoTowerDomainTests
             Assert.Equal(3, held.Where(x => x.ItemId == 10004322).Sum(x => x.Count));
             Assert.Equal(0, (await f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService>()
                 .BalanceOfAsync(new(71), default)).Used);
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(new CharacterId(71))!;
             DungeonActorDeathClaim? last = null;
             foreach (var actor in run.CurrentCellState!.Actors.Where(x => x.BlocksClear))

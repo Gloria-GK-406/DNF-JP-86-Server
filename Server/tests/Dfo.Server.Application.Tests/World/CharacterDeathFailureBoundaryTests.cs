@@ -154,7 +154,7 @@ public sealed class CharacterDeathProtocolLifecycleTests
     {
         return TestGameplay.Run(f.Services,()=>
         {
-            var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs=f.Services.DungeonRuns();
             var layout=new DungeonLayout(144,0,1,1,new(0,0),new(0,0),61000,1,
                 new Dictionary<Dfo.Server.Abstractions.Content.MazeCell,Dfo.Server.Abstractions.Content.DungeonCellDefinition>{[new(0,0)]=Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(61000)});
             if(configure is not null)layout=configure(layout);
@@ -176,7 +176,7 @@ public sealed class CharacterDeathProtocolLifecycleTests
         var error=await Record.ExceptionAsync(()=>probe.Wire(f,0x28,new byte[4]).AsTask());
         if(fault==0)Assert.Null(error);else Assert.Same(probe.Cause,error);
         Assert.Empty(probe.Transactions);Assert.Empty(probe.Declarations);
-        TestGameplay.Run(f.Services,()=>{Assert.Contains(f.Session.CharacterId,f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.DeadParticipants);Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);});
+        TestGameplay.Run(f.Services,()=>{Assert.Contains(f.Session.CharacterId,f.Services.DungeonRuns().Find(f.Session.CharacterId)!.DeadParticipants);Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);});
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         if(fault!=0){await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));Assert.True(f.Services.GetRequiredService<GameplayCloseCauses>().TryTake(f.Connection,out var chain));Assert.Equal(probe.Chain.RootId,chain.RootId);}
         await probe.Sender.Settled();var delivered=fault==0||CharacterDeathOracle.Whole&&fault==1;
@@ -215,7 +215,7 @@ public sealed partial class RevivalProtocolLifecycleTests
         Assert.Equal(DomainTransactionCompletion.Committed,Assert.Single(probe.Transactions).Completion);
         if(Whole){var d=Assert.Single(probe.Declarations);Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Empty(d.Participants);Assert.Equal(CommandFootprintMode.None,d.Footprint);Assert.Null(d.FootprintOwners);}
         Assert.Equal(0,await Coins(f));
-        TestGameplay.Run(f.Services,()=>{var state=f.Services.GetRequiredService<IDungeonRunDomainService>().Find(peer.CharacterId)!;Assert.DoesNotContain(peer.CharacterId,state.DeadParticipants);Assert.Contains(f.Session.CharacterId,state.DeadParticipants);foreach(var x in new[]{f.Session,peer})Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(x)!.Fenced);});
+        TestGameplay.Run(f.Services,()=>{var state=f.Services.DungeonRuns().Find(peer.CharacterId)!;Assert.DoesNotContain(peer.CharacterId,state.DeadParticipants);Assert.Contains(f.Session.CharacterId,state.DeadParticipants);foreach(var x in new[]{f.Session,peer})Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(x)!.Fenced);});
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         if(fault!=0){await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));Assert.True(f.Services.GetRequiredService<GameplayCloseCauses>().TryTake(f.Connection,out var chain));Assert.Equal(probe.Chain.RootId,chain.RootId);}
         await probe.Sender.Settled();var delivered=fault==0||Whole&&fault==1;
@@ -242,7 +242,7 @@ public sealed partial class RevivalProtocolLifecycleTests
         var body=new byte[2];BinaryPrimitives.WriteUInt16LittleEndian(body,f.Session.WireUserId);
         var error=await Record.ExceptionAsync(()=>probe.Wire(f,0x29,body).AsTask());Assert.Same(fault.Cause,error);Assert.True(fault.Prepared);
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,Assert.Single(probe.Transactions).Completion);Assert.Equal(2,await Coins(f));
-        TestGameplay.Run(f.Services,()=>{var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();Assert.Contains(f.Session.CharacterId,runs.Find(f.Session.CharacterId)!.DeadParticipants);Assert.Equal(new[]{run},runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));});
+        TestGameplay.Run(f.Services,()=>{var runs=f.Services.DungeonRuns();Assert.Contains(f.Session.CharacterId,runs.Find(f.Session.CharacterId)!.DeadParticipants);Assert.Equal(new[]{run},runs.FindExpiredPartyWipes(DateTimeOffset.UnixEpoch.AddSeconds(11)));});
         await source.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));await probe.Sender.Settled();Assert.Empty(source.Sends);
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         var replacement=f.Connection with{};probe.Replacements[f.Connection.ConnectionId]=replacement;f.Sender.Outbound.Connections.Remove(f.Connection.ConnectionId);f.Sender.Outbound.Connections.Add(replacement);var retry=probe.Sender.Add(replacement);
@@ -306,7 +306,7 @@ public sealed partial class RevivalProtocolLifecycleTests
         var source=probe.Sender.Add(f.Connection);Assert.True(f.Services.GetRequiredService<IOnlineUserQueryDomainService>().TryGetByConnection(target.ConnectionId,out var user));f.Sender.Outbound.Connections.Add(user!.Connection);probe.Sender.Add(user.Connection);
         var body=new byte[2];BinaryPrimitives.WriteUInt16LittleEndian(body,target.WireUserId);await probe.Wire(f,0x29,body);await probe.Sender.Settled();Assert.Equal(1,await Coins(f));
         if(altar){Assert.Equal(1,facts.Revivals);Assert.Empty(facts.Facts);}else{var report=Assert.Single(facts.Facts);Assert.Equal(target.AccountId,report.Account);Assert.Equal(target.CharacterId,report.Character);Assert.Equal(new Dfo.Server.Abstractions.Quests.QuestCharacterRevived(run,target.CharacterId),Assert.Single(report.Facts));}
-        TestGameplay.Run(f.Services,()=>{var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();var current=runs.Find(target.CharacterId)!;Assert.NotNull(runs.TryMarkParticipantDead(target.CharacterId,run,current.RoomVersion));});
+        TestGameplay.Run(f.Services,()=>{var runs=f.Services.DungeonRuns();var current=runs.Find(target.CharacterId)!;Assert.NotNull(runs.TryMarkParticipantDead(target.CharacterId,run,current.RoomVersion));});
         await probe.Wire(f,0x29,body);await probe.Sender.Settled();
         if(altar){Assert.Equal(1,await Coins(f));Assert.Equal(1,facts.Revivals);Assert.Equal(new byte[]{0,0},source.Sends.Last().AsSpan(15).ToArray());}
         else{Assert.Equal(0,await Coins(f));Assert.Equal(2,facts.Facts.Count);Assert.All(facts.Facts,x=>Assert.Equal(target.AccountId,x.Account));}

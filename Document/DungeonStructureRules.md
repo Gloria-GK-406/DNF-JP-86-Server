@@ -16,7 +16,7 @@
 | `ResolveAsync` | 根据入场事实和显式种子选择本局迷宫、起点、Boss，并选出初始地图 |
 | `SelectMapAsync` | 根据冻结布局、前一个 cell 和目标 cell 选择合法地图；不保存选择结果 |
 
-`DungeonLayout.Cells` 保存结构声明。选定的 mapId 保存于 `DungeonRunDomainService` 的 cell 实例；回访使用原 cell，不重选、不重新创建怪物或掉落、不再次扣疲劳。`DungeonRoomRuleService` 继续解析已选地图的房间内容，`DungeonCellFactory` 创建完整 cell。
+`DungeonLayout.Cells` 保存结构声明。选定的 mapId 保存于 `DungeonRunStore` 中这一局的 cell 实例；回访使用原 cell，不重选、不重新创建怪物或掉落、不再次扣疲劳。`DungeonRoomRuleService` 继续解析已选地图的房间内容，`DungeonCellFactory` 创建完整 cell。
 
 当前覆盖迷宫结构。无 `[maze info]` 的塔类副本仍走各自服务，不将空迷宫当作普通副本。武斗大会、逆袭之谷的声明可以查询，但 `EntryMode` 阻止它们绕过专属玩法从普通入口进入。读取到结构不等于实现了这些玩法。
 

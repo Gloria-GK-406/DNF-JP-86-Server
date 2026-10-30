@@ -36,6 +36,7 @@ public sealed class FreeGoldCardTests
     {
         var shop = new ShopFixture(s =>
         {
+            s.AddComposedDungeonRuns();
             s.AddFixtureCommand<CardAwardAlgorithmInput, SelectCardResult, CardAwardAlgorithmDriver>(FixtureUnitKind.Transactional);
             s.AddSingleton<IPremiumServiceDefinitionSource>(new Rules());
             s.AddSingleton<IGoldCarryLimitSource>(new GoldLimit());
@@ -47,7 +48,7 @@ public sealed class FreeGoldCardTests
     {
         TestGameplay.Run(shop.Services, () =>
         {
-            var runs = shop.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = shop.Services.DungeonRuns();
             var id = shop.Session.CharacterId;
             if (runs.Find(id) is { } old) runs.End(id, old.RunId);
             var cell = new MazeCell(0, 0);

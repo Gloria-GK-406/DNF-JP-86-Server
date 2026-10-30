@@ -47,7 +47,7 @@ public sealed class HerasDungeonTests
         f.Services.GetRequiredService<IExtraDropRuleService>().Initialize();
         f.Services.GetRequiredService<IMonsterDeclaredDropRuleService>().Initialize();
         f.Services.GetRequiredService<IWorldDropRuleService>().Initialize();
-        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = f.Services.DungeonRuns();
         var context = new DungeonEntryContext(3900, DungeonEntryFacts.None, 0, 0, [new(new(1), new(71), 0, true)]);
         for (var n = 0; n < 3; n++)
         {
@@ -133,7 +133,7 @@ public sealed class HerasDungeonTests
                 Assert.Equal(DungeonEntryFailure.ConfigurationInvalid, result.Failure);
             }
             Assert.Equal(3, (await f.Services.GetRequiredService<IHerasQuotaDomainService>().ReadQuotaAsync(new(71), default)).Remaining);
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new Dfo.Server.Data.Characters.CharacterId(71)));
         });
     }
     [SkippableFact]

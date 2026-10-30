@@ -29,6 +29,7 @@
     <Compile Include="..\Dfo.Server.Application.Tests\Support\DungeonRunTestEntryExtensions.cs"
              Link="Support\DungeonRunTestEntryExtensions.cs" />
     <Compile Include="..\Support\TestParties.cs" Link="Support\TestParties.cs" />
+    <Compile Include="..\Support\DungeonRunTestComposition.cs" Link="Support\DungeonRunTestComposition.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\StubPartyMemberStatusDomainService.cs"
              Link="Support\StubPartyMemberStatusDomainService.cs" />
     <Compile Include="..\Dfo.Server.Application.Tests\Support\EmptyPartyMemberSessionEndpointSource.cs"

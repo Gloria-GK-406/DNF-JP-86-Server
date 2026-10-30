@@ -175,7 +175,7 @@ public sealed class WarehouseProtocolCommandFlowTests(ITestOutputHelper output)
         if (restriction == "dungeon") f.InTransaction(() =>
         {
             var cell = new MazeCell(0, 0);
-            return f.Services.GetRequiredService<IDungeonRunDomainService>().Begin(f.Session.CharacterId,
+            return f.Services.DungeonRuns().Begin(f.Session.CharacterId,
                 new DungeonLayout(144, 0, 1, 1, cell, cell, 55611, 0, new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(55611) }), difficulty: 0);
         });
         await EffectRequestTransport.Send(f, Input()); Assert.Single(trace.Attempts); Assert.Equal(InventoryExpansionRejection.NoSession, Assert.Single(trace.Results).Rejection);

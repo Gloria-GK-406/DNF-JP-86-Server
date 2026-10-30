@@ -56,7 +56,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
         await using var host = new TimerSourceHost(services =>
         {
             services.AddSingleton<ISelectedSessionDomainService>(sessions);
-            services.AddSingleton<IDungeonRunDomainService>(runs);
+            services.AddDungeonRunsAs(runs);
             services.AddDungeonRunViews();
             services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
             services.AddSingleton(altars);
@@ -96,7 +96,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
         var trace = new RoomTrace();
         await using var host = new TimerSourceHost(services =>
         {
-            services.AddSingleton<IDungeonRunDomainService>(runs);
+            services.AddDungeonRunsAs(runs);
             services.AddDungeonRunViews();
             services.AddSingleton<ISelectedSessionSnapshotQuery>(new EmptySessions());
             services.AddSingleton(trace);
@@ -120,7 +120,7 @@ public sealed class WorldMaintenanceFailureIsolationTests
         Assert.Equal(1, trace.CleanupFailures);
     }
 
-    private static DungeonRunState Prepare(DungeonRunDomainService runs, CharacterId character, DateTimeOffset now, bool mechanisms)
+    private static DungeonRunState Prepare(IDungeonRunDomainService runs, CharacterId character, DateTimeOffset now, bool mechanisms)
     {
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(144, 0, 1, 1, cell, cell, 12345, 9,

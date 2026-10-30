@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CardReward;
 internal sealed partial class GameCardCommandHandler(
     ISelectedSessionDomainService selectedSessions, ISelectedCharacterCurrentViewDomainService currentViews,
-    IDungeonRunDomainService runs, ICardFlipDomainService flips, ICommandWorkUnits units, IGameCommandOutbox outbox,
+    IDungeonRunCardDomainService runs, IDungeonRunTimerDomainService returns, ICardFlipDomainService flips, ICommandWorkUnits units, IGameCommandOutbox outbox,
     IDungeonCardPresentationControl cardPresentation, IDungeonRunProjectionDomainService deliveries,
     IPartyService parties, TimeProvider clock, ILogger<GameCardCommandHandler> logger)
     : ICommandHandler<GameScoreScrollStateCommand, bool>, ICommandHandler<GameCardSelectRightStateCommand, bool>,
@@ -53,7 +53,7 @@ internal sealed partial class GameCardCommandHandler(
         return true;
     }
     private ISelectedSessionDomainService Sessions => selectedSessions;
-    private IDungeonRunDomainService Runs => runs;
+    private IDungeonRunCardDomainService Runs => runs;
     private bool Admitted(SelectedSessionIdentity session, DungeonRunId runId) =>
         DungeonPartyRecipients.FindCurrent(parties, selectedSessions, runs, deliveries, session, runId).Contains(session);
     private bool IsCurrent(SelectedSessionIdentity session, DungeonRunId runId, out DungeonRunState run)
@@ -103,7 +103,7 @@ internal sealed partial class GameCardCommandHandler(
                 cancellationToken).ConfigureAwait(false);
         }
 
-        runs.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
+        returns.ScheduleClearReturn(session.CharacterId, runId, clock.GetUtcNow());
         cardPresentation.ScheduleAutoFlip(session, runId);
     }
     private async ValueTask SelectAsync(CommandExecutionContext execution, NetworkDispatchContext context, SelectCardRequest message, CancellationToken cancellationToken)

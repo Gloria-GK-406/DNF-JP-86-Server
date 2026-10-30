@@ -49,7 +49,7 @@ public sealed partial class CardSettlementLifecycleTests
         var runId = CharacterDeathProtocolLifecycleTests.Enter(f);
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(f.Session.CharacterId)!;
             Assert.NotNull(runs.TryOpenClear(f.Session.CharacterId, runId, run.RoomVersion));
         });
@@ -76,7 +76,7 @@ public sealed partial class CardSettlementLifecycleTests
         }
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(f.Session.CharacterId)!;
             Assert.Equal(!scopeFailure || Whole, run.IsSettled);
             Assert.NotNull(run.ClearRewardCards);
@@ -144,7 +144,7 @@ public sealed partial class CardSettlementLifecycleTests
             Assert.Equal(fault == 2 ? 1 : 0, disposed);
         }
         if (fault != 1) Assert.Equal(new ushort[] { 0x45, 0x46 }, CharacterDeathOracle.Types(physical.Sends.Single()));
-        TestGameplay.Run(f.Services, () => Assert.True(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CardLayoutOpen));
+        TestGameplay.Run(f.Services, () => Assert.True(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CardLayoutOpen));
     }
 
     [Theory]
@@ -169,7 +169,7 @@ public sealed partial class CardSettlementLifecycleTests
         }
         TestGameplay.Run(f.Services, () =>
         {
-            var state = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!;
+            var state = f.Services.DungeonRuns().Find(f.Session.CharacterId)!;
             var selection = Assert.Single(state.CardSelections);
             Assert.Equal(0, selection.Index); Assert.Equal(runId, state.RunId);
         });
@@ -194,7 +194,7 @@ public sealed partial class CardSettlementLifecycleTests
         var first = queue.RunAsync(new(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.Timer),
             "test:reservation-three-attempts", async ct =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             claim = Assert.IsType<DungeonClearRewardCardClaim>(runs.TryReserveClearRewardCard(f.Session.CharacterId, run, ClearRewardCardKind.Free, 0));
             entered.TrySetResult();
             await attemptsMayRun.Task.WaitAsync(ct);
@@ -211,7 +211,7 @@ public sealed partial class CardSettlementLifecycleTests
             "test:queued-reservation-release", _ =>
         {
             Assert.True(first.IsCompleted);
-            Assert.True(f.Services.GetRequiredService<IDungeonRunDomainService>().ReleaseClearRewardCard(claim));
+            Assert.True(f.Services.DungeonRuns().ReleaseClearRewardCard(claim));
             released = true; return ValueTask.CompletedTask;
         }), default).AsTask();
         Assert.False(release.IsCompleted);
@@ -221,7 +221,7 @@ public sealed partial class CardSettlementLifecycleTests
             "test:next-job-can-reserve", _ =>
         {
             Assert.True(released);
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var retry = Assert.IsType<DungeonClearRewardCardClaim>(runs.TryReserveClearRewardCard(f.Session.CharacterId, run, ClearRewardCardKind.Free, 0));
             Assert.True(runs.ReleaseClearRewardCard(retry)); return ValueTask.CompletedTask;
         }), default);
@@ -286,7 +286,7 @@ public sealed partial class CardSettlementLifecycleTests
         await probe.Sender.Settled();
         Assert.Equal(type == 0x75 ? 0 : 1, physical.Sends.Count);
         TestGameplay.Run(f.Services, () => Assert.Equal(type != 0x75,
-            f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CardLayoutOpen));
+            f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CardLayoutOpen));
         await f.Services.GetRequiredService<DungeonCardPresentationCoordinator>().DrainAsync(default);
     }
 
@@ -325,7 +325,7 @@ public sealed partial class CardSettlementLifecycleTests
         else await producer.DrainAsync(default);
         await probe.Sender.Settled(); Assert.Empty(physical.Sends);
         Assert.Equal(0, physical.CloseCalls); Assert.Empty(probe.Transactions);
-        TestGameplay.Run(f.Services, () => Assert.False(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CardLayoutOpen));
+        TestGameplay.Run(f.Services, () => Assert.False(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CardLayoutOpen));
         Assert.Equal(stop ? new[] { "test:card-blocker", "timer:DungeonCardPresentationCoordinator/layout" }
             : new[] { "test:card-blocker", "test:card-cancel-before-timer", "timer:DungeonCardPresentationCoordinator/layout" }, observed.Names);
         Assert.False(observed.TimerCancellation.CanBeCanceled); Assert.Null(observed.TimerSource);
@@ -368,7 +368,7 @@ public sealed partial class CardSettlementLifecycleTests
         var runId = CharacterDeathProtocolLifecycleTests.Enter(f);
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             Assert.NotNull(runs.TryOpenClear(f.Session.CharacterId,runId,runs.Find(f.Session.CharacterId)!.RoomVersion));
         });
         var physical = probe.Sender.Add(f.Connection);
@@ -380,7 +380,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.Equal(0,Pending(f));
         TestGameplay.Run(f.Services, () =>
         {
-            var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs=f.Services.DungeonRuns();
             Assert.True(runs.Find(f.Session.CharacterId)!.IsSettled);
             Assert.Null(runs.TryClaimSettlement(f.Session.CharacterId,runId));
             Assert.Equal(Whole,f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
@@ -401,7 +401,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.IsType<Microsoft.Data.Sqlite.SqliteException>(error);
         Assert.Equal(100,f.Gold); Assert.Equal(0,f.Scalar("SELECT count(*) FROM items"));
         Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,Assert.Single(probe.Transactions).Completion);
-        TestGameplay.Run(f.Services, () => Assert.False(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.ClearRewardCards!.IsClaimed(ClearRewardCardKind.Free,0)));
+        TestGameplay.Run(f.Services, () => Assert.False(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.ClearRewardCards!.IsClaimed(ClearRewardCardKind.Free,0)));
         await firstPhysical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));await probe.Sender.Settled();Assert.Empty(firstPhysical.Sends);
         f.Sql("DROP TRIGGER fail_second_card");
         var replacement=f.Connection with{};
@@ -414,7 +414,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.Equal(new ushort[]{0x47,0x0E,0x0E,0x0E,0x036F},CharacterDeathOracle.Types(Assert.Single(physical.Sends)));
         await WireOn(f,replacement,0x47,[0,0]);await probe.Sender.Settled();
         Assert.Equal(107,f.Gold);Assert.Equal(1,f.Count(2000));Assert.Equal(1,f.Count(4000));Assert.Single(physical.Sends);
-        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().TryReserveClearRewardCard(f.Session.CharacterId,runId,ClearRewardCardKind.Free,0)));
+        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.DungeonRuns().TryReserveClearRewardCard(f.Session.CharacterId,runId,ClearRewardCardKind.Free,0)));
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.Same(fault.Cause,await Record.ExceptionAsync(()=>probe.Wire(f,0x47,[1,0]).AsTask()));
         Assert.Equal(1,fault.Prepares);Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,Assert.Single(probe.Transactions).Completion);
         Assert.Equal(100,f.Gold);Assert.Equal(0,f.Count(2000));
-        TestGameplay.Run(f.Services,()=>Assert.False(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.ClearRewardCards!.IsClaimed(ClearRewardCardKind.Paid,0)));
+        TestGameplay.Run(f.Services,()=>Assert.False(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.ClearRewardCards!.IsClaimed(ClearRewardCardKind.Paid,0)));
         await first.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));await probe.Sender.Settled();Assert.Empty(first.Sends);
         fault.Fail=false;fault.AtPrepare=null;
         var replacement=f.Connection with{};probe.Replacements[replacement.ConnectionId]=replacement;
@@ -452,7 +452,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.Equal(new ushort[]{0x47,0x0E,0x0E,0x036F},CharacterDeathOracle.Types(Assert.Single(physical.Sends)));
         await WireOn(f,replacement,0x47,[1,0]);await probe.Sender.Settled();
         Assert.Equal(98,f.Gold);Assert.Equal(1,f.Count(2000));Assert.Single(physical.Sends);
-        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().TryReserveClearRewardCard(f.Session.CharacterId,run,ClearRewardCardKind.Paid,0)));
+        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.DungeonRuns().TryReserveClearRewardCard(f.Session.CharacterId,run,ClearRewardCardKind.Paid,0)));
     }
     private sealed class PaidPrepareFault
     { internal readonly IOException Cause=new("TASK48 paid award prepare");internal bool Fail=true;internal int Prepares;internal Func<Task>? AtPrepare;internal int? StagedGold;internal bool InTransaction;internal int StagedItems; }
@@ -516,7 +516,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.Equal(2,physical.Sends.Count);
         Assert.Equal(new ushort[]{0x45,0x46},CharacterDeathOracle.Types(physical.Sends.ElementAt(0)));
         Assert.Equal(new ushort[]{0x47,0x0E,0x036F},CharacterDeathOracle.Types(physical.Sends.ElementAt(1)));
-        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().TryReserveClearRewardCard(f.Session.CharacterId,run,ClearRewardCardKind.Free,0)));
+        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.DungeonRuns().TryReserveClearRewardCard(f.Session.CharacterId,run,ClearRewardCardKind.Free,0)));
         await probe.Wire(f,0x47,[0,0]);await probe.Sender.Settled();
         Assert.Equal(107,f.Gold);Assert.Equal(2,physical.Sends.Count);Assert.Equal(0,physical.CloseCalls);
     }
@@ -533,7 +533,7 @@ public sealed partial class CardSettlementLifecycleTests
         var runId = CharacterDeathProtocolLifecycleTests.Enter(f);
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var run = runs.Find(f.Session.CharacterId)!;
             Assert.NotNull(runs.TryOpenClear(f.Session.CharacterId, runId, run.RoomVersion));
             Assert.NotNull(runs.FixClearRewardCards(f.Session.CharacterId, runId,

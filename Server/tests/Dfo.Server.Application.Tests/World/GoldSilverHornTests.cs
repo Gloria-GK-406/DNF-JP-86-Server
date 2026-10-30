@@ -68,7 +68,7 @@ public sealed class GoldSilverHornTests
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             await using var f = await Fixture();
             var domain = f.Services.GetRequiredService<IGoldSilverHornDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
             var character = new CharacterId(71);
             await using (var tx = f.Scope.Begin())
@@ -171,7 +171,7 @@ public sealed class GoldSilverHornTests
             await using (var tx = f.Scope.Begin())
                 await Assert.ThrowsAsync<InvalidDataException>(() => domain.EnterAsync(Entry(), default).AsTask());
             Assert.Equal(0, (await domain.ReadQuotaAsync(new(71), default)).Used);
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(new CharacterId(71)));
+            Assert.Null(f.Services.DungeonRuns().Find(new CharacterId(71)));
         });
     }
     private sealed class FailingFactory : IDungeonCellFactory

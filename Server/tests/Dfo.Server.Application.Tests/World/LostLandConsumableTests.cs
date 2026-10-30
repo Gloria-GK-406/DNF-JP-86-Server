@@ -43,7 +43,7 @@ public sealed class LostLandConsumableTests
         Assert.False(Assert.Single(fixture.Sender.Messages.OfType<QuestClearCouponResponse>()).Succeeded);
         TestGameplay.Run(fixture.Services, () =>
         {
-            var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = fixture.Services.DungeonRuns();
             var current = runs.Find(fixture.Session.CharacterId)!;
             Assert.Equal(new MazeCell(5, 2), current.CurrentCell);
         });
@@ -55,10 +55,10 @@ public sealed class LostLandConsumableTests
         using var fixture = Fixture(charged: true);
         await fixture.Seed(65, 10093346, 2);
         var before = TestGameplay.Run(fixture.Services, () => fixture.Services
-            .GetRequiredService<IDungeonRunDomainService>().Find(fixture.Session.CharacterId)!);
+            .DungeonRuns().Find(fixture.Session.CharacterId)!);
         await Send(fixture, 101, 7);
         var moved = TestGameplay.Run(fixture.Services, () => fixture.Services
-            .GetRequiredService<IDungeonRunDomainService>().Find(fixture.Session.CharacterId)!);
+            .DungeonRuns().Find(fixture.Session.CharacterId)!);
         Assert.Equal(new MazeCell(2, 0), moved.CurrentCell);
         Assert.Equal(61002, moved.CurrentRoomMapId);
         Assert.Equal(before.RunId, moved.RunId);
@@ -97,7 +97,7 @@ public sealed class LostLandConsumableTests
         await Send(fixture, 101, 7);
         Assert.Equal(2, fixture.Count(10093346));
         var current = TestGameplay.Run(fixture.Services, () => fixture.Services
-            .GetRequiredService<IDungeonRunDomainService>().Find(fixture.Session.CharacterId)!);
+            .DungeonRuns().Find(fixture.Session.CharacterId)!);
         Assert.Equal(new MazeCell(0, 7), current.CurrentCell);
         Assert.False(Assert.Single(fixture.Sender.Messages.OfType<QuestClearCouponResponse>()).Succeeded);
         Assert.DoesNotContain(fixture.Sender.Messages, message => message.GetType().Name == "StartMapNotification");
@@ -118,7 +118,7 @@ public sealed class LostLandConsumableTests
         await Send(fixture, action, action == 101 ? 7u : 0u);
         if (action == 101) TestGameplay.Run(fixture.Services, () =>
         {
-            var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = fixture.Services.DungeonRuns();
             var moved = runs.Find(fixture.Session.CharacterId)!;
             runs.TryMarkParticipantReady(fixture.Session.CharacterId, moved.RunId, moved.RoomVersion);
         });
@@ -156,7 +156,7 @@ public sealed class LostLandConsumableTests
                         new(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 0),
                         LostLandConsumableKind.Teleport, new(0, 7), cap, default));
             }
-            var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = fixture.Services.DungeonRuns();
             var current = runs.Find(fixture.Session.CharacterId)!;
             Assert.Equal(new MazeCell(0, 7), current.CurrentCell);
         });
@@ -190,7 +190,7 @@ public sealed class LostLandConsumableTests
             services.AddSingleton<IDungeonCellFactory, Cells>();
             services.AddSingleton<IItemUseRuleDefinitionSource, Rules>();
             services.AddSingleton<ILostLandConsumableDefinitionSource, Definitions>();
-            services.AddSingleton<IDungeonRunDomainService>(provider =>
+            services.AddDungeonRunsAs(provider =>
                 global::Dfo.Server.Testing.TestParties.Runs(provider.GetRequiredService<IDomainTransactionAccessor>(),
                 parties: provider.GetRequiredService<Dfo.Server.Abstractions.Parties.IPartyService>(),
                 participation: provider.GetRequiredService<IDungeonParticipationDomainService>(),
@@ -205,7 +205,7 @@ public sealed class LostLandConsumableTests
                     [start] = DungeonCellDefinition.Fixed(61000),
                     [new(2, 0)] = DungeonCellDefinition.Fixed(61002),
                 }) { Mode = new DungeonRunMode.LostLand(new(600, 1200, TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(2), [], [])) };
-            var runs = fixture.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = fixture.Services.DungeonRuns();
             var run = fixture.InTransaction(() => runs.PreparePartyEntry(
                 [new(fixture.Session.AccountId, fixture.Session.CharacterId, 0, true)], layout, 0,
                 new(layout.StartCell, 61000, 1,

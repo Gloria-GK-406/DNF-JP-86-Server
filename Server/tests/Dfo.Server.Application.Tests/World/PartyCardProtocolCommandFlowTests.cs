@@ -38,7 +38,7 @@ public sealed partial class CardSettlementLifecycleTests
         var runId = CharacterDeathProtocolLifecycleTests.Enter(f, peer);
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             Assert.NotNull(runs.TryOpenClear(f.Session.CharacterId, runId, runs.Find(f.Session.CharacterId)!.RoomVersion));
         });
         await WireOn(f, f.Connection, 0x2E, new byte[53]);
@@ -52,7 +52,7 @@ public sealed partial class CardSettlementLifecycleTests
         await WireOn(f, peerConnection, 0x46, []);
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             foreach (var actor in new[] { f.Session, peer })
             {
                 var current = runs.Find(actor.CharacterId)!;
@@ -80,7 +80,7 @@ public sealed partial class CardSettlementLifecycleTests
         Assert.Equal(new ushort[] { 0x47 }, CharacterDeathOracle.Types(shared[1].Frames.ToArray()));
         TestGameplay.Run(f.Services, () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             Assert.True(runs.Find(f.Session.CharacterId)!.ClearRewardCards!.IsClaimed(ClearRewardCardKind.Free, 0));
             Assert.True(runs.Find(peer.CharacterId)!.ClearRewardCards!.IsClaimed(ClearRewardCardKind.Free, 0));
         });

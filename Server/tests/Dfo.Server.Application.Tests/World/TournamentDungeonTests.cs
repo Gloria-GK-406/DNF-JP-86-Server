@@ -53,7 +53,7 @@ public sealed class TournamentDungeonTests
     private static int Count(LearningFixture f, int item) => f.Scalar($"SELECT COALESCE(SUM(s.count),0) FROM item_slots s JOIN items i ON s.core_uid=i.item_uid WHERE s.owner_scope='character' AND s.owner_id=71 AND substr(hex(i.item_core),3,8)='{Convert.ToHexString(BitConverter.GetBytes(item))}'");
     private static int Gold(LearningFixture f) => f.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=71");
     private static ITournamentDungeonDomainService Tournament(LearningFixture f) => f.Services.GetRequiredService<ITournamentDungeonDomainService>();
-    private static IDungeonRunDomainService Runs(LearningFixture f) => f.Services.GetRequiredService<IDungeonRunDomainService>();
+    private static IDungeonRunDomainService Runs(LearningFixture f) => f.Services.DungeonRuns();
     private static TournamentDungeonState State(LearningFixture f) => Assert.IsType<TournamentDungeonState>(Tournament(f).Find(new(71)));
 
     private static async Task<MonsterDeathSettlementResult> Kill(LearningFixture f, ushort actor, bool commit = true, SelectedSessionIdentity? session = null)

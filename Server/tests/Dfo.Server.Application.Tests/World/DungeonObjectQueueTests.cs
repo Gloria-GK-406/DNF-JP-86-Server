@@ -82,7 +82,7 @@ public sealed class DungeonObjectQueueTests
         });
     }
 
-    private static DungeonRunState Start(DungeonRunDomainService service)
+    private static DungeonRunState Start(IDungeonRunDomainService service)
     {
         DungeonCellObjectState[] objects = [
             new(new(new(DungeonObjectSection.SpecialPassive, 0), 8961, 10, 10, 0), []),

@@ -27,7 +27,7 @@ public sealed class DarkElfRuinsTests
         await using var f = await Fixture(clock);
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var character = f.Services.GetRequiredService<ICharacterDomainService>().Get(Character);
             var before = await character.ProgressAsync(default);
             var cell = new MazeCell(0, 0);
@@ -109,7 +109,7 @@ public sealed class DarkElfRuinsTests
             layout = rules.PrepareLayout(layout!, 85, new(new(2026, 10, 26), true, 3));
             var warp = Assert.Single(layout.Warps);
             Assert.Equal(layout.StartCell, warp.Key);
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin())
             {
                 runs.PreparePartyEntry([new(new(1), Character, 0, true)], layout, (DungeonDifficulty)2,
@@ -148,7 +148,7 @@ public sealed class DarkElfRuinsTests
         {
             var domain = f.Services.GetRequiredService<IDarkElfRuinsDomainService>();
             var router = f.Services.GetRequiredService<IDungeonEntryRoutingDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var parties = f.Services.GetRequiredService<IPartyService>();
             PartyCharacterSnapshot Member(SelectedSessionIdentity session) => new(session.AccountId, session.CharacterId,
                 session.WireUserId, new(1, 0, 0));
@@ -207,7 +207,7 @@ public sealed class DarkElfRuinsTests
             Assert.Equal(3, state.License); Assert.Equal(7, state.Clears);
             Assert.Equal(new DateOnly(2026, 11, 1), state.Month);
             Assert.Equal(1, state.MonthlyEntries); Assert.Equal(1, state.Entries);
-            Assert.Equal(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(Character)!.Layout.Mode is DungeonRunMode.DarkElfRuins { Plan.Guardian: true } ? 1 : 0, state.Guardians);
+            Assert.Equal(f.Services.DungeonRuns().Find(Character)!.Layout.Mode is DungeonRunMode.DarkElfRuins { Plan.Guardian: true } ? 1 : 0, state.Guardians);
         });
     }
 
@@ -220,7 +220,7 @@ public sealed class DarkElfRuinsTests
         await TestGameplay.RunAsync(f.Services, async () =>
         {
             var domain = f.Services.GetRequiredService<IDarkElfRuinsDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await using (var tx = f.Scope.Begin())
                 Assert.Equal(DungeonEntryFailure.MissingPrerequisite, (await domain.EnterAsync(Entry(), default)).Failure);
             f.Sql("INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES(71,2656,1)");
@@ -329,7 +329,7 @@ public sealed class DarkElfRuinsTests
                 }
             Assert.Equal(exhausted, await store.ReadAsync(Character, default));
             Assert.Equal(1000, await Cubes(f));
-            Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(Character));
+            Assert.Null(f.Services.DungeonRuns().Find(Character));
         });
     }
 
@@ -341,7 +341,7 @@ public sealed class DarkElfRuinsTests
         await using var f = await Fixture(clock);
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var domain = f.Services.GetRequiredService<IDarkElfRuinsDomainService>();
             var store = f.Services.GetRequiredService<IDarkElfRuinsDomainStore>();
             var cell = new MazeCell(0, 0);

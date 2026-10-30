@@ -29,7 +29,7 @@ public sealed class GuardianAltarBackgroundDiagnosticTests(ITestOutputHelper out
         var body = new byte[15]; BinaryPrimitives.WriteInt32LittleEndian(body, 3511); body[5] = 3;
         await EffectRequestTransport.SendRaw(f, new(1, 0x10, 0, 8), body);
         await EffectRequestTransport.SendRaw(f, new(1, 0x25, 0, 9), new byte[8]);
-        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = f.Services.DungeonRuns();
         var altar = f.Services.GetRequiredService<IGuardianAltarDomainService>();
         var run = runs.Find(f.Session.CharacterId)!;
         var initial = altar.Find(run.RunId)!;

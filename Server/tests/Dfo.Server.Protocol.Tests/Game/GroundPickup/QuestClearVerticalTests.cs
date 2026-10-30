@@ -67,9 +67,8 @@ public sealed class QuestClearVerticalTests
             var parties = TestParties.Create();
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(parties);
             services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
-            services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+            services.AddDungeonRuns().AddComposedDungeonRuns();
             services.AddAbsentDungeonRunDependencies();
-            services.AddDungeonRunViews();
             services.AddSingleton<IQuestDomainStore>(questStore);
             services.AddSingleton<IItemDomainStore>(itemStore);
             services.AddSingleton<IQuestContentRuleService>(
@@ -116,7 +115,7 @@ public sealed class QuestClearVerticalTests
                 GroundPickupDomainCommandHandler>(FixtureUnitKind.Transactional);
             await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
 
-            var runs = provider.GetRequiredService<IDungeonRunDomainService>();
+            var runs = provider.DungeonRuns();
             var (run, afterDeath, clear, bossClear) = await TestGameplay.RunAsync(provider, async () =>
             {
                 DungeonRunParticipant[] participants =

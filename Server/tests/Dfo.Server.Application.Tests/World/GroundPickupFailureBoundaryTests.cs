@@ -159,7 +159,7 @@ public sealed partial class BossTowerDomainServiceTests
         using var f = Fixture(configure: probe.Configure); ushort ground = 0;
         await TestGameplay.RunAsync(f.Services, async () =>
         {
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var cell = new Dfo.Server.Abstractions.Content.MazeCell(0,0);
             var layout = new DungeonLayout(144,0,1,1,cell,cell,1,42,new Dictionary<Dfo.Server.Abstractions.Content.MazeCell,Dfo.Server.Abstractions.Content.DungeonCellDefinition> { [cell] = Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(1) });
             await using var setup = Scope(f).Begin();
@@ -177,13 +177,13 @@ public sealed partial class BossTowerDomainServiceTests
             var error = await Record.ExceptionAsync(()=>probe.Wire(f,0x2B,body).AsTask());
             if (GroundPickupOracle.Whole) {var typed=Assert.IsType<TransactionOutcomeUncertainException>(error);Assert.Same(probe.Cause,typed.InnerException);Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure,typed.Reason);} else Assert.Same(probe.Cause,error);
             Assert.Equal(DomainTransactionCompletion.Committed,Assert.Single(probe.Transactions).Completion);
-            TestGameplay.Run(f.Services,()=>{Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground));Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);});
+            TestGameplay.Run(f.Services,()=>{Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground));Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);});
             await source.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); await probe.Sender.Settled(); Assert.Equal(1,source.CloseCalls);Assert.Empty(source.Sends);
             Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
             Assert.True(f.Services.GetRequiredService<GameplayCloseCauses>().TryTake(f.Connection,out var chain));
             Assert.Equal(probe.Chain.RootId,chain.RootId);Assert.Equal(f.Connection.ConnectionId,chain.SourceConnection);
         }
-        else await GroundPickupOracle.Check(f,probe,null,ground,fault,false,()=>Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground)));
+        else await GroundPickupOracle.Check(f,probe,null,ground,fault,false,()=>Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground)));
         Assert.Equal(1,f.Count(3000));
     }
 }
@@ -262,7 +262,7 @@ public sealed partial class BossTowerDomainServiceTests
         ushort ground=0;
         await TestGameplay.RunAsync(f.Services,async()=>
         {
-            var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();var cell=new Dfo.Server.Abstractions.Content.MazeCell(0,0);
+            var runs=f.Services.DungeonRuns();var cell=new Dfo.Server.Abstractions.Content.MazeCell(0,0);
             var layout=new DungeonLayout(144,0,1,1,cell,cell,1,42,new Dictionary<Dfo.Server.Abstractions.Content.MazeCell,Dfo.Server.Abstractions.Content.DungeonCellDefinition>{[cell]=Dfo.Server.Abstractions.Content.DungeonCellDefinition.Fixed(1)});
             await using var setup=Scope(f).Begin();
             var run=runs.PreparePartyEntry([new(f.Session.AccountId,f.Session.CharacterId,0,true)],layout,0,
@@ -274,7 +274,7 @@ public sealed partial class BossTowerDomainServiceTests
         var error=await Record.ExceptionAsync(()=>probe.Wire(f,0x2B,body).AsTask());Assert.Same(fault.Cause,error);
         Assert.True(fault.Prepared);Assert.Equal(DomainTransactionCompletion.ConfirmedRollback,Assert.Single(probe.Transactions).Completion);
         Assert.Equal(0,f.Count(3000));
-        TestGameplay.Run(f.Services,()=>{Assert.NotNull(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground));Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);});
+        TestGameplay.Run(f.Services,()=>{Assert.NotNull(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground));Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);});
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));await source.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));await probe.Sender.Settled();Assert.Empty(source.Sends);
         Assert.True(f.Services.GetRequiredService<GameplayCloseCauses>().TryTake(f.Connection,out var chain));Assert.Equal(probe.Chain.RootId,chain.RootId);Assert.Equal(f.Connection.ConnectionId,chain.SourceConnection);
         // The first failure closed only its original physical connection. Retry through a new admitted physical.
@@ -290,7 +290,7 @@ public sealed partial class BossTowerDomainServiceTests
         }
         await Retry();await probe.Sender.Settled();Assert.Equal(1,f.Count(3000));
         Assert.Equal(DomainTransactionCompletion.Committed,probe.Transactions[1].Completion);
-        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground)));
+        TestGameplay.Run(f.Services,()=>Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)!.CurrentCellState.FindGroundItem(ground)));
         var bytes=Assert.Single(retryPhysical.Sends);Assert.Equal((byte)1,bytes[15]);Assert.Equal(new ushort[]{0x2B,0x27},MonsterKillOracle.Types(bytes));
         await Retry();await probe.Sender.Settled();Assert.Single(retryPhysical.Sends);Assert.Equal(1,f.Count(3000));Assert.Equal(0,retryPhysical.CloseCalls);
     }

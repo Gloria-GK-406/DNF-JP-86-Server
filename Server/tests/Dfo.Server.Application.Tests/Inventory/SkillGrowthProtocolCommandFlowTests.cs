@@ -198,7 +198,7 @@ public sealed class SkillGrowthProtocolCommandFlowTests(ITestOutputHelper output
         if (protocol == 4) f.Sql("INSERT INTO character_skill_builds VALUES(1,0,1),(1,1,1)");
         if (protocol == 1) await f.Seed(5, Book, 2);
         if (protocol == 2) await f.Seed(5, Ticket, 2);
-        if (protocol == 5) f.InTransaction(() => f.Services.GetRequiredService<IDungeonRunDomainService>().Begin(f.Session.CharacterId,
+        if (protocol == 5) f.InTransaction(() => f.Services.DungeonRuns().Begin(f.Session.CharacterId,
             new DungeonLayout(60,0,1,1,new(0,0),new(0,0),1,0,new Dictionary<MazeCell,DungeonCellDefinition> { [new(0,0)] = DungeonCellDefinition.Fixed(1) },1,1), DungeonDifficulty.Normal));
         return f;
     }

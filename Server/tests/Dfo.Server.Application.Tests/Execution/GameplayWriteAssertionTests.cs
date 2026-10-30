@@ -190,7 +190,7 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public void DungeonRunDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    public void Dungeon_run_entry_service_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
         var service = TestParties.Runs();
         var run = TestGameplay.Run(() => service.PreparePartyEntry(
@@ -201,7 +201,7 @@ public sealed class GameplayWriteAssertionTests
         Assert.Throws<GameplayOffExecutorException>(() =>
             service.TryMove(Character, run.RunId, run.RoomVersion, new MazeCell(1, 0), DungeonCellSeed.CompleteEmpty(new MazeCell(1, 0), 11)));
 
-        AssertOneViolation(seen, "DungeonRunDomainService.TryMove");
+        AssertOneViolation(seen, "EntryService.TryMove");
         Assert.Equal(new MazeCell(0, 0), service.Find(Character)!.CurrentCell);
         Assert.NotNull(TestGameplay.Run(() =>
             service.TryMove(Character, run.RunId, run.RoomVersion, new MazeCell(1, 0), DungeonCellSeed.CompleteEmpty(new MazeCell(1, 0), 11))));
@@ -339,7 +339,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void TournamentDungeonDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var tournaments = new TournamentDungeonDomainService(null!, null!, null!, null!, null!, null!, null!, null!,
+        var tournaments = new TournamentDungeonDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!,
             new NoTransactions(), TimeProvider.System, null!, null!, null!, null!);
         var runId = DungeonRunId.New();
         var seen = ViolationCapture.Attach();

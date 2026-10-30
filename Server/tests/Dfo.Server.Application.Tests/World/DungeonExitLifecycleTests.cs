@@ -31,12 +31,12 @@ public sealed class DungeonExitLifecycleTests
         var run = CharacterDeathProtocolLifecycleTests.Enter(f);
         var physical = probe.Sender.Add(f.Connection);
         var endedAtScope = false;
-        probe.BeforeDispose = () => endedAtScope = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId) is null;
+        probe.BeforeDispose = () => endedAtScope = f.Services.DungeonRuns().Find(f.Session.CharacterId) is null;
         var error = await Record.ExceptionAsync(() => probe.Wire(f, 0x48, [1, 2]).AsTask());
         if (fail) Assert.Same(probe.Cause, error); else Assert.Null(error);
         if (fail) Assert.True(endedAtScope);
         Assert.Empty(probe.Transactions); Assert.Empty(probe.Declarations);
-        TestGameplay.Run(f.Services, () => { Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)); Assert.Equal(fail && !Whole ? 1 : 0, f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Find(run).Count); });
+        TestGameplay.Run(f.Services, () => { Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)); Assert.Equal(fail && !Whole ? 1 : 0, f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Find(run).Count); });
         await probe.Sender.Settled();
         if (fail) await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.Equal(Dfo.Server.Abstractions.Execution.GameplayCallSource.Connection, probe.Chain.Source);
@@ -81,7 +81,7 @@ public sealed class DungeonExitLifecycleTests
         var error = await Record.ExceptionAsync(() => probe.Wire(f, 0x2A, []).AsTask());
         if (fail) Assert.Same(probe.Cause, error); else Assert.Null(error);
         Assert.Empty(probe.Transactions); Assert.Empty(probe.Declarations);
-        TestGameplay.Run(f.Services, () => { Assert.Null(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)); Assert.Empty(f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Find(run)); });
+        TestGameplay.Run(f.Services, () => { Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)); Assert.Empty(f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Find(run)); });
         await probe.Sender.Settled();
         if (fail) { await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); Assert.Empty(physical.Sends); }
         else { var types = physical.Sends.SelectMany(CharacterDeathOracle.Types).ToArray(); Assert.Equal((ushort)0x2A, types[0]); Assert.Contains((ushort)0x03, types); }
@@ -123,7 +123,7 @@ public sealed class DungeonExitLifecycleTests
             var result = await f.Services.GetRequiredService<IAltarDungeonDomainService>().EnterAsync(
                 new(11007, DungeonEntryFacts.None, 0, 0, peer is null ? [new(f.Session.AccountId, f.Session.CharacterId, 0, true)] : [new(f.Session.AccountId, f.Session.CharacterId, 0, true), new(peer.AccountId, peer.CharacterId, 1, false)]), default);
             Assert.NotNull(result.Entry); await tx.CommitAsync(default);
-            var actual = f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)!;
+            var actual = f.Services.DungeonRuns().Find(f.Session.CharacterId)!;
             Assert.IsType<DungeonRunMode.Altar>(actual.Layout.Mode); run = actual.RunId;
             f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Register(run, peer is null ? [f.Session] : [f.Session, peer]);
         });
@@ -141,7 +141,7 @@ public sealed class DungeonExitLifecycleTests
             Assert.Equal("A committed altar transition could not be projected.", typed.InnerException!.Message);
             Assert.Equal(gold + 17, f.Gold); Assert.Equal(30, f.Scalar("SELECT exp FROM characters WHERE character_id=1"));
             Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(probe.Transactions).Completion);
-            TestGameplay.Run(f.Services, () => { Assert.NotNull(f.Services.GetRequiredService<IDungeonRunDomainService>().Find(f.Session.CharacterId)); Assert.Contains(f.Session.CharacterId, f.Services.GetRequiredService<IAltarDungeonDomainService>().Find(run)!.SettledParticipants); });
+            TestGameplay.Run(f.Services, () => { Assert.NotNull(f.Services.DungeonRuns().Find(f.Session.CharacterId)); Assert.Contains(f.Session.CharacterId, f.Services.GetRequiredService<IAltarDungeonDomainService>().Find(run)!.SettledParticipants); });
             Assert.True(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
             Assert.True(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(peer!)!.Fenced);
             Assert.Equal(Whole, f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));

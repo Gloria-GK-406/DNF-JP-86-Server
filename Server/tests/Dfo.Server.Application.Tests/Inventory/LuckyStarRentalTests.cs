@@ -23,7 +23,7 @@ public sealed class LuckyStarRentalTests
             s.AddSingleton<IEquipmentDefinitionSource>(content);
             s.AddSingleton<IItemPlacementDefinitionSource>(content);
             s.AddSingleton<IDungeonDefinitionSource>(content);
-            s.AddSingleton<IDungeonRunDomainService>(TestParties.Runs());
+            s.AddDungeonRunsAs(TestParties.Runs());
             s.AddDungeonRunViews();
         });
         f.Sql($"UPDATE accounts SET lucky_star={stars}; UPDATE character_stats SET carried_gold={gold};");
@@ -117,7 +117,7 @@ public sealed class LuckyStarRentalTests
         await TestGameplay.RunAsync(async () =>
         {
             using var f=Fixture(400);
-            var runs=f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs=f.Services.DungeonRuns();
             DungeonRunId Open()
             {
                 if (runs.Find(new Dfo.Server.Data.Characters.CharacterId(1)) is { } previous) runs.End(new(1), previous.RunId);

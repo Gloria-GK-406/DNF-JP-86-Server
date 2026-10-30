@@ -47,7 +47,7 @@ public sealed class DungeonReturnFailureIsolationTests
         {
             services.AddSingleton(online);
             services.AddSingleton<ISelectedSessionDomainService>(sessions);
-            services.AddSingleton<IDungeonRunDomainService>(runs);
+            services.AddDungeonRunsAs(runs);
             services.AddDungeonRunViews();
             services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
             services.AddSingleton<ISelectedCharacterCurrentViewDomainService>(views);
@@ -141,7 +141,7 @@ public sealed class DungeonReturnFailureIsolationTests
             services.AddSingleton<ILogger<GameplayExecutor>>(errors);
             services.AddSingleton(online);
             services.AddSingleton<ISelectedSessionDomainService>(sessions);
-            services.AddSingleton(tracedRuns);
+            services.AddDungeonRunsAs(tracedRuns);
             services.AddSingleton<IDungeonRunProjectionDomainService>(registry);
             services.AddSingleton<ISelectedCharacterCurrentViewDomainService>(views);
             services.AddSingleton<IWeaknessDomainService>(new ReturnWeakness());
@@ -178,7 +178,7 @@ public sealed class DungeonReturnFailureIsolationTests
         return view with { CharacterEntry = view.CharacterEntry with { Public = view.CharacterEntry.Public with { Identity = new(0, 0, 0) } } };
     }
 
-    private static DungeonRunId Prepare(DungeonRunDomainService runs, SelectedSessionIdentity[] cohort, DateTimeOffset now, bool cleared)
+    private static DungeonRunId Prepare(IDungeonRunDomainService runs, SelectedSessionIdentity[] cohort, DateTimeOffset now, bool cleared)
     {
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(120, 0, 1, 1, cell, cell, 1000, 42,

@@ -225,7 +225,7 @@ public sealed class LeaveDungeonTests
         services.AddLogging();
         services.AddCommandDispatching();
         var runs = new OneRun();
-        services.AddSingleton<IDungeonRunDomainService>(runs);
+        services.AddDungeonRunsAs(runs);
         services.AddDungeonRunViews();
         services.AddSingleton<ISelectedSessionDomainService>(new OneSession(Identity));
         services.AddFixtureCommand<LeaveDungeonAlgorithmCommand, LeaveDungeonAlgorithmResult, LeaveDungeonAlgorithmHandler>(

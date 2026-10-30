@@ -18,7 +18,7 @@ internal sealed class DungeonAdmissionDomainService(ICharacterDungeonDifficultyD
     ICharacterQuestLogDomainService quests, IUsageQuotaDomainService quotas,
     IEventService events, IDomainTransactionAccessor transactions,
     ISelectedSessionDomainService sessions, IOnlineCharacterRuntimeDomainService onlineCharacters,
-    IDungeonRunDomainService runs, CoupleDungeonRule couples, IDungeonAdmissionRuleService admissionRules, IDungeonParticipationDomainService participation) : IDungeonAdmissionDomainService
+    IDungeonRunQueryDomainService runs, CoupleDungeonRule couples, IDungeonAdmissionRuleService admissionRules, IDungeonParticipationDomainService participation) : IDungeonAdmissionDomainService
 {
     public async ValueTask<DungeonAdmissionDecision> PrepareAsync(DungeonEntryContext context, DungeonAdmissionOptions options, CancellationToken ct)
     {

@@ -39,11 +39,11 @@ internal static class TowerTestAlgorithms
     internal static BossTowerPartyDriver BossParty(ShopFixture f) => new(f.Services.GetRequiredService<IBossTowerDomainService>(),
         f.Services.GetRequiredService<IPartyService>(), f.Services.GetRequiredService<ISelectedSessionDomainService>(), new Mutations(f),
         f.Services.GetRequiredService<PartyNotificationDelivery>(), Boss(f), f.Services.GetRequiredService<INetworkConnectionCloser>(),
-        f.Services.GetRequiredService<ITownAreaDomainService>(), NullLogger.Instance, f.Services.GetRequiredService<IDungeonRunDomainService>());
+        f.Services.GetRequiredService<ITownAreaDomainService>(), NullLogger.Instance, f.Services.DungeonRuns());
     internal static IllusionTowerPartyDriver IllusionParty(ShopFixture f) => new(f.Services.GetRequiredService<IIllusionTowerDomainService>(),
         f.Services.GetRequiredService<IPartyService>(), f.Services.GetRequiredService<ISelectedSessionDomainService>(), new Mutations(f),
         f.Services.GetRequiredService<PartyNotificationDelivery>(), Illusion(f), f.Services.GetRequiredService<INetworkConnectionCloser>(),
-        f.Services.GetRequiredService<ITownAreaDomainService>(), NullLogger.Instance, f.Services.GetRequiredService<IDungeonRunDomainService>());
+        f.Services.GetRequiredService<ITownAreaDomainService>(), NullLogger.Instance, f.Services.DungeonRuns());
     internal sealed class Mutations(ShopFixture fixture) : ITowerAlgorithmMutations
     {
         private async ValueTask<T> Write<T>(Func<ValueTask<T>> action)

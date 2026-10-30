@@ -56,7 +56,7 @@ public sealed class DespairTowerTests
         .GetAllAsync(default).AsTask().GetAwaiter().GetResult().Where(x => x.ItemId == 4473).Sum(x => x.Count);
     private static async Task<DespairTowerSettlement?> Clear(LearningFixture f, bool commit = true)
     {
-        var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+        var runs = f.Services.DungeonRuns();
         var run = runs.Find(new CharacterId(71))!;
         if (!run.ClearOpen) Assert.NotNull(runs.TryOpenClear(new(71), run.RunId, run.RoomVersion));
         await using var tx = f.Scope.Begin();
@@ -100,7 +100,7 @@ public sealed class DespairTowerTests
             Assert.Equal(1, Assert.IsType<DungeonRunMode.Despair>(first.Entry.Layout.Mode).Plan.Floor);
             Assert.Equal(11008, first.Entry.Layout.DungeonId); // forged floor 100 is routed to floor 1
             Assert.Equal(0, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             await runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId);
             Assert.Equal(DungeonEntryFailure.MissingRequiredItem, (await Enter(f)).Failure);
             await Tickets(f, 2);
@@ -121,7 +121,7 @@ public sealed class DespairTowerTests
             await using var f = await Fixture();
             await Tickets(f, 5);
             var service = f.Services.GetRequiredService<IDespairTowerDomainService>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var store = f.Services.GetRequiredService<IDespairTowerDomainStore>();
             Assert.Null((await Enter(f, Entry() with { RequestMode = 1 })).Entry);
             Assert.Null((await Enter(f, Entry() with { PracticeMode = 1 })).Entry);
@@ -175,7 +175,7 @@ public sealed class DespairTowerTests
             Assert.NotNull(await Clear(f));
             var cleared = await tower.ReadStatusAsync(new(71), default);
             Assert.Equal((2, (byte)0), (cleared.NextFloor, cleared.FreeEntriesRemaining));
-            await f.Services.GetRequiredService<IDungeonRunDomainService>().EndAsync(new(71), first.Visits[new(71)].Run.RunId);
+            await f.Services.DungeonRuns().EndAsync(new(71), first.Visits[new(71)].Run.RunId);
             Assert.Equal(DungeonEntryFailure.MissingRequiredItem, (await Enter(f)).Failure);
             clock.Now = clock.Now.AddDays(1);
             var reset = await tower.ReadStatusAsync(new(71), default);
@@ -208,7 +208,7 @@ public sealed class DespairTowerTests
             }
             var tower = f.Services.GetRequiredService<IDespairTowerDomainService>();
             var store = f.Services.GetRequiredService<IDespairTowerDomainStore>();
-            var runs = f.Services.GetRequiredService<IDungeonRunDomainService>();
+            var runs = f.Services.DungeonRuns();
             var entry = Assert.IsType<DungeonPartyEntry>((await Enter(f)).Entry);
             Assert.Equal(100, Assert.IsType<DungeonRunMode.Despair>(entry.Layout.Mode).Plan.Floor);
             Assert.NotNull(await Clear(f, commit: false));

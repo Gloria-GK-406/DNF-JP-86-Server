@@ -311,7 +311,7 @@ public sealed class PartySelectDungeonHandlerTests
             .AddSingleton<ISelectedSessionDomainService>(sessions)
             .AddSingleton<ISelectedCharacterCurrentViewDomainService>(new RuntimeCurrentView(runtime))
             .AddSingleton<IOnlineCharacterRuntimeDomainService>(new PartyPositions(areas))
-            .AddSingleton<IDungeonRunDomainService>(new RollbackRuns())
+            .AddDungeonRunsAs(new RollbackRuns())
             .AddSingleton(new DungeonRunDeliveryRegistry())
             .AddSingleton<IDungeonEntryIntentDomainService>(intents)
             .AddSingleton<IPartyService>(new Parties(Snapshot()))
@@ -328,7 +328,7 @@ public sealed class PartySelectDungeonHandlerTests
                 var visits = new RefusedVisits();
                 var selection = SelectDungeonDriver.Create(CurrentCharacterStub.Domain(), new UnchangedState(),
                     sessions, new RuntimeCurrentView(runtime), new Parties(Snapshot()),
-                    services.GetRequiredService<IDungeonRunDomainService>(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
+                    services.DungeonRuns(), services.GetRequiredService<DungeonRunDeliveryRegistry>(),
                     intents, visits, new RecordingQuestLogs(), new Fatigue(), sender, new RecordingCloser(),
                     services.GetRequiredService<TownAreaProjectionDelivery>(), NullLogger<SelectDungeonHandler>.Instance);
                 for (var i = 0; i < 2; i++)
@@ -339,7 +339,7 @@ public sealed class PartySelectDungeonHandlerTests
             }
             var handler = DungeonSelectionTestDriver.Back(
                 services.GetRequiredService<ISelectedSessionDomainService>(), services.GetRequiredService<ISelectedCharacterCurrentViewDomainService>(),
-                services.GetRequiredService<IOnlineCharacterRuntimeDomainService>(), services.GetRequiredService<IDungeonRunDomainService>(),
+                services.GetRequiredService<IOnlineCharacterRuntimeDomainService>(), services.DungeonRuns(),
                 services.GetRequiredService<DungeonRunDeliveryRegistry>(), sender, services.GetRequiredService<TownAreaProjectionDelivery>(),
                 NullLogger<BackToVillageHandler>.Instance, services.GetRequiredService<IPartyService>(), entryIntents: intents);
 
