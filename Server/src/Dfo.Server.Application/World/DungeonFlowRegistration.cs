@@ -28,6 +28,7 @@ internal static class DungeonFlowRegistration
         services.TryAddSingleton<IDungeonStructureRuleService, DungeonStructureRuleService>();
         services.TryAddSingleton<IDungeonEntryDecisionDomainService, DungeonEntryDecisionDomainService>();
         services.TryAddSingleton<IDungeonEntryRoutingDomainService, DungeonEntryRoutingDomainService>();
+        services.TryAddSingleton<IDungeonExitDomainService, DungeonExitDomainService>();
         services.TryAddSingleton<IDungeonEntryIntentDomainService, DungeonEntryIntentDomainService>();
         services.TryAddSingleton<IDungeonLifecycleDomainService, DungeonLifecycleDomainService>();
         services.AddDomainEvent<DungeonParticipantLeft>("dungeon.participant-left", 1);
