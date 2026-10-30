@@ -12,9 +12,12 @@ ACT 路径 `02276516` 调用读取该标志的 `006D3F60`。反汇编中的分�
 [输入身份](../../../Document/tasks/giant-dragon/evidence/inputs.json)。
 
 这证明既有地图通知接入原生计时对象，不增加本消息字段，也不证明参数 `7/45000/100000`
-等于45秒总时限。当前服务端沿用既有 START_MAP 投影；本次没有新增巨龙实帧或
-ClientVerified 结论。流程和业务边界分别见 [入场流程](../../patterns/flow-dungeon-entry.md#巨龙候选流程)、
-[任务说明](../../../Document/tasks/giant-dragon/README.md)。
+等于45秒总时限。当前服务端沿用既有 START_MAP 投影，未新增本通知的巨龙S→C原始帧归档，
+因而不提升本通知逐字段的WireCaptured。普通3200入场、怪物、走门和原生提示条显示已有
+限定ClientVerified；该反馈不证明最终奖励曲线、恢复入口或Boss机关全部通过。
+巨龙两局C→S完成报告已另行归档，见[完成报告](../../patterns/data/traces/a21-giant-dragon-completion-20261027.md)，不能将缺少本通知样本写成所有巨龙实帧均缺失。
+流程和业务边界分别见[入场流程](../../patterns/flow-dungeon-entry.md#巨龙候选流程)、
+[计时奖励规则](../../../Document/tasks/giant-dragon/TimeAttackReward.md)与[收尾验收边界](../../../Document/tasks/giant-dragon/Verification.md#收尾授权与验收边界)。
 
 ## 暗精灵遗迹随机对象
 

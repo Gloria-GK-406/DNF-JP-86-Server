@@ -58,7 +58,9 @@ BodyLength = 未知（字段集合已知不完整）
 
 本仓采用21B：`guardian:u8, elapsedMs:u32, dailyItem:u32, dailyCount:u32, clearItem:u32, clearCount:u32`。
 VA `011497B0` 证明读取宽度及顺序，奖励槽解释采用上游，仍待当前客户端差分验证。
-所有值来自实际 Boss 清场冻结奖励，不采用客户端成绩计算。见[遗迹流程](../../patterns/flow-darkelf-ruins.md)；未新增 ClientVerified。
+所有值来自实际 Boss 清场冻结奖励，不采用客户端成绩计算。二星通关及升三星已有有限实机确认，
+但本通知的奖励槽语义、守护者标志和两阶段结果展示尚无逐字段差分及完整双向样本，
+不能将主流程反馈扩展为这些字段的 ClientVerified；见[遗迹流程](../../patterns/flow-darkelf-ruins.md)。
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
+本协议尚未归档完整双向样本。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

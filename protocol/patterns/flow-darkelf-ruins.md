@@ -1,7 +1,9 @@
 # 暗精灵遗迹原生流程
 
 适用当前 A21，业务范围和本次用户确认的服规见 [任务说明](../../Document/tasks/darkelf-ruins/README.md)。
-本页区分 ClientStatic、上游参考和 CurrentImplementation；本次尚无新增 WireCaptured 或 ClientVerified。
+本页区分 ClientStatic、上游参考、CurrentImplementation 与限定范围 ClientVerified。
+用户已确认首次选图及重开星级显示、通关累计和二星升三星；本次没有新增完整双向 WireCaptured。
+实际确认范围及未覆盖场景见[验收记录](../../Document/tasks/darkelf-ruins/verification.md#用户实机确认)。
 
 ## 客户端静态定位
 
@@ -41,19 +43,21 @@ NOTI02F7 的第三个 u32 投影持久化通关累计，用于选图右上角的
 
 协议切片位于 `Server/src/Dfo.Server.Protocol/Game/DarkElfRuins/`，公共入口、清场和选角命令只编排其领域能力。
 领域、内容源和持久化映射见任务说明。协议字节测试、真实 PVF 和隔离 SQLite 测试不等价于原生界面验收。
-原生入口门、升星提示、隐藏奖励牌、地图内机关/传送、组队与断线场景均需单独登记实机结果。
+首次选图与重开显示、二星累计推进及满足累计后另行无复活通关升三星已有用户确认。
+这不构成各条消息逐字段的双向抓包证明；其他曜日与区域、升四星、隐藏奖励牌、守护者、
+地图内机关/传送、组队、断线重登、跨日/月及背包满邮件仍未覆盖，见[验证边界](../../Document/tasks/darkelf-ruins/verification.md#未覆盖的实机边界)。
 
 ## 二星入场的限定运行观察
 
 RuntimeObserved / High：2026-10-29恢复测试次数后，角色持久状态为共享二星、当日已用0次，A21选图请求DGN5007仍被服务端拒绝为DifficultyNotUnlocked（0x15）。当时校验要求请求难度等于PVF二星配置1；该角色星级条件已经满足。未保存入站完整body，不据此声称抓到了某个具体难度字节。
-CurrentImplementation：按合法所选星级确定实际难度0/1/2/3，保留星级、次数、前置、模式及材料限制，NOTI001C继续投影实际实例难度。服务端日志同时记录requestedDifficulty与实际difficulty，以便当前客户端复测；高星入场尚待用户确认。
+CurrentImplementation：按合法所选星级确定实际难度0/1/2/3，保留星级、次数、前置、模式及材料限制，NOTI001C继续投影实际实例难度。服务端日志同时记录requestedDifficulty与实际difficulty。后续二星虚妄迷宫通关及升三星已获用户确认；不能将其扩展为三星/四星入场或所有难度、区域的逐项验收。
 
 ## 首次打开的星级状态
 
 用户反馈：本轮客户端首次打开遗迹只显示一星，退出再打开显示二星。
 RuntimeObserved：23:31:53及23:32:18两次选图均发送02F7；第二次随后进入5007，实例难度Adventure、客户端请求难度Normal。服务器持久星级没有回退。
 ClientObserved：2026-10-30用户确认选图内调整顺序仍未解决首次一星；不能以服务端报文次序断言原生界面正确。
-ClientStatic：004C0C50按座位就绪标记仅首次复制全局记录，02F7的004C0DF0不更新座位副本。当前登录没有遗迹记录，选图响应才补发，存在首次读取空缓存的缺口。
+ClientStatic：004C0C50按座位就绪标记仅首次复制全局记录，02F7的004C0DF0不更新座位副本。若登录不发送遗迹记录、仅在选图响应时补发，存在首次读取空缓存的缺口。
 CurrentImplementation：选角发布完成后预先发送当前角色遗迹状态，保留选图刷新。[有界初始化链及只读缓存](../../Document/tasks/darkelf-ruins/evidence/client-license-initialization.txt)。未将旧A12的ACK定位用作A21因果证据。
 ClientVerified / 限定：用户2026-10-30确认候选21a083d4首次打开及重开星级正常、累计2/3正常，并在3/3后另行无复活通关升至三星。换角色、守护者及其他未覆盖项仍见任务验证记录；没有新增完整WireCaptured样本。
 

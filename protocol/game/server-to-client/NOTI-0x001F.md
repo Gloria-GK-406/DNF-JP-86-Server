@@ -91,5 +91,5 @@ body = 00        ← 一个字节,值为零
 
 **2026-10-28 ClientVerified（遗忘之地到期收尾）**：服务端在首次加载后60秒发送本通知，原始正文沿用单字节`00`，
 用户确认自动专用总结及回城验收通过。服务端日志记录到期通知登记1次，随后收到CMD002A并结束run。
-验收后已移除临时60秒覆盖，恢复PVF默认600秒；未额外等待10分钟重复实机。此确认不涵盖专用额外奖励或其他区域机制。
-证据与适用范围见[到点结束记录](../../../Document/tasks/forgotten-land/ExpiryDiagnosis.md)。
+当前运行策略保留每局1200秒，原始PVF首字段600秒未改写；配置与范围以[时限策略](../../../Document/tasks/forgotten-land/AcceptanceOverrides.md)为准。完整20分钟到期未单独验收，不能由60秒候选通过外推。此确认不涵盖额外延期道具；总结界面中的未拾取掉落也不代表应追加资产奖励，见[结果对账](../../../Document/tasks/forgotten-land/ResultDiagnosis.md)。
+静态链与60秒实机依据见[到点结束记录](../../../Document/tasks/forgotten-land/ExpiryDiagnosis.md)，主玩法总体确认及剩余恢复边界见[验收结果](../../../Document/tasks/forgotten-land/Human-Test.md)。没有新增本通知的成对原始帧归档。

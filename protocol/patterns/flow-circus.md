@@ -3,6 +3,12 @@
 范围为 #166，父范围见 #170。2026-10-27 用户选择只实现现行正式副本 4103 与天幕剧场 4114，
 不新增 4104–4106 入门关入口；另明确选择先补真实客户端链路证据，再接入天幕。
 
+当前结论：单人、4103难度0的受控探查已闭合气球入口、正式图通关、凌凌及结算首按钮、
+客户端进入并通关4114的正常路径，见[验收范围](../../Document/tasks/circus/happy-path-acceptance.md)。
+033F开放状态与0282候选均为明确标记的诊断注入；实际C2S请求已归档，不冒充原版S2C样本。
+0282第一字段仅取得4114后续目标的路径确认，第二字段仅验证零值兼容。
+正式随机抽取、一次性准入、次数和专属奖励仍未接入，不能把受控通关称为完整玩法已实现。
+
 ## 当前结论与边界
 
 | 主张 | 来源与等级 | 边界 |
@@ -14,7 +20,7 @@
 | 暗黑城区域 64 声明地图 `circus_tw/circus_tw.map` 与 dungeon gate 103；世界地图 `circus.wdm` 引用 4103/4114，XUI 只有 4103 按钮 | Content / ClientStatic（脚本/UI） | 不把 `.wdm` 列表中的 4114 当作可直进证明；三种入门关没有找到当前 XUI 入口 |
 | 追猴子动作脚本含 90000ms 与区域触发；滚球和皮埃罗脚本含投射物、对象销毁与反伤 | ClientStatic（动作脚本） | 证明本地脚本具备这些行为，不证明死亡/通关/掉落广播已闭环 |
 | 麻醉剂说明为使狮子王沉睡 5 秒并大幅减防，声明投掷对象 54352 | Content，`stackable/throw/event_circus_stone.stk` | 领取、扣除、投掷授权与离场清理仍待实际链路确认 |
-| 当前服务端能够保留关联声明；已通过真实 PVF 与畸形输入测试 | CurrentImplementation，`PvfDungeonDefinitionSource` / `PvfLinkedDungeonParser` | 仅内容读取；没有新增天幕报文、授权、玩法接线或实机验收 |
+| 当前服务端能够保留关联声明；已通过真实 PVF 与畸形输入测试 | CurrentImplementation，`PvfDungeonDefinitionSource` / `PvfLinkedDungeonParser` | 正式实现仅含内容读取；受控链路另有有限实机确认，正常抽取、授权及专属计次／奖励尚未接入 |
 
 ## NOTI 0x0282 的可证与不可证部分
 
@@ -32,7 +38,8 @@ UpstreamReference：ServerS4A21 `04e04b43c65c464a9f48833dcaa5d06725342919` 中
 `Network/Builders/Dungeon/DungeonNotificationBuilder.cs::BuildLinkedDungeonInfo` 将两个 u32
 称为后续副本 ID 与难度；`DungeonSettlementHandler::SendLinkedDungeonInfoAsync` 发送并登记授权；
 同文件将 EPLP 的 `(1,3)` 作为继续选择，调用 `DungeonEntryHandler::EnterLinkedDungeonAsync`。
-这些是候选方案，不因当前客户端读取两个 u32 而升级成已证实的字段含义或真实请求顺序。
+这些是上游候选方案；当前A21已取得下述受控继续请求，不采用上游EPLP(1,3)。
+两个u32的静态读取不独立证明其完整语义，第一字段的路径确认及第二字段的零值兼容分别记录。
 
 `NOTI-0x0282` 旧机器区中的字段名来自上游，不能将其中 `Confirmed` 标签解释为本轮 ClientVerified。
 已有受控ClientVerified和真实C2S请求摘录，尚无原版服务端自然0282样本。
@@ -102,7 +109,8 @@ CurrentImplementation：探查服原来仅注册 EVENT_INFO 的 2226；现有
 [0010样本](../game/client-to-server/samples/0x0010-2026-10-27-01.hex)；带方向、selector、UTC、长度、
 序号的摘录见[气球会话](data/traces/circus-balloon-20261027.jsonl)、
 [正式图入场](data/traces/circus-formal-entry-20261027.jsonl)。没有补造未保留的帧头。
-本节不证明正式图完整机制、奖励/计次、通关对象54645、0282字段语义或天幕继续请求。
+以上入口会话本身不证明正式图完整机制、奖励／计次或通关对象54645；
+0282与天幕继续请求的受控确认见下节，不从入口反馈外推。
 
 ### 自然通关与后续受控差分
 

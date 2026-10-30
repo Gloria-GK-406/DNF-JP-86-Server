@@ -51,8 +51,13 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## A21字段与实现
 
-ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation为本工作区代码及自动测试；没有WireCaptured或ClientVerified。
+ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation对应已合入主干的实现与自动测试；没有本任务完整WireCaptured，实机确认范围单列如下。
 
 固定8B：dungeonId:i32、difficulty:i32。
 
 原始摘录：[70-wire-builders.txt](../../../Document/tasks/guardian-altar/70-wire-builders.txt)。当前encoder与对应强类型消息已注册，自动codec测试核对完整读取边界。发送顺序见[祭坛流程](../../patterns/flow-guardian-altar.md)。
+
+## 验证范围
+
+ClientVerified（限定）：玩家已确认进入祭坛，第1关简单正常、中等出怪恢复。该反馈支持已测入口／地图表现，不证明所有关卡、难度和该包每个字段均已逐项实测。
+完整实机范围及未覆盖项见[祭坛验收记录](../../../Document/tasks/guardian-altar/acceptance.md)；该记录的总体反馈不替代逐字段WireCaptured。
