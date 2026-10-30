@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Marriage;
 
-internal sealed class HousingReadView(IMarriageRelations ledger, HousingState state, Dfo.Server.Abstractions.Content.IMarriageHousingContentSource content,
+internal sealed class HousingReadView(IMarriageRelations ledger, HousingState state, Dfo.Server.Abstractions.Content.IMarriageHousingRuleService housingRules,
     Dfo.Server.Abstractions.Configuration.IDailyResetRuleService days, TimeProvider clock) : IMarriageHousingQueryDomainService
 {
     public async ValueTask<MarriageInfoSnapshot?> InfoAsync(AccountId account, CharacterId character, CancellationToken ct)
@@ -18,7 +18,7 @@ internal sealed class HousingReadView(IMarriageRelations ledger, HousingState st
             await ledger.PointsAsync(relation.Id, character, ct).ConfigureAwait(false),
             await ledger.RingAsync(relation.Id, ct).ConfigureAwait(false));
     }
-    public bool IsEntrySource(byte town, byte area) => content.Load().EntrySources.Contains((town, area));
+    public bool IsEntrySource(byte town, byte area) => housingRules.Content().EntrySources.Contains((town, area));
     public async ValueTask<HousingSnapshot?> ReadAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
         if (await ledger.ForParticipantAsync(account, character, ct).ConfigureAwait(false) is not { Stage: MarriageStage.Married } relation) return null;
@@ -37,7 +37,7 @@ internal sealed class HousingReadView(IMarriageRelations ledger, HousingState st
     public async ValueTask<HousingBenefits> BenefitsAsync(AccountId account, CharacterId character, bool pvp, CancellationToken ct)
     {
         if (await ReadAsync(account, character, ct).ConfigureAwait(false) is not { } room) return new(0, 0, new Dictionary<string, int>());
-        var rules = content.Load();
+        var rules = housingRules.Content();
         var value = room.Placements.Sum(x => rules.Furniture.TryGetValue(x.ItemId, out var furniture) && furniture.Slots.Contains(x.Slot) ? furniture.PointCost : 0);
         var ring = await RingAsync(account, character, ct).ConfigureAwait(false);
         var modifiers = new Dictionary<string, int>();

@@ -98,7 +98,7 @@ public sealed class SpecialConsumableEffectTests
         Assert.Equal(100,raw.Raw!.Used);Assert.Equal(3,usage!.UsedCount);
         var rules=new SpecialConsumableEffectPlanRuleService(new ActionSource(),new UsageSource(86400000),
             f.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>(),
-            new ItemUseJudgementService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>());
+            new ItemUseRuleService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>());
         var item=TestItemReferences.FromCore(0,StackableItemCore.Create(2,2000,2),ItemWorldClass.Interchangeable);
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,
             raw with { Raw=new(100,110,at) },usage,at),default).AsTask());
@@ -106,7 +106,7 @@ public sealed class SpecialConsumableEffectTests
         Assert.Equal(3,f.Scalar("SELECT value FROM character_daily_counters WHERE character_id=71"));
         rules=new SpecialConsumableEffectPlanRuleService(new ActionSource(),new UsageSource(0),
             f.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>(),
-            new ItemUseJudgementService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>());
+            new ItemUseRuleService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>());
         var plan=await rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,
             raw with { Raw=new(100,110,at) },usage,at),default);
         var usageEffect=Assert.Single(plan.OfType<SetItemUsageStateEffect>());
@@ -175,7 +175,7 @@ public sealed class SpecialConsumableEffectTests
     public void Permanent_item_can_be_used_after_2038()
     {
         var rule = ItemUseRules.Potion(0);
-        var plans = new ItemUseEffectRuleService(new ItemUseJudgementService(new FakeItemUseRules((8474, rule))));
+        var plans = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((8474, rule))));
         var item = TestItemReferences.FromCore(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = 0 },
             ItemWorldClass.Interchangeable);
         var result = plans.Build(rule, new(BusinessInventorySpace.QuickSlot, 0), item,

@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainService sessions,
     IDungeonRunQueryDomainService runs, IOnlineCharacterRuntimeDomainService onlineCharacters,
     IBusinessInventorySlotDomainService slots, ICharacterItemUseDomainService itemUse,
-    ITeleportConsumableRuleService rules, IItemUseJudgementService judgement,
+    ITeleportConsumableRuleService rules, IItemUseRuleService judgement,
     IApplyEffectsDomainService effects, TimeProvider clock) : ITeleportConsumableDomainService
 {
     public async ValueTask<TeleportConsumableResult> UseAsync(SelectedSessionIdentity session, BusinessSlot source,

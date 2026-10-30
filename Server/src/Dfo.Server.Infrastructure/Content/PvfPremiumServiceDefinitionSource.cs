@@ -35,7 +35,7 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
 
     private int[] ReadQuestHelperValues()
     {
-        var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
+        var section = (PvfDocument.TryOpen(provider.Archive, "etc/chn_characpremium.etc", PvfPreamble.Ignore)?.Sections ?? [])
             .Single(s => s.Name == Fields.QuestHelperField.Name);
         // A21 stores an unknown shared prefix, three effect values, then four doll IDs.
         // Interpreting the effect values as per-attempt floors is our adopted server policy.
@@ -48,7 +48,7 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
 
     public DoublePotRules ReadDoublePotRules()
     {
-        var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
+        var section = (PvfDocument.TryOpen(provider.Archive, "etc/chn_characpremium.etc", PvfPreamble.Ignore)?.Sections ?? [])
             .Single(s => s.Name == Fields.LotteryOnemoreField.Name);
         if (section.Values.Count < 3 || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
             || section.Values[1].Value is < 1 or > 255 || section.Values.Skip(2).Any(v => v.Value <= 0))
@@ -61,7 +61,7 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
     public int ReadAutoRepairDailyLimit() => ReadDailyLimit(Fields.AutoRepairField);
     private int ReadDailyLimit(PvfField<IReadOnlyList<int>> name, int valueCount = 2)
     {
-        var section = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/chn_characpremium.etc")
+        var section = (PvfDocument.TryOpen(provider.Archive, "etc/chn_characpremium.etc", PvfPreamble.Ignore)?.Sections ?? [])
             .Single(s => s.Name == name.Name);
         if (section.Values.Count != valueCount || section.Values.Any(v => v.Kind != PvfTokenKind.Int32)
             || section.Values[1].Value is < 1 or > 255)
@@ -102,9 +102,9 @@ internal sealed class PvfPremiumServiceDefinitionSource(PvfArchiveProvider provi
         throw new InvalidDataException("Missing growth contract boss equipment rates.");
     }
 
-    private IReadOnlyList<PvfNpcShopDefinitionSource.Section> PremiumSections()
+    private IReadOnlyList<PvfSection> PremiumSections()
     {
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc");
+        var sections = (PvfDocument.TryOpen(provider.Archive, "etc/premiumlist_new.etc", PvfPreamble.Ignore)?.Sections ?? []);
         foreach (var section in sections.Where(section => Fields.TypeField.Matches(section.Name)))
             Fields.TypeField.Decode(provider.Archive, section.Values, "etc/premiumlist_new.etc");
         return sections;

@@ -74,9 +74,9 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
         if (!stackables.TryGetValue(key.Bead, out var beadPath)
             || !equipment.TryGetValue(key.Target, out var targetPath)) return null;
 
-        var bead = PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + beadPath);
-        var type = One(bead, Fields.StackableTypeField);
-        var cardId = OneInt(archive, bead, Fields.MonsterCardIdField);
+        var bead = (PvfDocument.TryOpen(archive, "stackable/" + beadPath, PvfPreamble.Ignore)?.Sections ?? []);
+        var type = PvfSections.Single(bead, Fields.StackableTypeField, PvfRepeats.AsUndeclared, "equipment");
+        var cardId = PvfSections.SingleInt32(archive, bead, Fields.MonsterCardIdField, PvfRepeats.AsUndeclared, "equipment");
         if (type is null || type.Values.Count != 2
             || Name(archive, type.Values[0]) != "enchant waste"
             || type.Values[1].Kind != PvfTokenKind.Int32 || type.Values[1].Value != 0
@@ -91,11 +91,11 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
                     || !declarations[0].Values.Any(v => v.Value == key.Target))) return null;
         }
 
-        var card = PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + cardPath);
-        var category = One(card, Fields.ItemCategoryField);
-        var target = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + targetPath);
-        var equipmentType = One(target, Fields.EquipmentTypeField);
-        var stringData = One(card, Fields.StringDataField);
+        var card = (PvfDocument.TryOpen(archive, "stackable/" + cardPath, PvfPreamble.Ignore)?.Sections ?? []);
+        var category = PvfSections.Single(card, Fields.ItemCategoryField, PvfRepeats.AsUndeclared, "equipment");
+        var target = (PvfDocument.TryOpen(archive, "equipment/" + targetPath, PvfPreamble.Ignore)?.Sections ?? []);
+        var equipmentType = PvfSections.Single(target, Fields.EquipmentTypeField, PvfRepeats.AsUndeclared, "equipment");
+        var stringData = PvfSections.Single(card, Fields.StringDataField, PvfRepeats.AsUndeclared, "equipment");
         if (category is not { Values.Count: 1 }
             || Name(archive, category.Values[0]) != "monster card"
             || equipmentType is null || equipmentType.Values.Count is < 1 or > 2
@@ -112,38 +112,12 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private static Dictionary<int, string> Paths(PvfArchive archive, string path)
     {
         if (archive.FindFile(path) < 0) return [];
-        IReadOnlyList<(int Id, string RelativePath)> entries;
-        try { entries = PvfListFile.Read(archive, path); }
+        try { return PvfListFile.Usable(archive, path); }
         catch (InvalidOperationException) { return []; }
-        var result = new Dictionary<int, string>();
-        var ambiguous = new HashSet<int>();
-        foreach (var (id, relative) in entries)
-            if (id > 0 && !ambiguous.Contains(id) && !string.IsNullOrWhiteSpace(relative)
-                && !result.TryAdd(id, relative))
-            {
-                result.Remove(id);
-                ambiguous.Add(id);
-            }
-        return result;
-    }
-
-    private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name)
-    {
-        var matches = sections.Where(s => s.Name == name.Name).ToArray();
-        return matches.Length == 1 ? matches[0] : null;
-    }
-
-    private static int? OneInt(
-        PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<int> name)
-    {
-        var section = One(sections, name);
-        return section is { Values.Count: 1 } && section.Values[0].Kind == PvfTokenKind.Int32
-            ? name.Decode(archive, section.Values, "equipment") : null;
     }
 
     internal static bool HasSupportedEnchantIndex(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+        IReadOnlyList<PvfSection> sections)
     {
         var matches = sections.Where(section => section.Name == Fields.EnchantIndexField.Name).ToArray();
         return matches.Length == 1 && matches[0].Values.Count == 1

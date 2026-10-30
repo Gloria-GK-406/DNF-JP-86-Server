@@ -71,6 +71,8 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IItemMovementDomainService, ItemMovementDomainService>();
         services.TryAddSingleton<IInventoryMoveDomainService, InventoryMoveDomainService>();
         services.TryAddSingleton<IItemMirrorDomainService, ItemMirrorDomainService>();
+        services.TryAddSingleton<IInventorySortRuleService, InventorySortRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Content.IItemTooltipRuleService, ItemTooltipRuleService>();
         services.TryAddSingleton<IInventorySortDomainService, InventorySortDomainService>();
         services.TryAddSingleton<INpcShopRuleService, NpcShopRuleService>();
         services.TryAddSingleton<INpcShopDomainService, NpcShopDomainService>();
@@ -85,7 +87,8 @@ internal static class InventoryRegistration
         services.TryAddSingleton<ISpecialConsumableEffectPlanRuleService, SpecialConsumableEffectPlanRuleService>();
         services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
         services.TryAddSingleton<ILotteryRandomSource, LotteryRandomSource>();
-        services.TryAddSingleton<ILotteryResultSelector, WeightedLotteryResultSelector>();
+        services.TryAddSingleton<ILotteryRuleService, LotteryRuleService>();
+        services.TryAddSingleton<IVendingMachineRuleService, VendingMachineRuleService>();
         services.TryAddSingleton<IVendingMachineDomainService, VendingMachineDomainService>();
         services.TryAddSingleton<ILotteryOpeningDomainService, LotteryOpeningDomainService>();
         services.TryAddSingleton<IPackageOpeningDomainService, PackageOpeningDomainService>();
@@ -120,6 +123,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
         services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
         services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
+        services.TryAddSingleton<IItemUsageRuleService, ItemUsageRuleService>();
         services.TryAddSingleton<IItemUsageDomainService, ItemUsageDomainService>();
         services.AddInternalCommandHandler<InitializeEpicBookCommand, bool, InitializeEpicBookCommandHandler>();
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();

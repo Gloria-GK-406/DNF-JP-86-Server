@@ -63,10 +63,10 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
         PathsIndex(archive);
         if (!paths.TryGetValue(itemId, out var relative))
             return null;
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative);
-        var price = OneInt(archive, sections, Fields.RepairPriceField);
-        var grade = OneInt(archive, sections, Fields.GradeField);
-        var durability = OneInt(archive, sections, Fields.DurabilityField);
+        var sections = (PvfDocument.TryOpen(archive, "equipment/" + relative, PvfPreamble.Ignore)?.Sections ?? []);
+        var price = PvfSections.SingleInt32(archive, sections, Fields.RepairPriceField, PvfRepeats.AsUndeclared, "equipment");
+        var grade = PvfSections.SingleInt32(archive, sections, Fields.GradeField, PvfRepeats.AsUndeclared, "equipment");
+        var durability = PvfSections.SingleInt32(archive, sections, Fields.DurabilityField, PvfRepeats.AsUndeclared, "equipment");
         // Some equipment (such as non-durable bracelets) declares neither repair field. It is
         // still a valid equipment instance: repairing it is a zero-cost, unchanged operation.
         // A single missing or malformed field is not the same thing and must stay unreadable.
@@ -79,8 +79,8 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
     private (float CostRate, IReadOnlyList<float> UpgradeRates)? ReadRates()
     {
         var archive = provider.Archive;
-        var price = PvfNpcShopDefinitionSource.Sections(archive, "equipment/pricetable.tbl");
-        var upgrade = PvfNpcShopDefinitionSource.Sections(archive, "etc/upgrade.etc");
+        var price = (PvfDocument.TryOpen(archive, "equipment/pricetable.tbl", PvfPreamble.Ignore)?.Sections ?? []);
+        var upgrade = (PvfDocument.TryOpen(archive, "etc/upgrade.etc", PvfPreamble.Ignore)?.Sections ?? []);
         var cost = OneFloat(archive, price, Fields.RepairCostField);
         var section = upgrade.Where(x => x.Name == Fields.RepairCostRateByUpgradeLevelField.Name).ToArray();
         if (cost is not > 0 || section.Length != 1 || section[0].Values.Count == 0)
@@ -91,14 +91,7 @@ internal sealed class PvfEquipmentRepairDefinitionSource(PvfArchiveProvider prov
         return (cost.Value, upgradeRates);
     }
 
-    private static int? OneInt(PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<int> name)
-    {
-        var matches = sections.Where(x => x.Name == name.Name).ToArray();
-        return matches.Length == 1 && matches[0].Values.Count == 1
-            && matches[0].Values[0].Kind == PvfTokenKind.Int32 ? name.Decode(archive, matches[0].Values, "equipment") : null;
-    }
-
-    private static float? OneFloat(PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<double> name)
+    private static float? OneFloat(PvfArchive archive, IReadOnlyList<PvfSection> sections, PvfField<double> name)
     {
         var matches = sections.Where(x => x.Name == name.Name).ToArray();
         return matches.Length == 1 && matches[0].Values.Count == 1

@@ -1,7 +1,8 @@
 using Dfo.Pvf.Tests.Support;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Infrastructure.Content;
-using Section = Dfo.Server.Infrastructure.Content.PvfNpcShopDefinitionSource.Section;
+using Section = Dfo.Pvf.Schema.PvfSection;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 

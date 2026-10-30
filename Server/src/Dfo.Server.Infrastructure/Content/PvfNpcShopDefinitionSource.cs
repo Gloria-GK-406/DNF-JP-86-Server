@@ -192,11 +192,11 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         return ParseItem(archive, itemId, Sections(archive, path));
     }
 
-    internal static NpcShopItemDefinition ParseItem(PvfArchive archive, int itemId, IReadOnlyList<Section> sections)
+    internal static NpcShopItemDefinition ParseItem(PvfArchive archive, int itemId, IReadOnlyList<PvfSection> sections)
     {
         var readable = true;
         // A gift box's [booster info]/[cera] describes its opening reward, not its purchase cost.
-        var itemSections = new List<Section>();
+        var itemSections = new List<PvfSection>();
         var boosterDepth = 0;
         foreach (var section in sections)
         {
@@ -261,7 +261,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
             (ushort)Math.Clamp(durability, 0, ushort.MaxValue), sealedItem, readable);
     }
 
-    private static int? Integer(PvfArchive archive, IReadOnlyList<Section> sections, PvfField<int> name, ref bool readable)
+    private static int? Integer(PvfArchive archive, IReadOnlyList<PvfSection> sections, PvfField<int> name, ref bool readable)
     {
         var found = sections.Where(section => section.Name == name.Name).ToArray();
         if (found.Length == 0)
@@ -280,28 +280,6 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
     private static IReadOnlyDictionary<int, string> Paths(PvfArchive archive, string list) =>
         PvfListFile.Paths(archive, list);
 
-    internal sealed record Section(string Name, List<PvfToken> Values);
-
-    internal static IReadOnlyList<Section> Sections(PvfArchive archive, string path)
-    {
-        var index = archive.FindFile(path);
-        if (index < 0)
-            return [];
-        if (archive.GetFileBytes(index).Length % PvfToken.Size != 0)
-            throw new InvalidDataException($"PVF '{path}': truncated token record.");
-        var reader = archive.OpenScript(index);
-        var result = new List<Section>();
-        Section? section = null;
-        while (reader.Read(out var token))
-        {
-            if (token.Kind == PvfTokenKind.Identifier)
-            {
-                section = new(archive.ResolveString(token.Value), []);
-                result.Add(section);
-            }
-            else
-                section?.Values.Add(token);
-        }
-        return result;
-    }
+    private static IReadOnlyList<PvfSection> Sections(PvfArchive archive, string path) =>
+        PvfDocument.TryOpen(archive, path, PvfPreamble.Ignore)?.Sections ?? [];
 }

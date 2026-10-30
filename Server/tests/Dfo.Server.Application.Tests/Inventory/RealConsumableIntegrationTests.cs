@@ -254,6 +254,7 @@ public sealed class RealConsumableIntegrationTests
     }
     private sealed class PetRules : ICreatureRuleService
     {
+        public ValueTask<int?> StartLevelAsync(int itemTemplateId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<CreatureRule?> GetAsync(int template, CancellationToken ct) => ValueTask.FromResult<CreatureRule?>(new(template,20,20,true,[100,200,300],[],null,false));
         public ValueTask<CreatureArtifactExperienceRule?> GetArtifactExperienceAsync(int template, CancellationToken ct) => ValueTask.FromResult<CreatureArtifactExperienceRule?>(null);
         public ValueTask<int> BirthExpirationAsync(int template, DateTimeOffset at, CancellationToken ct) => ValueTask.FromResult(0);

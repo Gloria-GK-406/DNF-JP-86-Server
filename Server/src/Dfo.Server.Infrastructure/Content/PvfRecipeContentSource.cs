@@ -57,7 +57,7 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
         var archive = provider.Archive;
         PathsIndex(archive);
         if (!paths.TryGetValue(id, out var path)) return null;
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + path);
+        var sections = (PvfDocument.TryOpen(archive, "stackable/" + path, PvfPreamble.Ignore)?.Sections ?? []);
         var type = sections.SingleOrDefault(s => s.Name == Fields.StackableTypeField.Name);
         if (type is null || type.Values.Count != 2 || !type.Values[0].IsString
             || archive.ResolveString(type.Values[0].Value) != "[recipe]"

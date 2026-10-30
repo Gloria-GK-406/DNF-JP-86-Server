@@ -53,7 +53,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             {
                 var item = (await slots.Get(f.Session.CharacterId, source).Container.GetAsync(0, default))!;
                 var pet = (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!;
-                var rules = new ItemUseEffectRuleService(new ItemUseJudgementService(new FakeItemUseRules()));
+                var rules = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules()));
                 var plan = rules.Build(ItemUseRules.Potion(0), source, item,
                     new ItemUseCandidate(60, QuestJobRequirement.Priest, ItemUsePlace.Village, false), pet.ItemUid, f.Clock.GetUtcNow());
                 Assert.Equal(ItemUsability.Allowed, plan.Status);
@@ -651,7 +651,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             CharacterDatabaseSchema.Ensure(
                 SqliteTestPools.ConnectionString(this.Path));
             this.Runtime = new CreatureRuntimeDomainService(
-                new SqliteCreatureDomainStore(this.Path, TestRequired.NoContentsEvents), new CreatureRuleService(this.Rules, lifetimes: TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureEquipmentLifetimeSource>()), this.Scope,
+                new SqliteCreatureDomainStore(this.Path, TestRequired.NoContentsEvents), new CreatureRuleService(this.Rules, TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureDefinitionSource>(), lifetimes: TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureEquipmentLifetimeSource>()), this.Scope,
                 this.Sessions, this.Clock, inventories: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>());
         }
 

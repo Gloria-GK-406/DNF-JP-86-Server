@@ -19,7 +19,7 @@ internal sealed class PvfWorldDropTableSource(PvfArchiveProvider provider) : IWo
     public IReadOnlyList<WorldDropLevel> Load()
     {
         var archive = provider.Archive;
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, Path);
+        var sections = (PvfDocument.TryOpen(archive, Path, PvfPreamble.Ignore)?.Sections ?? []);
         if (sections.Count != 2 || sections[0].Name != Fields.WorldDropField.Name
             || sections[1].Name != Fields.CloseWorldDropField.Name || sections[1].Values.Count != 0
             || sections[0].Values.Any(token => token.Kind != PvfTokenKind.Int32))

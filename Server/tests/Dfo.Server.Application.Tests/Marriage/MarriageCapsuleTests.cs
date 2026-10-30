@@ -95,7 +95,7 @@ public sealed partial class MarriageHousingTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var w = await MarriedAsync(); var f = w.F;
-            var subscriber = ActivatorUtilities.CreateInstance<CapsuleClearSubscriber>(f.Services, new CapsuleDungeon());
+            var subscriber = ActivatorUtilities.CreateInstance<CapsuleClearSubscriber>(f.Services, (IMarriageCapsuleRuleService)new MarriageCapsuleRuleService(f.Services.GetRequiredService<IMarriageCapsuleContentSource>(), new CapsuleDungeon()));
             var q = f.Services.GetRequiredService<IMarriageCapsuleQueryDomainService>();
             var run = DungeonRunId.New();
             DungeonMapCleared Clear(DungeonRunId id, bool boss = true, int dungeon = 3541) => new(id, dungeon, 0, new(0,0), 1, 1,
@@ -112,9 +112,9 @@ public sealed partial class MarriageHousingTests
             Assert.Equal(0,(await InTx(f,()=>TestEffectFootprints.Run(f.Session, footprint => f.Services.GetRequiredService<IMarriageCapsuleDomainService>().CapsuleAsync(f.Session, MarriageCapsuleAction.Make, accounts, footprint, default)))).Status);
             await Send(Clear(saturatedRun)); Assert.Equal(0,(await q.ReadAsync(f.Session.AccountId,f.Session.CharacterId,default)).State.Energy);
             Assert.Equal(0, (await q.ReadAsync(w.Peer.AccountId, w.Peer.CharacterId, default)).State.Energy);
-            Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 29));
-            Assert.False(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 86));
-            Assert.True(CapsuleClearSubscriber.Recommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 85));
+            Assert.False(Dfo.Server.Application.World.DungeonRecommendation.IsRecommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 29));
+            Assert.False(Dfo.Server.Application.World.DungeonRecommendation.IsRecommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 86));
+            Assert.True(Dfo.Server.Application.World.DungeonRecommendation.IsRecommended(new(1,"test",30,true,[],50) {RecommendedLevels=[30,85]}, 85));
         });
     }
     [Fact]

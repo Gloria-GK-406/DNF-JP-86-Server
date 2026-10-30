@@ -12,7 +12,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class LevelUpTicketRuleService(IStackableActionDefinitionSource actions,
-    IItemUseJudgementService uses, IQuestContentRuleService quests, IExperienceRuleService experience,
+    IItemUseRuleService uses, IQuestContentRuleService quests, IExperienceRuleService experience,
     ISpecialConsumableEffectPlanRuleService consumables) : ILevelUpTicketRuleService
 {
     public async ValueTask<LevelUpTicketPlan> PlanAsync(BusinessSlot source, ItemReference item,

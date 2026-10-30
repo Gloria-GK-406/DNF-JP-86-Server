@@ -13,6 +13,18 @@ public interface IVendingMachineDefinitionSource
     int Initialize();
     VendingMachineDefinition GetRequired(int machineId, int groupId);
 }
+/// <summary>What a vending machine group costs and what one draw from it pays.</summary>
+public interface IVendingMachineRuleService
+{
+    /// <exception cref="InvalidDataException">The archive declares no such machine group.</exception>
+    VendingMachineDefinition Machine(int machineId, int groupId);
+
+    /// <summary>How many tickets one draw is taken from; a draw is a ticket in <c>[0, count)</c>.</summary>
+    long TicketCount(VendingMachineDefinition machine);
+
+    /// <summary>The reward a ticket lands on, by cumulative weight.</summary>
+    OpeningReward RewardAt(VendingMachineDefinition machine, long ticket);
+}
 public sealed record VendingMachineResult(OpeningInventoryReceipt Receipt, BusinessSlot SourceSlot, int Remaining,
     OpeningReward Reward);
 public interface IVendingMachineDomainService

@@ -81,45 +81,18 @@ internal sealed class ChannelScriptExperienceSource(
         var rows = new Dictionary<int, ChannelRow>();
         var contradictedChannels = new HashSet<int>();
 
-        var section = Section.None;
-        string? groupName = null;
-        HashSet<int>? groupDungeons = null;
-
-        foreach (var line in text.Split('\n'))
+        var script = ChannelScript.Parse(text);
+        foreach (var block in script.DungeonBlocks)
         {
-            var tokens = Tokenize(line);
-            if (tokens.Count == 0)
-                continue;
-
-            switch (tokens[0])
-            {
-                case "[dungeon]":
-                    section = Section.Dungeon;
-                    groupName = null;
-                    groupDungeons = [];
-                    continue;
-                case "[/dungeon]":
-                    if (groupName is not null && groupDungeons is not null)
-                        Declare(groups, contradictedGroups, groupName, groupDungeons);
-                    section = Section.None;
-                    groupName = null;
-                    groupDungeons = null;
-                    continue;
-                case "[server]":
-                    section = Section.Server;
-                    continue;
-                case "[/server]":
-                    section = Section.None;
-                    continue;
-                default:
-                    break;
-            }
-
-            if (section is Section.Dungeon)
+            string? groupName = null;
+            var groupDungeons = new HashSet<int>();
+            foreach (var tokens in block)
                 ReadDungeonLine(tokens, ref groupName, groupDungeons);
-            else if (section is Section.Server)
-                ReadServerLine(tokens, rows, contradictedChannels);
+            if (groupName is not null)
+                Declare(groups, contradictedGroups, groupName, groupDungeons);
         }
+        foreach (var row in script.ServerRows)
+            ReadServerLine(row.Tokens, rows, contradictedChannels);
 
         var entries = new Dictionary<int, ChannelExperienceEntry>();
         foreach (var (channelId, row) in rows)
@@ -224,58 +197,7 @@ internal sealed class ChannelScriptExperienceSource(
         }
     }
 
-    /// <summary>
-    /// The line's fields, with quoted runs kept whole.
-    /// </summary>
-    /// <remarks>
-    /// Quoting matters because a display name is quoted and a group name is quoted, while the
-    /// numbers around them are not; splitting on whitespace alone works on today's file and breaks
-    /// on the first quoted value that contains a space.
-    /// </remarks>
-    private static List<string> Tokenize(string line)
-    {
-        var tokens = new List<string>();
-        var at = 0;
-        while (at < line.Length)
-        {
-            if (char.IsWhiteSpace(line[at]))
-            {
-                at++;
-                continue;
-            }
-
-            var start = at;
-            if (line[at] == Quote)
-            {
-                at++;
-                while (at < line.Length && line[at] != Quote)
-                    at++;
-                if (at < line.Length)
-                    at++;
-            }
-            else
-            {
-                while (at < line.Length && !char.IsWhiteSpace(line[at]))
-                    at++;
-            }
-
-            tokens.Add(line[start..at]);
-        }
-
-        return tokens;
-    }
-
-    private static string Unquote(string token) => token.Trim().Trim(Quote).Trim();
-
-    /// <summary>The archive quotes a string with a backtick at each end.</summary>
-    private const char Quote = '`';
-
-    private enum Section
-    {
-        None,
-        Dungeon,
-        Server,
-    }
+    private static string Unquote(string token) => ChannelScript.Unquote(token);
 
     private readonly record struct ChannelRow(string Group, int Percent);
 }

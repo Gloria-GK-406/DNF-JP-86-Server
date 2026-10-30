@@ -11,7 +11,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSource definitions,
+internal sealed class VendingMachineDomainService(IVendingMachineRuleService machines,
     IOpeningInventoryDomainService inventory, IPackageOpeningRuleService rewards, ILotteryRandomSource random,
     IPremiumServiceDomainService premiums, ITownAreaDomainService towns, ISelectedSessionDomainService sessions,
     IDomainTransactionAccessor transactions, TimeProvider clock, IOpeningEffectPlanRuleService plans) : IVendingMachineDomainService
@@ -24,14 +24,14 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
         var now = clock.GetUtcNow();
         if (!sessions.IsInWorld(session) || towns.Find(session.CharacterId) is null)
             throw new OpeningRejectedException(OpeningRejection.NoSession, "Vending requires a current town character.");
-        var definition = definitions.GetRequired(machineId, groupId);
+        var definition = machines.Machine(machineId, groupId);
         if (!await premiums.For(session.AccountId).IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false))
             throw new OpeningRejectedException(OpeningRejection.PremiumUnavailable, "Black diamond is inactive.");
         var sourceSlot = slot;
         var source = await inventory.SourceAsync(session, sourceSlot, now, cancellationToken).ConfigureAwait(false);
         if (source.ItemId != definition.MaterialId || source.Count < definition.MaterialCount)
             throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "Wrong or insufficient vending coins.");
-        var reward = Select(definition, random.NextInt64(definition.Rewards[^1].CumulativeWeight));
+        var reward = machines.RewardAt(definition, random.NextInt64(machines.TicketCount(definition)));
         var grants = await rewards.PrepareAsync([reward], now, cancellationToken).ConfigureAwait(false);
         // The captured machine currently grants main-bag goods only. Fail before consumption
         // if future content adds a special delivery channel not covered by this ACK.
@@ -42,11 +42,5 @@ internal sealed class VendingMachineDomainService(IVendingMachineDefinitionSourc
         var plan = plans.Build(source.ItemId, useRule, [new(sourceSlot, definition.MaterialId, definition.MaterialCount)], grants, [], now);
         var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, cancellationToken).ConfigureAwait(false)).Inventory;
         return new(receipt, slot, source.Count - definition.MaterialCount, reward);
-    }
-    internal static OpeningReward Select(VendingMachineDefinition definition, long ticket)
-    {
-        if (ticket < 0 || ticket >= definition.Rewards[^1].CumulativeWeight)
-            throw new InvalidOperationException("Out-of-range vending random ticket.");
-        return definition.Rewards.First(r => ticket < r.CumulativeWeight).Reward;
     }
 }

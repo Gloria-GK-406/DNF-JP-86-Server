@@ -40,6 +40,7 @@ internal static class MarriageRegistration
         services.TryAddSingleton<Dfo.Server.Application.Marriage.MarriageQuestDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageQuestDomainService>());
         services.TryAddSingleton<Dfo.Server.Application.Marriage.CapsuleState>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleRuleService, Dfo.Server.Application.Marriage.MarriageCapsuleRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Marriage.GrowthCapsules>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.CapsuleState>());
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.MarriageDomainService>());
@@ -48,6 +49,7 @@ internal static class MarriageRegistration
         services.AddDomainSubscriber<DungeonMapCleared, Dfo.Server.Application.Marriage.CapsuleClearSubscriber>("marriage.capsule-clear", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingState>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingState>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Content.IMarriageHousingRuleService, Dfo.Server.Application.Marriage.MarriageHousingRuleService>();
         services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingReadView>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(sp => sp.GetRequiredService<Dfo.Server.Application.Marriage.HousingReadView>());
         services.TryAddSingleton<Dfo.Server.Application.Marriage.HousingOperations>();

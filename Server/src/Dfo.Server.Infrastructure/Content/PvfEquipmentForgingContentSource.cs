@@ -44,11 +44,11 @@ internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provid
 
     private static EquipmentForgingTable? Read(PvfArchive archive)
     {
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "etc/upgrade_separate.etc");
-        var max = One(sections, Fields.SeparateUpgradeMaxField);
-        var rows = One(sections, Fields.TableField);
-        var grade = One(sections, Fields.ItemWeightsByGradeField);
-        var rarity = One(sections, Fields.ItemWeightsByRarityField);
+        var sections = (PvfDocument.TryOpen(archive, "etc/upgrade_separate.etc", PvfPreamble.Ignore)?.Sections ?? []);
+        var max = PvfSections.Single(sections, Fields.SeparateUpgradeMaxField, PvfRepeats.AsUndeclared, "equipment");
+        var rows = PvfSections.Single(sections, Fields.TableField, PvfRepeats.AsUndeclared, "equipment");
+        var grade = PvfSections.Single(sections, Fields.ItemWeightsByGradeField, PvfRepeats.AsUndeclared, "equipment");
+        var rarity = PvfSections.Single(sections, Fields.ItemWeightsByRarityField, PvfRepeats.AsUndeclared, "equipment");
         if (max?.Values is not { Count: 1 } || Int(max.Values[0]) is not int maximum
             || maximum is <= 0 or > byte.MaxValue
             || rows is null || rows.Values.Count < maximum * 4 || rows.Values.Count % 4 != 0
@@ -82,11 +82,6 @@ internal sealed class PvfEquipmentForgingContentSource(PvfArchiveProvider provid
         }
         return new(maximum, levels, materials, rarityWeights);
     }
-
-    private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name) =>
-        sections.Count(section => section.Name == name.Name) == 1
-            ? sections.First(section => section.Name == name.Name) : null;
 
     private static int? Int(PvfToken token) => token.Kind == PvfTokenKind.Int32
         ? token.Value : null;

@@ -158,6 +158,7 @@ public sealed class CreatureNamingDomainServiceTests
 
     private sealed class NamingRules : ICreatureRuleService
     {
+        public ValueTask<int?> StartLevelAsync(int itemTemplateId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<CreatureRule?> GetAsync(int template, CancellationToken ct) =>
             ValueTask.FromResult<CreatureRule?>(new(template, 20, 50, true, [2, 5], [], null, false));
         public ValueTask<CreatureArtifactExperienceRule?> GetArtifactExperienceAsync(int template, CancellationToken ct) =>

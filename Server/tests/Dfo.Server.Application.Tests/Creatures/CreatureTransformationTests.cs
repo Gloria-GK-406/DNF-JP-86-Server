@@ -170,7 +170,7 @@ public sealed class CreatureTransformationTests
                 ExperienceThresholds = [.. Enumerable.Range(1, 18).Select(x => x * 100), 2151]
             };
             var runtime = new CreatureRuntimeDomainService(new SqliteCreatureDomainStore(path, TestRequired.NoContentsEvents),
-                new CreatureRuleService(rules, new FakeLifetimes()), scope, new FakeSessions(), TimeProvider.System, domain);
+                new CreatureRuleService(rules, TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureDefinitionSource>(), new FakeLifetimes()), scope, new FakeSessions(), TimeProvider.System, domain);
             domain.Instances = runtime;
             runtime.Enter(Session);
             await runtime.AdvanceAsync(Session, default);
@@ -298,7 +298,7 @@ public sealed class CreatureTransformationTests
         {
             Store = new FakeCreatureStore(state, space);
             Service = new CreatureRuntimeDomainService(new RuntimeStore(Store),
-                new CreatureRuleService(Rules, new FakeLifetimes()), Scope,
+                new CreatureRuleService(Rules, TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureDefinitionSource>(), new FakeLifetimes()), Scope,
                 new FakeSessions(), TimeProvider.System, new Inventories(Store));
         }
     }
@@ -351,7 +351,7 @@ public sealed class CreatureTransformationTests
         public ICreatureStore GetStore(CharacterId characterId) => store;
         public ICreatureCollection Of(CharacterId characterId) => TestCreatureCollection.Create(characterId,
             scope.Current!, store, state => store.SaveAsync(state, default).GetAwaiter().GetResult(),
-            new CreatureRuleService(rules, new FakeLifetimes()));
+            new CreatureRuleService(rules, TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureDefinitionSource>(), new FakeLifetimes()));
     }
 
     private sealed class FakeCreatureStore : ICreatureStore

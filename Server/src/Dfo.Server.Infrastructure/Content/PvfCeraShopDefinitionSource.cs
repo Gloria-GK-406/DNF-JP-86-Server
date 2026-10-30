@@ -4,7 +4,7 @@ using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Content;
-using Section = Dfo.Server.Infrastructure.Content.PvfNpcShopDefinitionSource.Section;
+using Section = Dfo.Pvf.Schema.PvfSection;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -510,7 +510,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         return (result.ToImmutable(), errors.ToImmutable());
     }
 
-    private IReadOnlyList<Section> Sections(string path) => PvfNpcShopDefinitionSource.Sections(provider.Archive, path);
+    private IReadOnlyList<Section> Sections(string path) => (PvfDocument.TryOpen(provider.Archive, path, PvfPreamble.Ignore)?.Sections ?? []);
 
     internal static (ImmutableArray<int> Abilities, ImmutableArray<CeraShopDiagnostic> Diagnostics)
         ResolveAvatarAbilityCase(int id, IReadOnlyList<Section> sections, Func<int, string> text)

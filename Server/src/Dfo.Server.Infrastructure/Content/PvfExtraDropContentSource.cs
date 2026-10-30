@@ -55,7 +55,7 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
             if (!document.TryRead(Fields.SpecialMonsterDropField, out var specialDrop)) continue;
             var typeName = document.TryRead(Fields.EquipmentTypeField, out var declaredType) ? declaredType : null;
             var sections = document.Sections.Select(section =>
-                new PvfNpcShopDefinitionSource.Section(section.Name, section.Values.ToList())).ToArray();
+                new PvfSection(section.Name, section.Values.ToList())).ToArray();
             int Number(PvfField<int> name, int fallback)
             {
                 var fields = sections.Where(s => s.Name == name.Name).ToArray();
@@ -100,7 +100,7 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
             var path = "dungeon/" + row.RelativePath;
             if (archive.FindFile(path) < 0)
                 throw new InvalidDataException($"Extra drops: missing dungeon {row.Id}: {path}.");
-            var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
+            var sections = (PvfDocument.TryOpen(archive, path, PvfPreamble.Ignore)?.Sections ?? []);
             var ancientSections = sections.Where(section => section.Name == Fields.AncientDungeonField.Name).ToArray();
             if (ancientSections.Length > 1) throw new InvalidDataException($"PVF '{path}', field '{Fields.AncientDungeonField.Name}': duplicate field.");
             var ancient = ancientSections.Length == 1 && Fields.AncientDungeonField.Decode(archive, ancientSections[0].Values, path) == 1;
@@ -115,7 +115,7 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
     }
 
     private static int[] ReadMask(PvfArchive archive,
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<IReadOnlyList<string>> name, string[] allowed)
+        IReadOnlyList<PvfSection> sections, PvfField<IReadOnlyList<string>> name, string[] allowed)
     {
         var fields = sections.Where(s => s.Name == name.Name).ToArray();
         if (fields.Length == 0) return [];

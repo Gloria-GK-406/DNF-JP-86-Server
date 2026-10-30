@@ -41,10 +41,10 @@ internal sealed class PvfDropItemReader
         if (items.TryGetValue(id, out var cached)) return cached;
         if (!paths.TryGetValue(id, out var path) || archive.FindFile(path.Path) < 0)
             return items[id] = null;
-        var allSections = PvfNpcShopDefinitionSource.Sections(archive, path.Path);
+        var allSections = (PvfDocument.TryOpen(archive, path.Path, PvfPreamble.Ignore)?.Sections ?? []);
         var closingTags = allSections.Where(section => section.Name.StartsWith("[/", StringComparison.Ordinal))
             .Select(section => section.Name).ToHashSet(StringComparer.Ordinal);
-        var sections = new List<PvfNpcShopDefinitionSource.Section>();
+        var sections = new List<PvfSection>();
         var blocks = new Stack<string>();
         foreach (var section in allSections)
         {

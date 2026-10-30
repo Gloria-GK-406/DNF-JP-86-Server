@@ -4,6 +4,15 @@ namespace Dfo.Pvf.Schema;
 
 public sealed record PvfSection(string Name, IReadOnlyList<PvfToken> Values);
 
+/// <summary>What a reader does with values that appear before the first section heading.</summary>
+public enum PvfPreamble
+{
+    /// <summary>The file is malformed.</summary>
+    Reject,
+    /// <summary>Leave them out; the file's sections are read as if they were absent.</summary>
+    Ignore,
+}
+
 public sealed class PvfDocument
 {
     private readonly PvfArchive archive;
@@ -22,6 +31,19 @@ public sealed class PvfDocument
         var index = archive.FindFile(path);
         PvfField.Require(index >= 0, path, "script", "script is missing");
         PvfField.Require(archive.GetEntry(index).IsScript, path, "script", "expected a script file");
+        return Read(archive, index, path, PvfPreamble.Reject);
+    }
+
+    /// <summary>Opens a script that may be absent; null when the archive holds no script at this path.</summary>
+    public static PvfDocument? TryOpen(PvfArchive archive, string path, PvfPreamble preamble = PvfPreamble.Reject)
+    {
+        if (!Enum.IsDefined(preamble)) throw new ArgumentOutOfRangeException(nameof(preamble));
+        var index = archive.FindFile(path);
+        return index < 0 || !archive.GetEntry(index).IsScript ? null : Read(archive, index, path, preamble);
+    }
+
+    private static PvfDocument Read(PvfArchive archive, int index, string path, PvfPreamble preamble)
+    {
         PvfField.Require(archive.GetFileBytes(index).Length % PvfToken.Size == 0, path, "script", "truncated token record");
         var reader = archive.OpenScript(index);
         var sections = new List<PvfSection>();
@@ -37,7 +59,11 @@ public sealed class PvfDocument
             }
             else
             {
-                PvfField.Require(name is not null, path, "script", "value appears before a section");
+                if (name is null)
+                {
+                    PvfField.Require(preamble == PvfPreamble.Ignore, path, "script", "value appears before a section");
+                    continue;
+                }
                 values.Add(token);
             }
         }

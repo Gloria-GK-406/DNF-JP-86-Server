@@ -48,13 +48,13 @@ internal sealed class PvfIndependentDropTableSource(PvfArchiveProvider provider)
             BossEquipmentIds = items.Keys.Where(metadata.IsBossEquipment).ToImmutableHashSet(),
             GrowthBonusDungeonIds = PvfListFile.Read(archive, "dungeon/dungeon.lst")
                 .Where(row => archive.FindFile("dungeon/" + row.RelativePath) >= 0)
-                .Where(row => IsGrowthBonusDungeon(PvfNpcShopDefinitionSource.Sections(archive, "dungeon/" + row.RelativePath)))
+                .Where(row => IsGrowthBonusDungeon((PvfDocument.TryOpen(archive, "dungeon/" + row.RelativePath, PvfPreamble.Ignore)?.Sections ?? [])))
                 .Select(row => row.Id).ToImmutableHashSet(),
         };
     }
 
     // A21 adaptation, not a claim that these tags map one-to-one to the 70 runtime gates.
-    internal static bool IsGrowthBonusDungeon(IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+    internal static bool IsGrowthBonusDungeon(IReadOnlyList<PvfSection> sections)
     {
         var ancient = sections.Where(section => section.Name == Fields.AncientDungeonField.Name).ToArray();
         if (ancient.Length > 1 || ancient.Length == 1 && (ancient[0].Values.Count != 1 || ancient[0].Values[0].Kind != PvfTokenKind.Int32))

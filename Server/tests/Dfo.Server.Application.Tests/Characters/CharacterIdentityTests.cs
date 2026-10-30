@@ -160,7 +160,7 @@ public sealed class CharacterIdentityTests
         MovableIdentityRow row,
         params (int ItemId, ItemUseRule Rule)[] rules) =>
         new CharacterItemUseDomainService(new CharacterDomainStub(_ => Character(row)),
-            new ItemUseJudgementService(new FakeItemUseRules(rules)),
+            new ItemUseRuleService(new FakeItemUseRules(rules)),
             new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
             PresentCharacters.StandingInTown(Who), NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
 

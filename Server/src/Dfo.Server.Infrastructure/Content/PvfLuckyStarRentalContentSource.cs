@@ -2,6 +2,7 @@ using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Rental;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -51,7 +52,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
     private LuckyStarRentalCatalog Read()
     {
         var archive=provider.Archive;
-        var sections=PvfNpcShopDefinitionSource.Sections(archive,"etc/chnrentsystem/rentsysteminfo.etc");
+        var sections=(PvfDocument.TryOpen(archive,"etc/chnrentsystem/rentsysteminfo.etc", PvfPreamble.Ignore)?.Sections ?? []);
         int[] Numbers(string tag)
         {
             var tokens=sections.Single(x=>x.Name==tag).Values;
@@ -99,7 +100,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
             var archive=provider.Archive;
             StackablesIndex(archive);
             if(!stackables.TryGetValue(itemId,out var path)) return ValueTask.FromResult<int?>(null);
-            var matches=PvfNpcShopDefinitionSource.Sections(archive,path).Where(x=>x.Name=="[action type]").ToArray();
+            var matches=(PvfDocument.TryOpen(archive,path, PvfPreamble.Ignore)?.Sections ?? []).Where(x=>x.Name=="[action type]").ToArray();
             if(matches.Length==0) return ValueTask.FromResult<int?>(null);
             if(matches.Length!=1 || matches[0].Values.Count==0 || !matches[0].Values[0].IsString)
                 return ValueTask.FromResult<int?>(null);
@@ -117,7 +118,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
             var archive=provider.Archive;
             EquipmentIndex(archive);
             if(!equipment.TryGetValue(itemId,out var path)) return ValueTask.FromResult<int?>(null);
-            var matches=PvfNpcShopDefinitionSource.Sections(archive,path).Where(x=>x.Name=="[equipment grade]").ToArray();
+            var matches=(PvfDocument.TryOpen(archive,path, PvfPreamble.Ignore)?.Sections ?? []).Where(x=>x.Name=="[equipment grade]").ToArray();
             if(matches.Length==0) return ValueTask.FromResult<int?>(null);
             if(matches.Length!=1 || matches[0].Values.Count!=1 || !matches[0].Values[0].IsString
                 || archive.ResolveString(matches[0].Values[0].Value)!="superlative")
@@ -133,7 +134,7 @@ internal sealed class PvfLuckyStarRentalContentSource(PvfArchiveProvider provide
             var archive=provider.Archive;
             EquipmentIndex(archive);
             if(!equipment.TryGetValue(itemId,out var path)) return ValueTask.FromResult<IReadOnlySet<byte>?>(null);
-            var matches=PvfNpcShopDefinitionSource.Sections(archive,path).Where(x=>x.Name=="[usable job]").ToArray();
+            var matches=(PvfDocument.TryOpen(archive,path, PvfPreamble.Ignore)?.Sections ?? []).Where(x=>x.Name=="[usable job]").ToArray();
             if(matches.Length!=1 || matches[0].Values.Count==0 || matches[0].Values.Any(x=>!x.IsString))
                 throw new InvalidDataException("Invalid rental equipment jobs.");
             var jobs=new HashSet<byte>();

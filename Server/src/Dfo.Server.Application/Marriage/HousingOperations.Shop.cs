@@ -15,9 +15,8 @@ internal sealed partial class HousingOperations
     {
         if (count is <= 0 or > 1000) return (NpcShopRejection.InvalidCount, null);
         var furniture = Rules.Furniture.TryGetValue(itemId, out var rule);
-        var ordinary = Rules.Seeds.ContainsKey(itemId) || itemId is 10002765 or 10002609 or >= 10002611 and <= 10002615;
-        if (furniture ? shopId != 1206 : shopId != 1207 || !ordinary) return (NpcShopRejection.ItemNotSold, null);
-        var definition = await shops.GetItemAsync(itemId, ct).ConfigureAwait(false);
+        if (!housingRules.SoldAt(itemId, shopId)) return (NpcShopRejection.ItemNotSold, null);
+        var definition = await housingRules.ShopItemAsync(itemId, ct).ConfigureAwait(false);
         if (definition is not { IsReadable: true } || definition.Materials.Any(x => x.ItemId != 10002606)) return (NpcShopRejection.UnsupportedItem, null);
         var pointCost = definition.Materials.Sum(x => (long)x.Count) * count;
         var goldCost = Math.Max(0L, (long)(definition.GoldPrice ?? 0) + definition.AddPrice) * count;

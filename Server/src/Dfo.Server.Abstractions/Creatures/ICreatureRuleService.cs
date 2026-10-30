@@ -8,4 +8,7 @@ public interface ICreatureRuleService
         CancellationToken cancellationToken);
     ValueTask<int> BirthExpirationAsync(int itemTemplateId, DateTimeOffset at,
         CancellationToken cancellationToken);
+
+    /// <summary>The level a creature item hatches at, or null when the archive defines no creature for it.</summary>
+    ValueTask<int?> StartLevelAsync(int itemTemplateId, CancellationToken cancellationToken);
 }

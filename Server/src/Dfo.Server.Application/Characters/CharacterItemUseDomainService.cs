@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class CharacterItemUseDomainService(
     ICharacterDomainService characters,
-    IItemUseJudgementService judgement,
+    IItemUseRuleService judgement,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownAreaDomainService townAreas,
     IDungeonParticipationDomainService participation) : ICharacterItemUseDomainService

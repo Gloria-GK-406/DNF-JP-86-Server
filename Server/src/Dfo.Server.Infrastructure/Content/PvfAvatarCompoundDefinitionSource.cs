@@ -57,7 +57,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
     private AvatarCompoundDefinition? Parse(string path)
     {
         var archive = provider.Archive;
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, path);
+        var sections = (PvfDocument.TryOpen(archive, path, PvfPreamble.Ignore)?.Sections ?? []);
         var normal = Ints("[grade]"); var advanced = Ints("[upper grade]");
         if (normal.Length != 1 || advanced.Length != 1 || normal[0] < 1 || advanced[0] <= normal[0]) return null;
         var materials = ImmutableArray.CreateBuilder<AvatarCompoundMaterial>();
@@ -67,7 +67,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
             if (values.Length != 3 || values[0] != 1 || values[1] <= 0 || values[2] <= 0) return null;
             materials.Add(new(category, values[1], values[2]));
         }
-        var bonuses = PvfNpcShopDefinitionSource.Sections(archive, "etc/serverparameter.etc")
+        var bonuses = (PvfDocument.TryOpen(archive, "etc/serverparameter.etc", PvfPreamble.Ignore)?.Sections ?? [])
             .Where(s => s.Name == "[upper bind cube rate bonus]").ToArray();
         if (bonuses.Length != 1 || bonuses[0].Values.Count != 1 || bonuses[0].Values[0].Kind != PvfTokenKind.Int32
             || bonuses[0].Values[0].Value is < 0 or > 10000) return null;
@@ -121,7 +121,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
         {
             var document = PvfDocument.Open(provider.Archive, item.Source).AtRoot();
             var grade = document.Read(PvfField.Int32("[grade]", optional: true));
-            var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, item.Source);
+            var sections = (PvfDocument.TryOpen(provider.Archive, item.Source, PvfPreamble.Ignore)?.Sections ?? []);
             var permanent = sections.All(s => s.Name is not ("[usable period]" or "[expiration date]")
                 || s.Values.Count == 1 && s.Values[0].Kind == PvfTokenKind.Int32 && s.Values[0].Value == 0);
             var jobs = document.TryRead(PvfField.Strings("[usable job]", optional: true), out var names)

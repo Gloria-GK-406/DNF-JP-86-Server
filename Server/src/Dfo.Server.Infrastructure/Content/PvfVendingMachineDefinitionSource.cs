@@ -34,7 +34,7 @@ internal sealed class PvfVendingMachineDefinitionSource(PvfArchiveProvider provi
             {
                 var row = rows.Single(x => x.Id == machineId);
                 var expectedCoin = machineId == 1 ? 7454 : 2749933;
-                var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/" + row.RelativePath);
+                var sections = (PvfDocument.TryOpen(provider.Archive, "etc/" + row.RelativePath, PvfPreamble.Ignore)?.Sections ?? []);
                 int group = 0, material = 0, count = 0;
                 ImmutableArray<VendingReward> rewards = [];
                 foreach (var section in sections)

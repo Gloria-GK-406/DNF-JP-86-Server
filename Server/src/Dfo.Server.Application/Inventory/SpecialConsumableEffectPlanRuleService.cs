@@ -12,7 +12,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDefinitionSource actions,
-    IItemUsageRuleSource usages, IDailyResetRuleService days, IItemUseJudgementService uses, ICharacterSkillRuleService skills, IQuestClearancePlanRuleService clearance) : ISpecialConsumableEffectPlanRuleService
+    IItemUsageRuleSource usages, IDailyResetRuleService days, IItemUseRuleService uses, ICharacterSkillRuleService skills, IQuestClearancePlanRuleService clearance) : ISpecialConsumableEffectPlanRuleService
 {
     private readonly IQuestClearancePlanRuleService clearance = clearance;
 

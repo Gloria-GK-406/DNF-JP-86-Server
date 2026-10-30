@@ -3,9 +3,12 @@ using Dfo.Server.Abstractions.Creatures;
 
 namespace Dfo.Server.Application.Creatures;
 
-internal sealed class CreatureRuleService(ICreatureRuleSource source,
+internal sealed class CreatureRuleService(ICreatureRuleSource source, ICreatureDefinitionSource definitions,
     ICreatureEquipmentLifetimeSource lifetimes) : ICreatureRuleService
 {
+    public async ValueTask<int?> StartLevelAsync(int itemTemplateId, CancellationToken ct) =>
+        (await definitions.FindByEquipmentAsync(itemTemplateId, ct).ConfigureAwait(false))?.StartLevel;
+
     public ValueTask<CreatureRule?> GetAsync(int itemTemplateId, CancellationToken ct) =>
         source.GetAsync(itemTemplateId, ct);
 

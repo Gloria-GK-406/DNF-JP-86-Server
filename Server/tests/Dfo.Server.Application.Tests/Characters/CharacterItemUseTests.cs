@@ -362,7 +362,7 @@ public sealed class CharacterItemUseTests
         await TestGameplay.RunAsync(async () =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-            var usability = ItemUse(CharacterRow.At(level: 50), new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            var usability = ItemUse(CharacterRow.At(level: 50), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
                 new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
                 new SessionPresenceDomainService());
 
@@ -388,7 +388,7 @@ public sealed class CharacterItemUseTests
         await TestGameplay.RunAsync(async () =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-            var usability = ItemUse(CharacterRow.None, new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            var usability = ItemUse(CharacterRow.None, new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
                 new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
                 PresentCharacters.StandingInTown(Character));
 
@@ -442,7 +442,7 @@ public sealed class CharacterItemUseTests
                     Assert.Equal(1, await insert.ExecuteNonQueryAsync(CancellationToken.None));
                 }
 
-                var usability = ItemUse(new SqliteCharacterTable(database), new ItemUseJudgementService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                var usability = ItemUse(new SqliteCharacterTable(database), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
                 new OnlineCharacterRuntimeDomainService(
                         new AdvanceableTimeProvider(
                             new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero)), new OnlineCharacterLocationDomainService()),
@@ -541,7 +541,7 @@ public sealed class CharacterItemUseTests
             new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);
         cooldowns.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
         fixture = new Fixture(clock, cooldowns, session);
-        return ItemUse(CharacterRow.At(level, job), new ItemUseJudgementService(new FakeItemUseRules(rules)),
+        return ItemUse(CharacterRow.At(level, job), new ItemUseRuleService(new FakeItemUseRules(rules)),
             cooldowns, PresentCharacters.StandingInTown(Character), inTower ? new TowerSeat() : null);
     }
 
@@ -552,7 +552,7 @@ public sealed class CharacterItemUseTests
             service.CanUseAsync(Character, itemId, cancellationToken);
     }
 
-    private static Usability ItemUse(ICharacterTable row, IItemUseJudgementService judgement,
+    private static Usability ItemUse(ICharacterTable row, IItemUseRuleService judgement,
         IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IDungeonParticipationDomainService? seats = null) =>
         new(new CharacterItemUseDomainService(
             new CharacterDomainStub(id => new PlayingCharacter(id, new NoCarriedGold(), new StoredCarryLimitOnly(), row,

@@ -12,15 +12,15 @@ using Dfo.Server.Application.Inventory;
 
 namespace Dfo.Server.Application.Marriage;
 
-internal sealed partial class HousingOperations(HousingState state, IMarriageHousingContentSource content,
+internal sealed partial class HousingOperations(HousingState state, IMarriageHousingRuleService housingRules,
     IBusinessInventorySlotDomainService inventory,
     IItemDeliveryRuleService templates, IItemLifecycleDomainService lifecycle, IMailboxDomainService mail, IDailyResetRuleService days, TimeProvider clock,
     Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
     Dfo.Server.Abstractions.Accounts.IAccountWalletDomainService wallets,
-    INpcShopDefinitionSource shops, IItemDeliveryDomainService delivery)
+    IItemDeliveryDomainService delivery)
 {
     public ValueTask<ItemSnapshot> TemplateAsync(int itemId, CancellationToken ct) => templates.TemplateAsync(itemId, ct);
-    public MarriageHousingContent Rules => content.Load();
+    public MarriageHousingContent Rules => housingRules.Content();
     public long Period => days.PeriodStart(clock.GetUtcNow()).ToUnixTimeMilliseconds();
 
     public async ValueTask<HousingResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation,
@@ -78,9 +78,8 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
                 if (mature.Growth < 30) return new(-6);
                 var rewards = new[] { relation.Proposer.CharacterId, relation.Recipient.CharacterId }.Select(character =>
                 {
-                    var draw = RandomNumberGenerator.GetInt32(Rules.Rewards.Sum(x => x.Weight));
-                    foreach (var reward in Rules.Rewards) { if (draw < reward.Weight) return new HousingReward(character, reward.ItemId, reward.Count); draw -= reward.Weight; }
-                    throw new InvalidOperationException("Invalid tree reward weights.");
+                    var reward = housingRules.TreeRewardAt(RandomNumberGenerator.GetInt32(housingRules.TreeRewardWeight()));
+                    return new HousingReward(character, reward.ItemId, reward.Count);
                 }).ToArray();
                 footprint.DemandActive(actor);
                 if (!await state.RecordHarvestAsync(mature.PlantingId, mature.HarvestRound, rewards, ct).ConfigureAwait(false)) return new(-6);
