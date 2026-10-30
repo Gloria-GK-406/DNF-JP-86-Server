@@ -42,8 +42,8 @@ dotnet test Server/86JP.Server.slnx --logger 'console;verbosity=detailed' > /tmp
 
 上面的日志重定向适用于 POSIX shell；其他平台选择可写的日志路径并保留完整 stdout/stderr。
 真实 PVF 依赖测试缺少档案时会明确跳过；Host.Tests 含打包进程与真实 TCP 验证。
-独立的 [E2E 测试框架与场景台账](E2E/README.md) 在局域网 Linux runner 上使用固定真实 PVF、
-完整生产 Host 和隔离数据库执行；其素材缺失直接失败，不沿用全量测试的条件跳过规则。
+独立的 [E2E 测试框架与场景台账](E2E/README.md) 必须先有实机采集签收的场景库与报文基线；
+当前正式样本为零，入口报告未就绪。`Tool/Smoke/` 的合成库冒烟独立保存，不计正式 E2E 通过数。
 全量测试必须保存完整输出、失败用例、异常、栈与最终退出状态，不能用过滤后的摘要替代失败身份。
 修改玩法状态的测试经 `Server/tests/Support/TestGameplay.cs` 进入执行器，不能绕运行期保护。
 测试选择依据实际行为与风险，类名命中不等于覆盖；检查拒绝点时也检查所有能制造该状态的写入方。

@@ -12,7 +12,8 @@ def write_report(directory, manifest, results):
     (directory / 'results.json').write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding='utf-8')
     failures = sum(r['status'] not in ('passed', 'blocked') for r in results)
     skipped = sum(r['status'] == 'blocked' for r in results)
-    suite = ET.Element('testsuite', name='A21 E2E', tests=str(len(results)),
+    suite_name = manifest.get('suiteName', 'A21 E2E')
+    suite = ET.Element('testsuite', name=suite_name, tests=str(len(results)),
                        failures=str(failures), skipped=str(skipped), errors='0')
     for result in results:
         case = ET.SubElement(suite, 'testcase', classname='A21.E2E', name=result['caseId'])
@@ -21,7 +22,7 @@ def write_report(directory, manifest, results):
         elif result['status'] != 'passed':
             ET.SubElement(case, 'failure', message=result.get('detail', result['status']))
     ET.ElementTree(suite).write(directory / 'junit.xml', encoding='utf-8', xml_declaration=True)
-    lines = ['# A21 E2E', '', f"Run: `{manifest.get('runId', 'unknown')}`", '',
+    lines = ['# ' + suite_name, '', f"Run: `{manifest.get('runId', 'unknown')}`", '',
              '| Case | Result | Detail |', '|---|---|---|']
     for result in results:
         detail = result.get('detail', '').replace('|', '\\|').replace('\n', ' ')

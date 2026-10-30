@@ -123,10 +123,9 @@ Linux原生构建使用 `RELEASE_RID=linux-x64`。package入口每次重新 `npm
 
 ## 测试范围与维护
 
-独立的 `Server E2E (local PVF)` 工作流使用局域网 Linux 自托管 runner，执行固定 PVF 的真实网络
-顺序测试。main 或受控 `codex/e2e/**` 分支的相关推送、手动运行可触发；不接受 fork PR。
-它与云端 Unit / Release 分开，部署、台账、报告及覆盖边界见 [E2E 维护说明](E2E/README.md)。
-首批 CurrentImplementation 自动断言不代替真实 A21 人工验收或正式报文基线。
+正式 `Server E2E (real-client baselines)` 与独立基础设施冒烟使用局域网 Linux 自托管 runner，
+目前均仅手动运行。正式入口缺实机签收样本时明确报告未就绪；`Tool/Smoke/` 的合成库与旧六项
+不计正式覆盖。部署、台账、采集顺序及证据门槛见 [E2E 维护说明](E2E/README.md)。
 
 PR 使用正向筛选 `Category=Unit`。只有经源代码依赖检查确认的纯规则、协议字节编解码及内存替身机制测试才标记 Unit；真实 SQLite、socket、完整 Host、外部 PVF 及混合类留在 Release 全量测试中。新增单元测试须显式添加该 Trait，不用名称规则或 `Category!=Integration` 猜测。报告要求整个筛选至少执行一项测试，零匹配会失败；未纳入 PR 的集成测试不算作已通过或条件跳过。
 

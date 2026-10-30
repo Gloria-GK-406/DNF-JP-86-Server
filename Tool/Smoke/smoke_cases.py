@@ -1,4 +1,4 @@
-"""First sequential network cases; assertions describe CurrentImplementation, not a client golden baseline."""
+"""Synthetic infrastructure checks. These are excluded from formal E2E case IDs and pass counts."""
 import struct
 
 from harness import dstr, require
@@ -79,10 +79,10 @@ def restart_and_relogin(host):
 
 
 CASES = [
-    ('AUTH-001', '已有账号登录、频道握手与身份连续', authenticate),
-    ('AUTH-002', '错误密码与不存在账号安全拒绝', invalid_credentials),
-    ('ROLE-001', '建角及初始资产落库（正常路径子集）', create_character),
-    ('ROLE-004', '选角入城及任务列表投影（子集）', enter_town),
-    ('QUEST-001', '接取任务 1016 并核对持久化', accept_quest),
-    ('RECOVER-004', '正常重启、重新登录和已提交状态恢复（子集）', restart_and_relogin),
+    ('SMOKE-AUTH-001', '已有账号登录、频道握手与身份连续', authenticate),
+    ('SMOKE-AUTH-002', '错误密码与不存在账号安全拒绝', invalid_credentials),
+    ('SMOKE-ROLE-001', '建角及初始资产落库（正常路径子集）', create_character),
+    ('SMOKE-ROLE-004', '选角入城及任务列表投影（子集）', enter_town),
+    ('SMOKE-QUEST-001', '接取任务 1016 并核对持久化', accept_quest),
+    ('SMOKE-RECOVER-004', '正常重启、重新登录和已提交状态恢复（子集）', restart_and_relogin),
 ]
