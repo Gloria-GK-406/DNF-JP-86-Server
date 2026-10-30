@@ -19,7 +19,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonEntryIntentDomainService();
+            var service = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             var cycle = DungeonEntryIntent.Cycle(84, 15203);
             service.Record(Session, DungeonEntryIntent.Interactive);
             Assert.Equal(DungeonEntryIntent.Interactive, service.Find(Session));
@@ -40,7 +40,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonEntryIntentDomainService();
+            var service = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             service.Record(Session, DungeonEntryIntent.Interactive);
             var attempted = service.Consume(Session)!.Value;
             service.RestoreIfAbsent(Session, attempted);
@@ -61,7 +61,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonEntryIntentDomainService();
+            var service = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             service.Record(Session, DungeonEntryIntent.Directed(144));
 
             Assert.Equal(DungeonEntryIntent.Directed(144), service.Consume(Session));
@@ -74,7 +74,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonEntryIntentDomainService();
+            var service = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             service.Record(Session, DungeonEntryIntent.Directed(144));
             service.Record(Session, DungeonEntryIntent.Interactive);
 
@@ -87,7 +87,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonEntryIntentDomainService();
+            var service = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             var replacement = SelectedSessionIdentity.Create(
                 Session.AccountId,
                 Character,
@@ -106,7 +106,7 @@ public sealed class DungeonEntryIntentDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var service = new DungeonEntryIntentDomainService();
+            var service = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             var replacement = SelectedSessionIdentity.Create(
                 Session.AccountId,
                 Character,

@@ -26,6 +26,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
 {
     private DateOnly Period() => daily.PeriodDay(clock.GetUtcNow());
     public bool IsTower(int dungeonId) => rules.IsTower(dungeonId);
+    public bool PresentsFloorApc(int floor) => rules.PresentsFloorApc(floor);
     public async ValueTask<DespairTowerStatus> ReadStatusAsync(CharacterId character, CancellationToken ct)
     {
         var next = rules.NextFloor(await progress.ReadAsync(character, ct).ConfigureAwait(false));

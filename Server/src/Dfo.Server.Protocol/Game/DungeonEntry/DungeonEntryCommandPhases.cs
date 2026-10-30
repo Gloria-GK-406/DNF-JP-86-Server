@@ -243,7 +243,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                         visit.FirstActorSequence,
                         FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
                 }
-                if (layout.Mode is DungeonRunMode.Despair { Plan: { Floor: >= 10 and <= 90 } tower } && tower.Floor % 10 == 0)
+                if (layout.Mode is DungeonRunMode.Despair { Plan: var tower } && despair.PresentsFloorApc(tower.Floor))
                 {
                     var view = refreshed[receiver.Session.CharacterId];
                     var equipment = view.CharacterInventory.Containers.SingleOrDefault(x => x.ContainerType ==

@@ -573,7 +573,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void DungeonEntryIntentDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var intents = new DungeonEntryIntentDomainService();
+        var intents = new DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
         var session = Session();
         var seen = ViolationCapture.Attach();
 

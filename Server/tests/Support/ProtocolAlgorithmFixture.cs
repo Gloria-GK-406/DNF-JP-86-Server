@@ -45,6 +45,20 @@ internal static class ProtocolAlgorithmFixture
         new Dfo.Server.Application.World.DungeonExitDomainService(
             values.OfType<Dfo.Server.Abstractions.Parties.IPartyService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Parties.IPartyService>(),
             values.OfType<IDungeonRunDepartureDomainService>().LastOrDefault() ?? Default<IDungeonRunDepartureDomainService>());
+    // No dungeon these stand-ins enter is a SAO floor.
+    public class NoSaoFloors : System.Reflection.DispatchProxy
+    {
+        internal static ISaoTowerRuleService Create() => Create<ISaoTowerRuleService, NoSaoFloors>();
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args) =>
+            method!.Name == nameof(ISaoTowerRuleService.Supports) ? false : throw new NotSupportedException(method.Name);
+    }
+    // A stand-in intent store still answers with the real matching rule.
+    internal static DungeonEntryIntent? AuthorizeIntent(Dfo.Server.Data.World.SelectedSessionIdentity session, DungeonEntryIntent? held, int dungeonId, bool mirror)
+    {
+        var real = new Dfo.Server.Application.World.DungeonEntryIntentDomainService(NoSaoFloors.Create());
+        if (held is { } intent) real.Record(session, intent);
+        return real.Authorize(session, dungeonId, mirror);
+    }
     // What each created component was built from, so a driver handed only the component can still
     // reach the collaborators its test supplied alongside it.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object[]> suppliedTo = new();
@@ -166,7 +180,7 @@ internal static class ProtocolAlgorithmFixture
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)) return Array.CreateInstance(type.GetGenericArguments()[0], 0);
         if (type == typeof(IOutboundOrdering)) return new Ordering();
         if (type == typeof(IPartyProjectionStateDomainService)) return new PartyProjectionStreamRegistry();
-        if (type == typeof(Dfo.Server.Abstractions.World.IDungeonEntryIntentDomainService)) return new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+        if (type == typeof(Dfo.Server.Abstractions.World.IDungeonEntryIntentDomainService)) return new Dfo.Server.Application.World.DungeonEntryIntentDomainService(NoSaoFloors.Create());
         if (type == typeof(Dfo.Server.Abstractions.Quests.IQuestQueryDomainService)) return new NoQuests();
         if (type == typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl)) return new CardSignals();
         if (type == typeof(Dfo.Server.Abstractions.World.IHellDungeonEntryDomainService)) return new NoHell();

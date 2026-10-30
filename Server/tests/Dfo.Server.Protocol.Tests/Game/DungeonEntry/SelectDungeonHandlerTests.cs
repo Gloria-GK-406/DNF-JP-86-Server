@@ -925,6 +925,9 @@ public sealed class SelectDungeonHandlerTests
         private DungeonEntryIntent? _intent = intent;
         public bool HasValue => _intent is not null;
 
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) =>
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.AuthorizeIntent(session, _intent, dungeonId, mirror);
+
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent value) => _intent = value;
 
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session)

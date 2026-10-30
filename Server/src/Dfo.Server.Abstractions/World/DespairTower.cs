@@ -25,6 +25,8 @@ public sealed record DespairTowerSettlement(int Floor, uint ClearTimeMillisecond
 public interface IDespairTowerRuleService
 {
     bool IsTower(int dungeonId);
+    /// <summary>Whether entering this floor presents the character's own APC.</summary>
+    bool PresentsFloorApc(int floor);
     DespairTowerCatalog Catalog { get; }
     DespairTowerFloor? NextFloor(DespairTowerProgress progress);
     IReadOnlyList<DespairTowerReward> Rewards(int floor, int characterLevel, int basisLevel, ulong seed);
@@ -32,6 +34,8 @@ public interface IDespairTowerRuleService
 public interface IDespairTowerDomainService
 {
     bool IsTower(int dungeonId);
+    /// <summary>Whether entering this floor presents the character's own APC.</summary>
+    bool PresentsFloorApc(int floor);
     ValueTask<DespairTowerStatus> ReadStatusAsync(CharacterId character, CancellationToken ct);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);
     ValueTask<DespairTowerSettlement?> SettleAsync(AccountId account, CharacterId character, DungeonRunId runId, CancellationToken ct);

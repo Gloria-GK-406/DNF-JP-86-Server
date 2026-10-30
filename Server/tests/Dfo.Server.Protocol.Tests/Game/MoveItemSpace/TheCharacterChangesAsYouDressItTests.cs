@@ -557,6 +557,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
 
     private sealed class IgnoredEntryIntents : IDungeonEntryIntentDomainService
     {
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) => null;
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) { }
 
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session) => null;
