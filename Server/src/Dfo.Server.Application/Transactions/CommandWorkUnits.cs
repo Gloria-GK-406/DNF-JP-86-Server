@@ -16,7 +16,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
         request.ProducerCancellation?.RunnerAttempted();
-        request.HttpFailure?.OrdinaryRunnerAttempted();
+        request.FailureAudit?.OrdinaryRunnerAttempted();
         var operation = RunSelfSettledAsync(context, declaration, action, cancellationToken).AsTask();
         request.TrackOperation(operation);
         return new(operation);
@@ -224,7 +224,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Request ?? throw new InvalidOperationException("An explicit command request is required.");
         request.ProducerCancellation?.RunnerAttempted();
-        request.HttpFailure?.OrdinaryRunnerAttempted();
+        request.FailureAudit?.OrdinaryRunnerAttempted();
         var operation = RunAsync(context, declaration, action, readOnly, recoverCommit, ct).AsTask();
         request.TrackOperation(operation);
         return new(operation);
@@ -245,7 +245,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
         var stage = FailureStage.Setup;
         Exception? commitRollbackCause = null;
         var recordedFailure = false;
-        (Exception Cause, Exception Output, bool Commit)? httpFailure = null;
+        (Exception Cause, Exception Output, bool Commit)? auditedFailure = null;
         ExplicitEffectRequest? main = null;
         IEffectFootprintRecorder? footprint = null;
         ExplicitNonRequestFootprint? nonRequest = null;
@@ -307,9 +307,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                         && request.InternalActionCancellation == InternalActionCancellationCapability.ConfirmedRollbackWriteResult)
                     && declaration.Kind == CommandWorkUnitKind.Ordinary
                     && (!readOnly || request is CommandRequestContext.TrustedInternal
-                        && (request.HttpOperation is HttpRouteOperation.Events or HttpRouteOperation.WeeklyAttendance or HttpRouteOperation.JoustSettings or HttpRouteOperation.JoustRound
-                            || request.TimerReadOnlyCancellation == TimerReadOnlyCancellationCapability.PremiumSnapshot && declaration.Name == "premium.snapshot"
-                            || request.TimerReadOnlyCancellation == TimerReadOnlyCancellationCapability.ItemUsageSnapshot && declaration.Name == "item-usage.snapshot")))
+                        && request.ReadOnlyActionCancellation == ReadOnlyActionCancellationCapability.ConfirmedRollbackRead))
                     request.ProducerCancellation?.ObserveAction(request, lease, ct, cancellation);
                 throw;
             }
@@ -385,7 +383,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                 lease?.Completion == DomainTransactionCompletion.Uncertain || TransactionOutcomeUncertainException.Contains(error));
             request.Failed(error);
             if (lease is not null && lease.GuardFailure is null && stage is FailureStage.Action or FailureStage.Commit)
-                httpFailure = (cause, error, stage == FailureStage.Commit);
+                auditedFailure = (cause, error, stage == FailureStage.Commit);
             recordedFailure = true;
             ExceptionDispatchInfo.Capture(error).Throw();
             throw;
@@ -411,11 +409,11 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                     var error = !recordedFailure && retained is not null
                         ? new AggregateException("Rollback completed but lease cleanup failed.", retained, cleanup) : cleanup;
                     request.FailedIndependent(error, lease);
-                    httpFailure = null;
+                    auditedFailure = null;
                     ExceptionDispatchInfo.Capture(error).Throw(); throw;
                 }
-                if (httpFailure is { } http)
-                    request.HttpFailure?.ObserveFailure(declaration.Name, http.Commit, http.Cause, http.Output, lease, ct);
+                if (auditedFailure is { } audited)
+                    request.FailureAudit?.ObserveFailure(declaration.FailureAudit, audited.Commit, audited.Cause, audited.Output, lease, ct);
             }
         }
     }

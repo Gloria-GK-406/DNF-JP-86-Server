@@ -30,12 +30,12 @@ internal static class GmOfficialMailEndpoints
             async () => Results.Ok(await mail.ItemDetailsAsync(Secret(context), itemId, context.RequestAborted))))
             .WithMetadata(Permission, new OutsideGameplay("只读 SQLite 的查询：身份识别与物品目录"));
         Map("GET", "/operations/{id}", HttpRouteOperation.MailOperation, (HttpContext c, string id) => Query(c, GmMailQuery.Operation, Id(id)));
-        Map("POST", "/preview", HttpRouteOperation.MailPreview, async (HttpContext c) => new HttpRouteInput.Mail(Secret(c), GmMailQuery.Preview, new(), Input: Input(await Read(c))));
+        Map("POST", "/preview", HttpRouteOperation.MailPreview, async (HttpContext c) => new QueryGmMailCommand(Secret(c), GmMailQuery.Preview, new(), Input: Input(await Read(c))));
         Edit("/draft", "PUT", GmMailEdit.Draft, HttpRouteOperation.MailSaveDraft);
         Edit("/templates", "POST", GmMailEdit.CreateTemplate, HttpRouteOperation.MailCreateTemplate);
         Edit("/templates/{id}", "PUT", GmMailEdit.UpdateTemplate, HttpRouteOperation.MailUpdateTemplate);
         Edit("/templates/{id}", "DELETE", GmMailEdit.DeleteTemplate, HttpRouteOperation.MailDeleteTemplate);
-        Map("POST", "/send", HttpRouteOperation.MailSend, async (HttpContext c) => new HttpRouteInput.MailSendRequest(Secret(c), await Read(c)));
+        Map("POST", "/send", HttpRouteOperation.MailSend, async (HttpContext c) => new SendGmMailCommand(Secret(c), await Read(c)));
         void Get(string path, GmMailQuery kind) => Map("GET", path, kind switch
         {
             GmMailQuery.Draft => HttpRouteOperation.MailDraft, GmMailQuery.Templates => HttpRouteOperation.MailTemplates,
@@ -43,11 +43,11 @@ internal static class GmOfficialMailEndpoints
             _ => throw new InvalidOperationException()
         }, (HttpContext c) => Query(c, kind));
         void Edit(string path, string method, GmMailEdit kind, HttpRouteOperation operation) => Map(method, path, operation,
-            async (HttpContext c) => new HttpRouteInput.MailEditRequest(Secret(c), kind, c.Request.RouteValues["id"] is string id ? Id(id) : Guid.Empty, await Read(c)));
+            async (HttpContext c) => new EditGmMailCommand(Secret(c), kind, c.Request.RouteValues["id"] is string id ? Id(id) : Guid.Empty, await Read(c)));
         void Map(string method, string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, method, Prefix + path, operation, parser, Permission);
     }
     private static GmRequiredPermission Permission => new(GmPermission.SendMail);
-    private static HttpRouteInput Query(HttpContext c, GmMailQuery kind, Guid id = default) => new HttpRouteInput.Mail(Secret(c), kind, Filter(c), id);
+    private static QueryGmMailCommand Query(HttpContext c, GmMailQuery kind, Guid id = default) => new(Secret(c), kind, Filter(c), id);
     private static async Task<IResult> Safe(HttpContext context, Func<Task<IResult>> action)
     { try { return await action(); } catch (Exception error) when (error is not OperationCanceledException) { return Failure(context, error); } }
     internal static IResult Failure(HttpContext context, Exception error, string? outcome = null, bool alreadyLogged = false)

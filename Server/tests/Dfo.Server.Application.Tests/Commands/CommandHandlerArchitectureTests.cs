@@ -47,7 +47,7 @@ public sealed class CommandHandlerArchitectureTests
             [typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory)] = "既有纯协议帧工厂及完整预校验，不读写世界。",
             [typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions)] = "既有协议尾帧发送配置。",
             [typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions)] = "既有彩票实验协议开关，默认关闭。",
-            [typeof(ICommandHttpFailureAudit)] = "仅已失败HTTP发放的一次固定审计；不恢复普通写入或登记。",
+            [typeof(ICommandFailureAudit)] = "仅已声明审计能力的命令在声明单元失败后的一次固定审计；不恢复普通写入或登记。",
             [typeof(ICommandWorkUnits)] = "当前CMD的显式事务边界，不派发其它CMD。",
             [typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox)] = "只登记当前CMD的消息，不等待传输。",
             [typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures)] = "只登记精确连接关闭。",
@@ -169,7 +169,7 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.ISelectedCharacterStateMessageFactory))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.SelectCharacter.SelectCharacterDeliveryOptions))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions))]
-    [InlineData(typeof(ICommandHttpFailureAudit))]
+    [InlineData(typeof(ICommandFailureAudit))]
     [InlineData(typeof(ICommandWorkUnits))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures))]
@@ -255,7 +255,7 @@ public sealed class CommandHandlerArchitectureTests
     private sealed record OptionalBusinessInput(Dfo.Server.Data.Characters.CharacterId? Character);
 
     private static IEnumerable<Type> ProductionCommandHandlers() =>
-        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.Commands.HttpRouteCommand).Assembly }
+        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.HttpOperations.HttpOperationCommand).Assembly }
             .Distinct().SelectMany(assembly => assembly.GetTypes())
             .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
                 contract.IsGenericType

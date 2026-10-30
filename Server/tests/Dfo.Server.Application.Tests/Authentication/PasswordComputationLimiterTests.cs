@@ -92,7 +92,7 @@ public sealed class PasswordComputationLimiterTests
     [Fact]
     public void Domain_services_and_command_handlers_take_neither_the_hasher_nor_the_limiter()
     {
-        var candidates = typeof(HttpRouteCommand).Assembly.GetTypes().Where(IsDomainServiceOrCommandHandler).ToArray();
+        var candidates = typeof(Dfo.Server.Application.HttpOperations.HttpOperationCommand).Assembly.GetTypes().Where(IsDomainServiceOrCommandHandler).ToArray();
 
         Assert.Contains(candidates, type => type.Name == "AuthenticationDomainService");
         Assert.Contains(candidates, type => type.Name == "GmAccessDomainService");

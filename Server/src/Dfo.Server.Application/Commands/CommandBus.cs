@@ -124,7 +124,7 @@ internal sealed class CommandBus(
             if (request is not null)
             {
                 try { GameplayJob.DemandHealthy(); }
-                catch (Exception error) { cancellation?.Invalidate(); request.HttpFailure?.Invalidate(); request.Failed(error); }
+                catch (Exception error) { cancellation?.Invalidate(); request.FailureAudit?.Invalidate(); request.Failed(error); }
                 failure = request.Failure ?? failure;
             }
             if (failure is not null && request is not null && safety is not null)
@@ -136,8 +136,8 @@ internal sealed class CommandBus(
         if (failure is not null)
         {
             cancellation?.Finalize(request, failure);
-            if (command is HttpRouteCommand httpCommand && request?.HttpFailure is { } http && http.TryFinalize(out var response))
-                failure = new CommandHttpAuditedFailureException(httpCommand, GameplayJob.Current!.Value.Id, response, failure);
+            if (request?.FailureAudit is { } audit && audit.TryFinalize(out var audited, out var outcome))
+                failure = new CommandAuditedFailureException(command, GameplayJob.Current!.Value.Id, audited, outcome, failure);
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
         return result;
@@ -184,12 +184,15 @@ internal sealed class CommandBus(
                 var internalRequest = new CommandRequestContext.TrustedInternal(origin ?? throw new InvalidOperationException("Missing internal origin."));
                 request = internalRequest;
                 request.ProducerCancellation = cancellation;
-                if (origin?.Kind == GameplayCallSource.Timer && origin.Cancellation == InternalCommandCancellation.BodyOnly)
-                    request.TimerReadOnlyCancellation = registration.TimerReadOnlyCancellation;
+                if (origin is { Kind: GameplayCallSource.Timer or GameplayCallSource.Http or GameplayCallSource.Gm,
+                    Cancellation: InternalCommandCancellation.BodyOnly })
+                    request.ReadOnlyActionCancellation = registration.ReadOnlyActionCancellation;
                 if (origin is { Kind: GameplayCallSource.Timer or GameplayCallSource.Event or GameplayCallSource.StartupRecovery,
                     Cancellation: InternalCommandCancellation.BodyOnly })
                     request.InternalActionCancellation = registration.InternalActionCancellation;
                 cancellation?.Bind(internalRequest);
+                if (registration.FailureAudit == CommandFailureAuditCapability.AuditedFailure)
+                    request.FailureAudit = new(request, ct);
             }
             request.RegistrationExits = registration.RegistrationExits ?? [];
             request.SelfSettlement = registration.SelfSettlement;

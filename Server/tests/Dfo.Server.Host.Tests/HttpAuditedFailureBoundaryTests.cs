@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
 using Dfo.Server.HttpApi;
@@ -23,11 +24,10 @@ public sealed class HttpAuditedFailureBoundaryTests
         login.EnsureSuccessStatusCode();
         var cookie = login.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith("Dfo.Gm.Session=", StringComparison.Ordinal));
         var secret = cookie.Split(';')[0].Split('=')[1];
-        var command = new HttpRouteCommand(HttpRouteOperation.CeraGrant,
-            new HttpRouteInput.CeraGrantRequest(secret, new([1], "Cera", 1, "reason", Guid.NewGuid())));
+        var command = new GrantGmCeraCommand(secret, new([1], "Cera", 1, "reason", Guid.NewGuid()));
         var firstOrigin = new InternalCommandOrigin(GameplayCallSource.Gm, GameplayCallChain.NewRoot(GameplayCallSource.Gm),
             "gm:POST /api/gm/v1/cera/grant", InternalCommandCancellation.BodyOnly);
-        var first = await Assert.ThrowsAsync<CommandHttpAuditedFailureException>(() => host.Services.GetRequiredService<ICommandBus>()
+        var first = await Assert.ThrowsAsync<CommandAuditedFailureException>(() => host.Services.GetRequiredService<ICommandBus>()
             .SendInternalAsync(command, firstOrigin).AsTask());
         Assert.Equal(new[] { "Succeeded", "Unknown" }, await host.ReadAsync("SELECT outcome FROM gm_audit WHERE action='GrantCera' ORDER BY rowid;"));
         Assert.Equal(new[] { "11" }, await host.ReadAsync("SELECT cera FROM accounts WHERE account_id=1;"));
@@ -36,13 +36,13 @@ public sealed class HttpAuditedFailureBoundaryTests
         var context = new DefaultHttpContext { RequestServices = producerServices };
         context.SetEndpoint(new RouteEndpoint(_ => Task.CompletedTask, RoutePatternFactory.Parse("/api/gm/v1/cera/grant"), 0,
             new EndpointMetadataCollection(new HttpMethodMetadata(["POST"]), new EnqueuesItself(GameplayCallSource.Gm, HttpRouteOperation.CeraGrant)), "grant"));
-        var second = await Assert.ThrowsAsync<CommandHttpAuditedFailureException>(() => HttpGameplay.RunAsync(context, GameplayCallSource.Gm, command));
+        var second = await Assert.ThrowsAsync<CommandAuditedFailureException>(() => HttpGameplay.RunAsync(context, GameplayCallSource.Gm, command));
         Assert.Same(first, second); // The actual HTTP boundary did not consume the old reply.
         Assert.Same(command, replay.Command);
         Assert.NotEqual(firstOrigin.Chain.Id, replay.Origin!.Chain.Id);
         Assert.Equal(1, replay.Calls);
     }
-    private sealed class ReplayBus(CommandHttpAuditedFailureException previous) : ICommandBus
+    private sealed class ReplayBus(CommandAuditedFailureException previous) : ICommandBus
     {
         internal ICommand? Command;
         internal InternalCommandOrigin? Origin;

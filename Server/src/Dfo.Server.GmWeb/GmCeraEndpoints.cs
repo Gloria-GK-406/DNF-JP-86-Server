@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.HttpApi;
 using Dfo.Server.Data.Administration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -30,12 +31,12 @@ internal static class GmCeraEndpoints
         Map("GET", "/operations", HttpRouteOperation.CeraOperations, (HttpContext c) => Query(c, GmCeraQuery.Operations));
         Map("GET", "/operations/{id}", HttpRouteOperation.CeraOperation, (HttpContext c, string id) => Query(c, GmCeraQuery.Operation, Id(id)));
         Map("POST", "/preview", HttpRouteOperation.CeraPreview, async (HttpContext c) =>
-            new HttpRouteInput.Cera(Secret(c), GmCeraQuery.Preview, new(), Input: Input(await Read(c))));
-        Map("POST", "/grant", HttpRouteOperation.CeraGrant, async (HttpContext c) => new HttpRouteInput.CeraGrantRequest(Secret(c), await Read(c)));
+            new QueryGmCeraCommand(Secret(c), GmCeraQuery.Preview, new(), Input: Input(await Read(c))));
+        Map("POST", "/grant", HttpRouteOperation.CeraGrant, async (HttpContext c) => new GrantGmCeraCommand(Secret(c), await Read(c)));
         void Map(string method, string path, HttpRouteOperation operation, Delegate parser) =>
             GmRouteMapping.Map(group, method, Prefix + path, operation, parser, Permission);
     }
-    private static HttpRouteInput Query(HttpContext c, GmCeraQuery kind, Guid id = default) => new HttpRouteInput.Cera(Secret(c), kind, Filter(c), id);
+    private static QueryGmCeraCommand Query(HttpContext c, GmCeraQuery kind, Guid id = default) => new(Secret(c), kind, Filter(c), id);
     private static async Task<IResult> Safe(HttpContext context, Func<Task<IResult>> action)
     { try { return await action(); } catch (Exception error) when (error is not OperationCanceledException) { return Failure(context, error); } }
     internal static IResult Failure(HttpContext context, Exception error, string? outcome = null, bool alreadyLogged = false)

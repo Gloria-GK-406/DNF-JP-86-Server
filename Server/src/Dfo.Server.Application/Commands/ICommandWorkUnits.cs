@@ -8,7 +8,8 @@ public enum CommandWorkUnitKind { Ordinary, MainSettlement }
 public enum CommandFootprintMode { None, NonRequest, DeclaredNonRequest }
 public sealed record CommandWorkUnitDeclaration(string Name, IReadOnlyList<SelectedSessionRecipient> Participants,
     CommandWorkUnitKind Kind = CommandWorkUnitKind.Ordinary, CommandFootprintMode Footprint = CommandFootprintMode.None,
-    IReadOnlyList<Dfo.Server.Data.World.SelectedSessionIdentity>? FootprintOwners = null);
+    IReadOnlyList<Dfo.Server.Data.World.SelectedSessionIdentity>? FootprintOwners = null,
+    CommandFailureAuditRole FailureAudit = CommandFailureAuditRole.None);
 
 public sealed class CommandWorkUnit
 {

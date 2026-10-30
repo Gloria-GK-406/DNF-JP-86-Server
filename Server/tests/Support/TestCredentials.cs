@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.HttpOperations;
 using Dfo.Server.Data.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,8 +21,7 @@ internal static class TestCredentials
         var prepared = await services.GetRequiredService<ILauncherCredentialReader>()
             .PrepareRegistrationAsync(loginId, password, cancellationToken);
         if (prepared.Prepared is null) return new(AuthenticationStatus.InvalidRequest, FieldErrors: prepared.FieldErrors);
-        var reply = await SendAsync(services.GetRequiredService<ICommandBus>(), HttpRouteOperation.Register,
-            new HttpRouteInput.Registration(prepared.Prepared), cancellationToken);
+        var reply = await SendAsync(services.GetRequiredService<ICommandBus>(), new RegisterAccountCommand(prepared.Prepared), cancellationToken);
         return Result<RegistrationResult>(reply);
     }
 
@@ -35,7 +35,7 @@ internal static class TestCredentials
         {
             var verified = await reader.VerifyLoginAsync(loginId, password, cancellationToken);
             if (verified.Login is null) return new(verified.Status, FieldErrors: verified.FieldErrors);
-            var result = Result<AuthenticationResult>(await SendAsync(commands, HttpRouteOperation.Login, new HttpRouteInput.Authentication(verified.Login), cancellationToken));
+            var result = Result<AuthenticationResult>(await SendAsync(commands, new AuthenticateAccountCommand(verified.Login), cancellationToken));
             if (result.Status != AuthenticationStatus.CredentialChanged) return result;
             if (attempt == 1) return new(AuthenticationStatus.InvalidCredentials);
         }
@@ -73,9 +73,9 @@ internal static class TestCredentials
         catch (Exception error) { await transaction.AbortAsync(error); throw; }
     });
 
-    internal static ValueTask<HttpRouteReply> SendAsync(ICommandBus commands, HttpRouteOperation operation, HttpRouteInput input, CancellationToken ct = default) =>
-        commands.SendInternalAsync(new HttpRouteCommand(operation, input), new(GameplayCallSource.Http,
-            GameplayCallChain.NewRoot(GameplayCallSource.Http), operation == HttpRouteOperation.Register
+    internal static ValueTask<HttpRouteReply> SendAsync(ICommandBus commands, HttpOperationCommand command, CancellationToken ct = default) =>
+        commands.SendInternalAsync(command, new(GameplayCallSource.Http,
+            GameplayCallChain.NewRoot(GameplayCallSource.Http), command is RegisterAccountCommand
                 ? "http:POST /api/launcher/v1/register" : "http:POST /api/launcher/v1/login", InternalCommandCancellation.BodyOnly), ct);
     internal static T Result<T>(HttpRouteReply reply)
     {

@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.HttpOperations;
 using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Execution;
 using Microsoft.AspNetCore.Builder;
@@ -24,22 +25,30 @@ public static class HttpGameplay
     /// aborted token where the handler saw it. A cancellation raised through that token is carried out
     /// of the job and rethrown here instead of being reported as a failed CMD.
     /// </remarks>
-    public static async Task<HttpRouteReply> RunAsync(HttpContext context, GameplayCallSource source, HttpRouteCommand command)
+    public static async Task<HttpRouteReply> RunAsync(HttpContext context, GameplayCallSource source, HttpOperationCommand command)
     {
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(command);
         var bus = context.RequestServices.GetRequiredService<ICommandBus>();
         var endpoint = context.GetEndpoint();
-        var operation = endpoint?.Metadata.GetMetadata<HttpGameplayOperation>()?.Operation
-            ?? endpoint?.Metadata.GetMetadata<EnqueuesItself>()?.Operation;
-        if (operation != command.Operation) throw new InvalidOperationException("The HTTP route and command operation do not match.");
+        if (endpoint?.Metadata.GetMetadata<HttpGameplayOperation>() is null && endpoint?.Metadata.GetMetadata<EnqueuesItself>() is null)
+            throw new InvalidOperationException("Only a fixed gameplay route sends an HTTP CMD.");
         var label = CommandTypeOf(source, endpoint);
         var origin = new InternalCommandOrigin(source, GameplayCallChain.NewRoot(source), label, InternalCommandCancellation.BodyOnly);
         try
         {
             return await bus.SendInternalAsync(command, origin, context.RequestAborted).ConfigureAwait(false);
         }
-        catch (CommandHttpAuditedFailureException failure) when (failure.BelongsTo(command, origin.Chain.Id))
-        { return failure.Reply with { ExecutorFailed = true }; }
+        catch (CommandAuditedFailureException failure) when (failure.BelongsTo(command, origin.Chain.Id))
+        {
+            return new(Error: failure.AuditedCause, ExecutorFailed: true, Outcome: failure.Outcome switch
+            {
+                CommandFailureAuditOutcome.AuditFailed => "auditFailed",
+                CommandFailureAuditOutcome.Unknown => "unknown",
+                CommandFailureAuditOutcome.Rejected => "rejected",
+                _ => "rolledBack",
+            });
+        }
     }
 
     /// <summary>
@@ -62,14 +71,14 @@ public static class HttpGameplay
             await BufferBodyAsync(context, bodyLimit).ConfigureAwait(false);
             var route = metadata?.GetMetadata<HttpGameplayOperation>()
                 ?? throw new InvalidOperationException("A gameplay route needs a fixed HTTP operation.");
-            HttpRouteInput input;
+            HttpOperationCommand command;
             try
             {
-                input = await next(invocation).ConfigureAwait(false) as HttpRouteInput
-                    ?? throw new InvalidOperationException("A gameplay route parser must return transport input.");
+                command = await next(invocation).ConfigureAwait(false) as HttpOperationCommand
+                    ?? throw new InvalidOperationException("A gameplay route parser must return its named CMD.");
             }
-            catch (Exception error) { input = new HttpRouteInput.Failed(error); }
-            var reply = await RunAsync(context, source, new(route.Operation, input)).ConfigureAwait(false);
+            catch (Exception error) { command = new FailedHttpInputCommand(error); }
+            var reply = await RunAsync(context, source, command).ConfigureAwait(false);
             return await route.Mapper.MapAsync(context, route.Operation, reply).ConfigureAwait(false);
         });
         return builder;

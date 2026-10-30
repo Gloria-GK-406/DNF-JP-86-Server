@@ -29,7 +29,7 @@ internal static class GmAuthenticationEndpoints
         group.MapPost("/api/gm/v1/auth/login", LoginAsync).WithMetadata(new GmPublicEndpoint(), new EnqueuesItself(GameplayCallSource.Gm, HttpRouteOperation.GmLogin));
         group.MapGet("/api/gm/v1/auth/session", (HttpContext context) => Results.Ok(IdentityResponse((GmIdentity)context.Items[GmAccessBoundary.IdentityKey]!)))
             .WithMetadata(new GmRequiredPermission(GmPermission.None), new OutsideGameplay("不碰玩法状态的 HTTP 路由：边界已识别的身份"));
-        GmRouteMapping.Map(group, "POST", "/api/gm/v1/auth/logout", HttpRouteOperation.Logout, (HttpContext c) => new HttpRouteInput.Session(c.Request.Cookies[GmAccessBoundary.SessionCookie]!), new GmRequiredPermission(GmPermission.None));
+        GmRouteMapping.Map(group, "POST", "/api/gm/v1/auth/logout", HttpRouteOperation.Logout, (HttpContext c) => new LogoutGmAdministratorCommand(c.Request.Cookies[GmAccessBoundary.SessionCookie]!), new GmRequiredPermission(GmPermission.None));
         GmRouteMapping.Map(group, "GET", "/api/gm/v1/audit", HttpRouteOperation.Audit, QueryAudit, new GmRequiredPermission(GmPermission.ViewAudit));
     }
 
@@ -48,7 +48,7 @@ internal static class GmAuthenticationEndpoints
         {
             var check = await credentials.CheckLoginAsync(request.LoginName, request.Password, context.RequestAborted);
             var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Gm,
-                new HttpRouteCommand(HttpRouteOperation.GmLogin, new HttpRouteInput.GmAuthentication(check)));
+                new LoginGmAdministratorCommand(check));
             if (reply.Error is { } loginFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(loginFailure);
             var result = (GmLoginResult)reply.Value!;
             accepted = result.Identity is not null;
@@ -58,7 +58,7 @@ internal static class GmAuthenticationEndpoints
         }
         finally { complete(accepted); }
     }
-    private static HttpRouteInput QueryAudit(HttpContext context)
+    private static QueryGmAuditCommand QueryAudit(HttpContext context)
     {
         var query = context.Request.Query; var page = 1; var pageSize = 20;
         foreach (var name in new[] { "page", "pageSize", "outcome", "action" })
@@ -70,7 +70,7 @@ internal static class GmAuthenticationEndpoints
         var filter = new GmAuditFilter(Text("action"), Text("outcome"));
         if (filter.Action is { } action && !GmAuditFilter.Actions.Contains(action)) throw new HttpRouteInputException(400, "操作类型筛选无效。");
         if (filter.Outcome is { } outcome && !GmAuditFilter.Outcomes.Contains(outcome)) throw new HttpRouteInputException(400, "结果筛选无效。");
-        return new HttpRouteInput.AuditQuery(page, pageSize, filter);
+        return new QueryGmAuditCommand(page, pageSize, filter);
     }
     internal static IResult LogoutResponse(HttpContext context, bool accepted)
     {

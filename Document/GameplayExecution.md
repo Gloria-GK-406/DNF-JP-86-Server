@@ -11,8 +11,10 @@
 内部来源明确给出 timer／event／lifecycle／http／gm／startup 标签与调用链。
 
 **生产者只组织输入、提交、等待。** 薄 handler、定时源、事件组循环、HTTP／GM 路由与启动服务不在队列外
-读写玩法世界、开写事务或发包。HTTP 的解析、身份输入、密码计算与响应映射属于外侧边界，路由操作
-由同一种 `HttpRouteCommand` 按纯数据输入执行；不能传入业务 `Func`。定时源按原规则合并 hosted tick，
+读写玩法世界、开写事务或发包。HTTP 的解析、身份输入、密码计算与响应映射属于外侧边界，每条路由的
+解析器构造自己的具名 CMD（`HttpOperationCommand`，账号用例在 `Application/Authentication`，GM 用例在
+`Application/Administration`），只带纯数据，不能传入业务 `Func`；解析失败也作为 `FailedHttpInputCommand`
+入队。`HttpRouteOperation` 只是 HttpApi／GmWeb 选择响应映射的路由标识，不进入 Application。定时源按原规则合并 hosted tick，
 两塔与每日刷新跟踪完整扫描／逐项轮次，手工已接受轮次仍须排空；同一轮的不同 CMD 之间允许正常 FIFO 插入。
 每日刷新在真实 outbox 登记接受后才推进当前周期和精确会话水位，不把“尝试过”当成接受。
 
@@ -75,10 +77,14 @@ footprint 只在获准 ordinary 写单元的活跃 action 使用，不扩大 Mai
 
 - 健康确认回滚结果只认真实阶段／participant／cause／完成事实及完整清理。Mailbox 的领域自结算事实独立，
   不能从 `IsSettled`、异常类型或已经回滚推断该许可。
-- 选角／回选精确 cleanup 只做固定动作，失败后不能恢复普通写或登记。HTTP Cera／Mail 审计必须匹配实际
-  输入、request、command、origin／job和唯一完整失败；外侧响应搬运不把原作业改为成功。
+- 选角／回选精确 cleanup 只做固定动作，失败后不能恢复普通写或登记。失败审计只给注册时声明
+  `CommandFailureAudit` 的 HTTP／GM 命令：工作单元以 `CommandFailureAuditRole` 声明自己是执行单元
+  （确认回滚或不确定时审计）还是准备单元（仅请求取消时审计），机制不按命令或单元名判断；审计必须匹配
+  request、command、origin／job 和唯一完整失败，写什么记录由命令自己决定。外侧响应搬运不把原作业改为成功。
 - BodyOnly 取消仅在本次 producer token 已取消、批准的实际 action/body 发生、健康清理且无其它失败时回给
-  producer；DI、commit、guard、scope-only、未知取消和提交后取消不能借用。
+  producer；DI、commit、guard、scope-only、未知取消和提交后取消不能借用。只读单元的 action 取消另须
+  命令注册时声明 `ReadOnlyActionCancellation`（仅内部路由），且来源为 Timer／Http／Gm 的 BodyOnly；
+  机制不按路由、操作或单元名判断，能否干净取消是 CMD 自己的能力。
 - 调度完成桥仅搬运已健康完成的原业务 Aggregate；Reliable 消费保 claim／调用／complete／commit／forget／
   dispose 顺序，原业务失败清理后才回滚并登记 retry。LiveOnly 消费决定先提交，不补播。
 - 三个获准的 raw 编码出口分别是 UseStackable 的 `SettledRequiredExplicit`、具名重放 owner 的
