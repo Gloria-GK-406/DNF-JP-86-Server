@@ -29,7 +29,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
         if (context.DungeonId == CoupleDungeonRule.DungeonId && (couples is null || !await couples.EligibleAsync(context, ct).ConfigureAwait(false)))
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
-        if (options.Quota is { Family: not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon or UsageQuotaFamily.GoldSilverHorn or UsageQuotaFamily.LostLand) })
+        if (options.Quota is { } entryQuota && !DungeonAdmissionQuota.CountsEntries(entryQuota.Family))
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
         if (!Enum.IsDefined(context.Facts.Difficulty)) return Refuse(DungeonEntryFailure.DifficultyNotUnlocked);
         DungeonAdmissionDefinition? definition;
@@ -130,7 +130,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             costs.AddRange(requirements.Where(x => x.Consume).Select(x => new DungeonMaterialAdmissionCost(x.ItemId, x.Count, x.AllowSharedMaterial)));
             if (options.Quota is { } limit)
             {
-                var key = limit.Family == UsageQuotaFamily.LostLand ? UsageQuotaKey.LostLand(limit.Period) : limit.Family == UsageQuotaFamily.GoldSilverHorn ? UsageQuotaKey.GoldSilverHorn(limit.Period) : limit.Family == UsageQuotaFamily.HerasDungeon ? UsageQuotaKey.Heras("entries", limit.Period) : limit.Family == UsageQuotaFamily.TournamentDungeon ? UsageQuotaKey.Tournament(limit.DungeonId ?? throw new InvalidDataException("Tournament quota requires dungeon id."), limit.Period) : limit.Family == UsageQuotaFamily.AltarDungeon ? UsageQuotaKey.Altar(limit.DungeonId ?? throw new InvalidDataException("Altar quota requires dungeon id."), limit.Period) : limit.Family == UsageQuotaFamily.MirrorDungeon ? UsageQuotaKey.Mirror("entries", limit.Period) : limit.Family == UsageQuotaFamily.DespairTower ? UsageQuotaKey.Despair("entries", limit.Period) : UsageQuotaKey.Dimension(limit.Period);
+                var key = limit.Key;
                 UsageQuotaValue? expected;
                 if (limit.Family == UsageQuotaFamily.MirrorDungeon)
                 {
@@ -139,7 +139,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                 }
                 else expected = await Quotas.ReadAsync(member.CharacterId, key, ct).ConfigureAwait(false);
                 var used = expected?.UsedCount ?? 0;
-                if (limit.Family == UsageQuotaFamily.DimensionDungeon ? used >= limit.Maximum : limit.Maximum > 0 && used >= limit.Maximum)
+                if (limit.IsExhaustedBy(used))
                     return Refuse(limit.Family == UsageQuotaFamily.DimensionDungeon && context.Participants.Count > 1
                         ? DungeonEntryFailure.MemberEntryLimitReached : DungeonEntryFailure.DailyEntryLimitReached, member.Slot);
                 costs.Add(new DungeonQuotaAdmissionCost(key, expected, checked(used + 1)));

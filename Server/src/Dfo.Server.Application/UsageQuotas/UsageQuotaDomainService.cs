@@ -100,6 +100,26 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
         return ApplyAsync([new(p.CharacterId, UsageQuotaKey.GoldSilverHorn(p.Period), p.Expected, new(p.Used, null))], ct);
     }
 
+    /// <summary>The stored shape each family allows: its reset day, counter names and value form.</summary>
+    /// <remarks>The altar and tournament names are their dungeon ids in the legacy counter table.</remarks>
+    private static bool Accepts(UsageQuotaKey key, UsageQuotaValue value) => key.Family switch
+    {
+        UsageQuotaFamily.Consumable => key.Day is null && value.LastUsedAt is not null,
+        UsageQuotaFamily.Premium => key.Day is null && value.LastUsedAt is not null && value.UsedCount <= byte.MaxValue,
+        UsageQuotaFamily.GiantDragonCrystalExchange => key.Day is null && value.UsedCount == 1 && value.LastUsedAt is null
+            && long.TryParse(key.Name, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out _),
+        UsageQuotaFamily.ReviveCoin => Daily(key, value) && key.Name == "claim" && value.UsedCount == 1,
+        UsageQuotaFamily.LostLand or UsageQuotaFamily.GoldSilverHorn or UsageQuotaFamily.DimensionDungeon =>
+            Daily(key, value) && key.Name == "entries",
+        UsageQuotaFamily.HerasDungeon => Daily(key, value) && key.Name is "entries" or "bonus",
+        UsageQuotaFamily.DespairTower => Daily(key, value) && key.Name is "entries" or "clears",
+        UsageQuotaFamily.TournamentDungeon => Daily(key, value) && key.Name is "120" or "121" or "122",
+        UsageQuotaFamily.AltarDungeon => Daily(key, value) && key.Name is "11006" or "11007",
+        UsageQuotaFamily.MirrorDungeon => Daily(key, value) && key.Name is "entries" or "clears" or "daily-reward"
+            && (key.Name != "daily-reward" || value.UsedCount <= 1),
+    };
+    private static bool Daily(UsageQuotaKey key, UsageQuotaValue value) => key.Day is not null && value.LastUsedAt is null;
+
     private async ValueTask ApplyAsync(IReadOnlyList<UsageQuotaWrite> writes, CancellationToken ct)
     {
         if (transactions.Current is not { IsReadOnly: false })
@@ -112,27 +132,7 @@ internal sealed class UsageQuotaDomainService(IUsageQuotaStore store, IDomainTra
         {
             if (!identities.Add((write.CharacterId, write.Key)) || write.Value.UsedCount < 0
                 || write.Expected?.UsedCount < 0 || string.IsNullOrWhiteSpace(write.Key.Name)
-                || !Enum.IsDefined(write.Key.Family)
-                || write.Key.Family is not (UsageQuotaFamily.MirrorDungeon or UsageQuotaFamily.DimensionDungeon or UsageQuotaFamily.DespairTower or UsageQuotaFamily.AltarDungeon or UsageQuotaFamily.TournamentDungeon or UsageQuotaFamily.HerasDungeon or UsageQuotaFamily.GoldSilverHorn or UsageQuotaFamily.ReviveCoin or UsageQuotaFamily.GiantDragonCrystalExchange or UsageQuotaFamily.LostLand) && (write.Key.Day is not null || write.Value.LastUsedAt is null)
-                || write.Key.Family == UsageQuotaFamily.GiantDragonCrystalExchange && (write.Key.Day is not null
-                    || write.Value.UsedCount != 1 || write.Value.LastUsedAt is not null
-                    || !long.TryParse(write.Key.Name, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out _))
-                || write.Key.Family == UsageQuotaFamily.LostLand && (write.Key.Day is null || write.Value.LastUsedAt is not null || write.Key.Name != "entries")
-                || write.Key.Family == UsageQuotaFamily.ReviveCoin && (write.Key.Day is null || write.Key.Name != "claim" || write.Value.UsedCount != 1 || write.Value.LastUsedAt is not null)
-                || write.Key.Family == UsageQuotaFamily.GoldSilverHorn && (write.Key.Day is null || write.Value.LastUsedAt is not null || write.Key.Name != "entries")
-                || write.Key.Family == UsageQuotaFamily.HerasDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null || write.Key.Name is not ("entries" or "bonus"))
-                || write.Key.Family == UsageQuotaFamily.TournamentDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null
-                    || write.Key.Name is not ("120" or "121" or "122"))
-                || write.Key.Family == UsageQuotaFamily.AltarDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null
-                    || write.Key.Name is not ("11006" or "11007"))
-                || write.Key.Family == UsageQuotaFamily.DimensionDungeon && (write.Key.Day is null
-                    || write.Key.Name != "entries" || write.Value.LastUsedAt is not null)
-                || write.Key.Family == UsageQuotaFamily.DespairTower && (write.Key.Day is null || write.Value.LastUsedAt is not null
-                    || write.Key.Name is not ("entries" or "clears"))
-                || write.Key.Family == UsageQuotaFamily.Premium && write.Value.UsedCount > byte.MaxValue
-                || write.Key.Family == UsageQuotaFamily.MirrorDungeon && (write.Key.Day is null || write.Value.LastUsedAt is not null
-                    || write.Key.Name is not ("entries" or "clears" or "daily-reward")
-                    || write.Key.Name == "daily-reward" && write.Value.UsedCount > 1))
+                || !Enum.IsDefined(write.Key.Family) || !Accepts(write.Key, write.Value))
                 throw new InvalidDataException("Invalid or duplicate quota change.");
             if (await store.ReadAsync(write.CharacterId, write.Key, ct).ConfigureAwait(false) != write.Expected)
                 throw new InvalidOperationException("Quota changed since the business decision.");

@@ -82,7 +82,6 @@ internal sealed class UsageQuotaViewChangedHandler(IUsageQuotaSnapshotDomainServ
                 snapshot.Entitlements ?? throw new InvalidDataException("Missing premium quota snapshot."), snapshot.PremiumUsage, snapshot.At)],
             UsageQuotaFamily.MirrorDungeon => [new MirrorDungeonQuotaMessage(
                 (snapshot.Mirror ?? throw new InvalidDataException("Missing mirror quota snapshot.")).Entries)],
-            _ => throw new ArgumentOutOfRangeException(nameof(notification)),
         };
     }
 }
