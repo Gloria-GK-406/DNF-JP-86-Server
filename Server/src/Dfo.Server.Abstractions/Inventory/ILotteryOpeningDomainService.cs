@@ -5,8 +5,12 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
-public interface ILotteryResultSelector
+/// <summary>Which pots the archive declares, and the weighted draw from one.</summary>
+public interface ILotteryRuleService
 {
+    /// <exception cref="InvalidDataException">The archive declares no such pot.</exception>
+    void RequireDeclared(int potItemId);
+
     OpeningReward Roll(int potItemId);
 }
 public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, BusinessSlot SourceSlot, int GoldAfter);

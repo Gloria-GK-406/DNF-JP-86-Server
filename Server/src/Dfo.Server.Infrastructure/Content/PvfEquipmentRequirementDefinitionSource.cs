@@ -43,7 +43,7 @@ internal sealed class PvfEquipmentRequirementDefinitionSource(PvfArchiveProvider
             int? level = null;
             if (paths.TryGetValue(itemId, out var path))
             {
-                var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, path)
+                var sections = (PvfDocument.TryOpen(provider.Archive, path, PvfPreamble.Ignore)?.Sections ?? [])
                     .Where(section => section.Name == Fields.MinimumLevelField.Name).ToArray();
                 if (sections.Length == 0) level = 0;
                 else if (sections.Length == 1 && sections[0].Values.Count == 1

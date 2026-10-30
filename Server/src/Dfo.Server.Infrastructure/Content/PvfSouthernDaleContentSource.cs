@@ -2,6 +2,7 @@ using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -12,7 +13,7 @@ internal sealed class PvfSouthernDaleContentSource(PvfArchiveProvider provider, 
     {
         var dungeon = await dungeons.GetAsync(100, ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Missing Southern Dale dungeon.");
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, dungeon.ArchivePath);
+        var sections = (PvfDocument.TryOpen(provider.Archive, dungeon.ArchivePath, PvfPreamble.Ignore)?.Sections ?? []);
         IReadOnlyList<int> Read(string name)
         {
             var matches = sections.Where(x => x.Name == name).ToArray();

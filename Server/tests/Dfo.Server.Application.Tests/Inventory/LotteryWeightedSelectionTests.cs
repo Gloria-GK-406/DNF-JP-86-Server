@@ -29,7 +29,7 @@ public sealed class LotteryWeightedSelectionTests
     public void Half_open_ranges_skip_zero_weights(long ticket, int expected)
     {
         var random = new Ticket(ticket);
-        var selector = new WeightedLotteryResultSelector(new Cache(Definition([0, 2, 2, 5])), random);
+        var selector = new LotteryRuleService(new Cache(Definition([0, 2, 2, 5])), random);
         Assert.Equal(expected, selector.Roll(7110).ItemId);
         Assert.Equal(5, random.Bound);
         Assert.Equal(1, random.Calls);
@@ -38,7 +38,7 @@ public sealed class LotteryWeightedSelectionTests
     [Fact]
     public void Every_integer_ticket_has_exactly_its_weight_in_outcomes()
     {
-        var results = Enumerable.Range(0, 5).Select(i => new WeightedLotteryResultSelector(
+        var results = Enumerable.Range(0, 5).Select(i => new LotteryRuleService(
             new Cache(Definition([0, 2, 2, 5])), new Ticket(i)).Roll(7110).ItemId).ToArray();
         Assert.Equal(2, results.Count(x => x == 101));
         Assert.Equal(3, results.Count(x => x == 103));
@@ -48,7 +48,7 @@ public sealed class LotteryWeightedSelectionTests
     public void Missing_id_throws_before_randomness()
     {
         var random = new Ticket(0);
-        var selector = new WeightedLotteryResultSelector(new Cache(Definition([0, 2, 2, 5])), random);
+        var selector = new LotteryRuleService(new Cache(Definition([0, 2, 2, 5])), random);
         Assert.Contains("999", Assert.Throws<OpeningRejectedException>(() => selector.Roll(999)).Message);
         Assert.Equal(0, random.Calls);
     }
@@ -60,7 +60,7 @@ public sealed class LotteryWeightedSelectionTests
             Definition([0, 2, 2, 5]) with { Diagnostics = ["Negative weight"] } })
         {
             var random = new Ticket(0);
-            Assert.Throws<OpeningRejectedException>(() => new WeightedLotteryResultSelector(new Cache(definition), random).Roll(7110));
+            Assert.Throws<OpeningRejectedException>(() => new LotteryRuleService(new Cache(definition), random).Roll(7110));
             Assert.Equal(0, random.Calls);
         }
     }
@@ -70,7 +70,7 @@ public sealed class LotteryWeightedSelectionTests
     {
         long total = (long)int.MaxValue * 2;
         var random = new Ticket(total - 1);
-        Assert.Equal(103, new WeightedLotteryResultSelector(new Cache(Definition([0, int.MaxValue, int.MaxValue, total])), random).Roll(7110).ItemId);
+        Assert.Equal(103, new LotteryRuleService(new Cache(Definition([0, int.MaxValue, int.MaxValue, total])), random).Roll(7110).ItemId);
         Assert.Equal(total, random.Bound);
     }
 }

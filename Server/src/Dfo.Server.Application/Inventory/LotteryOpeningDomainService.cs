@@ -16,8 +16,10 @@ internal sealed class LotteryRandomSource : ILotteryRandomSource
     public long NextInt64(long exclusiveUpperBound) => Random.Shared.NextInt64(exclusiveUpperBound);
 }
 
-internal sealed class WeightedLotteryResultSelector(ILotteryDefinitionCache cache, ILotteryRandomSource random) : ILotteryResultSelector
+internal sealed class LotteryRuleService(ILotteryDefinitionCache cache, ILotteryRandomSource random) : ILotteryRuleService
 {
+    public void RequireDeclared(int potItemId) => _ = cache.GetRequired(potItemId);
+
     public OpeningReward Roll(int potItemId)
     {
         var definition = cache.GetRequired(potItemId);
@@ -41,7 +43,7 @@ internal sealed class WeightedLotteryResultSelector(ILotteryDefinitionCache cach
 }
 
 internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService inventory,
-    IPackageOpeningRuleService rules, ILotteryResultSelector selector, ILotteryDefinitionCache cache, ICharacterDomainService characters,
+    IPackageOpeningRuleService rules, ILotteryRuleService selector, ICharacterDomainService characters,
     IDomainTransactionAccessor transactions, TimeProvider clock,
     IPremiumServiceRuleService premiumRules, IPremiumServiceUsageDomainService usage, IOpeningEffectPlanRuleService plans,
     ICharacterBusinessInventoryDomainService bags)
@@ -56,7 +58,7 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         if (mode > 1) throw Reject("Invalid lottery mode.");
         var sourceSlot = slot;
         var source = await inventory.SourceAsync(session, sourceSlot, now, token).ConfigureAwait(false);
-        _ = cache.GetRequired(source.ItemId); // No on-demand PVF fallback for an unknown pot.
+        selector.RequireDeclared(source.ItemId); // No on-demand PVF fallback for an unknown pot.
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
         var goldPot = source.ItemId == 7615 && mode == 0;
         if (definition.MaterialCount != 0 && !goldPot || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)

@@ -92,7 +92,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 }
                 if (!isLottery) continue;
                 // Keep diagnostics: loading a definition does not authorize unsupported content.
-                var definition = Parse(id, PvfNpcShopDefinitionSource.Sections(provider.Archive, path),
+                var definition = Parse(id, (PvfDocument.TryOpen(provider.Archive, path, PvfPreamble.Ignore)?.Sections ?? []),
                     token => provider.Archive.ResolveString(token.Value));
                 if (definition.Diagnostics.IsEmpty && definition.Pools.Length == 1 && definition.Pools[0].Draws == 1)
                 {
@@ -127,7 +127,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (cache.TryGetValue(itemId, out result)) return result;
             paths ??= PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", prefix: "stackable/");
             result = paths.TryGetValue(itemId, out var path) ? Parse(itemId,
-                PvfNpcShopDefinitionSource.Sections(provider.Archive, path),
+                (PvfDocument.TryOpen(provider.Archive, path, PvfPreamble.Ignore)?.Sections ?? []),
                 token => provider.Archive.ResolveString(token.Value)) : null;
         }
         // The same PVF stackable type and CMD can describe a pet capsule or an avatar set.
@@ -178,7 +178,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             _ => placement,
         };
         // Catalog purchase restrictions do not restrict rewards. Instance diagnostics still do.
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, item.Source);
+        var sections = (PvfDocument.TryOpen(provider.Archive, item.Source, PvfPreamble.Ignore)?.Sections ?? []);
         var periods = sections.Where(s => s.Name == Fields.UsablePeriodField.Name).ToArray();
         var period = periods.Length == 0 ? 0 : periods.Length == 1 && periods[0].Values.Count == 1
             && periods[0].Values[0].Kind == PvfTokenKind.Int32 ? periods[0].Values[0].Value : -1;
@@ -206,11 +206,11 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
 
     private Dictionary<int, (int Type, TimeSpan Duration)> Premiums()
     {
-        return ParsePremiums(PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"));
+        return ParsePremiums((PvfDocument.TryOpen(provider.Archive, "etc/premiumlist_new.etc", PvfPreamble.Ignore)?.Sections ?? []));
     }
 
     internal static Dictionary<int, (int Type, TimeSpan Duration)> ParsePremiums(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+        IReadOnlyList<PvfSection> sections)
     {
         var result = new Dictionary<int, (int, TimeSpan)>();
         foreach (var section in sections)
@@ -249,7 +249,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         return result;
 
         // Archive-independent parser entry retains the same complete scalar oracle as typed Int32.
-        static int Number(PvfNpcShopDefinitionSource.Section value, PvfField<int> field)
+        static int Number(PvfSection value, PvfField<int> field)
         {
             if (value.Values.Count != 1 || value.Values[0].Kind != PvfTokenKind.Int32)
                 throw new InvalidDataException($"Premium item, field '{field.Name}': expected exactly one Int32.");
@@ -257,7 +257,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         }
     }
 
-    internal static OpeningPackageDefinition Parse(int id, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections,
+    internal static OpeningPackageDefinition Parse(int id, IReadOnlyList<PvfSection> sections,
         Func<PvfToken, string> text)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
@@ -278,7 +278,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             "[cera package]" or "[booster]" or "[cera booster]" or "[booster random]" => OpeningPackageKind.Package,
             _ => OpeningPackageKind.Unsupported,
         };
-        int[] Numbers(PvfNpcShopDefinitionSource.Section section)
+        int[] Numbers(PvfSection section)
         {
             if (section.Values.Any(t => t.Kind != PvfTokenKind.Int32)) errors.Add("Noninteger " + section.Name);
             return section.Values.Where(t => t.Kind == PvfTokenKind.Int32).Select(t => t.Value).ToArray();

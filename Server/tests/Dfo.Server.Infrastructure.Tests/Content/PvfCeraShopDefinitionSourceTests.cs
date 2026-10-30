@@ -1,6 +1,7 @@
 using Dfo.Server.Data.Content;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Pvf.Tokens;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
@@ -109,12 +110,12 @@ public sealed class PvfCeraShopDefinitionSourceTests
         var option = new PvfToken[] { new(PvfTokenKind.Int32, 2), new(PvfTokenKind.QuotedString, 1),
             new(PvfTokenKind.QuotedString, 2), new(PvfTokenKind.Int32, 41), new(PvfTokenKind.Int32, 1) };
         string Text(int id) => id == 1 ? "[SKILL_LEVEL]" : "[knight]";
-        var section = new PvfNpcShopDefinitionSource.Section("[ability case]", [new(PvfTokenKind.Int32, 1250), .. option]);
-        var end = new PvfNpcShopDefinitionSource.Section("[/ability case]", []);
+        var section = new PvfSection("[ability case]", [new(PvfTokenKind.Int32, 1250), .. option]);
+        var end = new PvfSection("[/ability case]", []);
         var valid = PvfCeraShopDefinitionSource.ResolveAvatarAbilityCase(1250, [section, end], Text);
         Assert.Equal(new[] { 2 }, valid.Abilities);
         Assert.Empty(valid.Diagnostics);
-        foreach (var sections in new PvfNpcShopDefinitionSource.Section[][] { [], [section], [section, end, section, end] })
+        foreach (var sections in new PvfSection[][] { [], [section], [section, end, section, end] })
         {
             var invalid = PvfCeraShopDefinitionSource.ResolveAvatarAbilityCase(1250, sections, Text);
             Assert.Empty(invalid.Abilities);
@@ -292,7 +293,7 @@ public sealed class PvfCeraShopDefinitionSourceTests
     [Fact]
     public void Hammer_bundle_requires_both_equal_guaranteed_rewards_and_a_closed_section()
     {
-        PvfNpcShopDefinitionSource.Section[] Bundle(PvfToken[] hammer, PvfToken[] box) =>
+        PvfSection[] Bundle(PvfToken[] hammer, PvfToken[] box) =>
         [
             new("[booster info]", []), new("[etc]", [.. hammer]), new("[/etc]", []),
             new("[etc]", [.. box]), new("[/etc]", []), new("[/booster info]", []),
@@ -301,7 +302,7 @@ public sealed class PvfCeraShopDefinitionSourceTests
         var result = PvfCeraShopDefinitionSource.ParseHammerBundle(valid, "synthetic");
         Assert.Empty(result.Diagnostics);
         Assert.Equal(new[] { new CeraShopComponent(10007367, 37, 0), new CeraShopComponent(10007368, 37, 0) }, result.Components);
-        foreach (var malformed in new PvfNpcShopDefinitionSource.Section[][]
+        foreach (var malformed in new PvfSection[][]
         {
             [], valid[..5], [.. valid, .. valid],
             Bundle(Numbers(1, 10007367, 1000, 37), Numbers(1, 10007367, 1000, 37)),

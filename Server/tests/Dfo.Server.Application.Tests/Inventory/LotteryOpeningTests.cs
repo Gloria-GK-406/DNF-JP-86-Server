@@ -11,9 +11,11 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class LotteryOpeningTests
 {
-    private sealed class Fixed : ILotteryResultSelector
+    private sealed class Fixed : ILotteryRuleService
     {
         public int Calls;
+        public ILotteryDefinitionCache? Cache;
+        public void RequireDeclared(int id) => _ = Cache!.GetRequired(id);
         public Action? BeforeRoll;
         public OpeningReward Roll(int id)
         { Calls++; BeforeRoll?.Invoke(); return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
@@ -21,7 +23,7 @@ public sealed class LotteryOpeningTests
     private static CeraShopFixture Fixture(Fixed? selector = null, Action<IServiceCollection>? configure = null)
     {
         var shop = new CeraShopFixture(useArchive: true,
-            configure: s => { s.AddSingleton<ILotteryResultSelector>(selector ?? new Fixed()); configure?.Invoke(s); });
+            configure: s => { var fixedRules = selector ?? new Fixed(); s.AddSingleton<ILotteryRuleService>(p => { fixedRules.Cache = p.GetRequiredService<ILotteryDefinitionCache>(); return fixedRules; }); configure?.Invoke(s); });
         shop.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync().GetAwaiter().GetResult();
         return shop;
     }
@@ -121,7 +123,7 @@ public sealed class LotteryOpeningTests
     {
         using var shop = new CeraShopFixture(useArchive: true, configure: services =>
         {
-            services.AddSingleton<ILotteryResultSelector>(new Fixed());
+            services.AddSingleton<ILotteryRuleService>(provider => new Fixed { Cache = provider.GetRequiredService<ILotteryDefinitionCache>() });
             var source = services.Last(x => x.ServiceType == typeof(IPackageOpeningDefinitionSource));
             services.AddSingleton<IPackageOpeningDefinitionSource>(provider => new CostSource(
                 (IPackageOpeningDefinitionSource)(source.ImplementationInstance

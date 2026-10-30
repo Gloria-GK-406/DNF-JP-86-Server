@@ -1,6 +1,7 @@
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -11,7 +12,7 @@ internal sealed class PvfTauKingdomContentSource(PvfArchiveProvider provider, ID
     {
         var dungeon = await dungeons.GetAsync(3700, ct).ConfigureAwait(false)
             ?? throw new InvalidDataException("Missing Tau Kingdom dungeon.");
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, dungeon.ArchivePath);
+        var sections = (PvfDocument.TryOpen(provider.Archive, dungeon.ArchivePath, PvfPreamble.Ignore)?.Sections ?? []);
         int Read(string name)
         {
             var matches = sections.Where(x => x.Name == name).ToArray();

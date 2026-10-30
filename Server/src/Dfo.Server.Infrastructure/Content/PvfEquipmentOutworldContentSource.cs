@@ -62,9 +62,9 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
 
     private static EquipmentOutworldTable? Read(PvfArchive archive)
     {
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "etc/amplifyitem.etc");
+        var sections = (PvfDocument.TryOpen(archive, "etc/amplifyitem.etc", PvfPreamble.Ignore)?.Sections ?? []);
         if (sections.Count == 0) return null;
-        var level = One(sections, Fields.EquipLevelConstField);
+        var level = PvfSections.Single(sections, Fields.EquipLevelConstField, PvfRepeats.AsUndeclared, "equipment");
         if (level?.Values is not { Count: 1 } || Int(level.Values[0]) is not int minimum
             || minimum <= 0) return null;
         var purify = ReadItemCounts(sections, Fields.PurifyMaterialField);
@@ -76,10 +76,10 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
             if (extra is null || extra.Keys.Any(clear.ContainsKey)) return null;
             foreach (var pair in extra) clear[pair.Key] = pair.Value;
         }
-        var invest = ReadOptions(archive, One(sections, Fields.InvestOptionField));
-        var twist = ReadOptions(archive, One(sections, Fields.ReinvestOptionField));
-        var weights = ReadRollWeights(archive, One(sections, Fields.OptionDataField), out var bases);
-        var rarityWeights = ReadRarityWeights(archive, One(sections, Fields.RarityWeightField));
+        var invest = ReadOptions(archive, PvfSections.Single(sections, Fields.InvestOptionField, PvfRepeats.AsUndeclared, "equipment"));
+        var twist = ReadOptions(archive, PvfSections.Single(sections, Fields.ReinvestOptionField, PvfRepeats.AsUndeclared, "equipment"));
+        var weights = ReadRollWeights(archive, PvfSections.Single(sections, Fields.OptionDataField, PvfRepeats.AsUndeclared, "equipment"), out var bases);
+        var rarityWeights = ReadRarityWeights(archive, PvfSections.Single(sections, Fields.RarityWeightField, PvfRepeats.AsUndeclared, "equipment"));
         if (invest is null || twist is null || weights is null || rarityWeights is null
             || purify.Count == 0 || clear.Count == 0) return null;
         var initial = new Dictionary<int, IReadOnlyDictionary<byte, ushort>>();
@@ -100,7 +100,7 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     }
 
     private static Dictionary<int, int>? ReadItemCounts(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name)
+        IReadOnlyList<PvfSection> sections, PvfField name)
     {
         var result = new Dictionary<int, int>();
         foreach (var section in sections.Where(section => section.Name == name.Name))
@@ -117,7 +117,7 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     }
 
     private static Dictionary<int, EquipmentOutworldMaterialDefinition>? ReadOptions(
-        PvfArchive archive, PvfNpcShopDefinitionSource.Section? section)
+        PvfArchive archive, PvfSection? section)
     {
         if (section is null || section.Values.Count == 0 || section.Values.Count % 3 != 0)
             return null;
@@ -134,7 +134,7 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     }
 
     private static List<EquipmentOutworldRollWeight>? ReadRollWeights(PvfArchive archive,
-        PvfNpcShopDefinitionSource.Section? section, out Dictionary<byte, int> bases)
+        PvfSection? section, out Dictionary<byte, int> bases)
     {
         bases = [];
         if (section is null || section.Values.Count != 12) return null;
@@ -152,7 +152,7 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
     }
 
     private static Dictionary<string, double>? ReadRarityWeights(PvfArchive archive,
-        PvfNpcShopDefinitionSource.Section? section)
+        PvfSection? section)
     {
         if (section is null || section.Values.Count != 14) return null;
         var result = new Dictionary<string, double>(StringComparer.Ordinal);
@@ -166,11 +166,6 @@ internal sealed class PvfEquipmentOutworldContentSource(PvfArchiveProvider provi
         }
         return result;
     }
-
-    private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name) =>
-        sections.Count(section => section.Name == name.Name) == 1
-            ? sections.First(section => section.Name == name.Name) : null;
 
     private static int? Int(PvfToken token) => token.Kind == PvfTokenKind.Int32
         ? token.Value : null;

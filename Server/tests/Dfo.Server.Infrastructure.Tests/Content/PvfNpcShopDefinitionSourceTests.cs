@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Pvf.Tokens;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
@@ -47,7 +48,7 @@ public sealed class PvfNpcShopDefinitionSourceTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var sections = new List<PvfNpcShopDefinitionSource.Section>
+        var sections = new List<PvfSection>
             { new("[price]", [new(PvfTokenKind.Int32, 100)]) };
         if (insideBooster)
             sections.Add(new("[booster info]", []));

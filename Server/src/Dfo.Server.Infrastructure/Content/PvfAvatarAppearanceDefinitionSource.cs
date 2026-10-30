@@ -2,6 +2,7 @@ using Dfo.Pvf;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Data.Content;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -19,7 +20,7 @@ internal sealed class PvfAvatarAppearanceDefinitionSource(PvfArchiveProvider pro
         bool? result = null;
         if (item is { Kind: CeraShopItemKind.Avatar })
         {
-            var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, item.Source);
+            var sections = (PvfDocument.TryOpen(provider.Archive, item.Source, PvfPreamble.Ignore)?.Sections ?? []);
             // Aura virtual motion uses another mechanism; do not treat it as a clone costume.
             result = !sections.Any(s => s.Name == "[aurora virtual motion]") && sections.Any(s =>
                 s.Name == "[item category]" && s.Values.Any(t => t.IsString

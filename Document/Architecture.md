@@ -156,5 +156,8 @@ LOGIN 经 `IChannelEntryDomainService` 与 typed 来源读取同一配置快照�
   机制与尚未拆分的部分仍留在模块里。同一服务类型只登记一种实现，除非有构造器以 `IEnumerable` 整组读取它；
   `RegistrationArchitectureTests` 在生产组合上检查，后登记者静默覆盖前者的情形会被拒绝。
 - 分层先看项目引用图；CMD 注入与结构由 `CommandHandlerArchitectureTests` 的真实类型判据守护。
+- 内容源只进规则服务：`ContentBoundaryArchitectureTests` 把「构造参数含 PVF 档案或频道脚本的 Infrastructure 实现所实现的接口」认定为内容源，
+  生产类型中只有 `*RuleService`／`*Policy` 及其嵌套规则实例能在构造器里注入；同一判据也拒绝 Abstractions 出现非 record 的 `*Rules`／`*RuleService` 类。
+  PVF 读取统一走 `Dfo.Pvf`：`PvfDocument.TryOpen` 显式声明段前值策略，`PvfSections` 显式声明重复字段策略，不在内容源里各自复制读法。
   消息／CMD 双向绑定、薄 handler 和纯遥测由注册检查及对应结构测试约束。
 - 类型后缀与文档不能替代判据；新增机制能力须有具名理由及会拒绝违规形状的反例。

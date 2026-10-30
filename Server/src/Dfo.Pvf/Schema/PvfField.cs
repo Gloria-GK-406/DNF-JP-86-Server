@@ -101,9 +101,15 @@ public abstract class PvfField
             return true;
         }, tokenKind);
 
-    internal static void Require(bool condition, string source, string name, string reason)
+    public static void Require(bool condition, string source, string name, string reason)
     {
         if (!condition) throw new InvalidDataException($"PVF '{source}', field '{name}': {reason}.");
+    }
+
+    /// <summary>Fails a whole-file check with the path and the reason, as every PVF reader reports it.</summary>
+    public static void Require(bool condition, string source, string reason)
+    {
+        if (!condition) throw new InvalidDataException($"PVF '{source}': {reason}.");
     }
 
     private static double Numeric(PvfToken value, string source, string name)

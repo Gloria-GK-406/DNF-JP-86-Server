@@ -87,7 +87,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<ISpecialConsumableEffectPlanRuleService, SpecialConsumableEffectPlanRuleService>();
         services.TryAddSingleton<IMagicBoxOpeningDomainService, MagicBoxOpeningDomainService>();
         services.TryAddSingleton<ILotteryRandomSource, LotteryRandomSource>();
-        services.TryAddSingleton<ILotteryResultSelector, WeightedLotteryResultSelector>();
+        services.TryAddSingleton<ILotteryRuleService, LotteryRuleService>();
         services.TryAddSingleton<IVendingMachineRuleService, VendingMachineRuleService>();
         services.TryAddSingleton<IVendingMachineDomainService, VendingMachineDomainService>();
         services.TryAddSingleton<ILotteryOpeningDomainService, LotteryOpeningDomainService>();

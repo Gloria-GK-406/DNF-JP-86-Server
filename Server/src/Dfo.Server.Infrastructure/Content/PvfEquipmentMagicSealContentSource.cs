@@ -120,11 +120,11 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         var archive = provider.Archive;
         EquipmentPathsIndex(archive);
         if (!equipmentPaths.TryGetValue(itemId, out var relative)) return null;
-        var sections = RootSections(PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative));
+        var sections = RootSections((PvfDocument.TryOpen(archive, "equipment/" + relative, PvfPreamble.Ignore)?.Sections ?? []));
         if (OneInt(archive, sections, Fields.RandomOptionField, "equipment/" + relative) != 1) return null;
         var rarity = OneInt(archive, sections, Fields.RarityField, "equipment/" + relative);
         var level = OneInt(archive, sections, Fields.MinimumLevelField, "equipment/" + relative);
-        var equipmentType = One(sections, Fields.EquipmentTypeField, "equipment/" + relative);
+        var equipmentType = PvfSections.Single(sections, Fields.EquipmentTypeField, PvfRepeats.Reject, "equipment/" + relative);
         if (rarity is null || level is null || equipmentType is null) return null;
         if (rarity < 0) throw Invalid("equipment/" + relative, Fields.RarityField, "negative rarity");
         if (level < 1) throw Invalid("equipment/" + relative, Fields.MinimumLevelField, "nonpositive equipment level");
@@ -140,8 +140,8 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         var initial = BuildGroups(archive, initialIds, level.Value);
         var changes = BuildGroups(archive, changeIds, level.Value);
         var quantities = ReadQuantities(archive, rarity.Value);
-        var costs = PvfNpcShopDefinitionSource.Sections(archive,
-            "etc/randomoption/randomizedoptionoverall2.etc");
+        var costs = (PvfDocument.TryOpen(archive,
+            "etc/randomoption/randomizedoptionoverall2.etc", PvfPreamble.Ignore)?.Sections ?? []);
         var unsealCost = ReadUnsealCost(archive, costs, rarity.Value, level.Value);
         var changeCost = ReadChangeCost(archive, costs, rarity.Value, level.Value);
         if (initial.Count != initialIds.Count || changes.Count != changeIds.Count
@@ -158,7 +158,7 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         var archive = provider.Archive;
         StackablePathsIndex(archive);
         if (!stackablePaths.TryGetValue(itemId, out var relative)) return null;
-        var sections = RootSections(PvfNpcShopDefinitionSource.Sections(archive, "stackable/" + relative));
+        var sections = RootSections((PvfDocument.TryOpen(archive, "stackable/" + relative, PvfPreamble.Ignore)?.Sections ?? []));
         // A21 script text explicitly limits the first alchemist scroll to Lv30. Other
         // level-limit codes need their own client/70 mapping before they can spend assets.
         return OneInt(archive, sections, Fields.UnsealScrollLevelLimitField, "stackable/" + relative) == 0
@@ -382,10 +382,10 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
     }
 
     private static int? ReadUnsealCost(PvfArchive archive,
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, int rarity, int level)
+        IReadOnlyList<PvfSection> sections, int rarity, int level)
     {
         const string source = "etc/randomoption/randomizedoptionoverall2.etc";
-        var section = One(sections, Fields.BreakSealCostField, source);
+        var section = PvfSections.Single(sections, Fields.BreakSealCostField, PvfRepeats.Reject, source);
         if (section is null) return null;
         var values = Fields.BreakSealCostField.Decode(archive, section.Values, source);
         if (values.Count == 0 || values.Count % 4 != 0) throw Invalid(source, Fields.BreakSealCostField, "truncated four-integer cost row");
@@ -404,10 +404,10 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
     }
 
     private static int? ReadChangeCost(PvfArchive archive,
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, int rarity, int level)
+        IReadOnlyList<PvfSection> sections, int rarity, int level)
     {
         const string source = "etc/randomoption/randomizedoptionoverall2.etc";
-        var section = One(sections, Fields.OptionModificationField, source);
+        var section = PvfSections.Single(sections, Fields.OptionModificationField, PvfRepeats.Reject, source);
         if (section is null) return null;
         var values = Fields.OptionModificationField.Decode(archive, section.Values, source);
         if (values.Count == 0 || values.Count % 3 != 0) throw Invalid(source, Fields.OptionModificationField, "truncated three-integer cost row");
@@ -424,25 +424,16 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         return cost;
     }
 
-    private static Dictionary<int, string> Paths(PvfArchive archive, string path)
-    {
-        if (archive.FindFile(path) < 0) return [];
-        var result = new Dictionary<int, string>();
-        var ambiguous = new HashSet<int>();
-        foreach (var (id, relative) in PvfListFile.Read(archive, path))
-            if (id > 0 && !ambiguous.Contains(id) && !string.IsNullOrWhiteSpace(relative)
-                && !result.TryAdd(id, relative))
-            { result.Remove(id); ambiguous.Add(id); }
-        return result;
-    }
+    private static Dictionary<int, string> Paths(PvfArchive archive, string path) =>
+        archive.FindFile(path) < 0 ? [] : PvfListFile.Usable(archive, path);
 
-    private static IReadOnlyList<PvfNpcShopDefinitionSource.Section> RootSections(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+    private static IReadOnlyList<PvfSection> RootSections(
+        IReadOnlyList<PvfSection> sections)
     {
         var closing = sections.Where(section => section.Name.StartsWith("[/", StringComparison.Ordinal))
             .Select(section => section.Name).ToHashSet(StringComparer.Ordinal);
         var stack = new Stack<string>();
-        var root = new List<PvfNpcShopDefinitionSource.Section>();
+        var root = new List<PvfSection>();
         foreach (var section in sections)
         {
             if (stack.TryPeek(out var expected) && section.Name == expected) { stack.Pop(); continue; }
@@ -453,18 +444,10 @@ internal sealed class PvfEquipmentMagicSealContentSource(PvfArchiveProvider prov
         return root;
     }
 
-    private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name, string source)
-    {
-        var matches = sections.Where(section => name.Matches(section.Name)).ToArray();
-        if (matches.Length > 1) throw Invalid(source, name, "duplicate field");
-        return matches.FirstOrDefault();
-    }
-
     private static int? OneInt(PvfArchive archive,
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<int> name, string source)
+        IReadOnlyList<PvfSection> sections, PvfField<int> name, string source)
     {
-        var section = One(sections, name, source);
+        var section = PvfSections.Single(sections, name, PvfRepeats.Reject, source);
         return section is null ? null : name.Decode(archive, section.Values, source);
     }
 

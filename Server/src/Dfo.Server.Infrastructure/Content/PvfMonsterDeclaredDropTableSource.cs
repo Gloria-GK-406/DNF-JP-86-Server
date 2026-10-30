@@ -23,7 +23,7 @@ internal sealed class PvfMonsterDeclaredDropTableSource(PvfArchiveProvider provi
             var path = "monster/" + row.RelativePath;
             try
             {
-                var sections = PvfNpcShopDefinitionSource.Sections(archive, path)
+                var sections = (PvfDocument.TryOpen(archive, path, PvfPreamble.Ignore)?.Sections ?? [])
                     .Where(section => section.Name == Fields.ItemField.Name).ToArray();
                 if (sections.Length == 0) continue;
                 var declarations = sections.Select(section => Fields.ItemField.Decode(archive, section.Values, path)).ToArray();

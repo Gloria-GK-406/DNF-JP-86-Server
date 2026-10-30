@@ -1,5 +1,6 @@
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
@@ -35,7 +36,7 @@ public sealed class PvfPremiumDurationTests
         Assert.Equal(5, levels.ExpertSkill);
         Assert.Equal(10, levels.OverEquipment);
         var terms = PvfPackageOpeningDefinitionSource.ParsePremiums(
-            PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/premiumlist_new.etc"));
+            (PvfDocument.TryOpen(provider.Archive, "etc/premiumlist_new.etc", PvfPreamble.Ignore)?.Sections ?? []));
         Assert.Equal((22, TimeSpan.FromMinutes(60)), terms[10096109]);
         Assert.Equal((27, TimeSpan.FromMinutes(60)), terms[10096110]);
         Assert.Contains(198, terms.Keys);
@@ -53,6 +54,6 @@ public sealed class PvfPremiumDurationTests
         Assert.Equal((27, TimeSpan.FromDays(3)), result[43]);
         Assert.False(result.ContainsKey(999));
     }
-    private static PvfNpcShopDefinitionSource.Section S(string name, params int[] values) =>
+    private static PvfSection S(string name, params int[] values) =>
         new(name, values.Select(value => new PvfToken(PvfTokenKind.Int32, value)).ToList());
 }

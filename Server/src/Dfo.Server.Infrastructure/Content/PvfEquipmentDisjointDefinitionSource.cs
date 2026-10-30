@@ -101,15 +101,15 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         EquipmentPathsIndex(archive);
         if (!equipmentPaths.TryGetValue(itemId, out var relative)) return null;
         var sections = DestructionRootSections(
-            PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative));
+            (PvfDocument.TryOpen(archive, "equipment/" + relative, PvfPreamble.Ignore)?.Sections ?? []));
         if (sections is null) return null;
-        var value = OneInt(archive, sections, Fields.ValueField);
-        var grade = OneInt(archive, sections, Fields.GradeField);
-        var rarity = OneInt(archive, sections, Fields.RarityField);
-        var randomOption = OneInt(archive, sections, Fields.RandomOptionField);
+        var value = PvfSections.SingleInt32(archive, sections, Fields.ValueField, PvfRepeats.AsUndeclared, "equipment");
+        var grade = PvfSections.SingleInt32(archive, sections, Fields.GradeField, PvfRepeats.AsUndeclared, "equipment");
+        var rarity = PvfSections.SingleInt32(archive, sections, Fields.RarityField, PvfRepeats.AsUndeclared, "equipment");
+        var randomOption = PvfSections.SingleInt32(archive, sections, Fields.RandomOptionField, PvfRepeats.AsUndeclared, "equipment");
         if (sections.Any(section => section.Name == Fields.RandomOptionField.Name) && randomOption is not (0 or 1))
             return null;
-        var prices = PvfNpcShopDefinitionSource.Sections(archive, "equipment/pricetable.tbl");
+        var prices = (PvfDocument.TryOpen(archive, "equipment/pricetable.tbl", PvfPreamble.Ignore)?.Sections ?? []);
         if (value is not >= 0 || grade is not >= 0 || rarity is not >= 0
             || prices.Count == 0 || prices[0].Values.Count != 3
             || prices[0].Values.Any(token => token.Kind != PvfTokenKind.Int32 || token.Value < 0))
@@ -118,8 +118,8 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         return new(value.Value, grade.Value, rarity.Value, prices[0].Values[randomOption == 1 ? 2 : 0].Value);
     }
 
-    private static IReadOnlyList<PvfNpcShopDefinitionSource.Section>? DestructionRootSections(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections)
+    private static IReadOnlyList<PvfSection>? DestructionRootSections(
+        IReadOnlyList<PvfSection> sections)
     {
         // Equipment attributes and skill-condition attributes share names such as [value].
         // Explicit [/tag] delimiters identify structured scopes; retain only root attributes.
@@ -130,7 +130,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         containers.UnionWith([Fields.AllSkillItemContainerField.Name, Fields.AllSkillItemField.Name,
             Fields.SkillApplyConditionField.Name, Fields.ExtraConditionField.Name]);
         var scope = new Stack<string>();
-        var roots = new List<PvfNpcShopDefinitionSource.Section>();
+        var roots = new List<PvfSection>();
         foreach (var section in sections)
         {
             if (section.Name.StartsWith("[/", StringComparison.Ordinal))
@@ -189,10 +189,10 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         EquipmentPathsIndex(archive);
         if (!equipmentPaths.TryGetValue(itemId, out var relative))
             return null;
-        var sections = PvfNpcShopDefinitionSource.Sections(archive, "equipment/" + relative);
-        var value = OneInt(archive, sections, Fields.ValueField);
-        var rarity = OneInt(archive, sections, Fields.RarityField);
-        var minimumLevel = OneInt(archive, sections, Fields.MinimumLevelField);
+        var sections = (PvfDocument.TryOpen(archive, "equipment/" + relative, PvfPreamble.Ignore)?.Sections ?? []);
+        var value = PvfSections.SingleInt32(archive, sections, Fields.ValueField, PvfRepeats.AsUndeclared, "equipment");
+        var rarity = PvfSections.SingleInt32(archive, sections, Fields.RarityField, PvfRepeats.AsUndeclared, "equipment");
+        var minimumLevel = PvfSections.SingleInt32(archive, sections, Fields.MinimumLevelField, PvfRepeats.AsUndeclared, "equipment");
         EquipmentSaleRateIndex();
         if (value is not { } equipmentValue || equipmentValue < 0
             || rarity is not { } equipmentRarity || equipmentRarity < 0
@@ -222,8 +222,8 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         if (!stackablePaths.TryGetValue(itemId, out var relative))
             return null;
 
-        var grade = OneInt(archive, PvfNpcShopDefinitionSource.Sections(
-            archive, "stackable/" + relative), Fields.PortableDisjointField);
+        var grade = PvfSections.SingleInt32(archive, (PvfDocument.TryOpen(
+            archive, "stackable/" + relative, PvfPreamble.Ignore)?.Sections ?? []), Fields.PortableDisjointField, PvfRepeats.AsUndeclared, "equipment");
         PortableLevelLimitsIndex();
         return grade is { } value
             && portableLevelLimits.TryGetValue(value, out var maximumLevel)
@@ -234,9 +234,9 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
 
     private IReadOnlyDictionary<int, int> ReadPortableLevelLimits()
     {
-        var values = Integers(One(PvfNpcShopDefinitionSource.Sections(
-            provider.Archive, "character/expertjob/disjointer.exj"),
-            Fields.PortableDisjointInfoField));
+        var values = Integers(PvfSections.Single((PvfDocument.TryOpen(
+            provider.Archive, "character/expertjob/disjointer.exj", PvfPreamble.Ignore)?.Sections ?? []),
+            Fields.PortableDisjointInfoField, PvfRepeats.AsUndeclared, "equipment"));
         if (values.Count == 0 || values.Count % 2 != 0)
             return new Dictionary<int, int>();
 
@@ -252,7 +252,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
 
     private int? ReadEquipmentSaleRate()
     {
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "equipment/pricetable.tbl");
+        var sections = (PvfDocument.TryOpen(provider.Archive, "equipment/pricetable.tbl", PvfPreamble.Ignore)?.Sections ?? []);
         return sections.Count > 0 && sections[0].Values.Count == 3
             && sections[0].Values.All(value => value.Kind == PvfTokenKind.Int32 && value.Value >= 0)
                 ? sections[0].Values[0].Value
@@ -261,7 +261,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
 
     private EquipmentDisjointTable? ReadTable()
     {
-        var sections = PvfNpcShopDefinitionSource.Sections(provider.Archive, "etc/disjoint.etc");
+        var sections = (PvfDocument.TryOpen(provider.Archive, "etc/disjoint.etc", PvfPreamble.Ignore)?.Sections ?? []);
         var cubeIndices = sections.Where(section => section.Name == Fields.CubeIndexField.Name).ToArray();
         foreach (var row in cubeIndices)
             if (row.Values.Count < 2 || !row.Values[0].IsString || row.Values.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32))
@@ -269,11 +269,11 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         var noElement = cubeIndices.Where(row => Normalize(Text(provider.Archive, row.Values[0])) == "no element").ToArray();
         if (noElement.Length > 1) throw new InvalidDataException($"PVF 'etc/disjoint.etc', field '{Fields.CubeIndexField.Name}': duplicate no-element row.");
         var cubeItem = noElement.Length == 1 ? noElement[0].Values[1].Value : 0;
-        var cube = Numbers(One(sections, Fields.CubeCreationConstField));
-        var additional = Integers(One(sections, Fields.AdditionalResultField));
-        var additionalConstants = Numbers(One(sections, Fields.AdditionalResultConstField));
-        var expand = Integers(One(sections, Fields.AdditionalResultExpandField));
-        var expandConstants = Numbers(One(sections, Fields.AdditionalResultExpandConstField));
+        var cube = Numbers(PvfSections.Single(sections, Fields.CubeCreationConstField, PvfRepeats.AsUndeclared, "equipment"));
+        var additional = Integers(PvfSections.Single(sections, Fields.AdditionalResultField, PvfRepeats.AsUndeclared, "equipment"));
+        var additionalConstants = Numbers(PvfSections.Single(sections, Fields.AdditionalResultConstField, PvfRepeats.AsUndeclared, "equipment"));
+        var expand = Integers(PvfSections.Single(sections, Fields.AdditionalResultExpandField, PvfRepeats.AsUndeclared, "equipment"));
+        var expandConstants = Numbers(PvfSections.Single(sections, Fields.AdditionalResultExpandConstField, PvfRepeats.AsUndeclared, "equipment"));
         if (cubeItem <= 0 || cube.Count < 2 || cube[0] <= 0
             || cube.Skip(1).Any(value => !double.IsFinite(value) || value < 0))
             return null;
@@ -339,22 +339,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
             additionalRules, expandRows);
     }
 
-    private static PvfNpcShopDefinitionSource.Section? One(
-        IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField name)
-    {
-        var matches = sections.Where(section => section.Name == name.Name).ToArray();
-        return matches.Length == 1 ? matches[0] : null;
-    }
-
-    private static int? OneInt(
-        PvfArchive archive, IReadOnlyList<PvfNpcShopDefinitionSource.Section> sections, PvfField<int> name)
-    {
-        var section = One(sections, name);
-        return section is { Values.Count: 1 } && section.Values[0].Kind == PvfTokenKind.Int32
-            ? name.Decode(archive, section.Values, "equipment") : null;
-    }
-
-    private static List<int> Integers(PvfNpcShopDefinitionSource.Section? section)
+    private static List<int> Integers(PvfSection? section)
     {
         if (section is null) return [];
         if (section.Values.Any(value => value.Kind != PvfTokenKind.Int32))
@@ -362,7 +347,7 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
         return section.Values.Select(value => value.Value).ToList();
     }
 
-    private static List<double> Numbers(PvfNpcShopDefinitionSource.Section? section)
+    private static List<double> Numbers(PvfSection? section)
     {
         if (section is null) return [];
         var result = new List<double>();

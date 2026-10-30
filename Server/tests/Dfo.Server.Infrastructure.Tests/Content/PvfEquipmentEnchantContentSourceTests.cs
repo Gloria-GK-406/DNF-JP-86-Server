@@ -1,6 +1,7 @@
 using Dfo.Pvf.Tests.Support;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Infrastructure.Content;
+using Dfo.Pvf.Schema;
 
 namespace Dfo.Server.Infrastructure.Tests.Content;
 
@@ -9,7 +10,7 @@ public sealed class PvfEquipmentEnchantContentSourceTests
     [Fact]
     public void Unsupported_or_ambiguous_card_enchant_index_is_never_interpreted_as_zero()
     {
-        static PvfNpcShopDefinitionSource.Section Index(int value) =>
+        static PvfSection Index(int value) =>
             new("[enchant index]", [new(PvfTokenKind.Int32, value)]);
         Assert.False(PvfEquipmentEnchantContentSource.HasSupportedEnchantIndex([]));
         Assert.False(PvfEquipmentEnchantContentSource.HasSupportedEnchantIndex([Index(0), Index(0)]));
