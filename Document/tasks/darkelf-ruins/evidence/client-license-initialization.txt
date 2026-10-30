@@ -1,0 +1,134 @@
+A21 license initialization, 2026-10-30
+Client EXE SHA256: 1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD
+Dump SHA256: 6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507
+Method: read-only mmap, bounded Capstone disasm_lite; no client writes.
+
+ClientStatic:
+- 004C0C50 copies manager+C4 records into the local seat at +D8 + seat*14
+  only when flag[seat]+258 is zero, then marks it one.
+- Its direct caller 019A590C is within 019A4EC0.
+- NOTI02F7 -> 004C0DF0 replaces only global vector+C4 and calls 004BFA90.
+  It does not repeat the per-seat copy or clear those seat flags.
+- 004C13D0 clears seat caches and copies the current global vector again;
+  its direct caller is 011732BD. Its trigger is not yet attributed here.
+
+RuntimeObserved:
+- Prior candidate 033093af already sent 02F7 before CMD000F ACK/USER_STATE.
+  User still reported one star on the first open on 2026-10-30.
+- PID40068 logs: no 02F7 at login; first 02F7 is in selection response.
+- Read-only player row: character8 License2/Clears2/Entries0/revision14.
+  Two recent second-region rewards both refer to DGN5016 (one star),
+  while earlier two-star rewards refer to DGN5007. They did not re-unlock
+  second-region two-star progress in the server's shared progress row.
+- Read-only A21 PID13284 cache after reopening: global and local seat0 both
+  contain (5007,2,2),(5017,2,2),(5027,2,2); local seat flag=1, day=5,left=2.
+
+CurrentImplementation: prime the exact character's current selection at login
+once published, and keep the normal selection refresh. No progress DB changes.
+ClientVerified boundary: user confirms 2/3 counter; cold first-open fix and
+cross-region star display still require a fresh-client acceptance test.
+
+VA 004C0C50, length 79
+004C0C50 push     ebx
+004C0C51 push     esi
+004C0C52 push     edi
+004C0C53 mov      edi, ecx
+004C0C55 xor      esi, esi
+004C0C57 lea      ebx, [edi + 0xd8]
+004C0C5D lea      ecx, [ecx]
+004C0C60 mov      ecx, dword ptr [0x3a5c990]
+004C0C66 push     esi
+004C0C67 call     0x19e7750
+004C0C6C test     eax, eax
+004C0C6E je       0x4c0cc0
+004C0C70 cmp      byte ptr [esi + edi + 0x258], 0
+004C0C78 jne      0x4c0cc0
+004C0C7A mov      ecx, dword ptr [0x3a5c990]
+004C0C80 call     0x19e7410
+004C0C85 cmp      eax, esi
+004C0C87 jne      0x4c0ca1
+004C0C89 lea      eax, [edi + 0xc4]
+004C0C8F push     eax
+004C0C90 mov      ecx, ebx
+004C0C92 call     0x1550c60
+004C0C97 mov      byte ptr [esi + edi + 0x258], 1
+004C0C9F jmp      0x4c0cc0
+004C0CA1 mov      ecx, dword ptr [0x3a5c9b0]
+004C0CA7 mov      edx, dword ptr [ecx]
+004C0CA9 mov      eax, dword ptr [edx + 8]
+004C0CAC push     0
+004C0CAE push     0x8d
+004C0CB3 call     eax
+004C0CB5 push     esi
+004C0CB6 push     1
+004C0CB8 call     0x22e56d0
+004C0CBD add      esp, 8
+004C0CC0 inc      esi
+004C0CC1 add      ebx, 0x14
+004C0CC4 cmp      esi, 8
+004C0CC7 jl       0x4c0c60
+
+VA 004C0EDE, length 16
+004C0EDE lea      edx, [ebp + 8]
+004C0EE1 lea      ecx, [ebx + 0xc4]
+004C0EE7 push     edx
+004C0EE8 call     0x1550c60
+004C0EED mov      ecx, ebx
+004C0EEF call     0x4bfa90
+
+VA 004C13D0, length A5
+004C13D0 push     ebp
+004C13D1 mov      ebp, esp
+004C13D3 push     ecx
+004C13D4 push     ebx
+004C13D5 push     esi
+004C13D6 push     edi
+004C13D7 mov      edi, ecx
+004C13D9 lea      eax, [edi + 0x178]
+004C13DF xor      esi, esi
+004C13E1 mov      dword ptr [ebp - 4], eax
+004C13E4 lea      ebx, [edi + 0xd8]
+004C13EA lea      ebx, [ebx]
+004C13F0 mov      ecx, ebx
+004C13F2 call     0x2b6e9c0
+004C13F7 mov      ecx, dword ptr [ebp - 4]
+004C13FA call     0x4c1270
+004C13FF add      dword ptr [ebp - 4], 0x1c
+004C1403 mov      byte ptr [edi + esi + 0x258], 0
+004C140B inc      esi
+004C140C add      ebx, 0x14
+004C140F cmp      esi, 8
+004C1412 jl       0x4c13f0
+004C1414 mov      ecx, dword ptr [0x3a5c990]
+004C141A call     0x19e7410
+004C141F test     eax, eax
+004C1421 js       0x4c1475
+004C1423 mov      edx, dword ptr [edi + 0xcc]
+004C1429 sub      edx, dword ptr [edi + 0xc8]
+004C142F lea      ecx, [edi + 0xc4]
+004C1435 mov      eax, 0x2aaaaaab
+004C143A imul     edx
+004C143C sar      edx, 1
+004C143E mov      eax, edx
+004C1440 shr      eax, 0x1f
+004C1443 add      eax, edx
+004C1445 je       0x4c1475
+004C1447 push     ecx
+004C1448 mov      ecx, dword ptr [0x3a5c990]
+004C144E call     0x19e7410
+004C1453 lea      ecx, [eax + eax*4]
+004C1456 lea      ecx, [edi + ecx*4 + 0xd8]
+004C145D call     0x1550c60
+004C1462 mov      ecx, dword ptr [0x3a5c990]
+004C1468 call     0x19e7410
+004C146D mov      byte ptr [eax + edi + 0x258], 1
+
+VA 019A5905, length C
+019A5905 call     0x4c1fc0
+019A590A mov      ecx, eax
+019A590C call     0x4c0c50
+
+VA 011732B6, length C
+011732B6 call     0x4c1fc0
+011732BB mov      ecx, eax
+011732BD call     0x4c13d0

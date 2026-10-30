@@ -785,7 +785,8 @@ public sealed partial class SelectCharacterLifecycleTests
             IGameMessageSender? gameSender = null,
             INetworkConnectionCloser? connectionCloser = null,
             bool failQuest = false,
-            ICleanupNotificationDelivery? cleanupDelivery = null)
+            ICleanupNotificationDelivery? cleanupDelivery = null,
+            IDarkElfRuinsDomainService? ruins = null)
         {
             return await TestGameplay.RunAsync(async () =>
             {
@@ -870,7 +871,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     new CompensateSelectedCharacterSessionStageHandler(cleanup, directory));
                 bus.Workflow = new LifecycleWorkflow(users, new TestEntryChannel(), new StubStateMessageFactory(), directory,
                     gameSender ?? sender, notifications, connectionCloser ?? closer, bus,
-                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger);
+                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger, ruins);
                 var handler = new SelectCharacterHandler(bus);
                 var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
                 return new Fixture(
@@ -965,9 +966,10 @@ public sealed partial class SelectCharacterLifecycleTests
             ISelectedCharacterStateMessageFactory factory, ISelectedSessionDomainService sessions, IGameMessageSender sender,
             IEventService events, INetworkConnectionCloser closer, RecordingCommandBus stages,
             ICleanupNotificationDelivery cleanupDelivery, TownAreaProjectionDelivery town, ITauKingdomDomainService? tau,
-            List<string> ledger)
+            List<string> ledger, IDarkElfRuinsDomainService? ruins)
         {
             var dependencies = stages.Dependencies.ToList();
+            if (ruins is not null) dependencies.Add(ruins);
             var entry = dependencies.OfType<ISelectCharacterSessionEntryDomainService>().First();
             dependencies.Add(ProtocolAlgorithmFixture.Decorate(entry, (method, args) =>
             {
@@ -1027,7 +1029,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 "PrepareSelectedCharacterState" => typeof(PrepareSelectedCharacterStateStage),
                 "ApplySelectedCharacterDailyRefill" => typeof(ApplySelectedCharacterDailyRefillStage),
                 "RefillOnlineTauTicket" => observeTau ? typeof(RefillTauStage) : null,
-                "RefillOnlineSouthernTicket" or "RefillOnlineBossTowerTicket" => null,
+                "RefillOnlineSouthernTicket" or "RefillOnlineBossTowerTicket" or "RecoverDarkElfRuinsRewards" => null,
                 "SynchronizeSelectedCharacterQuests" => typeof(SynchronizeSelectedCharacterQuestsStage),
                 "ReviveSelectedCharacterPet" => typeof(ReviveSelectedCharacterPetStage),
                 _ => throw new InvalidOperationException($"Unexpected selection unit {declaration.Name}."),
@@ -1469,6 +1471,7 @@ public sealed partial class SelectCharacterLifecycleTests
         }
 
         public List<(NetworkConnectionId Target, Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification Message)> Weakness { get; } = [];
+        public List<(NetworkConnectionId Target, IGameServerMessage Message)> DirectMessages { get; } = [];
         public bool FailStatic { get; set; }
         private readonly TaskCompletionSource staticRelease = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
@@ -1527,6 +1530,7 @@ public sealed partial class SelectCharacterLifecycleTests
             NetworkConnectionId connectionId, GameExplicitMessageDelivery delivery,
             CancellationToken cancellationToken)
         {
+            DirectMessages.AddRange(delivery.RequiredDirectMessages.Select(message => (connectionId, message)));
             if (delivery.RequiredDirectMessages.Count == 0
                 && delivery.BestEffortTargets.Count == 0)
                 return outbound.Game.SendExplicitAsync(connectionId, delivery, cancellationToken);

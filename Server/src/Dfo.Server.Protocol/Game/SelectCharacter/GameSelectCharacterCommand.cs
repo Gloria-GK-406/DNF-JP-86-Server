@@ -344,6 +344,18 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         EnsureCurrent(session);
         await units.WriteAsync(execution, new("RecoverDarkElfRuinsRewards", [TicketRecipient(execution, session)]),
             async (_, token) => { await ruins.RecoverRewardsAsync(session, token).ConfigureAwait(false); return true; }, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker)
+        {
+            // A21 snapshots its global license records into the local seat before the first
+            // selection response. A later 02F7 replaces only the global records, so prime them
+            // during login as well as refreshing them when selection is requested.
+            var selection = await ruins.SelectionAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+            EnsureCurrent(session);
+            await outbox.RegisterExplicitAsync(session.ConnectionId,
+                new GameExplicitMessageDelivery(Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.Selection(selection), []),
+                cancellationToken).ConfigureAwait(false);
+        }
         // Selection can straddle 06:00 while the scheduled snapshot sees it as unpublished.
         // Recheck the current period after publication using the same durable ticket claim.
             await RefillTauAsync(execution, session, cancellationToken)

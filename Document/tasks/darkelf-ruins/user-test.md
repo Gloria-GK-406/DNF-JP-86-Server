@@ -8,10 +8,14 @@
 - 启动器 API：`http://127.0.0.1:18080`；频道 `127.0.0.1:7001`，游戏频道11、端口10011。
 - GM：[本机管理页](http://127.0.0.1:18081/gm/)。仅保留现有管理能力，不需要为测试重置任务或次数。
 - 数据库：`E:/Project/DNF/DNF-JP-86-Server/Server/src/Dfo.Server.Host/bin/Release/net10.0/Data/dfo-server.db`。
-- 当前实例、最终备份、启动配置及完整日志：工作区 `artifacts/darkelf-clear-progress-20261030/deployment/`；其中 `live-result.json` 记录PID/EXE，`live-stdout.log`、`live-stderr.log` 用于定位。
+- 当前实例、最终备份、启动配置及完整日志：工作区 `artifacts/darkelf-login-cache-20261030/`；其中 `live-result.json` 记录PID/EXE，`live-stdout.log`、`live-stderr.log` 用于定位。
 - 启动和健康检查已通过；以下原生操作仍等待用户反馈，不将就绪检查记作实机验收。
 
 ## 先做核心流程
+
+本次优先验证已有角色8：完整退出客户端后重新登录，第一次打开遗迹，三个区域均应二星，
+右上角保持2/3，不需要先打一局；退出选图后再打开应一致。切换角色后应显示新角色自身星级。
+只检查选图不会消耗次数。2026-10-30周五开放虚妄迷宫，二星DGN5017；一星5016不推进二星累计。
 
 选择角色A完成下面1–6。不要在第一次完整通关前退出副本或断线：入场就扣每日次数，退出不会返还。
 若角色已有遗迹进度，以实际初始星级和剩余次数为准，不清空旧进度凑测试条件。

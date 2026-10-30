@@ -65,4 +65,4 @@ ClientStatic / High：接收入口 VA011575D0 将三元组交给004C0DF0，保�
 ClientObserved：用户2026-10-30截图为选图右上角“3星达成条件：2星地下城通关3次（0/3）”，
 服务器真实累计非零，原生缓存第三字段为0。见[原截图](../../../Document/tasks/darkelf-ruins/evidence/clear-condition-before.png)。
 CurrentImplementation：第三字段改为已持久化的当前星级通关累计，不增加或重算累计；已有选图及结果阶段均复用同一编码。
-修正后的原生计数显示仍待用户差分复测；没有据此声称已获得完整WireCaptured或升星流程ClientVerified。见[流程](../../patterns/flow-darkelf-ruins.md)。
+用户2026-10-30反馈修正后显示2/3，计数字段取得限定界面确认；没有据此声称已获得完整WireCaptured或升星流程ClientVerified。首次选图缓存的登录预热与证据见[流程](../../patterns/flow-darkelf-ruins.md)。
