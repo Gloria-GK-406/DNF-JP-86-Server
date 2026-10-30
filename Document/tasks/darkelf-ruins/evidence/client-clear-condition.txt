@@ -1,0 +1,193 @@
+Client SHA256: 1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD
+A21 VA, image base 00400000. Bounded disassembly from the recorded dump.
+Current client read-only cache on 2026-10-30: (5007,2,0), (5017,2,0), (5027,2,0).
+Current catalog node for 5007: Field4=7, Field5=4, License=2, Group=1.
+Getters: 004BF7C0 returns License; 004BF710 returns Field5.
+UI 00550F80: matches current dungeon ID; reads row+8, clamps to Field5-1; formats dstr 109A1.
+
+VA 004BF710, bounded length 30
+004BF710 push     ebp
+004BF711 mov      ebp, esp
+004BF713 push     esi
+004BF714 push     edi
+004BF715 mov      edi, dword ptr [ebp + 8]
+004BF718 lea      esi, [ecx + 4]
+004BF71B push     edi
+004BF71C mov      ecx, esi
+004BF71E call     0x29c3750
+004BF723 test     eax, eax
+004BF725 jne      0x4bf72d
+004BF727 pop      edi
+004BF728 pop      esi
+004BF729 pop      ebp
+004BF72A ret      4
+004BF72D push     edi
+004BF72E mov      ecx, esi
+004BF730 call     0x29c3750
+004BF735 mov      eax, dword ptr [eax + 4]
+004BF738 pop      edi
+004BF739 pop      esi
+004BF73A pop      ebp
+004BF73B ret      4
+004BF73E int3     
+004BF73F int3     
+
+VA 004BF7C0, bounded length 23
+004BF7C0 push     ebp
+004BF7C1 mov      ebp, esp
+004BF7C3 mov      eax, dword ptr [ebp + 8]
+004BF7C6 push     eax
+004BF7C7 add      ecx, 4
+004BF7CA call     0x29c3750
+004BF7CF test     eax, eax
+004BF7D1 je       0x4bf7da
+004BF7D3 mov      eax, dword ptr [eax + 8]
+004BF7D6 pop      ebp
+004BF7D7 ret      4
+004BF7DA mov      eax, 1
+004BF7DF pop      ebp
+004BF7E0 ret      4
+
+VA 00550F80, bounded length 140
+00550F80 push     ebp
+00550F81 mov      ebp, esp
+00550F83 push     -1
+00550F85 push     0x2cbff48
+00550F8A mov      eax, dword ptr fs:[0]
+00550F90 push     eax
+00550F91 sub      esp, 0x40
+00550F94 push     ebx
+00550F95 push     esi
+00550F96 push     edi
+00550F97 mov      eax, dword ptr [0x399cee0]
+00550F9C xor      eax, ebp
+00550F9E push     eax
+00550F9F lea      eax, [ebp - 0xc]
+00550FA2 mov      dword ptr fs:[0], eax
+00550FA8 mov      dword ptr [ebp - 0x24], ecx
+00550FAB mov      esi, dword ptr [ebp + 8]
+00550FAE push     esi
+00550FAF call     0x4c1fc0
+00550FB4 mov      ecx, eax
+00550FB6 call     0x4bf6b0
+00550FBB test     al, al
+00550FBD je       0x5515fc
+00550FC3 push     esi
+00550FC4 call     0x4c1fc0
+00550FC9 mov      ecx, eax
+00550FCB call     0x4bf7c0
+00550FD0 push     esi
+00550FD1 mov      dword ptr [ebp - 0x1c], eax
+00550FD4 call     0x4c1fc0
+00550FD9 mov      ecx, eax
+00550FDB call     0x4bf740
+00550FE0 push     esi
+00550FE1 mov      dword ptr [ebp - 0x28], eax
+00550FE4 call     0x4c1fc0
+00550FE9 mov      ecx, eax
+00550FEB call     0x4bf710
+00550FF0 dec      eax
+00550FF1 mov      dword ptr [ebp - 0x20], eax
+00550FF4 test     eax, eax
+00550FF6 mov      dword ptr [ebp - 0x14], 0
+00550FFD lea      eax, [ebp - 0x20]
+00551000 jg       0x551005
+00551002 lea      eax, [ebp - 0x14]
+00551005 mov      eax, dword ptr [eax]
+00551007 mov      dword ptr [ebp - 0x20], eax
+0055100A xor      edi, edi
+0055100C call     0x4c1fc0
+00551011 mov      ecx, eax
+00551013 call     0x4bf770
+00551018 lea      ecx, [ebp - 0x4c]
+0055101B mov      esi, eax
+0055101D push     ecx
+0055101E mov      ecx, esi
+00551020 xor      bl, bl
+00551022 call     0xe56100
+00551027 lea      edx, [ebp - 0x40]
+0055102A push     edx
+0055102B mov      ecx, esi
+0055102D call     0x293b470
+00551032 mov      esi, dword ptr [ebp - 0x20]
+00551035 mov      eax, dword ptr [ebp - 0x4c]
+00551038 mov      ecx, dword ptr [ebp - 0x40]
+0055103B test     eax, eax
+0055103D je       0x5510b5
+0055103F mov      edx, dword ptr [eax]
+00551041 test     edx, edx
+00551043 je       0x5510b5
+00551045 test     ecx, ecx
+00551047 jne      0x55104d
+00551049 xor      eax, eax
+0055104B jmp      0x55104f
+0055104D mov      eax, dword ptr [ecx]
+0055104F cmp      edx, eax
+00551051 jne      0x5510b5
+00551053 mov      eax, dword ptr [ebp - 0x44]
+00551056 cmp      eax, dword ptr [ebp - 0x38]
+00551059 sete     cl
+0055105C test     cl, cl
+0055105E sete     cl
+00551061 test     cl, cl
+00551063 je       0x5510ba
+00551065 test     bl, bl
+00551067 sete     bl
+0055106A test     bl, bl
+0055106C je       0x5510ba
+0055106E test     edx, edx
+00551070 je       0x5510b5
+00551072 test     eax, eax
+00551074 je       0x5510b5
+00551076 cmp      dword ptr [edx + 4], eax
+00551079 ja       0x5510b5
+0055107B cmp      eax, dword ptr [edx + 8]
+0055107E jae      0x5510b5
+00551080 mov      ecx, dword ptr [ebp + 8]
+00551083 cmp      ecx, dword ptr [eax]
+00551085 je       0x551099
+00551087 push     0
+00551089 lea      edx, [ebp - 0x34]
+0055108C push     edx
+0055108D lea      ecx, [ebp - 0x4c]
+00551090 xor      bl, bl
+00551092 call     0x23468c0
+00551097 jmp      0x551035
+00551099 add      eax, 8
+0055109C cmp      dword ptr [eax], esi
+0055109E jl       0x5510a3
+005510A0 lea      eax, [ebp - 0x20]
+005510A3 mov      edi, dword ptr [eax]
+005510A5 push     0
+005510A7 lea      edx, [ebp - 0x34]
+005510AA push     edx
+005510AB lea      ecx, [ebp - 0x4c]
+005510AE call     0x23468c0
+005510B3 jmp      0x551035
+005510B5 call     0x2c623e1
+005510BA cmp      edi, esi
+005510BC setge    byte ptr [ebp - 0x14]
+
+VA 00551369, bounded length 3C
+00551369 je       0x5513cb
+0055136B cmp      byte ptr [ebp - 0x14], 0
+0055136F mov      ecx, edi
+00551371 je       0x55137a
+00551373 push     0xff9bc8e6
+00551378 jmp      0x55137c
+0055137A push     -1
+0055137C call     0x13dee20
+00551381 mov      eax, dword ptr [ebp - 0x20]
+00551384 mov      ecx, dword ptr [ebp - 0x10]
+00551387 mov      edx, dword ptr [ebp - 0x1c]
+0055138A push     eax
+0055138B push     ecx
+0055138C push     eax
+0055138D push     edx
+0055138E push     0x109a1
+00551393 call     0x28c14c0
+00551398 add      esp, 4
+0055139B push     eax
+0055139C lea      eax, [ebp - 0x3c]
+0055139F push     eax
+005513A0 call     0x27bdc10

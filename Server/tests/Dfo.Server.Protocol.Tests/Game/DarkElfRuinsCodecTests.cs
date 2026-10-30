@@ -113,13 +113,35 @@ public sealed class DarkElfRuinsCodecTests
         Assert.Equal(new byte[] { 1 }, new RuinsAcknowledgement(0x032D).EncodeBody());
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void Native_three_star_condition_receives_the_persisted_two_star_clear_count_in_each_region(int clears)
+    {
+        var selection = new DarkElfRuinsSelection(4, 0, 2, clears, [5007, 5017, 5027]);
+        var body = new RuinsLicenseNotification(selection).EncodeBody();
+        Assert.Equal(38, body.Length);
+        for (var i = 0; i < 3; i++)
+        {
+            var record = body.AsSpan(2 + i * 12, 12);
+            Assert.Equal(selection.DungeonIds[i], System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(record));
+            Assert.Equal(2, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(record[4..]));
+            var nativeCount = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(record[8..]);
+            Assert.Equal(clears, nativeCount);
+            // A21 00551099..A3 clips the matching row's third word to ETC Field5 - 1 (4 - 1).
+            Assert.Equal($"{clears}/3", $"{Math.Min(nativeCount, 3)}/3");
+        }
+    }
+
     [Fact]
-    public void Shared_license_projects_all_three_regions_without_inventing_the_opaque_third_word()
+    public void Shared_license_and_clear_count_project_consistently_for_all_three_regions()
     {
         var selection = new DarkElfRuinsSelection(1, 2, 2, 1, [5007, 5017, 5027]);
         var body = new RuinsLicenseNotification(selection).EncodeBody();
         Assert.Equal(38, body.Length);
-        Assert.Equal(Convert.FromHexString("03008F1300000200000000000000991300000200000000000000A31300000200000000000000"), body);
+        Assert.Equal(Convert.FromHexString("03008F1300000200000001000000991300000200000001000000A31300000200000001000000"), body);
         Assert.Equal(new byte[] { 2 }, new RuinsByteNotification(0x02FB, selection.Remaining).EncodeBody());
     }
 }

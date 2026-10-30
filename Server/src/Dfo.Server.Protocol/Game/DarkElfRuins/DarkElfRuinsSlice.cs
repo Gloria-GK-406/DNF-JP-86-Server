@@ -57,7 +57,8 @@ internal sealed record RuinsLicenseNotification(DarkElfRuinsSelection Selection)
         {
             BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(2 + i * 12), Selection.DungeonIds[i]);
             BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(6 + i * 12), Selection.License);
-            // Third u32 remains opaque; do not project the server's clear count into it.
+            // A21 condition window matches this dungeon and reads row+8 for its clear counter.
+            BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(10 + i * 12), Selection.Clears);
         }
         return body;
     }
