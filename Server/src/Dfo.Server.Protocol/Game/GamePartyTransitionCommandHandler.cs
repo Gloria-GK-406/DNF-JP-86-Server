@@ -239,7 +239,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             {
                 foreach (var member in returning)
                     cardPresentation.Cancel(member.Session.CharacterId, currentRun.RunId);
-                var ended = await exits.EndWholeRunAsync(currentRun.RunId, cancellationToken).ConfigureAwait(false);
+                var ended = await workUnits.WriteAsync(execution, new("end-dungeon-run",
+                    ProtectedParticipants(returning.Select(member => member.Session).ToArray(), session)),
+                    (_, token) => exits.EndWholeRunAsync(currentRun.RunId, token), cancellationToken).ConfigureAwait(false);
                 foreach (var character in ended)
                 {
                     registry.ParticipantDeparted(currentRun.RunId, character);
@@ -376,7 +378,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         if (currentRun is not null)
         {
             cardPresentation.Cancel(session.CharacterId, currentRun.RunId);
-            var gaveUp = await exits.GiveUpAsync(session.CharacterId, currentRun.RunId, cancellationToken).ConfigureAwait(false);
+            var gaveUp = await workUnits.WriteAsync(execution, new("give-up-dungeon-run", [CaptureParticipant(session)]),
+                (_, token) => exits.GiveUpAsync(session.CharacterId, currentRun.RunId, token), cancellationToken).ConfigureAwait(false);
             var partyResult = gaveUp.Party;
             partyExecution = new PartyCommandExecution(
                 partyResult,

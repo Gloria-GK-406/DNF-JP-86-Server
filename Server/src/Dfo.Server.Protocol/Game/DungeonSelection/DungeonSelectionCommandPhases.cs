@@ -39,11 +39,12 @@ internal sealed partial class GameDungeonSelectionCommandHandler
                 await SelectionLeaveTowerAsync(execution, illusionKind, illusion.Session, illusion.Run, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
                 return true;
             default:
-                return await BackToVillageOrdinaryAsync(context, message, session, cancellationToken).ConfigureAwait(false);
+                return await BackToVillageOrdinaryAsync(execution, context, message, session, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async ValueTask<bool> BackToVillageOrdinaryAsync(
+        CommandExecutionContext execution,
         NetworkDispatchContext context,
         BackToVillageRequest message,
         SelectedSessionIdentity? session,
@@ -94,7 +95,11 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             return false;
 
         var currentRun = dungeonRuns.Find(session.CharacterId);
-        var ended = await exits.ReturnToSelectionAsync(session, currentRun, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<CharacterId> ended = currentRun is null ? [] : await workUnits.WriteAsync(execution, new("return-to-selection",
+                returning.Select(member => new SelectedSessionRecipient(member.Session,
+                    member.Session == session ? context.Connection : null,
+                    member.Session == session ? message.Metadata : null)).ToArray()),
+                (_, token) => exits.ReturnToSelectionAsync(session, currentRun, token), cancellationToken).ConfigureAwait(false);
         foreach (var character in ended)
             departureSink.ParticipantDeparted(currentRun!.RunId, character);
         foreach (var member in returning)

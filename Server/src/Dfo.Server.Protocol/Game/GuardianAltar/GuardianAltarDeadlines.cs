@@ -18,7 +18,7 @@ public sealed record AdvanceGuardianAltarCommand(GuardianAltarRunState Expected)
 public sealed record ReturnGuardianAltarCommand(GuardianAltarRunState Expected) : ICommand<ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>>;
 public sealed record GuardianAltarSchedule(DateTimeOffset? Next, IReadOnlyList<GuardianAltarRunState> Due);
 
-internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainService altar, IDungeonRunDepartureDomainService runs,
+internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainService altar, IDungeonRunDepartureDomainService runs, ICommandWorkUnits units,
     ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry, TimeProvider clock,
     ISelectedCharacterCurrentViewDomainService currentViews, ICharacterStateProjectionDomainService currentState, IGameCommandOutbox outbox)
     : ICommandHandler<ReturnGuardianAltarCommand, ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>>
@@ -31,7 +31,8 @@ internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainServ
             || current.Session != expected.Session || current.Generation != expected.Generation
             || current.Status is not (GuardianAltarStatus.Won or GuardianAltarStatus.Lost or GuardianAltarStatus.Abandoned)
             || current.Deadline is null || current.Deadline > clock.GetUtcNow()) return [];
-        if (!await runs.EndAsync(expected.Session.CharacterId, expected.RunId).ConfigureAwait(false)) return [];
+        if (!await units.WriteAsync(context, new("guardian-altar.return", [new SelectedSessionRecipient(expected.Session, null)]),
+                (_, _) => runs.EndAsync(expected.Session.CharacterId, expected.RunId), ct).ConfigureAwait(false)) return [];
         registry.ParticipantDeparted(expected.RunId, expected.Session.CharacterId);
         await GuardianAltarProjection.RestoreInventoryAsync(expected.Session, sessions, currentViews, currentState, outbox, ct).ConfigureAwait(false);
         return [expected.Session];

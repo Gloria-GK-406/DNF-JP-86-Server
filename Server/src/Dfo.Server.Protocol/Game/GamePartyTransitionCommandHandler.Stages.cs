@@ -377,11 +377,11 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 LogPartyMutation(change, caller, attempt.Target, targetSlot, attempt.Result);
                 return attempt.Result.Succeeded;
             default:
-                return await MutatePartyOrdinaryAsync(dispatch, change, caller, targetSlot, token).ConfigureAwait(false);
+                return await MutatePartyOrdinaryAsync(execution, dispatch, change, caller, targetSlot, token).ConfigureAwait(false);
         }
     }
 
-    private async ValueTask<bool> MutatePartyOrdinaryAsync(NetworkDispatchContext dispatch,
+    private async ValueTask<bool> MutatePartyOrdinaryAsync(CommandExecutionContext execution, NetworkDispatchContext dispatch,
         PartyChange change, SelectedSessionIdentity caller, byte? targetSlot, CancellationToken token)
     {
         SelectedSessionIdentity? target = null;
@@ -404,7 +404,11 @@ internal sealed partial class GamePartyTransitionCommandHandler
         var position = change == PartyChange.Remove && departingRun is not null ? onlineCharacters.PositionOf(target!) : null;
         var result = !sessions.IsInWorld(caller) || target is not null && !sessions.IsInWorld(target)
             ? PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)
-            : await MutatePartyAsync(change, caller, target, token).ConfigureAwait(false);
+            : departingRun is null
+                ? await MutatePartyAsync(change, caller, target, token).ConfigureAwait(false)
+                : await workUnits.WriteAsync(execution, new("party-departure-from-run",
+                    ProtectedParticipants(target is null ? [caller] : [caller, target], caller)),
+                    (_, ct) => MutatePartyAsync(change, caller, target, ct), token).ConfigureAwait(false);
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
         if (!result.Succeeded)
         {
