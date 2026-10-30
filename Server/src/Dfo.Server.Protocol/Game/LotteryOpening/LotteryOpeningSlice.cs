@@ -39,7 +39,7 @@ public sealed record LotteryOpeningResponse(LotteryOpeningResult? Result, byte E
 }
 internal sealed class LotteryOpeningEncoder : GameCmdMessageEncoder<LotteryOpeningResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(LotteryOpeningResponse message) => OnePayload(0x001B, Encode(message));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(LotteryOpeningResponse message) => OnePayload(message, Encode(message));
     internal static byte[] Encode(LotteryOpeningResponse message)
     {
         using var stream = new MemoryStream();

@@ -17,7 +17,7 @@ internal static class IncreaseStatusRegistration
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameIncreaseStatus, typeof(IncreaseStatusRequest)));
         services.RegisterProtocolMessageHandler<IncreaseStatusHandler, IncreaseStatusRequest, GameIncreaseStatusCommand>(ClientMessageType.GameIncreaseStatus);
-        services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
+        services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(ClientMessageType.GameIncreaseStatus);
         services.AddGameCmdMessageEncoder<IncreaseStatusResponse, IncreaseStatusEncoder>();
         return services;
     }

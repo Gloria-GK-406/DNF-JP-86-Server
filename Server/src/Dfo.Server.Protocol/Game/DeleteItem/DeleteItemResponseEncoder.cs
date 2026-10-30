@@ -5,7 +5,7 @@ namespace Dfo.Server.Protocol.Game.DeleteItem;
 internal sealed class DeleteItemResponseEncoder : GameCmdMessageEncoder<DeleteItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DeleteItemResponse message) =>
-        OnePayload(GameProtocol.DeleteItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(DeleteItemResponse message)
     {

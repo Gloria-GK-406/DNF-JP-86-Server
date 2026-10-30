@@ -22,8 +22,8 @@ internal static class TournamentRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentRewardStatus, typeof(TournamentRewardRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentSelectReward, typeof(TournamentRewardRequest)));
         services.RegisterProtocolMessageHandler<TournamentRewardHandler, TournamentRewardRequest, GameTournamentRewardCommand>(ClientMessageType.GameTournamentSelectReward);
-        services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(0x01CA, ClientMessageType.GameTournamentRewardStatus);
-        services.AddGameCmdMessageDecoder<TournamentSelectionDecoder>(0x01CB, ClientMessageType.GameTournamentSelectReward);
+        services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(ClientMessageType.GameTournamentRewardStatus);
+        services.AddGameCmdMessageDecoder<TournamentSelectionDecoder>(ClientMessageType.GameTournamentSelectReward);
         services.AddGameNotiMessageEncoder<TournamentInfoMessage, TournamentInfoEncoder>();
         services.AddGameNotiMessageEncoder<TournamentMapMessage, TournamentMapEncoder>();
         services.AddGameNotiMessageEncoder<TournamentRewardMessage, TournamentRewardEncoder>();

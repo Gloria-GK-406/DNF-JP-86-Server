@@ -13,8 +13,7 @@ internal static class HiddenCharacterInfoRegistration
 {
     internal static IServiceCollection AddHiddenCharacterInfoSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
-            GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
+        services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(ClientMessageType.GameHiddenCharacterInfo);
         services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
         services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
         return services;

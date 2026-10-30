@@ -365,8 +365,8 @@ internal sealed partial class GameMarriageCommandHandler :
     private async ValueTask WeddingCommentAsync(CommandExecutionContext execution, NetworkDispatchContext c, WeddingCommentRequest m, CancellationToken ct)
     {
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
-        var result = actor is null ? new MarriageGuestbookResult(-1, []) : await WriteAsync(execution, c, m.Metadata, "WeddingComment", [actor], async (_, token) => m.Type switch { 0x03FA => await venue.ReadGuestbookAsync(actor, m.Key, token).ConfigureAwait(false), 0x03F8 => new(await venue.PostGuestbookAsync(actor, m.Key, m.Text, token).ConfigureAwait(false), []), 0x03F9 => new(await venue.DeleteGuestbookAsync(actor, m.Key, m.Id, token).ConfigureAwait(false), []), _ => new MarriageGuestbookResult(-1, []) }, ct).ConfigureAwait(false);
-        await outbox.RegisterExplicitAsync(c.Connection.ConnectionId, new([new WeddingCommentAck(m.Type, m.Key, m.Id, result)], []), ct).ConfigureAwait(false);
+        var result = actor is null ? new MarriageGuestbookResult(-1, []) : await WriteAsync(execution, c, m.Metadata, "WeddingComment", [actor], async (_, token) => m.Kind switch { WeddingCommentKind.Read => await venue.ReadGuestbookAsync(actor, m.Key, token).ConfigureAwait(false), WeddingCommentKind.Post => new(await venue.PostGuestbookAsync(actor, m.Key, m.Text, token).ConfigureAwait(false), []), WeddingCommentKind.Delete => new(await venue.DeleteGuestbookAsync(actor, m.Key, m.Id, token).ConfigureAwait(false), []), _ => new MarriageGuestbookResult(-1, []) }, ct).ConfigureAwait(false);
+        await outbox.RegisterExplicitAsync(c.Connection.ConnectionId, new([new WeddingCommentAck(m.Kind, m.Key, m.Id, result)], []), ct).ConfigureAwait(false);
     }
 
 

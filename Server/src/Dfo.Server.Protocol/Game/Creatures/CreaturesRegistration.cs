@@ -23,14 +23,10 @@ internal static class CreaturesRegistration
         services.AddGameNotiMessageEncoder<CreatureRenameNotification, CreatureRenameEncoder>();
         services.AddGameNotiMessageEncoder<CreatureEvolutionNotification, CreatureEvolutionEncoder>();
         services.AddGameNotiMessageEncoder<CreatureResponseNotification, CreatureResponseEncoder>();
-        services.AddGameCmdMessageDecoder<HatchCreatureMessageDecoder>(
-            CreaturePayloadCodec.HatchCommandType, ClientMessageType.GameHatchCreature);
-        services.AddGameCmdMessageDecoder<RenameCreatureMessageDecoder>(
-            CreaturePayloadCodec.RenameCommandType, ClientMessageType.GameRenameCreature);
-        services.AddGameCmdMessageDecoder<CreatureResponseReportDecoder>(
-            0x0065, ClientMessageType.GameCreatureResponseReport);
-        services.AddGameCmdMessageDecoder<CreatureScriptMessageReportDecoder>(
-            0x007A, ClientMessageType.GameCreatureScriptMessage);
+        services.AddGameCmdMessageDecoder<HatchCreatureMessageDecoder>(ClientMessageType.GameHatchCreature);
+        services.AddGameCmdMessageDecoder<RenameCreatureMessageDecoder>(ClientMessageType.GameRenameCreature);
+        services.AddGameCmdMessageDecoder<CreatureResponseReportDecoder>(ClientMessageType.GameCreatureResponseReport);
+        services.AddGameCmdMessageDecoder<CreatureScriptMessageReportDecoder>(ClientMessageType.GameCreatureScriptMessage);
         services.AddGameCmdMessageEncoder<RenameCreatureResponse, RenameCreatureResponseEncoder>();
         services.AddGameCmdMessageEncoder<HatchCreatureResponse, HatchCreatureResponseEncoder>();
         services.AddProtocolCommandHandler<GameHatchCreatureCommand, bool, GameHatchCreatureCommandHandler>(

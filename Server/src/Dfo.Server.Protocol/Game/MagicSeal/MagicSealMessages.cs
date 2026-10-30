@@ -49,7 +49,7 @@ internal sealed class ChangeRandomOptionEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         ChangeRandomOptionResponse message) =>
-        OnePayload(GameProtocol.ChangeRandomOptionType,
+        OnePayload(message,
             EncodeBody(message));
 
     internal static byte[] EncodeBody(ChangeRandomOptionResponse message) =>

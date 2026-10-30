@@ -18,6 +18,6 @@ internal sealed class ForcedTownPositionEncoder : GameNotiMessageEncoder<ForcedT
         BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(2), message.X);
         BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(4), message.Y);
         body[6] = message.Direction;
-        return OnePayload(0x008A, body);
+        return OnePayload(message, body);
     }
 }

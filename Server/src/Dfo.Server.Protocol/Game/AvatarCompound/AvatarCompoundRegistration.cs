@@ -16,7 +16,7 @@ internal static class AvatarCompoundRegistration
     internal static IServiceCollection AddAvatarCompoundSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<AvatarCompoundCompleted, AvatarCompoundCompletedHandler>();
-        services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
+        services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(ClientMessageType.GameAvatarCompound);
         services.AddGameCmdMessageEncoder<AvatarCompoundResponse, AvatarCompoundEncoder>();
         services.AddProtocolCommandHandler<GameAvatarCompoundCommand, AvatarCompoundResult, GameAvatarCompoundCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

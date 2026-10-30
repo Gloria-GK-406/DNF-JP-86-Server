@@ -63,7 +63,7 @@ public sealed record MailboxSendResponse(bool Multi, byte Error = 0) : IGameCmdM
 internal sealed class MailboxSendEncoder : GameCmdMessageEncoder<MailboxSendResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxSendResponse m) =>
-        OnePayload(m.Multi ? (ushort)0x013B : (ushort)0x005E, MailboxWire.Ack(m.Error, _ => { }));
+        OnePayload(m, MailboxWire.Ack(m.Error, _ => { }));
 }
 public sealed class MailboxSendHandler(ICommandBus commands) : ClientMessageHandler<MailboxSendRequest>, IProtocolCommandMessageHandler<GameMailboxCommand>
 {

@@ -18,16 +18,11 @@ internal static class DungeonClearRegistration
         services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
         services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
         services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
-        services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(
-            GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
-        services.AddGameCmdMessageDecoder<BossDieCheckDecoder>(
-            GameProtocol.BossDieCheckType, ClientMessageType.GameBossDieCheck);
-        services.AddGameCmdMessageDecoder<ScoreScrollStateDecoder>(
-            GameProtocol.ScoreScrollStateType, ClientMessageType.GameScoreScrollState);
-        services.AddGameCmdMessageDecoder<EplpCommandDecoder>(
-            GameProtocol.EplpCommandType, ClientMessageType.GameEplpCommand);
-        services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
-            GameProtocol.GiveUpGameType, ClientMessageType.GameGiveUpGame);
+        services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(ClientMessageType.GameSetPlayResult);
+        services.AddGameCmdMessageDecoder<BossDieCheckDecoder>(ClientMessageType.GameBossDieCheck);
+        services.AddGameCmdMessageDecoder<ScoreScrollStateDecoder>(ClientMessageType.GameScoreScrollState);
+        services.AddGameCmdMessageDecoder<EplpCommandDecoder>(ClientMessageType.GameEplpCommand);
+        services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(ClientMessageType.GameGiveUpGame);
         services.AddGameCmdMessageEncoder<
             ScoreScrollStateResponse, ScoreScrollStateResponseEncoder>();
         services.AddGameCmdMessageEncoder<EplpCommandResponse, EplpCommandResponseEncoder>();

@@ -13,8 +13,7 @@ internal static class RosterFollowUpRegistration
 {
     internal static IServiceCollection AddRosterFollowUpSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
-            GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
+        services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(ClientMessageType.GameRosterFollowUp);
         services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();
         services.AddProtocolCommandHandler<GameRosterFollowUpCommand, bool, GameRosterFollowUpCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRosterFollowUp, typeof(RosterFollowUpRequest)));

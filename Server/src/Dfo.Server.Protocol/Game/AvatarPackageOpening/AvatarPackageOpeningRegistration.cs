@@ -14,7 +14,7 @@ internal static class AvatarPackageOpeningRegistration
 {
     internal static IServiceCollection AddAvatarPackageOpeningSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
+        services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(ClientMessageType.GameAvatarPackageOpening);
         services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
         services.AddProtocolCommandHandler<GameAvatarPackageOpeningCommand, PackageOpeningResult, GameAvatarPackageOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

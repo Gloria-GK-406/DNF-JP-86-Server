@@ -26,17 +26,17 @@ internal static class WarehouseRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeCargo, typeof(WarehouseRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeInventory, typeof(WarehouseRequest)));
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameCreateAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0131, ClientMessageType.GameCreateAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(ClientMessageType.GameCreateAccountCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0132, ClientMessageType.GameUpgradeAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(ClientMessageType.GameUpgradeAccountCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameDepositAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0133, ClientMessageType.GameDepositAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(ClientMessageType.GameDepositAccountCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameWithdrawAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0134, ClientMessageType.GameWithdrawAccountCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(ClientMessageType.GameWithdrawAccountCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0198, ClientMessageType.GameUpgradeCargo);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(ClientMessageType.GameUpgradeCargo);
         services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeInventory);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
+        services.AddGameCmdMessageDecoder<WarehouseDecoder>(ClientMessageType.GameUpgradeInventory);
         return services;
     }
 }

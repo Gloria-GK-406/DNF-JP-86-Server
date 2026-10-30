@@ -13,8 +13,7 @@ internal static class IllusionTowerStageRegistration
 {
     internal static IServiceCollection AddIllusionTowerStageSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<IllusionTowerStageDecoder>(
-            GameProtocol.IllusionTowerStageType, ClientMessageType.GameIllusionTowerStage);
+        services.AddGameCmdMessageDecoder<IllusionTowerStageDecoder>(ClientMessageType.GameIllusionTowerStage);
         services.AddProtocolCommandHandler<GameIllusionTowerStageCommand, bool, GameMapLoadingCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
         services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);

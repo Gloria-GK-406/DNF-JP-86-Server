@@ -13,8 +13,7 @@ internal static class FinishLoadingRegistration
 {
     internal static IServiceCollection AddFinishLoadingSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<FinishLoadingDecoder>(
-            GameProtocol.FinishLoadingType, ClientMessageType.GameFinishLoading);
+        services.AddGameCmdMessageDecoder<FinishLoadingDecoder>(ClientMessageType.GameFinishLoading);
         services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
         services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
         services.AddProtocolCommandHandler<GameFinishLoadingCommand, bool, GameMapLoadingCommandHandler>(

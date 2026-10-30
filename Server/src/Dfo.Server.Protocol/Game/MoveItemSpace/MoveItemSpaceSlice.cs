@@ -157,7 +157,7 @@ internal sealed class MoveItemSpaceDecoder : IGameMessageDecoder
 internal sealed class MoveItemSpaceResponseEncoder : GameCmdMessageEncoder<MoveItemSpaceResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MoveItemSpaceResponse message) =>
-        OnePayload(GameProtocol.MoveItemSpaceType, MoveItemSpacePayloadCodec.Encode(message));
+        OnePayload(message, MoveItemSpacePayloadCodec.Encode(message));
 }
 
 public sealed class MoveItemSpaceHandler(ICommandBus commands)

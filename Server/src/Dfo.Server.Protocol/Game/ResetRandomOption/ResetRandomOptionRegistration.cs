@@ -16,7 +16,7 @@ internal static class ResetRandomOptionRegistration
     internal static IServiceCollection AddResetRandomOptionSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<MagicSealGradeCompleted, MagicSealGradeCompletedHandler>();
-        services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
+        services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(ClientMessageType.GameResetRandomOption);
         services.AddGameCmdMessageEncoder<ResetRandomOptionResponse, ResetRandomOptionEncoder>();
         services.AddProtocolCommandHandler<GameResetRandomOptionCommand, EquipmentQualityResult, GameResetRandomOptionCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

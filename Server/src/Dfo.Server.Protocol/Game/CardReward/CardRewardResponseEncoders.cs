@@ -12,8 +12,7 @@ internal sealed class CardSelectRightStateResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         CardSelectRightStateResponse message) =>
-        OnePayload(
-            GameProtocol.CardSelectRightStateType,
+        OnePayload(message,
             CardRewardPayloadCodec.EncodeLayout(message.EligibleSeats));
 }
 

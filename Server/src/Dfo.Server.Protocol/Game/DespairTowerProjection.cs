@@ -64,12 +64,12 @@ internal static class DespairTowerPayloadCodec
 internal sealed class DespairClearRewardEncoder : GameNotiMessageEncoder<DespairClearRewardNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DespairClearRewardNotification message) =>
-        OnePayload(GameProtocol.DespairClearRewardType, DespairTowerPayloadCodec.Reward(message.Settlement));
+        OnePayload(message, DespairTowerPayloadCodec.Reward(message.Settlement));
 }
 internal sealed class DespairApcInfoEncoder : GameNotiMessageEncoder<DespairApcInfoNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DespairApcInfoNotification message) =>
-        OnePayload(GameProtocol.DespairApcInfoType, DespairTowerPayloadCodec.Apc(message));
+        OnePayload(message, DespairTowerPayloadCodec.Apc(message));
 }
 internal static class DespairTowerProjection
 {

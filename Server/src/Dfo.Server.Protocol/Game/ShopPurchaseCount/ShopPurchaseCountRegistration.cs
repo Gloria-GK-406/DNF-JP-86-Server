@@ -15,8 +15,7 @@ internal static class ShopPurchaseCountRegistration
     internal static IServiceCollection AddShopPurchaseCountSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>();
-        services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(
-            GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
+        services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(ClientMessageType.GameShopPurchaseCount);
         services.AddProtocolCommandHandler<GameShopPurchaseCountCommand, bool, GameShopPurchaseCountCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameShopPurchaseCount, typeof(ShopPurchaseCountRequest)));
         services.RegisterProtocolMessageHandler<ShopPurchaseCountHandler, ShopPurchaseCountRequest, GameShopPurchaseCountCommand>(ClientMessageType.GameShopPurchaseCount);

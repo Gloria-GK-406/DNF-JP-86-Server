@@ -13,7 +13,7 @@ internal static class GenCeraTicketRegistration
 {
     internal static IServiceCollection AddGenCeraTicketSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
+        services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(ClientMessageType.GameGenCeraTicket);
         services.AddGameCmdMessageEncoder<GenCeraTicketUnavailable, GenCeraTicketResponseEncoder>();
         services.AddProtocolCommandHandler<GameGenCeraTicketCommand, bool, GameGenCeraTicketCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGenCeraTicket, typeof(GenCeraTicketRequest)));

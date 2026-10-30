@@ -144,7 +144,7 @@ internal sealed class GiveUpGameDecoder : IGameMessageDecoder
 internal sealed class GiveUpGameResponseEncoder : GameCmdMessageEncoder<GiveUpGameResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GiveUpGameResponse message) =>
-        OnePayload(GameProtocol.GiveUpGameType, new byte[] { 0x01 });
+        OnePayload(message, new byte[] { 0x01 });
 }
 
 /// <summary>Ends the run and says so.</summary>
@@ -564,8 +564,7 @@ internal sealed class EnableClearDungeonEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         EnableClearDungeonNotification message) =>
-        OnePayload(
-            GameProtocol.EnableClearDungeonNotificationType,
+        OnePayload(message,
             DungeonClearPayloadCodec.EncodeEnableClearDungeon());
 }
 

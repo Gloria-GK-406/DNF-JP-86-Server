@@ -15,7 +15,7 @@ internal static class SaveHotkeysRegistration
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler, Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand>(ClientMessageType.GameSaveHotkeys);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand, bool, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveHotkeys, typeof(Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysDecoder>(0x00C6, ClientMessageType.GameSaveHotkeys);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysDecoder>(ClientMessageType.GameSaveHotkeys);
         return services;
     }
 }

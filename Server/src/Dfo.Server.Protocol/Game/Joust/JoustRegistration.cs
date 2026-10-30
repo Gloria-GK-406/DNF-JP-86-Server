@@ -24,9 +24,9 @@ internal static class JoustRegistration
         services.RegisterProtocolMessageHandler<JoustBetHandler, JoustBetRequest, GameJoustBetCommand>(ClientMessageType.GameJoustBet);
         services.AddProtocolCommandHandler<GameJoustBetCommand, bool, GameJoustBetCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameJoustBet, typeof(JoustBetRequest)));
-        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E6,ClientMessageType.GameJoustInfo);
-        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E8,ClientMessageType.GameJoustHistory);
-        services.AddGameCmdMessageDecoder<JoustBetDecoder>(0x04E7,ClientMessageType.GameJoustBet);
+        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(ClientMessageType.GameJoustInfo);
+        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(ClientMessageType.GameJoustHistory);
+        services.AddGameCmdMessageDecoder<JoustBetDecoder>(ClientMessageType.GameJoustBet);
         services.AddGameCmdMessageEncoder<JoustResponse,JoustResponseEncoder>();
         services.AddGameNotiMessageEncoder<JoustStateMessage,GameNotiStateSynchronizationEncoder<JoustStateMessage>>();
         services.AddGameNotiMessageEncoder<JoustInfoMessage,GameNotiStateSynchronizationEncoder<JoustInfoMessage>>();

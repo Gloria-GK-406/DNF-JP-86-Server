@@ -105,7 +105,7 @@ internal sealed class WeddingInfoEncoder : GameNotiMessageEncoder<WeddingInfoMes
 internal sealed class WeddingPartnerEncoder : GameCmdMessageEncoder<WeddingPartnerAck>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingPartnerAck message) =>
-        OnePayload(GameProtocol.WeddingPartnerType, MarriageEngagementPayload.Partner(message.Partner));
+        OnePayload(message, MarriageEngagementPayload.Partner(message.Partner));
 }
 
 internal sealed class WeddingPartnerHandler(ICommandBus commands) : ClientMessageHandler<WeddingPartnerQuery>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingPartnerCommand>

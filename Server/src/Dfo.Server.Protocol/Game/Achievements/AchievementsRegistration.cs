@@ -22,7 +22,7 @@ internal static class AchievementsRegistration
         services.AddDomainSubscriber<AchievementProgressChanged, AchievementEventSubscriber>("achievement.noti", DomainEventDeliveryPolicy.LiveOnly, f => f.CharacterId.Value.ToString());
         services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>();
         services.RegisterProtocolMessageHandler<AchievementTriggerHandler, AchievementTriggerRequest, GameAchievementTriggerCommand>(ClientMessageType.GameAchievementTrigger);
-        services.AddGameCmdMessageDecoder<AchievementTriggerDecoder>(0x01A1, ClientMessageType.GameAchievementTrigger);
+        services.AddGameCmdMessageDecoder<AchievementTriggerDecoder>(ClientMessageType.GameAchievementTrigger);
         services.AddGameCmdMessageEncoder<AchievementTriggerResponse, AchievementTriggerEncoder>();
         return services;
     }

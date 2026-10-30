@@ -18,8 +18,7 @@ internal static class TutorialLevelUpRegistration
 {
     internal static IServiceCollection AddTutorialLevelUpSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(
-            GameProtocol.TutorialLevelUpType, ClientMessageType.GameTutorialLevelUp);
+        services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(ClientMessageType.GameTutorialLevelUp);
         services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
         // The tutorial's level: one row, written once, and the client is told what it now stands at.
         services.AddProtocolCommandHandler<GameTutorialLevelUpCommand, bool, GameTutorialLevelUpCommandHandler>(

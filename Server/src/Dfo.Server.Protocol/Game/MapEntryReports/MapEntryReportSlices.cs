@@ -146,7 +146,7 @@ internal sealed class SecurityStatusAcknowledgementEncoder
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         SecurityStatusAcknowledgement message) =>
-        OnePayload(GameProtocol.SecurityStatusType, ObservedBody);
+        OnePayload(message, ObservedBody);
 }
 
 /// <summary>Logs the report and answers it.</summary>

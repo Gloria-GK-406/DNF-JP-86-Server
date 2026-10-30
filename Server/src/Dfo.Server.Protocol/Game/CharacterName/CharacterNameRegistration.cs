@@ -14,8 +14,7 @@ internal static class CharacterNameRegistration
 {
     internal static IServiceCollection AddCharacterNameSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
-            GameProtocol.CheckCharacterNameType, ClientMessageType.GameCheckCharacterName);
+        services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(ClientMessageType.GameCheckCharacterName);
         services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
         services.AddProtocolCommandHandler<GameCheckCharacterNameCommand, CharacterNameStatus, GameCheckCharacterNameCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameCheckCharacterName, typeof(CheckCharacterNameRequest)));

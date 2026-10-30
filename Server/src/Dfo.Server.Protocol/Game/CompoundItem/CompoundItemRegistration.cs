@@ -13,7 +13,7 @@ internal static class CompoundItemRegistration
 {
     internal static IServiceCollection AddCompoundItemSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<CompoundItemDecoder>(GameProtocol.CompoundItemType, ClientMessageType.GameCompoundItem);
+        services.AddGameCmdMessageDecoder<CompoundItemDecoder>(ClientMessageType.GameCompoundItem);
         services.AddGameCmdMessageEncoder<CompoundItemResponse, CompoundItemEncoder>();
         services.AddProtocolCommandHandler<GameCompoundItemCommand, bool, GameCompoundItemCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

@@ -192,7 +192,7 @@ internal sealed class RemovePartyMemberRefusalEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         RemovePartyMemberRefusal message) =>
-        OnePayload(GameProtocol.RemovePartyMemberType, EncodeBody());
+        OnePayload(message, EncodeBody());
 
     internal static byte[] EncodeBody() => [0x00, 0x13];
 }

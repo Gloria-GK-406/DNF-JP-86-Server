@@ -44,7 +44,7 @@ internal sealed class UseRevivalCoinEncoder : GameCmdMessageEncoder<UseRevivalCo
         return body;
     }
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UseRevivalCoinResponse message)
-        => OnePayload(0x0029, EncodeBody(message));
+        => OnePayload(message, EncodeBody(message));
 }
 public sealed class UseRevivalCoinHandler(ICommandBus commands)
     : ClientMessageHandler<UseRevivalCoinRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameUseRevivalCoinCommand>

@@ -13,7 +13,7 @@ internal static class LevelUpTicketRegistration
 {
     internal static IServiceCollection AddLevelUpTicketSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<LevelUpTicketDecoder>(GameProtocol.LevelUpTicketType, ClientMessageType.GameLevelUpTicket);
+        services.AddGameCmdMessageDecoder<LevelUpTicketDecoder>(ClientMessageType.GameLevelUpTicket);
         services.AddGameCmdMessageEncoder<LevelUpTicketResponse, LevelUpTicketEncoder>();
         services.AddProtocolCommandHandler<GameLevelUpTicketCommand, bool, GameLevelUpTicketCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

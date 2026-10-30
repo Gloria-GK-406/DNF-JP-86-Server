@@ -28,6 +28,6 @@ internal sealed class MirrorDungeonMissionEncoder : GameNotiMessageEncoder<Mirro
     {
         var body = new byte[4];
         BinaryPrimitives.WriteUInt32LittleEndian(body, checked((uint)message.QuestId));
-        return OnePayload(0x0278, body);
+        return OnePayload(message, body);
     }
 }

@@ -18,10 +18,7 @@ internal static class AccountRosterRegistration
         services.AddNotificationHandler<
             OtherCharacterDetailRequested,
             OtherCharacterDetailRequestedHandler>();
-        services.AddGameCmdMessageDecoder<GetUserInfoMessageDecoder>(
-            GameProtocol.GetUserInfoType,
-            ClientMessageType.GameGetAccountCharacterRoster,
-            ClientMessageType.GameGetOtherCharacterDetail);
+        services.AddGameCmdFamilyDecoder<GetUserInfoMessageDecoder>(GameProtocol.GetUserInfoType, ClientMessageType.GameGetAccountCharacterRoster, ClientMessageType.GameGetOtherCharacterDetail);
         services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();
         services.AddGameNotiMessageEncoder<
             OtherCharacterDetailResponse,

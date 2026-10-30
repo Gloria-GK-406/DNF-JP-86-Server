@@ -6,7 +6,7 @@ namespace Dfo.Server.Protocol.Game.EquipmentDurability;
 internal sealed class DecreaseDurabilityResponseEncoder : GameCmdMessageEncoder<DecreaseDurabilityResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DecreaseDurabilityResponse message) =>
-        OnePayload(GameProtocol.DecreaseDurabilityType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(DecreaseDurabilityResponse message) =>
         message.Receipt is { } receipt

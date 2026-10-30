@@ -61,7 +61,7 @@ internal sealed class TutorialLevelUpResponseEncoder : GameCmdMessageEncoder<Tut
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         TutorialLevelUpResponse message) =>
-        OnePayload(GameProtocol.TutorialLevelUpType, new byte[] { message.Result });
+        OnePayload(message, new byte[] { message.Result });
 }
 
 /// <summary>Why the level was not granted, in the server's own terms.</summary>

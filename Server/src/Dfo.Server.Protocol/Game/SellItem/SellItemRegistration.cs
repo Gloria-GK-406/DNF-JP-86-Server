@@ -15,7 +15,7 @@ internal static class SellItemRegistration
     internal static IServiceCollection AddSellItemSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>();
-        services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
+        services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(ClientMessageType.GameSellItem);
         services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
         services.AddProtocolCommandHandler<GameSellItemCommand, bool, GameSellItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem, typeof(SellItemRequest)));

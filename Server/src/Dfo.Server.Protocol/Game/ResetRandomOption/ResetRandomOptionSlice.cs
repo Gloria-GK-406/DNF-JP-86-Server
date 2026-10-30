@@ -46,7 +46,7 @@ public sealed record ResetRandomOptionResponse(bool Success, byte Error = 0x13) 
 internal sealed class ResetRandomOptionEncoder : GameCmdMessageEncoder<ResetRandomOptionResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ResetRandomOptionResponse message)
-        => OnePayload(0x01C8, message.Success ? [1] : GameCmdEnvelope.Refuse(message.Error));
+        => OnePayload(message, message.Success ? [1] : GameCmdEnvelope.Refuse(message.Error));
 }
 
 public sealed class ResetRandomOptionHandler(ICommandBus commands) : ClientMessageHandler<ResetRandomOptionRequest>, IProtocolCommandMessageHandler<GameResetRandomOptionCommand>

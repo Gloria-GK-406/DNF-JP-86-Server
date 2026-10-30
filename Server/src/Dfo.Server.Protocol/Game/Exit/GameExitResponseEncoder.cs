@@ -13,7 +13,6 @@ internal sealed class GameExitResponseEncoder : GameCmdMessageEncoder<GameExitRe
     /// an uninformative reason.
     /// </remarks>
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GameExitResponse message) =>
-        OnePayload(
-            GameProtocol.ExitType,
+        OnePayload(message,
             message.Succeeded ? GameCmdEnvelope.Accept() : GameCmdEnvelope.Refuse(0x00));
 }

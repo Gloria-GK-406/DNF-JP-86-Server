@@ -14,5 +14,5 @@ public sealed record EplpRechallengeNotification : IGameNotiMessage
 internal sealed class EplpRechallengeEncoder : GameNotiMessageEncoder<EplpRechallengeNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(EplpRechallengeNotification message) =>
-        OnePayload(GameProtocol.EplpRechallengeNotificationType, new byte[] { 9 });
+        OnePayload(message, new byte[] { 9 });
 }

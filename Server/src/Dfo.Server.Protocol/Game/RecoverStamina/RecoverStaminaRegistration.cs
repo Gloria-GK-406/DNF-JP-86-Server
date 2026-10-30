@@ -17,7 +17,7 @@ internal static class RecoverStaminaRegistration
         services.AddProtocolCommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult, GameRecoverStaminaCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRecoverStamina, typeof(RecoverStaminaRequest)));
         services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>();
-        services.AddGameCmdMessageDecoder<RecoverStaminaDecoder>(0x0009, ClientMessageType.GameRecoverStamina);
+        services.AddGameCmdMessageDecoder<RecoverStaminaDecoder>(ClientMessageType.GameRecoverStamina);
         services.AddGameCmdMessageEncoder<RecoverStaminaResponse, RecoverStaminaEncoder>();
         services.RegisterProtocolMessageHandler<RecoverStaminaHandler, RecoverStaminaRequest, GameRecoverStaminaCommand>(ClientMessageType.GameRecoverStamina);
         return services;

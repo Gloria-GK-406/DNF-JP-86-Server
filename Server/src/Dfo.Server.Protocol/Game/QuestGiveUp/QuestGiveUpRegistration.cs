@@ -13,8 +13,7 @@ internal static class QuestGiveUpRegistration
 {
     internal static IServiceCollection AddQuestGiveUpSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<GiveUpQuestMessageDecoder>(
-            GameProtocol.GiveUpQuestType, ClientMessageType.GameGiveUpQuest);
+        services.AddGameCmdMessageDecoder<GiveUpQuestMessageDecoder>(ClientMessageType.GameGiveUpQuest);
         services.AddGameCmdMessageEncoder<GiveUpQuestAcknowledgement, GiveUpQuestAcknowledgementEncoder>();
         services.AddProtocolCommandHandler<GameGiveUpQuestCommand, GiveUpQuestOutcome, GameGiveUpQuestCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpQuest, typeof(GiveUpQuestRequest)));

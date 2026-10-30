@@ -182,13 +182,13 @@ internal static class CreaturePayloadCodec
 internal sealed class CreatureExperienceEncoder : GameNotiMessageEncoder<CreatureExperienceNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CreatureExperienceNotification message) =>
-        OnePayload(CreaturePayloadCodec.ExperienceNotificationType, CreaturePayloadCodec.EncodeExperience(message));
+        OnePayload(message, CreaturePayloadCodec.EncodeExperience(message));
 }
 
 internal sealed class CreatureStateEncoder : GameNotiMessageEncoder<CreatureStateNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CreatureStateNotification message) =>
-        OnePayload(CreaturePayloadCodec.StateNotificationType, CreaturePayloadCodec.EncodeState(message));
+        OnePayload(message, CreaturePayloadCodec.EncodeState(message));
 }
 
 internal sealed class CreatureDeathEncoder : GameNotiMessageEncoder<CreatureDeathNotification>

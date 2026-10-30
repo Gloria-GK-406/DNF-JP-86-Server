@@ -30,7 +30,7 @@ internal sealed class WeddingLovePointAckEncoder : GameCmdMessageEncoder<Wedding
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingLovePointAck m)
     {
         var b = new byte[5]; b[0] = 1; BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(1), m.Status);
-        return OnePayload(0x03F5, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed record WeddingLovePointNotification(int Character, int Points) : IGameNotiMessage
@@ -40,7 +40,7 @@ internal sealed class WeddingLovePointNotificationEncoder : GameNotiMessageEncod
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingLovePointNotification m)
     {
         var b = new byte[8]; BinaryPrimitives.WriteInt32LittleEndian(b, m.Character); BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(4), m.Points);
-        return OnePayload(0x03D3, b);
+        return OnePayload(m, b);
     }
 }
 

@@ -42,7 +42,7 @@ public sealed record MagicBoxBatchOpeningResponse(MagicBoxOpeningInput? Input, M
 internal sealed class MagicBoxBatchOpeningEncoder : GameCmdMessageEncoder<MagicBoxBatchOpeningResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MagicBoxBatchOpeningResponse message) =>
-        OnePayload(0x0450, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, true));
+        OnePayload(message, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, true));
 }
 public sealed class MagicBoxBatchOpeningHandler(ICommandBus commands) : ClientMessageHandler<MagicBoxBatchOpeningRequest>, IProtocolCommandMessageHandler<GameMagicBoxBatchOpeningCommand>
 {

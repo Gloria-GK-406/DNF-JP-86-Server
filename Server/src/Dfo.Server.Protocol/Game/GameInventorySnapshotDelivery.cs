@@ -25,11 +25,12 @@ internal sealed record InventoryFullSnapshotMessage(InventoryContainerState Cont
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization;
+    internal ushort Type => 0x000D;
 }
 internal sealed class InventoryFullSnapshotEncoder : GameNotiMessageEncoder<InventoryFullSnapshotMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(InventoryFullSnapshotMessage message) =>
-        OnePayload(0x000D, GameInventorySnapshotCodec.EncodeInventorySnapshot(message.Container,
+        OnePayload(message.Type, GameInventorySnapshotCodec.EncodeInventorySnapshot(message.Container,
             message.Character.VirtualResources, message.Account.VirtualResources,
             message.Account.Cargo.SelectionKey, message.Account.Cargo.Value32, message.PreparedAt));
 }
@@ -37,9 +38,10 @@ internal sealed record InventoryLocksMessage(IReadOnlyList<InventoryEquipmentLoc
     IReadOnlyList<InventoryEquipmentLockState> AccountLocks) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization;
+    internal ushort Type => 0x00FB;
 }
 internal sealed class InventoryLocksEncoder : GameNotiMessageEncoder<InventoryLocksMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(InventoryLocksMessage message) =>
-        OnePayload(0x00FB, GameInventorySnapshotCodec.EncodeEquipmentLocks(message.CharacterLocks, message.AccountLocks));
+        OnePayload(message.Type, GameInventorySnapshotCodec.EncodeEquipmentLocks(message.CharacterLocks, message.AccountLocks));
 }

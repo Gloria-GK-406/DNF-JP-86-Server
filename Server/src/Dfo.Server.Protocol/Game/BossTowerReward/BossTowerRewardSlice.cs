@@ -38,6 +38,6 @@ internal static class BossTowerRewardPayloadCodec
 internal sealed class BossTowerRewardEncoder : GameNotiMessageEncoder<BossTowerRewardNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(BossTowerRewardNotification message) =>
-        OnePayload(GameProtocol.BossTowerRewardType,
+        OnePayload(message,
             BossTowerRewardPayloadCodec.Encode(message.Experience, message.Slots));
 }

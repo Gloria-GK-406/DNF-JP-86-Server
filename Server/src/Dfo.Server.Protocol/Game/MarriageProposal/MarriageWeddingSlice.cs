@@ -28,7 +28,7 @@ internal sealed class WeddingAvatarEncoder : GameNotiMessageEncoder<WeddingAvata
         MarriageChurchPayload.CopyName(m.Church.ApplicantName, b.AsSpan(2, 30));
         MarriageChurchPayload.CopyName(m.Church.PartnerName, b.AsSpan(32, 30));
         BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(62), m.Church.Room.AreaId);
-        return OnePayload(0x03CF, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed record WeddingBeginNotification(MarriageChurchSnapshot Church) : IGameNotiMessage
@@ -44,7 +44,7 @@ internal sealed class WeddingBeginEncoder : GameNotiMessageEncoder<WeddingBeginN
         BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(4), m.Church.Room.AreaId);
         MarriageChurchPayload.CopyName(m.Church.ApplicantName, b.AsSpan(8, 30));
         MarriageChurchPayload.CopyName(m.Church.PartnerName, b.AsSpan(38, 30));
-        return OnePayload(0x03D7, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed class WeddingLetterEncoder : GameNotiMessageEncoder<WeddingLetterNotification>
@@ -54,7 +54,7 @@ internal sealed class WeddingLetterEncoder : GameNotiMessageEncoder<WeddingLette
         var b = new byte[78];
         MarriageChurchPayload.Preparation(m.Church).AsSpan(0, 77).CopyTo(b);
         BinaryPrimitives.WriteUInt32LittleEndian(b, m.Key); b[77] = m.Paid ? (byte)1 : (byte)0;
-        return OnePayload(0x03D5, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed record WeddingInvitedGuestsNotification(IReadOnlyList<uint> Guests) : IGameNotiMessage
@@ -65,7 +65,7 @@ internal sealed class WeddingInvitedGuestsEncoder : GameNotiMessageEncoder<Weddi
     {
         var b = new byte[1 + 4 * m.Guests.Count]; b[0] = checked((byte)m.Guests.Count);
         for (var i = 0; i < m.Guests.Count; i++) BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(1 + 4 * i), m.Guests[i]);
-        return OnePayload(0x03D6, b);
+        return OnePayload(m, b);
     }
 }
 public sealed record WeddingLetterRequest(GameMessageMetadata Metadata, byte Mode, uint Target, ushort OnlineId, byte Kind) : IClientNetworkMessage
@@ -100,7 +100,7 @@ internal sealed class WeddingLetterAckEncoder : GameCmdMessageEncoder<WeddingLet
     {
         var b = new byte[m.Status == 0 ? 7 : 5]; b[0] = 1; BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(1), m.Status);
         if (m.Status == 0) BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(5), m.Remaining);
-        return OnePayload(0x03F6, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed class WeddingGiftAckEncoder : GameCmdMessageEncoder<WeddingGiftAck>
@@ -109,7 +109,7 @@ internal sealed class WeddingGiftAckEncoder : GameCmdMessageEncoder<WeddingGiftA
     {
         var b = new byte[m.Status == 0 ? 9 : 5]; b[0] = 1; BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(1), m.Status);
         if (m.Status == 0) BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(5), m.Key);
-        return OnePayload(0x03F2, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed class WeddingLetterHandler(ICommandBus commands) : ClientMessageHandler<WeddingLetterRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingLetterCommand>

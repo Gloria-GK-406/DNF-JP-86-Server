@@ -16,7 +16,7 @@ internal static class ResetItemQualityRegistration
     internal static IServiceCollection AddResetItemQualitySlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<EquipmentQualityCompleted, EquipmentQualityCompletedHandler>();
-        services.AddGameCmdMessageDecoder<ResetItemQualityDecoder>(0x0051, ClientMessageType.GameResetItemQuality);
+        services.AddGameCmdMessageDecoder<ResetItemQualityDecoder>(ClientMessageType.GameResetItemQuality);
         services.AddGameCmdMessageEncoder<ResetItemQualityResponse, ResetItemQualityEncoder>();
         services.AddProtocolCommandHandler<GameResetItemQualityCommand, EquipmentQualityResult, GameResetItemQualityCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

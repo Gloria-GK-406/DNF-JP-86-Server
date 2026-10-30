@@ -25,6 +25,6 @@ internal static class BossTowerInfoPayloadCodec
 internal sealed class BossTowerInfoEncoder : GameNotiMessageEncoder<BossTowerInfoNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(BossTowerInfoNotification message) =>
-        OnePayload(GameProtocol.BossTowerInfoType,
+        OnePayload(message,
             BossTowerInfoPayloadCodec.Encode(message.DungeonId, message.TotalLevels));
 }

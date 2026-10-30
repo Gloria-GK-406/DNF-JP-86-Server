@@ -14,8 +14,7 @@ internal static class StoryPauseRegistration
     internal static IServiceCollection AddStoryPauseSlice(this IServiceCollection services)
     {
         services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
-        services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
-            GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
+        services.AddGameCmdMessageDecoder<StoryPauseDecoder>(ClientMessageType.GameStoryPause);
         services.AddProtocolCommandHandler<GameStoryPauseCommand, bool, GameStoryPauseCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameStoryPause, typeof(StoryPauseRequest)));
         services.RegisterProtocolMessageHandler<StoryPauseHandler, StoryPauseRequest, GameStoryPauseCommand>(ClientMessageType.GameStoryPause);

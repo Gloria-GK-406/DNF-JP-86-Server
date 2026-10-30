@@ -40,5 +40,5 @@ internal static class BossTowerMapPayloadCodec
 internal sealed class BossTowerMapEncoder : GameNotiMessageEncoder<BossTowerMapNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(BossTowerMapNotification message) =>
-        OnePayload(GameProtocol.BossTowerMapType, BossTowerMapPayloadCodec.Encode(message.Room));
+        OnePayload(message, BossTowerMapPayloadCodec.Encode(message.Room));
 }

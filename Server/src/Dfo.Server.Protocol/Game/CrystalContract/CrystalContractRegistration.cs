@@ -15,7 +15,7 @@ internal static class CrystalContractRegistration
     internal static IServiceCollection AddCrystalContractSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>();
-        services.AddGameCmdMessageDecoder<CrystalContractDecoder>(0x0218, ClientMessageType.GameCrystalContract);
+        services.AddGameCmdMessageDecoder<CrystalContractDecoder>(ClientMessageType.GameCrystalContract);
         services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();
         services.AddProtocolCommandHandler<GameCrystalContractCommand, bool, GameCrystalContractCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameCrystalContract, typeof(CrystalContractRequest)));

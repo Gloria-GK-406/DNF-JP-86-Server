@@ -76,7 +76,7 @@ public sealed record TeleportResponse(byte ErrorCode = 19) : IGameCmdMessage
 internal sealed class TeleportEncoder : GameCmdMessageEncoder<TeleportResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TeleportResponse message) =>
-        OnePayload(0x00ED, new byte[] { 0, message.ErrorCode });
+        OnePayload(message, new byte[] { 0, message.ErrorCode });
 }
 public sealed record TeleportCooldownNotification(int ItemId, int Seconds) : IGameNotiMessage
 {
@@ -90,7 +90,7 @@ internal sealed class TeleportCooldownEncoder : GameNotiMessageEncoder<TeleportC
         var body = new byte[9]; body[0] = 1;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(1), message.ItemId);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5), message.Seconds);
-        return OnePayload(0x00AC, body);
+        return OnePayload(message, body);
     }
 }
 public sealed record GameTeleportCommand(NetworkDispatchContext Dispatch, TeleportRequest Input) : IProtocolCommand<bool>

@@ -15,8 +15,7 @@ internal static class BuyItemRegistration
     internal static IServiceCollection AddBuyItemSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>();
-        services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
-            GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
+        services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(ClientMessageType.GameBuyItem);
         services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
         services.AddProtocolCommandHandler<GameBuyItemCommand, BuyItemOutcome, GameBuyItemCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

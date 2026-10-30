@@ -24,7 +24,6 @@ internal sealed class AuctionServiceStateNoticeEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         AuctionServiceStateNotice message) =>
-        OnePayload(
-            GameProtocol.AuctionServiceStateNotificationType,
+        OnePayload(message,
             new[] { message.ServiceType, message.Open ? (byte)0x01 : (byte)0x00 });
 }

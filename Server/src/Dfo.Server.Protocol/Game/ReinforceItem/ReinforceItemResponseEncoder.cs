@@ -3,7 +3,7 @@ namespace Dfo.Server.Protocol.Game.ReinforceItem;
 internal sealed class ReinforceItemResponseEncoder : GameCmdMessageEncoder<ReinforceItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ReinforceItemResponse message) =>
-        OnePayload(GameProtocol.ReinforceItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(ReinforceItemResponse message)
     {

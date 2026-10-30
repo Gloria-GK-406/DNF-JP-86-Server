@@ -16,8 +16,7 @@ internal static class DeleteItemRegistration
     {
         services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>();
         services.AddNotificationHandler<MaterialsConsumed, MaterialsConsumedHandler>();
-        services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
-            GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
+        services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(ClientMessageType.GameDeleteItem);
         services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
         services.AddProtocolCommandHandler<GameDeleteItemCommand, bool, GameDeleteItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteItem, typeof(DeleteItemRequest)));

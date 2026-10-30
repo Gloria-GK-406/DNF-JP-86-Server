@@ -35,7 +35,7 @@ internal sealed class RosterFollowUpResponseEncoder : GameCmdMessageEncoder<Rost
     /// </remarks>
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         RosterFollowUpResponse message) =>
-        OnePayload(GameProtocol.RosterFollowUpType, GameCmdEnvelope.Refuse(0x00));
+        OnePayload(message, GameCmdEnvelope.Refuse(0x00));
 }
 
 internal static class RosterFollowUpDescriptor

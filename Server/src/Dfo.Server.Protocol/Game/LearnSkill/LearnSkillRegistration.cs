@@ -14,17 +14,17 @@ internal static class LearnSkillRegistration
 {
     internal static IServiceCollection AddLearnSkillSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
+        services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(ClientMessageType.GameLearnSkill);
         services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
         services.AddProtocolCommandHandler<GameChangeSkillSlotCommand, bool, GameChangeSkillSlotCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameChangeSkillSlot, typeof(ChangeSkillSlotRequest)));
         services.RegisterProtocolMessageHandler<ChangeSkillSlotHandler, ChangeSkillSlotRequest, GameChangeSkillSlotCommand>(ClientMessageType.GameChangeSkillSlot);
-        services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);
+        services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(ClientMessageType.GameChangeSkillSlot);
         services.AddGameCmdMessageEncoder<ChangeSkillSlotResponse, ChangeSkillSlotEncoder>();
         services.AddProtocolCommandHandler<GameSwitchSkillBuildCommand, bool, GameSwitchSkillBuildCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSwitchSkillBuild, typeof(SwitchSkillBuildRequest)));
         services.RegisterProtocolMessageHandler<SwitchSkillBuildHandler, SwitchSkillBuildRequest, GameSwitchSkillBuildCommand>(ClientMessageType.GameSwitchSkillBuild);
-        services.AddGameCmdMessageDecoder<SwitchSkillBuildDecoder>(0x0104, ClientMessageType.GameSwitchSkillBuild);
+        services.AddGameCmdMessageDecoder<SwitchSkillBuildDecoder>(ClientMessageType.GameSwitchSkillBuild);
         services.AddGameCmdMessageEncoder<SwitchSkillBuildResponse, SwitchSkillBuildEncoder>();
         services.AddProtocolCommandHandler<GameLearnSkillCommand, CharacterSkillLearningResult, GameLearnSkillCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

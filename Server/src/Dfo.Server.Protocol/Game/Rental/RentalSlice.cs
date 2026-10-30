@@ -56,7 +56,7 @@ internal sealed class RentEquipmentEncoder : GameCmdMessageEncoder<RentEquipment
         if (message.Result > 2) throw new InvalidDataException("Unverified rental result code.");
         var body = new byte[5]; body[0]=1; BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(1),message.Result); return body;
     }
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(RentEquipmentResponse message) => OnePayload(0x03CF,Body(message));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(RentEquipmentResponse message) => OnePayload(message,Body(message));
 }
 internal sealed class ChargeRentPointEncoder : GameCmdMessageEncoder<ChargeRentPointResponse>
 {
@@ -68,7 +68,7 @@ internal sealed class ChargeRentPointEncoder : GameCmdMessageEncoder<ChargeRentP
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(5),message.ResultOrQuantity);
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(9),message.Balance); return body;
     }
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ChargeRentPointResponse message) => OnePayload(0x03D0,Body(message));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ChargeRentPointResponse message) => OnePayload(message,Body(message));
 }
 internal sealed record GameRentEquipmentCommand(NetworkDispatchContext Dispatch, RentEquipmentRequest Input) : IProtocolCommand<bool>
 {

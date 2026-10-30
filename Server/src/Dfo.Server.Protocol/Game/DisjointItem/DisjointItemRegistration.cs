@@ -19,8 +19,7 @@ internal static class DisjointItemRegistration
         services.AddProtocolCommandHandler<GameDisjointItemCommand, EquipmentDisjointResult, GameDisjointItemCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameDisjointItem, typeof(DisjointItemRequest)));
-        services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(
-            GameProtocol.DisjointItemType, ClientMessageType.GameDisjointItem);
+        services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(ClientMessageType.GameDisjointItem);
         services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
         services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);
         return services;

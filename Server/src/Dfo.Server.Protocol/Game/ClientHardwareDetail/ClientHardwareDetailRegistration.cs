@@ -13,8 +13,7 @@ internal static class ClientHardwareDetailRegistration
 {
     internal static IServiceCollection AddClientHardwareDetailSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<ClientHardwareDetailMessageDecoder>(
-            GameProtocol.ClientHardwareDetailType, ClientMessageType.GameClientHardwareDetail);
+        services.AddGameCmdMessageDecoder<ClientHardwareDetailMessageDecoder>(ClientMessageType.GameClientHardwareDetail);
         services.AddProtocolCommandHandler<GameClientHardwareDetailCommand, bool, GameClientHardwareDetailCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameClientHardwareDetail, typeof(ClientHardwareDetailReportRequest)));
         services.RegisterProtocolMessageHandler<ClientHardwareDetailHandler, ClientHardwareDetailReportRequest, GameClientHardwareDetailCommand>(ClientMessageType.GameClientHardwareDetail);

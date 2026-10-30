@@ -66,8 +66,7 @@ internal static class StoryPausePayloadCodec
 internal sealed class StoryPauseEncoder : GameNotiMessageEncoder<StoryPauseNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(StoryPauseNotification message) =>
-        OnePayload(
-            GameProtocol.StoryPauseNotificationType,
+        OnePayload(message,
             StoryPausePayloadCodec.EncodeState(
                 message.WireUserId, message.PauseFlag, message.RequestType));
 }

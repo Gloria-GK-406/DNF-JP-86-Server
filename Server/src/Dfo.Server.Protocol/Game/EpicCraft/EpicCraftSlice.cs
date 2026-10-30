@@ -39,7 +39,7 @@ public sealed record EpicCraftResponse(bool Success, byte Error = 2) : IGameCmdM
 internal sealed class EpicCraftEncoder : GameCmdMessageEncoder<EpicCraftResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(EpicCraftResponse message) =>
-        OnePayload(0x0313, message.Success ? new byte[] { 1 } : new byte[] { 0, message.Error });
+        OnePayload(message, message.Success ? new byte[] { 1 } : new byte[] { 0, message.Error });
 }
 public sealed class EpicCraftHandler(ICommandBus commands) : ClientMessageHandler<EpicCraftRequest>, IProtocolCommandMessageHandler<GameEpicCraftCommand>
 {

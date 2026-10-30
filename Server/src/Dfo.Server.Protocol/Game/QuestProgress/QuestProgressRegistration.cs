@@ -17,8 +17,7 @@ internal static class QuestProgressRegistration
     {
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>();
-        services.AddGameCmdMessageDecoder<SetQuestTriggerMessageDecoder>(
-            GameProtocol.SetQuestTriggerType, ClientMessageType.GameSetQuestTrigger);
+        services.AddGameCmdMessageDecoder<SetQuestTriggerMessageDecoder>(ClientMessageType.GameSetQuestTrigger);
         services.AddGameCmdMessageEncoder<SetQuestTriggerAcknowledgement, SetQuestTriggerAcknowledgementEncoder>();
         services.AddProtocolCommandHandler<GameSetQuestTriggerCommand, QuestTriggerOutcome, GameSetQuestTriggerCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSetQuestTrigger, typeof(SetQuestTriggerRequest)));

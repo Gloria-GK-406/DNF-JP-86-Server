@@ -10,5 +10,5 @@ internal sealed record WeaknessProjectionNotification(byte Value) : IGameNotiMes
 internal sealed class WeaknessProjectionEncoder : GameNotiMessageEncoder<WeaknessProjectionNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeaknessProjectionNotification message)
-        => OnePayload(0x0021, new byte[] { message.Value });
+        => OnePayload(message, new byte[] { message.Value });
 }

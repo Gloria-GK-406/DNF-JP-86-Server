@@ -14,7 +14,7 @@ internal static class ReviveCoinRegistration
     internal static IServiceCollection AddReviveCoinSlice(this IServiceCollection services)
     {
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinRequest, Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommand>(ClientMessageType.GameDailyReviveCoin);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(0x00CF, ClientMessageType.GameDailyReviveCoin);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(ClientMessageType.GameDailyReviveCoin);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinResponse, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinEncoder>();
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDailyReviveCoin, typeof(Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinRequest)));

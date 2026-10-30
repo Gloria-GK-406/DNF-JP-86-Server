@@ -56,7 +56,6 @@ internal sealed class CheckCharacterNameResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         CheckCharacterNameResponse message) =>
-        OnePayload(
-            GameProtocol.CheckCharacterNameType,
+        OnePayload(message,
             CheckCharacterNamePayloadCodec.Encode(message.Status));
 }

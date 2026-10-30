@@ -3,7 +3,7 @@ namespace Dfo.Server.Protocol.Game.CeraShopPurchase;
 internal sealed class CeraShopPurchaseResponseEncoder : GameCmdMessageEncoder<CeraShopPurchaseResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CeraShopPurchaseResponse message) =>
-        OnePayload(0x0040, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(CeraShopPurchaseResponse message)
     {

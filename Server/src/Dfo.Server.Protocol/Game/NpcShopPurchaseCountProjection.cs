@@ -14,7 +14,7 @@ internal sealed class ShopPurchaseCountEncoder : GameCmdMessageEncoder<ShopPurch
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ShopPurchaseCountResponse message)
     {
         if (message.Result.Rejection != NpcShopRejection.None)
-            return OnePayload(GameProtocol.ShopPurchaseCountType, new byte[] { 0, 0 });
+            return OnePayload(message, new byte[] { 0, 0 });
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)1);
@@ -25,6 +25,6 @@ internal sealed class ShopPurchaseCountEncoder : GameCmdMessageEncoder<ShopPurch
             writer.Write(count.Count);
         }
         writer.Write(0); // The second counted list remains empty; its gameplay meaning is unknown.
-        return OnePayload(GameProtocol.ShopPurchaseCountType, stream.ToArray());
+        return OnePayload(message, stream.ToArray());
     }
 }

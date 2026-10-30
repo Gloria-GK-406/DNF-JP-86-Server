@@ -40,5 +40,5 @@ internal static class IllusionTowerMapPayloadCodec
 internal sealed class IllusionTowerMapEncoder : GameNotiMessageEncoder<IllusionTowerMapNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(IllusionTowerMapNotification message) =>
-        OnePayload(GameProtocol.IllusionTowerMapType, IllusionTowerMapPayloadCodec.Encode(message.Room));
+        OnePayload(message, IllusionTowerMapPayloadCodec.Encode(message.Room));
 }

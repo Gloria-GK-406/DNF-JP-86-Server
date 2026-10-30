@@ -21,10 +21,8 @@ internal static class CardRewardRegistration
         services.TryAddSingleton<DungeonCardPresentationCoordinator>();
         services.AddSingleton<IDungeonCardPresentationControl>(p => p.GetRequiredService<DungeonCardPresentationCoordinator>());
         services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(provider => provider.GetRequiredService<DungeonCardPresentationCoordinator>());
-        services.AddGameCmdMessageDecoder<CardSelectRightStateDecoder>(
-            GameProtocol.CardSelectRightStateType, ClientMessageType.GameCardSelectRightState);
-        services.AddGameCmdMessageDecoder<SelectCardDecoder>(
-            GameProtocol.SelectCardType, ClientMessageType.GameSelectCard);
+        services.AddGameCmdMessageDecoder<CardSelectRightStateDecoder>(ClientMessageType.GameCardSelectRightState);
+        services.AddGameCmdMessageDecoder<SelectCardDecoder>(ClientMessageType.GameSelectCard);
         services.AddGameCmdMessageEncoder<
             CardSelectRightStateResponse, CardSelectRightStateResponseEncoder>();
         services.AddGameCmdMessageEncoder<SelectCardResponse, SelectCardResponseEncoder>();

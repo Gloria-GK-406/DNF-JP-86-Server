@@ -16,7 +16,7 @@ internal static class CycleDungeonEntryRegistration
         services.RegisterProtocolMessageHandler<PrepareCycleDungeonEntryHandler, PrepareCycleDungeonEntryRequest, GamePrepareCycleDungeonEntryCommand>(ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddProtocolCommandHandler<GamePrepareCycleDungeonEntryCommand, CycleDungeonPreparation, GamePrepareCycleDungeonEntryCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GamePrepareCycleDungeonEntry, typeof(PrepareCycleDungeonEntryRequest)));
-        services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
+        services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(ClientMessageType.GamePrepareCycleDungeonEntry);
         services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
         return services;
     }

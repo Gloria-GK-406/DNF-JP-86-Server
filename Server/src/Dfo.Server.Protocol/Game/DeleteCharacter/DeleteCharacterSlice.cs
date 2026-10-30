@@ -103,7 +103,6 @@ internal sealed class DeleteCharacterResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         DeleteCharacterResponse message) =>
-        OnePayload(
-            GameProtocol.DeleteCharacterType,
+        OnePayload(message,
             DeleteCharacterPayloadCodec.Encode(message.Status, message.RosterIndex));
 }

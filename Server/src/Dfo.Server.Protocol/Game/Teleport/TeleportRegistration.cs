@@ -13,7 +13,7 @@ internal static class TeleportRegistration
 {
     internal static IServiceCollection AddTeleportSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<TeleportDecoder>(0x00ED, ClientMessageType.GameTeleport);
+        services.AddGameCmdMessageDecoder<TeleportDecoder>(ClientMessageType.GameTeleport);
         services.AddGameCmdMessageEncoder<TeleportResponse, TeleportEncoder>();
         services.AddGameNotiMessageEncoder<TeleportCooldownNotification, TeleportCooldownEncoder>();
         services.AddProtocolCommandHandler<GameTeleportCommand, bool, GameTeleportCommandHandler>(

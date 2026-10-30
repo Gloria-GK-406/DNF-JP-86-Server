@@ -26,7 +26,7 @@ internal sealed class SaoCurrentFloorEncoder : GameNotiMessageEncoder<SaoCurrent
         return body;
     }
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SaoCurrentFloorNotification message) =>
-        OnePayload(0x03E9, Body(message.Progress));
+        OnePayload(message, Body(message.Progress));
 }
 
 internal sealed record SaoTowerRefresh(Guid RunId, ImmutableArray<SaoTowerRewardRefresh> Rewards, DateTimeOffset At) : INotification<SaoTowerRefresh>;

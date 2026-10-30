@@ -13,8 +13,7 @@ internal static class ExitRegistration
 {
     internal static IServiceCollection AddExitSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<GameExitMessageDecoder>(
-            GameProtocol.ExitType, ClientMessageType.GameExit);
+        services.AddGameCmdMessageDecoder<GameExitMessageDecoder>(ClientMessageType.GameExit);
         services.AddGameCmdMessageEncoder<GameExitResponse, GameExitResponseEncoder>();
         services.AddProtocolCommandHandler<GameExitCommand, bool, GameExitCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameExit, typeof(GameExitRequest)));

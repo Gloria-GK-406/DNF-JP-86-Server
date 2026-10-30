@@ -13,8 +13,7 @@ internal static class QuestClearCouponRegistration
 {
     internal static IServiceCollection AddQuestClearCouponSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
-            GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
+        services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(ClientMessageType.GameQuestClearCoupon);
         services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
         services.AddProtocolCommandHandler<GameQuestClearCouponCommand, bool, GameQuestClearCouponCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

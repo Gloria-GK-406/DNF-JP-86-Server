@@ -14,7 +14,6 @@ internal sealed class AcceptQuestAcknowledgementEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         AcceptQuestAcknowledgement message) =>
-        OnePayload(
-            GameProtocol.AcceptQuestType,
+        OnePayload(message,
             AcceptQuestPayloadCodec.Encode(message));
 }

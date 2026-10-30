@@ -13,8 +13,7 @@ internal static class ContentsPlayInfoRegistration
 {
     internal static IServiceCollection AddContentsPlayInfoSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<ContentsPlayInfoMessageDecoder>(
-            GameProtocol.ContentsPlayInfoType, ClientMessageType.GameContentsPlayInfo);
+        services.AddGameCmdMessageDecoder<ContentsPlayInfoMessageDecoder>(ClientMessageType.GameContentsPlayInfo);
         services.AddGameCmdMessageEncoder<ContentsPlayInfoResponse, ContentsPlayInfoResponseEncoder>();
         services.AddProtocolCommandHandler<GameContentsPlayInfoCommand, bool, GameContentsPlayInfoCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameContentsPlayInfo, typeof(ContentsPlayInfoRequest)));

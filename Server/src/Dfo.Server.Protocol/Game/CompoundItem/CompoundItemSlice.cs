@@ -39,7 +39,7 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CompoundItemResponse message)
     {
-        if (message.Receipt is not { } receipt) return OnePayload(0x0019, new byte[] { 0, message.Error });
+        if (message.Receipt is not { } receipt) return OnePayload(message, new byte[] { 0, message.Error });
         using var stream = new MemoryStream(); using var w = new BinaryWriter(stream);
         w.Write((byte)1); w.Write(checked((byte)(receipt.Consumed.Length)));
         foreach (var cost in receipt.Consumed)
@@ -62,7 +62,7 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
             // Keep these fields on each reward row, including multi-output recipes, rather than once at packet end.
             w.Write(new byte[12]); w.Write(core.EquipmentLockId);
         }
-        return OnePayload(0x0019, stream.ToArray());
+        return OnePayload(message, stream.ToArray());
     }
 }
 public sealed class CompoundItemHandler(ICommandBus commands) : ClientMessageHandler<CompoundItemRequest>, IProtocolCommandMessageHandler<GameCompoundItemCommand>

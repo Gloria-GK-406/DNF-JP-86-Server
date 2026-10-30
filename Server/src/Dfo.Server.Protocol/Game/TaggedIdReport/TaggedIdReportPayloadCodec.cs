@@ -80,7 +80,6 @@ internal sealed class TutorialFlagAcknowledgementEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         TutorialFlagAcknowledgement message) =>
-        OnePayload(
-            GameProtocol.TaggedIdReportType,
+        OnePayload(message,
             TaggedIdReportPayloadCodec.EncodeAcknowledgement(message.Granted));
 }

@@ -32,6 +32,6 @@ internal sealed class HonorLevelInfoNoticeEncoder : GameNotiMessageEncoder<Honor
         var body = new byte[8];
         BinaryPrimitives.WriteUInt32LittleEndian(body, message.Honor.Level);
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4), message.Honor.Experience);
-        return OnePayload(GameProtocol.HonorLevelNotificationType, body);
+        return OnePayload(message, body);
     }
 }

@@ -22,7 +22,7 @@ internal sealed record ElevatorStateMessage(byte Stage, DungeonRoomMechanismOutc
 internal sealed class ElevatorStateEncoder : GameNotiMessageEncoder<ElevatorStateMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ElevatorStateMessage message) =>
-        OnePayload(0x00FE, new byte[] { message.Stage, (byte)message.Outcome });
+        OnePayload(message, new byte[] { message.Stage, (byte)message.Outcome });
 }
 
 internal sealed class RoomMechanismNotificationHandler(IDungeonRunQueryDomainService runs,

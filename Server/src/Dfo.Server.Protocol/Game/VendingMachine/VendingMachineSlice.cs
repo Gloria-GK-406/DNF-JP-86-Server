@@ -39,7 +39,7 @@ public sealed record VendingMachineResponse(VendingMachineResult? Result, byte E
 }
 internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachineResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(VendingMachineResponse message) => OnePayload(0x00D7, Encode(message));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(VendingMachineResponse message) => OnePayload(message, Encode(message));
     internal static byte[] Encode(VendingMachineResponse message)
     {
         using var stream = new MemoryStream();

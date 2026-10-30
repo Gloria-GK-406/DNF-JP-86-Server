@@ -59,7 +59,7 @@ public sealed record OpeningRewardPopup(int SourceSlot, ImmutableArray<OpeningRe
 internal sealed class OpeningRewardPopupEncoder : GameCmdMessageEncoder<OpeningRewardPopup>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(OpeningRewardPopup message) =>
-        OnePayload(0x00A0, OpeningPayloads.Popup(message.SourceSlot, message.Rewards));
+        OnePayload(message, OpeningPayloads.Popup(message.SourceSlot, message.Rewards));
 }
 
 internal static class OpeningPayloads

@@ -28,7 +28,7 @@ public sealed record CrystalContractResponse(bool Success, byte Mode, byte Selec
 internal sealed class CrystalContractEncoder : GameCmdMessageEncoder<CrystalContractResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CrystalContractResponse message) =>
-        OnePayload(0x0218, message.Success ? new byte[] {1, message.Mode, message.Selection} : new byte[] {0, 0});
+        OnePayload(message, message.Success ? new byte[] {1, message.Mode, message.Selection} : new byte[] {0, 0});
 }
 public sealed record CrystalContractSelected(SelectedSessionIdentity Session, byte Mode, byte Selection)
     : INotification<CrystalContractSelected>;

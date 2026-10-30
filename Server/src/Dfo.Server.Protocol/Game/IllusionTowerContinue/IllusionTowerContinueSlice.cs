@@ -11,6 +11,6 @@ internal sealed record IllusionTowerContinueNotification(bool Eligible) : IGameN
 internal sealed class IllusionTowerContinueEncoder : GameNotiMessageEncoder<IllusionTowerContinueNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(IllusionTowerContinueNotification message) =>
-        OnePayload(GameProtocol.IllusionTowerContinueType,
+        OnePayload(message,
             new byte[] { message.Eligible ? (byte)1 : (byte)0 });
 }

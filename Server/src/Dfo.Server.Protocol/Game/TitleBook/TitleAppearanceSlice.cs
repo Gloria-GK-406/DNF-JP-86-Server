@@ -35,7 +35,7 @@ internal sealed record SetTitleAppearanceResponse(bool Success, int ItemId) : IG
 }
 internal sealed class SetTitleAppearanceEncoder : GameCmdMessageEncoder<SetTitleAppearanceResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SetTitleAppearanceResponse message) => OnePayload(0x0239, message.Body());
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SetTitleAppearanceResponse message) => OnePayload(message, message.Body());
 }
 internal sealed class SetTitleAppearanceHandler(ICommandBus commands) : ClientMessageHandler<SetTitleAppearanceRequest>, IProtocolCommandMessageHandler<GameSetTitleAppearanceCommand>
 {

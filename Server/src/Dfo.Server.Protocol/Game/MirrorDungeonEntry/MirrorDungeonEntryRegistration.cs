@@ -12,7 +12,7 @@ internal static class MirrorDungeonEntryRegistration
     internal static IServiceCollection AddMirrorDungeonEntrySlice(this IServiceCollection services)
     {
 
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(ClientMessageType.GameMirrorDungeonEntry);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
         return services;
     }

@@ -14,8 +14,7 @@ internal static class DeleteCharacterRegistration
 {
     internal static IServiceCollection AddDeleteCharacterSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<DeleteCharacterMessageDecoder>(
-            GameProtocol.DeleteCharacterType, ClientMessageType.GameDeleteCharacter);
+        services.AddGameCmdMessageDecoder<DeleteCharacterMessageDecoder>(ClientMessageType.GameDeleteCharacter);
         services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();
         services.AddProtocolCommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult, GameDeleteCharacterCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteCharacter, typeof(DeleteCharacterRequest)));

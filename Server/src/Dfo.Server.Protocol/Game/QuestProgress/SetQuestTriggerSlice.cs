@@ -14,7 +14,6 @@ internal sealed class SetQuestTriggerAcknowledgementEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         SetQuestTriggerAcknowledgement message) =>
-        OnePayload(
-            GameProtocol.SetQuestTriggerType,
+        OnePayload(message,
             SetQuestTriggerPayloadCodec.Encode(message));
 }
