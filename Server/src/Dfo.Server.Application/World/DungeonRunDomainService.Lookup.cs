@@ -42,6 +42,10 @@ internal sealed partial class DungeonRunDomainService
                 ? aggregate
                 : null;
 
+    /// <summary>The claims of a run still in the directory; a removed run honours none.</summary>
+    private RunClaims? ClaimsOf(DungeonRunId runId) =>
+        this.runsById.TryGetValue(runId, out var aggregate) ? aggregate.Claims : null;
+
     private void Publish(DungeonRunAggregate aggregate)
     {
         this.runsById.Add(aggregate.RunId, aggregate);
@@ -54,12 +58,6 @@ internal sealed partial class DungeonRunDomainService
         if (this.runsByParty.GetValueOrDefault(aggregate.PartyKey) == aggregate)
             this.runsByParty.Remove(aggregate.PartyKey);
         this.deadlines.Wake(DungeonDeadlineKind.RoomMechanism);
-        this.clearReturnDeadlines.Remove(aggregate.RunId);
-        this.wipeDeadlines.Remove(aggregate.RunId);
-        this.ClearDeathClaims(aggregate.RunId);
-        this.ClearParticipantEffectClaims(aggregate.RunId);
-        this.ClearSettlementClaims(aggregate.RunId);
-        this.ClearGroundDropClaims(aggregate.RunId);
-        this.ClearClearRewardCardClaims(aggregate.RunId);
+        aggregate.Claims.ReleaseOnRemoval();
     }
 }

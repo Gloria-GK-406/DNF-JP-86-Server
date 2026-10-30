@@ -86,12 +86,11 @@ internal sealed partial class DungeonRunDomainService
             if (progress.IsSettled)
                 return null;
 
-            var key = new SettlementClaimKey(aggregate.RunId, characterId);
-            if (this.settlementClaims.ContainsKey(key))
+            if (aggregate.Claims.Settlements.ContainsKey(characterId))
                 return null;
 
             var token = Interlocked.Increment(ref this.nextClaim);
-            this.settlementClaims.Add(key, token);
+            aggregate.Claims.Settlements.Add(characterId, token);
             return new DungeonSettlementClaim(
                 characterId, aggregate.ViewFor(characterId), token, aggregate.RunId);
         }
@@ -103,8 +102,7 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            var key = new SettlementClaimKey(claim.RunId, claim.CharacterId);
-            if (!this.TryRemoveSettlementClaim(key, claim.Token)
+            if (!this.TryRemoveSettlementClaim(claim.RunId, claim.CharacterId, claim.Token)
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
                 || !aggregate.IsMember(claim.CharacterId))
             {
@@ -126,23 +124,13 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            return this.TryRemoveSettlementClaim(
-                new SettlementClaimKey(claim.RunId, claim.CharacterId), claim.Token);
+            return this.TryRemoveSettlementClaim(claim.RunId, claim.CharacterId, claim.Token);
         }
     }
 
-    private bool TryRemoveSettlementClaim(SettlementClaimKey key, long token) =>
-        this.settlementClaims.TryGetValue(key, out var current)
+    private bool TryRemoveSettlementClaim(DungeonRunId runId, CharacterId characterId, long token) =>
+        this.ClaimsOf(runId) is { } claims
+        && claims.Settlements.TryGetValue(characterId, out var current)
         && current == token
-        && this.settlementClaims.Remove(key);
-
-    private void ClearSettlementClaims(DungeonRunId runId)
-    {
-        foreach (var key in this.settlementClaims.Keys
-                     .Where(key => key.RunId == runId).ToArray())
-        {
-            this.settlementClaims.Remove(key);
-        }
-    }
-    private readonly record struct SettlementClaimKey(DungeonRunId RunId, CharacterId CharacterId);
+        && claims.Settlements.Remove(characterId);
 }

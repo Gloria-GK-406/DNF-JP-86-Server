@@ -29,20 +29,10 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly IDungeonDeadlineWake deadlines;
     private readonly IGiantDragonRuleService giantDragons;
     private readonly ILostLandFeverRuleService lostLandFever;
-    private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
-    private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
     // A party holds at most one run. Who is in it is the party's answer, so there is no
     // character-to-run index to keep in step with party changes.
     private readonly Dictionary<PartyKey, DungeonRunAggregate> runsByParty = new();
     private readonly Dictionary<DungeonRunId, DungeonRunAggregate> runsById = new();
-    private readonly Dictionary<DeathClaimKey, long> deathClaims = new();
-    private readonly Dictionary<ParticipantEffectClaimKey, long> participantEffectClaims = new();
-    private readonly Dictionary<SettlementClaimKey, long> settlementClaims = new();
-    private readonly Dictionary<GroundDropClaimKey, long> groundDropClaims = new();
-    private readonly HashSet<GroundDropClaimKey> preparedGroundDropClaims = [];
-    private readonly Dictionary<ClearRewardCardClaimKey, ClearRewardReservation>
-        clearRewardCardClaims = new();
-    private readonly HashSet<ClearRewardCardClaimKey> preparedClearRewardCardClaims = [];
     private long nextClaim;
 
     public DungeonRunDomainService(

@@ -122,6 +122,7 @@ internal sealed partial class DungeonRunDomainService
         public ImmutableHashSet<MazeCell> VisitedCells { get; set; }
         public Dictionary<CharacterId, DungeonKillExperienceSummary> KillExperiences { get; } = [];
 
+        public RunClaims Claims { get; } = new();
         public HashSet<ParticipantEffectKey> CompletedKillEffects { get; } = [];
         // Derived from committed deaths: no second mutable element-state container to drift.
         public IEnumerable<int> KilledMonsterCodes => this.kills.Select(x => x.MonsterCode);
@@ -218,6 +219,36 @@ internal sealed partial class DungeonRunDomainService
                 KillExperience = this.KillExperiences.GetValueOrDefault(characterId) ?? new(),
                 ModeState = this.ModeState,
             };
+        }
+    }
+
+    /// <summary>Reservations and deadlines that exist only while this run does.</summary>
+    private sealed class RunClaims
+    {
+        public Dictionary<RoomActorId, long> Deaths { get; } = [];
+        public Dictionary<ParticipantEffectKey, long> KillEffects { get; } = [];
+        public Dictionary<CharacterId, long> Settlements { get; } = [];
+        public Dictionary<GroundDropClaimKey, long> GroundDrops { get; } = [];
+        public HashSet<GroundDropClaimKey> PreparedGroundDrops { get; } = [];
+        public Dictionary<ClearRewardCardClaimKey, ClearRewardReservation> Cards { get; } = [];
+        public HashSet<ClearRewardCardClaimKey> PreparedCards { get; } = [];
+        public DateTimeOffset? WipeDeadline { get; set; }
+        public DateTimeOffset? ClearReturnDeadline { get; set; }
+
+        /// <summary>
+        /// Drops what the removed run no longer honours. A prepared pickup or card keeps its entry: its
+        /// transaction already captured this run and finishes on it after the run left the directory.
+        /// </summary>
+        public void ReleaseOnRemoval()
+        {
+            this.Deaths.Clear();
+            this.KillEffects.Clear();
+            this.Settlements.Clear();
+            this.GroundDrops.Clear();
+            foreach (var key in this.Cards.Keys.Where(key => !this.PreparedCards.Contains(key)).ToArray())
+                this.Cards.Remove(key);
+            this.WipeDeadline = null;
+            this.ClearReturnDeadline = null;
         }
     }
 

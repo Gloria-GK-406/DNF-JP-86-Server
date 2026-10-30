@@ -39,16 +39,14 @@ internal sealed partial class DungeonRunDomainService
             if (item?.Source is { Kind: DungeonGroundItemSourceKind.DeclaredObject, ObjectIndex: { } objectIndex }
                 && cell.HasUnopenedRewardObject(aggregate.Layout.DungeonId, objectIndex, this.sealedTreasureRules))
                 return null;
-            var key = new GroundDropClaimKey(aggregate.RunId, drop, characterId);
+            var key = new GroundDropClaimKey(drop, characterId);
             if (item is null
-                || this.groundDropClaims.Keys.Any(candidate =>
-                    candidate.RunId == aggregate.RunId && candidate.Drop == drop)
-                || this.preparedGroundDropClaims.Any(candidate =>
-                    candidate.RunId == aggregate.RunId && candidate.Drop == drop))
+                || aggregate.Claims.GroundDrops.Keys.Any(candidate => candidate.Drop == drop)
+                || aggregate.Claims.PreparedGroundDrops.Any(candidate => candidate.Drop == drop))
                 return null;
 
             var token = Interlocked.Increment(ref this.nextClaim);
-            this.groundDropClaims.Add(key, token);
+            aggregate.Claims.GroundDrops.Add(key, token);
             return new DungeonGroundDropClaim(
                 characterId,
                 aggregate.ViewFor(characterId),
@@ -69,10 +67,10 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            var key = new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId);
-            if (!this.groundDropClaims.TryGetValue(key, out var token)
+            var key = new GroundDropClaimKey(claim.Drop, claim.CharacterId);
+            if (!this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || !aggregate.Claims.GroundDrops.TryGetValue(key, out var token)
                 || token != claim.Token
-                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
                 || aggregate.CurrentCell != claim.Drop.Cell
                 || aggregate.RoomVersion != claim.RoomVersion
                 || !aggregate.Cells.TryGetValue(claim.Drop.Cell, out var cell)
@@ -82,7 +80,7 @@ internal sealed partial class DungeonRunDomainService
                 return null;
             }
 
-            _ = this.groundDropClaims.Remove(key);
+            _ = aggregate.Claims.GroundDrops.Remove(key);
             aggregate.RuntimeRevision++;
             return new DungeonPickupChange(
                 aggregate.RunId,
@@ -123,7 +121,7 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             return this.TryRemoveGroundDropClaim(
-                new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId), claim.Token);
+                claim.RunId, new GroundDropClaimKey(claim.Drop, claim.CharacterId), claim.Token);
         }
     }
 
@@ -169,25 +167,26 @@ internal sealed partial class DungeonRunDomainService
         }
     }
 
-    private bool TryRemoveGroundDropClaim(GroundDropClaimKey key, long token) =>
-        this.groundDropClaims.TryGetValue(key, out var current)
+    private bool TryRemoveGroundDropClaim(DungeonRunId runId, GroundDropClaimKey key, long token) =>
+        this.ClaimsOf(runId) is { } claims
+        && claims.GroundDrops.TryGetValue(key, out var current)
         && current == token
-        && this.groundDropClaims.Remove(key);
+        && claims.GroundDrops.Remove(key);
 
     private PreparedGroundDrop PrepareGroundDrop(DungeonGroundDropClaim claim)
     {
         lock (this.gate)
         {
-            var key = new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId);
-            if (!this.groundDropClaims.TryGetValue(key, out var token)
+            var key = new GroundDropClaimKey(claim.Drop, claim.CharacterId);
+            if (!this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || !aggregate.Claims.GroundDrops.TryGetValue(key, out var token)
                 || token != claim.Token
-                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
                 || aggregate.CurrentCell != claim.Drop.Cell
                 || aggregate.RoomVersion != claim.RoomVersion
                 || !aggregate.Cells.TryGetValue(claim.Drop.Cell, out var cell)
                 || cell.Revision != claim.CellRevision
                 || cell.FindGroundItem(claim.Drop.Number) is null
-                || !this.preparedGroundDropClaims.Add(key))
+                || !aggregate.Claims.PreparedGroundDrops.Add(key))
             {
                 throw new InvalidOperationException(
                     "The ground-drop reservation changed before its transaction prepared.");
@@ -206,8 +205,8 @@ internal sealed partial class DungeonRunDomainService
             // Prepare owns the only reservation for this run/drop. Even if the last participant
             // disconnects after prepare and the aggregate is detached from the directory, this
             // captured aggregate remains the transaction's exact target and commit is infallible.
-            _ = this.groundDropClaims.Remove(prepared.Key);
-            _ = this.preparedGroundDropClaims.Remove(prepared.Key);
+            _ = prepared.Aggregate.Claims.GroundDrops.Remove(prepared.Key);
+            _ = prepared.Aggregate.Claims.PreparedGroundDrops.Remove(prepared.Key);
             var cell = prepared.Aggregate.Cells[prepared.Key.Drop.Cell];
             _ = cell.RemoveGroundItem(prepared.Key.Drop.Number)
                 ?? throw new InvalidOperationException(
@@ -234,22 +233,13 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             if (prepared is { } value)
-                _ = this.preparedGroundDropClaims.Remove(value.Key);
+                _ = value.Aggregate.Claims.PreparedGroundDrops.Remove(value.Key);
             _ = this.TryRemoveGroundDropClaim(
-                new GroundDropClaimKey(claim.RunId, claim.Drop, claim.CharacterId), claim.Token);
+                claim.RunId, new GroundDropClaimKey(claim.Drop, claim.CharacterId), claim.Token);
         }
     }
 
-    private void ClearGroundDropClaims(DungeonRunId runId)
-    {
-        foreach (var key in this.groundDropClaims.Keys
-                     .Where(key => key.RunId == runId).ToArray())
-        {
-            this.groundDropClaims.Remove(key);
-        }
-    }
     private readonly record struct GroundDropClaimKey(
-        DungeonRunId RunId,
         GroundDropId Drop,
         CharacterId CharacterId);
     private readonly record struct GroundDropCommitIdentity(

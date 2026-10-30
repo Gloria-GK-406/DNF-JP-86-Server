@@ -117,20 +117,14 @@ internal sealed partial class DungeonRunDomainService
         aggregate.ReadyParticipants.Remove(characterId);
         aggregate.DeadParticipants.Remove(characterId);
         aggregate.EntryRevision++;
-        foreach (var key in this.settlementClaims.Keys
-                     .Where(key => key.RunId == aggregate.RunId && key.CharacterId == characterId)
-                     .ToArray())
-        {
-            this.settlementClaims.Remove(key);
-        }
-        foreach (var key in this.clearRewardCardClaims
-                     .Where(entry => entry.Key.RunId == aggregate.RunId
-                         && entry.Value.CharacterId == characterId
-                         && !this.preparedClearRewardCardClaims.Contains(entry.Key))
+        aggregate.Claims.Settlements.Remove(characterId);
+        foreach (var key in aggregate.Claims.Cards
+                     .Where(entry => entry.Value.CharacterId == characterId
+                         && !aggregate.Claims.PreparedCards.Contains(entry.Key))
                      .Select(entry => entry.Key)
                      .ToArray())
         {
-            this.clearRewardCardClaims.Remove(key);
+            aggregate.Claims.Cards.Remove(key);
         }
         return characterId;
     }

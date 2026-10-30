@@ -24,15 +24,15 @@ internal sealed partial class DungeonRunDomainService
                 || !run.Cells[run.CurrentCell].ClearOpen
                 || !run.ProgressFor(characterId).CardLayoutOpen) return;
             // A21 ordinary party result UI starts a 60 second return countdown.
-            this.clearReturnDeadlines.TryAdd(runId, now.AddSeconds(60));
+            run.Claims.ClearReturnDeadline ??= now.AddSeconds(60);
         }
     }
 
     public IReadOnlyList<DungeonRunId> FindExpiredClearReturns(DateTimeOffset now)
     {
         lock (this.gate)
-            return this.clearReturnDeadlines.Where(pair => pair.Value <= now)
-                .Select(pair => pair.Key).ToArray();
+            return this.runsById.Values.Where(run => run.Claims.ClearReturnDeadline <= now)
+                .Select(run => run.RunId).ToArray();
     }
 
     public DungeonRunState? TryEndClearReturn(DungeonRunId runId, DateTimeOffset now)
@@ -41,7 +41,7 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             if (!this.runsById.TryGetValue(runId, out var run)
-                || !this.clearReturnDeadlines.TryGetValue(runId, out var deadline)
+                || run.Claims.ClearReturnDeadline is not { } deadline
                 || now < deadline || !run.Cells[run.CurrentCell].ClearOpen) return null;
             var members = run.Participants;
             if (members.Length == 0) return null;
@@ -59,11 +59,11 @@ internal sealed partial class DungeonRunDomainService
             foreach (var aggregate in this.runsById.Values)
             {
                 if (!IsPartyWiped(aggregate))
-                    this.wipeDeadlines.Remove(aggregate.RunId);
+                    aggregate.Claims.WipeDeadline = null;
                 else
-                    this.wipeDeadlines.TryAdd(aggregate.RunId, now.AddSeconds(10));
+                    aggregate.Claims.WipeDeadline ??= now.AddSeconds(10);
             }
-            return this.wipeDeadlines.Where(pair => pair.Value <= now).Select(pair => pair.Key).ToArray();
+            return this.runsById.Values.Where(run => run.Claims.WipeDeadline <= now).Select(run => run.RunId).ToArray();
         }
     }
 
@@ -73,12 +73,12 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             if (!this.runsById.TryGetValue(runId, out var aggregate)
-                || !this.wipeDeadlines.TryGetValue(runId, out var deadline)
+                || aggregate.Claims.WipeDeadline is not { } deadline
                 || now < deadline)
                 return null;
             if (!IsPartyWiped(aggregate))
             {
-                this.wipeDeadlines.Remove(runId);
+                aggregate.Claims.WipeDeadline = null;
                 return null;
             }
             var members = aggregate.Participants;

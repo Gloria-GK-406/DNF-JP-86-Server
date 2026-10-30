@@ -76,14 +76,11 @@ internal sealed partial class DungeonRunDomainService
             return Refused("RunChanged", aggregate);
         if (expectedRoomVersion is { } version && aggregate.RoomVersion != version)
             return Refused("RoomVersionChanged", aggregate);
-        if (this.deathClaims.Keys.Any(key =>
-                key.RunId == aggregate.RunId && key.Actor.Cell == aggregate.CurrentCell))
+        if (aggregate.Claims.Deaths.Keys.Any(actor => actor.Cell == aggregate.CurrentCell))
             return Refused("ActorDeathPending", aggregate);
-        if (this.groundDropClaims.Keys.Any(key =>
-                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
+        if (aggregate.Claims.GroundDrops.Keys.Any(key => key.Drop.Cell == aggregate.CurrentCell))
             return Refused("GroundDropPending", aggregate);
-        if (this.preparedGroundDropClaims.Any(key =>
-                key.RunId == aggregate.RunId && key.Drop.Cell == aggregate.CurrentCell))
+        if (aggregate.Claims.PreparedGroundDrops.Any(key => key.Drop.Cell == aggregate.CurrentCell))
             return Refused("GroundDropPrepared", aggregate);
         var warp = aggregate.Layout.IsWarp(aggregate.CurrentCell, target);
         if (warp && !aggregate.Cells[aggregate.CurrentCell].IsCleared)

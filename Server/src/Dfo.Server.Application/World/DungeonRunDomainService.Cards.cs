@@ -147,19 +147,18 @@ internal sealed partial class DungeonRunDomainService
                 return null;
             }
 
-            var key = new ClearRewardCardClaimKey(aggregate.RunId, characterId, card);
-            if (this.preparedClearRewardCardClaims.Contains(key)
-                || this.clearRewardCardClaims.ContainsKey(key)
-                || this.clearRewardCardClaims.Any(entry =>
-                    entry.Key.RunId == aggregate.RunId
-                    && entry.Key.Card.Kind == kind
+            var key = new ClearRewardCardClaimKey(characterId, card);
+            if (aggregate.Claims.PreparedCards.Contains(key)
+                || aggregate.Claims.Cards.ContainsKey(key)
+                || aggregate.Claims.Cards.Any(entry =>
+                    entry.Key.Card.Kind == kind
                     && entry.Value.CharacterId == characterId))
             {
                 return null;
             }
 
             var token = Interlocked.Increment(ref this.nextClaim);
-            this.clearRewardCardClaims.Add(key, new ClearRewardReservation(characterId, token));
+            aggregate.Claims.Cards.Add(key, new ClearRewardReservation(characterId, token));
             return new DungeonClearRewardCardClaim(
                 characterId,
                 aggregate.ViewFor(characterId),
@@ -201,13 +200,13 @@ internal sealed partial class DungeonRunDomainService
     {
         lock (this.gate)
         {
-            var key = new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card);
-            if (!this.clearRewardCardClaims.TryGetValue(key, out var reservation)
+            var key = new ClearRewardCardClaimKey(claim.CharacterId, claim.Card);
+            if (!this.runsById.TryGetValue(claim.RunId, out var aggregate)
+                || !aggregate.Claims.Cards.TryGetValue(key, out var reservation)
                 || reservation.CharacterId != claim.CharacterId
                 || reservation.Token != claim.Token
-                || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
                 || !aggregate.IsMember(claim.CharacterId)
-                || this.preparedClearRewardCardClaims.Contains(key))
+                || aggregate.Claims.PreparedCards.Contains(key))
             {
                 return null;
             }
@@ -220,7 +219,7 @@ internal sealed partial class DungeonRunDomainService
                 || aggregate.CardSelections.Any(selection =>
                     selection.Kind == claim.Card.Kind
                     && selection.CharacterId == claim.CharacterId)
-                || !this.preparedClearRewardCardClaims.Add(key))
+                || !aggregate.Claims.PreparedCards.Add(key))
             {
                 return null;
             }
@@ -240,8 +239,8 @@ internal sealed partial class DungeonRunDomainService
             // Prepare captured the exact run and reservation. Durable inventory/gold commits first;
             // this process-local publication is deliberately non-failing afterwards, even if the
             // participant disconnected and the aggregate left the live directory in between.
-            _ = this.TryRemoveClearRewardCardClaim(prepared.Key, prepared.Token);
-            _ = this.preparedClearRewardCardClaims.Remove(prepared.Key);
+            _ = TryRemoveClearRewardCardClaim(prepared.Aggregate.Claims, prepared.Key, prepared.Token);
+            _ = prepared.Aggregate.Claims.PreparedCards.Remove(prepared.Key);
             var progress = prepared.Aggregate.ProgressFor(prepared.CharacterId);
             var cards = progress.ClearRewardCards
                 ?? throw new InvalidOperationException(
@@ -293,9 +292,9 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             if (prepared is { } value)
-                _ = this.preparedClearRewardCardClaims.Remove(value.Key);
-            _ = this.TryRemoveClearRewardCardClaim(
-                new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card), claim.Token);
+                _ = value.Aggregate.Claims.PreparedCards.Remove(value.Key);
+            if (this.ClaimsOf(claim.RunId) is { } claims)
+                _ = TryRemoveClearRewardCardClaim(claims, new ClearRewardCardClaimKey(claim.CharacterId, claim.Card), claim.Token);
         }
     }
 
@@ -305,28 +304,19 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            var key = new ClearRewardCardClaimKey(claim.RunId, claim.CharacterId, claim.Card);
-            return !this.preparedClearRewardCardClaims.Contains(key)
-                && this.TryRemoveClearRewardCardClaim(key, claim.Token);
+            var key = new ClearRewardCardClaimKey(claim.CharacterId, claim.Card);
+            return this.ClaimsOf(claim.RunId) is { } claims
+                && !claims.PreparedCards.Contains(key)
+                && TryRemoveClearRewardCardClaim(claims, key, claim.Token);
         }
     }
 
-    private bool TryRemoveClearRewardCardClaim(ClearRewardCardClaimKey key, long token) =>
-        this.clearRewardCardClaims.TryGetValue(key, out var current)
+    private static bool TryRemoveClearRewardCardClaim(RunClaims claims, ClearRewardCardClaimKey key, long token) =>
+        claims.Cards.TryGetValue(key, out var current)
         && current.Token == token
-        && this.clearRewardCardClaims.Remove(key);
+        && claims.Cards.Remove(key);
 
-    private void ClearClearRewardCardClaims(DungeonRunId runId)
-    {
-        foreach (var key in this.clearRewardCardClaims.Keys
-                     .Where(key => key.RunId == runId
-                         && !this.preparedClearRewardCardClaims.Contains(key)).ToArray())
-        {
-            this.clearRewardCardClaims.Remove(key);
-        }
-    }
     private readonly record struct ClearRewardCardClaimKey(
-        DungeonRunId RunId,
         CharacterId CharacterId,
         ClearRewardCardId Card);
     private readonly record struct ClearRewardReservation(CharacterId CharacterId, long Token);

@@ -15,7 +15,7 @@ internal sealed partial class DungeonRunDomainService
 {
     public bool IsActorDeathClaimCurrent(DungeonActorDeathClaim claim)
     {
-        lock (gate) return deathClaims.GetValueOrDefault(new DeathClaimKey(claim.RunId, claim.Actor)) == claim.Token
+        lock (gate) return ClaimsOf(claim.RunId)?.Deaths.GetValueOrDefault(claim.Actor) == claim.Token
             && runsById.TryGetValue(claim.RunId, out var run) && run.IsMember(claim.CharacterId)
             && run.RoomVersion == claim.Run.RoomVersion && run.CurrentCell == claim.Actor.Cell;
     }
@@ -23,8 +23,8 @@ internal sealed partial class DungeonRunDomainService
     public bool IsParticipantKillEffectClaimCurrent(DungeonParticipantKillEffectClaim claim)
     {
         lock (gate) return IsActorDeathClaimCurrent(claim.Death)
-            && participantEffectClaims.GetValueOrDefault(new ParticipantEffectClaimKey(claim.Death.RunId,
-                new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId))) == claim.Token
+            && ClaimsOf(claim.Death.RunId)?.KillEffects.GetValueOrDefault(
+                new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId)) == claim.Token
             && runsById.TryGetValue(claim.Death.RunId, out var run) && run.IsMember(claim.CharacterId);
     }
 
@@ -44,12 +44,11 @@ internal sealed partial class DungeonRunDomainService
             if (!cell.CanClaimDeath(actorSequence))
                 return null;
 
-            var key = new DeathClaimKey(aggregate.RunId, actor);
-            if (this.deathClaims.ContainsKey(key))
+            if (aggregate.Claims.Deaths.ContainsKey(actor))
                 return null;
 
             var token = Interlocked.Increment(ref this.nextClaim);
-            this.deathClaims.Add(key, token);
+            aggregate.Claims.Deaths.Add(actor, token);
             return new DungeonActorDeathClaim(
                 characterId,
                 aggregate.ViewFor(characterId),
@@ -84,8 +83,8 @@ internal sealed partial class DungeonRunDomainService
         && cell.FindActor(claim.Actor.Sequence) is { BlocksClear: true, Actor.IsBoss: true }
         && aggregate.Layout.KindOf(claim.Actor.Cell) == DungeonRoomKind.Boss
         && !cell.HasLivingBossExcept(claim.Actor.Sequence)
-            ? cell.SuppressibleEnemies(sequence => !this.deathClaims.ContainsKey(new DeathClaimKey(
-                claim.RunId, new RoomActorId(claim.Actor.Cell, sequence)))) : [];
+            ? cell.SuppressibleEnemies(sequence => !aggregate.Claims.Deaths.ContainsKey(
+                new RoomActorId(claim.Actor.Cell, sequence))) : [];
 
     public DungeonActorDeathChange? CommitActorDeathChange(DungeonActorDeathClaim claim)
     {
@@ -93,8 +92,7 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            var key = new DeathClaimKey(claim.RunId, claim.Actor);
-            if (!this.TryRemoveClaim(key, claim.Token)
+            if (!this.TryRemoveClaim(claim.RunId, claim.Actor, claim.Token)
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate)
                 || !aggregate.IsMember(claim.CharacterId))
             {
@@ -175,8 +173,7 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(claim);
         lock (this.gate)
         {
-            var key = new DeathClaimKey(claim.RunId, claim.Actor);
-            if (!this.TryRemoveClaim(key, claim.Token)
+            if (!this.TryRemoveClaim(claim.RunId, claim.Actor, claim.Token)
                 || !this.runsById.TryGetValue(claim.RunId, out var aggregate))
             {
                 return false;
@@ -194,10 +191,9 @@ internal sealed partial class DungeonRunDomainService
         ArgumentNullException.ThrowIfNull(death);
         lock (this.gate)
         {
-            var deathKey = new DeathClaimKey(death.RunId, death.Actor);
-            if (!this.deathClaims.TryGetValue(deathKey, out var deathToken)
+            if (!this.runsById.TryGetValue(death.RunId, out var aggregate)
+                || !aggregate.Claims.Deaths.TryGetValue(death.Actor, out var deathToken)
                 || deathToken != death.Token
-                || !this.runsById.TryGetValue(death.RunId, out var aggregate)
                 || !aggregate.Participants.Any(
                     participant => participant.CharacterId == characterId)
                 || !aggregate.IsMember(characterId))
@@ -209,12 +205,11 @@ internal sealed partial class DungeonRunDomainService
             if (aggregate.CompletedKillEffects.Contains(effect))
                 return null;
 
-            var key = new ParticipantEffectClaimKey(death.RunId, effect);
-            if (this.participantEffectClaims.ContainsKey(key))
+            if (aggregate.Claims.KillEffects.ContainsKey(effect))
                 return null;
 
             var token = Interlocked.Increment(ref this.nextClaim);
-            this.participantEffectClaims.Add(key, token);
+            aggregate.Claims.KillEffects.Add(effect, token);
             return new DungeonParticipantKillEffectClaim(death, characterId, token);
         }
     }
@@ -232,8 +227,7 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             var effect = new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId);
-            var key = new ParticipantEffectClaimKey(claim.Death.RunId, effect);
-            if (!this.TryRemoveParticipantEffectClaim(key, claim.Token)
+            if (!this.TryRemoveParticipantEffectClaim(claim.Death.RunId, effect, claim.Token)
                 || !this.runsById.TryGetValue(claim.Death.RunId, out var aggregate))
             {
                 return false;
@@ -258,38 +252,21 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             var effect = new ParticipantEffectKey(claim.Death.Actor, claim.CharacterId);
-            return this.TryRemoveParticipantEffectClaim(
-                new ParticipantEffectClaimKey(claim.Death.RunId, effect), claim.Token);
+            return this.TryRemoveParticipantEffectClaim(claim.Death.RunId, effect, claim.Token);
         }
     }
 
-    private bool TryRemoveClaim(DeathClaimKey key, long token) =>
-        this.deathClaims.TryGetValue(key, out var current)
+    private bool TryRemoveClaim(DungeonRunId runId, RoomActorId actor, long token) =>
+        this.ClaimsOf(runId) is { } claims
+        && claims.Deaths.TryGetValue(actor, out var current)
         && current == token
-        && this.deathClaims.Remove(key);
+        && claims.Deaths.Remove(actor);
 
-    private bool TryRemoveParticipantEffectClaim(ParticipantEffectClaimKey key, long token) =>
-        this.participantEffectClaims.TryGetValue(key, out var current)
+    private bool TryRemoveParticipantEffectClaim(DungeonRunId runId, ParticipantEffectKey effect, long token) =>
+        this.ClaimsOf(runId) is { } claims
+        && claims.KillEffects.TryGetValue(effect, out var current)
         && current == token
-        && this.participantEffectClaims.Remove(key);
+        && claims.KillEffects.Remove(effect);
 
-    private void ClearDeathClaims(DungeonRunId runId)
-    {
-        foreach (var key in this.deathClaims.Keys.Where(key => key.RunId == runId).ToArray())
-            this.deathClaims.Remove(key);
-    }
-
-    private void ClearParticipantEffectClaims(DungeonRunId runId)
-    {
-        foreach (var key in this.participantEffectClaims.Keys
-                     .Where(key => key.RunId == runId).ToArray())
-        {
-            this.participantEffectClaims.Remove(key);
-        }
-    }
-
-    private readonly record struct DeathClaimKey(DungeonRunId RunId, RoomActorId Actor);
     private readonly record struct ParticipantEffectKey(RoomActorId Actor, CharacterId CharacterId);
-    private readonly record struct ParticipantEffectClaimKey(
-        DungeonRunId RunId, ParticipantEffectKey Effect);
 }

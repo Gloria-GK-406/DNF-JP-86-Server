@@ -97,7 +97,7 @@ internal sealed partial class DungeonRunDomainService
                 aggregate.DeadParticipants.Remove(target);
                 aggregate.RevivalCounts[target] = checked(aggregate.RevivalCounts.GetValueOrDefault(target) + 1);
                 aggregate.RevivalCoinPayments[payer] = checked(aggregate.RevivalCoinPayments.GetValueOrDefault(payer) + 1);
-                owner.wipeDeadlines.Remove(aggregate.RunId);
+                aggregate.Claims.WipeDeadline = null;
                 aggregate.RuntimeRevision++;
             }
             return ValueTask.CompletedTask;
