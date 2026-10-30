@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-10-30 训练换房被人物刷新状态覆盖
+
+ClientStatic + 本服逐帧录包 / Confirmed：[NOTI0002 subtype0](game/server-to-client/NOTI-0x0002.md#2026-10-30-a21-userstate-与换房) 的 UserState 复制至本人 userinfo+0x1C，[CMD002D](game/client-to-server/0x002D.md#2026-10-30-a21-本人状态为0时不发换房) 在该值为0时不发请求。训练第二房穿护肩后的完整刷新带回0，与卡门现场一致。CurrentImplementation：当前人物刷新与重试快照从权威副本参与关系投影状态1，31项相关回归通过；修复版实机待复测，正式E2E基线仍0。[取证与素材身份边界](../Document/E2E/训练第二房卡门调查-20261030.md)。
+
 ## 2026-10-27 疯狂马戏团与天幕剧场取证
 
 Content / ClientStatic：核定4103入口候选、4114关联声明，以及033F的4103调度状态控制气球20057可见；仅登记活动2226不足。

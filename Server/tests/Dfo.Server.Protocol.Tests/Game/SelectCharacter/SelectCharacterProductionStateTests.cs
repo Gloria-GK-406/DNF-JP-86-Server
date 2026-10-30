@@ -179,11 +179,58 @@ public sealed class SelectCharacterProductionStateTests
         });
     }
 
+    [Theory]
+    [InlineData(DungeonParticipationMode.Ordinary)]
+    [InlineData(DungeonParticipationMode.IllusionTower)]
+    [InlineData(DungeonParticipationMode.BossTower)]
+    public async Task CurrentView_PreservesDungeonUserStateOnWireWithoutChangingStoredProfile(DungeonParticipationMode mode)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var original = SelectCharacterPayloadTestData.CreateComplete();
+            var seed = original with { CharacterEntry = original.CharacterEntry with
+                { Public = original.CharacterEntry.Public with
+                { Identity = original.CharacterEntry.Public.Identity! with { UserState = 0 } } } };
+            var sources = new Sources(seed, []);
+            var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
+                new Dfo.Server.Data.Networking.NetworkConnectionId("dungeon-appearance"), 1, 10011);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            positions.Begin(session, seed.Character.Position, 100);
+            var participation = new Participation();
+            var query = Query(sources, seed, positions, participation: participation);
+            Assert.Equal(0, (await query.ReadAsync(session, default)).CharacterEntry.Public.Identity!.UserState);
+
+            participation.Owner = new DungeonParticipationOwner(mode, Guid.NewGuid());
+            var current = await query.ReadAsync(session, default);
+            var bytes = new Dfo.Server.Protocol.Game.StateSynchronization.CurrentUserStateMessage(current.Character, current.CharacterEntry.Public,
+                current.CharacterInventory.Containers.Single(c => c.ContainerType == InventoryContainerType.Equipment).Items,
+                current.CharacterEntry.Features.Pets).EncodeBody();
+            using var reader = new BinaryReader(new MemoryStream(bytes));
+            reader.BaseStream.Position = 43; // subtype, version, A21 reserved block, character id
+            var nameLength = reader.ReadInt32();
+            reader.BaseStream.Position += nameLength + 5; // name, job, grow, level, two PvP bytes
+            Assert.Equal(1, reader.ReadByte());
+            Assert.Equal(0, seed.CharacterEntry.Public.Identity!.UserState);
+
+            participation.Owner = null;
+            Assert.Equal(0, (await query.ReadAsync(session, default)).CharacterEntry.Public.Identity!.UserState);
+        });
+    }
+
+    private sealed class Participation : IDungeonParticipationDomainService
+    {
+        public DungeonParticipationOwner? Owner { get; set; }
+        public DungeonParticipationOwner? Find(CharacterId character) => Owner;
+        public bool TryClaim(IReadOnlyList<CharacterId> characters, DungeonParticipationOwner owner) => throw new NotSupportedException();
+        public void Release(CharacterId character, DungeonParticipationOwner expected) => throw new NotSupportedException();
+        public void ReleaseCommitted(CharacterId character, DungeonParticipationOwner expected) => throw new NotSupportedException();
+    }
+
     private static CharacterCurrentStateQueryDomainService Query(
-        Sources sources, SelectCharacterResult seed, IOnlineCharacterRuntimeDomainService positions, IAchievementDomainService? achievements = null) =>
+        Sources sources, SelectCharacterResult seed, IOnlineCharacterRuntimeDomainService positions, IAchievementDomainService? achievements = null, IDungeonParticipationDomainService? participation = null) =>
         new(sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements ?? TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Absent<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), epicBook: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>((method, _) => method.Name == "GetAsync" ? ValueTask.FromResult<IReadOnlyList<CharacterTitleBookCategoryState>>(seed.CharacterEntry.Features.Collections.TitleBooks) : null), collections: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
+            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements ?? TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Absent<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), epicBook: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>((method, _) => method.Name == "GetAsync" ? ValueTask.FromResult<IReadOnlyList<CharacterTitleBookCategoryState>>(seed.CharacterEntry.Features.Collections.TitleBooks) : null), collections: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>(), dungeonParticipation: participation ?? new Participation());
 
     [Theory]
     [InlineData(false, 0)]

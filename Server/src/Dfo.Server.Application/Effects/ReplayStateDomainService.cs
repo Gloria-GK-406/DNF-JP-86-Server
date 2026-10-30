@@ -49,7 +49,8 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
     IHerasQuotaDomainService herasQuotas,
     IEpicBookDomainService epicBooks,
     Dfo.Server.Abstractions.Events.IJoustProjectionDomainService jousts,
-    IIllusionTowerDomainService towers) : IReplayStateDomainService
+    IIllusionTowerDomainService towers,
+    IDungeonParticipationDomainService dungeonParticipation) : IReplayStateDomainService
 {
     public async ValueTask<ReplayStateSnapshot> ReadAsync(SelectedSessionIdentity session,
         ReplayProjectionRequest request, GameMessageMetadata? metadata, CancellationToken ct)
@@ -154,6 +155,8 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
         ReplayCharacterState? appearance = null;
         if (appearanceNeeded)
         {
+            entry = CharacterStateProjection.CompleteRuntimeIdentityProjection(
+                entry!, dungeonParticipation.Find(session.CharacterId) is not null);
             var character = await rosters.LoadForSelectionAsync(session.AccountId, identity!.SlotIndex, ct).ConfigureAwait(false);
             if (character.Identity.CharacterId != session.CharacterId)
                 throw new InvalidDataException("Current character selection changed its owner.");
