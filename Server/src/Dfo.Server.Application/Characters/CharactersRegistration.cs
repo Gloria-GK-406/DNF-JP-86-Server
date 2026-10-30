@@ -95,7 +95,7 @@ internal static class CharactersRegistration
         services.TryAddSingleton<ICharacterEntryStateRepository, CharacterEntryAssembly>();
         services.TryAddSingleton<
             ICharacterDarkKnightComboDomainService, CharacterDarkKnightComboDomainService>();
-        services.TryAddSingleton<IItemUseJudgementService, ItemUseJudgementService>();
+        services.TryAddSingleton<IItemUseRuleService, ItemUseRuleService>();
         services.TryAddSingleton<ICharacterProfileEntryProjection, CharacterProfileEntryProjection>();
         services.TryAddSingleton<ICharacterSkillQuestEntryProjection, CharacterSkillQuestEntryProjection>();
         services.TryAddSingleton<ICharacterProgressionEntryProjection, CharacterProgressionEntryProjection>();

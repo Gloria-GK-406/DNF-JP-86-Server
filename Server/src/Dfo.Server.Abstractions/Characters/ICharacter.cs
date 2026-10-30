@@ -180,7 +180,7 @@ public interface ICharacterItemUseDomainService
 /// <summary>
 /// Judges the archive's declaration against a candidate. Knows how to find nothing.
 /// </summary>
-public interface IItemUseJudgementService
+public interface IItemUseRuleService
 {
     /// <summary>
     /// What the archive declares about using this item, or null when it declares nothing usable

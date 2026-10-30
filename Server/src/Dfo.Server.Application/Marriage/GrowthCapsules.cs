@@ -10,7 +10,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Marriage;
 
-internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleContentSource content, IItemDeliveryDomainService delivery,
+internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleRuleService capsules, IItemDeliveryDomainService delivery,
     IOnlineCharacterRuntimeDomainService onlineCharacters, HousingState housing, IDungeonRunQueryDomainService runs, IEventService events)
 {
     public async ValueTask<MarriageCapsuleResult> ExecuteAsync(SelectedSessionIdentity actor, MarriageRelation relation, MarriageCapsuleAction action, IEffectFootprintRecorder footprint, CancellationToken ct)
@@ -18,7 +18,7 @@ internal sealed class GrowthCapsules(CapsuleState state, IMarriageCapsuleContent
         footprint.DemandActive(actor);
         if (onlineCharacters.StandingOf(actor) is null || runs.Find(actor.CharacterId) is not null) return new(action == MarriageCapsuleAction.Make ? -6 : action == MarriageCapsuleAction.Give ? -7 : -8);
         if (action == MarriageCapsuleAction.Take && (await housing.ReadAsync(relation.Id, ct).ConfigureAwait(false) is not { } room || !housing.IsInside(actor, room))) return new(-8);
-        var rules = content.Load(); var own = await state.ReadAsync(relation.Id, actor.CharacterId, ct).ConfigureAwait(false);
+        var rules = capsules.Rules(); var own = await state.ReadAsync(relation.Id, actor.CharacterId, ct).ConfigureAwait(false);
         var peer = relation.Proposer.CharacterId == actor.CharacterId ? relation.Recipient : relation.Proposer;
         var other = await state.ReadAsync(relation.Id, peer.CharacterId, ct).ConfigureAwait(false);
         IReadOnlyList<MarriageCapsuleItem> items = [];

@@ -89,13 +89,13 @@ public sealed class CharacterRepositoryProductsTests
     /// <remarks>
     /// Built per call, so these test that `Get` builds a character with the identity it was given.
     /// </remarks>
-    private static (ICharacterDomainService Characters, ItemUseJudgementService Judgement, OnlineCharacterRuntimeDomainService Cooldowns,
+    private static (ICharacterDomainService Characters, ItemUseRuleService Judgement, OnlineCharacterRuntimeDomainService Cooldowns,
         Dfo.Server.Abstractions.World.ITownAreaDomainService Presence) Parts()
     {
         var clock = new AdvanceableTimeProvider(
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         var rules = new FakeItemUseRules((Potion, ItemUseRules.Potion(cooldownMilliseconds: 0)));
-        var judgement = new ItemUseJudgementService(rules);
+        var judgement = new ItemUseRuleService(rules);
         var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
 
         // Both are being played, so that the row is the only thing left to tell them apart. A

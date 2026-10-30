@@ -4,12 +4,13 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Abstractions.Creatures;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CharacterBusinessInventoryDomainService(ICharacterContainerDomainService backing,
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
-    ICreatureDefinitionSource creatures, IItemDomainStore items,
+    ICreatureRuleService creatures, IItemDomainStore items,
     IDomainTransactionAccessor transactions, IItemSlotRuleService slotRules,
     IInventoryCapacityDomainService capacities, IItemLifecycleDomainService lifecycle)
     : ICharacterBusinessInventoryDomainService
@@ -29,7 +30,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
     private sealed class BusinessInventoryStore(CharacterId characterId, BusinessInventoryStoreKind kind,
         ICharacterContainerDomainService backing, IItemPlacementRuleService placements,
-        IItemArrivalRuleService arrivals, ICreatureDefinitionSource creatures,
+        IItemArrivalRuleService arrivals, ICreatureRuleService creatures,
         IInventoryCapacityDomainService capacities, IItemLifecycleDomainService lifecycle) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
@@ -46,7 +47,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
     private sealed class PersistentBusinessInventoryStore(ContainerOwner owner, BusinessInventoryStoreKind kind,
         IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placements,
-        IItemSlotRuleService slots, IItemArrivalRuleService arrivals, ICreatureDefinitionSource creatures,
+        IItemSlotRuleService slots, IItemArrivalRuleService arrivals, ICreatureRuleService creatures,
         IInventoryCapacityDomainService capacities, IItemLifecycleDomainService lifecycle) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
@@ -76,7 +77,7 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
 internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemContainer backing,
     IItemPlacementRuleService? placements = null, IItemArrivalRuleService? arrivals = null,
-    ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null, IItemLifecycleDomainService? lifecycle = null)
+    ICreatureRuleService? creatures = null, IInventoryCapacityDomainService? capacities = null, IItemLifecycleDomainService? lifecycle = null)
     : IBusinessItemContainer
 {
     public BusinessContainerId Id => new(space, backing.Id);
@@ -210,9 +211,9 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
         };
         if (placement.WorldClass == ItemWorldClass.Creature)
         {
-            var creature = creatures is null ? null : await creatures.FindByEquipmentAsync(itemId, cancellationToken).ConfigureAwait(false);
-            if (creature is null) throw new InvalidDataException($"Creature template {itemId} has no definition.");
-            snapshot = snapshot with { CreatureDetail = new(100, 0, 0, 0, 0, creature.StartLevel, [], 0) };
+            var startLevel = creatures is null ? null : await creatures.StartLevelAsync(itemId, cancellationToken).ConfigureAwait(false);
+            if (startLevel is not { } level) throw new InvalidDataException($"Creature template {itemId} has no definition.");
+            snapshot = snapshot with { CreatureDetail = new(100, 0, 0, 0, 0, level, [], 0) };
         }
         else if (placement.WorldClass == ItemWorldClass.Avatar) snapshot = snapshot with { AvatarDetail = ArrivingAvatar.Facts() };
         snapshot = await (lifecycle ?? creator).PrepareNewAsync(snapshot, cancellationToken).ConfigureAwait(false);

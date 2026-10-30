@@ -180,6 +180,7 @@ public sealed class CreatureLifecycleTests
 
     private sealed class Rules : ICreatureRuleService
     {
+        public ValueTask<int?> StartLevelAsync(int itemTemplateId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<CreatureRule?> GetAsync(int id, CancellationToken ct) =>
             ValueTask.FromResult<CreatureRule?>(new(id, id == 63002 ? 21 : 20, 20, true, [100,200,300],
                 id == 63001 ? [new(3, null, 21)] : [], id == 63000 ? 63001 : null, id == 63000)

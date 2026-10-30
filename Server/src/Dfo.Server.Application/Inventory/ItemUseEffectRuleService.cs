@@ -6,7 +6,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class ItemUseEffectRuleService(IItemUseJudgementService judgement) : IItemUseEffectRuleService
+internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : IItemUseEffectRuleService
 {
     public async ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken ct)
     {

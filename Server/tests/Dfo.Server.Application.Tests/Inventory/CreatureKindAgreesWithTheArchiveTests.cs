@@ -89,7 +89,7 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                 var registered = new CharacterContainerDomainService(TestRequired.TransactionScope());
                 registered.Register(new CharacterId(Character), container);
                 var business = new CharacterBusinessInventoryDomainService(registered, rules,
-                    new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>(), lifecycle: new ItemLifecycleDomainService(store, scope, rules, clock: TimeProvider.System, expiration: null!), transactions: TestRequired.TransactionScope(), items: null!, slotRules: null!, capacities: null!)
+                    new ItemArrivalRuleService(), new Dfo.Server.Application.Creatures.CreatureRuleService(content.GetRequiredService<Dfo.Server.Abstractions.Creatures.ICreatureRuleSource>(), content.GetRequiredService<ICreatureDefinitionSource>(), TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureEquipmentLifetimeSource>()), lifecycle: new ItemLifecycleDomainService(store, scope, rules, clock: TimeProvider.System, expiration: null!), transactions: TestRequired.TransactionScope(), items: null!, slotRules: null!, capacities: null!)
                     .GetStore(new CharacterId(Character), BusinessInventoryStoreKind.Creature)
                     .GetContainer(BusinessInventorySpace.CreatureInventory);
 

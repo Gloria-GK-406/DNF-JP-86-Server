@@ -6,7 +6,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSource definitions,
-    IItemUseJudgementService uses) : IEquipmentRepairRuleService
+    IItemUseRuleService uses) : IEquipmentRepairRuleService
 {
     public async ValueTask<IEquipmentRepairCouponRule?> PrepareCouponAsync(int itemId, CancellationToken ct)
     {
@@ -17,7 +17,7 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
             ? new CouponRule(rule, uses.CooldownKeyFor(itemId, rule), uses) : null;
     }
 
-    private sealed class CouponRule(ItemUseRule rule, ItemCooldownKey key, IItemUseJudgementService uses)
+    private sealed class CouponRule(ItemUseRule rule, ItemCooldownKey key, IItemUseRuleService uses)
         : IEquipmentRepairCouponRule
     {
         public ItemCooldownKey CooldownKey => key;

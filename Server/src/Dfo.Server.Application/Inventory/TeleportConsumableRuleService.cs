@@ -10,7 +10,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class TeleportConsumableRuleService(ITeleportConsumableDefinitionSource definitions,
-    IItemUseJudgementService judgement, ITownDefinitionSource towns, IEntryPlacementRuleService placement)
+    IItemUseRuleService judgement, ITownDefinitionSource towns, IEntryPlacementRuleService placement)
     : ITeleportConsumableRuleService
 {
     public async ValueTask<TeleportConsumableRule?> RuleForAsync(int itemId, CancellationToken ct)

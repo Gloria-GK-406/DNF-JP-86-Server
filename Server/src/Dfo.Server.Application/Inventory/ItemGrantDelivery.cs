@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Abstractions.Creatures;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -11,7 +12,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemGrantDelivery(IItemPlacementRuleService placements, ICharacterTable owners,
     DomainTransactionScope transactions, IItemDomainStore store,
     IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules, IItemLifecycleDomainService lifecycle,
-    ICreatureDefinitionSource creatures, IInventoryCapacityDomainService capacities)
+    ICreatureRuleService creatures, IInventoryCapacityDomainService capacities)
 {
     public async ValueTask<ContainerAddition> AddAsync(ICharacterContainerDomainService containers,
         CharacterId character, int itemId, int count, CancellationToken ct, bool persistent = false)

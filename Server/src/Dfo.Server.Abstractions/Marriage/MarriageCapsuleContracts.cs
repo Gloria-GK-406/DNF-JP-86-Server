@@ -10,6 +10,15 @@ namespace Dfo.Server.Abstractions.Marriage;
 
 public sealed record MarriageCapsuleRules(int MaximumOwned, int MaximumPending, int Gain, int MaximumEnergy, int ItemId);
 public interface IMarriageCapsuleContentSource { MarriageCapsuleRules Load(); }
+
+/// <summary>The archive's capsule limits, and which clears charge a capsule.</summary>
+public interface IMarriageCapsuleRuleService
+{
+    MarriageCapsuleRules Rules();
+
+    /// <summary>Whether clearing this dungeon at this level is a recommended clear that charges energy.</summary>
+    ValueTask<bool> ChargesOnClearAsync(int dungeonId, int level, CancellationToken ct);
+}
 public interface IMarriageCapsuleDomainStore
 {
     ValueTask<MarriageCapsuleState> ReadAsync(Guid relation, CharacterId character, CancellationToken ct);

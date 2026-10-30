@@ -21,8 +21,8 @@ namespace Dfo.Server.Application.Tests.Characters;
 [Trait("Category", "Unit")]
 public sealed class ItemUseJudgementTests
 {
-    private static readonly IItemUseJudgementService Judgement =
-        new ItemUseJudgementService(new NoItemUseRules());
+    private static readonly IItemUseRuleService Judgement =
+        new ItemUseRuleService(new NoItemUseRules());
 
     /// <summary>These tests hand the judgement a declaration; none of them looks one up.</summary>
     private sealed class NoItemUseRules : IItemUseRuleDefinitionSource

@@ -26,7 +26,7 @@ internal static class GmItemEndpoints
             context.Response.Headers.CacheControl = "private, max-age=86400";
             return Results.Bytes(png, "image/png");
         }).WithMetadata(Anyone, new OutsideGameplay("GM 自身的内存状态：GmIconPackStore"));
-        group.MapGet(Prefix + "/{itemId:int}/tooltip", async (HttpContext context, IItemTooltipSource tooltips, ILoggerFactory logs, int itemId) =>
+        group.MapGet(Prefix + "/{itemId:int}/tooltip", async (HttpContext context, IItemTooltipRuleService tooltips, ILoggerFactory logs, int itemId) =>
         {
             if (itemId <= 0) return NotFound("未找到该物品。");
             try { return await tooltips.FindAsync(itemId, context.RequestAborted) is { } tooltip ? Results.Ok(tooltip) : NotFound("未找到该物品。"); }

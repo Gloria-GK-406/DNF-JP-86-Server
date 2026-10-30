@@ -145,8 +145,8 @@ internal sealed partial class PlayingCharacter(
 /// archive it judges against is read here too, so that a judgement and the effects planned from it
 /// are made against one declaration rather than two lookups that could disagree.
 /// </remarks>
-internal sealed class ItemUseJudgementService(
-    IItemUseRuleDefinitionSource rules) : IItemUseJudgementService
+internal sealed class ItemUseRuleService(
+    IItemUseRuleDefinitionSource rules) : IItemUseRuleService
 {
     public ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken) =>
         rules.GetAsync(itemId, cancellationToken);

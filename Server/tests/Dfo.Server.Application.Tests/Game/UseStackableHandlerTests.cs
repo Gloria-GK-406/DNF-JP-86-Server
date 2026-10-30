@@ -621,7 +621,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var sessions = new OneSession();
         var sender = new RecordingSender();
 
-        var judgement = new ItemUseJudgementService(content);
+        var judgement = new ItemUseRuleService(content);
         var containers = inventory.Containers();
         var slots = TestRequired.SlotsOver(containers);
         var characters = new CharacterItemUseDomainService(new OneCharacter(new PlayingCharacter(

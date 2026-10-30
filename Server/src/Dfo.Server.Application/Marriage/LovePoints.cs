@@ -8,7 +8,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Marriage;
 
-internal sealed class MarriageLovePointRuleService(IMarriageCeremonyContentSource content, IItemUseJudgementService judgement) : IMarriageLovePointRuleService
+internal sealed class MarriageLovePointRuleService(IMarriageCeremonyContentSource content, IItemUseRuleService judgement) : IMarriageLovePointRuleService
 {
     public async ValueTask<MarriageLovePointItemRule?> RuleForAsync(int itemId, CancellationToken ct)
     {

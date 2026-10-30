@@ -11,7 +11,7 @@ internal sealed class LuckyStarRuleService(ILuckyStarRentalContentSource content
     public ValueTask<int?> RentPointsAsync(int itemId, CancellationToken ct) => content.RentPointsAsync(itemId, ct);
     public async ValueTask<int> ClearRewardAsync(int dungeonId, int level, CancellationToken ct) =>
         Catalog.ClearReward <= 0 || Catalog.ExcludedDungeons.Contains(dungeonId) || await dungeons.GetAsync(dungeonId, ct).ConfigureAwait(false) is not { } dungeon
-            || !Marriage.CapsuleClearSubscriber.Recommended(dungeon, level) ? 0 : Catalog.ClearReward;
+            || !World.DungeonRecommendation.IsRecommended(dungeon, level) ? 0 : Catalog.ClearReward;
 }
 internal sealed class EquipmentRentalRuleService(ILuckyStarRentalContentSource content,
     IEquipmentDefinitionSource equipment,

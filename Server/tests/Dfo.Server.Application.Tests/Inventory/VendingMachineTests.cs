@@ -178,10 +178,10 @@ public sealed class VendingMachineTests
     public void Weighted_intervals_skip_zero_weights_and_respect_boundaries()
     {
         var d=new VendingMachineDefinition(1,1,7454,1,[new(new(10,1),0,false),new(new(20,2),2,false),new(new(30,3),5,false)]);
-        Assert.Equal(20,VendingMachineDomainService.Select(d,0).ItemId);
-        Assert.Equal(20,VendingMachineDomainService.Select(d,1).ItemId);
-        Assert.Equal(30,VendingMachineDomainService.Select(d,2).ItemId);
-        Assert.Equal(30,VendingMachineDomainService.Select(d,4).ItemId);
-        Assert.Throws<InvalidOperationException>(()=>VendingMachineDomainService.Select(d,5));
+        Assert.Equal(20,VendingMachineRuleService.Select(d,0).ItemId);
+        Assert.Equal(20,VendingMachineRuleService.Select(d,1).ItemId);
+        Assert.Equal(30,VendingMachineRuleService.Select(d,2).ItemId);
+        Assert.Equal(30,VendingMachineRuleService.Select(d,4).ItemId);
+        Assert.Throws<InvalidOperationException>(()=>VendingMachineRuleService.Select(d,5));
     }
 }

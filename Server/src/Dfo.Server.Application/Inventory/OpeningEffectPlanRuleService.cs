@@ -9,7 +9,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class OpeningEffectPlanRuleService(IItemUseJudgementService useRules)
+internal sealed class OpeningEffectPlanRuleService(IItemUseRuleService useRules)
     : IOpeningEffectPlanRuleService
 {
     public async ValueTask<ItemUseRule> SourceRuleAsync(int itemId, CancellationToken ct) =>
