@@ -35,6 +35,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IGuardianAltarContentSource, PvfGuardianAltarContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleContentSource, PvfSouthernDaleContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.World.IDarkElfRuinsContentSource, PvfDarkElfRuinsContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITauKingdomContentSource, PvfTauKingdomContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageProposalContentSource, PvfMarriageProposalContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Marriage.IMarriageDungeonContentSource, PvfMarriageDungeonContentSource>();

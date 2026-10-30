@@ -1,0 +1,69 @@
+=== passiveobject/ActionObject/Map/DarkelfTemple/action/Alicia_Gate_C1_map0.act ===
+[MOTION]
+[BASE ANI]
+../animation/Aliciaarden_teleportend_light02.ani
+[SUB ANI]
+../animation/Aliciaarden_Effect_C1_1.ani 0 -3 ../animation/Aliciaarden_teleportend_circle01.ani 0 -2 ../animation/Aliciaarden_C1.ani 0 -1 ../animation/Aliciaarden_teleportend_circle02.ani 0 1 ../animation/Aliciaarden_teleportend_light01.ani 0 2
+[/SUB ANI]
+[/MOTION]
+[TRIGGER]
+[ENABLE]
+[ON]
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[DISTANCE]
+[<=]
+100
+[/CHECKUP]
+[DO BEHAVIOR]
+[CHECKUP OBJECT]
+0
+[/TRIGGER]
+[BEHAVIOR]
+[TRIGGER]
+0
+[OFF]
+[ADD MINIMAP MOVABLE MAP POS]
+2 0
+[CASTING]
+2000 1
+[DISPLAY TARGET]
+[DO TARGET]
+[/CASTING]
+[/BEHAVIOR]
+[BEHAVIOR]
+[TRIGGER]
+0
+[ON]
+[DUNGEON SYMBOL SET]
+Alicia_Gate 1
+[MOVE MAP]
+2 0 -1 -1 -1
+[IS STATE CHECK]
+0
+[/MOVE MAP]
+[/BEHAVIOR]
+[TRIGGER]
+[WHICH]
+[PLAYER]
+[CHECKUP]
+[DISTANCE]
+[>=]
+100
+[/CHECKUP]
+[DO BEHAVIOR]
+[ME]
+2
+[/TRIGGER]
+[BEHAVIOR]
+[ERASE MINIMAP MOVABLE MAP POS]
+2 0
+[TRIGGER]
+0
+[ON]
+[SET ACTION]
+[CUSTOM]
+1
+[NOW]
+[/BEHAVIOR]

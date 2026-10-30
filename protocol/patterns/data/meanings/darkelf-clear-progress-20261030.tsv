@@ -1,0 +1,2 @@
+family	type	offset	meaning	confidence	source
+NOTI	0x02F7	g1:8	当前星级通关累计，供下一星达成条件显示	High	A21 VA00551080匹配地下城、00551099读取记录+8并按ETC Field5-1封顶；Document/tasks/darkelf-ruins/evidence/client-clear-condition.txt；用户2026-10-30选图截图

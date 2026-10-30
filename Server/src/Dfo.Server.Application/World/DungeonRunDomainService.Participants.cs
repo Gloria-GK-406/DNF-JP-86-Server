@@ -95,6 +95,8 @@ internal sealed partial class DungeonRunDomainService
             lock (owner.gate)
             {
                 aggregate.DeadParticipants.Remove(target);
+                aggregate.RevivalCounts[target] = checked(aggregate.RevivalCounts.GetValueOrDefault(target) + 1);
+                aggregate.RevivalCoinPayments[payer] = checked(aggregate.RevivalCoinPayments.GetValueOrDefault(payer) + 1);
                 owner.wipeDeadlines.Remove(aggregate.RunId);
                 aggregate.RuntimeRevision++;
             }

@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Execution;
+using Dfo.Server.Protocol.Game.DarkElfRuins;
 using Dfo.Server.Protocol.Game.ItemSockets;
 using Dfo.Server.Protocol.Game.Rental;
 using Dfo.Server.Abstractions.Rental;
@@ -152,6 +153,21 @@ public sealed class ProtocolModule : IServerModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+        services.AddGameCmdMessageDecoder<RuinsPlayResultDecoder>(0x032C, ClientMessageType.GameRuinsPlayResult);
+        services.AddGameCmdMessageDecoder<RuinsRewardDecoder>(0x032D, ClientMessageType.GameRuinsReward);
+        services.AddProtocolCommandHandler<GameRuinsPlayResultCommand, bool, GameRuinsPlayResultCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRuinsPlayResult, typeof(RuinsPlayResultRequest)));
+        services.RegisterProtocolMessageHandler<RuinsPlayResultHandler, RuinsPlayResultRequest, GameRuinsPlayResultCommand>(ClientMessageType.GameRuinsPlayResult);
+        services.AddProtocolCommandHandler<GameRuinsRewardCommand, bool, GameRuinsRewardCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRuinsReward, typeof(RuinsRewardRequest)));
+        services.RegisterProtocolMessageHandler<RuinsRewardHandler, RuinsRewardRequest, GameRuinsRewardCommand>(ClientMessageType.GameRuinsReward);
+        services.AddGameNotiMessageEncoder<RuinsByteNotification, GameNotiStateSynchronizationEncoder<RuinsByteNotification>>();
+        services.AddGameNotiMessageEncoder<RuinsLicenseNotification, GameNotiStateSynchronizationEncoder<RuinsLicenseNotification>>();
+        services.AddGameNotiMessageEncoder<RuinsClearNotification, GameNotiStateSynchronizationEncoder<RuinsClearNotification>>();
+        services.AddGameNotiMessageEncoder<RuinsBossNotification, GameNotiStateSynchronizationEncoder<RuinsBossNotification>>();
+        services.AddGameCmdMessageEncoder<RuinsAcknowledgement, GameCmdStateSynchronizationEncoder<RuinsAcknowledgement>>();
+        services.AddDomainSubscriber<DarkElfRuinsInventoryChanged, RuinsInventorySubscriber>("darkelf-ruins.inventory-notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddNotificationHandler<RuinsInventoryRefresh, RuinsInventoryRefreshHandler>();
 
         services.AddEventDispatching();
 

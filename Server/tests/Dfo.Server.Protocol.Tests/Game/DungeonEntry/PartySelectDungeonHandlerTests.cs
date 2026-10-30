@@ -39,6 +39,38 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonEntry;
 
 public sealed class PartySelectDungeonHandlerTests
 {
+    [Fact]
+    public async Task First_selection_delivers_each_members_ruins_cache_before_selection_state_and_permission_rebuild()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sessions = new Sessions(Leader, Member);
+            var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
+            var sender = new Sender();
+            var ruins = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<IDarkElfRuinsDomainService>(),
+                (method, args) => method.Name == nameof(IDarkElfRuinsDomainService.SelectionAsync)
+                    ? (true, ValueTask.FromResult(new DarkElfRuinsSelection(4, 1,
+                        (CharacterId)args[0]! == Leader.CharacterId ? 2 : 3, 1,
+                        (CharacterId)args[0]! == Leader.CharacterId ? [5007, 5017, 5027] : [5008, 5018, 5028])))
+                    : (false, null));
+            var handler = DungeonSelectionTestDriver.Enter(new UnchangedState(), sessions,
+                new RuntimeCurrentView(runtime), new PartyVisits(), new Intents(), sender,
+                TownAreaProjectionTestFactory.Create(sessions, runtime, sender),
+                NullLogger<EnterSelectDungeonHandler>.Instance, new Parties(Snapshot()), ruins: ruins);
+            await handler.HandleAsync(Dispatch(Leader), new EnterSelectDungeonRequest(GameMessageMetadata.Empty, 0), default);
+            foreach (var member in new[] { Leader, Member })
+            {
+                var frames = sender.Messages(member.ConnectionId).ToList();
+                var cacheAt = frames.FindIndex(x => x is Dfo.Server.Protocol.Game.DarkElfRuins.RuinsLicenseNotification);
+                Assert.True(cacheAt >= 0);
+                Assert.True(cacheAt < frames.FindIndex(x => x is UserStateNotification), "Selection state consumed the old ruins cache.");
+                Assert.True(cacheAt < frames.FindIndex(x => x is DungeonPermissionStateMessage));
+                var value = Assert.Single(frames.OfType<Dfo.Server.Protocol.Game.DarkElfRuins.RuinsLicenseNotification>()).Selection;
+                Assert.Equal(member == Leader ? 2 : 3, value.License);
+            }
+        });
+    }
+
     [Theory]
     [InlineData(10000)]
     [InlineData(0)]

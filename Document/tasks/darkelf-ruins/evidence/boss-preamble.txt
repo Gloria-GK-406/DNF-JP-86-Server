@@ -1,0 +1,107 @@
+VA 0114D450, length 170
+0114D450 push     ebp
+0114D451 mov      ebp, esp
+0114D453 push     -1
+0114D455 push     0x2d183b8
+0114D45A mov      eax, dword ptr fs:[0]
+0114D460 push     eax
+0114D461 sub      esp, 0x10
+0114D464 push     ebx
+0114D465 push     esi
+0114D466 push     edi
+0114D467 mov      eax, dword ptr [0x399cee0]
+0114D46C xor      eax, ebp
+0114D46E push     eax
+0114D46F lea      eax, [ebp - 0xc]
+0114D472 mov      dword ptr fs:[0], eax
+0114D478 lea      eax, [ebp - 0xd]
+0114D47B push     1
+0114D47D push     eax
+0114D47E mov      byte ptr [ebp - 0xd], 0
+0114D482 call     0x27c5230
+0114D487 add      esp, 8
+0114D48A cmp      byte ptr [ebp - 0xd], 0
+0114D48E push     1
+0114D490 je       0x114d700
+0114D496 lea      ecx, [ebp - 0xe]
+0114D499 push     ecx
+0114D49A mov      byte ptr [ebp - 0xe], 0
+0114D49E mov      dword ptr [ebp - 0x14], 0xffff
+0114D4A5 call     0x27c5230
+0114D4AA lea      edx, [ebp - 0x14]
+0114D4AD push     edx
+0114D4AE call     0x27c52a0
+0114D4B3 add      esp, 0xc
+0114D4B6 cmp      byte ptr [ebp - 0xe], 0
+0114D4BA je       0x114d710
+0114D4C0 call     0x1102c30
+0114D4C5 mov      ecx, eax
+0114D4C7 call     0x163e3d0
+0114D4CC mov      esi, eax
+0114D4CE mov      dword ptr [ebp - 0x18], esi
+0114D4D1 test     esi, esi
+0114D4D3 je       0x114d675
+0114D4D9 mov      ecx, dword ptr [0x3a5c9b0]
+0114D4DF test     ecx, ecx
+0114D4E1 je       0x114d608
+0114D4E7 mov      eax, dword ptr [ecx]
+0114D4E9 mov      edx, dword ptr [eax + 0x98]
+0114D4EF call     edx
+0114D4F1 test     eax, eax
+0114D4F3 je       0x114d608
+0114D4F9 mov      ecx, dword ptr [0x3a5c9b0]
+0114D4FF mov      eax, dword ptr [ecx]
+0114D501 mov      edx, dword ptr [eax + 0x98]
+0114D507 call     edx
+0114D509 cmp      eax, dword ptr [0x3b3dfb8]
+0114D50F jne      0x114d608
+0114D515 call     0x119b940
+0114D51A test     eax, eax
+0114D51C je       0x114d608
+0114D522 call     0x1102c30
+0114D527 push     eax
+0114D528 call     0x119b940
+0114D52D mov      ecx, eax
+0114D52F call     0x119b360
+0114D534 mov      edi, eax
+0114D536 call     0x1102c30
+0114D53B push     eax
+0114D53C call     0x119b940
+0114D541 mov      ecx, eax
+0114D543 call     0x119b410
+0114D548 mov      ebx, eax
+0114D54A call     0x1102c30
+0114D54F test     eax, eax
+0114D551 je       0x114d608
+0114D557 call     0x1102c30
+0114D55C mov      ecx, eax
+0114D55E call     0x163e1b0
+0114D563 cmp      eax, 0x13
+0114D566 jne      0x114d608
+0114D56C test     edi, edi
+0114D56E je       0x114d608
+0114D574 test     ebx, ebx
+0114D576 je       0x114d608
+0114D57C mov      ecx, ebx
+0114D57E xor      edi, edi
+0114D580 call     0x526ab41
+0114D585 test     eax, eax
+0114D587 jle      0x114d608
+0114D589 lea      esp, [esp]
+0114D590 push     edi
+0114D591 mov      ecx, ebx
+0114D593 call     0x1910540
+0114D598 push     eax
+0114D599 call     0xfce180
+0114D59E mov      esi, eax
+0114D5A0 add      esp, 4
+0114D5A3 test     esi, esi
+0114D5A5 je       0x114d5f9
+0114D5A7 mov      eax, dword ptr [esi]
+0114D5A9 mov      edx, dword ptr [eax + 0xe4]
+0114D5AF mov      ecx, esi
+0114D5B1 call     edx
+0114D5B3 cmp      eax, 5
+0114D5B6 je       0x114d5f9
+0114D5B8 mov      ecx, esi
+0114D5BA call     0x17b0c20

@@ -31,8 +31,9 @@ internal static class DungeonClearCommandProjection
         foreach (var target in targets)
         {
             var run = runs.Find(target.CharacterId);
-            List<IGameServerMessage> frames =
-            [new EnableClearDungeonNotification(), new SecretShopNpcNotification(GameProtocol.SecretShopNpcId)];
+            List<IGameServerMessage> frames = run?.Layout.Mode is DungeonRunMode.DarkElfRuins
+                ? [.. Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.ClearPreamble(run)]
+                : [new EnableClearDungeonNotification(), new SecretShopNpcNotification(GameProtocol.SecretShopNpcId)];
             if (CycleQuestSubmission.IsCycleClear(run))
             {
                 // The map-clear subscriber is asynchronous. Resynchronize an already-ready

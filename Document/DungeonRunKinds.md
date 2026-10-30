@@ -34,7 +34,7 @@
 ## 判别值
 
 - 每局恰好一个 `DungeonLayout.Mode`，由负责该玩法的入场服务写入。无计划的种类（普通、次元、南部溪谷、陶之王国、封印宝藏、赫拉斯、金银角、情侣）共用 `DungeonRunMode.Plain(kind)`；
-  带计划的种类各有嵌套记录（Hell、Mirror、Sao、Despair、Tournament、Altar、Guardian、GiantDragon）。构造函数私有，集合封闭。
+  带计划的种类各有嵌套记录（Hell、Mirror、Sao、Despair、Tournament、Altar、Guardian、GiantDragon、LostLand、DarkElfRuins）。构造函数私有，集合封闭。
 - 识别玩法一律看 `Mode`，不再按副本号或 `Supports(id)` 判断已经开局的 run。直接构造 `DungeonLayout` 的测试也要写入对应 `Mode`，否则会按普通副本处理。
 - 按 `DungeonRunKind` 写 switch 时列出每个成员，不写 `_ =>` 或 `default:`。构建只抑制 CS8524，保留 CS8509，
   所以新增种类会在每个未作答的地方编译失败；`DungeonRunKindTests` 扫描生产源码拒绝兜底分支，并带反例。
@@ -47,10 +47,10 @@
 |---|---|---|
 | `EndsOnBossClear` | 首领房清场是否开普通 clear、发首领通关奖励 | 比武大会、祭坛（各自按轮次结算） |
 | `AppliesFailureWeakness` | 失败是否施加虚弱（再叠加内容的 `NoGiveupPenalty` 豁免） | 祭坛 |
-| `DrawsClearCards` | 通关是否展示并发放翻牌 | 绝望之塔 |
-| `UnlocksDifficulty` | 通关是否提升记录难度 | 镜像、绝望之塔 |
-| `AllowsOrdinaryRechallenge` | 通关离开后能否恢复普通迷宫的重挑意图 | 地狱、镜像、SAO、绝望之塔、比武大会、祭坛、守护者祭坛 |
-| `Revival` | 复活币是否可用、需要谁同意 | 守护者祭坛禁止；比武大会、祭坛询问各自生命周期 |
+| `DrawsClearCards` | 通关是否展示并发放翻牌 | 绝望之塔、遗忘之地、暗精灵遗迹 |
+| `UnlocksDifficulty` | 通关是否提升记录难度 | 镜像、绝望之塔、遗忘之地、暗精灵遗迹 |
+| `AllowsOrdinaryRechallenge` | 通关离开后能否恢复普通迷宫的重挑意图 | 地狱、镜像、SAO、绝望之塔、比武大会、祭坛、守护者祭坛、遗忘之地、暗精灵遗迹 |
+| `Revival` | 复活币是否可用、需要谁同意 | 守护者祭坛禁止；比武大会、祭坛、暗精灵遗迹询问各自生命周期 |
 | `PartyWipe` | 团灭由谁结算 | 祭坛失败、比武大会淘汰、守护者祭坛自管 50 秒返回 |
 | `QuotaFamily` | 房间加载完成时刷新哪个次数族 | 镜像、祭坛、比武大会、赫拉斯 |
 
@@ -59,7 +59,7 @@
 
 ## 行为钩子与入场路由
 
-- **首领房清场**：`IDungeonBossClearHook` 按种类注册（SAO、南部溪谷），在击杀的同一事务内执行，与击杀一起提交或回滚。
+- **首领房清场**：`IDungeonBossClearHook` 按种类注册（SAO、南部溪谷、暗精灵遗迹），在击杀的同一事务内执行，与击杀一起提交或回滚。
   同一种类最多一个钩子；`DungeonMapCleared` 订阅者在之后的作业里执行，给不了这个保证。
 - **入场路由**：`IDungeonEntryRoutingDomainService` 持有特殊入场的先后顺序。专属玩法认得的副本不会落到镜像、循环或地狱／普通判断；
   两塔在此之前由 Protocol 按引擎分流。新增玩法时在这里登记顺序，Protocol 的 `GameSelectDungeonCommandHandler` 不感知具体玩法。

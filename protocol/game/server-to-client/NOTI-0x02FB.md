@@ -1,4 +1,4 @@
-# NOTI `0x02FB` `OCCUPY_DUNGEON_COMPLETE_INFO`
+# NOTI `0x02FB` `LICENSE_DUNGEON_INCOUNT_INFO`
 
 <!-- rks:machine:begin -->
 
@@ -48,6 +48,11 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- rks:machine:end -->
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
+
+## 当前实现
+
+本仓发送角色当日剩余入场次数1B；VA `011484C0` 已复核读取宽度，剩余次数解释参考上游，效果待实机。
+见[遗迹流程](../../patterns/flow-darkelf-ruins.md)，不将服务端测试升级为 ClientVerified。
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。

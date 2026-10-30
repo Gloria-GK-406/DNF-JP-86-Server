@@ -79,7 +79,11 @@ public sealed record DungeonEntryFacts(
     DungeonEntryIntent Intent = default)
 {
     public static DungeonEntryFacts None { get; } = new(0, [], [], DungeonEntryIntent.Interactive);
+    /// <summary>Specialized rules may constrain maze choice without duplicating topology validation.</summary>
+    public int? RequiredMazeIndex { get; init; }
 }
+
+public sealed record DungeonObjectSpawn(MazeCell Cell, int X, int Y, int ObjectId, int Team, int SpawnMode, bool Regenerate);
 
 /// <summary>
 /// One dungeon run's maze, fixed at the moment of entry.
@@ -137,6 +141,12 @@ public sealed record DungeonLayout(
     /// </summary>
     public byte? FixedMonsterLevel { get; init; }
     public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
+    /// <summary>Rule-declared combatants whose script dummy flag must not make a room skippable.</summary>
+    public ImmutableHashSet<int> RequiredCombatantCodes { get; init; } = [];
+    public ImmutableArray<DungeonObjectSpawn> RandomObjects { get; init; } = [];
+    public ImmutableDictionary<MazeCell, MazeCell> Warps { get; init; } = ImmutableDictionary<MazeCell, MazeCell>.Empty;
+
+    public bool IsWarp(MazeCell from, MazeCell target) => Warps.TryGetValue(from, out var destination) && destination == target;
 
     /// <summary>Both cells must expose the matching door, not just be adjacent on the grid.</summary>
     public bool CanTraverse(MazeCell from, MazeCell target)
@@ -147,6 +157,7 @@ public sealed record DungeonLayout(
                 || !Cells.TryGetValue(target, out var room) || room.MapCandidates.Count == 0) return false;
             if (exploration.IsDeclaredWarp(from, target)) return true;
         }
+        if (IsWarp(from, target)) return Cells.ContainsKey(from) && Cells.ContainsKey(target);
         var entrance = EntranceFrom(from, target);
         return entrance != DungeonPathDirection.None
             && Cells.TryGetValue(from, out var source)

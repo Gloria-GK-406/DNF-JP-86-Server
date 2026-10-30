@@ -1,0 +1,67 @@
+id 5006 -> DarkelfTemple/TempleEnterance_1.dgn
+=== dungeon/DarkelfTemple/TempleEnterance_1.dgn ===
+[background pos]
+80
+[name]
+神殿入口
+[explain]
+    调查团根据艾丽西亚调查的内容到达了神殿入口， 他们开始分散各自找路。 很久以前暗精灵在洞穴的各处留下了很多试炼的痕迹， 阻挡了人们的去路， 远古的冤魂和怪异生命体也会夺取来者的生命。 洞穴的那一边迎接调查团的是那惊悚的哀嚎……
+[cutscene image]
+Map/CutScene/DarkelfTemple.img 0
+[minimap image]
+Map/MiniMap/Act2.img
+[worldmap pattern info]
+1 7 WorldMap/SelectdungeonSlot/DarkelfTemple.img 0
+[difficulty level]
+1 1 1 1 0
+[recommend equipment]
+0 2 0 3 10 3 12 3 12 3
+[/recommend equipment]
+[minimum required level]
+40
+[recommended level]
+40 86
+[basis level]
+40
+[experience increasing point]
+1.5
+[champion]
+7 33 50 70 80
+[pathgate object]
+57576 57572 -1 57577 57573 -1 57578 57574 57575 57571
+[maze info]
+[size]
+4 1
+[greed]
+BBFFFFEE
+[map specification]
+map 0 0 53000 53001 53002 map 1 0 53003 53004 53005 map 2 0 53006 53007 53008 map 3 0 53009 53010 53011
+[/map specification]
+[start map]
+0 0
+[/start map]
+[boss map]
+3 0
+[/boss map]
+[mob level charac level replace flag]
+1
+[named monster]
+56349
+[/named monster]
+[license dungeon]
+[no experience monster and result]
+[monsterapc diff table]
+Dungeon/DarkelfTemple/table/MonsterApcDifficultyBonus.tbl
+[required item]
+3033 10 1
+[/required item]
+[no fatigue]
+[coin info]
+1 [normal] 4 1 [expert] 4 1 [master] 4 1 [king] 4 1 [slayer] 4 1
+[/coin info]
+[recommend party]
+> 2 > 2 > 2 > 2 > 2
+[/recommend party]
+[enter without fatigue]
+1
+[not check shotcount in license dungeon]

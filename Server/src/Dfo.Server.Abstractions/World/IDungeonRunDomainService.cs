@@ -49,6 +49,10 @@ public sealed record DungeonRunState(
 
     /// <summary>Dead members of this run; a new entry starts with an empty set.</summary>
     public ImmutableHashSet<CharacterId> DeadParticipants { get; init; } = [];
+    /// <summary>Committed revivals, retained across rooms by the shared run owner.</summary>
+    public ImmutableDictionary<CharacterId, int> RevivalCounts { get; init; } = ImmutableDictionary<CharacterId, int>.Empty;
+    /// <summary>Coin payers may differ from revived targets; these are separate run facts.</summary>
+    public ImmutableDictionary<CharacterId, int> RevivalCoinPayments { get; init; } = ImmutableDictionary<CharacterId, int>.Empty;
 
     /// <summary>The entry-time quest purpose owner, not an authority for current membership.</summary>
     public DungeonRunParticipant? EntryPurposeOwner { get; init; }

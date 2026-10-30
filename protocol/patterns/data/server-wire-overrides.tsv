@@ -61,3 +61,10 @@ CMD	GuardianAltarActionResponse	0x0398	Game/GuardianAltar/GuardianAltarMessages.
 CMD	GuardianAltarActionResponse	0x0399	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
 CMD	GuardianAltarActionResponse	0x039A	Game/GuardianAltar/GuardianAltarMessages.cs	Request.Operation selects the registered guardian altar response identity
 CMD	GuardianAltarOpenResponse	0x0392	Game/GuardianAltar/GuardianAltarMessages.cs	Fixed Type property is owned by the packed guardian open response
+
+NOTI	RuinsByteNotification	0x02F8	Game/DarkElfRuins/DarkElfRuinsSlice.cs	selection projects the daily index
+NOTI	RuinsByteNotification	0x02FA	Game/DarkElfRuins/DarkElfRuinsSlice.cs	selection projects the opaque boolean as zero
+NOTI	RuinsByteNotification	0x02FB	Game/DarkElfRuins/DarkElfRuinsSlice.cs	selection projects remaining entries
+CMD	RuinsAcknowledgement	0x032C	Game/DarkElfRuins/DarkElfRuinsSlice.cs	acknowledges the specialized result request
+CMD	RuinsAcknowledgement	0x032D	Game/DarkElfRuins/DarkElfRuinsSlice.cs	acknowledges the specialized reward request
+CMD	RuinsAcknowledgement	0x002E	Game/DarkElfRuins/DarkElfRuinsSlice.cs	legacy result route preserves the request type

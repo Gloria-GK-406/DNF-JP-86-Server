@@ -1,0 +1,15 @@
+=== worldmap/darkelf_temple.wdm ===
+[map image]
+WorldMap/Darkelf_Temple.img 0
+[ui path]
+WorldMap/UI/Darkelf_Temple.xui
+[dungeon]
+5006 -1 5007 -1 5008 -1 5009 -1 5016 -1 5017 -1 5018 -1 5019 -1 5026 -1 5027 -1 5028 -1 5029 -1
+[/dungeon]
+[exercise]
+0
+[name]
+暗精灵遗迹
+[tooltip exception list]
+5007 5008 5009 5017 5018 5019 5027 5028 5029
+[/tooltip execption list]

@@ -247,6 +247,12 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         DungeonEntryFacts facts,
         int seed)
     {
+        if (facts.RequiredMazeIndex is { } required)
+        {
+            var requiredMaze = definition.Mazes.SingleOrDefault(x => x.Index == required);
+            return requiredMaze is null || requiredMaze.QuestConnection is not null || definition.QuestConnection is not null
+                ? null : (requiredMaze, DungeonRunPurpose.Ordinary);
+        }
         var connected = definition.Mazes
             .Select(maze => (Maze: maze, Connection: maze.QuestConnection ?? definition.QuestConnection))
             .Where(candidate => candidate.Connection is not null)

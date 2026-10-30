@@ -239,6 +239,19 @@ internal static class CharacterDatabaseSchema
     /// allocates it rather than on a caller, because allocation is the only place one is made.
     /// </remarks>
     private const string TableDeclarations = """
+        CREATE TABLE IF NOT EXISTS darkelf_ruins_progress (
+            character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
+            revision INTEGER NOT NULL DEFAULT 0, license INTEGER NOT NULL DEFAULT 1, clears INTEGER NOT NULL DEFAULT 0,
+            day TEXT NOT NULL DEFAULT '0001-01-01', entries INTEGER NOT NULL DEFAULT 0,
+            month TEXT NOT NULL DEFAULT '0001-01-01', monthly_entries INTEGER NOT NULL DEFAULT 0,
+            guardians INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS darkelf_ruins_rewards (
+            character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            run_id TEXT NOT NULL, reward_json TEXT NOT NULL,
+            claimed INTEGER NOT NULL DEFAULT 0, presentation_stage INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(character_id,run_id)
+        );
         CREATE TABLE IF NOT EXISTS marriage_quest_bindings (
             character_id INTEGER NOT NULL, quest_id INTEGER NOT NULL,
             proposal_id TEXT NOT NULL REFERENCES marriage_proposals(id), accepted_at INTEGER NOT NULL,

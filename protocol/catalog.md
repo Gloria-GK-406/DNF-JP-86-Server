@@ -61,6 +61,24 @@ CurrentImplementation / ClientStatic / 70Reference：入口4／10、0392–039A�
 
 ClientStatic / Confirmed：[CMD002A](game/client-to-server/0x002A.md#遗忘之地专用模块的退出构包)有来自遗忘之地专用更新模块的空体构包点，受本地奖励界面状态及一次发送标记控制。当前客户端内容将DGN4000置于世界地图101「黄金梦」，暗黑城区域2、3绑定该选图页；用户确认乔安入场按钮打开选图页，页内可选择遗忘之地，界面显示1/1及100疲劳加次提示。CurrentImplementation：已接专用探索准入及持久次数，普通解析仍保留Boss不可达拒绝；准入/次数及邻近回归44项通过，首次加载[025C](game/server-to-client/NOTI-0x025C.md)按用户确定的20分钟策略发送1200/1200，第二字段用途仍未知；60秒到点原生结束、宝箱及追击者已有用户反馈，当前20分钟及其他边界见[验收结果](../Document/tasks/forgotten-land/Human-Test.md)。本条不增加WireCaptured，不将菜单可见或内容读取测试扩大为完整玩法ClientVerified。见[取证与实现边界](../Document/tasks/forgotten-land/README.md)。
 
+## 暗精灵遗迹专用流程（核心路径已获限定 A21 确认）
+
+CurrentImplementation / ClientStatic：遗迹使用专用成绩、奖励和状态流程；宽度、静态锚点、上游参照及未裁定字段见[流程记录](patterns/flow-darkelf-ruins.md)。服务端自动测试不构成 WireCaptured 或 ClientVerified。升星及装备概率采用[本次用户确定的规则](../Document/tasks/darkelf-ruins/README.md)。
+
+| 族 | Type | 名称/实现 | 当前证据 | 记录 |
+|---|---|---|---|---|
+| `0x01` | `0x032C` | LICENSE_DUNGEON_PLAY_RESULT C2S | ClientStatic / CurrentImplementation | [请求与响应](game/client-to-server/0x032C.md) |
+| `0x01` CMD | `0x032C` | LICENSE_DUNGEON_PLAY_RESULT ACK | ClientStatic / CurrentImplementation | [请求与响应](game/client-to-server/0x032C.md) |
+| `0x01` | `0x032D` | LICENSE_DUNGEON_REQUEST_REWARD C2S | ClientStatic / CurrentImplementation | [请求与响应](game/client-to-server/0x032D.md) |
+| `0x01` CMD | `0x032D` | LICENSE_DUNGEON_REQUEST_REWARD ACK | ClientStatic / CurrentImplementation | [请求与响应](game/client-to-server/0x032D.md) |
+| `0x01` CMD | `0x002E` | 遗迹旧成绩入口 ACK | CurrentImplementation | [遗迹分流](patterns/flow-darkelf-ruins.md) |
+| `0x00` NOTI | `0x02F7` | CHARAC_DUNGEON_LICENSE_INFO | ClientStatic / CurrentImplementation | [共享星级](game/server-to-client/NOTI-0x02F7.md) |
+| `0x00` NOTI | `0x02F8` | LICENSE_DUNGEON_DAY_INDEX_INFO | ClientStatic / CurrentImplementation | [日索引](game/server-to-client/NOTI-0x02F8.md) |
+| `0x00` NOTI | `0x02F9` | LICENSE_DUNGEON_CLEAR_INFO | ClientStatic / CurrentImplementation | [结算](game/server-to-client/NOTI-0x02F9.md) |
+| `0x00` NOTI | `0x02FA` | LICENSE_DUNGEON_SHOT_COUNT_INFO | ClientStatic / CurrentImplementation | [布尔状态](game/server-to-client/NOTI-0x02FA.md) |
+| `0x00` NOTI | `0x02FB` | LICENSE_DUNGEON_INCOUNT_INFO | ClientStatic / CurrentImplementation | [剩余次数](game/server-to-client/NOTI-0x02FB.md) |
+| `0x00` NOTI | `0x0073` | 遗迹 Boss 清场前导 | ClientStatic / CurrentImplementation | [前导](game/server-to-client/NOTI-0x0073.md) |
+
 ## 2026-10-20 循环任务客户端原生提交（核心流程已验收）
 
 ClientStatic / High：已定位 [NOTI0105](game/server-to-client/NOTI-0x0105.md) 驱动循环看板目标检查及 C2S CMD0022 的入口。CurrentImplementation：循环清场发送 ready 通知；已达标时先同步完整已接任务进度，异步进度随后达标时按 023F → 0105 再检查。结算仍由客户端提交请求驱动，不恢复服务端代办完成/取消。2026-10-20 部署 `70d8ba9f` 后，用户确认结果符合预期，本轮原生自动提交及成功看板记为 ClientVerified / Confirmed；body 09 的来源仍为参照实现，不升级为官方 WireCaptured，也不代表全部边界分支已验收。[实现与验收](../Document/CycleQuestNativeSubmit-20261020.md)。

@@ -13,6 +13,7 @@ namespace Dfo.Server.Abstractions.World;
 public readonly record struct RoomActorDescription(DungeonRoomActor Actor, bool IsAiCharacter)
 {
     public bool IsNamedMonster { get; init; }
+    public bool RequiredCombatant { get; init; }
     public byte? ObjectTemplateOwner { get; init; }
     public int ObjectTemplateIndex { get; init; }
     public bool IsHellTemplate { get; init; }

@@ -119,6 +119,8 @@ internal sealed partial class DungeonRunDomainService
         public HashSet<CharacterId> ReadyParticipants { get; } = [];
 
         public HashSet<CharacterId> DeadParticipants { get; } = [];
+        public Dictionary<CharacterId, int> RevivalCounts { get; } = [];
+        public Dictionary<CharacterId, int> RevivalCoinPayments { get; } = [];
         public List<DungeonCardSelection> CardSelections { get; } = [];
         public HashSet<ClearRewardCardKind> RevealedCardKinds { get; } = [];
 
@@ -197,6 +199,8 @@ internal sealed partial class DungeonRunDomainService
             {
                 PartyKey = this.PartyKey,
                 DeadParticipants = this.DeadParticipants.ToImmutableHashSet(),
+                RevivalCounts = this.RevivalCounts.ToImmutableDictionary(),
+                RevivalCoinPayments = this.RevivalCoinPayments.ToImmutableDictionary(),
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
                 Kills = this.kills.ToImmutableArray(),
                 ClearedAt = this.ClearedAt,
