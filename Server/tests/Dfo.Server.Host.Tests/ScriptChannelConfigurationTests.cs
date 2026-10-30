@@ -1,3 +1,4 @@
+using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.Configuration;
 
 namespace Dfo.Server.Host.Tests;
@@ -8,12 +9,13 @@ public sealed class ScriptChannelConfigurationTests
     public void Shipped_script_matches_upstream_default_channel_scope()
     {
         var script = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Resources/Channel/channel_info.etc"));
-        var channels = ScriptChannelConfiguration.Parse(script, includePvp: false);
+        var channels = ChannelScript.Listeners(ChannelScript.Parse(script), false);
         Assert.Equal(new[] { 1, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 19, 100, 200 },
             channels.Select(channel => channel.Id));
         Assert.Equal(23, channels.Single(channel => channel.Id == 200).LoginEnvironment);
         Assert.All(channels.Where(channel => channel.Id != 200), channel => Assert.Equal(1, channel.LoginEnvironment));
-        var all = ScriptChannelConfiguration.Parse(script, includePvp: true);
+        Assert.Equal([150, 150, 250, 100], new[] { 20, 21, 200, 11 }.Select(id => channels.Single(channel => channel.Id == id).MaximumUsers));
+        var all = ChannelScript.Listeners(ChannelScript.Parse(script), true);
         Assert.Equal(28, all.Count);
         Assert.DoesNotContain(all, channel => channel.Id == 201);
         Assert.Equal(13, all.Single(channel => channel.Id == 68).LoginEnvironment);
@@ -53,9 +55,9 @@ public sealed class ScriptChannelConfigurationTests
     public void Only_group_one_is_used_duplicates_keep_first_and_invalid_raid_is_ignored()
     {
         const string script = "[server]\n2\n99 `other` 1 `[none]`\n[/server]\n[server]\n1\n19 `mirror` 1 `[crack]`\n19 `duplicate` 23 `[raid]`\n201 `invalid` 32 `[raid]`\n[/server]";
-        var channel = Assert.Single(ScriptChannelConfiguration.Parse(script, false));
+        var channel = Assert.Single(ChannelScript.Listeners(ChannelScript.Parse(script), false));
         Assert.Equal(19, channel.Id);
         Assert.Equal(1, channel.LoginEnvironment);
-        Assert.Throws<InvalidOperationException>(() => ScriptChannelConfiguration.Parse("[server]\n1\n[/server]", false));
+        Assert.Throws<InvalidOperationException>(() => ChannelScript.Listeners(ChannelScript.Parse("[server]\n1\n[/server]"), false));
     }
 }
