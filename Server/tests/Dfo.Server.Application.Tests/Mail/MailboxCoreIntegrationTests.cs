@@ -522,7 +522,7 @@ public sealed partial class MailboxCoreIntegrationTests
         public IServiceProvider Services => provider;
         public AdvanceableTimeProvider Clock { get; }
         public IMailboxQueryDomainService Query => provider.GetRequiredService<IMailboxQueryDomainService>();
-        public IMailboxDomainService Mail => provider.GetRequiredService<IMailboxDomainService>();
+        public IMailboxDomainService Mail => TestUseCase.Mailbox(provider);
 
         public MailFixture(Action<IServiceCollection>? configure = null) : this(Path.Combine(Path.GetTempPath(), "dfo-mail-core-" + Guid.NewGuid().ToString("N")),
             new AdvanceableTimeProvider(new DateTimeOffset(2026, 9, 24, 0, 0, 0, TimeSpan.Zero)), true, configure)

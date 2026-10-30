@@ -170,20 +170,19 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
 
     private async ValueTask<T> RunAsync<T>(bool writing, Func<ValueTask<T>> action, CancellationToken ct)
     {
-        var lease = transactions.Current is null ? transactions.Begin(readOnly: !writing) : null;
+        // The caller's unit settles the mailbox; this service never opens a boundary of its own.
+        if (transactions.Current is null)
+            throw new InvalidOperationException("Mailbox operations require the caller's transaction.");
         try
         {
             if (writing) await repository.AcquireWriteAsync(ct);
-            var result = await action();
-            if (lease is not null) await lease.CommitAsync(ct);
-            return result;
+            return await action();
         }
         catch (Exception originalCause)
         {
             await AbortAsync(originalCause);
             throw;
         }
-        finally { if (lease is not null) await lease.DisposeAsync(); }
 
         // A caller cannot catch a mail refusal and accidentally commit partial assets.
         ValueTask AbortAsync(Exception cause) => transactions.Current is DomainTransaction active

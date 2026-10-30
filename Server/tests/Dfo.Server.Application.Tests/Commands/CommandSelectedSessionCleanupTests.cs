@@ -92,7 +92,7 @@ public sealed class CommandSelectedSessionCleanupTests
         ((TowerProxy)(object)illusion).Snapshot = new IllusionTowerSnapshot(Guid.NewGuid(),11001,
             [new(Actor,0,true,false),new(third,1,false,false)],null!,[],null,DateTimeOffset.UtcNow);
         var cleanup = new Dfo.Server.Application.Sessions.SelectedSessionCleanupService(null!, null!, null!, null!, null!, [], null!, null!,
-            null!, null!, [], illusionTower: illusion, bossTower: boss, creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTowerDepartures: []);
+            null!, null!, [], TestRequired.TransactionScope(), illusionTower: illusion, bossTower: boss, creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTowerDepartures: []);
         Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor, Peer, third }, cleanup.AffectedSessions(Actor));
         ((TowerProxy)(object)boss).Snapshot = null; ((TowerProxy)(object)illusion).Snapshot = null;
         Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor }, cleanup.AffectedSessions(Actor));

@@ -74,7 +74,7 @@ public sealed class OnlineExpiredItemCleanupTests
                 await tx.CommitAsync(default);
             }
         });
-        var mailbox = f.Services.GetRequiredService<IMailboxDomainService>();
+        var mailbox = TestUseCase.Mailbox(f.Services);
         var old = await TestGameplay.RunAsync(f.Services, async () =>
         {
             var old = Assert.Single(await mailbox.InboxAsync(new(1)));

@@ -182,7 +182,7 @@ public sealed partial class GmOfficialMailHttpTests
         using var replay = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(id, body: expected));
         Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("replayed").GetBoolean());
-        var mailbox = host.Services.GetRequiredService<IMailboxDomainService>();
+        var mailbox = TestUseCase.Mailbox(host.Services);
         Assert.Equal(expected, Assert.Single(await mailbox.InboxAsync(new CharacterId(1))).Body);
         Assert.Equal(new[] { "1" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_messages;"));
     }
@@ -291,7 +291,7 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("replayed").GetBoolean());
         Assert.Equal(storedCores, await host.ReadAsync("SELECT item_uid || ':' || hex(item_core) FROM items ORDER BY item_uid;"));
-        var mailbox = host.Services.GetRequiredService<IMailboxDomainService>();
+        var mailbox = TestUseCase.Mailbox(host.Services);
         var commands = host.Services.GetRequiredService<ICommandBus>();
         var completion = host.Services.GetRequiredService<INotificationHandler<MailboxCompleted>>();
         foreach (var character in new[] { new CharacterId(1), new CharacterId(2) })
@@ -367,7 +367,7 @@ public sealed partial class GmOfficialMailHttpTests
         await host.ExecuteAsync("INSERT INTO character_stats(character_id,carried_gold) VALUES(1,2147483647);");
         using var sent = await host.PostAsync("/api/gm/v1/mail/send", login.Csrf, Payload(Guid.NewGuid(), items: [new { itemId = 27312, count = 1 }]));
         Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
-        var mailbox = host.Services.GetRequiredService<IMailboxDomainService>(); var character = new CharacterId(1);
+        var mailbox = TestUseCase.Mailbox(host.Services); var character = new CharacterId(1);
         var mail = Assert.Single(await mailbox.InboxAsync(character)); var gear = mail.Attachments.Single(x => x.Asset is MailAsset.Equipment); var gold = mail.Attachments.Single(x => x.Asset is MailAsset.Gold);
         var uid = ((MailAsset.Equipment)gear.Asset).Identity.Value;
         var placement = await host.Services.GetRequiredService<IItemPlacementRuleService>().PlacementForAsync(27312, default); Assert.NotNull(placement);
@@ -512,7 +512,7 @@ public sealed partial class GmOfficialMailHttpTests
         Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("replayed").GetBoolean());
         Assert.Equal(new[] { "1", "47" }, await host.ReadAsync("SELECT receiver_character_id FROM mailbox_messages ORDER BY receiver_character_id;"));
         Assert.Equal(new[] { "0" }, await host.ReadAsync("SELECT COUNT(*) FROM mailbox_attachments;"));
-        var mailbox = host.Services.GetRequiredService<IMailboxDomainService>();
+        var mailbox = TestUseCase.Mailbox(host.Services);
         foreach (var character in new[] { 1, 47 }) { var mail = Assert.Single(await mailbox.InboxAsync(new CharacterId(character))); Assert.Equal("同文\n换行", mail.Body); Assert.Equal(mail.Body, mail.Title); Assert.Empty(mail.Attachments); }
         Assert.Equal(first.GetProperty("expiresAt").GetString(), (await host.Client.GetFromJsonAsync<JsonElement>("/api/gm/v1/mail/operations/" + id)).GetProperty("expiresAt").GetString());
         var bus = host.Services.GetRequiredService<ICommandBus>();

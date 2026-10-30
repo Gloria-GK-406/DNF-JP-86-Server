@@ -173,7 +173,7 @@ public sealed class CreatureTransformationTests
                 new CreatureRuleService(rules, new FakeLifetimes()), scope, new FakeSessions(), TimeProvider.System, domain);
             domain.Instances = runtime;
             runtime.Enter(Session);
-            await runtime.AdvanceAsync(Session, default);
+            await TestUseCase.RunAsync(scope, () => runtime.AdvanceAsync(Session, default));
             await using (var transaction = scope.Begin())
             {
                 Assert.NotNull(await runtime.HatchAsync(Session,
@@ -187,7 +187,7 @@ public sealed class CreatureTransformationTests
                 if (commit) await transaction.CommitAsync(default);
             }
 
-            await runtime.AdvanceAsync(Session, default);
+            await TestUseCase.RunAsync(scope, () => runtime.AdvanceAsync(Session, default));
             await using (var connection = new SqliteConnection(SqliteTestPools.ConnectionString(path)))
             {
                 await connection.OpenAsync();

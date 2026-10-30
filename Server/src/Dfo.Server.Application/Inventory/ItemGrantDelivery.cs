@@ -18,7 +18,9 @@ internal sealed class ItemGrantDelivery(IItemPlacementRuleService placements, IC
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemId);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
-        var lease = transactions.Current is null ? transactions.Begin() : null;
+        // The caller's unit settles the grant; this delivery never opens a boundary of its own.
+        if (transactions.Current is null)
+            throw new InvalidOperationException("Item grants require the caller's transaction.");
         try
         {
             var account = await owners.FindOwnerAsync(character, ct)
@@ -59,14 +61,14 @@ internal sealed class ItemGrantDelivery(IItemPlacementRuleService placements, IC
                 changes.Add(new(addition.Container.Id, new BusinessSlot(addition.Container.Space, slot), added));
                 remaining -= added;
             }
-            if (lease is not null) await lease.CommitAsync(ct);
             return new(changes);
         }
         catch
         {
+            // Deliberately the caller's whole transaction: a caller that catches the refusal must not
+            // be able to commit the piles this loop already added.
             if (transactions.Current is DomainTransaction active) await active.RollbackAsync();
             throw;
         }
-        finally { if (lease is not null) await lease.DisposeAsync(); }
     }
 }

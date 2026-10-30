@@ -139,7 +139,7 @@ public sealed class JoustIntegrationTests
             var odds=current.Knights.Single(k=>k.Index==champion).Odds;
             Assert.Equal(0,f.Scalar("SELECT COUNT(*) FROM event_joust_knight_statistics"));
             f.Now=original.StartsAt.AddMinutes(110);await f.AdvanceLifecycle();await f.AdvanceLifecycle();
-            var mail=Assert.Single(await f.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            var mail=Assert.Single(await TestUseCase.Mailbox(f.Services).InboxAsync(new(1)));
             Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916} prize && prize.Count==(int)(10*odds));
             Assert.Equal(odds,Assert.Single(await f.Joust.GetHistoryAsync(default)).Odds);
             Assert.Equal(3,(await f.KnightInfo(champion))!.Statistics.Wins);
@@ -195,7 +195,7 @@ public sealed class JoustIntegrationTests
                 f.Now=round.StartsAt.AddMinutes(90);await f.AdvanceLifecycle();
                 using var reopened=f.Reopen();reopened.Now=round.StartsAt.AddMinutes(110);
                 await reopened.AdvanceLifecycle();await reopened.AdvanceLifecycle();
-                var mail=Assert.Single(await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+                var mail=Assert.Single(await TestUseCase.Mailbox(reopened.Services).InboxAsync(new(1)));
                 Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916} reward && reward.Count==expected);
                 Assert.Equal(1.1m,Assert.Single(await reopened.Joust.GetHistoryAsync(default)).Odds);
             }
@@ -229,7 +229,7 @@ public sealed class JoustIntegrationTests
             Assert.Equal(round.Forecasts,(await reopened.Services.GetRequiredService<IJoustPersistence>().RoundAsync(round.RoundId,default))!.Forecasts);
             Assert.Equal(1.6m,(await reopened.GetState()).Knights.Single(k=>k.Knight.Index==winner).Odds);
             reopened.Now=round.StartsAt.AddMinutes(110);await reopened.AdvanceLifecycle();await reopened.AdvanceLifecycle();
-            var mail=Assert.Single(await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            var mail=Assert.Single(await TestUseCase.Mailbox(reopened.Services).InboxAsync(new(1)));
             Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916,Count:1600});
             Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002925,Count:1000});
             Assert.Equal(1.6m,Assert.Single(await reopened.Joust.GetHistoryAsync(default)).Odds);
@@ -691,14 +691,14 @@ public sealed class JoustIntegrationTests
             await f.Run(async()=>{await f.Managed.ChangeAsync(new(2365,2,"disable"),"test",f.Now,default);return true;});
             Assert.Equal("Closed",(await f.Bet("disabled",round.Winners[^1],0,1)).Rejection);
             f.Now=f.Now.AddMinutes(110);using var reopened=f.Reopen();await reopened.AdvanceLifecycle();
-            var mail=Assert.Single(await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            var mail=Assert.Single(await TestUseCase.Mailbox(reopened.Services).InboxAsync(new(1)));
             Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002925,Count:100});
             var expectedPrize=(int)decimal.Floor(30*(await f.GetState()).Knights.Single(k=>k.Knight.Index==round.Winners[^1]).Odds);
             Assert.Contains(mail.Attachments,a=>a.Asset is MailAsset.Stackable{ItemId:490002916} reward && reward.Count==expectedPrize);
             await reopened.AdvanceLifecycle();Assert.Equal(1,reopened.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
-            foreach(var attachment in mail.Attachments)await reopened.Services.GetRequiredService<IMailboxDomainService>().ClaimAsync(new(1),attachment.Id);
+            foreach(var attachment in mail.Attachments)await TestUseCase.Mailbox(reopened.Services).ClaimAsync(new(1),attachment.Id);
             Assert.Equal(100,reopened.Count(490002925));Assert.Equal(expectedPrize,reopened.Count(490002916));
-            Assert.All((await reopened.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1))).Single().Attachments,a=>Assert.True(a.Claimed));
+            Assert.All((await TestUseCase.Mailbox(reopened.Services).InboxAsync(new(1))).Single().Attachments,a=>Assert.True(a.Claimed));
             Assert.Equal(0,reopened.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=0"));
         });
     }
@@ -952,7 +952,7 @@ public sealed class JoustIntegrationTests
             await f.Run(async()=>{await store.InsertBetAsync(new JoustBet("gone",state.RoundId!,new(2),knight,490002916,5),default);return true;});
             f.Now=f.Now.AddMinutes(110);await f.AdvanceLifecycle();
             Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM event_joust_round WHERE settled=1"));
-            Assert.Single(await f.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+            Assert.Single(await TestUseCase.Mailbox(f.Services).InboxAsync(new(1)));
             Assert.Equal(1,f.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
         });
     }

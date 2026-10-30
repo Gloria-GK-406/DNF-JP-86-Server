@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
     <Compile Include="../Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
+    <Compile Include="../Support/TestUseCase.cs" Link="Support/TestUseCase.cs" />
     <Compile Include="../Support/SessionSafetyDoubles.cs" Link="Support/SessionSafetyDoubles.cs" />
     <Compile Include="../Support/CharacterDoubles.cs" Link="Support/CharacterDoubles.cs" />
     <Compile Include="../Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />

@@ -167,7 +167,7 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
         var trace = new Trace(); using var f = await Create(6, trace);
         await Send(f, 6); await Send(f, 6);
         Assert.Equal(new uint[] { 0, 1 }, f.Sender.Outbound.Frames.Where(x => Type(x) == 0x441).Select(x => BinaryPrimitives.ReadUInt32LittleEndian(x.AsSpan(15))));
-        var mail = Assert.Single(await f.Services.GetRequiredService<IMailboxDomainService>().InboxAsync(new(1)));
+        var mail = Assert.Single(await TestUseCase.Mailbox(f.Services).InboxAsync(new(1)));
         var reward = Assert.IsType<MailAsset.Stackable>(Assert.Single(mail.Attachments).Asset); Assert.Equal(2000, reward.ItemId); Assert.Equal(3, reward.Count);
         Assert.Equal(1, f.Scalar("SELECT attendance_no FROM event_attendance_week")); Assert.Equal(0, f.Count(2000));
     }

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -85,7 +86,7 @@ public sealed partial class GmOfficialMailHttpTests
             Assert.Equal(3, stored[18]); Assert.Equal(expectedValue, BinaryPrimitives.ReadUInt16LittleEndian(stored.AsSpan(19, 2)));
             var user = await GmPlayerDirectoryHttpTests.ConnectAsync(host, 1, 21011);
             var session = GmPlayerDirectoryHttpTests.Publish(host, user, 1, 1, 21011);
-            var mailbox = host.Services.GetRequiredService<IMailboxDomainService>();
+            var mailbox = TestUseCase.Mailbox(host.Services);
             var message = Assert.Single(await mailbox.InboxAsync(new CharacterId(1)));
             var attachment = Assert.Single(message.Attachments);
             var claimed = await MailboxWhole(host, user.Connection, new MailboxClaimRequest(Dfo.Server.Data.Networking.GameMessageMetadata.Empty, checked(0x40000000u + (uint)attachment.Id)));

@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Transactions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
@@ -40,6 +41,7 @@ internal sealed class SelectedSessionCleanupService(
     IPartyService parties,
     IDungeonRunDepartureDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
+    DomainTransactionScope transactions,
     ICreatureRuntimeDomainService creatures,
     IIllusionTowerDomainService illusionTower,
     IEnumerable<IIllusionTowerDepartureSink> illusionTowerDepartures,
@@ -121,16 +123,16 @@ internal sealed class SelectedSessionCleanupService(
                     failures.Add(new InvalidOperationException(
                         "Selected-session position persistence is unavailable."));
                 else
-                    await RunAsync(() => persistence.PersistAsync(
+                    await RunAsync(() => SettleStepAsync(() => persistence.PersistAsync(
                         session.AccountId, session.CharacterId, standing,
-                        CancellationToken.None));
+                        CancellationToken.None)));
             }
         }
         // Captured before the party cleanup below: the run is reached through the party.
         DungeonRunState? run = null;
         if (ownsSelectedCharacter)
         {
-            await RunAsync(() => creatures.LeaveAsync(session, CancellationToken.None));
+            await RunAsync(() => SettleStepAsync(() => creatures.LeaveAsync(session, CancellationToken.None)));
             run = dungeonRuns.Find(session.CharacterId);
         }
 
@@ -232,6 +234,24 @@ internal sealed class SelectedSessionCleanupService(
             try { await action().ConfigureAwait(false); }
             catch (Exception error) { failures.Add(error); }
         }
+    }
+
+    /// <summary>Settles one durable cleanup step inside the caller's unit, or alone when there is none.</summary>
+    /// <remarks>
+    /// Teardown is not a command, so a disconnect reaches here with no boundary open. Each step then
+    /// settles on its own, so a failure in one never undoes another; the boundary is this cleanup's
+    /// to open, not the domain services' it calls.
+    /// </remarks>
+    private async ValueTask SettleStepAsync(Func<ValueTask> step)
+    {
+        if (transactions.Current is not null)
+        {
+            await step().ConfigureAwait(false);
+            return;
+        }
+        await using var lease = transactions.Begin();
+        await step().ConfigureAwait(false);
+        await lease.CommitAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     private PartyNotificationRecipientPlan CapturePartyRecipients(PartyNotificationPlan plan)
