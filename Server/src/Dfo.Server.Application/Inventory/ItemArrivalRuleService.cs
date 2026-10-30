@@ -160,12 +160,15 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
 /// The day is the game day of <see cref="IDailyResetRuleService"/>, the same one every other daily
 /// count turns over on; the claim record spells it as that day's date.
 /// </remarks>
-internal sealed class DailyRefillRuleService(IDailyResetRuleService reset) : IDailyRefillRuleService
+internal sealed class DailyRefillRuleService(IDailyResetRuleService reset, IEnumerable<IOnlineRefilledTicketRule> onlineTickets)
+    : IDailyRefillRuleService
 {
+    private readonly IReadOnlySet<int> onlineTicketIds = onlineTickets.Select(x => x.TicketItemId).ToHashSet();
+
     public string PeriodOf(DateTimeOffset preparedAt) =>
         reset.PeriodDay(preparedAt).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-    public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId is 690001556 or 2680738 or 2749110;
+    public bool UsesIndependentPeriod(DailyRefillRule rule) => onlineTicketIds.Contains(rule.ItemId);
 
     /// <remarks>
     /// The recorded day is compared, not merely looked for: a record that only said "claimed" would

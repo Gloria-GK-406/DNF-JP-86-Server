@@ -212,7 +212,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IBossTowerRuleService, BossTowerRuleService>();
         services.TryAddSingleton<IBossTowerTicketDomainService, BossTowerTicketDomainService>();
         services.AddDomainEvent<BossTowerTicketRefilled>("boss-tower.ticket-refilled", 1);
-        services.AddBossTowerDailyRefill();
+        services.AddOnlineTicketRefill<IBossTowerTicketDomainService, IBossTowerRuleService>("boss-tower.ticket-refill.online");
         services.TryAddSingleton<IGoldSilverHornDomainService, GoldSilverHornDomainService>();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.UsageQuotas.GoldSilverHornEntryRecorded,
             Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService>();
@@ -222,11 +222,11 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
         services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
         services.AddDomainEvent<SouthernDaleDailyRefillCompleted>("southern-dale.daily-refill-completed", 1);
-        services.AddSouthernDaleDailyRefill();
+        services.AddOnlineTicketRefill<ISouthernDaleDomainService, ISouthernDaleRuleService>("southern-dale.ticket-refill.online");
         services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
         services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();
         services.AddDomainEvent<TauKingdomTicketRefilled>("tau-kingdom.ticket-refilled", 1);
-        services.AddTauKingdomDailyRefill();
+        services.AddOnlineTicketRefill<ITauKingdomDomainService, ITauKingdomRuleService>("tau-kingdom.ticket-refill.online");
         services.TryAddSingleton<ISaoTowerRuleService, SaoTowerRuleService>();
         services.TryAddSingleton<ISaoTowerDomainService, SaoTowerDomainService>();
         services.AddSingleton<IDungeonBossClearHook>(sp => sp.GetRequiredService<ISaoTowerDomainService>());

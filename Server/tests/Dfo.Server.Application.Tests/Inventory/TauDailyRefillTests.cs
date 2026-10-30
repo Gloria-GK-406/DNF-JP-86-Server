@@ -28,7 +28,7 @@ public sealed partial class ItemDeliveryTests
     }
     private sealed class MixedDays : IDailyRefillRuleService
     {
-        private readonly DailyRefillRuleService rules = new(new SixOClock());
+        private readonly DailyRefillRuleService rules = new(new SixOClock(), []);
         public bool UsesIndependentPeriod(DailyRefillRule rule) => rule.ItemId == 9001;
         public string PeriodOf(DateTimeOffset at) => rules.PeriodOf(at);
         public bool IsDue(string? claimed, string period) => rules.IsDue(claimed, period);
@@ -71,7 +71,7 @@ public sealed partial class ItemDeliveryTests
     [Fact]
     public void Every_refill_uses_the_game_day_and_a_legacy_midnight_claim_does_not_reissue()
     {
-        var rules = new DailyRefillRuleService(new SixOClock());
+        var rules = new DailyRefillRuleService(new SixOClock(), []);
         var at = new DateTimeOffset(2026, 10, 15, 5, 59, 0, TimeSpan.FromHours(8));
         Assert.Equal("2026-10-14", rules.PeriodOf(at));
         Assert.Equal("2026-10-15", rules.PeriodOf(at.AddMinutes(1)));
