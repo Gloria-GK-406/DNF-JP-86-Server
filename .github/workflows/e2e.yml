@@ -20,6 +20,8 @@ jobs:
           persist-credentials: false
       - name: Verify evidence and reporting guards
         run: python3 -m unittest discover -s Tool/E2E -p 'test_*.py' -v
+      - name: Verify committed E2E materials
+        run: python3 Tool/E2E/scene.py --verify-only
       - name: Require approved real-client baseline
         run: python3 Tool/E2E/run.py --out artifacts/e2e/${{ github.run_id }}-${{ github.run_attempt }}
       - name: Formal E2E readiness summary

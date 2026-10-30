@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Networking.Configuration;
+using Dfo.Server.Networking.Capture;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Networking.Outbound;
 using Dfo.Server.Networking.Runtime;
@@ -47,6 +48,7 @@ public sealed class NetworkingModule : IServerModule
         }
 
         services.AddSingleton(options);
+        services.TryAddSingleton(_ => new NetworkFrameRecorder(configuration["Networking:FrameCapturePath"]));
         services.TryAddSingleton<TouchSocketConnectionRegistry>();
         services.TryAddSingleton<INetworkConnectionContexts>(
             provider => provider.GetRequiredService<TouchSocketConnectionRegistry>());

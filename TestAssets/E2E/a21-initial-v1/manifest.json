@@ -1,0 +1,106 @@
+{
+  "datasetId": "a21-initial-v1",
+  "preparedAt": "2026-10-30T06:33:11.264873+00:00",
+  "schemaVersion": 1,
+  "preparation": "Dedicated binary fixture prepared through production registration and character creation; no player data copied; no constructor script required at runtime",
+  "preparedSourceCommit": "1b7b5768b79a72db3034225b858877d02588c42c",
+  "clientVerified": false,
+  "goldenBaseline": false,
+  "resetScope": "scene",
+  "accounts": [
+    {
+      "account_id": 1,
+      "m_id": "e2elogin",
+      "loginId": "e2elogin",
+      "password": "E2eDataOnly2026!",
+      "intendedUse": "登录/下线、空角色列表",
+      "characters": []
+    },
+    {
+      "account_id": 2,
+      "m_id": "e2ecreate",
+      "loginId": "e2ecreate",
+      "password": "E2eDataOnly2026!",
+      "intendedUse": "真实客户端查名/建角",
+      "characters": []
+    },
+    {
+      "account_id": 3,
+      "m_id": "e2etutorial",
+      "loginId": "e2etutorial",
+      "password": "E2eDataOnly2026!",
+      "intendedUse": "首次训练、完成退出后同角色再次进入",
+      "characters": [
+        {
+          "account_id": 3,
+          "character_id": 1,
+          "slot_index": 0,
+          "name": "E2ETutorial",
+          "job": 0,
+          "level": 1,
+          "exp": 0,
+          "tutorial_completed": 0
+        }
+      ]
+    },
+    {
+      "account_id": 4,
+      "m_id": "e2eroster",
+      "loginId": "e2eroster",
+      "password": "E2eDataOnly2026!",
+      "intendedUse": "独立账号并行、角色切换",
+      "characters": [
+        {
+          "account_id": 4,
+          "character_id": 2,
+          "slot_index": 0,
+          "name": "E2ERosterA",
+          "job": 0,
+          "level": 1,
+          "exp": 0,
+          "tutorial_completed": 0
+        },
+        {
+          "account_id": 4,
+          "character_id": 3,
+          "slot_index": 1,
+          "name": "E2ERosterB",
+          "job": 0,
+          "level": 1,
+          "exp": 0,
+          "tutorial_completed": 0
+        }
+      ]
+    }
+  ],
+  "files": {
+    "Script.pvf": {
+      "bytes": 73085159,
+      "sha256": "01f1be685d46647961df65207a36304777db20ef5a3d03c68efaa92f8b0c5189"
+    },
+    "baseline.db": {
+      "bytes": 991232,
+      "sha256": "0924beecf4c29ea46c93c9fe21c1e333d7d015c1bf342fd4721cb16ec791f44f"
+    }
+  },
+  "channelScriptSha256": "c1407121715461da1c92e7a6ecc4df52da85c07cab233dd4ddec10d83230f338",
+  "includePvpChannels": false,
+  "gamePorts": [
+    10001,
+    10006,
+    10010,
+    10011,
+    10012,
+    10013,
+    10014,
+    10015,
+    10016,
+    10017,
+    10018,
+    10020,
+    10021,
+    10019,
+    10100,
+    10200
+  ]
+}

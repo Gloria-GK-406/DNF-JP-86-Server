@@ -4,6 +4,7 @@ using System.IO.Pipelines;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Runtime;
+using Dfo.Server.Networking.Capture;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 
@@ -64,7 +65,8 @@ public static class OutboundTransportOptions
         && ConfirmsFlush(config.GetValue(TouchSocketConfigExtension.TransportOptionProperty)?.SendPipeOptions);
 }
 
-internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry connections) : IOutboundTransport
+internal sealed class TouchSocketOutboundTransport(
+    TouchSocketConnectionRegistry connections, NetworkFrameRecorder? recorder = null) : IOutboundTransport
 {
     public IOutboundConnection? Resolve(NetworkConnectionContext expected)
     {
@@ -73,7 +75,7 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
             && entry is not null
             && ReferenceEquals(entry.Context, expected)
             && entry.Session.Online
-                ? new Connection(entry.Session)
+                ? new Connection(entry.Session, expected, recorder)
                 : null;
     }
 
@@ -81,7 +83,8 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
     /// The only TCP write point (pinned by <c>TransportWriteSourceTests</c>). Both members refuse a job
     /// (RQ-003): only the sender's detached loops may wait on the network.
     /// </remarks>
-    private sealed class Connection(ITcpSessionClient session) : IOutboundConnection
+    private sealed class Connection(ITcpSessionClient session, NetworkConnectionContext context,
+        NetworkFrameRecorder? recorder) : IOutboundConnection
     {
         public async ValueTask SendAsync(ReadOnlyMemory<byte> frames, CancellationToken cancellationToken)
         {
@@ -89,11 +92,21 @@ internal sealed class TouchSocketOutboundTransport(TouchSocketConnectionRegistry
             if (!OutboundTransportOptions.ConfirmsFlush(session))
                 throw new InvalidOperationException(
                     "The connection's send pipe does not confirm flushes; configure it with OutboundTransportOptions.");
-            await ((ISender)session).SendAsync(frames, cancellationToken).ConfigureAwait(false);
-            // A close cancels the pending flush instead of failing it, so a send that "returned" on a
-            // connection that is gone is not a delivery.
-            if (!session.Online)
-                throw new IOException("The connection closed before its send pipe drained.");
+            var captureId = recorder?.BeginSend(context, frames) ?? 0;
+            try
+            {
+                await ((ISender)session).SendAsync(frames, cancellationToken).ConfigureAwait(false);
+                // A close cancels the pending flush instead of failing it, so a send that "returned" on a
+                // connection that is gone is not a delivery.
+                if (!session.Online)
+                    throw new IOException("The connection closed before its send pipe drained.");
+                recorder?.EndSend(captureId, flushed: true);
+            }
+            catch (Exception error)
+            {
+                recorder?.EndSend(captureId, flushed: false, error.GetType().Name);
+                throw;
+            }
         }
 
         public bool HasClosedSendSide(Exception error)

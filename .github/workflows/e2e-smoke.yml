@@ -28,11 +28,9 @@ jobs:
           set -euo pipefail
           test -x "$HOME/dnf-e2e/dotnet/dotnet"
           echo "$HOME/dnf-e2e/dotnet" >> "$GITHUB_PATH"
-          test -r "$HOME/dnf-e2e/assets/Script.pvf"
-          cd "$HOME/dnf-e2e/assets"
-          sha256sum -c Script.pvf.sha256
-          echo "PVF_ARCHIVE_PATH=$HOME/dnf-e2e/assets/Script.pvf" >> "$GITHUB_ENV"
-          echo "PVF_SHA256=$(cut -d ' ' -f1 Script.pvf.sha256)" >> "$GITHUB_ENV"
+          python3 Tool/E2E/scene.py --verify-only
+          echo "PVF_ARCHIVE_PATH=$GITHUB_WORKSPACE/TestAssets/E2E/a21-initial-v1/Script.pvf" >> "$GITHUB_ENV"
+          python3 -c 'import json,os; m=json.load(open("TestAssets/E2E/a21-initial-v1/manifest.json")); open(os.environ["GITHUB_ENV"],"a").write("PVF_SHA256="+m["files"]["Script.pvf"]["sha256"]+"\n")'
           echo "E2E_OUT=artifacts/smoke/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
       - name: Verify E2E report guards
         run: python3 -m unittest discover -s Tool/E2E -p 'test_*.py' -v

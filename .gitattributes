@@ -7,3 +7,7 @@
 # Scoped to protocol/ deliberately. It is the only tree with machine-generated content, and
 # a repository-wide rule would churn files that no tool rewrites.
 protocol/** text eol=lf
+
+# Fixed E2E binary materials
+TestAssets/E2E/**/*.pvf binary
+TestAssets/E2E/**/*.db binary

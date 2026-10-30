@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Networking.Capture;
 using Microsoft.Extensions.Logging;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
@@ -64,7 +65,8 @@ internal sealed class ChannelNetworkPlugin(
     INetworkConnectionLifecycleDispatcher lifecycle,
     INetworkMessageDispatcher dispatcher,
     ChannelMessageDecoderRegistry decoders,
-    ILogger<ChannelNetworkPlugin> logger)
+    ILogger<ChannelNetworkPlugin> logger,
+    NetworkFrameRecorder? recorder = null)
     : NetworkPluginBase(connections, lifecycle, NetworkEndpointKind.Channel), ITcpReceivedPlugin
 {
     // Stream boundary: whatever context TouchSocket runs this on, the dispatch it starts is off the executor.
@@ -73,6 +75,8 @@ internal sealed class ChannelNetworkPlugin(
         if (e.RequestInfo is ChannelFrameRequestInfo frame)
         {
             var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Channel);
+            if (recorder is { Enabled: true })
+                recorder.Receive(Connections.Get(connectionId).Context, frame);
             if (Decode(frame, connectionId) is { } message)
             {
                 var connection = Connections.Get(connectionId).Context;
@@ -150,7 +154,8 @@ internal sealed class GameNetworkPlugin(
     INetworkConnectionLifecycleDispatcher lifecycle,
     INetworkMessageDispatcher dispatcher,
     GameMessageDecoderRegistry decoders,
-    ILogger<GameNetworkPlugin> logger)
+    ILogger<GameNetworkPlugin> logger,
+    NetworkFrameRecorder? recorder = null)
     : NetworkPluginBase(connections, lifecycle, NetworkEndpointKind.Game), ITcpReceivedPlugin
 {
     private readonly ConditionalWeakTable<NetworkConnectionContext, GameInboundFrameCounter> frameCounters = new();
@@ -162,6 +167,7 @@ internal sealed class GameNetworkPlugin(
         {
             var connectionId = TouchSocketConnectionRegistry.CreateConnectionId(client, NetworkEndpointKind.Game);
             var connection = Connections.Get(connectionId).Context;
+            recorder?.Receive(connection, frame);
             var (ordinal, fresh) = frameCounters.GetValue(connection,
                 _ => new GameInboundFrameCounter()).Observe(frame.Sequence);
             if (Decode(frame, connectionId, ordinal, fresh) is { } message)

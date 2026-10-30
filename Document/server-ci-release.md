@@ -129,7 +129,7 @@ Linux原生构建使用 `RELEASE_RID=linux-x64`。package入口每次重新 `npm
 
 PR 使用正向筛选 `Category=Unit`。只有经源代码依赖检查确认的纯规则、协议字节编解码及内存替身机制测试才标记 Unit；真实 SQLite、socket、完整 Host、外部 PVF 及混合类留在 Release 全量测试中。新增单元测试须显式添加该 Trait，不用名称规则或 `Category!=Integration` 猜测。报告要求整个筛选至少执行一项测试，零匹配会失败；未纳入 PR 的集成测试不算作已通过或条件跳过。
 
-Release 云端不分发 PVF，已有内容依赖测试及新增 PvfFact/PvfTheory 会明确显示跳过；其余业务、协议、持久化、网络和 Host 测试完整执行。TRX 和 Actions Summary 都保留通过、失败、跳过数量，不能把绿灯解读为全部内容或客户端已验证。
+E2E 固定 PVF 与专用数据库按用户要求随仓库版本保存，专用流程显式使用 TestAssets/E2E 的清单与哈希。普通 Release 的真实内容依赖是否执行仍由 PVF_ARCHIVE_PATH 和现有查找规则决定，缺少可解析素材时 PvfFact/PvfTheory 明确跳过；其余业务、协议、持久化、网络和 Host 测试完整执行。TRX 和 Actions Summary 都保留通过、失败、跳过数量，不能把绿灯解读为全部内容或客户端已验证。
 
 GM 业务测试固定使用显式内容夹具，事务回滚、幂等、附件配置与领取判据不依赖开发机档案。真实 PVF 的物品目录、装备领取和商城消费竞争另有内容集成测试；有档案时必须执行，缺档案时明确跳过。邮件浏览器夹具仍使用真实 PVF。
 

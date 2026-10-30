@@ -25,6 +25,10 @@ TestResults/
 
 # Runtime data
 *.pvf
+!TestAssets/E2E/**/Script.pvf
+# Versioned E2E datasets are intentional; active SQLite journals are never materials.
+TestAssets/E2E/**/*.db-wal
+TestAssets/E2E/**/*.db-shm
 # GM item icon packs hold Nexon art (Tool/GmIconPack output): deployment directory only, never the repository.
 gm-icons.zip
 *.gm-icons.zip
