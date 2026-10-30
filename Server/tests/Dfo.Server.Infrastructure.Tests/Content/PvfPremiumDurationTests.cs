@@ -10,7 +10,7 @@ public sealed class PvfPremiumDurationTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var placements = new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+        var placements = new PvfItemPlacementDefinitionSource(provider);
         foreach (var id in new PvfPremiumServiceDefinitionSource(provider).ReadPuppetItemIds())
         {
             var placement = await placements.GetAsync(id, default);

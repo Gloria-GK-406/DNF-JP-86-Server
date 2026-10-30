@@ -66,7 +66,7 @@ public sealed class MarriageProposalContentTests
         Assert.True(await source.IsOrdinaryMapAsync(2, map.MapId, default));
         Assert.False(await source.IsOrdinaryMapAsync(2, int.MaxValue, default));
         var packages = new PvfPackageOpeningDefinitionSource(provider,
-            new PvfCeraShopDefinitionSource(provider), new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()));
+            new PvfCeraShopDefinitionSource(provider), new PvfItemPlacementDefinitionSource(provider));
         Assert.NotNull(await packages.GetAsync(10002616, default));
     }
 }

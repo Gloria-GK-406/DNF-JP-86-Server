@@ -146,7 +146,7 @@ public sealed class PvfEquipmentDisjointDefinitionSourceTests
         Assert.Equal(10100115, table.ExpandRules[0].ItemId);
         Assert.False(table.ExpandRules[4].Enabled);
         Assert.Equal(10099775, table.ExpandRules[5].ItemId);
-        var placements = new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+        var placements = new PvfItemPlacementDefinitionSource(provider);
         var materialIds = table.AdditionalResults.SelectMany(row => row)
             .Append(table.CubeItemId)
             .Concat(table.ExpandRules.Where(rule => rule.Enabled).Select(rule => rule.ItemId))

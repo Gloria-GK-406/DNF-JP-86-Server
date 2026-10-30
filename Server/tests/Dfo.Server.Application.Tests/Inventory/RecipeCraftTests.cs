@@ -110,7 +110,7 @@ public sealed class RecipeCraftTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>(), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())), useArchive: true);
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         await Seed(f);
         Assert.Equal(OpeningRejection.ItemUnusable, (await Assert.ThrowsAsync<OpeningRejectedException>(() => Craft(f))).Reason);
         Assert.Equal(1, f.Count(1287)); Assert.Equal(100, f.SharedCount(3262, 1));

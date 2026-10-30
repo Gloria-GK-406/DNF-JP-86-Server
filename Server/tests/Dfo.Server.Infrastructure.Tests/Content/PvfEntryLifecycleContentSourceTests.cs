@@ -15,7 +15,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var placement = await new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()).GetAsync(itemId, default);
+        var placement = await new PvfItemPlacementDefinitionSource(provider).GetAsync(itemId, default);
         Assert.NotNull(placement);
         Assert.Equal(ItemTraits.Consumable, placement.Traits);
     }
@@ -28,7 +28,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var placement = await new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()).GetAsync(64016, default);
+        var placement = await new PvfItemPlacementDefinitionSource(provider).GetAsync(64016, default);
         Assert.NotNull(placement);
         Assert.Equal((byte)6, placement.ItemKind);
         Assert.Equal(new BusinessSlotRange(BusinessInventorySpace.CreatureEquipment, 0, 48), placement.Destination);
@@ -46,7 +46,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
         ];
 
         var rules = PvfEntryLifecycleContentSource.Parse(values, PreparedAt,
-            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120, ItemWorldClass.Interchangeable), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120, ItemWorldClass.Interchangeable));
 
         Assert.Equal([2680738, 690001556], rules.Select(value => value.ItemId));
         // How many a rule grants is no longer the content source's judgement to make.
@@ -54,7 +54,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
         Assert.Equal(1, new DailyRefillRuleService(null!, []).GrantFor(rules[1], 99));
         Assert.Throws<FormatException>(() => PvfEntryLifecycleContentSource.Parse(
             ["1", "2", "2030-01-01 06:00:00"], PreparedAt,
-            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120, ItemWorldClass.Interchangeable), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()));
+            _ => new PvfEntryLifecycleContentSource.RefillItemMetadata(100, 2, 65, 120, ItemWorldClass.Interchangeable)));
 
         Assert.Equal(7, PvfEntryLifecycleContentSource.ResolveStackableItemKind(1, "[creature]"));
         Assert.Equal(9, PvfEntryLifecycleContentSource.ResolveStackableItemKind(1, "[avatar emblem]"));
@@ -100,7 +100,7 @@ public sealed class PvfEntryLifecycleContentSourceTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var source = new PvfEntryLifecycleContentSource(provider, slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+        var source = new PvfEntryLifecycleContentSource(provider);
 
         var rules = await source.GetDailyRefillRulesAsync(PreparedAt, CancellationToken.None);
         Assert.NotEmpty(rules);

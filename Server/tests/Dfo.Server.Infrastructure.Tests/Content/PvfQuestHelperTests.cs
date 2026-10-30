@@ -11,7 +11,7 @@ public sealed class PvfQuestHelperTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         Assert.Equal(new[] { 100, 70, 30 }, new PvfPremiumServiceDefinitionSource(provider).ReadQuestHelperMinimumDropRates());
-        var placements = new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+        var placements = new PvfItemPlacementDefinitionSource(provider);
         Assert.Equal(BusinessInventorySpace.Quest, (await placements.GetAsync(10088410, default))!.Destination.Space);
         Assert.Equal(BusinessInventorySpace.Material, (await placements.GetAsync(3205, default))!.Destination.Space);
         var quest = await new PvfQuestDefinitionSource(provider).GetAsync(12014, default);

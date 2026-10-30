@@ -345,7 +345,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         bool wornIsOtherCostume = false)
     {
         var character = new CharacterId(Character);
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var fixture = new MoveItemFixture();
         var bag = new RecordingContainer(InventoryContainerType.Main, character, fixture);
         var avatars = new RecordingContainer(InventoryContainerType.Avatar, character, fixture);
@@ -375,10 +375,10 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
         return new Side(
             containers,
             new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers),
+                TestRequired.SlotsOver(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                    new ItemSlotRuleService(), new TheAvatarBagIsServedTestsWearEligibility())),
+                    new ItemSlotRuleService(), new TheAvatarBagIsServedTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>()),
             character, fixture);
     }
 

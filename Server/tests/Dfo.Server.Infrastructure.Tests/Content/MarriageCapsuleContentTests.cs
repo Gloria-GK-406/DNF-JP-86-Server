@@ -13,7 +13,7 @@ public sealed class MarriageCapsuleContentTests
         Skip.IfNot(ContentArchive.Available,ContentArchive.SkipReason);using var provider=ContentArchive.CreateProvider();
         var rows=new PvfIndependentDropTableSource(provider).Load().Rows.Where(x=>x.SourceId is 64760 or 64761 or 64762).ToArray();
         Assert.NotEmpty(rows);var ids=rows.SelectMany(x=>x.PoolMode==0?new[]{x.ItemId}:x.Choices.Select(y=>y.ItemId)).Where(x=>x>0).Distinct().ToArray();
-        Assert.Contains(10002915,ids);var items=new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+        Assert.Contains(10002915,ids);var items=new PvfItemPlacementDefinitionSource(provider);
         foreach(var id in ids)Assert.NotNull(await items.GetAsync(id,default));
     }
     [SkippableFact]

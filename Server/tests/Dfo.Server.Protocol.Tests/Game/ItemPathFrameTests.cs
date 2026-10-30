@@ -45,10 +45,10 @@ public sealed class ItemPathFrameTests
             await using var storage = await Storage.CreateAsync((65, PotionId, 1));
             var containers = storage.Containers();
             var handler = new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers),
+                TestRequired.SlotsOver(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                    new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
+                    new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
 
             // The boundary the pipeline would have opened for a Transactional command. Without it the
             // container refuses the write outright, which is the guarantee working rather than a
@@ -88,10 +88,10 @@ public sealed class ItemPathFrameTests
             await using var storage = await Storage.CreateAsync();
             var containers = storage.Containers();
             var handler = new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers),
+                TestRequired.SlotsOver(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
-                    new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
+                    new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
 
             await using var boundary = storage.Scope.Begin();
             var result = await handler.MoveAsync(
@@ -154,13 +154,13 @@ public sealed class ItemPathFrameTests
 
         public string Path { get; }
 
-        public DomainTransactionScope Scope { get; } = new();
+        public DomainTransactionScope Scope { get; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
 
         public static async Task<Storage> CreateAsync(params (int Slot, int ItemId, int Count)[] seeded)
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-itemframe-{Guid.NewGuid():N}.db");
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var storage = new Storage(path);
             await using var connection = Open(path);
             await using (var character = connection.CreateCommand())
@@ -191,11 +191,11 @@ public sealed class ItemPathFrameTests
 
         public ICharacterContainerDomainService Containers()
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             containers.Register(Character, new PersistentItemContainer(
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 new ContainerShape(InventoryContainerType.Main, 0),
-                new SqliteItemDomainStore(this.Path),
+                new SqliteItemDomainStore(this.Path, TestRequired.NoContentsEvents),
                 this.Scope,
                 new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                 new ItemSlotRuleService()));

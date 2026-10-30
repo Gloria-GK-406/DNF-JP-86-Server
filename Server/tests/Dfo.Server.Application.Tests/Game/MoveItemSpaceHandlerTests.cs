@@ -356,10 +356,10 @@ public sealed class MoveItemSpaceHandlerTests
         var placements = new ConsumablePlacements();
         var containers = inventory.Containers(placements);
         var handler = new InventoryMoveDomainService(
-            new BusinessInventorySlotDomainService(containers),
+            TestRequired.SlotsOver(containers),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(placements, new NoWearables()),
-                new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
+                new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
 
         // Two moves arriving together are two CMDs, run one after the other on the executor.
         var results = new[]
@@ -422,10 +422,10 @@ public sealed class MoveItemSpaceHandlerTests
         var resolved = placements ?? new ConsumablePlacements();
         var containers = inventory.Containers(resolved);
         var commandHandler = new InventoryMoveDomainService(
-            new BusinessInventorySlotDomainService(containers),
+            TestRequired.SlotsOver(containers),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(resolved, new NoWearables()),
-                new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility()));
+                new ItemSlotRuleService(), new MoveItemSpaceHandlerTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
 
         return (
             MoveWholeTestDriver.Create(

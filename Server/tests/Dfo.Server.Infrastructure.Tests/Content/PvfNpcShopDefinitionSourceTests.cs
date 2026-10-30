@@ -73,7 +73,7 @@ public sealed class PvfNpcShopDefinitionSourceTests
         Assert.Null(box.GoldPrice);
         Assert.Equal(new NpcShopMaterialCost(490003528, 2), Assert.Single(box.Materials));
         Assert.Equal(new NpcShopPurchaseLimit(NpcShopLimitScope.Account, 10, false), box.Limit);
-        var placement = await new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()).GetAsync(490003531, default);
+        var placement = await new PvfItemPlacementDefinitionSource(provider).GetAsync(490003531, default);
         Assert.NotNull(placement);
         Assert.Equal(2, placement.ItemKind);
     }

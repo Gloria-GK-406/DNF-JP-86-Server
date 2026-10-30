@@ -18,7 +18,7 @@ public sealed class PvfRefillCacheTests
         try
         {
             using var provider = new PvfArchiveProvider(new() { ArchivePath = path });
-            var source = new PvfEntryLifecycleContentSource(provider, slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+            var source = new PvfEntryLifecycleContentSource(provider);
             await Assert.ThrowsAsync<ArgumentException>(() => source.GetDailyRefillRulesAsync(DateTimeOffset.UtcNow, default).AsTask());
         }
         finally { File.Delete(path); }
@@ -44,7 +44,7 @@ public sealed class PvfRefillCacheTests
         try
         {
             using var provider = new PvfArchiveProvider(new() { ArchivePath = path });
-            var source = new PvfEntryLifecycleContentSource(provider, slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
+            var source = new PvfEntryLifecycleContentSource(provider);
             var at = new DateTimeOffset(2026, 10, 27, 6, 0, 0, TimeSpan.FromHours(8));
             var declared = await source.GetDeclaredDailyRefillRulesAsync(at, default);
             Assert.Equal(3, declared.Count);

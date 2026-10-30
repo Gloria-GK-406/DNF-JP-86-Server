@@ -183,7 +183,7 @@ public sealed class MagicSealGradeTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>(), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())), useArchive: true);
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         var original = Original with { ItemId = 101010339 };
         await f.SeedCore(9, original); await f.Seed(65, 15, 1);
         var result = await Roll(f, 0); var receipt = result.Receipt;

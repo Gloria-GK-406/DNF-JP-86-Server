@@ -90,7 +90,7 @@ public sealed class EpicCraftTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>(), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())), useArchive: true);
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
         var recipe = f.Services.GetRequiredService<IEpicBookRuleService>().FindRecipe(450004)!;
         f.Sql($"INSERT INTO account_epic_pieces(account_id,piece_id,count) VALUES(1,{recipe.PieceId},{recipe.PieceCount})");
         var materialSlot = 140;

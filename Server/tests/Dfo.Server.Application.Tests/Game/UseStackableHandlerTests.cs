@@ -91,7 +91,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
     {
 
             var inventory = new FakeInventory(4, 8474, 2, 2);
-            var slots = new BusinessInventorySlotDomainService(inventory.Containers());
+            var slots = TestRequired.SlotsOver(inventory.Containers());
             await TestGameplay.RunAsync(async () =>
             {
             await using (var tx = inventory.Scope.Begin())
@@ -116,7 +116,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
     {
 
             var inventory = new FakeInventory(3, 8474, 2, 2);
-            var slots = new BusinessInventorySlotDomainService(inventory.Containers());
+            var slots = TestRequired.SlotsOver(inventory.Containers());
             await TestGameplay.RunAsync(async () =>
             {
             await using (var tx = inventory.Scope.Begin())
@@ -623,7 +623,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
 
         var judgement = new ItemUseJudgementService(content);
         var containers = inventory.Containers();
-        var slots = new BusinessInventorySlotDomainService(containers);
+        var slots = TestRequired.SlotsOver(containers);
         var characters = new CharacterItemUseDomainService(new OneCharacter(new PlayingCharacter(
             new CharacterId(60), new NoCarriedGold(), new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
             new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
@@ -635,7 +635,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
         var ruleService = new ItemUseEffectRuleService(judgement);
-        var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock);
+        var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock, events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), experienceItems: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IExperienceItemDomainService>(), entryItems: TestRequired.Absent<Dfo.Server.Abstractions.World.IEntryAllowanceItemDomainService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), reviveCoins: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IReviveCoinDomainService>(), luckyStars: TestRequired.Absent<Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService>());
 
         var areas = new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
         TestGameplay.Run(() => areas.Enter(new(OneSession.Session, new(1, 1, 1), new(1, 1, 0, 0, 0), true)));

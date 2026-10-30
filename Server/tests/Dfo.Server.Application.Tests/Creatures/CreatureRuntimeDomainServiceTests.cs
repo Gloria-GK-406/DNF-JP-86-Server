@@ -45,7 +45,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             f.Enter();
             var food = new FoodInventory { Scope = f.Scope };
             food.Seed(3, 24, 2);
-            var slots = new BusinessInventorySlotDomainService(food.Containers());
+            var slots = TestRequired.SlotsOver(food.Containers());
             var source = new BusinessSlot(BusinessInventorySpace.QuickSlot, 0);
             var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots, food.Lifecycle),
                 new AddPetStomachEffectHandler(f.Runtime)], f.Scope, new SqliteCharacterDomainStore(f.Path), f.Sessions, ConsumptionEffectPreflight.For(slots));
@@ -638,7 +638,7 @@ public sealed class CreatureRuntimeDomainServiceTests
     {
         public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
             $"dfo-pet-runtime-{Guid.NewGuid():N}.db");
-        public DomainTransactionScope Scope { get; } = new();
+        public DomainTransactionScope Scope { get; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
         public MutableClock Clock { get; } = new();
         public RuleSource Rules { get; } = new();
         public Sessions Sessions { get; } = new();
@@ -651,8 +651,8 @@ public sealed class CreatureRuntimeDomainServiceTests
             CharacterDatabaseSchema.Ensure(
                 SqliteTestPools.ConnectionString(this.Path));
             this.Runtime = new CreatureRuntimeDomainService(
-                new SqliteCreatureDomainStore(this.Path), new CreatureRuleService(this.Rules), this.Scope,
-                this.Sessions, this.Clock);
+                new SqliteCreatureDomainStore(this.Path, TestRequired.NoContentsEvents), new CreatureRuleService(this.Rules, lifetimes: TestRequired.Absent<Dfo.Server.Abstractions.Content.ICreatureEquipmentLifetimeSource>()), this.Scope,
+                this.Sessions, this.Clock, inventories: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>());
         }
 
         public void Enter(SelectedSessionIdentity? session = null)
