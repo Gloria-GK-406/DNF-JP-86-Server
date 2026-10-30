@@ -260,13 +260,13 @@ public sealed class TownProjectionHandlerTests
             // This observation starts at the town-transfer protocol stage. Business crossing
             // remains covered through the real CMD in the other area-change cases above.
             var previous = ((ITownAreaDomainService)presence).Find(Identity.CharacterId)!;
-            await TownMovementProjection.TownTransferAsync(
-                sessions, presence, positions, new global::Dfo.Server.Testing.TestCommandProjections(notifications), partyProjection,
+            Assert.NotNull(await Dfo.Server.Testing.ProtocolAlgorithmFixture.TownTransit(null, sessions, presence, positions)
+                .CrossAsync(Identity, 10, CrossedTownId, CrossedAreaId, CrossedX, CrossedY, true, CancellationToken.None));
+            await TownMovementProjection.TownProjectTransferAsync(
+                sessions, presence, new global::Dfo.Server.Testing.TestCommandProjections(notifications), partyProjection,
                 currentViews, Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
                 new Dfo.Server.Testing.ProtocolAlgorithmFixture.Outbox(sender),
-                Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(),
-                Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, 10,
-                CrossedTownId, CrossedAreaId, CrossedX, CrossedY, previous, true, CancellationToken.None);
+                Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, previous, CancellationToken.None);
 
             Assert.Collection(
                 notifications.Published,

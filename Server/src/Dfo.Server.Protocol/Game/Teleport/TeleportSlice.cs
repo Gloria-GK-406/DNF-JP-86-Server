@@ -116,18 +116,16 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
     private readonly ITeleportConsumableDomainService teleports;
     private readonly ICommandWorkUnits units;
     private readonly IGameCommandOutbox outbox;
-    private readonly Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions;
     public GameTeleportCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
         ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
         IInventorySlotMappingRuleService mappings, IChannelEntryDomainService channels, ITeleportConsumableDomainService teleports,
         ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
         Dfo.Server.Abstractions.Parties.IPartyService parties, Dfo.Server.Abstractions.Networking.IPartyProjectionStateDomainService projectionState,
-        ILogger<GameTeleportCommandHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
-        Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions)
+        ILogger<GameTeleportCommandHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.housing = housing; this.onlineUsers = onlineUsers; this.parties = parties; this.users = onlineUsers; this.mappings = mappings; this.channels = channels; this.teleports = teleports;
-      this.units = units; this.outbox = outbox; this.housingSessions = housingSessions; }
+      this.units = units; this.outbox = outbox; }
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameTeleportCommand command, CancellationToken ct) =>
         TeleportAsync(execution, command.Dispatch, command.Input, ct);
     private async ValueTask<bool> TeleportAsync(CommandExecutionContext execution, NetworkDispatchContext context, TeleportRequest request, CancellationToken ct)
@@ -171,7 +169,7 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
             messages.AddRange(GameInventoryDelivery.Notifications([new(wire.Space,
                 [new InventoryItemState(receipt.Identity, wire.Index, receipt.RemainingCore.ToCore())], receipt.At)]));
         await outbox.RegisterBatchAsync(context.Connection, messages, ct).ConfigureAwait(false);
-        if (!await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, context.Connection.ConnectionId, session, view, previous, ct).ConfigureAwait(false))
+        if (!await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, context.Connection.ConnectionId, session, view, previous, ct).ConfigureAwait(false))
             logger.LogWarning("TELEPORT committed but town projection lost its membership character={Character}", session.CharacterId);
         logger.LogInformation("TELEPORT character={Character} item={Item} remaining={Remaining} destination={Town}:{Area} ({X},{Y})",
             session.CharacterId, receipt.ItemId, receipt.Remaining, receipt.Position.TownId, receipt.Position.AreaId,

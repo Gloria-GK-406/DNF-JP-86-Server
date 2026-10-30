@@ -29,10 +29,36 @@ internal static class ProtocolAlgorithmFixture
     {
         var values = Complete(supplied).ToList();
         var ctor = typeof(T).GetConstructors().Single();
-        return (T)ctor.Invoke(ctor.GetParameters().Select(parameter =>
+        var created = (T)ctor.Invoke(ctor.GetParameters().Select(parameter =>
             values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue
-                : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values) : Default(parameter.ParameterType))).ToArray());
+                : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values)
+                : parameter.ParameterType == typeof(ITownTransitDomainService) ? Transit(values)
+                : parameter.ParameterType == typeof(IEntryPlacementRuleService) ? Placement(values)
+                : Default(parameter.ParameterType))).ToArray());
+        suppliedTo.AddOrUpdate(created, values.ToArray());
+        return created;
     }
+    // What each created component was built from, so a driver handed only the component can still
+    // reach the collaborators its test supplied alongside it.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object[]> suppliedTo = new();
+    // Town moves go through the transit service; unless a test supplies one, it is built over the
+    // same sessions, town areas, runtime and town rules the test did supply.
+    private static Dfo.Server.Application.World.TownTransitDomainService Transit(List<object> values) => new(
+        values.OfType<ISelectedSessionDomainService>().LastOrDefault() ?? Default<ISelectedSessionDomainService>(),
+        values.OfType<ITownAreaDomainService>().LastOrDefault() ?? Default<ITownAreaDomainService>(),
+        values.OfType<IOnlineCharacterRuntimeDomainService>().LastOrDefault() ?? Default<IOnlineCharacterRuntimeDomainService>(),
+        values.OfType<ITownMovementDomainService>().LastOrDefault() ?? Default<ITownMovementDomainService>(),
+        values.OfType<IEntryPlacementRuleService>().LastOrDefault() ?? Placement(values),
+        values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
+        values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>());
+    // Placement reads content only through the town definitions a test supplies; its couple-room
+    // rules are pure and answer without any.
+    private static Dfo.Server.Application.World.EntryPlacementRuleService Placement(List<object> values) => new(
+        values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
+        values.OfType<Dfo.Server.Abstractions.Channel.ChannelEntryOptions>().LastOrDefault() ?? Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy);
+    /// <summary>The town-move service a test's town projection was built beside.</summary>
+    internal static ITownTransitDomainService TownTransit(object? town, params object?[] extra) =>
+        Transit(Complete([.. town is not null && suppliedTo.TryGetValue(town, out var values) ? values : [], .. extra]).ToList());
     // Handlers locate their dungeon through the occupancy registry. Unless a test supplies one, it
     // is read off the dungeon services the test did supply, so a placed member is never unregistered.
     private static DerivedDungeonParticipation Participation(List<object> values) => new(
@@ -102,7 +128,8 @@ internal static class ProtocolAlgorithmFixture
         typeof(Dfo.Server.Abstractions.World.IDespairTowerDomainService),
         typeof(Dfo.Server.Abstractions.World.ILostLandDungeonDomainService),
     ];
-    internal static T TownField<T>(object? town) where T : class => town is null ? Default<T>() : Field<T>(town);
+    internal static T TownField<T>(object? town) where T : class =>
+        town is null ? Default<T>() : TownDependencies(town).OfType<T>().LastOrDefault() ?? Default<T>();
     internal static IOnlineUserQueryDomainService NoOnline() => new NoUsers();
     internal static Dfo.Server.Abstractions.World.IDimensionDungeonDomainService NoDimension(Dfo.Server.Abstractions.World.IDungeonVisitDomainService visits) =>
         Create<Dfo.Server.Application.World.DimensionDungeonDomainService>(visits, new NoDimensionRules());
@@ -146,9 +173,10 @@ internal static class ProtocolAlgorithmFixture
     internal static T Field<T>(object instance) where T : class =>
         Fields(instance.GetType()).Select(field => field.GetValue(instance)).OfType<T>().Distinct(ReferenceEqualityComparer.Instance).Cast<T>().Single();
     private static IEnumerable<FieldInfo> Fields(Type? type) => type is null ? [] : type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Concat(Fields(type.BaseType));
-    internal static object[] TownDependencies(object town) => town.GetType()
+    internal static object[] TownDependencies(object town) =>
+        [.. suppliedTo.TryGetValue(town, out var values) ? values : [], .. town.GetType()
         .GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Select(field => field.GetValue(town))
-        .OfType<object>().ToArray();
+        .OfType<object>()];
     public class Unused : DispatchProxy
     {
         protected override object? Invoke(MethodInfo? method, object?[]? args) =>

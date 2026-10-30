@@ -250,9 +250,8 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         {
             entryIntents!.Record(member.Session, intent);
         }
-        await TownDepartureProjection.TownLeaveManyAsync(sessions, townAreas, onlineCharacters, projections, projectionState, currentViews, parties,
-            attached.Select(member => member.Session).ToArray(),
-            TownAreaDepartureReason.DungeonSelection,
+        await TownDepartureProjection.TownProjectDeparturesAsync(sessions, townAreas, projections, projectionState, currentViews, parties,
+            transit.LeaveTown(attached.Select(member => member.Session).ToArray(), TownAreaDepartureReason.DungeonSelection),
             cancellationToken).ConfigureAwait(false);
         logger.LogInformation(
             "Enter select dungeon {ConnectionId} user={WireUserId}: selection={Selection} intent={Intent} "

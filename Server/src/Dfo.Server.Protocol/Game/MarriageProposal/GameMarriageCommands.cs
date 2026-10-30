@@ -97,7 +97,6 @@ internal sealed partial class GameMarriageCommandHandler :
     private readonly ISelectedCharacterCurrentViewDomainService currentViews;
     private readonly ICharacterDomainService characters;
     private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
-    private readonly ITownMovementDomainService towns;
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly TimeProvider clock;
     private readonly IPartyService parties;
@@ -113,18 +112,17 @@ internal sealed partial class GameMarriageCommandHandler :
     public GameMarriageCommandHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
         IMarriageCoupleDomainService couple, IMarriageVenueDomainService venue, IQuestOfferRefreshDomainService offers,
         ICharacterDomainService characters, ISelectedCharacterCurrentViewDomainService currentViews,
-        IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, ITownMovementDomainService towns,
-        IPartyService parties, IPartyProjectionStateDomainService projectionState, IOnlineUserQueryDomainService users,
+        IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, IPartyService parties, IPartyProjectionStateDomainService projectionState, IOnlineUserQueryDomainService users,
         ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
         TimeProvider clock, ILogger<GameMarriageCommandHandler> logger,
-        IMarriageHousingQueryDomainService housing, IMarriageHousingSessionDomainService housingSessions,
+        IMarriageHousingQueryDomainService housing, ITownTransitDomainService transit,
         IOutboundOrdering ordering)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.clock = clock; this.parties = parties; this.ordering = ordering; this.marriage = marriage; this.couple = couple; this.venue = venue; this.offers = offers;
-      this.users = users; this.units = units; this.outbox = outbox; this.housingSessions = housingSessions; this.timerOrdering = ordering; }
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.characters = characters; this.onlineCharacters = onlineCharacters; this.housing = housing; this.clock = clock; this.parties = parties; this.ordering = ordering; this.marriage = marriage; this.couple = couple; this.venue = venue; this.offers = offers;
+      this.users = users; this.units = units; this.outbox = outbox; this.transit = transit; this.timerOrdering = ordering; }
     private readonly IOutboundOrdering timerOrdering;
-    private readonly IMarriageHousingSessionDomainService housingSessions;
+    private readonly ITownTransitDomainService transit;
     private SelectedSessionRecipient Recipient(NetworkDispatchContext dispatch, GameMessageMetadata metadata, SelectedSessionIdentity actor)
     {
         var connection = actor.ConnectionId == dispatch.Connection.ConnectionId ? dispatch.Connection
@@ -170,8 +168,9 @@ internal sealed partial class GameMarriageCommandHandler :
     {
         if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not { } previous
             || await currentViews.TryLoadAsync(actor, ct).ConfigureAwait(false) is not { } view) return false;
-        return await TownMovementProjection.TownTransferAsync(sessions, townAreas, onlineCharacters, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, channel,
-            location.TownId, location.AreaId, location.X, location.Y, previous, true, ct).ConfigureAwait(false);
+        return await transit.CrossAsync(actor, channel, location.TownId, location.AreaId, location.X, location.Y, true, ct)
+                .ConfigureAwait(false) is not null
+            && await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameWeddingProposalCommand command, CancellationToken ct)
@@ -349,8 +348,9 @@ internal sealed partial class GameMarriageCommandHandler :
         if (result.Succeeded && actor is not null && previous is not null && view is not null)
         {
             var entry = result.Snapshot!;
-            if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, onlineCharacters, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions, actor.ConnectionId, actor, view, entry.Room.ChannelId,
-                entry.Room.TownId, entry.Room.AreaId, entry.Location.X, entry.Location.Y, previous, true, ct).ConfigureAwait(false)) result = new(-10);
+            if (await transit.CrossAsync(actor, entry.Room.ChannelId, entry.Room.TownId, entry.Room.AreaId,
+                    entry.Location.X, entry.Location.Y, true, ct).ConfigureAwait(false) is null
+                || !await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, ct).ConfigureAwait(false)) result = new(-10);
             if (result.Succeeded)
                 await AppearanceAsync(actor, entry, false, ct).ConfigureAwait(false);
         }

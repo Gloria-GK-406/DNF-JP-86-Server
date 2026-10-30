@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
@@ -77,12 +78,27 @@ internal sealed class EntryPlacementRuleService(
         int areaId,
         CancellationToken cancellationToken)
     {
+        if (CoupleRoomTown.Is(townId))
+            return true;
         if (townId <= 0 || areaId < 0)
             return false;
 
         var town = await towns.GetAsync(townId, cancellationToken).ConfigureAwait(false);
         return SharesTownPresence(town?.AreaAt(areaId));
     }
+
+    public bool IsHouseholdTown(int townId) => CoupleRoomRules.IsHouseholdTown(townId);
+
+    public int? AreaInstance(int townId, int? householdInstance) =>
+        CoupleRoomRules.AreaInstance(townId, householdInstance);
+
+    public TownCrossingRefusal? RefuseCrossing(TownCrossingFacts facts) => CoupleRoomRules.RefuseCrossing(facts);
+
+    public CharacterPositionState StoredPositionAfter(CharacterPositionState standing, CharacterPositionState destination) =>
+        CoupleRoomRules.StoredPositionAfter(standing, destination);
+
+    public TownHousingChange HousingChangeOf(int fromTownId, int toTownId) =>
+        CoupleRoomRules.HousingChangeOf(fromTownId, toTownId);
 
     private async ValueTask<EntrySpawnState> ResolveTownGateSpawnAsync(
         int persistedTownId,

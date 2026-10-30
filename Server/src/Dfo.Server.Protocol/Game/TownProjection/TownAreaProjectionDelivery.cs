@@ -43,40 +43,29 @@ public sealed record TownAreaDeparture(
 public sealed class TownAreaProjectionDelivery
 {
     private readonly ITownAreaDomainService townAreas;
-    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
     private readonly ISelectedSessionDomainService selectedSessions;
     private readonly ISelectedCharacterCurrentViewDomainService currentViews;
-    private readonly ITownMovementDomainService towns;
     private readonly Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing;
-    private readonly Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions;
     private readonly ICommandProjections notifications;
     private readonly IPartyTownProjectionDelivery partyTownProjection;
     private readonly IGameCommandOutbox outbox;
-    private readonly IWeaknessDomainService weaknessState;
-    private const bool projectWeakness = true;
 
     public TownAreaProjectionDelivery(
         ITownAreaDomainService townAreas,
-        IOnlineCharacterRuntimeDomainService onlineCharacters,
         ISelectedSessionDomainService selectedSessions,
         ISelectedCharacterCurrentViewDomainService currentViews,
         ICommandProjections notifications,
         IPartyTownProjectionDelivery partyTownProjection,
-        IGameCommandOutbox outbox, IWeaknessDomainService weaknessState,
-        ITownMovementDomainService towns,
-        Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
-        Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housingSessions)
+        IGameCommandOutbox outbox,
+        Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
     {
         this.townAreas = townAreas;
-        this.onlineCharacters = onlineCharacters;
         this.selectedSessions = selectedSessions;
         this.currentViews = currentViews;
-        this.towns = towns;
         this.notifications = notifications;
         this.partyTownProjection = partyTownProjection;
-        this.outbox = outbox; this.weaknessState = weaknessState;
+        this.outbox = outbox;
         this.housing = housing;
-        this.housingSessions = housingSessions;
     }
 
     public ValueTask RefuseTownChangeAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
@@ -84,17 +73,7 @@ public sealed class TownAreaProjectionDelivery
         string reason, CancellationToken token) => TownMovementProjection.TownRefuseTownChangeAsync(outbox, connectionId, session, result, standing, reason, token);
     public ValueTask<bool> ProjectTransferAsync(NetworkConnectionId connectionId, SelectedSessionIdentity session,
         SelectCharacterResult result, TownAreaMember previous, CancellationToken token) =>
-        TownMovementProjection.TownProjectTransferAsync(selectedSessions, townAreas, notifications, partyTownProjection, currentViews, housing, outbox, housingSessions, connectionId, session, result, previous, token);
-
-    /// <summary>
-    /// Admits one or more characters and projects the resulting area revision. Callers describe
-    /// only where the characters are; the destination area's content policy and every visibility
-    /// notification remain owned here.
-    /// </summary>
-    public ValueTask<int> EnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken cancellationToken) =>
-        TownArrivalProjection.EnterAsync(selectedSessions, towns, housing, townAreas, onlineCharacters, currentViews, outbox,
-            weaknessState, projectWeakness, notifications,
-            partyTownProjection, entries, cancellationToken);
+        TownMovementProjection.TownProjectTransferAsync(selectedSessions, townAreas, notifications, partyTownProjection, currentViews, housing, outbox, connectionId, session, result, previous, token);
 
     /// <summary>Projects an entry already committed by the selected-character lifecycle.</summary>
     public async ValueTask PublishCommittedEntryAsync(

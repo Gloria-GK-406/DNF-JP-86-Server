@@ -550,6 +550,16 @@ public sealed class SelectCharacterProductionStateTests
             ValueTask.FromResult(true);
         public ValueTask<bool> SharesTownPresenceAsync(int town, int area, CancellationToken ct) =>
             ValueTask.FromResult(true);
+        public bool IsHouseholdTown(int townId) => Dfo.Server.Application.World.CoupleRoomRules.IsHouseholdTown(townId);
+        public int? AreaInstance(int townId, int? householdInstance) =>
+            Dfo.Server.Application.World.CoupleRoomRules.AreaInstance(townId, householdInstance);
+        public Dfo.Server.Abstractions.World.TownCrossingRefusal? RefuseCrossing(Dfo.Server.Abstractions.World.TownCrossingFacts facts) =>
+            Dfo.Server.Application.World.CoupleRoomRules.RefuseCrossing(facts);
+        public Dfo.Server.Data.Characters.CharacterPositionState StoredPositionAfter(
+            Dfo.Server.Data.Characters.CharacterPositionState standing, Dfo.Server.Data.Characters.CharacterPositionState destination) =>
+            Dfo.Server.Application.World.CoupleRoomRules.StoredPositionAfter(standing, destination);
+        public Dfo.Server.Abstractions.World.TownHousingChange HousingChangeOf(int fromTownId, int toTownId) =>
+            Dfo.Server.Application.World.CoupleRoomRules.HousingChangeOf(fromTownId, toTownId);
         public ValueTask<SessionAdjacentEntryState> LoadAsync(SessionAdjacentSubject subject, CancellationToken ct)
         {
             AdjacentPosition = (subject.TownId, subject.AreaId);

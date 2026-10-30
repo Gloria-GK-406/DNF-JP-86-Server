@@ -59,8 +59,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly ISelectedCharacterCurrentViewDomainService currentViews;
     private readonly ICharacterStateProjectionDomainService currentState;
     private readonly ICharacterDomainService characters;
-    private readonly IOnlineCharacterRuntimeDomainService onlineCharacters;
-    private readonly ITownMovementDomainService towns;
+    private readonly ITownTransitDomainService transit;
     private readonly IMarriageHousingQueryDomainService housing;
     private readonly IBossTowerDomainService bossTowers;
     private readonly IIllusionTowerDomainService illusionTowers;
@@ -84,9 +83,9 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly ISaoTowerDomainService sao;
     private readonly IDungeonEntryRoutingDomainService entries;
     public GameSelectDungeonCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
-        IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, IPartyService parties,
+        ITownAreaDomainService townAreas, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ICharacterStateProjectionDomainService currentState,
-        ICharacterDomainService characters, ITownMovementDomainService towns, IDungeonRunProjectionDomainService departureSink,
+        ICharacterDomainService characters, ITownTransitDomainService transit, IDungeonRunProjectionDomainService departureSink,
         ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units, ICommandConnectionClosures closures,
         IOnlineUserQueryDomainService onlineUsers, ILogger<GameSelectDungeonCommandHandler> logger,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers, IMarriageHousingQueryDomainService housing, TimeProvider clock,
@@ -101,7 +100,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         IDungeonEntryRoutingDomainService entries)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.workUnits = units; this.onlineUsers = onlineUsers; this.departureSink = departureSink; this.parties = parties;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.transit = transit; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.workUnits = units; this.onlineUsers = onlineUsers; this.departureSink = departureSink; this.parties = parties;
         entryClosures = closures;
         this.visits = visits;
         this.runs = runs;

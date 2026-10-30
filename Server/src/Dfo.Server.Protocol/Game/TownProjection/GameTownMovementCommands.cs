@@ -72,7 +72,7 @@ internal sealed partial class GameTownMovementCommandHandler :
     private readonly IChannelEntryDomainService channels;
     private readonly ICharacterLocationDomainService persistence;
     private readonly IMarriageQueryDomainService marriage;
-    private readonly IMarriageHousingSessionDomainService housingSessions;
+    private readonly ITownTransitDomainService transit;
     private readonly ICommandWorkUnits units;
     private readonly IGameCommandOutbox outbox;
     public GameTownMovementCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
@@ -81,10 +81,10 @@ internal sealed partial class GameTownMovementCommandHandler :
         ICommandProjections projections, IGameCommandOutbox outbox, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ILogger<GameTownMovementCommandHandler> logger,
         IMarriageQueryDomainService marriage, IMarriageHousingQueryDomainService housing,
-        IMarriageHousingSessionDomainService housingSessions)
+        ITownTransitDomainService transit)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.parties = parties; this.channels = channels; this.persistence = persistence; this.units = units; this.outbox = outbox; this.marriage = marriage; this.housingSessions = housingSessions; }
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.onlineCharacters = onlineCharacters; this.towns = towns; this.housing = housing; this.parties = parties; this.channels = channels; this.persistence = persistence; this.units = units; this.outbox = outbox; this.marriage = marriage; this.transit = transit; }
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetUserAreaCommand command, CancellationToken cancellationToken) =>
         AreaAsync(execution, command.Dispatch, command.Input, cancellationToken);
     private async ValueTask<bool> AreaAsync(CommandExecutionContext execution, NetworkDispatchContext context, SetUserAreaRequest message, CancellationToken cancellationToken)
@@ -154,25 +154,19 @@ internal sealed partial class GameTownMovementCommandHandler :
             return false;
         }
 
-        if (CoupleRoomTown.Is(message.TownId))
+        if (await transit.RefuseCrossingAsync(session, standing, message.TownId, message.AreaId, cancellationToken)
+                .ConfigureAwait(false) is { } refusal)
         {
-            if (message.AreaId != 0 || !CoupleRoomTown.Is(standing.TownId) && !housing.IsEntrySource(standing.TownId, standing.AreaId)
-                || await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) is not > 0)
-            {
-                await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
-                    "请由已婚角色通过赛丽亚房间的婚房入口进入。", cancellationToken).ConfigureAwait(false); return false;
-            }
+            await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
+                refusal switch
+                {
+                    TownCrossingRefusal.CoupleRoomEntry => "请由已婚角色通过赛丽亚房间的婚房入口进入。",
+                    TownCrossingRefusal.CoupleRoomExit => "请从婚房出口返回原来的城镇。",
+                    _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, null),
+                }, cancellationToken).ConfigureAwait(false);
+            return false;
         }
-        if (CoupleRoomTown.Is(standing.TownId) && !CoupleRoomTown.Is(message.TownId))
-        {
-            var home = housingSessions.ReturnFor(session);
-            if (home is null || home.TownId != message.TownId || home.AreaId != message.AreaId)
-            {
-                await TownMovementProjection.TownRefuseTownChangeAsync(outbox, context.Connection.ConnectionId, session, result, standing,
-                    "请从婚房出口返回原来的城镇。", cancellationToken).ConfigureAwait(false); return false;
-            }
-        }
-        var sharesTownPresence = CoupleRoomTown.Is(message.TownId) || await towns
+        var sharesTownPresence = await towns
             .SharesTownPresenceAsync(message.TownId, message.AreaId, cancellationToken)
             .ConfigureAwait(false);
         if (!await marriage.CanCrossAsync(session, channel.ChannelId,
@@ -196,27 +190,15 @@ internal sealed partial class GameTownMovementCommandHandler :
             {
                 TownId = message.TownId, AreaId = message.AreaId, X = message.X, Y = message.Y,
             };
-            if (CoupleRoomTown.Is(message.TownId))
-            {
-                await PersistAsync(execution, session, standing, cancellationToken).ConfigureAwait(false);
-                housingSessions.RememberReturn(session, standing);
-            }
-            if (!CoupleRoomTown.Is(destination.TownId))
-                await PersistAsync(execution, session, destination, cancellationToken).ConfigureAwait(false);
+            await PersistAsync(execution, session, transit.StoredPositionAfter(standing, destination), cancellationToken)
+                .ConfigureAwait(false);
         }
         var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
-        if (!await TownMovementProjection.TownTransferAsync(sessions, townAreas, onlineCharacters, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, housingSessions,
-                context.Connection.ConnectionId,
-                session,
-                result,
-                channel.ChannelId,
-                message.TownId,
-                message.AreaId,
-                message.X,
-                message.Y,
-                standingMember,
-                sharesTownPresence,
-                cancellationToken).ConfigureAwait(false))
+        if (await transit.CrossAsync(session, channel.ChannelId, message.TownId, message.AreaId,
+                message.X, message.Y, sharesTownPresence, cancellationToken).ConfigureAwait(false) is null
+            || !await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections,
+                new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox,
+                context.Connection.ConnectionId, session, result, standingMember, cancellationToken).ConfigureAwait(false))
         {
             logger.LogWarning(
                 "Set user area {ConnectionId}: area membership generation changed while moving",
@@ -257,6 +239,8 @@ internal sealed partial class GameTownMovementCommandHandler :
             return false;
         }
         var input = command.Input;
-        return await TownMovementProjection.TownMoveAsync(sessions, townAreas, onlineCharacters, projections, outbox, command.Dispatch.Connection.ConnectionId, session, input.X, input.Y, input.Direction, input.Trailer, token).ConfigureAwait(false);
+        var previous = onlineCharacters.StandingOf(session);
+        var movement = previous is null ? null : onlineCharacters.StepTo(session, input.X, input.Y, input.Direction);
+        return await TownMovementProjection.TownProjectMoveAsync(sessions, townAreas, projections, outbox, command.Dispatch.Connection.ConnectionId, session, previous, movement, input.X, input.Y, input.Direction, input.Trailer, token).ConfigureAwait(false);
     }
 }

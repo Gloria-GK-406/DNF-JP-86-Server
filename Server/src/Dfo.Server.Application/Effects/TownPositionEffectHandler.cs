@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.Effects;
 
 internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainService onlineCharacters,
     ISelectedSessionPositionPersistence persistence, ISelectedSessionDomainService sessions,
-    IDomainTransactionAccessor transactions) : EffectHandler<MoveToTownEffect>
+    IDomainTransactionAccessor transactions, ITownTransitDomainService transit) : EffectHandler<MoveToTownEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, MoveToTownEffect effect, CancellationToken ct)
     {
@@ -27,10 +27,10 @@ internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainSer
         if (effect.PersistsPosition)
             await persistence.PersistAsync(context.AccountId, context.CharacterId, effect.Destination, ct).ConfigureAwait(false);
         context.Footprint.DemandEffects(context.Owner);
-        transactions.Current!.Enlist(new object(), () => new Commit(onlineCharacters, sessions, context, effect));
+        transactions.Current!.Enlist(new object(), () => new Commit(transit, sessions, context, effect));
         return new TownPositionChange(effect.Expected, effect.Destination);
     }
-    private sealed class Commit(IOnlineCharacterRuntimeDomainService onlineCharacters, ISelectedSessionDomainService sessions,
+    private sealed class Commit(ITownTransitDomainService transit, ISelectedSessionDomainService sessions,
         EffectExecutionContext context, MoveToTownEffect effect) : ITransactionParticipant
     {
         public bool CommitCanFail => false;
@@ -40,7 +40,7 @@ internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainSer
         {
             if (context.Session!.AccountId == context.AccountId && sessions.IsInWorld(context.Session!))
             {
-                onlineCharacters.CrossInto(context.Session!,
+                transit.Cross(context.Session!,
                     new(effect.ChannelId, effect.Destination.TownId, effect.Destination.AreaId),
                     effect.Destination.X, effect.Destination.Y, false, effect.Destination.Direction);
             }
