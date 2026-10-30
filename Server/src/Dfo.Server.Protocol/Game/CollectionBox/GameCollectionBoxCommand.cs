@@ -14,8 +14,7 @@ public sealed record GameCollectionBoxCommand(NetworkDispatchContext Dispatch, C
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameCollectionBoxCommandHandler(ISelectedSessionDomainService sessions, ICollectionBoxDomainService boxes,
-    IInventorySlotMappingRuleService mapping, TimeProvider clock, ICommandWorkUnits units, IGameCommandOutbox outbox)
+public sealed class GameCollectionBoxCommandHandler(ISelectedSessionDomainService sessions, ICollectionBoxDomainService boxes, TimeProvider clock, ICommandWorkUnits units, IGameCommandOutbox outbox)
     : ICommandHandler<GameCollectionBoxCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameCollectionBoxCommand command, CancellationToken ct)
@@ -27,7 +26,7 @@ public sealed class GameCollectionBoxCommandHandler(ISelectedSessionDomainServic
             throw new InvalidOperationException("Collection box requires its originally selected actor.");
         request.DemandCurrent();
         BusinessSlot? source = null; byte? mappingError = null;
-        try { if (command.Input.Action == CollectionBoxAction.Put) source = mapping.ToBusinessSlot(new(InventoryContainerType.Main, command.Input.SourceSlot)); }
+        try { if (command.Input.Action == CollectionBoxAction.Put) source = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, command.Input.SourceSlot)); }
         catch (InventorySlotMappingException) { mappingError = 0x15; }
         catch (ArgumentOutOfRangeException) { mappingError = 0x15; }
         if (mappingError is { } early) { await Reject(early).ConfigureAwait(false); return false; }
@@ -51,7 +50,7 @@ public sealed class GameCollectionBoxCommandHandler(ISelectedSessionDomainServic
         var frames = new List<IGameServerMessage>();
         foreach (var change in result.Inventory)
         {
-            var physical = mapping.ToGameSlot(change.Slot);
+            var physical = A21InventoryLayout.ToGameSlot(change.Slot);
             frames.Add(change.Item is { } item ? GameInventoryDelivery.Notification(new(physical.Space,
                 [new(item.ItemUid, physical.Index, item.ToCore(), item.AvatarDetail)], clock.GetUtcNow()))
                 : GameInventoryDelivery.ClearedSlotNotification(physical.Space, physical.Index, clock.GetUtcNow()));

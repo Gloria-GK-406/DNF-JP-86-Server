@@ -153,19 +153,6 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.Equal(Modern && protocol is not (3 or 6) ? new[] { f.Session } : [], trace.Discarded);
     }
 
-    [Theory] [InlineData(false)] [InlineData(true)]
-    public async Task Slot_mapping_before_transaction_is_refused_but_result_mapping_is_never_swallowed(bool resultMapping)
-    {
-        var cause = new IOException("TASK53 slot address mapping"); var trace = new Trace { MappingFailure = cause, ResultMapping = resultMapping }; using var f = await Create(0, trace);
-        var before = Assets(f); var failure = await Record.ExceptionAsync(() => Send(f, 0).AsTask());
-        if (!resultMapping) { Assert.Null(failure); Assert.Empty(trace.Transactions); Assert.Equal(before, Assets(f)); Assert.Equal(MutationBody(false, 0, 9), Assert.Single(f.Sender.Outbound.Frames)[15..]); }
-        else {
-            if (Modern) Assert.Same(cause, Assert.IsType<TransactionOutcomeUncertainException>(failure).InnerException); else Assert.Same(cause, failure);
-            Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(trace.Transactions).Completion); AssertChange(f, trace, 0); Assert.Empty(f.Sender.Outbound.Frames);
-            Assert.Equal(Modern, f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection)); Assert.Equal(Modern ? new[] { f.Session } : [], trace.Discarded);
-        }
-    }
-
     [Fact]
     public async Task Query_listener_mismatch_is_silent_before_opening_the_readonly_unit()
     {
@@ -231,7 +218,6 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
     {
         var content = new Content();
         var f = new ShopFixture(s => {
-            s.AddSingleton<IInventorySlotMappingRuleService>(new MappingProbe(trace));
             s.AddSingleton<ITitleBookDefinitionSource>(content); s.AddSingleton<IAchievementDefinitionSource>(content);
             s.AddSingleton<IItemPlacementDefinitionSource>(content); s.AddSingleton<IEquipmentSlotDefinitionSource>(content); s.AddSingleton<IEquipmentRequirementDefinitionSource>(content);
             s.AddSingleton<IAchievementCharacterFactsDomainService>(content); s.AddSingleton<IWeeklyAttendanceRuleService>(content); s.AddSingleton<IEventPlayerProjectionDomainService, EventView>();
@@ -313,7 +299,7 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
     }
     private static IEnumerable<byte[]> Split(IEnumerable<byte[]> sends) { foreach (var bytes in sends) for (var at = 0; at < bytes.Length;) { var n = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(at + 3)); yield return bytes[at..(at + n)]; at += n; } }
 
-    public sealed class Trace { internal bool Armed, SqlFault, ResultMapping, DomainReturned; internal Exception? Inject, Failure, ScopeFailure, MappingFailure; internal Action? AfterDomain, AfterUnit; internal ItemSnapshot? Original; internal SelectedSessionIdentity? Target; internal List<DomainTransaction> Transactions = []; internal List<SelectedSessionIdentity> Discarded = []; internal List<(bool, CommandWorkUnitDeclaration)> Units = []; }
+    public sealed class Trace { internal bool Armed, SqlFault; internal Exception? Inject, Failure, ScopeFailure; internal Action? AfterDomain, AfterUnit; internal ItemSnapshot? Original; internal SelectedSessionIdentity? Target; internal List<DomainTransaction> Transactions = []; internal List<SelectedSessionIdentity> Discarded = []; internal List<(bool, CommandWorkUnitDeclaration)> Units = []; }
     public class DomainProbe : DispatchProxy {
         internal object Actual = null!; internal IServiceProvider Services = null!; internal Trace Trace = null!; internal string Method = "";
         protected override object? Invoke(MethodInfo? method, object?[]? args) => method!.Name != Method || !Trace.Armed ? Call(method, args) : typeof(DomainProbe).GetMethod(nameof(Observe), BindingFlags.NonPublic | BindingFlags.Instance)!.MakeGenericMethod(method.ReturnType.GenericTypeArguments[0]).Invoke(this, [method, args]);
@@ -324,7 +310,7 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
                 if (Trace.Inject is { } cause) throw cause;
                 var result = await (ValueTask<T>)Call(method, args)!;
                 if (Trace.SqlFault) await Services.GetRequiredService<SqliteDatabase>().ExecuteAsync("INSERT INTO task53_fault VALUES(404)", _ => { }, default);
-                Trace.DomainReturned = true; Trace.AfterDomain?.Invoke(); return result;
+                Trace.AfterDomain?.Invoke(); return result;
             } catch (Exception failure) { Trace.Failure = failure; throw; }
         }
         internal static void Add<T>(IServiceCollection s, Trace trace, string method) where T : class { var d = s.Last(x => x.ServiceType == typeof(T)); s.AddSingleton<T>(p => { var proxy = Create<T, DomainProbe>(); var spy = (DomainProbe)(object)proxy; spy.Actual = TitleProtocolCommandFlowTests.Actual(d, p); spy.Services = p; spy.Trace = trace; spy.Method = method; return proxy; }); }
@@ -335,11 +321,6 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
         public ValueTask<T> WriteAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull { trace.Units.Add((false, d)); return actual.WriteAsync(c, d, a, ct); }
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull { trace.Units.Add((false, d)); return actual.WriteResultAsync(c, d, a, ct); }
         public async ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull { trace.Units.Add((true, d)); var result = await actual.ReadOnlyAsync(c, d, a, ct); trace.AfterUnit?.Invoke(); return result; }
-    }
-    private sealed class MappingProbe(Trace trace) : IInventorySlotMappingRuleService {
-        private readonly InventorySlotMappingRuleService actual = new();
-        public BusinessSlot ToBusinessSlot(GameSlot slot) { if (trace.Armed && !trace.ResultMapping && trace.MappingFailure is { } cause) throw cause; return actual.ToBusinessSlot(slot); }
-        public GameSlot ToGameSlot(BusinessSlot slot) { if (trace.Armed && trace.DomainReturned && trace.ResultMapping && trace.MappingFailure is { } cause) throw cause; return actual.ToGameSlot(slot); }
     }
     private sealed class EventView(IWeeklyAttendanceDomainService attendance, TimeProvider clock) : IEventPlayerProjectionDomainService { public async ValueTask<EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity s, CancellationToken ct) => new([], await attendance.StateAsync(s.AccountId, clock.GetUtcNow(), ct)); }
     private sealed class Content : ITitleBookDefinitionSource, IAchievementDefinitionSource, IItemPlacementDefinitionSource, IEquipmentSlotDefinitionSource, IEquipmentRequirementDefinitionSource, IAchievementCharacterFactsDomainService, IWeeklyAttendanceRuleService {

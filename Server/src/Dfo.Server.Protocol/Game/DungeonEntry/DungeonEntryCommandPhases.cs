@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
@@ -209,8 +210,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                 frames.Add(new SupportTagNotification());
                 foreach (var debit in entered.InventoryChanges.Where(x => x.CharacterId == receiver.Session.CharacterId))
                 {
-                    var slot = (inventoryProjection ?? throw new InvalidOperationException("Inventory projection is required for entry costs."))
-                        .Project(debit.Slot);
+                    var slot = A21InventoryLayout.ToGameSlot(debit.Slot);
                     frames.Add(debit.Remaining is { } remaining
                         ? new InventoryDeltaMessage(slot.Space, [new Dfo.Server.Data.Inventory.InventoryItemState(null, slot.Index, remaining)], refreshed[receiver.Session.CharacterId].World.PreparedAt)
                         : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, refreshed[receiver.Session.CharacterId].World.PreparedAt));

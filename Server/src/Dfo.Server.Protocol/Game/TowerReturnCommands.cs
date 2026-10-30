@@ -105,12 +105,11 @@ internal sealed partial class TowerReturnCommandHandler :
         ILogger<TowerReturnCommandHandler> logger, IDungeonRunTimerDomainService wipeRuns,
         IDungeonRunProjectionDomainService wipeRegistry, Dfo.Server.Abstractions.World.IDungeonCardPresentationControl cards,
         IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments,
-        Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService slots,
         IOutboundOrdering ordering, IWeaknessDomainService weaknessState)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weaknessState; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties; this.ordering = ordering; this.bossDepartures = bossDepartures; this.illusionDepartures = illusionDepartures; this.wipeRuns = wipeRuns; this.wipeRegistry = wipeRegistry;
-      this.wipeCards = cards; this.wipeAltars = altars; this.wipeTournaments = tournaments; this.wipeSlots = slots;
+      this.wipeCards = cards; this.wipeAltars = altars; this.wipeTournaments = tournaments;
         Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
             this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,
             ReturnTownIsolatedAsync);

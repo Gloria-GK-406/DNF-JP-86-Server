@@ -21,7 +21,6 @@ internal sealed partial class TowerReturnCommandHandler
     private readonly IDungeonCardPresentationControl wipeCards;
     private readonly IAltarDungeonDomainService wipeAltars;
     private readonly ITournamentDungeonDomainService wipeTournaments;
-    private readonly IInventorySlotProjectionDomainService wipeSlots;
     public ValueTask<ImmutableArray<ReturnDungeonRunCommand>> HandleAsync(CommandExecutionContext context, MaintainDungeonReturnsCommand command, CancellationToken token)
     {
         var now = clock.GetUtcNow();
@@ -115,7 +114,7 @@ internal sealed partial class TowerReturnCommandHandler
         if (rejected is not null) { logger.LogError(rejected, "Party wipe return failed run={RunId}", runId); return []; }
         var action = ((CommandWriteResult<TournamentCommandResult>.Returned)write).Value.Action;
         if (action is not null && sessions.IsInWorld(session))
-            await outbox.RegisterExplicitAsync(session.ConnectionId, new(TournamentCompletionFrames.CompletionFrames(action, wipeSlots, clock), []), token).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(session.ConnectionId, new(TournamentCompletionFrames.CompletionFrames(action, clock), []), token).ConfigureAwait(false);
         return [];
     }
 }

@@ -10,8 +10,7 @@ namespace Dfo.Server.Protocol.Game.DeleteItem;
 public sealed record MaterialsConsumed(SelectedSessionIdentity Session, MaterialDebit Debit,
     DateTimeOffset PreparedAt) : INotification<MaterialsConsumed>;
 
-public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService projection) : INotificationHandler<MaterialsConsumed>
+public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<MaterialsConsumed>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
         MaterialsConsumed notification, CancellationToken ct)
@@ -21,7 +20,7 @@ public sealed class MaterialsConsumedHandler(ISelectedSessionDomainService sessi
             || !sessions.IsInWorld(notification.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var debit = notification.Debit;
-        var slot = projection.Project(debit.Cost.Slot);
+        var slot = A21InventoryLayout.ToGameSlot(debit.Cost.Slot);
         var messages = new List<IServerNetworkMessage> { new DeleteItemResponse(slot, debit.Cost.Count, Success: true) };
         if (debit.Cost.Slot.Space == BusinessInventorySpace.SharedMaterial)
         {

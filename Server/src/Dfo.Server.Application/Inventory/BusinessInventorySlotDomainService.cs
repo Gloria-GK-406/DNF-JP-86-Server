@@ -9,7 +9,7 @@ internal sealed class BusinessInventorySlotDomainService(
     ICharacterBusinessInventoryDomainService stores) : IBusinessInventorySlotDomainService
 {
     internal BusinessInventorySlotDomainService(
-        ICharacterContainerDomainService containers, IInventorySlotMappingRuleService _) :
+        ICharacterContainerDomainService containers) :
         this(new CharacterBusinessInventoryDomainService(containers)) { }
 
     public BoundInventorySlot? Find(CharacterId characterId, BusinessSlot slot)

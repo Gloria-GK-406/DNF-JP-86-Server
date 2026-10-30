@@ -29,8 +29,7 @@ public sealed class DeleteItemCodecTests
         {
             var sender = new CmdSender();
             // Actual whole executes the mapper before any query/domain/unit. Null dependencies fail if touched.
-            var handler = new GameDeleteItemCommandHandler(null!, null!, new InventorySlotMappingRuleService(),
-                null!, null!, null!, null!, null!, null!, new RejectionOutbox(sender),
+            var handler = new GameDeleteItemCommandHandler(null!, null!, null!, null!, null!, null!, null!, null!, new RejectionOutbox(sender),
                 Microsoft.Extensions.Logging.Abstractions.NullLogger<GameDeleteItemCommandHandler>.Instance);
             var dispatch = new NetworkDispatchContext(new NetworkConnectionContext(new("invalid-slot"),NetworkEndpointKind.Game,10011));
             var request = new DeleteItemRequest(GameMessageMetadata.Empty,new(InventoryContainerType.Main,slot),1,1,3037,1,0,1);
@@ -61,7 +60,7 @@ public sealed class DeleteItemCodecTests
                 null, DateTimeOffset.UnixEpoch);
 
             var messages = await new ItemDiscardCompletedHandler(
-                sessions, new SlotProjection()).ComposeAsync(
+                sessions).ComposeAsync(
                 new NotificationRecipient(session.CharacterId, session.ConnectionId),
                 new ItemDiscardCompleted(receipt,
                     new QuestProgressSnapshot([new CarriedQuest(0, 2001, 1)])),
@@ -100,13 +99,6 @@ public sealed class DeleteItemCodecTests
         public ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask RegisterBatchAsync(NetworkConnectionContext connection,IReadOnlyList<IGameServerMessage> messages,CancellationToken ct) => throw new NotSupportedException();
         public ValueTask RegisterExplicitAsync(NetworkConnectionId id,GameExplicitMessageDelivery delivery,CancellationToken ct) => throw new NotSupportedException();
-    }
-
-    private sealed class SlotProjection : IInventorySlotProjectionDomainService
-    {
-        private readonly InventorySlotMappingRuleService mappings = new();
-
-        public GameSlot Project(BusinessSlot slot) => mappings.ToGameSlot(slot);
     }
 
     [Theory]

@@ -11,8 +11,7 @@ public sealed record EquipmentDisjointCompleted(EquipmentDisjointReceipt Receipt
     : INotification<EquipmentDisjointCompleted>;
 
 public sealed class EquipmentDisjointCompletedHandler(
-    ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slotProjection)
+    ISelectedSessionDomainService sessions)
     : INotificationHandler<EquipmentDisjointCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
@@ -33,19 +32,19 @@ public sealed class EquipmentDisjointCompletedHandler(
             receipt.PortableToolSlot is { } toolSlot && change.Slot == toolSlot && change.Core is null);
         if (exhaustedTool is not null)
         {
-            var tool = slotProjection.Project(exhaustedTool.Slot);
+            var tool = A21InventoryLayout.ToGameSlot(exhaustedTool.Slot);
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(tool.Space, tool.Index, receipt.PreparedAt));
         }
         messages.Add(new DisjointItemResponse(
-            slotProjection.Project(receipt.TargetSlot),
+            A21InventoryLayout.ToGameSlot(receipt.TargetSlot),
             [
                 .. receipt.Materials.Select(material => new DisjointItemMaterial(
-                    slotProjection.Project(material.Slot), material.ItemId, material.Count)),
+                    A21InventoryLayout.ToGameSlot(material.Slot), material.ItemId, material.Count)),
             ]));
 
         var projected = receipt.InventoryChanges
             .Where(change => change != exhaustedTool)
-            .Select(change => (Slot: slotProjection.Project(change.Slot), change.Core))
+            .Select(change => (Slot: A21InventoryLayout.ToGameSlot(change.Slot), change.Core))
             .GroupBy(change => change.Slot.Space)
             .OrderBy(group => (byte)group.Key);
         foreach (var container in projected)

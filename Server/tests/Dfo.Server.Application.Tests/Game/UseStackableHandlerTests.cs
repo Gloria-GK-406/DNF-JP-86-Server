@@ -91,7 +91,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
     {
 
             var inventory = new FakeInventory(4, 8474, 2, 2);
-            var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
+            var slots = new BusinessInventorySlotDomainService(inventory.Containers());
             await TestGameplay.RunAsync(async () =>
             {
             await using (var tx = inventory.Scope.Begin())
@@ -116,7 +116,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
     {
 
             var inventory = new FakeInventory(3, 8474, 2, 2);
-            var slots = new BusinessInventorySlotDomainService(inventory.Containers(), new InventorySlotMappingRuleService());
+            var slots = new BusinessInventorySlotDomainService(inventory.Containers());
             await TestGameplay.RunAsync(async () =>
             {
             await using (var tx = inventory.Scope.Begin())
@@ -271,7 +271,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         {
             var inventory = new FakeInventory(3, 8474, 2, 2);
             var setup = BuildDetailed(inventory, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0) with { SharedEffectSelector = 0 }));
-            var slot = new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 3));
+            var slot = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, 3));
             await using (var tx = inventory.Scope.Begin())
             {
                 Assert.False((await TestEffectFootprints.Run(OneSession.Session, footprint => setup.Shared.UseAsync(OneSession.Session, slot, 9000, footprint, default))).Succeeded);
@@ -622,9 +622,8 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var sender = new RecordingSender();
 
         var judgement = new ItemUseJudgementService(content);
-        var mappings = new InventorySlotMappingRuleService();
         var containers = inventory.Containers();
-        var slots = new BusinessInventorySlotDomainService(containers, mappings);
+        var slots = new BusinessInventorySlotDomainService(containers);
         var characters = new CharacterItemUseDomainService(new OneCharacter(new PlayingCharacter(
             new CharacterId(60), new NoCarriedGold(), new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
             new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
@@ -649,7 +648,6 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         services.AddSingleton<ISelectedSessionDomainService>(sessions);
         services.AddSingleton<IOnlineUserQueryDomainService>(new UserQuery(sessions));
         services.AddSingleton<TimeProvider>(clock);
-        services.AddSingleton<IInventorySlotMappingRuleService>(mappings);
         services.AddSingleton<IBusinessInventorySlotDomainService>(slots);
         services.AddSingleton<IItemUseEffectDomainService>(useEffects);
         services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(

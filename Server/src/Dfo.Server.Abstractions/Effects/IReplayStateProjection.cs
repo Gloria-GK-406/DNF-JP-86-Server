@@ -36,10 +36,9 @@ public sealed record ReplayProjectionRequest(ReplayProjectionNeeds Needs, Immuta
             throw new InvalidDataException("Touched town areas require a valid location projection.");
         if (TouchedSlots.Length > 0 && !Needs.HasFlag(ReplayProjectionNeeds.Inventory))
             throw new InvalidDataException("Touched physical slots require an inventory projection.");
-        var mapping = new InventorySlotMappingRuleService();
         foreach (var slot in TouchedSlots)
         {
-            var game = mapping.ToGameSlot(slot);
+            var game = A21InventoryLayout.ToGameSlot(slot);
             if (game.Space is not (InventoryContainerType.Main or InventoryContainerType.Avatar
                 or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment
                 or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.QuickSlot))

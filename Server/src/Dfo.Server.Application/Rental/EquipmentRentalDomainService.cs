@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Rental;
 internal sealed class EquipmentRentalDomainService(IEquipmentRentalDomainStore links, ILuckyStarDomainStore starStore,
     IAccountLuckyStarDomainService stars, IEquipmentRentalRuleService rules, ICharacterDomainService characters,
     ICharacterItemTable items, IItemDeliveryDomainService delivery, IItemDomainStore itemStore,
-    IDomainTransactionAccessor transactions, TimeProvider clock, IInventorySlotMappingRuleService mapping) : IEquipmentRentalDomainService
+    IDomainTransactionAccessor transactions, TimeProvider clock) : IEquipmentRentalDomainService
 {
     public async ValueTask<EquipmentRentalPanel> PanelAsync(AccountId account,CharacterId character,CancellationToken ct)
     {
@@ -57,7 +57,7 @@ internal sealed class EquipmentRentalDomainService(IEquipmentRentalDomainStore l
                     ?? throw new InvalidDataException("Rental instance disappeared.");
                 await session.UpdateAsync(item,x=>x with {ExpireTime=checked((int)quote.ExpiresAt.ToUnixTimeSeconds())},ct).ConfigureAwait(false);
                 changed=[(InventoryContainerType)row.ListType];
-                touched=[mapping.ToBusinessSlot(new((InventoryContainerType)row.ListType,row.SlotIndex))];
+                touched=[A21InventoryLayout.ToBusinessSlot(new((InventoryContainerType)row.ListType,row.SlotIndex))];
             }
             else
             {

@@ -194,17 +194,16 @@ public sealed class SharedMaterialContainerTests
     [Fact]
     public void SharedLocalSlotsUseDedicatedStorageButExistingMainWireSlots()
     {
-        var mapping = new InventorySlotMappingRuleService();
         for (var index = 0; index < 11; index++)
         {
             var local = new BusinessSlot(BusinessInventorySpace.SharedMaterial, index);
             var wire = new GameSlot(InventoryContainerType.Main, 354 + index);
-            Assert.Equal(local, mapping.ToBusinessSlot(wire));
-            Assert.Equal(wire, mapping.ToGameSlot(local));
+            Assert.Equal(local, A21InventoryLayout.ToBusinessSlot(wire));
+            Assert.Equal(wire, A21InventoryLayout.ToGameSlot(local));
             Assert.Equal(new(InventoryContainerType.SharedMaterial, index), LegacyInventoryStorageCoordinates.ToStorage(local));
             Assert.Equal(local, LegacyInventoryStorageCoordinates.ToBusiness(new(InventoryContainerType.SharedMaterial, index)));
         }
-        Assert.Throws<InventorySlotMappingException>(() => mapping.ToBusinessSlot(new(InventoryContainerType.SharedMaterial, 0)));
+        Assert.Throws<InventorySlotMappingException>(() => A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.SharedMaterial, 0)));
     }
 
     [Fact]

@@ -731,11 +731,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
             TestGameplay.Run(() => containers.Register(character, new SlotBook(type, character, fixture)));
         }
 
-        var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
             new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers, mappings),
+                new BusinessInventorySlotDomainService(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                     new ItemSlotRuleService(), new EitherEndMayBeHoldingItTestsWearEligibility())),
@@ -751,7 +750,6 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         return (
             MoveItemProtocolTestDriver.Create(
                 new OneSession(), new NoPublishedRuntime(),
-                new InventorySlotMappingRuleService(),
                 new MoveItemProtocolTestDriver.Execution(side.Handler, side.Fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger,
@@ -785,7 +783,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
 
         private static BusinessSlot ToBusinessSlot(
             InventoryContainerType space, int index) =>
-            new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(space, index));
+            A21InventoryLayout.ToBusinessSlot(new GameSlot(space, index));
 
         public async ValueTask<ItemSnapshot?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>

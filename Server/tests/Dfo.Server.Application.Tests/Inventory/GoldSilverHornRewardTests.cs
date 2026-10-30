@@ -37,7 +37,7 @@ public sealed class GoldSilverHornRewardTests
         Assert.Equal(0, f.Host.Count(490001570));
         Assert.Equal(1, f.Host.Count(itemId));
         Assert.Equal(100000, f.Host.Gold);
-        var slot = f.Host.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(Assert.Single(purchase.Receipt.GrantedSlots).Slot).Index;
+        var slot = A21InventoryLayout.ToGameSlot(Assert.Single(purchase.Receipt.GrantedSlots).Slot).Index;
         if (itemId == 490001565)
         {
             var result = await OpeningDomainTestDriver.Package(f.Host, f.Host.Session, new(slot, []));

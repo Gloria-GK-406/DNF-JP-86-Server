@@ -74,9 +74,8 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
     private static async ValueTask<(CommittedInventoryUpdateState? Items, IReadOnlyList<InventoryRuntimeValueState> Shared)> ProjectQuestItemsAsync(
         IReadOnlyList<ItemDeliveryAddition> additions, DateTimeOffset at, CancellationToken cancellationToken)
     {
-        var slots = new InventorySlotMappingRuleService();
         var changed = new Dictionary<int, (IBusinessItemContainer Container, int Index)>();
-        foreach (var addition in additions) changed[slots.ToGameSlot(addition.Slot).Index] = (addition.Container, addition.Slot.Index);
+        foreach (var addition in additions) changed[A21InventoryLayout.ToGameSlot(addition.Slot).Index] = (addition.Container, addition.Slot.Index);
         var items = new List<InventoryItemState>();
         var shared = new List<InventoryRuntimeValueState>();
         foreach (var (slot, source) in changed.OrderBy(x => x.Key))

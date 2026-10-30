@@ -24,8 +24,7 @@ public sealed record AdvanceCreatureTickCommand : ICommand<bool>;
 public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainService creatures,
     ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs, ITownAreaDomainService towns,
     IDungeonParticipationDomainService participation, IBossTowerDomainService bossTowers,
-    IIllusionTowerDomainService towers, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
-    IInventorySlotMappingRuleService slotMappings, ICommandWorkUnits units, TimeProvider clock,
+    IIllusionTowerDomainService towers, IGameCommandOutbox outbox, ICommandConnectionClosures closures, ICommandWorkUnits units, TimeProvider clock,
     ILogger<AdvanceCreatureTickCommandHandler> logger) : ICommandHandler<AdvanceCreatureTickCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceCreatureTickCommand command, CancellationToken token)
@@ -128,8 +127,7 @@ public sealed class AdvanceCreatureTickCommandHandler(ICreatureRuntimeDomainServ
             // at its current position. Never overwrite the old worn slot with a stale receipt.
             if (equipped && change.Transformation is { } transformation)
             {
-                var slot = slotMappings
-                    .ToGameSlot(transformation.Slot);
+                var slot = A21InventoryLayout.ToGameSlot(transformation.Slot);
                 await ExplicitAsync(phase, owner.ConnectionId, new GameExplicitMessageDelivery([GameInventoryDelivery.Notification(
                     new CommittedInventoryUpdateState(slot.Space,
                         [new InventoryItemState(null, slot.Index, transformation.Core.ToCore())],

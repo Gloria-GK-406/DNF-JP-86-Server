@@ -17,8 +17,7 @@ internal sealed class RuinsInventorySubscriber(IEventService events) : IDomainEv
             new RuinsInventoryRefresh(message.Payload.Slots, message.OccurredAt), ct).ConfigureAwait(false);
 }
 internal sealed class RuinsInventoryRefreshHandler(ISelectedSessionDomainService sessions,
-    IBusinessInventorySlotDomainService inventory,
-    IInventorySlotProjectionDomainService slots) : INotificationHandler<RuinsInventoryRefresh>
+    IBusinessInventorySlotDomainService inventory) : INotificationHandler<RuinsInventoryRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, RuinsInventoryRefresh notification, CancellationToken ct)
     {
@@ -30,7 +29,7 @@ internal sealed class RuinsInventoryRefreshHandler(ISelectedSessionDomainService
             var bound = inventory.Find(session.CharacterId, slot);
             var item = bound is null ? null : await bound.Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
             if (item is null) continue;
-            var wire = slots.Project(slot);
+            var wire = A21InventoryLayout.ToGameSlot(slot);
             changed.Add((wire.Space, new(item.ItemUid, wire.Index, item.Snapshot.ToCore(), item.Snapshot.AvatarDetail)));
         }
         // A21 000E computes native gain text from positive absolute-count changes; 000D is silent.

@@ -14,12 +14,9 @@ namespace Dfo.Server.Infrastructure.Content;
 /// of it would let a refilled potion and a granted one land in different places.
 /// </remarks>
 internal sealed class PvfItemPlacementDefinitionSource(
-    PvfArchiveProvider provider,
-    IInventorySlotMappingRuleService? slotMappings = null)
+    PvfArchiveProvider provider)
     : IItemPlacementDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
-    private readonly IInventorySlotMappingRuleService slotMappings =
-        slotMappings ?? new InventorySlotMappingRuleService();
     private const string StackableListPath = "stackable/stackable.lst";
     private const string EquipmentListPath = "equipment/equipment.lst";
 
@@ -83,8 +80,8 @@ internal sealed class PvfItemPlacementDefinitionSource(
 
     private BusinessSlotRange RangeFromMainSlots(int first, int last)
     {
-        var start = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, first));
-        var end = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, last));
+        var start = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, first));
+        var end = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, last));
         if (start.Space != end.Space)
             throw new InvalidDataException(
                 $"PVF item placement Main/{first}..{last} crosses business spaces.");

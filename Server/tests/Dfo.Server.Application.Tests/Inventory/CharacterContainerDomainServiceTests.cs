@@ -159,7 +159,7 @@ public sealed class CharacterContainerDomainServiceTests
             var container = Container(containerType.ToString(), containerType);
             containers.Register(Character, container);
             var binding = new BusinessInventorySlotDomainService(
-                containers, new InventorySlotMappingRuleService());
+                containers);
             var business = new BusinessSlot(businessSpace, businessIndex);
 
             var bound = binding.Get(Character, business);

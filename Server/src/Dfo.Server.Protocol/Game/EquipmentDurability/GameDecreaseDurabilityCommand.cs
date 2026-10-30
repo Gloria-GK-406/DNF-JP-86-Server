@@ -17,7 +17,7 @@ public sealed record GameDecreaseDurabilityCommand(NetworkDispatchContext Dispat
 }
 public sealed class GameDecreaseDurabilityCommandHandler(IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions, IEquipmentDurabilityDomainService durability, ICommandWorkUnits units,
-    ICommandProjections notifications, IGameCommandOutbox sender, IInventorySlotMappingRuleService slotMappings)
+    ICommandProjections notifications, IGameCommandOutbox sender)
     : ICommandHandler<GameDecreaseDurabilityCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameDecreaseDurabilityCommand command, CancellationToken cancellationToken)
@@ -47,7 +47,7 @@ public sealed class GameDecreaseDurabilityCommandHandler(IOnlineUserQueryDomainS
     {
         try
         {
-            slot = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Equipment, index));
+            slot = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Equipment, index));
             return true;
         }
         catch (InventorySlotMappingException)

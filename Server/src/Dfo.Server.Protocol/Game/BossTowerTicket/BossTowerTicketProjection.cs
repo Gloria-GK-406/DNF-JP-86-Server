@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World.BossTower;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.BossTowerTicket;
 
@@ -19,8 +20,7 @@ internal sealed class BossTowerTicketNotificationSubscriber(IEventService events
             new BossTowerTicketRefresh(message.Payload.Slots, message.OccurredAt), ct).ConfigureAwait(false);
 }
 internal sealed class BossTowerTicketRefreshHandler(ISelectedSessionDomainService sessions,
-    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts,
-    IInventorySlotProjectionDomainService slots) : INotificationHandler<BossTowerTicketRefresh>
+    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts) : INotificationHandler<BossTowerTicketRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, BossTowerTicketRefresh notification, CancellationToken ct)
     {
@@ -28,7 +28,7 @@ internal sealed class BossTowerTicketRefreshHandler(ISelectedSessionDomainServic
             || recipient.ExpectedSession is { } expected && expected != session) return [];
         var inventory = await inventories.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
         var account = await accounts.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        var messages = notification.Slots.Select(x => slots.Project(x).Space).Distinct()
+        var messages = notification.Slots.Select(x => A21InventoryLayout.ToGameSlot(x).Space).Distinct()
             .Select(space => (IServerNetworkMessage)new InventoryFullSnapshotMessage(
                 inventory.Containers.Single(x => x.ContainerType == space), inventory, account, notification.At)).ToArray();
         return sessions.IsInWorld(session) ? messages : [];

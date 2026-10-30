@@ -21,7 +21,6 @@ public sealed record GameDeleteItemCommand(NetworkDispatchContext Dispatch, Dele
 public sealed class GameDeleteItemCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings,
     IItemDiscardDomainService discards,
     IMaterialConsumptionDomainService materials,
     IQuestProgressDomainService quests,
@@ -47,7 +46,7 @@ public sealed class GameDeleteItemCommandHandler(
             return false;
         }
         BusinessSlot slot;
-        try { slot = slotMappings.ToBusinessSlot(message.Slot); }
+        try { slot = A21InventoryLayout.ToBusinessSlot(message.Slot); }
         catch (InventorySlotMappingException)
         {
             logger.LogInformation("Discard rejected unmapped slot {Slot}", message.Slot);
@@ -55,7 +54,7 @@ public sealed class GameDeleteItemCommandHandler(
                 new DeleteItemResponse(message.Slot, ErrorCode: DeleteItemResponse.CannotDelete), cancellationToken);
             return false;
         }
-        var responseSlot = slotMappings.ToGameSlot(slot);
+        var responseSlot = A21InventoryLayout.ToGameSlot(slot);
         var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
         Outcome result;
         if (session is null
@@ -110,7 +109,7 @@ public sealed class GameDeleteItemCommandHandler(
             && onlineUsers.TryGetByConnection(dispatch.Connection.ConnectionId, out var online) && online is not null)
         {
             BusinessSlot? location = null;
-            try { location = slotMappings.ToBusinessSlot(message.Slot); }
+            try { location = A21InventoryLayout.ToBusinessSlot(message.Slot); }
             catch (InventorySlotMappingException) { result = new("UnmappedSlot", []); }
             if (location is not null)
                 result = await units.WriteAsync(context,

@@ -11,6 +11,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.MarriageHousing;
 
@@ -42,10 +43,9 @@ private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispa
         }
         if (result.Status == 0 && actor is not null)
         {
-            var mapping = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService();
             foreach (var item in result.Items)
             {
-                var slot = mapping.ToGameSlot(item.Slot);
+                var slot = A21InventoryLayout.ToGameSlot(item.Slot);
                 await outbox.RegisterExplicitAsync(context.Connection.ConnectionId, new([GameInventoryDelivery.Notification(new(slot.Space,
                     [new(item.Snapshot.ItemUid, slot.Index, item.Snapshot.ToCore(), item.Snapshot.AvatarDetail)], clock.GetUtcNow()))], []), ct).ConfigureAwait(false);
             }

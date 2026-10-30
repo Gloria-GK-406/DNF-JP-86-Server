@@ -37,7 +37,6 @@ internal sealed partial class GameSetPlayResultCommandHandler(
     ILogger<GameSetPlayResultCommandHandler> logger,
     IDungeonCardPresentationControl cardPresentation,
     Dfo.Server.Abstractions.DomainEvents.ICommandProjections eventNotices,
-    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService inventoryProjection,
     IDarkElfRuinsDomainService ruins)
     : ICommandHandler<GameSetPlayResultCommand, bool>
 {
@@ -334,8 +333,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
                     award.Breakdown.Base, award.Breakdown.ClearRank, freeCards, cardGold, paidFlipCost, partyCards, run.KillExperience, award.Breakdown, settled.Cards.BlackDiamond));
 
             if (paid.Despair is { } tower)
-                frames.AddRange(DespairTowerProjection.Rewards(tower, result.World.PreparedAt,
-                    inventoryProjection ?? throw new InvalidOperationException("Inventory projection is required.")));
+                frames.AddRange(DespairTowerProjection.Rewards(tower, result.World.PreparedAt));
             await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(frames, []),

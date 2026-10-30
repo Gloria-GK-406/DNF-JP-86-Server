@@ -19,11 +19,11 @@ internal static class MoveItemProtocolTestDriver
 {
     internal sealed record Execution(IInventoryMoveDomainService Domain, MoveItemFixture Fixture);
     internal static MoveItemSpaceHandler Create(ISelectedSessionDomainService sessions,
-        ISelectedCharacterCurrentViewDomainService views,IInventorySlotMappingRuleService slots,
+        ISelectedCharacterCurrentViewDomainService views,
         Execution execution,IGameMessageSender sender,ILogger<GameMoveItemSpaceCommandHandler> logger,
         ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
         TimeProvider time,IMarriageHousingQueryDomainService? housing=null) =>
-        new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Fixture),
+        new(new Bus(new(sessions,views,execution.Domain,new Units(execution.Fixture),
             new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {

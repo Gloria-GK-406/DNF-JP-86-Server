@@ -18,8 +18,7 @@ public sealed record GameResetItemQualityCommand(NetworkDispatchContext Dispatch
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameResetItemQualityCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mappings, IEquipmentQualityDomainService quality, IEquipmentResealDomainService reseal,
+public sealed class GameResetItemQualityCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers, IEquipmentQualityDomainService quality, IEquipmentResealDomainService reseal,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox, ILogger<GameResetItemQualityCommandHandler> logger)
     : ICommandHandler<GameResetItemQualityCommand, EquipmentQualityResult>
 {
@@ -38,8 +37,8 @@ public sealed class GameResetItemQualityCommandHandler(ISelectedSessionDomainSer
         BusinessSlot material;
         try
         {
-            target = mappings.ToBusinessSlot(new(InventoryContainerType.Main, message.TargetSlot));
-            material = mappings.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot));
+            target = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.TargetSlot));
+            material = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot));
         }
         catch (InventorySlotMappingException)
         {

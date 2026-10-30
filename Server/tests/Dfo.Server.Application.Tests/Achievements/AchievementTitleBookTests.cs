@@ -202,7 +202,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
         Assert.True((await f.WriteAsync(async()=> await f.Titles.WithdrawAsync(Character,worn!.Value,26596,slot.Category,slot.Index,default))).Success);
         await f.WriteAsync(async()=>
         {
-            var game=f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn!.Value);
+            var game=A21InventoryLayout.ToGameSlot(worn!.Value);
             var snapshot=(await f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!).GetAsync(ContainerId.ForCharacter(Character,game.Space),game.Index,default))!.Snapshot;
             Assert.True(snapshot.IsMirror);
             Assert.Equal(original!.ItemUid, snapshot.MirrorSourceUid);
@@ -357,7 +357,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
             var bag = ContainerId.ForCharacter(Character, InventoryContainerType.Main);
             var wornContainer = ContainerId.ForCharacter(Character, InventoryContainerType.Equipment);
             var worn = (await f.Services.GetRequiredService<IItemPlacementRuleService>().WornSlotForAsync(26596, default))!.Value;
-            var game = f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(worn);
+            var game = A21InventoryLayout.ToGameSlot(worn);
             ItemSnapshot? original = null, previous = null;
             await f.WriteAsync(async () => {
                 var session = f.Services.GetRequiredService<IItemDomainStore>().SessionIn(f.Scope.Current!);

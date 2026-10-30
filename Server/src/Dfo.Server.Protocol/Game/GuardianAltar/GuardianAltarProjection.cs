@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.GuardianAltar;
 
@@ -23,12 +24,12 @@ internal static class GuardianAltarProjection
             new InventoryFullSnapshotMessage(restored.CharacterInventory.Containers.Single(x => x.ContainerType == Dfo.Server.Data.Inventory.InventoryContainerType.Main),
                 restored.CharacterInventory, restored.AccountInventory, restored.World.PreparedAt)], []), ct).ConfigureAwait(false);
     }
-    public static IReadOnlyList<IGameServerMessage> InventoryFrames(ItemDeliveryReceipt? receipt, IInventorySlotProjectionDomainService slots, TimeProvider clock) => (receipt?.Inventory ?? [])
-        .GroupBy(x => slots.Project(x.Slot).Space).Select(group => (IGameServerMessage)new InventoryDeltaMessage(group.Key,
+    public static IReadOnlyList<IGameServerMessage> InventoryFrames(ItemDeliveryReceipt? receipt, TimeProvider clock) => (receipt?.Inventory ?? [])
+        .GroupBy(x => A21InventoryLayout.ToGameSlot(x.Slot).Space).Select(group => (IGameServerMessage)new InventoryDeltaMessage(group.Key,
             group.GroupBy(x => x.Slot).Select(x => { var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(
-                null, slots.Project(last.Slot).Index, last.Snapshot.ToCore()); }).ToArray(), clock.GetUtcNow())).ToArray();
+                null, A21InventoryLayout.ToGameSlot(last.Slot).Index, last.Snapshot.ToCore()); }).ToArray(), clock.GetUtcNow())).ToArray();
     public static async ValueTask PublishAsync(GuardianAltarActionResult action, IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
-        IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, IInventorySlotProjectionDomainService slots, TimeProvider clock, CancellationToken ct)
+        IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, TimeProvider clock, CancellationToken ct)
     {
         var state = action.State; var session = state.Session;
         if (!sessions.IsInWorld(session) || runs.Find(session.CharacterId)?.RunId != state.RunId
@@ -44,7 +45,7 @@ internal static class GuardianAltarProjection
                 frames.Add(new GuardianAltarResultMessage(action, altar.DescribeProgress(progress)));
             if (state.Status != GuardianAltarStatus.BetweenRounds) frames.Add(new GuardianAltarEplpMessage(state, progress.FreeTickets + progress.ExtraTickets > 0));
         }
-        frames.AddRange(InventoryFrames(action.Delivery, slots, clock));
+        frames.AddRange(InventoryFrames(action.Delivery, clock));
         if (frames.Count > 0) await outbox.RegisterExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
     }
 }

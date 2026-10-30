@@ -123,10 +123,9 @@ public sealed class CollectionBoxTests
         {
             var p = (await f.Services.GetRequiredService<IItemPlacementRuleService>().PlacementForAsync(10007322, default))!;
             var template = await f.Services.GetRequiredService<IItemDeliveryRuleService>().TemplateAsync(10007548, default);
-            var mapping = new InventorySlotMappingRuleService();
             foreach (var slot in Enumerable.Range(p.Destination.FirstIndex, p.Destination.LastIndex - p.Destination.FirstIndex + 1)
                 .Select(i => new BusinessSlot(p.Destination.Space, i)).Concat(Enumerable.Range(0,6).Select(i => new BusinessSlot(BusinessInventorySpace.QuickSlot,i))))
-                await f.Items.PutAsync(ContainerId.ForCharacter(Character, InventoryContainerType.Main), mapping.ToGameSlot(slot).Index,
+                await f.Items.PutAsync(ContainerId.ForCharacter(Character, InventoryContainerType.Main), A21InventoryLayout.ToGameSlot(slot).Index,
                     await f.Items.CreateAsync(template with { Count = 1000 }, default), default);
         });
         var before = f.Dump();
@@ -188,7 +187,7 @@ public sealed class CollectionBoxTests
             { Count = count, SealFlag = 1, EnchantCardId = 321, TradeRestriction = 2, TailUnknown1 = 9,
                 ExpireTime = invalid == 1 ? 1 : 0, SortLockFlag = invalid == 2 ? (byte)1 : (byte)0, EquipmentLockId = invalid == 3 ? (byte)1 : (byte)0 };
             await Write(async () => { await Items.PutAsync(ContainerId.ForCharacter(Character, InventoryContainerType.Main),
-                new InventorySlotMappingRuleService().ToGameSlot(source).Index, await Items.CreateAsync(snapshot, default), default); });
+                A21InventoryLayout.ToGameSlot(source).Index, await Items.CreateAsync(snapshot, default), default); });
             return (source,snapshot);
         }
         public void Sql(string sql) { using var c = new SqliteConnection(SqliteTestPools.ConnectionString(path)); c.Open(); using var q = c.CreateCommand(); q.CommandText=sql; q.ExecuteNonQuery(); }

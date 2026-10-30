@@ -6,15 +6,14 @@ namespace Dfo.Server.Protocol.Game;
 
 internal static class ItemGrantWireProjection
 {
-    private static readonly InventorySlotMappingRuleService Slots = new();
-    public static GameSlot Slot(ItemDeliveryAddition grant) => Slots.ToGameSlot(grant.Slot);
+    public static GameSlot Slot(ItemDeliveryAddition grant) => A21InventoryLayout.ToGameSlot(grant.Slot);
     public static int Index(ItemDeliveryAddition grant) => Slot(grant).Index;
     public static InventoryRuntimeValueState? Shared(ItemDeliveryAddition grant) =>
         grant.Slot.Space == BusinessInventorySpace.SharedMaterial
             ? new(Index(grant), grant.Snapshot.ItemId, grant.Snapshot.Count) : null;
 
     public static GameSlot Slot(BusinessItemAdditionResult grant, int localIndex) =>
-        Slots.ToGameSlot(new BusinessSlot(grant.Container.Space, localIndex));
+        A21InventoryLayout.ToGameSlot(new BusinessSlot(grant.Container.Space, localIndex));
 
     public static int Index(BusinessItemAdditionResult grant, int localIndex) =>
         Slot(grant, localIndex).Index;

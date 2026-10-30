@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Achievements;
 
 internal sealed class AchievementCharacterFactsDomainService(ICharacterDomainService characters,
     ICharacterTable owners, ICharacterQuestLogDomainService quests, ICharacterConditionTable conditions,
-    IItemDomainStore items, IDomainTransactionAccessor transactions, IInventorySlotMappingRuleService mapping) : IAchievementCharacterFactsDomainService
+    IItemDomainStore items, IDomainTransactionAccessor transactions) : IAchievementCharacterFactsDomainService
 {
     public async ValueTask<AchievementCharacterFacts> ReadAsync(CharacterId character, CancellationToken ct)
     {
@@ -64,7 +64,7 @@ internal sealed class AchievementCharacterFactsDomainService(ICharacterDomainSer
                 foreach (var item in await Read(InventoryContainerType.Equipment))
                 {
                     BusinessSlot slot;
-                    try { slot = mapping.ToBusinessSlot(new(InventoryContainerType.Equipment, item.StorageSlotIndex)); }
+                    try { slot = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Equipment, item.StorageSlotIndex)); }
                     catch (InventorySlotMappingException) { continue; }
                     if (avatarsNeeded && slot.Space == BusinessInventorySpace.WornAvatar) avatars++;
                     if (creaturesNeeded && slot.Space == BusinessInventorySpace.WornCreature) creatures.Add(item.ItemId);

@@ -14,8 +14,7 @@ public sealed record ItemDiscardCompleted(
     QuestProgressSnapshot? QuestProgress = null) : INotification<ItemDiscardCompleted>;
 
 public sealed class ItemDiscardCompletedHandler(
-    ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slotProjection)
+    ISelectedSessionDomainService sessions)
     : INotificationHandler<ItemDiscardCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
@@ -31,9 +30,9 @@ public sealed class ItemDiscardCompletedHandler(
 
         // The A21 client applies this deletion from the success acknowledgement; never replay it.
         var response = new DeleteItemResponse(
-            slotProjection.Project(receipt.Slot), receipt.AppliedCount, Success: true);
+            A21InventoryLayout.ToGameSlot(receipt.Slot), receipt.AppliedCount, Success: true);
         var resources = receipt.Slot.Space == BusinessInventorySpace.SharedMaterial && receipt.RemainingCore is { } remaining
-            ? AccountMaterialNotifications.Compose([new(slotProjection.Project(receipt.Slot).Index, remaining.ItemId, remaining.Value)], receipt.PreparedAt)
+            ? AccountMaterialNotifications.Compose([new(A21InventoryLayout.ToGameSlot(receipt.Slot).Index, remaining.ItemId, remaining.Value)], receipt.PreparedAt)
             : [];
         if (notification.QuestProgress is not { } progress)
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([response, .. resources]);

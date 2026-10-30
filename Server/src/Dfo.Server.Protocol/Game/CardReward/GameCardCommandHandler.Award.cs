@@ -48,9 +48,9 @@ internal sealed partial class GameCardCommandHandler
             .GroupBy(x => x.Slot).Select(x => x.Last()).ToArray();
         var shared = landed.LastOrDefault(x => x.Slot.Space == BusinessInventorySpace.SharedMaterial);
         return new CardItemDelivery(ordinary.Length == 0 ? null : new CommittedInventoryUpdateState(
-            inventoryProjection.Project(ordinary[0].Slot).Space,
-            ordinary.Select(x => new InventoryItemState(null, inventoryProjection.Project(x.Slot).Index, x.Snapshot.ToCore())).ToArray(), clock.GetUtcNow()),
-            shared is null ? null : new InventoryRuntimeValueState(inventoryProjection.Project(shared.Slot).Index, shared.Snapshot.ItemId, shared.Snapshot.Count));
+            A21InventoryLayout.ToGameSlot(ordinary[0].Slot).Space,
+            ordinary.Select(x => new InventoryItemState(null, A21InventoryLayout.ToGameSlot(x.Slot).Index, x.Snapshot.ToCore())).ToArray(), clock.GetUtcNow()),
+            shared is null ? null : new InventoryRuntimeValueState(A21InventoryLayout.ToGameSlot(shared.Slot).Index, shared.Snapshot.ItemId, shared.Snapshot.Count));
     }
 
     private sealed record CardItemDelivery(

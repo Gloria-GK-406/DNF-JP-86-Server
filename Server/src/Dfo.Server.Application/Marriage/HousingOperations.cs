@@ -13,7 +13,7 @@ using Dfo.Server.Application.Inventory;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed partial class HousingOperations(HousingState state, IMarriageHousingContentSource content,
-    IBusinessInventorySlotDomainService inventory, IInventorySlotMappingRuleService mappings,
+    IBusinessInventorySlotDomainService inventory,
     IItemDeliveryRuleService templates, IItemLifecycleDomainService lifecycle, IMailboxDomainService mail, IDailyResetRuleService days, TimeProvider clock,
     Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
     Dfo.Server.Abstractions.Accounts.IAccountWalletDomainService wallets,
@@ -107,7 +107,7 @@ internal sealed partial class HousingOperations(HousingState state, IMarriageHou
     {
         footprint.DemandActive(actor);
         BusinessSlot slot;
-        try { slot = mappings.ToBusinessSlot(new(InventoryContainerType.Main, wireSlot)); }
+        try { slot = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, wireSlot)); }
         catch (InventorySlotMappingException) { return null; }
         if (!slot.Space.IsCarriedItemSpace()) return null;
         var bound = inventory.Find(actor.CharacterId, slot);

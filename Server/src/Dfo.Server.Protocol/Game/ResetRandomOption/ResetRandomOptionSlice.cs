@@ -56,7 +56,7 @@ public sealed class ResetRandomOptionHandler(ICommandBus commands) : ClientMessa
 }
 public sealed record MagicSealGradeCompleted(EquipmentQualityReceipt Receipt) : INotification<MagicSealGradeCompleted>;
 
-public sealed class MagicSealGradeCompletedHandler(ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService slots)
+public sealed class MagicSealGradeCompletedHandler(ISelectedSessionDomainService sessions)
     : INotificationHandler<MagicSealGradeCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -66,8 +66,8 @@ public sealed class MagicSealGradeCompletedHandler(ISelectedSessionDomainService
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
-        var target = slots.Project(receipt.TargetSlot);
-        var material = slots.Project(receipt.MaterialSlot);
+        var target = A21InventoryLayout.ToGameSlot(receipt.TargetSlot);
+        var material = A21InventoryLayout.ToGameSlot(receipt.MaterialSlot);
         // Unlike 0051, this ACK carries no material count. Publish both committed slots first.
         var targetUpdate = GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(target.Space,
             [new InventoryItemState(receipt.Equipment.ItemUid, target.Index, receipt.Equipment.ToCore())], receipt.At));

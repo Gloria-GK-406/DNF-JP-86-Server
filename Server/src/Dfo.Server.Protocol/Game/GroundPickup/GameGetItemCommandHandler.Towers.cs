@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
@@ -48,7 +49,7 @@ internal sealed partial class GameGetItemCommandHandler
                 else
                 {
                     var update=picked.Action.InventoryUpdates.FirstOrDefault();
-                    frames.Add(new GroundPickupNotification(groundUid,session.WireUserId,update is null?(ushort)0:checked((ushort)slots.Project(update.Slot).Index)));
+                    frames.Add(new GroundPickupNotification(groundUid,session.WireUserId,update is null?(ushort)0:checked((ushort)A21InventoryLayout.ToGameSlot(update.Slot).Index)));
                 }
                 if(member==session)
                 {
@@ -81,7 +82,7 @@ internal sealed partial class GameGetItemCommandHandler
             try
             {
                 var frames=new List<IGameServerMessage>();if(member==session)frames.Add(new GetItemResponse(true));
-                frames.Add(new GroundPickupNotification(groundUid,session.WireUserId,checked((ushort)slots.Project(update.Slot).Index)));
+                frames.Add(new GroundPickupNotification(groundUid,session.WireUserId,checked((ushort)A21InventoryLayout.ToGameSlot(update.Slot).Index)));
                 if(member==session)TowerActionProjection.AppendInventory(frames,[update],clock.GetUtcNow());
                 await TowerActionProjection.SendCommittedBatchAsync(sessions, illusionKind, outbox, run,member,new(frames,[]),token).ConfigureAwait(false);
             }

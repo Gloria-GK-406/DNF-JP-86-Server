@@ -216,7 +216,7 @@ public sealed class EffectOperationReplayTests
         {
             inherited.SetResult(); await release.Task;
             await DomainCommandFixture.Bus(f.Services).SendAsync(WholeUse.Command(f.Services, f.Session,
-                new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
+                A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, 69)), 1000));
         });
         await Dispatch(f, stream.Request(1)); await inherited.Task.WaitAsync(TimeSpan.FromSeconds(5));
         release.SetResult(); await Assert.ThrowsAsync<Dfo.Server.Abstractions.Execution.GameplayLeakedFlowException>(async () => await child!);

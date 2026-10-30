@@ -20,7 +20,6 @@ public sealed record GameOutworldCommand(NetworkDispatchContext Dispatch, Outwor
 public sealed class GameOutworldCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService mappings,
     IEquipmentOutworldDomainService outworld, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameOutworldCommandHandler> logger)
     : ICommandHandler<GameOutworldCommand, EquipmentOutworldResult>
@@ -56,8 +55,8 @@ public sealed class GameOutworldCommandHandler(
         BusinessSlot material;
         try
         {
-            target = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.TargetSlot));
-            material = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.MaterialSlot));
+            target = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, request.TargetSlot));
+            material = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, request.MaterialSlot));
         }
         catch (InventorySlotMappingException)
         {

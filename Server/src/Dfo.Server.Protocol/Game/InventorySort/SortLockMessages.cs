@@ -31,11 +31,11 @@ internal sealed class SortUnlockDecoder : IGameMessageDecoder
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
         SortLockDecoder.Parse(metadata, body, InventorySortLockAction.Unlock);
 }
-internal sealed class SortLockResponseEncoder(IInventorySlotMappingRuleService slots) : GameCmdMessageEncoder<SortLockResponse>
+internal sealed class SortLockResponseEncoder : GameCmdMessageEncoder<SortLockResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SortLockResponse message)
     {
-        var slot = slots.ToGameSlot(message.Slot);
+        var slot = A21InventoryLayout.ToGameSlot(message.Slot);
         byte[] body = [1, (byte)slot.Space, 0, 0];
         BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(2), checked((short)slot.Index));
         return OnePayload(message.Locked ? GameProtocol.SortLockType : GameProtocol.SortUnlockType, body);

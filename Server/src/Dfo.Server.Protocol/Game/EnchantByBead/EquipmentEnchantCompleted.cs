@@ -13,7 +13,6 @@ public sealed record EquipmentEnchantCompleted(
 
 public sealed class EquipmentEnchantCompletedHandler(
     ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slots,
     IBusinessInventorySlotDomainService inventory)
     : INotificationHandler<EquipmentEnchantCompleted>
 {
@@ -47,7 +46,7 @@ public sealed class EquipmentEnchantCompletedHandler(
     private void AddSlot(List<IServerNetworkMessage> messages, BusinessSlot slot,
         InventoryItemCoreState? core, DateTimeOffset at)
     {
-        var game = slots.Project(slot);
+        var game = A21InventoryLayout.ToGameSlot(slot);
         messages.Add(core is null
             ? GameInventoryDelivery.ClearedSlotNotification(game.Space, game.Index, at)
             : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(game.Space,

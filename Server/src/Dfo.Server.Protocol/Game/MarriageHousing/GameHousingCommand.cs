@@ -12,6 +12,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Protocol.Game.MarriageHousing;
 
 public sealed record GameHousingCommand(NetworkDispatchContext Dispatch, HousingNetworkRequest Input) : IProtocolCommand<bool>
@@ -46,7 +47,7 @@ private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispa
         if (result.Status != 0 || actor is null) return;
         if (result.ConsumedSlot is { } slot)
         {
-            var wire = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService().ToGameSlot(slot);
+            var wire = A21InventoryLayout.ToGameSlot(slot);
             await outbox.RegisterExplicitAsync(context.Connection.ConnectionId, new([result.Remaining is { } item
                 ? GameInventoryDelivery.Notification(new(wire.Space, [new(item.ItemUid, wire.Index, item.ToCore(), item.AvatarDetail)], clock.GetUtcNow()))
                 : GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, clock.GetUtcNow())], []), ct).ConfigureAwait(false);

@@ -19,8 +19,7 @@ public sealed record GameWarehouseCommand(NetworkDispatchContext Dispatch, Wareh
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameWarehouseCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    IInventorySlotMappingRuleService mappings, IInventoryExpansionDomainService expansion, TimeProvider clock,
+public sealed class GameWarehouseCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users, IInventoryExpansionDomainService expansion, TimeProvider clock,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox, ILogger<GameWarehouseCommandHandler> logger)
     : ICommandHandler<GameWarehouseCommand, InventoryExpansionResult>
 {
@@ -37,7 +36,7 @@ public sealed class GameWarehouseCommandHandler(ISelectedSessionDomainService se
         try
         {
             if (message.Metadata.Type is 0x0198 or 0x01AF)
-                slot = mappings.ToBusinessSlot(new(InventoryContainerType.Main, message.Value));
+                slot = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.Value));
         }
         catch (InventorySlotMappingException) { mappingRejected = true; }
         if (mappingRejected) return await Respond(new(InventoryExpansionRejection.InvalidRequest)).ConfigureAwait(false);

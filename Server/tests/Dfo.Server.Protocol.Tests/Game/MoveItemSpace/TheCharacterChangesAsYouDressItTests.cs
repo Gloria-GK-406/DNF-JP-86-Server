@@ -489,9 +489,8 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         containers.Register(character, avatars);
         containers.Register(character, worn);
 
-        var mappings = new InventorySlotMappingRuleService();
         var commandHandler = new InventoryMoveDomainService(
-            new BusinessInventorySlotDomainService(containers, mappings),
+            new BusinessInventorySlotDomainService(containers),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                 new ItemSlotRuleService(), new TheCharacterChangesAsYouDressItTestsWearEligibility(canWear)));
@@ -506,7 +505,6 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
             MoveItemProtocolTestDriver.Create(
                 new OneSession(),
                 currentViews,
-                mappings,
                 new MoveItemProtocolTestDriver.Execution(commandHandler, fixture),
                 sender,
                 logger, null!, null!, TimeProvider.System),

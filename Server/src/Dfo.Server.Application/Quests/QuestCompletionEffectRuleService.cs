@@ -77,7 +77,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
                 var take = Math.Min(remaining, item.Count);
                 if (take <= 0) continue;
                 var slot = item.BusinessSlot ?? (isShared ? new BusinessSlot(BusinessInventorySpace.SharedMaterial, item.StorageSlotIndex)
-                    : new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.StorageSlotIndex)));
+                    : A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.StorageSlotIndex)));
                 effects.Add(new ConsumeFromContainerEffect(slot, item.ItemId, take));
                 remaining -= take;
                 if (remaining == 0) break;

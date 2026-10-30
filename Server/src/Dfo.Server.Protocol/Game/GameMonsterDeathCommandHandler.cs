@@ -69,7 +69,6 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly ICreatureRuntimeDomainService creatures;
     private readonly IQuestQueryDomainService quests;
     private readonly ICommandConnectionClosures closures;
-    private readonly IInventorySlotProjectionDomainService slots;
     private readonly IGuardianAltarDomainService guardian;
     public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
@@ -78,14 +77,14 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         IDungeonParticipationDomainService participation,
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
         ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
-        TimeProvider clock, IInventorySlotProjectionDomainService slots, ILogger<GameMonsterDeathCommandHandler> logger,
+        TimeProvider clock, ILogger<GameMonsterDeathCommandHandler> logger,
         IGuardianAltarDomainService guardian)
 
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs; this.registry=registry; this.clearEvaluator=clearEvaluator; this.deaths=deaths;
         this.creatures=creatures; this.quests=quests;
-        this.closures=closures; this.slots=slots;
+        this.closures=closures;
         this.guardian = guardian;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameMonsterDeathCommand command, CancellationToken ct)
@@ -248,5 +247,5 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private ValueTask<int> ProjectClearAsync(SelectedSessionIdentity reporter, DungeonClearChange clear, CancellationToken ct) =>
         DungeonClearCommandProjection.DeliverAsync(sessions, runs, FindRecipients(reporter, clear.RunId), quests, outbox, reporter, clear, ct);
     private IReadOnlyList<IGameServerMessage> TournamentFrames(TournamentActionResult result) =>
-        TournamentCompletionFrames.CompletionFrames(result, slots, clock);
+        TournamentCompletionFrames.CompletionFrames(result, clock);
 }

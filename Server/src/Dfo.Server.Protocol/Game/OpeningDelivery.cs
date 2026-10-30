@@ -15,7 +15,6 @@ public sealed record OpeningCompleted(OpeningInventoryReceipt Receipt,
 
 public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<OpeningCompleted>
 {
-    private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
         OpeningCompleted notification, CancellationToken cancellationToken)
     {
@@ -28,18 +27,18 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
         var messages = new List<IServerNetworkMessage>(notification.Responses);
         foreach (var slot in receipt.Replaced.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
         {
-            var wire = OpeningWireSlots.Project(slot, SlotMappings);
+            var wire = OpeningWireSlots.Project(slot);
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
         }
-        var updates = receipt.Updates.GroupBy(update => OpeningWireSlots.Project(update.Slot, SlotMappings).Space)
+        var updates = receipt.Updates.GroupBy(update => OpeningWireSlots.Project(update.Slot).Space)
             .Select(group => new CommittedInventoryUpdateState(group.Key,
                 group.Select(update => new InventoryItemState(update.Identity,
-                    OpeningWireSlots.Project(update.Slot, SlotMappings).Index, update.Core.ToCore(),
+                    OpeningWireSlots.Project(update.Slot).Index, update.Core.ToCore(),
                     AvatarDetail: update.Core.AvatarDetail)).ToArray(), receipt.PreparedAt)).ToArray();
         messages.AddRange(GameInventoryDelivery.Notifications(updates));
         foreach (var slot in receipt.Cleared.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
         {
-            var wire = OpeningWireSlots.Project(slot, SlotMappings);
+            var wire = OpeningWireSlots.Project(slot);
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
         }
         if (!receipt.ChangedPremiums.IsDefaultOrEmpty)
@@ -121,13 +120,12 @@ internal static class OpeningPayloads
 
 internal static class OpeningWireSlots
 {
-    private static readonly IInventorySlotMappingRuleService Mappings = new InventorySlotMappingRuleService();
 
     public static BusinessSlot FromMain(int slot)
     {
         try
         {
-            var business = Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, slot));
+            var business = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, slot));
             if (BusinessInventoryOwnership.StoreOf(business.Space) != BusinessInventoryStoreKind.Item)
                 throw new OpeningRejectedException(OpeningRejection.InvalidRequest,
                     $"Opening source slot {slot} is outside the item store.");
@@ -147,11 +145,11 @@ internal static class OpeningWireSlots
     public static BusinessAvatarPackageOpeningInput Business(AvatarPackageOpeningInput input) =>
         new(FromMain(input.SourceSlot), input.Choices);
 
-    public static GameSlot Project(BusinessSlot slot, IInventorySlotMappingRuleService mappings) =>
+    public static GameSlot Project(BusinessSlot slot) =>
         slot.Space == BusinessInventorySpace.VirtualResource
             ? new GameSlot(InventoryContainerType.Main, slot.Index)
-            : mappings.ToGameSlot(slot);
+            : A21InventoryLayout.ToGameSlot(slot);
 
     public static int RewardIndex(BusinessSlot? slot) => slot is { } address
-        ? Project(address, Mappings).Index : -1;
+        ? Project(address).Index : -1;
 }

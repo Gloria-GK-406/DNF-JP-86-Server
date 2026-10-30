@@ -14,13 +14,14 @@ using Dfo.Server.Protocol.Game.DungeonEntry;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.Altar;
 
 internal sealed record AltarStateChanged(AltarActionResult Action, DateTimeOffset At) : INotification<AltarStateChanged>;
 
 internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars,
-    IDungeonRunQueryDomainService runs, ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService slots)
+    IDungeonRunQueryDomainService runs, ISelectedSessionDomainService sessions)
     : INotificationHandler<AltarStateChanged>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, AltarStateChanged notification, CancellationToken ct)
@@ -54,10 +55,10 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
             if (award.Experience is { } experience && award.SkillPoints is { } points)
                 messages.Add(new ExperienceNotification(experience.Level, experience.NotificationTotal, points, AccountHonorLevel.Initial, ExperienceBonusLines.Of(experience)));
             messages.Add(GameInventoryDelivery.CarriedGoldNotification(award.GoldBalance, notification.At));
-            foreach (var group in (award.Delivery?.Inventory ?? []).GroupBy(x => slots.Project(x.Slot).Space))
+            foreach (var group in (award.Delivery?.Inventory ?? []).GroupBy(x => A21InventoryLayout.ToGameSlot(x.Slot).Space))
                 messages.Add(new InventoryDeltaMessage(group.Key, group.GroupBy(x => x.Slot).Select(x =>
                 {
-                    var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(null, slots.Project(last.Slot).Index, last.Snapshot.ToCore());
+                    var last = x.Last(); return new Dfo.Server.Data.Inventory.InventoryItemState(null, A21InventoryLayout.ToGameSlot(last.Slot).Index, last.Snapshot.ToCore());
                 }).ToArray(), notification.At));
         }
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);

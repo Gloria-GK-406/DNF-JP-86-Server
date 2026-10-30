@@ -42,7 +42,6 @@ namespace Dfo.Server.Protocol.Game.Party;
 /// <summary>The post-commit projections both tower engines share; see <see cref="ITowerRunKind"/> for where they differ.</summary>
 internal static class TowerActionProjection
 {
-    private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
     internal static async ValueTask<IReadOnlyList<(SelectedSessionIdentity Session, Exception Error)>> ProjectActionAsync(ISelectedSessionDomainService sessions, ICharacterDomainService characters, ITowerRunKind kind, TimeProvider clock, IGameCommandOutbox outbox, ITowerActionOutcome action, IGameServerMessage? shared, CancellationToken token, SelectedSessionIdentity? requester = null, IGameServerMessage? requesterResponse = null)
     {
         var failures = new List<(SelectedSessionIdentity, Exception)>();
@@ -110,13 +109,13 @@ internal static class TowerActionProjection
         }
         else
             TowerActionProjection.AppendQuest(frames, member.QuestProgress);
-        foreach (var group in member.InventoryUpdates.GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
+        foreach (var group in member.InventoryUpdates.GroupBy(update => A21InventoryLayout.ToGameSlot(update.Slot).Space))
         {
             frames.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(
                 group.Key,
                 group.Select(update =>
                 {
-                    var slot = SlotMappings.ToGameSlot(update.Slot);
+                    var slot = A21InventoryLayout.ToGameSlot(update.Slot);
                     return new InventoryItemState(update.Item.ItemUid, slot.Index, update.Item.ToCore());
                 }).ToArray(), run.Completion!.CompletedAt)));
         }
@@ -138,11 +137,11 @@ internal static class TowerActionProjection
     internal static void AppendInventory(List<IGameServerMessage> frames,
         IReadOnlyList<TowerInventoryUpdate> updates, DateTimeOffset at)
     {
-        foreach (var group in updates.GroupBy(update => SlotMappings.ToGameSlot(update.Slot).Space))
+        foreach (var group in updates.GroupBy(update => A21InventoryLayout.ToGameSlot(update.Slot).Space))
             frames.Add(GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
                 group.Select(update =>
                 {
-                    var slot = SlotMappings.ToGameSlot(update.Slot);
+                    var slot = A21InventoryLayout.ToGameSlot(update.Slot);
                     return new InventoryItemState(update.Item.ItemUid, slot.Index, update.Item.ToCore());
                 }).ToArray(), at)));
     }

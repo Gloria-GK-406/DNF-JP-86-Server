@@ -19,8 +19,7 @@ public sealed record GameItemSocketCommand(NetworkDispatchContext Dispatch, Item
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameItemSocketCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mapping, IItemSocketDomainService sockets, ICommandWorkUnits units, ICommandProjections projections,
+public sealed class GameItemSocketCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers, IItemSocketDomainService sockets, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameItemSocketCommandHandler> logger) : ICommandHandler<GameItemSocketCommand, ItemSocketResult>
 {
     public async ValueTask<ItemSocketResult> HandleAsync(CommandExecutionContext context, GameItemSocketCommand command, CancellationToken ct)
@@ -36,9 +35,9 @@ public sealed class GameItemSocketCommandHandler(ISelectedSessionDomainService s
         ItemSocketInput input;
         try
         {
-            input = new(request.Avatar, request.Open, mapping.ToBusinessSlot(new(request.TargetList, request.TargetSlot)), request.ExpectedItemId,
-                request.Open ? mapping.ToBusinessSlot(new(InventoryContainerType.Main, request.DrillSlot)) : null,
-                request.Emblems.Select(x => new EmblemPlacement(mapping.ToBusinessSlot(new(InventoryContainerType.Main, x.MaterialSlot)), x.ItemId, x.SocketIndex)).ToImmutableArray());
+            input = new(request.Avatar, request.Open, A21InventoryLayout.ToBusinessSlot(new(request.TargetList, request.TargetSlot)), request.ExpectedItemId,
+                request.Open ? A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, request.DrillSlot)) : null,
+                request.Emblems.Select(x => new EmblemPlacement(A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, x.MaterialSlot)), x.ItemId, x.SocketIndex)).ToImmutableArray());
         }
         catch (InventorySlotMappingException)
         { await Reject(0x04).ConfigureAwait(false); return new(ItemSocketRejection.InvalidRequest); }

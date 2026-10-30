@@ -18,8 +18,7 @@ public sealed record GameTitleBookMutationCommand(NetworkDispatchContext Dispatc
 }
 
 public sealed class GameTitleBookMutationCommandHandler(
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    IInventorySlotMappingRuleService mapping, ITitleBookDomainService titles,
+    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users, ITitleBookDomainService titles,
     ICommandWorkUnits units, IGameCommandOutbox outbox, ILogger<GameTitleBookMutationCommandHandler> logger)
     : ICommandHandler<GameTitleBookMutationCommand, bool>
 {
@@ -39,7 +38,7 @@ public sealed class GameTitleBookMutationCommandHandler(
 
         BusinessSlot slot;
         // Wire-address validation stays outside the original transaction, inside its original refusal policy.
-        try { slot = mapping.ToBusinessSlot(new(replaceMirror ? InventoryContainerType.Main : (InventoryContainerType)message.Space, message.Slot)); }
+        try { slot = A21InventoryLayout.ToBusinessSlot(new(replaceMirror ? InventoryContainerType.Main : (InventoryContainerType)message.Space, message.Slot)); }
         catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
         {
             logger.LogWarning(failure, "Title book request refused character={CharacterId} store={Store}", session.CharacterId, message.Store);
@@ -72,7 +71,7 @@ public sealed class GameTitleBookMutationCommandHandler(
         }
         var result = ((CommandWriteResult<TitleBookMutationResult>.Returned)write).Value;
         // This conversion has always followed the business catch; do not turn its failure into an ACK.
-        var actual = mapping.ToGameSlot(result.Slot);
+        var actual = A21InventoryLayout.ToGameSlot(result.Slot);
         await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new TitleBookMutationResponse(message.Store,
             (int)actual.Space, actual.Index, result.Category, result.Index, result.Success ? null : (byte)0x0A), ct).ConfigureAwait(false);
         return result.Success;

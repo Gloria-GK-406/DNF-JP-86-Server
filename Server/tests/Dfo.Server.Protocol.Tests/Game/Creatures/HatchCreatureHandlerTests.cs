@@ -98,7 +98,7 @@ public sealed class HatchCreatureHandlerTests
         });
     }
 
-    private static HatchCreatureHandler Create(Bus bus, Sender sender) => new(new WholeDriver(new(new Sessions(), new InventorySlotMappingRuleService(), bus,
+    private static HatchCreatureHandler Create(Bus bus, Sender sender) => new(new WholeDriver(new(new Sessions(), bus,
             new Units(), new Outbox(sender), TimeProvider.System)));
     private static NetworkDispatchContext Context() => new(
         new NetworkConnectionContext(Owner.ConnectionId, NetworkEndpointKind.Game, 10011));

@@ -86,7 +86,7 @@ public sealed class MarriagePairCorrectionTests
                 await tx.CommitAsync(default);
             }
             var stored = (await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default)).Single();
-            var coupon = new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, stored.StorageSlotIndex));
+            var coupon = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, stored.StorageSlotIndex));
             var (ceremony, room) = await PreparedAsync(w);
             Arrive(f, f.Session, room); Arrive(f, peer, room);
             w.Clock.Now = room.ReadyUntil;

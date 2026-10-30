@@ -214,7 +214,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
     private static void IllusionEntryAppendDebit(List<IGameServerMessage> frames, MaterialDebit debit, DateTimeOffset at)
     {
-        var slot = SlotMappings.ToGameSlot(debit.Cost.Slot);
+        var slot = A21InventoryLayout.ToGameSlot(debit.Cost.Slot);
         frames.Add(new DeleteItemResponse(slot, debit.Cost.Count, Success: true));
         frames.Add(debit.Remaining is null
             ? GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, at)

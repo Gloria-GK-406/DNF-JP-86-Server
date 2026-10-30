@@ -117,7 +117,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
 
         await Assert.ThrowsAsync<InventorySlotMappingException>(() =>
             side.MoveBusinessAsync(
-                new InventorySlotMappingRuleService().ToBusinessSlot(
+                A21InventoryLayout.ToBusinessSlot(
                     new GameSlot(InventoryContainerType.Main, BagSlot)),
                 new BusinessSlot(BusinessInventorySpace.Avatar, 210)).AsTask());
 
@@ -372,11 +372,10 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
             containers.Register(character, pet);
         });
 
-        var mappings = new InventorySlotMappingRuleService();
         return new Side(
             containers,
             new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers, mappings),
+                new BusinessInventorySlotDomainService(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                     new ItemSlotRuleService(), new TheAvatarBagIsServedTestsWearEligibility())),
@@ -412,7 +411,7 @@ public sealed class TheAvatarBagIsServedTests(ArchiveContentFixture archive)
 
         private static BusinessSlot ToBusinessSlot(
             InventoryContainerType space, int index) =>
-            new InventorySlotMappingRuleService().ToBusinessSlot(new GameSlot(space, index));
+            A21InventoryLayout.ToBusinessSlot(new GameSlot(space, index));
 
         public async ValueTask<ItemSnapshot?> ReadAsync(
             InventoryContainerType type, short slotIndex) =>

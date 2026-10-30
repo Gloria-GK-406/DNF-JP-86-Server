@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game.SouthernDale;
 
@@ -26,8 +27,7 @@ internal sealed class SouthernDailyRefillNotificationSubscriber(IEventService ev
             new SouthernInventoryRefresh(message.Payload.Slots, message.OccurredAt, true), ct).ConfigureAwait(false);
 }
 internal sealed class SouthernInventoryRefreshHandler(ISelectedSessionDomainService sessions,
-    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts,
-    IInventorySlotProjectionDomainService slots, Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
+    ICharacterInventoryEntryDomainService inventories, IAccountInventoryEntryDomainService accounts, Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
     Dfo.Server.Abstractions.Quests.IQuestQueryDomainService quests) : INotificationHandler<SouthernInventoryRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, SouthernInventoryRefresh notification, CancellationToken ct)
@@ -39,7 +39,7 @@ internal sealed class SouthernInventoryRefreshHandler(ISelectedSessionDomainServ
         {
             var inventory = await inventories.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             var account = await accounts.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-            messages.AddRange(notification.Slots.Select(x => slots.Project(x).Space).Distinct()
+            messages.AddRange(notification.Slots.Select(x => A21InventoryLayout.ToGameSlot(x).Space).Distinct()
                 .Select(space => (IServerNetworkMessage)new InventoryFullSnapshotMessage(
                     inventory.Containers.Single(x => x.ContainerType == space), inventory, account, notification.At)));
         }

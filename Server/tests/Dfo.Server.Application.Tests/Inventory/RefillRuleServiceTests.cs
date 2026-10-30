@@ -374,26 +374,24 @@ public sealed class RefillRuleServiceTests
         Assert.IsType<ItemArrival.NoRoom>(arrival);
     }
 
-    private static readonly IInventorySlotMappingRuleService Mappings =
-        new InventorySlotMappingRuleService();
 
     private static ItemPile Pile(int gameIndex, int count) =>
-        new(Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, gameIndex)), count);
+        new(A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, gameIndex)), count);
 
     private static ItemPlacement Placement(byte kind, int limit, int first, int last) =>
         new(kind, limit, Range(first, last));
 
     private static BusinessSlotRange Range(int first, int last)
     {
-        var start = Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, first));
-        var end = Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, last));
+        var start = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, first));
+        var end = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, last));
         Assert.Equal(start.Space, end.Space);
         return new(start.Space, start.Index, end.Index);
     }
 
-    private static int GameIndex(BusinessSlot slot) => Mappings.ToGameSlot(slot).Index;
+    private static int GameIndex(BusinessSlot slot) => A21InventoryLayout.ToGameSlot(slot).Index;
 
     private static IReadOnlySet<BusinessSlot> Occupied(params int[] slots) =>
-        slots.Select(index => Mappings.ToBusinessSlot(
+        slots.Select(index => A21InventoryLayout.ToBusinessSlot(
             new GameSlot(InventoryContainerType.Main, index))).ToHashSet();
 }

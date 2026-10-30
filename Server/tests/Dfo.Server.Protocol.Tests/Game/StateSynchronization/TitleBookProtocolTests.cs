@@ -117,7 +117,7 @@ public sealed class TitleBookProtocolTests
         await TestGameplay.RunAsync(async () =>
         {
             var titles = new CurrentTitles();
-            var handler = new TitleBookChangedHandler(titles, null!, null!, null!);
+            var handler = new TitleBookChangedHandler(titles, null!, null!);
             var recipient = new NotificationRecipient(new(1), new("Game:1"));
             var messages = await handler.ComposeAsync(recipient, new(new(1), 4, ChangedIndex: 10, RefreshBook: fullBook), default);
             Assert.Equal(fullBook ? 5 : 1, messages.Count);

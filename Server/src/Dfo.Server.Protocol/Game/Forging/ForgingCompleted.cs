@@ -12,7 +12,6 @@ public sealed record ForgingCompleted(EquipmentForgingReceipt Receipt)
 
 public sealed class ForgingCompletedHandler(
     ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slots,
     IBusinessInventorySlotDomainService inventory)
     : INotificationHandler<ForgingCompleted>
 {
@@ -32,8 +31,8 @@ public sealed class ForgingCompletedHandler(
             .ConfigureAwait(false);
         var material = await materialBound.Container.GetAsync(materialBound.Slot.Index, ct)
             .ConfigureAwait(false);
-        var targetGame = slots.Project(receipt.TargetSlot);
-        var materialGame = slots.Project(receipt.MaterialSlot);
+        var targetGame = A21InventoryLayout.ToGameSlot(receipt.TargetSlot);
+        var materialGame = A21InventoryLayout.ToGameSlot(receipt.MaterialSlot);
         var remaining = material?.ItemId == receipt.MaterialItemId ? material.Count : 0;
         var messages = new List<IServerNetworkMessage>
         {
@@ -51,7 +50,7 @@ public sealed class ForgingCompletedHandler(
     private void AddSlot(List<IServerNetworkMessage> messages,
         BusinessSlot slot, InventoryItemCoreState? core, DateTimeOffset at)
     {
-        var game = slots.Project(slot);
+        var game = A21InventoryLayout.ToGameSlot(slot);
         messages.Add(core is null
             ? GameInventoryDelivery.ClearedSlotNotification(game.Space, game.Index, at)
             : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(game.Space,

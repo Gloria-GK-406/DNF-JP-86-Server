@@ -221,10 +221,9 @@ public sealed class CreatureGoesBackOnTests
             }
 
             this.Containers = containers;
-            var mappings = new InventorySlotMappingRuleService();
             this.bus = new DirectInventoryMove(
                 move: new InventoryMoveDomainService(
-                    new BusinessInventorySlotDomainService(containers, mappings),
+                    new BusinessInventorySlotDomainService(containers),
                     new ItemMovementDomainService(
                         rules, new ItemSlotRuleService(), new CreatureGoesBackOnTestsWearEligibility())),
                 scope: this.scope);
@@ -267,10 +266,10 @@ public sealed class CreatureGoesBackOnTests
             this.bus.MoveAsync(
                 new InventoryMoveRequest(
                     this.character,
-                    new InventorySlotMappingRuleService().ToBusinessSlot(
+                    A21InventoryLayout.ToBusinessSlot(
                         new GameSlot((InventoryContainerType)sourceList, sourceSlot)),
                     0,
-                    new InventorySlotMappingRuleService().ToBusinessSlot(
+                    A21InventoryLayout.ToBusinessSlot(
                         new GameSlot((InventoryContainerType)destinationList, destinationSlot))),
                 CancellationToken.None);
 

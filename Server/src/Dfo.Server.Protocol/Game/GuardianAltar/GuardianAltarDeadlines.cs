@@ -39,7 +39,7 @@ internal sealed class GuardianAltarReturnCommandHandler(IGuardianAltarDomainServ
 }
 
 internal sealed class GuardianAltarTimerCommandHandler(IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
-    IOnlineUserQueryDomainService users, ICommandWorkUnits units, IDungeonRunDepartureDomainService runs, IGameCommandOutbox outbox, IInventorySlotProjectionDomainService slots, TimeProvider clock,
+    IOnlineUserQueryDomainService users, ICommandWorkUnits units, IDungeonRunDepartureDomainService runs, IGameCommandOutbox outbox, TimeProvider clock,
     ILogger<GuardianAltarTimerCommandHandler> logger) : ICommandHandler<MaintainGuardianAltarCommand, GuardianAltarSchedule>,
     ICommandHandler<AdvanceGuardianAltarCommand, bool>
 {
@@ -66,7 +66,7 @@ internal sealed class GuardianAltarTimerCommandHandler(IGuardianAltarDomainServi
         if (rejected is not null) { logger.LogError(rejected, "Guardian altar deadline failed run={Run} generation={Generation}", expected.RunId, expected.Generation); return false; }
         if (((CommandWriteResult<GuardianAltarMutation>.Returned)result).Value.Action is { } action)
         {
-            await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, slots, clock, ct).ConfigureAwait(false);
+            await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, clock, ct).ConfigureAwait(false);
             foreach (var spawn in action.Spawns)
                 logger.LogInformation("Guardian altar spawn prepared run={RunId} generation={Generation} map={MapId} sequence={Sequence} signedSequence={SignedSequence} monster={Monster} level={Level} basis={Basis} phase={Phase} body={Body}",
                     action.State.RunId, action.State.Generation, action.State.Admission.Map.MapId, spawn.Sequence,

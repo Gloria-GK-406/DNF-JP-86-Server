@@ -275,7 +275,7 @@ public sealed class ApplyEffectsTests
     private sealed class Inventory : FakeMainInventory
     {
         public IBusinessInventorySlotDomainService Slots { get; }
-        public Inventory() => Slots = new BusinessInventorySlotDomainService(Containers(), new InventorySlotMappingRuleService());
+        public Inventory() => Slots = new BusinessInventorySlotDomainService(Containers());
         public ApplyEffectsDomainService Executor(params IEffectHandler[] additional) =>
             new([new ConsumeFromContainerEffectHandler(Slots, Lifecycle), .. additional], Scope,
                 new EffectCharacterStore(new(Offline.AccountId, Offline.CharacterId)), new Sessions(), ConsumptionEffectPreflight.For(Slots));

@@ -100,7 +100,7 @@ public sealed class NpcShopGainProjectionTests
         public Dictionary<int, int> Purchased { get; } = [];
         public void Seed(BusinessSlot slot, int id, int count)
         {
-            var wire = new InventorySlotMappingRuleService().ToGameSlot(slot);
+            var wire = A21InventoryLayout.ToGameSlot(slot);
             if (count > 0) piles[((byte)wire.Space, checked((ushort)wire.Index))] = (id, count);
         }
         public int Total(int id) => piles.Values.Where(value => value.Id == id).Sum(value => value.Count);
