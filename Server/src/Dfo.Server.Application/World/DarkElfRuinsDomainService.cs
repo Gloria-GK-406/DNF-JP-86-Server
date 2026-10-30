@@ -18,7 +18,7 @@ internal sealed class DarkElfRuinsDomainService(IDarkElfRuinsRuleService rules, 
 {
     public DungeonRunKind Kind => DungeonRunKind.DarkElfRuins;
     public bool Supports(int dungeonId) => rules.Supports(dungeonId);
-    private DateOnly Day() => DateOnly.FromDateTime(daily.PeriodStart(clock.GetUtcNow()).ToOffset(TimeSpan.FromHours(8)).DateTime);
+    private DateOnly Day() => daily.PeriodDay(clock.GetUtcNow());
 
     private static DarkElfRuinsProgress At(DarkElfRuinsProgress value, DateOnly day)
     {

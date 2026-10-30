@@ -23,6 +23,7 @@
 静态内容唯一来源为 `PvfDarkElfRuinsContentSource`；规则由 `DarkElfRuinsRuleService` 解释；
 `DarkElfRuinsDomainService` 编排准入、进度与奖励，持久化只通过 `IDarkElfRuinsDomainStore`。
 星级、次数与月状态在 `darkelf_ruins_progress`，冻结奖励与领取/展示状态在 `darkelf_ruins_rewards`。
+曜日轮换及日/月账本日期统一从 `IDailyResetRuleService.PeriodDay` 取得，不在遗迹内重复解释时区与日切。
 入场由共享 `DungeonEntryRoutingDomainService` 路由；运行种类为 `DungeonRunMode.DarkElfRuins`，复活、翻牌、难度解锁与再挑战由共享能力表裁定。Boss 清场通过 `IDungeonBossClearHook` 注册执行。
 通用准入、拓扑验证、房间实例、账号材料容器及物品交付继续使用既有 owner。
 协议状态、字节布局和证据只维护在 [流程记录](../../../protocol/patterns/flow-darkelf-ruins.md)。

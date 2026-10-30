@@ -34,6 +34,7 @@ decision: manual_required
 | 实际PVF遗迹目录与奖励解析 | 2通过，0失败/0跳过 | `content.log` |
 | GM前端完整复测 | 158通过，13文件 | `gm-full-recheck.log` |
 | 单元报告判据 | 3通过；Unit TRX汇总有效 | `report-guard.log`、`unit-summary.log` |
+| 遗迹与统一日切日期边界 | 39通过，0失败/0跳过；含06:00与月初计数，统一复用PeriodDay | `daily-owner-review.log` |
 | 协议文档检查器 | 自测通过；与最新主干完全相同18项既存失败，新增0 | `protocol-doc-self.log`、`protocol-doc-main.log`、`protocol-doc.log`、`protocol-doc-delta.json` |
 
 GM首次完整测试有1项在afterEach懒加载清理钩子超过10秒，157项通过；
