@@ -101,7 +101,6 @@ public sealed class MarriagePairCorrectionTests
             Assert.Equal(-1, (await Use(1, 2)).Status);
             Assert.Equal(-3, (await Use(9)).Status);
             Assert.Equal(3, f.Scalar($"SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0 AND slot_index={stored.StorageSlotIndex}"));
-            Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_relations"));
             Assert.Equal(new[] { new AccountId(1), new AccountId(2) }, await Query(f).CoupleAccountsAsync(peer, default));
         });
     }

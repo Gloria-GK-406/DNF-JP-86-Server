@@ -13,6 +13,13 @@ namespace Dfo.Server.Persistence.Tests.Inventory;
 
 public sealed class SqliteInventoryEntryRepositoryTests
 {
+    /// <summary>The side over a database whose tables this case wrote, brought to the current version first.</summary>
+    private static InventorySide Adopted(string path)
+    {
+        HandWrittenShape.Adopt(path);
+        return new InventorySide(path);
+    }
+
     [Fact]
     public async Task LoadAsync_PreservesTypedItemsMetadataRuntimeValuesAndOwnership()
     {
@@ -57,7 +64,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 ("@characterCore", characterCore),
                 ("@cargoCore", cargoCore));
 
-            var repository = new InventorySide(databasePath).PerCall;
+            var repository = Adopted(databasePath).PerCall;
             var characterResult = await repository.LoadCharacterAsync(
                 new AccountId(11),
                 new CharacterId(21),
@@ -85,7 +92,6 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Equal((ushort)48, Assert.Single(characterResult.CharacterContainerParameters).Value);
             Assert.Equal((ushort)16, accountResult.AccountCargoState.SelectionKey);
             Assert.Equal(3456, accountResult.AccountCargoState.Value32);
-            Assert.Equal((ushort)1, accountResult.AccountCargoState.StoredItemCount);
             Assert.Equal(
                 [
                     new InventoryRuntimeValueState(356, 3035, 99),
@@ -156,7 +162,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 INSERT INTO accounts(account_id) VALUES(12);
                 """);
 
-            var repository = new InventorySide(databasePath).PerCall;
+            var repository = Adopted(databasePath).PerCall;
             var characterResult = await repository.LoadCharacterAsync(
                 new AccountId(12),
                 new CharacterId(22),
@@ -175,7 +181,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             Assert.Empty(characterResult.EquipmentLocks);
             Assert.Empty(accountResult.EquipmentLocks);
             Assert.Empty(characterResult.CharacterRentals);
-            Assert.Equal(new AccountCargoStorageState(new AccountId(12), 0, 0, 0), accountResult.AccountCargoState);
+            Assert.Equal(new AccountCargoStorageState(new AccountId(12), 0, 0), accountResult.AccountCargoState);
             Assert.Equal(new InventoryGoldLimitState(0, 0), characterResult.GoldLimits);
         }
         finally
@@ -226,7 +232,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, commandText);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
+                await Adopted(databasePath).PerCall.LoadCharacterAsync(
                     new AccountId(15),
                     new CharacterId(25),
                     CancellationToken.None));
@@ -278,7 +284,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             await ExecuteAsync(databasePath, commandText);
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
+                await Adopted(databasePath).PerCall.LoadCharacterAsync(
                     new AccountId(14),
                     new CharacterId(24),
                     CancellationToken.None));
@@ -324,7 +330,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             }
 
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
+                await Adopted(databasePath).PerCall.LoadCharacterAsync(
                     new AccountId(13),
                     new CharacterId(23),
                     CancellationToken.None));
@@ -371,7 +377,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 ("@theirs", CreateCore(1, 4004, 41)),
                 ("@cargo", CreateCore(1, 5005, 51)));
 
-            var loaded = await new InventorySide(databasePath).PerCall.LoadCharacterAsync(
+            var loaded = await Adopted(databasePath).PerCall.LoadCharacterAsync(
                 new AccountId(13), new CharacterId(23), CancellationToken.None);
 
             var item = Assert.Single(loaded.CharacterItems);
@@ -412,7 +418,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 ("@listType", listType),
                 ("@core", firstCore));
 
-            var repository = new InventorySide(databasePath).PerCall;
+            var repository = Adopted(databasePath).PerCall;
             if (invalidCase == "malformed")
                 await Assert.ThrowsAsync<InvalidDataException>(async () =>
                     await repository.LoadAccountAsync(new AccountId(17), new CharacterId(27), CancellationToken.None));

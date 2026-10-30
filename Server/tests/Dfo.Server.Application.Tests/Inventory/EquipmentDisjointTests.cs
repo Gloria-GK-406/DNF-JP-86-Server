@@ -185,8 +185,6 @@ public sealed class EquipmentDisjointTests
         await Disjoint(shop, 9);
 
         Assert.Equal(3, shop.Count(3257));
-        Assert.Equal(0, shop.Scalar("SELECT soul_common+soul_advanced+soul_rare+soul_unique+soul_legendary "
-            + "FROM accounts WHERE account_id=1"));
         var material = Assert.Single(
             Assert.Single(shop.Sender.Messages.OfType<DisjointItemResponse>()).Materials!);
         Assert.Equal(3257, material.ItemId);

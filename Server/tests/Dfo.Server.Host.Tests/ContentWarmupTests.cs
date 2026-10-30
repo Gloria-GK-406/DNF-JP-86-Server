@@ -62,6 +62,7 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfGoldSilverHornContentSource")] = Warmed<Abstractions.World.IGoldSilverHornContentSource>(),
         [Infra("PvfHellRewardDefinitionSource")] = Warmed<Abstractions.World.IHellRewardDefinitionSource>(),
         [Infra("PvfSaoTowerContentSource")] = Warmed<Abstractions.World.ISaoTowerContentSource>(),
+        [Infra("PvfDarkElfRuinsContentSource")] = Warmed<Abstractions.World.IDarkElfRuinsContentSource>(),
         [Infra("PvfMarriageCeremonyContentSource")] = Warmed<Abstractions.Marriage.IMarriageCeremonyContentSource>(),
         [Infra("PvfMarriageProposalContentSource")] = Warmed<Abstractions.Marriage.IMarriageProposalContentSource>(),
         [Infra("PvfMarriageCapsuleContentSource")] = Warmed<Abstractions.Marriage.IMarriageCapsuleContentSource>(),

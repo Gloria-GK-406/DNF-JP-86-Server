@@ -14,6 +14,10 @@
     <Project Path="src/Dfo.Server.Protocol/Dfo.Server.Protocol.csproj" />
     <Project Path="src/Dfo.Server.Utilities/Dfo.Server.Utilities.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="../Tool/DbMigrate/DbMigrate.csproj" />
+    <Project Path="../Tool/DbMigrate.Tests/DbMigrate.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Dfo.Pvf.Tests/Dfo.Pvf.Tests.csproj" />
     <Project Path="tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tests.csproj" />

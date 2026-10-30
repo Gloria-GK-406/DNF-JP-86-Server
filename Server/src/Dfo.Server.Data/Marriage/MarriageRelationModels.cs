@@ -9,7 +9,6 @@ public sealed record MarriageRelation(Guid Id, MarriageStage Stage, long Revisio
     SelectedSessionIdentity Proposer, SelectedSessionIdentity Recipient, Guid? CeremonyId, DateTimeOffset StageSince)
 {
     public DateTimeOffset? MarriedAt { get; init; }
-    public int LovePoints { get; init; }
 }
 
 /// <summary>A relation as the read path sees it; <see cref="Stage"/> is the effective stage, not necessarily the stored one.</summary>

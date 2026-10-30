@@ -192,6 +192,7 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IHellRewardDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.ISaoTowerContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.World.IDarkElfRuinsContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageProposalContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleContentSource>()

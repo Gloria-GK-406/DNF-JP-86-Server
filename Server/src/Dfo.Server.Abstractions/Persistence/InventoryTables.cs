@@ -48,7 +48,6 @@ public sealed record WornItemRow(
 public sealed record AccountCargoItemRow(
     long ItemUid,
     int AccountId,
-    int? CharacterId,
     int ListType,
     int SlotIndex,
     InventoryItemCoreState Core);
@@ -76,7 +75,7 @@ public sealed record ContainerStateRow(int CharacterId, int ListType, int Value)
 /// account and only visible once the cargo is opened -- it is not the gold a character carries.
 /// </param>
 public sealed record AccountCargoStateRow(
-    int AccountId, int SelectionKey, int Value32, int ItemCount);
+    int AccountId, int SelectionKey, int Value32);
 
 /// <summary>A character's two gold caps, which live with its other derived numbers.</summary>
 /// <param name="CarryLimit">
@@ -119,9 +118,8 @@ public interface ICharacterItemTable
     /// rather than on a seam of its own because the thing it answers about is still a character's
     /// own things -- several characters' worth of them, gathered by the account they belong to.
     /// <para>
-    /// It exists because the character-selection screen draws every character at once and there was
-    /// no way to ask that question: every equipped read was by one character, so the screen read a
-    /// stored blob instead, and nothing had written that blob since the characters were made.
+    /// It exists because the character-selection screen draws every character at once, and every
+    /// other equipped read is by one character.
     /// </para>
     /// <para>
     /// Ordered by character and then by slot, and returning the equipment container's rows whole.
@@ -158,39 +156,6 @@ public interface IAccountCargoStateTable
     /// <summary>At most two rows, so that a duplicated one can be seen rather than hidden.</summary>
     ValueTask<IReadOnlyList<AccountCargoStateRow>> ReadByAccountAsync(
         AccountId accountId, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Adds to what the account is carrying and answers what it carries afterwards.
-    /// </summary>
-    /// <remarks>
-    /// The addition happens in the statement rather than by reading and writing back, because two
-    /// pickups answered at once must not each add to the same total they both read. An account
-    /// with no row yet gets one; the column defaults to zero, which is what a new account has.
-    /// </remarks>
-    ValueTask<int> AddValue32Async(
-        AccountId accountId, int amount, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Takes that much away if the account is carrying it, and answers what is left.
-    /// </summary>
-    /// <remarks>
-    /// <c>null</c> when the account was not carrying that much, and then nothing was written:
-    /// the condition and the subtraction are one statement, so no two takes can both pass a test
-    /// only one of them could afford.
-    /// <para>
-    /// <b>Separate from <see cref="AddValue32Async"/> rather than a negative amount handed to
-    /// it.</b> That statement holds its result at zero, which turns "could not pay" into "paid,
-    /// and is now empty" -- silently, and with the money gone. A caller charging for something
-    /// has to be able to tell those apart.
-    /// </para>
-    /// <para>
-    /// An account with no row carries nothing: every take above zero from it fails, and a take of
-    /// zero succeeds against the zero it carries without opening it a row. Taking nothing changes
-    /// nothing, so there is nothing to record.
-    /// </para>
-    /// </remarks>
-    ValueTask<int?> TryTakeValue32Async(
-        AccountId accountId, int amount, CancellationToken cancellationToken);
 }
 
 /// <summary>What a character carries, and what the cap on it is worked out from.</summary>

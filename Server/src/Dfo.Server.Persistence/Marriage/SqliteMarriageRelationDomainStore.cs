@@ -42,7 +42,7 @@ internal sealed class SqliteMarriageRelationDomainStore(SqliteDatabase database)
         return await database.ExecuteAsync("UPDATE marriage_ring_state SET level=level+1 WHERE relation_id=@id AND level=@expected", p => { p.AddWithValue("@id", id); p.AddWithValue("@expected", expected); }, ct).ConfigureAwait(false) == 1;
     }
     private const string Select = """
-        SELECT r.id,r.stage,r.revision,r.stage_since,r.ceremony_id,r.married_at,r.love_points,p.payload_json
+        SELECT r.id,r.stage,r.revision,r.stage_since,r.ceremony_id,r.married_at,p.payload_json
         FROM marriage_relations r JOIN marriage_proposals p ON p.id=r.id
         """;
 
@@ -58,14 +58,13 @@ internal sealed class SqliteMarriageRelationDomainStore(SqliteDatabase database)
     private ValueTask<IReadOnlyList<MarriageRelation>> ReadCoreAsync(string statement, object value, CancellationToken ct) =>
         database.ReadAllAsync(statement, p => p.AddWithValue("@value", value), r =>
         {
-            var proposal = JsonSerializer.Deserialize<MarriageProposal>(r.GetString(7))
+            var proposal = JsonSerializer.Deserialize<MarriageProposal>(r.GetString(6))
                 ?? throw new InvalidDataException("Invalid marriage proposal.");
             return new MarriageRelation(Guid.Parse(r.GetString(0)), (MarriageStage)r.GetInt32(1), r.GetInt64(2),
                 proposal.Proposer, proposal.Recipient, r.IsDBNull(4) ? null : Guid.Parse(r.GetString(4)),
                 DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(3)))
             {
                 MarriedAt = r.IsDBNull(5) ? null : DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(5)),
-                LovePoints = r.GetInt32(6),
             };
         }, ct);
 

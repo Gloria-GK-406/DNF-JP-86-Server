@@ -7,7 +7,6 @@ public enum MarriageWeddingPhase { Preparing, Completed, Cancelled }
 public sealed record MarriageWedding(MarriageCeremony Ceremony, MarriageWeddingPhase Phase, int PaidGold)
 {
     public DateTimeOffset? CompletedAt { get; init; }
-    public int LovePoints { get; init; }
 }
 public sealed record MarriageWeddingAdmission(SelectedSessionIdentity Actor, MarriageChurchSnapshot Church);
 public sealed record MarriageWeddingCleanup(CharacterId Character, MarriageChurchSnapshot Church);

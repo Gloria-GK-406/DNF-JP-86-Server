@@ -36,17 +36,14 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
         if (mail.Attachments.Length != attachments.Count ||
             mail.Attachments.Where((asset, index) => asset != attachments[index].Asset).Any())
             throw new MailException(MailFailure.InvalidMail, "Prepared assets differ from mail contents.");
-        var gold = attachments.Sum(x => x.Asset is MailAsset.Gold g ? (long)g.Amount : 0);
-        if (gold > int.MaxValue)
-            throw new MailException(MailFailure.InvalidMail, "Mail gold exceeds its storage range.");
 
         long id = 0;
         await database.WriteAsync(async (command, token) =>
         {
             command.CommandText = """
                 INSERT INTO mailbox_messages(sender_character_id,sender_name,receiver_character_id,
-                    title,body,gold,created_at,unlimited_flag,expire_at,delivery_key)
-                VALUES(@sender,@name,@receiver,@title,@body,@gold,@created,@unlimited,@expires,@delivery)
+                    title,body,created_at,unlimited_flag,expire_at,delivery_key)
+                VALUES(@sender,@name,@receiver,@title,@body,@created,@unlimited,@expires,@delivery)
                 RETURNING message_id
                 """;
             command.Parameters.AddWithValue("@sender", mail.Source.Character?.Value ?? 0);
@@ -55,7 +52,6 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
             command.Parameters.AddWithValue("@title", mail.Title);
             command.Parameters.AddWithValue("@delivery", mail.DeliveryKey);
             command.Parameters.AddWithValue("@body", mail.Body);
-            command.Parameters.AddWithValue("@gold", gold);
             command.Parameters.AddWithValue("@created", now.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
             command.Parameters.AddWithValue("@unlimited", mail.ExpiresAt is null ? 1 : 0);
             command.Parameters.AddWithValue("@expires", mail.ExpiresAt?.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)
@@ -203,16 +199,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
             UPDATE mailbox_attachments SET claimed_flag=1
             WHERE attachment_id=@id AND claimed_flag=0 AND asset_kind='gold'
             """, p => p.AddWithValue("@id", attachmentId), cancellationToken).ConfigureAwait(false);
-        if (count != 1) return false;
-        await database.ExecuteAsync("""
-            UPDATE mailbox_recipients SET received_gold_flag=1
-            WHERE message_id=(SELECT message_id FROM mailbox_attachments WHERE attachment_id=@id AND asset_kind='gold')
-              AND NOT EXISTS (
-                  SELECT 1 FROM mailbox_attachments pending
-                  WHERE pending.message_id=mailbox_recipients.message_id
-                    AND pending.asset_kind='gold' AND pending.claimed_flag=0)
-            """, p => p.AddWithValue("@id", attachmentId), cancellationToken).ConfigureAwait(false);
-        return true;
+        return count == 1;
     }
 
     public async ValueTask MarkDeletedAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken)

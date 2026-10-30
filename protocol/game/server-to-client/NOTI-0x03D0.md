@@ -2,12 +2,12 @@
 
 ## 2026-10-17 婚龄与心意点闭合
 
-ClientStatic / Confirmed：@6 u32 为婚礼完成的Unix秒时间，manager+68→getter422D0→UI877DC0，婚龄=floor((now-time)/86400)+1；@10 u32 为双方共享心意点。CurrentImplementation：保存completed_at毫秒与love_points，重登投影真实值，历史行不猜日期（2026-10-17 落地状态：阶段、结婚时刻与心意点改由 `marriage_relations` 关系记录直接保存，03D0 state 由阶段投影；线上字节不变。见 [婚姻聚合设计稿](../../../Document/MarriageAggregateDesign-20261017.md) 落地状态。）；本次已确认旧关系由首次Completed日志回填。下列旧人工区“未闭合/其它字段0”对应此前阶段，不再代表当前实现。见[修复报告](../../../Document/MarriageWeddingSixIssues-20261017.md)。
+ClientStatic / Confirmed：@6 u32 为婚礼完成的Unix秒时间，manager+68→getter422D0→UI877DC0，婚龄=floor((now-time)/86400)+1；@10 u32 为双方共享心意点。CurrentImplementation：保存completed_at毫秒与love_points，重登投影真实值，历史行不猜日期（阶段与结婚时刻由 `marriage_relations` 关系记录保存，03D0 state 由阶段投影；心意点为每人一份，保存在 `marriage_personal_points`，按查看者经 ledger 读取；关系行与婚礼行的旧 `love_points` 列已退役删除。线上字节不变。见 [婚姻聚合设计稿](../../../Document/MarriageAggregateDesign-20261017.md) 落地状态。）；本次已确认旧关系由首次Completed日志回填。下列旧人工区“未闭合/其它字段0”对应此前阶段，不再代表当前实现。见[修复报告](../../../Document/MarriageWeddingSixIssues-20261017.md)。
 
 
 ## 2026-10-16 普通婚礼预约接入
 
-当前补充：独立预约Reserved记录投影state2（2026-10-17 落地状态：阶段、结婚时刻与心意点改由 `marriage_relations` 关系记录直接保存，03D0 state 由阶段投影；线上字节不变。见 [婚姻聚合设计稿](../../../Document/MarriageAggregateDesign-20261017.md) 落地状态。），接受后双端推送，选角/重登恢复。NPC RVA021AB558在state2阻止重复预约；其它未知字段仍0，仅ClientStatic/High安全性证据，待用户实机验证。
+当前补充：独立预约Reserved记录投影state2（阶段与结婚时刻由 `marriage_relations` 关系记录保存，03D0 state 由阶段投影；心意点为每人一份，保存在 `marriage_personal_points`，按查看者经 ledger 读取；关系行与婚礼行的旧 `love_points` 列已退役删除。线上字节不变。见 [婚姻聚合设计稿](../../../Document/MarriageAggregateDesign-20261017.md) 落地状态。），接受后双端推送，选角/重登恢复。NPC RVA021AB558在state2阻止重复预约；其它未知字段仍0，仅ClientStatic/High安全性证据，待用户实机验证。
 
 CurrentImplementation：实现边界、A21证据及双端验收步骤见[本次报告](../../../Document/MarriageReservation-20261016.md)。不是婚礼完成或已婚状态；本节优先于下面的历史阶段说明。
 

@@ -12,11 +12,11 @@ internal sealed class SqliteMarriageWeddingDomainStore(SqliteDatabase database) 
         (await ReadCoreAsync("ceremony_id=@id", ceremony.ToString("N"), ct).ConfigureAwait(false)).SingleOrDefault();
     public ValueTask<IReadOnlyList<MarriageWedding>> PendingAsync(CancellationToken ct) => ReadCoreAsync("phase=0 OR EXISTS(SELECT 1 FROM marriage_wedding_cleanup c WHERE c.ceremony_id=marriage_weddings.ceremony_id) OR EXISTS(SELECT 1 FROM marriage_church_rooms r WHERE r.ceremony_id=marriage_weddings.ceremony_id)", "", ct);
     private ValueTask<IReadOnlyList<MarriageWedding>> ReadCoreAsync(string predicate, string id, CancellationToken ct) =>
-        database.ReadAllAsync($"SELECT payload_json,phase,paid_gold,completed_at,love_points FROM marriage_weddings WHERE {predicate}",
+        database.ReadAllAsync($"SELECT payload_json,phase,paid_gold,completed_at FROM marriage_weddings WHERE {predicate}",
             p => p.AddWithValue("@id", id), r => new MarriageWedding(
                 JsonSerializer.Deserialize<MarriageCeremony>(r.GetString(0)) ?? throw new InvalidDataException("Invalid wedding."),
                 (MarriageWeddingPhase)r.GetInt32(1), r.GetInt32(2))
-                { CompletedAt = r.GetInt64(3) == 0 ? null : DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(3)), LovePoints = r.GetInt32(4) }, ct);
+                { CompletedAt = r.GetInt64(3) == 0 ? null : DateTimeOffset.FromUnixTimeMilliseconds(r.GetInt64(3)) }, ct);
     public async ValueTask CreateAsync(MarriageWedding wedding, CancellationToken ct) =>
         _ = await database.ExecuteAsync("""
             INSERT INTO marriage_weddings(ceremony_id,relation_id,payload_json,phase,paid_gold)

@@ -271,31 +271,19 @@ public sealed class SelectCharacterProductionStateTests
     }
 
     /// <summary>
-    /// The roster frame in the entry burst is drawn from what is worn, not from the stored blob.
+    /// The roster frame in the entry burst is drawn from what is worn.
     /// </summary>
     /// <remarks>
-    /// The two answers are made to differ on purpose: the character wears a coat in slot twelve and
-    /// the stored blob says slot zero. A frame built from the blob would name slot zero, so this
-    /// case cannot pass against the code as it was.
-    /// <para>
     /// <b>The worn piece goes through <see cref="DrawnAppearance"/> rather than being written out as
     /// a finished part, and the expected values are written out instead.</b> That is what puts the
     /// shared projection inside this case: changing how a worn piece becomes a drawn part moves what
     /// this frame carries, and this goes red. Handing the listing a hand-made part would have
     /// stubbed the projection out and left the in-world frame as the only side that could feel it.
-    /// </para>
     /// </remarks>
     [Fact]
-    public async Task The_roster_frame_is_drawn_from_what_is_worn_and_not_from_the_stored_blob()
+    public async Task The_roster_frame_is_drawn_from_what_is_worn()
     {
-        var blobSaysSlotZero = new byte[]
-        {
-            1,
-            0x00, 0x40, 0x4C, 0xA9, 0x18, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        };
-        var seed = WithStoredAppearance(
-            SelectCharacterPayloadTestData.CreateComplete(), blobSaysSlotZero);
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
 
         var result = await PrepareAsync(
             new Sources(seed, DrawnAppearance.Of(WornCoatInSlotTwelve())), seed);
@@ -336,14 +324,7 @@ public sealed class SelectCharacterProductionStateTests
     [Fact]
     public async Task A_character_wearing_nothing_is_drawn_wearing_nothing()
     {
-        var blobSaysSlotZero = new byte[]
-        {
-            1,
-            0x00, 0x40, 0x4C, 0xA9, 0x18, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        };
-        var seed = WithStoredAppearance(
-            SelectCharacterPayloadTestData.CreateComplete(), blobSaysSlotZero);
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
 
         var result = await PrepareAsync(new Sources(seed, []), seed);
 
@@ -372,18 +353,6 @@ public sealed class SelectCharacterProductionStateTests
             "The account roster this frame is drawn from did not work out appearances.",
             refusal.Message);
     }
-
-    private static SelectCharacterResult WithStoredAppearance(
-        SelectCharacterResult seed, byte[] blob) => seed with
-        {
-            CharacterEntry = seed.CharacterEntry with
-            {
-                Public = seed.CharacterEntry.Public with
-                {
-                    Appearance = new CharacterAppearanceCompatibilityState(1, blob),
-                },
-            },
-        };
 
     private static async Task<SelectCharacterResult> PrepareAsync(
         Sources sources, SelectCharacterResult seed, IAchievementDomainService? achievements = null)
@@ -443,9 +412,7 @@ public sealed class SelectCharacterProductionStateTests
         // is what the change this stand-in serves falsified.
         //
         // What it answers is the case's to decide. The complete-stream case passes an empty
-        // appearance, which is not a convenience: that seed's stored blob is a single zero byte, a
-        // declared count of no parts, so the decoder this replaces produced an empty list from it
-        // too, and the stream that case is about is the same stream it was about before.
+        // appearance, so the stream that case is about draws a character wearing nothing.
         public ValueTask<AccountCharacterRoster> GetAccountRosterWithAppearanceAsync(
             AccountId id, CancellationToken ct) =>
             ValueTask.FromResult(new AccountCharacterRoster(id, 24,

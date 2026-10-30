@@ -132,8 +132,8 @@ public sealed class MarriageChurchTests
         var firstRoom = (await Run(f, x => x.PrepareChurchAsync(f.Session, default)))!;
         f.Sql("""
             INSERT INTO accounts(account_id,m_id) VALUES(3,'groom2'),(4,'bride2');
-            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
-            VALUES(73,3,'groom2',0,0,85,0,0,0,-1),(74,4,'bride2',12,0,85,0,0,0,-1);
+            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp)
+            VALUES(73,3,'groom2',0,0,85,0,0,0),(74,4,'bride2',12,0,85,0,0,0);
             UPDATE characters SET exp=(SELECT exp FROM characters WHERE character_id=71) WHERE character_id IN(73,74);
             INSERT INTO character_stats(character_id,carried_gold) VALUES(73,500000),(74,0);
             """);
@@ -375,13 +375,13 @@ public sealed class MarriageChurchTests
             else Assert.Empty(result.Standing);
 
             Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_proposals WHERE state=1"));
-            Assert.Equal(both ? 0 : 500000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE title='婚礼退款'"));
+            Assert.Equal(both ? 0 : 500000, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼退款'"));
             Assert.Equal(both ? 0 : 1, result.Departures.Count);
             Assert.Equal(both ? 0 : 1, result.Cleanup.Count);
             var retry = await Flow(f, x => x.AdvanceAsync(ceremony.Id, default));
             if (both) Assert.Null(retry);
             else { Assert.NotNull(retry); Assert.Empty(retry.Participants); Assert.Single(retry.Departures); Assert.Single(retry.Cleanup); }
-            Assert.Equal(both ? 0 : 500000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE title='婚礼退款'"));
+            Assert.Equal(both ? 0 : 500000, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE title='婚礼退款'"));
             if (!both)
             {
                 Assert.Equal(1, f.Scalar("SELECT COUNT(*) FROM marriage_church_rooms"));
@@ -458,7 +458,7 @@ public sealed class MarriageChurchTests
         Assert.NotEqual(0, (await Flow(f, x => x.InviteAsync(f.Session, 1, 0, default))).Status);
         clock.Now = entries[0].Church.Room.ReadyUntil;
         Assert.Equal(MarriageWeddingPhase.Cancelled, (await Flow(f, x => x.AdvanceAsync(ceremony.Id, default)))!.Wedding.Phase);
-        Assert.Equal(10000, f.Scalar("SELECT COALESCE(SUM(gold),0) FROM mailbox_messages WHERE receiver_character_id=73"));
+        Assert.Equal(10000, f.Scalar("SELECT COALESCE(SUM(a.gold_amount),0) FROM mailbox_messages m JOIN mailbox_attachments a ON a.message_id=m.message_id AND a.asset_kind='gold' WHERE receiver_character_id=73"));
         });
     }
 
@@ -488,8 +488,8 @@ public sealed class MarriageChurchTests
     {
         f.Sql("""
             INSERT INTO accounts(account_id,m_id) VALUES(3,'guest');
-            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
-            VALUES(73,3,'guest',0,0,85,0,0,0,-1);
+            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp)
+            VALUES(73,3,'guest',0,0,85,0,0,0);
             INSERT INTO character_stats(character_id,carried_gold) VALUES(73,50000);
             """);
         var registry = f.Services.GetRequiredService<OnlineStateRegistry>();
@@ -591,7 +591,7 @@ public sealed class MarriageChurchTests
             var entries = await Pair(f, x => x.OpenWeddingAsync(ceremony, default)); foreach (var entry in entries) Arrive(f, entry);
             clock.Now = entries[0].Church.Room.ReadyUntil; await Flow(f, x => x.AdvanceAsync(ceremony.Id, default));
             Assert.Equal(0, (await Use(false)).Status);
-            Assert.Equal(0, f.Scalar("SELECT love_points FROM marriage_weddings")); Assert.Equal(3, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
+            Assert.Equal(3, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));
             Assert.Equal(0, (await Use()).Status);
             Assert.Equal(0, (await f.Services.GetRequiredService<IMarriageQueryDomainService>().SnapshotAsync(peer.AccountId, peer.CharacterId, default)).LovePoints);
             Assert.Equal(2, f.Scalar("SELECT SUM(count) FROM item_slots WHERE owner_id=71 AND list_type=0"));

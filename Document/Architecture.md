@@ -16,7 +16,7 @@
 | `Dfo.Server.Abstractions` | Data | 接缝层：`IServerModule` + 各领域服务/仓储/内容源/网络契约 + 通用只读服务器配置契约 |
 | `Dfo.Server.Application` | Abstractions, Data | **领域编排核心**：玩法执行器与发件箱、命令总线与显式工作单元、消息分发机制、领域服务 |
 | `Dfo.Server.Infrastructure` | Dfo.Pvf, Abstractions, Data | PVF 内容源 + 频道脚本 + 启动配置内存快照 |
-| `Dfo.Server.Persistence` | Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者 + `Database/` 事务参与者。**全部类型 `internal`**，对外只经 Abstractions 契约 |
+| `Dfo.Server.Persistence` | Abstractions, Data | SQLite 仓储与存储 + `Schema/` 唯一建表归属者（只支持当前结构版本，旧库由 `Tool/DbMigrate` 迁移，见 [数据库结构版本与迁移](DatabaseSchemaMigration.md)）+ `Database/` 事务参与者。**全部类型 `internal`**，对外只经 Abstractions 契约 |
 | `Dfo.Server.Networking` | Abstractions, Data | TouchSocket **传输**：帧适配/解析、TCP 服务、插件、出站编码器、发送端（每连接发送队列、交付期限、队列上限、失败即关连接）、注册表。收发路径上不含任何单个协议的知识；发送端也只表达必达/尽力、跨连接的交付顺序和逐目标失败隔离 |
 | `Dfo.Server.Protocol` | Abstractions, Application, Data, Networking | **协议切片**：一个协议一个目录，含其消息、解包器、编码器、消息 handler、命令与命令 handler；`ProtocolModule` 是唯一接线点 |
 | `Dfo.Server.HttpApi` | Abstractions, Application, Data | HTTP 组件：Kestrel 装配、路由、中间件、HTTP 就绪；保留 LauncherAuth 配置键 |

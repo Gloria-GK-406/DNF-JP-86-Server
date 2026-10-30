@@ -77,8 +77,8 @@ internal static class AccountCharacterRosterPayloadCodec
 
     /// <summary>One display part, twenty-three bytes.</summary>
     /// <remarks>
-    /// The stored blob holds these already in this shape, so this writes back what was read. The
-    /// literal four is the expansion field's own length, which the client reads before the four
+    /// Each part arrives from the worn equipment already in this shape, so this writes it as it is.
+    /// The literal four is the expansion field's own length, which the client reads before the four
     /// bytes that follow it.
     /// </remarks>
     private static void WriteAppearance(List<byte> body, CharacterRosterAppearanceState appearance)

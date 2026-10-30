@@ -16,22 +16,15 @@ namespace Dfo.Server.Persistence.Tests.Schema;
 ///
 /// That question is settled: one component declares the tables and every repository is handed it,
 /// so there is no longer an order to get wrong. What is left to pin is the shape itself, that
-/// building the database is enough on its own, and that bringing an existing database into shape
-/// again leaves it as it was -- which is not free, because bringing it into shape also tops up
-/// columns on tables that are already there, and a top-up that stopped noticing they were there
-/// would fail on the second attempt.
+/// building the database is enough on its own, and that opening a database already built leaves it
+/// as it was.
 /// </remarks>
 public sealed class SchemaOwnershipTests
 {
     /// <remarks>
-    /// Bringing a database into shape happens every time one is opened, including one that has
-    /// been in shape for a long time. If this fails, doing it a second time changed something --
-    /// which for a database with players in it is a change nobody asked for, and the failure
-    /// message names every column that differs.
-    ///
-    /// A database built from nothing has every column already, so this exercises the guard on the
-    /// top-ups rather than the top-ups themselves. That is what it is for: a guard that stopped
-    /// working would make the second attempt fail, and nothing else here would notice.
+    /// Every open goes through the schema check, including one of a database built long ago. If
+    /// this fails, opening it a second time changed something -- which for a database with players
+    /// in it is a change nobody asked for, and the failure message names every column that differs.
     /// </remarks>
     [Fact]
     public async Task BringingADatabaseIntoShapeAgainLeavesItAsItWas()
@@ -66,7 +59,7 @@ public sealed class SchemaOwnershipTests
         Assert.Contains("marriage_ceremonies(", shape, StringComparison.Ordinal);
         foreach (var weddingTable in new[] { "marriage_weddings", "marriage_wedding_guests", "marriage_guest_comments", "marriage_wedding_cleanup", "marriage_church_rooms", "marriage_church_admissions" })
             Assert.Contains(weddingTable + "(", shape, StringComparison.Ordinal);
-        foreach (var housingTable in new[] { "marriage_housing_rooms", "marriage_housing_storage", "marriage_housing_placements", "marriage_housing_trees", "marriage_housing_harvests", "marriage_housing_migrations",
+        foreach (var housingTable in new[] { "marriage_housing_rooms", "marriage_housing_storage", "marriage_housing_placements", "marriage_housing_trees", "marriage_housing_harvests",
                      "marriage_ring_state", "marriage_capsules", "marriage_capsule_clears", "marriage_daily_points", "marriage_personal_points", "marriage_points_migration_audit" })
             Assert.Contains(housingTable + "(", shape, StringComparison.Ordinal);
         Assert.Contains("sao_tower_progress(next_floor:INTEGER,revision:INTEGER,round:INTEGER,season:TEXT)", shape, StringComparison.Ordinal);
@@ -85,7 +78,6 @@ public sealed class SchemaOwnershipTests
         Assert.Contains("event_joust_result(odds:TEXT,result_index:INTEGER,round_id:TEXT,starts_at:INTEGER,winner_index:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("daily_refill_settings(id:INTEGER,input:TEXT,revision:INTEGER,updated_at:INTEGER,updated_by:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("initialization_settings(input:TEXT,kind:TEXT,revision:INTEGER,updated_at:INTEGER,updated_by:TEXT)", shape, StringComparison.Ordinal);
-        Assert.Contains("schema_migrations(applied_at:TEXT,name:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_administrators(enabled:INTEGER,id:INTEGER,login_name:TEXT,password_record:TEXT,permissions:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_sessions(administrator_id:INTEGER,expires_at:INTEGER,token_hash:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_audit(action:TEXT,administrator_id:INTEGER,administrator_name:TEXT,occurred_at:INTEGER,operation_id:TEXT,outcome:TEXT,reason:TEXT,target:TEXT)", shape, StringComparison.Ordinal);

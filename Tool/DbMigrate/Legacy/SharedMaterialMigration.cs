@@ -3,7 +3,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Schema;
+namespace DbMigrate.Legacy;
 
 internal static class SharedMaterialMigration
 {
@@ -49,13 +49,18 @@ internal static class SharedMaterialMigration
 
     private static List<(int Account, int Slot, int Count)> ReadBalances(SqliteConnection connection, SqliteTransaction transaction)
     {
+        // A balance column the database never had is a balance of zero, which is what the server
+        // that read these columns would have added it with.
+        string[] columns =
+        [
+            "cube_black", "cube_white", "cube_red", "cube_blue", "cube_clear", "cube_gold",
+            "soul_common", "soul_advanced", "soul_rare", "soul_unique", "soul_legendary",
+        ];
+        var present = columns.Select(column => Shape.HasColumn(connection, transaction, "accounts", column) ? column : "0");
+        if (present.All(column => column == "0")) return [];
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
-            SELECT account_id,cube_black,cube_white,cube_red,cube_blue,cube_clear,cube_gold,
-                   soul_common,soul_advanced,soul_rare,soul_unique,soul_legendary
-            FROM accounts ORDER BY account_id;
-            """;
+        command.CommandText = $"SELECT account_id,{string.Join(',', present)} FROM accounts ORDER BY account_id;";
         using var reader = command.ExecuteReader();
         var balances = new List<(int, int, int)>();
         while (reader.Read())

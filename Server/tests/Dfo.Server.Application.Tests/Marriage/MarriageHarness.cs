@@ -123,8 +123,8 @@ internal static class MarriageHarness
     {
         f.Sql($"""
             INSERT INTO accounts(account_id,m_id) VALUES({account},'acct{account}');
-            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
-            VALUES({character},{account},'char{character}',{job},0,85,0,0,0,-1);
+            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp)
+            VALUES({character},{account},'char{character}',{job},0,85,0,0,0);
             UPDATE characters SET exp=(SELECT exp FROM characters WHERE character_id=71) WHERE character_id={character};
             INSERT INTO character_stats(character_id,carried_gold) VALUES({character},{gold});
             """);

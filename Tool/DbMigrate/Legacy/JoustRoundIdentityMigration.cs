@@ -3,7 +3,7 @@ using System.Text.Json;
 using Dfo.Server.Data.Events;
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Schema;
+namespace DbMigrate.Legacy;
 
 /// <summary>Preserves saved rounds and their references while retiring season-prefixed IDs.</summary>
 internal static class JoustRoundIdentityMigration

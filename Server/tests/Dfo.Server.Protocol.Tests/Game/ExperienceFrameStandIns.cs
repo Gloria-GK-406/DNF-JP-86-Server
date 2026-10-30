@@ -281,7 +281,6 @@ internal static class ExperienceFrameEntry
                         Dimensions: [],
                         DimensionFlags: (0, 0, 0, 0),
                         SpecialRewardQuestIds: []),
-                    null!,
                     VisibilityBits: 0,
                     CloneTitleItemId: 0),
                 Skills = new CharacterSkillsEntryState(

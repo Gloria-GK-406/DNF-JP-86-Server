@@ -135,7 +135,7 @@ public sealed class CharacterSkillLearningTests
     [InlineData("UPDATE characters SET level=1 WHERE character_id=71", CharacterSkillLearningRejection.SkillUnavailable)]
     [InlineData("UPDATE characters SET job=0 WHERE character_id=71", CharacterSkillLearningRejection.SkillUnavailable)]
     [InlineData("UPDATE characters SET grow_type=15 WHERE character_id=71", CharacterSkillLearningRejection.SkillUnavailable)]
-    [InlineData("UPDATE characters SET skill_tree_index=1 WHERE character_id=71", CharacterSkillLearningRejection.PageUnavailable)]
+    [InlineData("INSERT INTO character_skill_builds VALUES(71,0,1),(71,1,1); UPDATE characters SET active_skill_build=1 WHERE character_id=71", CharacterSkillLearningRejection.PageUnavailable)]
     [InlineData("UPDATE characters SET delete_flag=1 WHERE character_id=71", CharacterSkillLearningRejection.NoSession)]
     [InlineData("UPDATE characters SET bonus_sp=-1000 WHERE character_id=71", CharacterSkillLearningRejection.InsufficientPoints)]
     public async Task Current_database_facts_override_the_entry_snapshot(string sql, CharacterSkillLearningRejection rejection)
@@ -154,7 +154,7 @@ public sealed class CharacterSkillLearningTests
         await fixture.SeedAsync();
         Assert.Equal(CharacterSkillLearningRejection.PageUnavailable,
             (await fixture.LearnAsync([new(1, 0, 1)], page: 1)).Rejection);
-        fixture.Sql("UPDATE characters SET grow_type=1,skill_tree_index=1 WHERE character_id=71");
+        fixture.Sql("INSERT INTO character_skill_builds VALUES(71,0,1),(71,1,1); UPDATE characters SET grow_type=1,active_skill_build=1 WHERE character_id=71");
         var result = await fixture.LearnAsync([new(7, 0, 1), new(1, 0, 2)], page: 1);
         Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
         Assert.Equal(2, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0"));
@@ -388,8 +388,8 @@ internal sealed class LearningFixture : IAsyncDisposable
     {
         Sql($"""
             INSERT INTO accounts(account_id,m_id) VALUES(1,'learning'),(2,'other');
-            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
-            VALUES(71,1,'learning',12,0,85,{Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85)},5,3,-1),(72,2,'other',12,0,85,{Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85)},0,0,-1);
+            INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,bonus_sp,bonus_tp)
+            VALUES(71,1,'learning',12,0,85,{Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85)},5,3),(72,2,'other',12,0,85,{Services.GetRequiredService<Dfo.Server.Abstractions.World.IExperienceRuleService>().CharacterScale().ExperienceForLevel(85)},0,0);
             INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
             VALUES(71,'pve',0,7,1,2,X'0908'),(71,'pve',1,15,1,1,X'07'),(72,'pve',0,7,1,8,X'06');
             """);

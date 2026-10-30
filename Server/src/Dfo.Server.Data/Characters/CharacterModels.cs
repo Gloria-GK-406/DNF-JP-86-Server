@@ -210,10 +210,6 @@ public sealed record ActiveCharacterState(
     public byte LastInnTownId { get; init; }
 }
 
-public sealed record CharacterAppearanceCompatibilityState(
-    byte FormatVersion,
-    byte[] EncodedEntries);
-
 /// <summary>Persisted public identity fields that are separate from entry visibility bits.</summary>
 public sealed record CharacterPublicIdentityEntryState(
     byte PvpGrade,
@@ -366,7 +362,6 @@ public sealed record CharacterPublicEntryState(
     CharacterDerivedStatsStorageRecord DerivedStats,
     CharacterGuildStandingStorageRecord Guild,
     CharacterEntryExtrasState Extras,
-    CharacterAppearanceCompatibilityState Appearance,
     long VisibilityBits,
     uint CloneTitleItemId,
     CharacterPublicIdentityEntryState? Identity = null,
@@ -532,7 +527,6 @@ public sealed record CharacterCollectionsEntryState(
 
 public sealed record CharacterExpertJobEntryState(
     byte ProfessionType,
-    int Experience,
     ushort GiveupCount,
     int DisjointMachineGrade,
     int DisjointMachineEndurance,

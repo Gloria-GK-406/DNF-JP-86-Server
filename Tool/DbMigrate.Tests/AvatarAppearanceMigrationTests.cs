@@ -1,8 +1,6 @@
-using Dfo.Server.Application.Transactions;
-using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Tests.Schema;
+namespace DbMigrate.Tests;
 
 public sealed class AvatarAppearanceMigrationTests
 {
@@ -12,7 +10,7 @@ public sealed class AvatarAppearanceMigrationTests
         var path = Path.Combine(Path.GetTempPath(), $"avatar-migration-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.CreateUnstamped(path);
             using var connection = new SqliteConnection($"Data Source={path}"); connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = """
@@ -21,8 +19,9 @@ public sealed class AvatarAppearanceMigrationTests
                 INSERT INTO items(item_uid,item_core,appearance_item_id) VALUES(123,zeroblob(82),26596);
                 """;
             command.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            _ = new SqliteDatabase(path, new DomainTransactionScope()); // idempotent
+            Unversioned.Migrate(path);
+            Unversioned.Migrate(path); // idempotent
+            _ = Unversioned.Open(path);
             command.CommandText = "SELECT appearance_item_id FROM items WHERE item_uid=123";
             Assert.Equal(26596L, command.ExecuteScalar());
             command.CommandText = "UPDATE items SET appearance_item_id=0 WHERE item_uid=123";

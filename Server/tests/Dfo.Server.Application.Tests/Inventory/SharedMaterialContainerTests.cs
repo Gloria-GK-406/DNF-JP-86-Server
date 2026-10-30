@@ -34,21 +34,7 @@ public sealed class SharedMaterialContainerTests
                     .GrantAsync(new CharacterId(1), containers, 3033, 3, default);
             });
             Assert.Equal(10, (await shared.GetAsync(0, default))!.Count);
-            Assert.Equal(0, host.Scalar("SELECT cube_black FROM accounts WHERE account_id=1"));
         });
-    }
-
-    [Fact]
-    public async Task Legacy_columns_cannot_change_current_shared_material_contents_or_entry_projection()
-    {
-        using var host = Fixture();
-        await host.SeedShared(3033, 7);
-        host.Sql("UPDATE accounts SET cube_black=999 WHERE account_id=1");
-        Assert.Equal(7, (await host.Shared().GetAsync(0, default))!.Count);
-        var entry = await host.Services.GetRequiredService<IAccountInventoryEntryRepository>()
-            .LoadAccountAsync(new AccountId(1), new CharacterId(1), default);
-        Assert.Equal(7, Assert.Single(entry.AccountVirtualResources, x => x.ItemId == 3033).Value);
-        Assert.Equal(999, host.Scalar("SELECT cube_black FROM accounts WHERE account_id=1"));
     }
 
     [Fact]

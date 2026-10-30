@@ -170,7 +170,6 @@ public sealed class CharacterRepositoryProductsTests
             byte[] nameBytes,
             int job,
             int slotIndex,
-            byte[] appearanceBlob,
             CancellationToken cancellationToken) => throw Unneeded();
 
         public ValueTask<int> SetGrowTypeAsync(CharacterId characterId, int expectedGrowType, int growType,

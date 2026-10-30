@@ -8,10 +8,12 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfDarkElfRuinsContentSource(PvfArchiveProvider provider) : IDarkElfRuinsContentSource
+internal sealed class PvfDarkElfRuinsContentSource(PvfArchiveProvider provider) : IDarkElfRuinsContentSource, IContentWarmup
 {
     private readonly Lazy<DarkElfRuinsCatalog> cache = new(() => Read(provider.Archive));
     public DarkElfRuinsCatalog Load() => cache.Value;
+    public string Name => "dark-elf-ruins";
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) => ValueTask.FromResult(Load().Dungeons.Count);
 
     internal const string Path = "etc/dungeonetc/licensedungeoninfo.etc";
 

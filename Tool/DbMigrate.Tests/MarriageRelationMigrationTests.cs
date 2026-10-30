@@ -1,8 +1,7 @@
-using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Marriage;
 using Microsoft.Data.Sqlite;
-namespace Dfo.Server.Persistence.Tests.Schema;
+namespace DbMigrate.Tests;
 public sealed class MarriageRelationMigrationTests
 {
     private const string OldShape = """
@@ -43,9 +42,9 @@ public sealed class MarriageRelationMigrationTests
 
     private static readonly string[] Expected =
     [
-        "p01|5|||0|1", "p02|5|||0|1", "p03|0|||0|1",
-        "p04|4|c04|1792206195530|7|1", "p05|4|c05||3|1", "p06|3|c06||0|1", "p07|2|c07||0|1",
-        "p08|1|||0|1", "p09|1|||0|1", "p10|1|||0|1", "p11|1|||0|1",
+        "p01|5|||1", "p02|5|||1", "p03|0|||1",
+        "p04|4|c04|1792206195530|1", "p05|4|c05||1", "p06|3|c06||1", "p07|2|c07||1",
+        "p08|1|||1", "p09|1|||1", "p10|1|||1", "p11|1|||1",
     ];
 
     [Fact]
@@ -58,7 +57,8 @@ public sealed class MarriageRelationMigrationTests
             q.CommandText = OldShape + Seed(); q.ExecuteNonQuery();
             var legacy = Legacy(q);
             var before = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var database = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
+            var database = Unversioned.Open(path);
             var after = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             Assert.Equal(Expected, Relations(q));
             q.CommandText = "SELECT MIN(stage_since)||':'||MAX(stage_since) FROM marriage_relations";
@@ -69,9 +69,9 @@ public sealed class MarriageRelationMigrationTests
 
             q.CommandText = "UPDATE marriage_relations SET revision=9 WHERE id='p10'"; q.ExecuteNonQuery();
             var settled = Relations(q);
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
             Assert.Equal(settled, Relations(q));
-            Assert.Contains("p10|1|||0|9", settled);
+            Assert.Contains("p10|1|||9", settled);
             Assert.Equal(legacy, Legacy(q));
             q.CommandText = "SELECT COUNT(DISTINCT stage_since) FROM marriage_relations"; Assert.Equal(1L, q.ExecuteScalar());
 
@@ -83,11 +83,17 @@ public sealed class MarriageRelationMigrationTests
     }
 
     /// <summary>
-    /// Points only grow and the new binary writes both columns equal, so an old column ahead of the relation row can only be
-    /// an old binary's coupon: startup lifts the relation to it. Equal or lower old columns, and stages, are left alone.
+    /// Shared points become each spouse's personal points once, from whichever old column is ahead, and both old
+    /// columns are dropped afterwards.
     /// </summary>
-    [Fact]
-    public void Startup_after_personal_migration_leaves_legacy_columns_as_audit_only()
+    /// <remarks>
+    /// A database from before relations has only the wedding's column. One from between relations and personal points
+    /// also has the relation's, which a coupon may have taken past the wedding's; points only grew, so the larger wins.
+    /// </remarks>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Old_shared_points_are_split_from_the_larger_column_and_the_columns_are_dropped(bool relationColumn)
     {
         var path = Path.Combine(Path.GetTempPath(), $"relation-love-{Guid.NewGuid():N}.db");
         try
@@ -100,25 +106,35 @@ public sealed class MarriageRelationMigrationTests
                 ("q3", 1, [("q3c", 1, 1, 0, 3)]),
                 ("q4", 1, [("q4old", 3, 2, 0, 9), ("q4c", 0, -1, 0, 0)]),
             ]);
+            if (relationColumn)
+                q.CommandText += """
+                    CREATE TABLE marriage_relations (
+                        id TEXT PRIMARY KEY REFERENCES marriage_proposals(id),
+                        stage INTEGER NOT NULL CHECK(stage BETWEEN 0 AND 15),
+                        revision INTEGER NOT NULL CHECK(revision>=1),
+                        stage_since INTEGER NOT NULL,
+                        ceremony_id TEXT REFERENCES marriage_ceremonies(id),
+                        married_at INTEGER,
+                        love_points INTEGER NOT NULL DEFAULT 0 CHECK(love_points>=0),
+                        CHECK((stage IN (2,3,4)) = (ceremony_id IS NOT NULL)));
+                    INSERT INTO marriage_relations VALUES('q1',4,1,0,'q1c',NULL,2),('q3',4,1,0,'q3c',NULL,8);
+                    """;
             q.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            Assert.Equal(["q1|4|q1c||5|1", "q2|4|q2c||4|1", "q3|4|q3c||3|1", "q4|2|q4c||0|1"], Relations(q));
+            Unversioned.Migrate(path);
+            Unversioned.Migrate(path);
 
-            // The old binary spent a coupon on q1; something left q3's relation row ahead of its old column.
+            // q1: the wedding's 5 beats the relation's 2. q3: the relation's 8 beats the wedding's 3 when it is there.
+            var q3 = relationColumn ? 8 : 3;
+            Assert.Equal([$"q1|5", "q2|4", $"q3|{q3}"],
+                Rows(q, "SELECT relation_id||'|'||shared_points FROM marriage_points_migration_audit ORDER BY relation_id"));
+            Assert.Equal(["100|2", "101|3", "102|2", "103|2", $"104|{q3 / 2}", $"105|{q3 - (q3 / 2)}"],
+                Rows(q, "SELECT character_id||'|'||points FROM marriage_personal_points ORDER BY character_id"));
             q.CommandText = """
-                UPDATE marriage_weddings SET love_points=6 WHERE ceremony_id='q1c';
-                UPDATE marriage_relations SET love_points=8 WHERE id='q3';
+                SELECT COUNT(*) FROM pragma_table_info('marriage_relations') WHERE name='love_points'
+                UNION ALL SELECT COUNT(*) FROM pragma_table_info('marriage_weddings') WHERE name='love_points'
                 """;
-            q.ExecuteNonQuery();
-            var legacy = Legacy(q);
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            string[] reconciled = ["q1|4|q1c||5|1", "q2|4|q2c||4|1", "q3|4|q3c||8|1", "q4|2|q4c||0|1"];
-            Assert.Equal(reconciled, Relations(q));
-            Assert.Equal(legacy, Legacy(q));
-
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            Assert.Equal(reconciled, Relations(q));
-            Assert.Equal(legacy, Legacy(q));
+            using (var reader = q.ExecuteReader())
+                while (reader.Read()) Assert.Equal(0L, reader.GetInt64(0));
             q.CommandText = "PRAGMA integrity_check"; Assert.Equal("ok", q.ExecuteScalar());
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
@@ -134,7 +150,7 @@ public sealed class MarriageRelationMigrationTests
         {
             using var db = new SqliteConnection($"Data Source={path}"); db.Open(); using var q = db.CreateCommand();
             q.CommandText = OldShape + Seed([("wallet", 1, [("wc", 1, 1, 0, 40)])]); q.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
             q.CommandText = "SELECT name FROM sqlite_master WHERE name='marriage_personal_points'";
             Assert.Equal("marriage_personal_points", q.ExecuteScalar());
             q.CommandText = "SELECT points FROM marriage_personal_points ORDER BY character_id";
@@ -143,13 +159,11 @@ public sealed class MarriageRelationMigrationTests
                 Assert.True(reader.Read()); Assert.Equal(20, reader.GetInt32(0));
                 Assert.True(reader.Read()); Assert.Equal(20, reader.GetInt32(0)); Assert.False(reader.Read());
             }
-            q.CommandText = "UPDATE marriage_personal_points SET points=7 WHERE character_id=100; UPDATE marriage_weddings SET love_points=999";
+            q.CommandText = "UPDATE marriage_personal_points SET points=7 WHERE character_id=100";
             q.ExecuteNonQuery();
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            Unversioned.Migrate(path);
             q.CommandText = "SELECT points FROM marriage_personal_points WHERE character_id=100";
             Assert.Equal(7L, q.ExecuteScalar());
-            q.CommandText = "SELECT love_points FROM marriage_relations WHERE id='wallet'";
-            Assert.Equal(40L, q.ExecuteScalar());
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
@@ -175,14 +189,14 @@ public sealed class MarriageRelationMigrationTests
     }
 
     private static string[] Relations(SqliteCommand q) => Rows(q,
-        "SELECT id||'|'||stage||'|'||IFNULL(ceremony_id,'')||'|'||IFNULL(married_at,'')||'|'||love_points||'|'||revision FROM marriage_relations ORDER BY id");
+        "SELECT id||'|'||stage||'|'||IFNULL(ceremony_id,'')||'|'||IFNULL(married_at,'')||'|'||revision FROM marriage_relations ORDER BY id");
 
     private static string[] Legacy(SqliteCommand q) =>
     [
         .. Rows(q, "SELECT id||payload_json||state||revision||created_at||IFNULL(response,'-') FROM marriage_proposals ORDER BY id"),
         .. Rows(q, "SELECT proposal_id||role||character_id||active FROM marriage_proposal_participants ORDER BY proposal_id,role"),
         .. Rows(q, "SELECT id||relation_id||state||revision||IFNULL(response,'-') FROM marriage_ceremonies ORDER BY id"),
-        .. Rows(q, "SELECT ceremony_id||relation_id||phase||paid_gold||completed_at||love_points FROM marriage_weddings ORDER BY ceremony_id"),
+        .. Rows(q, "SELECT ceremony_id||relation_id||phase||paid_gold||completed_at FROM marriage_weddings ORDER BY ceremony_id"),
     ];
 
     private static string[] Rows(SqliteCommand q, string sql)

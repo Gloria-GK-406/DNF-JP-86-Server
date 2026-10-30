@@ -87,7 +87,7 @@ internal sealed class QuestTestCommands
     {
         public async ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity s,CancellationToken ct){
             var entry=await entries.LoadAsync(s.AccountId,s.CharacterId,ct);entry=entry with {Skills=entry.Skills with {ProtocolMirror=await points.RemainingAsync(s.CharacterId,ct)}};
-            return new(await characters.LoadForSelectionAsync(s.AccountId,0,ct),entry,await inventory.ReadCurrentAsync(s.AccountId,s.CharacterId,ct),new(s.AccountId,new(s.AccountId,new(InventoryContainerType.AccountCargo,0,[]),[],0,0,0),[]),null!,new GameWorldEntryState(DateTimeOffset.UnixEpoch,StubWorldContentEntryRuleService.EmptyContent,new ChannelEntryPolicyState(11,null!,true,false)),null!);
+            return new(await characters.LoadForSelectionAsync(s.AccountId,0,ct),entry,await inventory.ReadCurrentAsync(s.AccountId,s.CharacterId,ct),new(s.AccountId,new(s.AccountId,new(InventoryContainerType.AccountCargo,0,[]),[],0,0),[]),null!,new GameWorldEntryState(DateTimeOffset.UnixEpoch,StubWorldContentEntryRuleService.EmptyContent,new ChannelEntryPolicyState(11,null!,true,false)),null!);
         }
     }
 }

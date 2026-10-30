@@ -105,7 +105,7 @@ public sealed class CharacterEntryStateTests
         accountId,
         characterId,
         new CharacterProfileStorageRecord(
-            1, 60, 44, [1, 2],
+            1, 60, 44,
             new CharacterConditionStorageRecord(7, 8, 1, 0, 0, 0, 0, 0, 5),
             new CharacterSettingsStorageRecord(3),
             new CharacterPvpStandingStorageRecord(
@@ -133,7 +133,7 @@ public sealed class CharacterEntryStateTests
             [new CharacterTitleBookStorageRow(0, 1, ItemCore(1001, 17))],
             [new CharacterAchievementStorageRow(0, 500, 1, 2, 3, 4)],
             [(3, 0, 700)],
-            (2, 10, 1, 3, 4, 6, [70]),
+            (2, 1, 3, 4, 6, [70]),
             new CharacterMailboxStorageRecord(0, []),
             [(0, 900, 12)]));
 

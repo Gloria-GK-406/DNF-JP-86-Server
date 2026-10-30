@@ -18,8 +18,7 @@ public sealed record InventoryContainerParameter(
 public sealed record AccountCargoStorageState(
     AccountId AccountId,
     ushort SelectionKey,
-    int Value32,
-    ushort StoredItemCount);
+    int Value32);
 
 public sealed record InventoryItemValueStorageRecord(
     CharacterId CharacterId,

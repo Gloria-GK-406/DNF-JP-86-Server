@@ -6,7 +6,7 @@ using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Inventory;
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Tests.Inventory;
+namespace DbMigrate.Tests;
 
 public sealed class SharedMaterialMigrationTests
 {
@@ -61,7 +61,7 @@ public sealed class SharedMaterialMigrationTests
         db.Ensure();
         Assert.Equal(36, db.Scalar($"SELECT count FROM item_slots WHERE owner_id=2 AND list_type={SharedList}"));
         Assert.Equal(12, db.Scalar("SELECT COUNT(*) FROM items"));
-        Assert.Equal(int.MaxValue, db.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
+        Assert.Equal(0, db.LegacyColumnCount);
     }
 
     [Theory]
@@ -94,7 +94,7 @@ public sealed class SharedMaterialMigrationTests
         db.Ensure();
         Assert.Equal(2, db.Scalar("SELECT COUNT(*) FROM item_slots"));
         Assert.Equal(2, db.Scalar("SELECT COUNT(*) FROM items"));
-        Assert.Equal(1, db.MarkerCount);
+        Assert.Equal(1, db.Scalar("PRAGMA user_version"));
     }
 
     [Theory]
@@ -121,18 +121,28 @@ public sealed class SharedMaterialMigrationTests
         Assert.Equal(5, db.Scalar("SELECT cube_clear FROM accounts WHERE account_id=1"));
     }
 
+    /// <summary>A database from before the migration: balances in account columns and no marker.</summary>
     private sealed class LegacyDatabase : IDisposable
     {
+        private static readonly string[] LegacyColumns =
+        [
+            "cube_black", "cube_white", "cube_red", "cube_blue", "cube_clear", "cube_gold",
+            "soul_common", "soul_advanced", "soul_rare", "soul_unique", "soul_legendary",
+        ];
+
         private readonly string path = Path.Combine(Path.GetTempPath(), $"dfo-material-migration-{Guid.NewGuid():N}.db");
         public SqliteConnection Connection { get; }
         public LegacyDatabase()
         {
-            Ensure();
+            Unversioned.CreateUnstamped(path);
             Connection = new SqliteConnection($"Data Source={path}");
             Connection.Open();
-            Sql("DROP TABLE IF EXISTS schema_migrations");
+            Sql(string.Concat(LegacyColumns.Select(
+                column => $"ALTER TABLE accounts ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0;")));
         }
-        public void Ensure() => _ = new SqliteDatabase(path, new DomainTransactionScope());
+        public long LegacyColumnCount => Scalar("SELECT COUNT(*) FROM pragma_table_info('accounts') WHERE name IN ("
+            + string.Join(',', LegacyColumns.Select(column => $"'{column}'")) + ")");
+        public void Ensure() => Unversioned.Migrate(path);
         public long MarkerCount => Scalar("SELECT COUNT(*) FROM sqlite_master WHERE name='schema_migrations'") == 0
             ? 0 : Scalar("SELECT COUNT(*) FROM schema_migrations WHERE name='account-shared-material-v1'");
         public void Sql(string sql) { using var command = Connection.CreateCommand(); command.CommandText = sql; command.ExecuteNonQuery(); }

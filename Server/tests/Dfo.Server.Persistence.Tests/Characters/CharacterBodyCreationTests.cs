@@ -30,7 +30,6 @@ public sealed class CharacterBodyCreationTests
     /// </remarks>
     public static TheoryData<string, string, long> Defaults() => new()
     {
-        { "characters", "skill_tree_index", -1 },
         { "characters", "direction", 5 },
         { "characters", "area_state", 3 },
         { "characters", "level", 1 },

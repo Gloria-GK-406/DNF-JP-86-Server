@@ -8,19 +8,20 @@ internal sealed class SqliteCharacterSkillBuildTable(SqliteDatabase database) : 
     public async ValueTask<CharacterSkillBuilds> ReadAsync(CharacterId id, CancellationToken ct)
     {
         var active = await database.ReadAllAsync(
-            "SELECT COALESCE(active_skill_build,MAX(skill_tree_index,0)),skill_tree_index FROM characters WHERE character_id=@cid",
-            p => p.AddWithValue("@cid", id.Value), r => (Active: r.GetInt32(0), Legacy: r.GetInt32(1)), ct);
+            "SELECT COALESCE(active_skill_build,0) FROM characters WHERE character_id=@cid",
+            p => p.AddWithValue("@cid", id.Value), r => r.GetInt32(0), ct);
         if (active.Count != 1) throw new InvalidOperationException("Skill build character is unavailable.");
         var rows = await database.ReadAllAsync(
             "SELECT build_id,unlocked FROM character_skill_builds WHERE character_id=@cid ORDER BY build_id",
             p => p.AddWithValue("@cid", id.Value), r => new CharacterSkillBuild(new(r.GetInt32(0)), r.GetInt32(1) != 0), ct);
-        if (rows.Count != 0) return new(new(active[0].Active), rows);
-        // Legacy/new characters are projected without writes. First mutation materializes this state.
+        if (rows.Count != 0) return new(new(active[0]), rows);
+        // A character whose pages were never changed is projected without writes: page 0, a locked
+        // page 1 and any page holding skills. Its first change materializes this state.
         var ids = await database.ReadAllAsync(
             "SELECT DISTINCT page_index FROM character_skills WHERE character_id=@cid AND mode='pve'",
             p => p.AddWithValue("@cid", id.Value), r => r.GetInt32(0), ct);
-        return new(new(active[0].Active), ids.Append(0).Append(1).Distinct().Order()
-            .Select(i => new CharacterSkillBuild(new(i), i != 1 || active[0].Legacy >= 0)).ToArray());
+        return new(new(active[0]), ids.Append(0).Append(1).Distinct().Order()
+            .Select(i => new CharacterSkillBuild(new(i), i != 1)).ToArray());
     }
 
     public async ValueTask EnsureAsync(CharacterId id, CancellationToken ct)

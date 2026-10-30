@@ -9,7 +9,7 @@ public sealed record CharacterRosterRow(int CharacterId, int SlotIndex, int Leve
 /// <summary>What a character looks like in a list of them.</summary>
 public sealed record CharacterSummaryRow(
     int CharacterId, int SlotIndex, byte[] Name, int Job, int GrowType, int Level,
-    long CloneTitleItemId, byte[] AppearanceBlob, int CreatedAtUnixSeconds)
+    long CloneTitleItemId, int CreatedAtUnixSeconds)
 {
     /// <summary>Persisted location, populated by the selection lookup.</summary>
     public CharacterPositionState Position { get; init; } = new(0, 0, 0, 0, 5);
@@ -143,7 +143,6 @@ public interface ICharacterTable
         byte[] nameBytes,
         int job,
         int slotIndex,
-        byte[] appearanceBlob,
         CancellationToken cancellationToken);
 
     /// <summary>Moves a character along. Says how many rows that touched.</summary>

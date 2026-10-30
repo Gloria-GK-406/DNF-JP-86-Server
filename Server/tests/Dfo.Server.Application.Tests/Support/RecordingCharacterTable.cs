@@ -77,7 +77,6 @@ internal sealed class RecordingCharacterTable(int level, uint experience) : ICha
         byte[] nameBytes,
         int job,
         int slotIndex,
-        byte[] appearanceBlob,
         CancellationToken cancellationToken) => throw Unneeded();
 
     public ValueTask<bool> MarkDeletedAsync(

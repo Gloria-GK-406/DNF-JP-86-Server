@@ -201,8 +201,9 @@ public sealed class CurrentCharacterStateTests
             await using var transaction = Scope.Begin();
             await SqlAsync($"""
                 INSERT INTO accounts(account_id,m_id) VALUES(1,'current');
-                INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,exp,bonus_sp,bonus_tp,skill_tree_index)
+                INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,exp,bonus_sp,bonus_tp,active_skill_build)
                 VALUES(71,1,'current',X'4142',0,1,16,{ExpFor(16)},5,3,1);
+                INSERT INTO character_skill_builds VALUES(71,0,1),(71,1,1);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0);
                 INSERT INTO character_stats(character_id,stat_hp_max,progress1,progress2,current_hp_mp_percent) VALUES(71,17,4,5,73);
                 INSERT INTO character_pvp(character_id) VALUES(71);

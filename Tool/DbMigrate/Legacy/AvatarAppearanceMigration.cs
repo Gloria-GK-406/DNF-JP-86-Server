@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 
-namespace Dfo.Server.Persistence.Schema;
+namespace DbMigrate.Legacy;
 
 internal static class AvatarAppearanceMigration
 {

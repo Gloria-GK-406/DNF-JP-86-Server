@@ -534,8 +534,8 @@ public sealed class OrdinaryQuestEffectTests
     }
     private static void CompositeSeed(ShopFixture shop,bool materialized)
     {
-        shop.Sql("UPDATE characters SET level=1,exp=90,bonus_sp=5,bonus_tp=3,skill_tree_index=-1 WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,0,2001,0),(1,1,2002,3); INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',0,0,999,3,X'0102'),(1,'pve',1,3,1,2,X'0908')");
-        if(materialized) shop.Sql("UPDATE characters SET skill_tree_index=0 WHERE character_id=1; INSERT INTO character_skill_builds VALUES(1,0,1),(1,1,0),(1,256,0); INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',256,4,999,3,X'0304')");
+        shop.Sql("UPDATE characters SET level=1,exp=90,bonus_sp=5,bonus_tp=3 WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,0,2001,0),(1,1,2002,3); INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',0,0,999,3,X'0102'),(1,'pve',1,3,1,2,X'0908')");
+        if(materialized) shop.Sql("INSERT INTO character_skill_builds VALUES(1,0,1),(1,1,0),(1,256,0); INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values) VALUES(1,'pve',256,4,999,3,X'0304')");
     }
     [Theory]
     [InlineData(false)]

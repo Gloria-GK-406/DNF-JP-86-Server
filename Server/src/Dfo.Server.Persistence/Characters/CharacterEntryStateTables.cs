@@ -16,7 +16,6 @@ namespace Dfo.Server.Persistence.Characters;
 /// </remarks>
 internal static class EntryBlob
 {
-    public const int Appearance = 16 * 1024;
     public const int Option = 64 * 1024;
     public const int Combo = 64 * 1024;
     public const int CreatureText = 4 * 1024;
@@ -59,8 +58,8 @@ internal sealed class SqliteCharacterEntryTable(SqliteDatabase database) : IChar
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadFirstAsync(
             """
-            SELECT account_id, job, level, clone_title_item_id, appearance_blob,
-                   exp, ex_equip_slot_stat, user_state, skill_tree_index, name_tag_item_id,
+            SELECT account_id, job, level, clone_title_item_id,
+                   exp, ex_equip_slot_stat, user_state, name_tag_item_id,
                    name_tag_expire_time, manage_level, guild_power_war, guild_level
             FROM characters
             WHERE character_id=@cid AND delete_flag=0;
@@ -68,10 +67,9 @@ internal sealed class SqliteCharacterEntryTable(SqliteDatabase database) : IChar
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             reader => new CharacterEntryRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt64(3),
-                EntryBlob.Bounded(reader, 4, EntryBlob.Appearance, "appearance", allowNull: true),
-                reader.GetInt64(5), reader.GetInt32(6), reader.GetInt32(7), reader.GetInt32(8),
-                reader.GetInt64(9), reader.GetInt64(10), reader.GetInt32(11), reader.GetInt64(12),
-                reader.GetInt32(13)),
+                reader.GetInt64(4), reader.GetInt32(5), reader.GetInt32(6),
+                reader.GetInt64(7), reader.GetInt64(8), reader.GetInt32(9), reader.GetInt64(10),
+                reader.GetInt32(11)),
             cancellationToken);
 
     public ValueTask<BonusPointRow?> FindBonusPointsAsync(
