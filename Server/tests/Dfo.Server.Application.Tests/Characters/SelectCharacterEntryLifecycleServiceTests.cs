@@ -273,6 +273,9 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
             ValueTask.FromResult(accepted);
         public ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, CancellationToken ct) =>
             throw new NotSupportedException();
+        public bool IsCycleClear(Dfo.Server.Abstractions.World.DungeonRunState? run) => throw new NotSupportedException();
+        public bool CanSubmitCycleQuest(Dfo.Server.Abstractions.World.DungeonRunState? run, IReadOnlyList<AcceptedQuestState> accepted) =>
+            throw new NotSupportedException();
     }
 
     private sealed class RefillConfiguration(IEntryLifecycleContentSource source) : IDailyRefillConfigurationDomainService

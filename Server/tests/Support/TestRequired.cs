@@ -139,7 +139,7 @@ internal static class TestRequired
         public ValueTask<Dfo.Server.Data.Characters.CharacterAppearance> ResolveAsync(Dfo.Server.Data.Accounts.AccountId accountId,
             Dfo.Server.Data.Characters.CharacterId characterId, IReadOnlyList<Dfo.Server.Data.Inventory.InventoryItemState> equipment,
             CancellationToken ct) =>
-            ValueTask.FromResult(Dfo.Server.Application.Characters.CharacterAppearanceRuleService.Shared.Resolve(new(new(0)), equipment, new(null, 0)));
+            ValueTask.FromResult(new Dfo.Server.Application.Characters.CharacterAppearanceRuleService().Resolve(new(new(0)), equipment, new(null, 0)));
     }
 
     private class AbsentService : System.Reflection.DispatchProxy

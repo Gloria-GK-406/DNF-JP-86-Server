@@ -15,6 +15,7 @@ namespace Dfo.Server.Host.Tests;
 /// constructor takes a service it may go without, a registered type has one public constructor for the container to
 /// choose, and the composition the executable runs is built with validation, which then refuses a missing registration.
 /// </remarks>
+[Trait("Category", "Unit")]
 public sealed class RequiredDependencyArchitectureTests
 {
     private const BindingFlags Constructors = BindingFlags.Public | BindingFlags.Instance;
