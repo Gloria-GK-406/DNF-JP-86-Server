@@ -264,8 +264,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddInternalCommandHandler<CaptureSelectedSessionRefreshCommand, SelectedSessionRefreshScan, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshQuotaSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshFatigueSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
-        services.AddInternalCommandHandler<RefreshPremiumSessionCommand, bool, SelectedSessionRefreshCommandHandler>(TimerReadOnlyCancellationCapability.PremiumSnapshot);
-        services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(TimerReadOnlyCancellationCapability.ItemUsageSnapshot);
+        services.AddInternalCommandHandler<RefreshPremiumSessionCommand, bool, SelectedSessionRefreshCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
+        services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
         services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>();
         services.TryAddScoped<ClientAppearanceVisibilityProjection>();
         services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>();

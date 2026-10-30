@@ -39,7 +39,7 @@ internal sealed class TimerRefreshFixture : IDisposable
         services.AddSingleton<IGameCommandOutbox>(sender is null ? DispatchProxy.Create<IGameCommandOutbox, Empty>() : new GameOutboxFixture(sender));
         services.AddInternalCommandHandler<CaptureSelectedSessionRefreshCommand, SelectedSessionRefreshScan, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshQuotaSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
-        services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(TimerReadOnlyCancellationCapability.ItemUsageSnapshot);
+        services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
         provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
         var type = topic switch
         {

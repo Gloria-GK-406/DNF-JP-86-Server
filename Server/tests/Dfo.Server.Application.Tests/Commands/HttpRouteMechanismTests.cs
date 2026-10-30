@@ -126,7 +126,7 @@ public sealed class HttpRouteMechanismTests
             var proxy = DispatchProxy.Create(type, typeof(DomainProxy)); ((DomainProxy)proxy).State = state;
             services.AddSingleton(type, proxy);
         }
-        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>();
+        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
         services.AddScoped<HttpRouteCommandHandler>();
         services.AddScoped<ICommandHandler<HttpRouteCommand, HttpRouteReply>>(provider =>
             new ObservingHandler(provider.GetRequiredService<HttpRouteCommandHandler>(), provider.GetRequiredService<ICommandWorkUnits>(), state, new Resource(state)));

@@ -64,7 +64,6 @@ internal sealed partial class HttpRouteCommandHandler(
     public async ValueTask<HttpRouteReply> HandleAsync(CommandExecutionContext context, HttpRouteCommand command, CancellationToken token)
     {
         Validate(context, command);
-        context.Request!.HttpOperation = command.Operation;
         if (command.Operation is HttpRouteOperation.CeraGrant or HttpRouteOperation.MailSend && command.Input is not HttpRouteInput.Failed)
             context.Request!.HttpFailure = new(context.Request, command, token);
         if (command.Input is HttpRouteInput.Failed failed)

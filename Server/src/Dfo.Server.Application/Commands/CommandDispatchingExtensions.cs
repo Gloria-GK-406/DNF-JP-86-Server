@@ -58,17 +58,17 @@ public static class CommandDispatchingExtensions
         Add<TCommand, TResult, THandler>(services, CommandRouteKind.Protocol, [.. messages], selectedSessionCleanup: capability);
 
     public static IServiceCollection AddInternalCommandHandler<TCommand, TResult, THandler>(this IServiceCollection services,
-        TimerReadOnlyCancellationCapability timerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None,
+        ReadOnlyActionCancellationCapability readOnlyActionCancellation = ReadOnlyActionCancellationCapability.None,
         InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult> =>
-        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Internal, null, timerReadOnlyCancellation: timerReadOnlyCancellation, internalActionCancellation: internalActionCancellation);
+        Add<TCommand, TResult, THandler>(services, CommandRouteKind.Internal, null, readOnlyActionCancellation: readOnlyActionCancellation, internalActionCancellation: internalActionCancellation);
 
     private static IServiceCollection Add<TCommand, TResult, THandler>(IServiceCollection services,
         CommandRouteKind route, IReadOnlyList<ProtocolCommandMessageBinding>? messages, IReadOnlyCollection<CommandRegistrationExit>? exits = null,
         CommandSelfSettlementCapability selfSettlement = CommandSelfSettlementCapability.None,
         CommandSelectedSessionCleanupCapability selectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
-        TimerReadOnlyCancellationCapability timerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None,
+        ReadOnlyActionCancellationCapability readOnlyActionCancellation = ReadOnlyActionCancellationCapability.None,
         InternalActionCancellationCapability internalActionCancellation = InternalActionCancellationCapability.None)
         where TCommand : class, ICommand<TResult> where TResult : notnull
         where THandler : class, ICommandHandler<TCommand, TResult>
@@ -80,7 +80,7 @@ public static class CommandDispatchingExtensions
             typeof(TCommand),
             typeof(THandler),
             typeof(CommandInvoker<TCommand, TResult>),
-            route, messages, exits, selfSettlement, selectedSessionCleanup, timerReadOnlyCancellation, internalActionCancellation).Freeze());
+            route, messages, exits, selfSettlement, selectedSessionCleanup, readOnlyActionCancellation, internalActionCancellation).Freeze());
         return services;
     }
 }

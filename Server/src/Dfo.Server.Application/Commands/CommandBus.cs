@@ -184,8 +184,9 @@ internal sealed class CommandBus(
                 var internalRequest = new CommandRequestContext.TrustedInternal(origin ?? throw new InvalidOperationException("Missing internal origin."));
                 request = internalRequest;
                 request.ProducerCancellation = cancellation;
-                if (origin?.Kind == GameplayCallSource.Timer && origin.Cancellation == InternalCommandCancellation.BodyOnly)
-                    request.TimerReadOnlyCancellation = registration.TimerReadOnlyCancellation;
+                if (origin is { Kind: GameplayCallSource.Timer or GameplayCallSource.Http or GameplayCallSource.Gm,
+                    Cancellation: InternalCommandCancellation.BodyOnly })
+                    request.ReadOnlyActionCancellation = registration.ReadOnlyActionCancellation;
                 if (origin is { Kind: GameplayCallSource.Timer or GameplayCallSource.Event or GameplayCallSource.StartupRecovery,
                     Cancellation: InternalCommandCancellation.BodyOnly })
                     request.InternalActionCancellation = registration.InternalActionCancellation;

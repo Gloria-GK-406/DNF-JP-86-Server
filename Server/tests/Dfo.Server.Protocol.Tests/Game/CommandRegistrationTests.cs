@@ -95,7 +95,7 @@ public sealed class CommandRegistrationTests
         Assert.DoesNotContain(rows, x => x.CommandType.Name == "ReadPremiumSnapshotCommand");
         var dailyRead = Assert.Single(rows, x => x.CommandType.Name == "RefreshPremiumSessionCommand");
         Assert.Equal(CommandRouteKind.Internal, dailyRead.Route);
-        Assert.Equal(TimerReadOnlyCancellationCapability.PremiumSnapshot, dailyRead.TimerReadOnlyCancellation);
+        Assert.Equal(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead, dailyRead.ReadOnlyActionCancellation);
     }
 
     [Fact]
@@ -152,8 +152,8 @@ public sealed class CommandRegistrationTests
         Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestClearCoupon.FatiguePotionHandler"));
         Assert.Null(typeof(ProtocolModule).Assembly.GetType("Dfo.Server.Protocol.Game.QuestClearCoupon.EntryAllowanceHandler"));
         Assert.DoesNotContain(rows, x => x.CommandType.Name == "ReadItemUsageSnapshotCommand");
-        Assert.Equal(TimerReadOnlyCancellationCapability.ItemUsageSnapshot,
-            Assert.Single(rows, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.StateSynchronization.RefreshItemUsageSessionCommand)).TimerReadOnlyCancellation);
+        Assert.Equal(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead,
+            Assert.Single(rows, x => x.CommandType == typeof(Dfo.Server.Protocol.Game.StateSynchronization.RefreshItemUsageSessionCommand)).ReadOnlyActionCancellation);
     }
 
     [Fact]

@@ -307,9 +307,7 @@ internal sealed class CommandWorkUnits(DomainTransactionScope transactions, Sele
                         && request.InternalActionCancellation == InternalActionCancellationCapability.ConfirmedRollbackWriteResult)
                     && declaration.Kind == CommandWorkUnitKind.Ordinary
                     && (!readOnly || request is CommandRequestContext.TrustedInternal
-                        && (request.HttpOperation is HttpRouteOperation.Events or HttpRouteOperation.WeeklyAttendance or HttpRouteOperation.JoustSettings or HttpRouteOperation.JoustRound
-                            || request.TimerReadOnlyCancellation == TimerReadOnlyCancellationCapability.PremiumSnapshot && declaration.Name == "premium.snapshot"
-                            || request.TimerReadOnlyCancellation == TimerReadOnlyCancellationCapability.ItemUsageSnapshot && declaration.Name == "item-usage.snapshot")))
+                        && request.ReadOnlyActionCancellation == ReadOnlyActionCancellationCapability.ConfirmedRollbackRead))
                     request.ProducerCancellation?.ObserveAction(request, lease, ct, cancellation);
                 throw;
             }

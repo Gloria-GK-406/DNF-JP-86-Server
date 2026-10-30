@@ -27,7 +27,7 @@ public interface IProtocolCommand<TResult> : ICommand<TResult>, IProtocolCommand
 public abstract class CommandRequestContext
 {
     internal InternalActionCancellationCapability InternalActionCancellation { get; set; }
-    internal TimerReadOnlyCancellationCapability TimerReadOnlyCancellation { get; set; }
+    internal ReadOnlyActionCancellationCapability ReadOnlyActionCancellation { get; set; }
 
     private readonly Guid job = GameplayJob.Current?.Id ?? throw new InvalidOperationException("A request begins on a gameplay job.");
     private readonly List<SelectedSessionRecipient> committed = [];
@@ -176,7 +176,6 @@ public abstract class CommandRequestContext
         }
         FailedIndependent(error, new object());
     }
-    internal HttpRouteOperation? HttpOperation { get; set; }
     internal HttpCommandFailureState? HttpFailure { get; set; }
     internal object[] FailureSources() => failures.Select(item => item.Source).ToArray();
     internal void DemandHttpFailureAuditLifetime()

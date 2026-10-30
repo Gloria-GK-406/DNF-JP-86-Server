@@ -78,7 +78,9 @@ footprint 只在获准 ordinary 写单元的活跃 action 使用，不扩大 Mai
 - 选角／回选精确 cleanup 只做固定动作，失败后不能恢复普通写或登记。HTTP Cera／Mail 审计必须匹配实际
   输入、request、command、origin／job和唯一完整失败；外侧响应搬运不把原作业改为成功。
 - BodyOnly 取消仅在本次 producer token 已取消、批准的实际 action/body 发生、健康清理且无其它失败时回给
-  producer；DI、commit、guard、scope-only、未知取消和提交后取消不能借用。
+  producer；DI、commit、guard、scope-only、未知取消和提交后取消不能借用。只读单元的 action 取消另须
+  命令注册时声明 `ReadOnlyActionCancellation`（仅内部路由），且来源为 Timer／Http／Gm 的 BodyOnly；
+  机制不按路由、操作或单元名判断，能否干净取消是 CMD 自己的能力。
 - 调度完成桥仅搬运已健康完成的原业务 Aggregate；Reliable 消费保 claim／调用／complete／commit／forget／
   dispose 顺序，原业务失败清理后才回滚并登记 retry。LiveOnly 消费决定先提交，不补播。
 - 三个获准的 raw 编码出口分别是 UseStackable 的 `SettledRequiredExplicit`、具名重放 owner 的

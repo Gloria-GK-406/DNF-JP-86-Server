@@ -6,7 +6,8 @@ namespace Dfo.Server.Application.Commands;
 public enum CommandSelectedSessionCleanupCapability { None, SelectedSessionLifecycle }
 public enum CommandSelfSettlementCapability { None, SelfSettledAction }
 public enum InternalActionCancellationCapability { None, ConfirmedRollbackWriteResult }
-public enum TimerReadOnlyCancellationCapability { None, PremiumSnapshot, ItemUsageSnapshot }
+/// <summary>A read-only unit of this command has no effect, so its requested body cancellation can return to the producer.</summary>
+public enum ReadOnlyActionCancellationCapability { None, ConfirmedRollbackRead }
 public enum CommandRouteKind { Protocol, Internal }
 public sealed record ProtocolCommandMessageBinding(ClientMessageType MessageType, Type MessageClrType);
 
@@ -19,7 +20,7 @@ public sealed record CommandHandlerRegistration(
     IReadOnlyCollection<CommandRegistrationExit>? RegistrationExits = null,
     CommandSelfSettlementCapability SelfSettlement = CommandSelfSettlementCapability.None,
     CommandSelectedSessionCleanupCapability SelectedSessionCleanup = CommandSelectedSessionCleanupCapability.None,
-    TimerReadOnlyCancellationCapability TimerReadOnlyCancellation = TimerReadOnlyCancellationCapability.None,
+    ReadOnlyActionCancellationCapability ReadOnlyActionCancellation = ReadOnlyActionCancellationCapability.None,
     InternalActionCancellationCapability InternalActionCancellation = InternalActionCancellationCapability.None)
 {
     internal CommandHandlerRegistration Freeze() => ProtocolMessages is null && RegistrationExits is null ? this : this with
@@ -58,8 +59,8 @@ public sealed class CommandHandlerRegistry
         {
             if (!Enum.IsDefined(item.InternalActionCancellation) || item.InternalActionCancellation != InternalActionCancellationCapability.None && item.Route != CommandRouteKind.Internal)
                 throw new InvalidOperationException("Action cancellation requires its named internal registration.");
-            if (!Enum.IsDefined(item.TimerReadOnlyCancellation) || item.TimerReadOnlyCancellation != TimerReadOnlyCancellationCapability.None && item.Route != CommandRouteKind.Internal)
-                throw new InvalidOperationException("Timer snapshot cancellation requires a named internal registration.");
+            if (!Enum.IsDefined(item.ReadOnlyActionCancellation) || item.ReadOnlyActionCancellation != ReadOnlyActionCancellationCapability.None && item.Route != CommandRouteKind.Internal)
+                throw new InvalidOperationException("Read-only cancellation requires its named internal registration.");
             if (!Enum.IsDefined(item.SelectedSessionCleanup)
                 || item.SelectedSessionCleanup != CommandSelectedSessionCleanupCapability.None
                     && (item.Route != CommandRouteKind.Protocol || item.ProtocolMessages is not { Count: 1 }
