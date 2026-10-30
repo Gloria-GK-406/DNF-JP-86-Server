@@ -81,7 +81,7 @@ internal sealed partial class GameMapLoadingCommandHandler
         if (current!.Layout.Mode is DungeonRunMode.LostLand)
         {
             // Sending 100 again restarts the native fever clock. Only restore an inactive charge.
-            if (current.LostLandFever is { ActiveUntil: null } fever)
+            if (current.ModeState is DungeonRunModeState.LostLand { Fever: { ActiveUntil: null } fever })
                 await outbox.RegisterNotiAsync(connectionId,
                     new Dfo.Server.Protocol.Game.StateSynchronization.DungeonFeverGaugeMessage(
                         fever.Percent), cancellationToken).ConfigureAwait(false);

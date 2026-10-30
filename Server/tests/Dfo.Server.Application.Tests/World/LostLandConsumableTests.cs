@@ -63,8 +63,8 @@ public sealed class LostLandConsumableTests
         Assert.Equal(61002, moved.CurrentRoomMapId);
         Assert.Equal(before.RunId, moved.RunId);
         Assert.Equal(before.StartedAt, moved.StartedAt);
-        Assert.Equal(1, before.LostLandFever!.Percent);
-        Assert.Equal(before.LostLandFever, moved.LostLandFever);
+        Assert.Equal(1, before.LostLandFever()!.Percent);
+        Assert.Equal(before.LostLandFever(), moved.LostLandFever());
         Assert.Equal(before.RoomVersion + 1, moved.RoomVersion);
         Assert.Empty(moved.ReadyParticipants);
         Assert.Single(fixture.Sender.Messages, message => message.GetType().Name == "StartMapNotification");

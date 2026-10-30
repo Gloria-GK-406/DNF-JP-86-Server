@@ -35,6 +35,8 @@
 
 - 每局恰好一个 `DungeonLayout.Mode`，由负责该玩法的入场服务写入。无计划的种类（普通、次元、南部溪谷、陶之王国、封印宝藏、赫拉斯、金银角、情侣）共用 `DungeonRunMode.Plain(kind)`；
   带计划的种类各有嵌套记录（Hell、Mirror、Sao、Despair、Tournament、Altar、Guardian、GiantDragon、LostLand、DarkElfRuins）。构造函数私有，集合封闭。
+- 入场时冻结的计划放在 `Mode`；只属于一种玩法、随局变化的运行态放在 run 唯一的 `ModeState` 槽（`DungeonRunModeState` 的嵌套记录，目前只有遗忘之地的发烧与探索时限）。
+  新玩法需要运行态时加一个嵌套记录，不在 run、`DungeonRunState` 上为它另开可空字段。
 - 识别玩法一律看 `Mode`，不再按副本号或 `Supports(id)` 判断已经开局的 run。直接构造 `DungeonLayout` 的测试也要写入对应 `Mode`，否则会按普通副本处理。
 - 按 `DungeonRunKind` 写 switch 时列出每个成员，不写 `_ =>` 或 `default:`。构建只抑制 CS8524，保留 CS8509，
   所以新增种类会在每个未作答的地方编译失败；`DungeonRunKindTests` 扫描生产源码拒绝兜底分支，并带反例。
