@@ -35,7 +35,9 @@ internal sealed class SetPlayResultDriver(ISelectedSessionDomainService selected
     ILogger<SetPlayResultHandler> logger)
 {
     private readonly GameSetPlayResultCommandHandler command = ProtocolAlgorithmFixture.Create<GameSetPlayResultCommandHandler>(
-        selectedSessions, views, characters, SettlementRuns.Wrap(runs, rules), cards, offers,
+        selectedSessions, views, characters, SettlementRuns.Wrap(runs, rules),
+        ProtocolAlgorithmFixture.Create<Dfo.Server.Application.World.DungeonClearSettlementDomainService>(
+            selectedSessions, characters, SettlementRuns.Wrap(runs, rules), cards), offers,
         new ClearResultUnit(bus, runs, characters), new CardTestOutbox(sender), new TestLogger<GameSetPlayResultCommandHandler>(logger));
     public async ValueTask HandleAsync(NetworkDispatchContext context, SetPlayResultRequest input, CancellationToken ct)
     {
