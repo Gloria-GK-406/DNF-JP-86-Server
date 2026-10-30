@@ -8,7 +8,7 @@ namespace Dfo.Server.Application.World;
 /// <summary>Cached independent rows, drawn against the level the caller read.</summary>
 internal sealed class IndependentDropRuleService(
     IIndependentDropTableSource source,
-    ILogger<IndependentDropRuleService> logger, IndependentDropOptions? options = null) : IIndependentDropRuleService
+    ILogger<IndependentDropRuleService> logger, IndependentDropOptions options) : IIndependentDropRuleService
 {
     private sealed record Prepared(IndependentDropRow Row, ImmutableArray<int> Ends, bool BossEquipment);
     private sealed record Cache(IndependentDropTable Table,
@@ -18,7 +18,7 @@ internal sealed class IndependentDropRuleService(
     public int Initialize()
     {
         var count = cache.Value.Table.Rows.Length;
-        if (options?.DebugGuaranteeGrowthBossEquipment == true)
+        if (options.DebugGuaranteeGrowthBossEquipment)
             logger.LogWarning("Temporary acceptance override enabled: eligible growth-contract boss equipment pools have 100% hit probability");
         return count;
     }
@@ -48,7 +48,7 @@ internal sealed class IndependentDropRuleService(
                 && cache.Value.Table.GrowthBonusDungeonIds.Contains(request.Context.DungeonId)
                 && request.MonsterRank == 3 && growthBonusPercent > 0)
                 probability = GrowthProbability(probability, growthBonusPercent,
-                    options?.DebugGuaranteeGrowthBossEquipment == true);
+                    options.DebugGuaranteeGrowthBossEquipment);
             var count = IndependentDropRules.SuccessfulAttempts(row.Fields[7 + request.PartyMemberCount],
                 row.Fields[12], probability, 1000000, random);
             for (var i = 0; i < count; i++)

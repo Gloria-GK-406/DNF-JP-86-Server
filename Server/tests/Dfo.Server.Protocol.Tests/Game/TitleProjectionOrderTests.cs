@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Sessions;
@@ -32,6 +33,7 @@ public sealed class TitleProjectionOrderTests
             services.AddSingleton<IAchievementDomainService>(new NoAchievements());
             services.AddEventDispatching();
             services.AddNotificationDispatching();
+            services.TryAddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
             services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>();
             services.AddSingleton<AchievementEventSubscriber>();
         });

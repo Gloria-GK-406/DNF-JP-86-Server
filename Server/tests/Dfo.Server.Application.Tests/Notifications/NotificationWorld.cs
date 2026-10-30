@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using Dfo.Server.Abstractions.Execution;
@@ -321,6 +322,7 @@ internal sealed class NotificationWorld
         }));
         services.AddEventDispatching();
         services.AddNotificationDispatching();
+        services.TryAddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
         services.AddNotificationHandler<TownBellRang, TownBellHandler>();
         provider = services.BuildServiceProvider();
         Sender.Attach(new OutboundSender(Sender, [Sender],

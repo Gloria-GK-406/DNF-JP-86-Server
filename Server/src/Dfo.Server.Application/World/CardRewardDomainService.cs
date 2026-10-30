@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class CardRewardDomainService(
     IClearRewardRuleService cardRules,
     IDungeonRunCardDomainService runs,
-    IPremiumServiceDomainService premiums, IDimensionDungeonRuleService? dimensions = null) : ICardRewardDomainService
+    IPremiumServiceDomainService premiums, IDimensionDungeonRuleService dimensions) : ICardRewardDomainService
 {
     public async ValueTask<ClearRewardSettlementResult?> SettleAsync(
         ClearRewardSettlement settlement, CancellationToken cancellationToken)
@@ -135,10 +135,8 @@ internal sealed class CardRewardDomainService(
             kind is ClearRewardCardKind.BlackDiamond
                 ? SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)
                 : SeedFor(run, kind));
-        return dimensions is not null
-            ? dimensions.DrawCard(run.Layout.DungeonId, face,
-                SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)) ?? face
-            : face;
+        return dimensions.DrawCard(run.Layout.DungeonId, face,
+            SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)) ?? face;
     }
 
     /// <summary>

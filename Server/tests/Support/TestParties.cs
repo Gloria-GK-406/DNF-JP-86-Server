@@ -32,7 +32,7 @@ internal static class TestParties
         areas ?? new OnlineCharacterLocationDomainService());
 
     /// <summary>A run service over <paramref name="parties"/>, or over a fresh real party service.</summary>
-    /// <remarks>A missing transaction accessor keeps the run service's immediate-apply path.</remarks>
+    /// <remarks>A missing transaction accessor gives a scope with no ambient transaction: the immediate-apply path.</remarks>
     public static DungeonRunDomainService Runs(
         IDomainTransactionAccessor? transactions = null,
         IPartyService? parties = null,
@@ -48,8 +48,16 @@ internal static class TestParties
     {
         parties ??= Create();
         var runs = new DungeonRunDomainService(
-            transactions!, parties, new LostLandFeverRuleService(), weakness, creatures, lifecycle, clock,
-            mechanismRules, deadlines, sealedTreasureRules, participation, giantDragons: giantDragons);
+            transactions ?? Dfo.Server.Testing.TestRequired.TransactionScope(), parties, new LostLandFeverRuleService(),
+            weakness ?? Dfo.Server.Testing.TestRequired.Absent<IWeaknessDomainService>(),
+            creatures ?? Dfo.Server.Testing.TestRequired.Absent<ICreatureRuntimeDomainService>(),
+            lifecycle ?? Dfo.Server.Testing.TestRequired.Absent<IDungeonLifecycleDomainService>(), clock ?? TimeProvider.System,
+            mechanismRules ?? new DungeonRoomMechanismRuleService(),
+            deadlines ?? Dfo.Server.Testing.TestRequired.Absent<IDungeonDeadlineWake>(),
+            sealedTreasureRules ?? new SealedTreasureRuleService(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IDungeonDefinitionSource>()),
+            participation ?? Dfo.Server.Testing.TestRequired.Absent<IDungeonParticipationDomainService>(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonRunDomainService>.Instance,
+            new DungeonSettlementRuleService(), giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<IGiantDragonRuleService>());
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;
     }

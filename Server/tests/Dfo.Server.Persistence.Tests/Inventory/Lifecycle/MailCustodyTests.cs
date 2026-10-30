@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Transactions;
@@ -204,7 +205,7 @@ public sealed class MailCustodyTests
                 INSERT INTO mailbox_messages VALUES(1,61,0,'2026-11-01T00:00:00.0000000+00:00');
                 INSERT INTO mailbox_recipients(message_id,character_id) VALUES(1,61);
                 """;
-            command.ExecuteNonQuery(); Store = new(path);
+            command.ExecuteNonQuery(); Store = new(path, contentsEvents: TestRequired.NoContentsEvents);
         }
         public async ValueTask<long> Attach(DomainTransaction tx, params ItemRecord[] records)
         {

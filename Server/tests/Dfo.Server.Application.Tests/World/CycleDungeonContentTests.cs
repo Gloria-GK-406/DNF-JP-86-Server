@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Quests;
@@ -16,9 +17,10 @@ public sealed class CycleDungeonContentTests
         using var provider = ContentArchive.CreateContentProvider();
         var quests = new QuestContentRuleService(provider.GetRequiredService<IQuestDefinitionSource>(),
             provider.GetRequiredService<IQuestParameterSource>());
+        var availability = new QuestAvailabilityRuleService(quests, provider.GetRequiredService<ICreatureDefinitionSource>());
         var offers = new WorldContentEntryRuleService(quests, provider.GetRequiredService<IDailyActivityDefinitionSource>(),
-            provider.GetRequiredService<ICollectionBoxDefinitionSource>(), provider.GetRequiredService<ICreatureDefinitionSource>());
-        var rules = new CycleDungeonRuleService(provider.GetRequiredService<ICycleDungeonDefinitionSource>(), quests, offers);
+            provider.GetRequiredService<ICollectionBoxDefinitionSource>(), provider.GetRequiredService<ICreatureDefinitionSource>(), availability);
+        var rules = new CycleDungeonRuleService(provider.GetRequiredService<ICycleDungeonDefinitionSource>(), quests, availability);
         var eligible = new WorldContentSubject(88, 12, 0, new Dictionary<int, int> { [2228] = 1, [2211] = 1 },
             [15203], [], [], 0, 0);
         Assert.NotNull(await rules.EligibleAsync(84, 15203, eligible, default));

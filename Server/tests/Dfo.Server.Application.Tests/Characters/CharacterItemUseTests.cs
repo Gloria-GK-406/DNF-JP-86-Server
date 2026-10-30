@@ -430,7 +430,7 @@ public sealed class CharacterItemUseTests
             try
             {
                 var database = new SqliteDatabase(
-                    databasePath, new DomainTransactionScope());
+                    databasePath, TestRequired.TransactionScope());
                 await using (var connection = new SqliteConnection(database.ConnectionString))
                 {
                     await connection.OpenAsync(CancellationToken.None);

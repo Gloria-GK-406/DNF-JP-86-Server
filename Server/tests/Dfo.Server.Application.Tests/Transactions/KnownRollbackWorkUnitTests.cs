@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Inventory;
@@ -96,7 +97,7 @@ public sealed class KnownRollbackWorkUnitTests(ITestOutputHelper output)
         var path = Path.Combine(Path.GetTempPath(), "opening-custody-" + Guid.NewGuid().ToString("N") + ".db");
         await using var world = new CommandWorld(configure: services => services.AddSingleton(p => new SqliteDatabase(path, p.GetRequiredService<IDomainTransactionAccessor>())));
         var db = world.Services.GetRequiredService<SqliteDatabase>();
-        var store = new SqliteItemDomainStore(path); Exception? guard = null; var returned = 0;
+        var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents); Exception? guard = null; var returned = 0;
         DomainTransaction? transaction = null;
         world.Settings.Action = async context =>
         {

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.World;
@@ -40,7 +41,7 @@ public sealed class WorldContentArchiveTests
     [InlineData(111000, false)]
     public void Named_ranges_match_A21_independently_of_champion_rank(int code, bool named)
     {
-        var rules = new DungeonRoomRuleService(null!, null!, null!, null!);
+        var rules = new DungeonRoomRuleService(null!, null!, null!, null!, mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
         var actors = rules.Describe([new(code, 1, 0), new(code, 1, 1)]);
         Assert.All(actors, actor => Assert.Equal(named, actor.IsNamedMonster));
     }
@@ -54,7 +55,7 @@ public sealed class WorldContentArchiveTests
             scope.GetRequiredService<IDungeonRoomActorSource>(),
             scope.GetRequiredService<IDungeonRoomDropSource>(),
             new ObjectDropRuleService(scope.GetRequiredService<IDropRateTableSource>(),
-                scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()), scope.GetRequiredService<IDungeonRoomObjectSource>());
+                scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()), scope.GetRequiredService<IDungeonRoomObjectSource>(), mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
         var dungeon = await scope.GetRequiredService<IDungeonDefinitionSource>()
             .GetAsync(146, CancellationToken.None);
         Assert.NotNull(dungeon);
@@ -106,7 +107,7 @@ public sealed class WorldContentArchiveTests
             scope.GetRequiredService<IDungeonRoomDropSource>(),
             new ObjectDropRuleService(scope.GetRequiredService<IDropRateTableSource>(),
                 scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()),
-            scope.GetRequiredService<IDungeonRoomObjectSource>());
+            scope.GetRequiredService<IDungeonRoomObjectSource>(), mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
         var structures = new DungeonStructureRuleService(scope.GetRequiredService<IDungeonDefinitionSource>(),
             scope.GetRequiredService<IDungeonMapDefinitionSource>());
         var original = Assert.IsType<DungeonLayout>(await structures.ResolveAsync(
@@ -325,7 +326,7 @@ public sealed class WorldContentArchiveTests
         using var scope = ContentArchive.CreateContentProvider();
         var placement = new EntryPlacementRuleService(
             scope.GetRequiredService<ITownDefinitionSource>(),
-            ChannelEntryOptions.Legacy);
+            ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
 
         var result = await placement.ResolveAsync(
             new ChannelEntryIdentity(100, 10161, ChannelEntryKind.SaintHorn),
@@ -348,7 +349,7 @@ public sealed class WorldContentArchiveTests
         using var scope = ContentArchive.CreateContentProvider();
         var placement = new EntryPlacementRuleService(
             scope.GetRequiredService<ITownDefinitionSource>(),
-            ChannelEntryOptions.Legacy);
+            ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
 
         var result = await placement.ResolveAsync(
             new ChannelEntryIdentity(11, 10011, ChannelEntryKind.General),
@@ -371,7 +372,7 @@ public sealed class WorldContentArchiveTests
         var timeGate = await towns.GetAsync(12, CancellationToken.None);
         Assert.NotNull(timeGate);
         Assert.Null(timeGate.Gate);
-        var placement = new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy);
+        var placement = new EntryPlacementRuleService(towns, ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
 
         var result = await placement.ResolveAsync(
             new ChannelEntryIdentity(11, 10011, ChannelEntryKind.General), 12, CancellationToken.None);
@@ -387,7 +388,7 @@ public sealed class WorldContentArchiveTests
                 provider.GetRequiredService<IQuestParameterSource>()),
             provider.GetRequiredService<IDailyActivityDefinitionSource>(),
             provider.GetRequiredService<ICollectionBoxDefinitionSource>(),
-            provider.GetRequiredService<ICreatureDefinitionSource>());
+            provider.GetRequiredService<ICreatureDefinitionSource>(), questAvailability: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestAvailabilityRuleService>());
 
     private static WorldContentSubject Subject(
         int level = 1,

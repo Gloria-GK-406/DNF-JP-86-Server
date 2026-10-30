@@ -101,9 +101,9 @@ public sealed class ItemClassificationTests
             var rules = ArchiveRules(out var content);
             using (content)
             {
-                var scope = new DomainTransactionScope();
+                var scope = TestRequired.TransactionScope();
                 var store = new Dfo.Server.Persistence.Tests.Support.VolatileItemDomainStore();
-                var lifecycle = new ItemLifecycleDomainService(store, scope, rules);
+                var lifecycle = new ItemLifecycleDomainService(store, scope, rules, clock: TimeProvider.System, expiration: null!);
                 await using var tx = scope.Begin();
                 await Assert.ThrowsAsync<InvalidDataException>(() => lifecycle.CreateAsync(
                     ItemSnapshot.FromCore(Core(ConsumableKindByte, ContractCreatureItemId), true), default).AsTask());

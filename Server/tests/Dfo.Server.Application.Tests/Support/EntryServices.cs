@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -54,7 +55,7 @@ internal static class EntryServices
             new CharacterEntryPreparationRuleService(
                 skillPoints ?? new StubSkillPointDefinitionSource(),
                 expertContracts ?? new StubExpertContractDefinitionSource(),
-                creatureLifetimes ?? new StubCreatureEquipmentLifetimeSource()),
+                creatureLifetimes ?? new StubCreatureEquipmentLifetimeSource(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
             pvpSkills ?? new StubPvpSkillProfileRepository(),
             dungeonEffects ?? new StubDungeonEffectRecoveryRepository(),
             expertSkillReconciliation ?? new StubExpertSkillReconciliationRepository(),
@@ -62,7 +63,7 @@ internal static class EntryServices
             placement ?? new StubEntryPlacementRuleService(),
             sessionAdjacent ?? new StubSessionAdjacentEntryDomainService(),
             positions ?? new NoPositionPersistence(),
-            timeProvider ?? TimeProvider.System);
+            timeProvider ?? TimeProvider.System, events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Absent<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), epicBook: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>(), achievements: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>(), weddingQuests: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(), capsules: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>(), collections: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
 
     /// <summary>Entry fixtures do not exercise position storage; the channel decides whether it runs.</summary>
     private sealed class NoPositionPersistence : ISelectedSessionPositionPersistence

@@ -147,7 +147,7 @@ internal sealed class AccountEntryStateDomainService(
     IAccountProgressionEntryProjection progression,
     IAccountRelationCompatibilityEntryProjection relations,
     INoticeStateDomainService notices, ICeraShopPurchaseRestrictionDomainService restrictions,
-    TimeProvider clock, IClientSettingsDomainService? clientSettings = null) : IAccountEntryStateDomainService
+    TimeProvider clock, IClientSettingsDomainService clientSettings) : IAccountEntryStateDomainService
 {
     public async ValueTask<AccountEntryState> LoadAsync(
         AccountId accountId,
@@ -181,6 +181,6 @@ internal sealed class AccountEntryStateDomainService(
         settings.Build(storage) with
         {
             SeenNotices = await notices.GetSeenAsync(NoticeOwner.ForAccount(accountId), NoticeGroup.Primary, ct),
-            HotkeyProfiles = clientSettings is null ? [] : await clientSettings.ReadHotkeysAsync(accountId, ct),
+            HotkeyProfiles = await clientSettings.ReadHotkeysAsync(accountId, ct),
         };
 }

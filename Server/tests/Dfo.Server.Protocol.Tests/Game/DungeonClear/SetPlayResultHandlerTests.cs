@@ -581,7 +581,7 @@ public sealed class SetPlayResultHandlerTests
                 new RecordingCards(),
                 bus,
                 new QuestOfferRefreshDomainService(
-                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 outbound.Game,
                 NullLogger<SetPlayResultHandler>.Instance);
             await handler.HandleAsync(
@@ -639,7 +639,7 @@ public sealed class SetPlayResultHandlerTests
                 cards ?? new RecordingCards(),
                 bus ?? new FixedAward(leveledUp, awarded),
                 new QuestOfferRefreshDomainService(
-                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 sender,
                 NullLogger<SetPlayResultHandler>.Instance);
 

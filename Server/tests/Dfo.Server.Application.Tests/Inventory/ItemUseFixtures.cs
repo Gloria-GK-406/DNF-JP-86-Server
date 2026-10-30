@@ -93,7 +93,7 @@ internal sealed class DirectCommandBus(
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
             ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
 
-    private readonly DomainTransactionScope scope = scope ?? new DomainTransactionScope();
+    private readonly DomainTransactionScope scope = scope ?? TestRequired.TransactionScope();
     private ICommandHandler<Dfo.Server.Protocol.Game.TaggedIdReport.GameTaggedIdReportCommand, bool>? report;
     public Dfo.Server.Protocol.Game.TaggedIdReport.TaggedIdReportHandler Report(
         Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
@@ -153,10 +153,10 @@ internal abstract class FakeMainInventory(int characterId = 60)
 
     private ContainerId Main => ContainerId.ForCharacter(this.character, InventoryContainerType.Main);
 
-    public DomainTransactionScope Scope { get; init; } = new();
+    public DomainTransactionScope Scope { get; init; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
     public IItemLifecycleDomainService Lifecycle => LifecycleFor(new ConsumableBandPlacements());
     public IItemLifecycleDomainService LifecycleFor(IItemPlacementDefinitionSource placements) =>
-        new ItemLifecycleDomainService(store, Scope, new ItemPlacementRuleService(placements, new NoWearables()));
+        new ItemLifecycleDomainService(store, Scope, new ItemPlacementRuleService(placements, new NoWearables()), clock: TimeProvider.System, expiration: null!);
 
     /// <remarks>
     /// The archive is a parameter because the bag now reads it: what an item's band is, and how
@@ -167,7 +167,7 @@ internal abstract class FakeMainInventory(int characterId = 60)
     public ICharacterContainerDomainService Containers(
         IItemPlacementDefinitionSource? placements = null)
     {
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         TestGameplay.Run(() => containers.Register(this.character, new PersistentItemContainer(
             this.Main,
             new ContainerShape(InventoryContainerType.Main, 0),
@@ -277,7 +277,7 @@ internal static class WholeUse
 /// <summary>Direct domain access retaining the original explicit fixture transaction.</summary>
 internal sealed class DirectInventoryMove(IInventoryMoveDomainService move,DomainTransactionScope? scope=null)
 {
-    private readonly DomainTransactionScope scope=scope??new();
+    private readonly DomainTransactionScope scope=scope??new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
     public async ValueTask<ItemMoveResult> MoveAsync(InventoryMoveRequest request,CancellationToken ct=default)
     {
         if(scope.Current is not null)return await move.MoveAsync(request,ct);

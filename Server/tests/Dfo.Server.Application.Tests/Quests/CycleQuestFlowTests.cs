@@ -222,7 +222,7 @@ public sealed partial class CycleQuestFlowTests
             services.AddSingleton<IQuestContentRuleService>(new QuestRules());
             services.AddSingleton<ICycleDungeonRuleService>(new CycleRules { RequiredJob = 12 });
             services.AddSingleton<IDungeonVisitDomainService>(visits);
-            services.AddSingleton<IDungeonDifficultyRuleService>(new DungeonDifficultyRuleService(new CycleDefinitions()));
+            services.AddSingleton<IDungeonDifficultyRuleService>(new DungeonDifficultyRuleService(TestRequired.Admissions(new CycleDefinitions())));
         });
         fixture.Sql("UPDATE characters SET level=2 WHERE character_id=1; INSERT INTO accounts(account_id,m_id) VALUES(2,'cycle-peer'); INSERT INTO characters(character_id,account_id,name,job,level) VALUES(3,2,'peer',12,2); INSERT INTO character_stats(character_id) VALUES(3);");
         return fixture;
@@ -381,7 +381,7 @@ public sealed partial class CycleQuestFlowTests
             services.AddSingleton<IQuestContentRuleService>(new QuestRules());
             services.AddSingleton<ICycleDungeonRuleService>(new CycleRules());
             services.AddSingleton<IDungeonVisitDomainService>(visits);
-            services.AddSingleton<IDungeonDifficultyRuleService>(new DungeonDifficultyRuleService(new CycleDefinitions()));
+            services.AddSingleton<IDungeonDifficultyRuleService>(new DungeonDifficultyRuleService(TestRequired.Admissions(new CycleDefinitions())));
         });
         var commands = new QuestTestCommands(fixture);
         var intents = fixture.Services.GetRequiredService<IDungeonEntryIntentDomainService>();

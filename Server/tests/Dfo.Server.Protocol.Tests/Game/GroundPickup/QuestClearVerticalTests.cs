@@ -55,9 +55,9 @@ public sealed class QuestClearVerticalTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-pickup-clear-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharactersAndQuestAsync(path);
-            var itemStore = new SqliteItemDomainStore(path);
+            var itemStore = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             await SeedItemsAsync(itemStore);
 
             var questStore = new SqliteQuestDomainStore(path);
@@ -68,6 +68,7 @@ public sealed class QuestClearVerticalTests
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(parties);
             services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+            services.AddAbsentDungeonRunDependencies();
             services.AddDungeonRunViews();
             services.AddSingleton<IQuestDomainStore>(questStore);
             services.AddSingleton<IItemDomainStore>(itemStore);
@@ -78,10 +79,10 @@ public sealed class QuestClearVerticalTests
                 new CharacterQuestLogDomainService(
                     questStore,
                     new AmbientStoreAccess(
-                        provider.GetRequiredService<IDomainTransactionAccessor>())));
+                        provider.GetRequiredService<IDomainTransactionAccessor>()), clock: TimeProvider.System));
             services.AddSingleton<ICharacterContainerDomainService>(provider =>
             {
-                var containers = new CharacterContainerDomainService();
+                var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
                 containers.Register(Leader, new PersistentItemContainer(
                     Main,
                     new ContainerShape(InventoryContainerType.Main, 56),
@@ -92,11 +93,15 @@ public sealed class QuestClearVerticalTests
                 return containers;
             });
             services.AddSingleton<ISeekingQuestProgressDomainService>(provider =>
-                new SeekingQuestProgressDomainService(
-                    provider.GetRequiredService<IQuestContentRuleService>(),
-                    provider.GetRequiredService<ICharacterQuestLogDomainService>(),
-                    provider.GetRequiredService<ICharacterContainerDomainService>(),
-                    provider.GetRequiredService<ICharacterDomainService>()));
+            {
+                var rules = new QuestStateRuleService(provider.GetRequiredService<IQuestContentRuleService>());
+                var containers = provider.GetRequiredService<ICharacterContainerDomainService>();
+                return new SeekingQuestProgressDomainService(provider.GetRequiredService<IQuestContentRuleService>(),
+                    provider.GetRequiredService<ICharacterQuestLogDomainService>(), containers, rules,
+                    TestRequired.QuestFacts(containers, provider.GetRequiredService<ICharacterDomainService>(), rules),
+                    owners: TestRequired.Absent<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
+                    events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>());
+            });
             services.AddSingleton<IQuestProgressDomainService>(provider =>
                 new SeekingFactAdapter(
                     provider.GetRequiredService<ISeekingQuestProgressDomainService>()));
@@ -104,7 +109,7 @@ public sealed class QuestClearVerticalTests
             services.AddSingleton<IItemGrantDomainService>(provider =>
                 new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(PlacementRules(),
                     new ItemLifecycleDomainService(itemStore,
-                        provider.GetRequiredService<IDomainTransactionAccessor>(), PlacementRules())));
+                        provider.GetRequiredService<IDomainTransactionAccessor>(), PlacementRules(), clock: TimeProvider.System, expiration: null!)));
             services.AddFixtureCommand<
                 GroundPickupDomainCommand,
                 GroundPickupResult,

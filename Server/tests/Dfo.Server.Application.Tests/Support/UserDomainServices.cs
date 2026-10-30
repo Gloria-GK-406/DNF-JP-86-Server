@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Users;
@@ -30,7 +31,7 @@ internal sealed class UserDomainServices
 
     public UserDomainServices(AccountId accountId)
     {
-        var state = new OnlineStateRegistry(new DomainTransactionScope());
+        var state = new OnlineStateRegistry(TestRequired.TransactionScope());
         this.accountId = accountId;
         this.state = state;
         online = new OnlineUserDomainService(state);

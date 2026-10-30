@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Content;
@@ -233,7 +234,7 @@ public sealed class CharacterDomainStoreSettlementTests
         private Fixture(string path)
         {
             this.Path = path;
-            this.Items = new SqliteItemDomainStore(path);
+            this.Items = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             this.Characters = new SqliteCharacterDomainStore(path);
             this.Quests = new SqliteQuestDomainStore(path);
         }
@@ -251,7 +252,7 @@ public sealed class CharacterDomainStoreSettlementTests
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-charstore-{Guid.NewGuid():N}.db");
             // The database owns the schema; the stores only write into it.
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var fixture = new Fixture(path);
             await using var connection = Open(path);
             await using (var character = connection.CreateCommand())

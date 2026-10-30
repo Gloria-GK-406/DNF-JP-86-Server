@@ -87,7 +87,7 @@ public sealed class ClassificationRefusalTests
             var item = await Lifecycle(database, ItemWorldClass.Avatar).CreateAsync(
                 ItemSnapshot.FromCore(StackableItemCore.Create(8, AvatarItemId, 1), false,
                     avatar: new InventoryAvatarDetailState(1, 2, new byte[30], 3, 4, 5)), token);
-            await new SqliteItemDomainStore(database.Path).SessionIn(database.Scope.Current!).PutAsync(
+            await new SqliteItemDomainStore(database.Path, TestRequired.NoContentsEvents).SessionIn(database.Scope.Current!).PutAsync(
                 ContainerId.ForCharacter(new CharacterId(60), InventoryContainerType.Avatar), 0, item, token);
             return true;
         });
@@ -116,10 +116,10 @@ public sealed class ClassificationRefusalTests
             new SqliteCharacterItemTable(database.Value),
             Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue(),
             new ItemGrantDomainService(null!, Rules(declared), Lifecycle(database, declared),
-                new SqliteItemDomainStore(database.Path), database.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database.Value), new SqliteAccountCargoStateTable(database.Value), new InventoryCapacityRuleService())), new Dfo.Server.Application.Characters.CharacterAppearanceRuleService());
+                new SqliteItemDomainStore(database.Path, TestRequired.NoContentsEvents), database.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database.Value), new SqliteAccountCargoStateTable(database.Value), new InventoryCapacityRuleService())), appearances: TestRequired.WornAppearances);
 
     private static IItemLifecycleDomainService Lifecycle(TestDatabase database, ItemWorldClass declared) =>
-        new ItemLifecycleDomainService(new SqliteItemDomainStore(database.Path), database.Scope, Rules(declared));
+        new ItemLifecycleDomainService(new SqliteItemDomainStore(database.Path, TestRequired.NoContentsEvents), database.Scope, Rules(declared), clock: TimeProvider.System, expiration: null!);
 
     private static ItemPlacementRuleService Rules(ItemWorldClass declared) =>
         new(new Declaring(declared), new NoWornSlots());
@@ -145,7 +145,7 @@ public sealed class ClassificationRefusalTests
     private static TestDatabase NewDatabase()
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-classify-{Guid.NewGuid():N}.db");
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         return new TestDatabase(path, scope, new SqliteDatabase(path, scope));
     }
 

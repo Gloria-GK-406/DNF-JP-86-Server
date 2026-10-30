@@ -20,8 +20,8 @@ internal sealed class IllusionTowerDomainService(
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionDomainService materials, IMaterialConsumptionRuleService materialRules,
     IDungeonRunQueryDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
-    IIllusionTowerRewardDomainService? rewards = null, TowerInventoryDomainService? towerInventory = null,
-    IEventService? events = null, IDungeonParticipationDomainService? participation = null)
+    IIllusionTowerRewardDomainService rewards, TowerInventoryDomainService towerInventory,
+    IEventService events, IDungeonParticipationDomainService participation)
     : IIllusionTowerDomainService
 {
     private readonly object sync = new();
@@ -55,7 +55,7 @@ internal sealed class IllusionTowerDomainService(
     public bool TryReserveOrdinaryEntry(IReadOnlyList<CharacterId> members)
     {
         GameplayWriteAssertion.Writing(nameof(IllusionTowerDomainService) + "." + nameof(TryReserveOrdinaryEntry));
-        if (members.Any(x => IsInTower(x) || participation?.Find(x) is { Mode: not DungeonParticipationMode.Ordinary })) return false;
+        if (members.Any(x => IsInTower(x) || participation.Find(x) is { Mode: not DungeonParticipationMode.Ordinary })) return false;
         if (scope.Current is not null) Pending.OrdinaryEntries.UnionWith(members);
         return true;
     }
@@ -78,7 +78,7 @@ internal sealed class IllusionTowerDomainService(
         {
             var member = candidate.Session;
             if (!sessions.IsInWorld(member)) return Refuse("NoSession");
-            if (participation?.Find(member.CharacterId) is not null || IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
+            if (participation.Find(member.CharacterId) is not null || IsInTower(member.CharacterId) || ordinary.Find(member.CharacterId) is not null || Pending.OrdinaryEntries.Contains(member.CharacterId)) return Refuse("AlreadyInDungeon");
             var progress = await characters.Get(member.CharacterId).ProgressAsync(token).ConfigureAwait(false);
             if (progress is null || progress.Level < definition.MinimumLevel) return Refuse("LevelTooLow", candidate.Slot);
             var costs = new List<MaterialCost>();
@@ -113,7 +113,7 @@ internal sealed class IllusionTowerDomainService(
             Room = null!, ReservedUids = members.Select(x => x.Session.WireUserId).ToImmutableHashSet()
         };
         run.SetRoom(first, 1);
-        if (participation is not null && !participation.TryClaim(members.Select(x => x.Session.CharacterId).ToArray(),
+        if (!participation.TryClaim(members.Select(x => x.Session.CharacterId).ToArray(),
             new(DungeonParticipationMode.IllusionTower, run.RunId))) return Refuse("AlreadyInDungeon");
         var debits = new List<TowerMemberDebit>();
         foreach (var (session, costs) in plans)
@@ -127,7 +127,7 @@ internal sealed class IllusionTowerDomainService(
         foreach (var member in members)
         {
             if (run.UsesTowerInventory)
-                (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
+                towerInventory
                     .Enter(member.Session.CharacterId, run.RunId);
             Pending.AuthenticatedSessions.Add(member.Session);
         }
@@ -181,7 +181,7 @@ internal sealed class IllusionTowerDomainService(
             || current.Room.State.Phase is not (TowerRoomPhase.Fighting or TowerRoomPhase.Cleared)) return Refuse();
         var ground = current.Room.State.Items.SingleOrDefault(x => x.Uid == groundUid && x.Available && !x.Claimed);
         if (ground is null) return Refuse();
-        var update = await (towerInventory ?? throw new InvalidOperationException("Tower inventory unavailable."))
+        var update = await towerInventory
             .AddAsync(context.Session, ground.ItemId, token).ConfigureAwait(false);
         if (update is null) return Refuse(noRoom: true);
         var next = current.Clone();
@@ -297,7 +297,7 @@ internal sealed class IllusionTowerDomainService(
         {
             var participants = next.Members.Where(x => ValidSession(x.Session)).ToArray();
             foreach (var member in participants) Pending.AuthenticatedSessions.Add(member.Session);
-            await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
+            await events
                 .EnqueueAsync(new DungeonMapCleared(new(next.RunId), next.DungeonId, DungeonDifficulty.Normal,
                     new(0, checked((byte)(next.Room.State.Level - 1))), next.Room.State.MapId, next.Room.State.Version,
                     next.Room.State.ClearedAt!.Value, [.. participants.Select(member =>
@@ -306,27 +306,24 @@ internal sealed class IllusionTowerDomainService(
         }
         var wasSettled = current.Completion is { Settled: true };
         var killRewards = ImmutableArray<TowerKillReward>.Empty;
-        if (rewards is not null)
-        {
-            // Stale identities must not block cleanup, nor receive another session's awards.
-            var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
-            foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
-            if (result.KilledActor is { } actor)
-                killRewards = await rewards.KillAsync(eligible, actor, footprint, token).ConfigureAwait(false);
-            if (next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
-                next.Settle(await rewards.SettleAsync(eligible, next.Seed, footprint, token).ConfigureAwait(false),
-                    clock.GetUtcNow(), rules.DefaultReturnDelay);
-        }
+        // Stale identities must not block cleanup, nor receive another session's awards.
+        var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
+        foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
+        if (result.KilledActor is { } actor)
+            killRewards = await rewards.KillAsync(eligible, actor, footprint, token).ConfigureAwait(false);
+        if (next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
+            next.Settle(await rewards.SettleAsync(eligible, next.Seed, footprint, token).ConfigureAwait(false),
+                clock.GetUtcNow(), rules.DefaultReturnDelay);
         footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         if (current.UsesTowerInventory)
         {
             foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
-                (towerInventory ?? throw new InvalidOperationException("Tower inventory is not configured."))
+                towerInventory
                     .Leave(departed.Session.CharacterId, current.RunId);
         }
         footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
-            participation?.Release(departed.Session.CharacterId, new(DungeonParticipationMode.IllusionTower, current.RunId));
+            participation.Release(departed.Session.CharacterId, new(DungeonParticipationMode.IllusionTower, current.RunId));
         footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         Pending.Put(current, next);
         return next.Result(true, result.KilledActor) with

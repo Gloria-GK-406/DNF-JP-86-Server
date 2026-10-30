@@ -21,12 +21,12 @@ public sealed record UseRevivalCoinRequest(GameMessageMetadata Metadata, ushort 
 {
     public ClientMessageType MessageType => ClientMessageType.GameUseRevivalCoin;
 }
-internal sealed class UseRevivalCoinDecoder(RevivalOptions? options = null) : IGameMessageDecoder
+internal sealed class UseRevivalCoinDecoder(RevivalOptions options) : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         if (body.Length != 2) throw new InvalidDataException("USE_COIN requires one u16 target.");
-        return new UseRevivalCoinRequest(metadata, BinaryPrimitives.ReadUInt16LittleEndian(body), options?.AckFlag ?? 1);
+        return new UseRevivalCoinRequest(metadata, BinaryPrimitives.ReadUInt16LittleEndian(body), options.AckFlag);
     }
 }
 internal sealed record UseRevivalCoinResponse(bool Succeeded, ushort TargetActorId, byte Flag) : IGameCmdMessage

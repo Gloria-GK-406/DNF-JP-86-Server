@@ -15,7 +15,7 @@ namespace Dfo.Server.Application.Creatures;
 /// <summary>One shared online clock directory; persisted values never accrue offline time.</summary>
 internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, ICreatureRuleService rules,
     IDomainTransactionAccessor transactions, ISelectedSessionDomainService sessions,
-    TimeProvider clock, ICharacterBusinessInventoryDomainService? inventories = null)
+    TimeProvider clock, ICharacterBusinessInventoryDomainService inventories)
     : ICreatureRuntimeDomainService, ICreatureInstanceDomainService
 {
     public ICreatureCollection Of(CharacterId characterId) => new CreatureCollection(() =>
@@ -24,7 +24,7 @@ internal sealed class CreatureRuntimeDomainService(ICreatureDomainStore store, I
 
     private CreatureInstanceContext CreateContext(IDomainTransaction tx, CharacterId characterId, bool leaving = false) =>
         new(characterId, tx, store.SessionIn(tx),
-            inventories?.GetStore(characterId, BusinessInventoryStoreKind.Creature), rules, clock,
+            inventories.GetStore(characterId, BusinessInventoryStoreKind.Creature), rules, clock,
             sessions.FindByCharacter(characterId) is { } session ? new InstanceRuntime(this, sessions, tx, session, leaving) : null);
 
     private DateTimeOffset Now => clock.GetUtcNow();

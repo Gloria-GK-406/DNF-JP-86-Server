@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
@@ -12,8 +13,8 @@ public sealed class DomainEventSchemaTests
         var path = Path.Combine(Path.GetTempPath(), "dfo-event-schema-" + Guid.NewGuid().ToString("N") + ".db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             using var connection = new SqliteConnection("Data Source=" + path); connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name IN ('ix_domain_delivery_due','ix_domain_delivery_coalescing','ix_domain_event_batch')";

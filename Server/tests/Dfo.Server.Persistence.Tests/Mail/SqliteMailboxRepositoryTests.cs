@@ -116,8 +116,8 @@ public sealed class SqliteMailboxRepositoryTests
         {
             Directory.CreateDirectory(directory);
             path = Path.Combine(directory, "mail.db");
-            Scope = new DomainTransactionScope();
-            Items = new SqliteItemDomainStore(path);
+            Scope = TestRequired.TransactionScope();
+            Items = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             Repository = new SqliteMailboxRepository(new SqliteDatabase(path, Scope), Items, Scope);
         }
 
@@ -127,8 +127,8 @@ public sealed class SqliteMailboxRepositoryTests
 
         public (DomainTransactionScope Scope, SqliteMailboxRepository Repository) Reopen()
         {
-            var scope = new DomainTransactionScope();
-            return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope), new SqliteItemDomainStore(path), scope));
+            var scope = TestRequired.TransactionScope();
+            return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope), new SqliteItemDomainStore(path, TestRequired.NoContentsEvents), scope));
         }
 
         public void Execute(string sql)

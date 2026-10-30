@@ -119,7 +119,7 @@ public sealed class OutsideTransactionTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var fixture = await Fixture.CreateAsync();
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
             var moved = new CharacterPositionState(11, 22, 33, 44, 1);
 
@@ -173,7 +173,7 @@ public sealed class OutsideTransactionTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var fixture = await Fixture.CreateAsync();
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope, new StubEntryPlacementRuleService());
             var departed = new CharacterPositionState(11, 22, 33, 44, 1);
 
@@ -205,7 +205,7 @@ public sealed class OutsideTransactionTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var fixture = await Fixture.CreateAsync();
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var persistence = new SelectedSessionPositionPersistence(fixture.Characters, scope,
                 new StubEntryPlacementRuleService(innPredicate: town => town is 1 or 11));
             var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
@@ -295,7 +295,7 @@ public sealed class OutsideTransactionTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-outside-{Guid.NewGuid():N}.db");
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var fixture = new Fixture(path);
             await using var connection = new SqliteConnection(
                 SqliteTestPools.ConnectionString(path));

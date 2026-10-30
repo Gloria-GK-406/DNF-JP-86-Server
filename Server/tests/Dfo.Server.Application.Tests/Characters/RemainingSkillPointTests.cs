@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -147,8 +148,8 @@ public sealed class RemainingSkillPointTests
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(), new BuildTable(), null!, null!),
-            archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
+            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes()), new BuildTable(), null!, null!),
+            archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
                 points, null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!),

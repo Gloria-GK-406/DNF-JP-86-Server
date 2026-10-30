@@ -39,7 +39,7 @@ public sealed class PvfHellRewardDefinitionSourceTests
             .Any(x => content.EpicPieces.ContainsKey(x.ItemId)))
             Assert.Equal(10, result.Count(x => x.Kind == DropItemKind.Stackable));
         // Every generated template must be usable by the existing inventory pipeline.
-        var placement = new PvfItemPlacementDefinitionSource(provider);
+        var placement = new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
         foreach (var drop in result)
             Assert.NotNull(await placement.GetAsync(drop.ItemId, default));
     }

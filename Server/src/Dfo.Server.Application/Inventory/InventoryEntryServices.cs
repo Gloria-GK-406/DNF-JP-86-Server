@@ -6,7 +6,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEntryRepository repository,
-    LegacyWornItemNormalizer? wornNormalizer = null, ICharacterContainerDomainService? containers = null)
+    LegacyWornItemNormalizer wornNormalizer, ICharacterContainerDomainService containers)
     : ICharacterInventoryEntryDomainService
 {
     public async ValueTask<CharacterInventoryEntryState> LoadAsync(
@@ -14,8 +14,7 @@ internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEn
         CharacterId characterId,
         CancellationToken cancellationToken)
     {
-        if (wornNormalizer is not null)
-            await wornNormalizer.NormalizeAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await wornNormalizer.NormalizeAsync(characterId, cancellationToken).ConfigureAwait(false);
         return await ReadCurrentAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
     }
 
@@ -25,7 +24,7 @@ internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEn
         var stored = await repository.LoadCharacterAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
         var result = InventoryEntryProjection.ProjectCharacter(stored, accountId, characterId);
-        if (containers?.FindContainer(characterId, InventoryContainerType.Main) is { IsPersistent: false } current)
+        if (containers.FindContainer(characterId, InventoryContainerType.Main) is { IsPersistent: false } current)
         {
             var items = await current.GetAllAsync(cancellationToken).ConfigureAwait(false);
             result = result with { Containers = result.Containers.Select(value => value.ContainerType == InventoryContainerType.Main
@@ -38,7 +37,7 @@ internal sealed class CharacterInventoryEntryDomainService(ICharacterInventoryEn
 }
 
 internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryRepository repository,
-    ICharacterContainerDomainService? containers = null)
+    ICharacterContainerDomainService containers)
     : IAccountInventoryEntryDomainService
 {
     public async ValueTask<AccountInventoryEntryState> LoadAsync(
@@ -49,7 +48,7 @@ internal sealed class AccountInventoryEntryDomainService(IAccountInventoryEntryR
         var stored = await repository.LoadAccountAsync(accountId, characterId, cancellationToken)
             .ConfigureAwait(false);
         var result = InventoryEntryProjection.ProjectAccount(stored, accountId, characterId);
-        if (containers?.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { IsPersistent: false } current)
+        if (containers.FindContainer(characterId, InventoryContainerType.SharedMaterial) is { IsPersistent: false } current)
         {
             var contents = await current.GetAllAsync(cancellationToken).ConfigureAwait(false);
             var counts = contents.ToDictionary(item => item.StorageSlotIndex, item => item.Count);

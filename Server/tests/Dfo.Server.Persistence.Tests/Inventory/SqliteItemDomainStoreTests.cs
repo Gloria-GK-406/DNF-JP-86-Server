@@ -38,7 +38,7 @@ public sealed class SqliteItemDomainStoreTests
         await using var store = await NewStoreAsync((65, Potion(2)));
         await using (var connection = Open(store.Path))
             await InsertItemAsync(connection, 256, Stone(1), 241);
-        var table = new SqliteCharacterItemTable(new SqliteDatabase(store.Path, new DomainTransactionScope()));
+        var table = new SqliteCharacterItemTable(new SqliteDatabase(store.Path, TestRequired.TransactionScope()));
         var ordinary = await table.ReadByCharacterAsync(new(60), default);
         Assert.Single(ordinary);
         Assert.Equal(65, ordinary[0].SlotIndex);
@@ -131,7 +131,7 @@ public sealed class SqliteItemDomainStoreTests
             await InsertAccountItemAsync(connection, 12, 0, Potion(5));
             await InsertAccountItemAsync(connection, 0, 1, Stone(7));
         }
-        var table = new SqliteAccountCargoItemTable(new SqliteDatabase(store.Path, new DomainTransactionScope()));
+        var table = new SqliteAccountCargoItemTable(new SqliteDatabase(store.Path, TestRequired.TransactionScope()));
         var row = Assert.Single(await table.ReadByAccountAsync(new AccountId(6), CancellationToken.None));
         Assert.Equal(12, row.ListType);
         Assert.Equal(Potion(5), row.Core);
@@ -364,7 +364,7 @@ public sealed class SqliteItemDomainStoreTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var store = await NewStoreAsync((65, Potion(5)));
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             await using var transaction = scope.Begin();
             var session = store.Value.SessionIn(scope.Current!);
             await session.PutAsync(Main, 66, await session.CreateAsync(Pile(Potion(2)), default), default);
@@ -511,7 +511,7 @@ public sealed class SqliteItemDomainStoreTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             await using var transaction = scope.Begin();
             await action(store.SessionIn(scope.Current!));
             await transaction.CommitAsync(default);
@@ -558,8 +558,8 @@ public sealed class SqliteItemDomainStoreTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-itemstore-{Guid.NewGuid():N}.db");
         // The repositories own the schema; this store only writes into it.
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
         await using (var connection = Open(path))
         {
             await using var character = connection.CreateCommand();
@@ -570,7 +570,7 @@ public sealed class SqliteItemDomainStoreTests
                 await InsertItemAsync(connection, slot, core);
         }
 
-        return new StoreUnderTest(path, new SqliteItemDomainStore(path));
+        return new StoreUnderTest(path, new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
     }
 
     private static async Task SeedAsync(

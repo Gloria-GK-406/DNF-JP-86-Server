@@ -25,7 +25,7 @@ public sealed class LoginSessionMaintenanceExecutorTests
     [Fact]
     public async Task A_superseded_connection_is_disconnected_and_then_closed_by_the_cmd_that_superseded_it()
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var clock = new RecordingClock();
         var steps = new ConcurrentQueue<Seen>();
         var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -50,9 +50,9 @@ public sealed class LoginSessionMaintenanceExecutorTests
     public async Task An_expiry_sweep_runs_as_a_timer_job_on_the_executor()
     {
         await using var provider = Executor();
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var clock = new RecordingClock();
-        var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions());
+        var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>());
         var issued = await TestGameplay.RunAsync(async () =>
         {
             await using var tx = scope.Begin();
@@ -94,7 +94,7 @@ public sealed class LoginSessionMaintenanceExecutorTests
     {
         await using var provider = Executor();
         var clock = new RecordingClock();
-        var sessions = new LoginSessionRegistry(new DomainTransactionScope(), clock, new LoginSessionOptions());
+        var sessions = new LoginSessionRegistry(TestRequired.TransactionScope(), clock, new LoginSessionOptions(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>());
         var service = Service(provider, sessions, clock);
 
         await service.StartAsync(CancellationToken.None);

@@ -146,8 +146,8 @@ public sealed class TutorialRewardPlacementTests
     public async Task A_character_with_no_bound_container_cannot_consume_the_reward()
     {
         var handler = new TutorialRewardTestDriver(
-            new CharacterContainerDomainService(),
-            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService()), null!);
+            new CharacterContainerDomainService(TestRequired.TransactionScope()),
+            new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Application.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService(TestRequired.TransactionScope())), null!);
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.HandleAsync(
             Context,

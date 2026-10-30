@@ -124,7 +124,7 @@ internal sealed class AmbientStoreAccess(IDomainTransactionAccessor transactions
 /// the place.
 /// </remarks>
 internal sealed class SelectedSessionPositionPersistence(
-    ICharacterDomainStore? store, IDomainTransactionAccessor transactions, IEntryPlacementRuleService? placement)
+    ICharacterDomainStore store, IDomainTransactionAccessor transactions, IEntryPlacementRuleService placement)
     : ISelectedSessionPositionPersistence, ICharacterLocationDomainService
 {
     public async ValueTask PersistAsync(
@@ -136,15 +136,7 @@ internal sealed class SelectedSessionPositionPersistence(
         ArgumentNullException.ThrowIfNull(position);
         // A couple room is runtime-only. Every persistence path (including teardown) retains the ordinary return position.
         if (CoupleRoomTown.Is(position.TownId)) return;
-        if (store is null)
-        {
-            throw new InvalidOperationException(
-                "This server was assembled without anywhere to keep a character, so where one was "
-                + "standing cannot be saved.");
-        }
-
         var owned = new OwnedCharacterId(accountId, characterId);
-        if (placement is null) throw new InvalidOperationException("Position persistence requires inn placement rules.");
         byte? innTown = await placement.CanRememberInnAsync(position.TownId, cancellationToken).ConfigureAwait(false)
             ? position.TownId : null;
         if (transactions.Current is { } ambient)
@@ -166,7 +158,7 @@ internal sealed class SelectedSessionPositionPersistence(
         var alone = new DomainTransaction();
         try
         {
-            store!.SessionIn(alone).WritePosition(owned, position, innTown);
+            store.SessionIn(alone).WritePosition(owned, position, innTown);
             await alone.CommitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Characters;
@@ -26,7 +27,7 @@ public sealed class CharacterEntryStateTests
             new CharacterFeatureEntryProjection(),
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
                 new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }), new Dfo.Server.Application.Tests.Support.NoticeStateStub(),
-            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond }, new Dfo.Server.Application.Tests.Support.NoHerasEntries());
+            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond }, new Dfo.Server.Application.Tests.Support.NoHerasEntries(), creatureStore: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>(), altars: TestRequired.Absent<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>(), tournaments: TestRequired.Absent<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>(), clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>(), goldSilverHorn: TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>((method, _) => method.Name == "ReadQuotaAsync" ? ValueTask.FromResult(new Dfo.Server.Abstractions.World.GoldSilverHornQuotaSnapshot(5555, default, 0, 1)) : null), nameTags: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>(), stores: new Dfo.Server.Application.Characters.AmbientStoreAccess(TestRequired.TransactionScope()));
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 
@@ -39,8 +40,8 @@ public sealed class CharacterEntryStateTests
         Assert.Equal(new CharacterPvpResultStorageRow(101, 102, 103),
             Assert.Single(result.Public.Pvp.Results));
         Assert.Equal([200], result.Public.Extras.SpecialRewardQuestIds);
-        // The stored dimension, then Heras' daily count, which the entry always carries.
-        Assert.Equal(new long[] { 9, 3900 }, result.Public.Extras.Dimensions.Select(value => (long)value.Key));
+        // The stored dimension, then the daily counts of Heras and the gold-silver horn, which the entry always carries.
+        Assert.Equal(new long[] { 9, 3900, 5555 }, result.Public.Extras.Dimensions.Select(value => (long)value.Key));
         Assert.Equal(4, result.Public.Extras.DimensionFlags.Flag4);
         Assert.Equal([20, 10], result.Settings.HotkeySlots);
         var skill = Assert.Single(Assert.Single(result.Skills.Pages).Skills);

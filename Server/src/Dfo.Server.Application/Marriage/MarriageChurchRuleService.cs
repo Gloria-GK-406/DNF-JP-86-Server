@@ -5,13 +5,13 @@ using Dfo.Server.Data.Marriage;
 namespace Dfo.Server.Application.Marriage;
 
 internal sealed class MarriageChurchRuleService(IMarriageCeremonyContentSource ceremony,
-    ITownDefinitionSource? towns = null) : IMarriageChurchRuleService
+    ITownDefinitionSource towns) : IMarriageChurchRuleService
 {
     private static bool IsChurch(TownAreaDefinition area) =>
         area.MapPath.Replace('\\', '/').EndsWith("church/church.map", StringComparison.OrdinalIgnoreCase);
 
     public async ValueTask<bool> IsChurchAsync(byte townId, byte areaId, CancellationToken ct) =>
-        towns is not null && (await towns.GetAsync(townId, ct).ConfigureAwait(false))?.AreaAt(areaId) is { } area && IsChurch(area);
+        (await towns.GetAsync(townId, ct).ConfigureAwait(false))?.AreaAt(areaId) is { } area && IsChurch(area);
 
     public TimeSpan PreparationTime(int waitIndex)
     {
@@ -31,7 +31,7 @@ internal sealed class MarriageChurchRuleService(IMarriageCeremonyContentSource c
     public async ValueTask<IReadOnlyList<MarriageChurchLocation>> LocationsAsync(byte townId, CancellationToken ct)
     {
         // A21 RVA008936A0 and RVA0089460A recognize churches only in town2, area12..62.
-        if (townId != 2 || towns is null || await towns.GetAsync(townId, ct).ConfigureAwait(false) is not { } town) return [];
+        if (townId != 2 || await towns.GetAsync(townId, ct).ConfigureAwait(false) is not { } town) return [];
         var result = new List<MarriageChurchLocation>();
         foreach (var area in town.Areas.Where(x => IsChurch(x) && x.AreaId is >= 12 and <= 62))
         {

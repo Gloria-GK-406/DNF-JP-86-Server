@@ -27,7 +27,7 @@ internal sealed partial class DungeonRunDomainService
         lock (this.gate)
         {
             if (HasUsedDungeonBuff(characterId, runId)) return false;
-            var transaction = this.transactions?.Current
+            var transaction = this.transactions.Current
                 ?? throw new InvalidOperationException("Dungeon buff consumption requires a transaction.");
             transaction.Enlist((this, runId, characterId, "premium-buff"),
                 () => new BuffCommitParticipant(this, this.runsById[runId], characterId));
@@ -60,7 +60,7 @@ internal sealed partial class DungeonRunDomainService
         {
             if (!this.runsById.TryGetValue(runId, out var aggregate)
                 || !CanRevive(aggregate, payer, target)) return false;
-            var transaction = this.transactions?.Current
+            var transaction = this.transactions.Current
                 ?? throw new InvalidOperationException("Revival requires a transaction.");
             transaction.Enlist((this, runId, target, "revival"),
                 () => new RevivalCommitParticipant(this, aggregate, payer, target));

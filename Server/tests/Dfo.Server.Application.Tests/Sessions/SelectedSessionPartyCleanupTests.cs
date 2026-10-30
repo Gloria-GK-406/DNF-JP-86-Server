@@ -170,7 +170,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 TimeProvider.System);
             Cleanup = new SelectedSessionCleanupService(
                 sessions,
-                new CharacterContainerDomainService(),
+                new CharacterContainerDomainService(TestRequired.TransactionScope()),
                 presence,
                 new ExpertStoreDomainService(),
                 new PvpLobbyDomainService(),
@@ -181,7 +181,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 new StubChannelEntryPolicy(),
                 Parties.Service,
                 TestParties.Runs(),
-                []);
+                [], creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
         }
 
         public PartyServiceTestAdapter Parties { get; }

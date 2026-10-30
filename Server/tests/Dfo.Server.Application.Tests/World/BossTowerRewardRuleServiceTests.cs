@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Application.World.BossTower;
@@ -15,7 +16,7 @@ public sealed class BossTowerRewardRuleServiceTests
         var mob = MonsterExperienceWorth.For(level, ExperienceTuning.Default.Curve);
         Assert.Equal((uint)(32*mob), await rules.ClearExperienceAsync(level,8,default));
         var bonuses = new Bonuses();
-        var calculation = new ExperienceCalculationDomainService(null!,bonuses,bossTower:rules);
+        var calculation = new ExperienceCalculationDomainService(null!,bonuses,bossTower:rules, tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>());
         var reward = await calculation.CalculateAsync(new TowerClearExperienceContext(new(ExperienceEvent.TowerClear,new(1),new(1),3505),DungeonParticipationMode.BossTower,8),65,default);
         Assert.Equal(ExperienceEvent.DungeonClear,bonuses.LastEvent);
         Assert.Equal((uint)(32*mob),reward.Base);
@@ -30,7 +31,7 @@ public sealed class BossTowerRewardRuleServiceTests
         var rules=Rules(new() {Probabilities=[1000,0,0],CardCount=10});
         var basis=await rules.KillExperienceAsync(65,3,default);
         var bonuses=new Bonuses();
-        var calculation=new ExperienceCalculationDomainService(null!,bonuses,bossTower:rules);
+        var calculation=new ExperienceCalculationDomainService(null!,bonuses,bossTower:rules, tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>());
         var award=await calculation.CalculateAsync(new TowerKillExperienceContext(new(ExperienceEvent.TowerKill,new(1),new(1),3505),DungeonParticipationMode.BossTower,3),65,default);
         Assert.Equal(ExperienceEvent.MonsterKill,bonuses.LastEvent); Assert.Equal(basis,award.Base);
         Assert.Equal((uint)Math.Floor(basis*.5),award.GrowthContract);

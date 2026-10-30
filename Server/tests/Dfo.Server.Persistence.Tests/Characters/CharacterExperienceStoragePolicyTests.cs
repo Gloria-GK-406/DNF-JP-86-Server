@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
@@ -15,7 +16,7 @@ public sealed class CharacterExperienceStoragePolicyTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-experience-policy-{Guid.NewGuid():N}.db");
         try
         {
-            var database = new SqliteDatabase(path, new DomainTransactionScope());
+            var database = new SqliteDatabase(path, TestRequired.TransactionScope());
             using var link = new SqliteConnection(database.ConnectionString);
             await link.OpenAsync();
             void Sql(string text)

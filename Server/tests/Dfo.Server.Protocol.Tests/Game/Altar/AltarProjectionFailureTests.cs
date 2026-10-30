@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Reflection;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -103,6 +104,7 @@ public sealed class AltarProjectionFailureTests
                 services.AddSingleton(new AltarProbeRule(failing));
                 services.AddEventDispatching();
                 services.AddNotificationDispatching();
+                services.TryAddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
                 services.AddNotificationHandler<AltarStateChanged, AltarProbeHandler>();
             });
             Assert.True(users.TryGetByConnection(First.ConnectionId, out var firstUser));

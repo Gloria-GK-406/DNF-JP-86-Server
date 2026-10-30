@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
@@ -77,8 +78,8 @@ public sealed class TwoCarriersInOneTransactionTests
         private Fixture(string path, string secondPath)
         {
             this.Path = path;
-            this.Durable = new SqliteItemDomainStore(path);
-            this.SecondDurable = new SqliteItemDomainStore(secondPath);
+            this.Durable = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
+            this.SecondDurable = new SqliteItemDomainStore(secondPath, TestRequired.NoContentsEvents);
             this.SecondPath = secondPath;
         }
 
@@ -172,8 +173,8 @@ public sealed class TwoCarriersInOneTransactionTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-both-{Guid.NewGuid():N}.db");
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             return path;
         }
 

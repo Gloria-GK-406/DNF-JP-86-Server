@@ -232,7 +232,7 @@ public sealed class AcceptQuestCommandHandlerTests
             await using (var tx = fixture.Scope.Begin())
             {
                 var logs = new CharacterQuestLogDomainService(
-                    new SqliteQuestDomainStore(fixture.Path), new AmbientStoreAccess(fixture.Scope));
+                    new SqliteQuestDomainStore(fixture.Path), new AmbientStoreAccess(fixture.Scope), clock: TimeProvider.System);
                 Assert.True(await logs.LogOf(Account, Character).GiveUpAsync(QuestId, default));
                 await tx.CommitAsync(default);
             }
@@ -289,7 +289,7 @@ public sealed class AcceptQuestCommandHandlerTests
 
         public bool PlacementIsKnown { get; }
 
-        public DomainTransactionScope Scope { get; } = new();
+        public DomainTransactionScope Scope { get; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
 
         public RecordingQuestProgress Progress { get; } = new();
 
@@ -297,7 +297,7 @@ public sealed class AcceptQuestCommandHandlerTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-questaccept-{Guid.NewGuid():N}.db");
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var fixture = new Fixture(path, placementIsKnown);
             await using var connection = Open(path);
             await using var character = connection.CreateCommand();
@@ -309,11 +309,11 @@ public sealed class AcceptQuestCommandHandlerTests
 
         public QuestAcceptOperationDriver Handler(QuestDefinition? definition)
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             containers.Register(Character, new PersistentItemContainer(
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 new ContainerShape(InventoryContainerType.Main, 0),
-                new SqliteItemDomainStore(this.Path),
+                new SqliteItemDomainStore(this.Path, TestRequired.NoContentsEvents),
                 this.Scope,
                 new ItemPlacementRuleService(
                     new Placements(this.PlacementIsKnown), new NoWearables()),
@@ -321,15 +321,15 @@ public sealed class AcceptQuestCommandHandlerTests
             return new QuestAcceptOperationDriver(
                 new QuestDefinitionDomainService(
                     new QuestContentRuleService(new Quests(definition), new NoQuestParameters()),
-                    new QuestRewardRuleService()),
+                    new QuestRewardRuleService(cycles: TestRequired.Absent<Dfo.Server.Abstractions.World.ICycleDungeonRuleService>())),
                 new CharacterQuestLogDomainService(
-                    new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope)),
+                    new SqliteQuestDomainStore(this.Path), new AmbientStoreAccess(this.Scope), clock: TimeProvider.System),
                 containers,
                 this.Progress,
                 new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(
                     new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()),
-                    new ItemLifecycleDomainService(new SqliteItemDomainStore(this.Path), this.Scope,
-                        new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()))), containers));
+                    new ItemLifecycleDomainService(new SqliteItemDomainStore(this.Path, TestRequired.NoContentsEvents), this.Scope,
+                        new ItemPlacementRuleService(new Placements(this.PlacementIsKnown), new NoWearables()), clock: TimeProvider.System, expiration: null!)), containers));
         }
 
         public async Task<List<(int Slot, int QuestId, int TriggerValue)>> ReadQuestsAsync()

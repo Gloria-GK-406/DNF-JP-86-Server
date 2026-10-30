@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Transactions;
@@ -113,7 +114,7 @@ public sealed class CharacterSettingsTests
         private Fixture(string path)
         {
             this.Path = path;
-            var database = new SqliteDatabase(path, new DomainTransactionScope());
+            var database = new SqliteDatabase(path, TestRequired.TransactionScope());
             this.Settings = new CharacterSettingsDomainService(
                 new SqliteCharacterSettingsTable(database),
                 new SqliteCharacterHotkeyTable(database));

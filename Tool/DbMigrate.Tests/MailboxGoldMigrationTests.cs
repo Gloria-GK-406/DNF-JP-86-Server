@@ -89,7 +89,8 @@ public sealed class MailboxGoldMigrationTests
                 seed.ExecuteNonQuery();
             }
             Unversioned.Migrate(path);
-            var repo = new SqliteMailboxRepository(Unversioned.Open(path));
+            var repo = new SqliteMailboxRepository(Unversioned.Open(path),
+                TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemDomainStore>(), TestRequired.TransactionScope());
             var mail = (await repo.FindAsync(new CharacterId(27), 19, default))!;
             Assert.Equal(2, mail.Attachments.Length);
             Assert.Contains(mail.Attachments, x => x.LegacyUnsupported);
@@ -127,8 +128,8 @@ public sealed class MailboxGoldMigrationTests
         public (DomainTransactionScope Scope, SqliteMailboxRepository Repository) Migrate()
         {
             Unversioned.Migrate(path);
-            var scope = new DomainTransactionScope();
-            return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope), new SqliteItemDomainStore(path), scope));
+            var scope = TestRequired.TransactionScope();
+            return (scope, new SqliteMailboxRepository(new SqliteDatabase(path, scope), new SqliteItemDomainStore(path, TestRequired.NoContentsEvents), scope));
         }
 
         public void Execute(string sql)

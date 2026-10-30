@@ -26,7 +26,7 @@ internal sealed partial class DungeonRunDomainService
             || state.EndsAt != completion.EndsAt || now < state.EndsAt
             || notifyReady && run.ReadyParticipants.Count == 0 || state.IsEnding && !notifyReady) return false;
         var next = state with { IsEnding = true, NoticeRegistered = notifyReady };
-        if (this.transactions?.Current is { } transaction)
+        if (this.transactions.Current is { } transaction)
             transaction.Enlist((this, completion, "lost-land-completion"), () => new CompletionParticipant(this, run, state, next));
         else { run.LostLandExploration = next; run.RuntimeRevision++; }
         return true;
@@ -59,7 +59,7 @@ internal sealed partial class DungeonRunDomainService
     {
         GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageLostLandFeverExpiry));
         if (expiry.ActiveUntil > now || !IsCurrentFeverExpiry(expiry)) return false;
-        if (this.transactions?.Current is { } transaction)
+        if (this.transactions.Current is { } transaction)
             transaction.Enlist((this, expiry, "lost-land-fever-expiry"), () => new FeverExpiryParticipant(this, expiry));
         else CommitFeverExpiry(expiry);
         return true;

@@ -34,8 +34,8 @@ internal sealed class CharacterSide
 
     public CharacterSide(string databasePath)
     {
-        this.Scope = new DomainTransactionScope();
-        this.itemStore = new SqliteItemDomainStore(databasePath);
+        this.Scope = TestRequired.TransactionScope();
+        this.itemStore = new SqliteItemDomainStore(databasePath, TestRequired.NoContentsEvents);
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
 
@@ -63,8 +63,8 @@ internal sealed class CharacterSide
         items,
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
         new ItemGrantDomainService(null!, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()),
-            new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())),
-            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())), new Dfo.Server.Application.Characters.CharacterAppearanceRuleService());
+            new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), clock: TimeProvider.System, expiration: null!),
+            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())), appearances: TestRequired.WornAppearances);
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.
@@ -135,7 +135,7 @@ internal sealed class CharacterSide
                 experienceRules, new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
                 Scope, new Dfo.Server.Testing.DiscardingEventService()),
             new Dfo.Server.Application.Rental.AccountLuckyStarDomainService(new SqliteLuckyStarDomainStore(database),
-                new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,Scope));
+                new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,Scope, events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>()));
 
     private sealed class LuckyStarContent : Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource
     {
@@ -203,7 +203,7 @@ internal sealed class CharacterSide
             new SqliteCharacterDailyChallengeEntryTable(this.database),
             new SqliteCharacterDailyChallengeTailTable(this.database),
             new SqliteCharacterDailyScheduleTable(this.database),
-            new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database), new Dfo.Server.Application.World.DungeonDifficultyRuleService()),
+            new CharacterDungeonDifficultyDomainService(new SqliteCharacterDungeonPermissionTable(this.database), new Dfo.Server.Application.World.DungeonDifficultyRuleService(admissions: TestRequired.NoDungeonAdmissions)),
             new ReviveCoinQueryDomainService(new ReviveCoinRuleService(new DailyResetRuleService(new ResetSettings())),
                 new Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService(
                     new LegacyUsageQuotaStore(new SqliteConsumableUsageTable(this.database),
@@ -216,7 +216,7 @@ internal sealed class CharacterSide
             new SqliteCharacterExpertJobTable(this.database),
             new SqliteCharacterExpertRecipeTable(this.database),
             new SqliteCharacterPvpMissionTable(this.database),
-            new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database), TimeProvider.System,
+            new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database, transactions: TestRequired.TransactionScope(), items: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemDomainStore>()), TimeProvider.System,
                 new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database)),
             goldLimits, new PremiumServiceUsageDomainService(
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
@@ -225,7 +225,7 @@ internal sealed class CharacterSide
                         new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
                     this.Scope, null!),
                 new PremiumServiceRuleService(new UsageRules()),
-                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database));
+                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database), marriageRelations: TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>());
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

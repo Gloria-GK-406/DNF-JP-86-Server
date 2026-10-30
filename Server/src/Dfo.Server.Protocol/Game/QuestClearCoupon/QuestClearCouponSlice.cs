@@ -70,11 +70,11 @@ internal static class QuestClearCouponPayloadCodec
     }
 }
 
-internal sealed class QuestClearCouponDecoder(ILogger<QuestClearCouponDecoder>? logger = null) : IGameMessageDecoder
+internal sealed class QuestClearCouponDecoder(ILogger<QuestClearCouponDecoder> logger) : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        if (logger?.IsEnabled(LogLevel.Debug) == true)
+        if (logger.IsEnabled(LogLevel.Debug))
             logger.LogDebug("STACKABLE_ACTION capture metadata={Metadata} body({Length}B)={Body}",
                 metadata, body.Length, Convert.ToHexString(body));
         return QuestClearCouponPayloadCodec.Decode(metadata, body);

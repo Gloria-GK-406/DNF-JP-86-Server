@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
@@ -16,7 +17,7 @@ internal static class Unversioned
     /// </summary>
     public static void CreateUnstamped(string path)
     {
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
         using var connection = new SqliteConnection($"Data Source={path}");
         connection.Open();
         using var command = connection.CreateCommand();
@@ -27,5 +28,5 @@ internal static class Unversioned
     public static void Migrate(string path) => Migrator.Migrate(path, backup: false);
 
     /// <summary>Opens the database the way the server does, which refuses one in another shape.</summary>
-    public static SqliteDatabase Open(string path) => new(path, new DomainTransactionScope());
+    public static SqliteDatabase Open(string path) => new(path, TestRequired.TransactionScope());
 }

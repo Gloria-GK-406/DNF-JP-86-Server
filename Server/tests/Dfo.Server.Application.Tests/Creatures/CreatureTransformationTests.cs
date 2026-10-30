@@ -162,14 +162,14 @@ public sealed class CreatureTransformationTests
                 await command.ExecuteNonQueryAsync();
             }
 
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var domain = new SqliteCreatureAdapter(path, scope);
             var rules = new FakeRules();
             rules.Rules[63000] = rules.Rules[63000] with
             {
                 ExperienceThresholds = [.. Enumerable.Range(1, 18).Select(x => x * 100), 2151]
             };
-            var runtime = new CreatureRuntimeDomainService(new SqliteCreatureDomainStore(path),
+            var runtime = new CreatureRuntimeDomainService(new SqliteCreatureDomainStore(path, TestRequired.NoContentsEvents),
                 new CreatureRuleService(rules, new FakeLifetimes()), scope, new FakeSessions(), TimeProvider.System, domain);
             domain.Instances = runtime;
             runtime.Enter(Session);
@@ -232,8 +232,8 @@ public sealed class CreatureTransformationTests
     private sealed class SqliteCreatureAdapter(string path, DomainTransactionScope scope)
         : ICreatureDomainService, ICreatureStore, ICharacterBusinessInventoryDomainService
     {
-        private readonly SqliteCreatureDomainStore creatures = new(path);
-        private readonly SqliteItemDomainStore items = new(path);
+        private readonly SqliteCreatureDomainStore creatures = new(path, contentsEvents: TestRequired.NoContentsEvents);
+        private readonly SqliteItemDomainStore items = new(path, contentsEvents: TestRequired.NoContentsEvents);
         public ICreatureInstanceDomainService Instances { get; set; } = null!;
         public ICreatureCollection Of(CharacterId characterId) => Instances.Of(characterId);
         public ICreatureStore GetStore(CharacterId characterId) => this;
@@ -289,7 +289,7 @@ public sealed class CreatureTransformationTests
 
     private sealed class Fixture
     {
-        public DomainTransactionScope Scope { get; } = new();
+        public DomainTransactionScope Scope { get; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
         public FakeCreatureStore Store { get; }
         public FakeRules Rules { get; } = new();
         public CreatureRuntimeDomainService Service { get; }

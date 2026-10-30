@@ -19,10 +19,10 @@ namespace Dfo.Server.Application.Notifications;
 /// </remarks>
 internal sealed class NotificationAudienceResolver(
     ISelectedSessionDomainService sessions,
-    ITownAreaDomainService? townAreas = null)
+    ITownAreaDomainService townAreas)
     : INotificationAudienceResolver
 {
-    private readonly ITownAreaDomainService? townAreas = townAreas;
+    private readonly ITownAreaDomainService townAreas = townAreas;
 
     public IReadOnlyList<NotificationRecipient> Resolve(NotificationAudience audience)
     {
@@ -41,8 +41,7 @@ internal sealed class NotificationAudienceResolver(
 
     private IReadOnlyList<NotificationRecipient> Reachable(TownAreaFilter scope)
     {
-        var directory = townAreas ?? throw new InvalidOperationException(
-            "Scoped notification audiences require town areas.");
+        var directory = townAreas;
         var recipients = new List<NotificationRecipient>();
         foreach (var candidate in directory.Query(scope)
                      .SelectMany(area => area.Members)

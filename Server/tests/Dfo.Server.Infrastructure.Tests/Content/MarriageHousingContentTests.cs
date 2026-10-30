@@ -20,7 +20,7 @@ public sealed class MarriageHousingContentTests
         Assert.Equal(new[] { 10, 40, 100, 200, 500, 800, 1000 }, rules.RoomAttributes.Select(x => x.Threshold));
         Assert.Equal(Enumerable.Range(0, 6), rules.RingAttributes.Select(x => x.Threshold));
         Assert.Equal(14, rules.EntrySources.Count); Assert.Contains((2, 0), rules.EntrySources); Assert.DoesNotContain((2, 1), rules.EntrySources);
-        var items = new PvfItemPlacementDefinitionSource(provider);
+        var items = new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService());
         var shops = new PvfNpcShopDefinitionSource(provider);
         foreach (var furniture in rules.Furniture.Values)
         {

@@ -92,7 +92,7 @@ public sealed partial class IllusionTowerDomainServiceTests
                 await Tower(f).LoadAsync(context, default);
                 await Tower(f).StartAsync(context, default);
                 await TestEffectFootprints.Run([session], cap => Tower(f).DieAsync(context, cap, default));
-                Assert.True((await Tower(f).MarkSettledAsync(context, new([]), default)).Changed);
+                Assert.True(Tower(f).Find(context.Session)!.Completion!.Settled); // a death settles the run
             }
         });
         f.Clock.Advance(TimeSpan.FromMinutes(5));

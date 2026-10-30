@@ -29,8 +29,8 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class InventoryMoveDomainService(
     IBusinessInventorySlotDomainService inventory,
     IItemMovementDomainService moves,
-    ICreatureRuntimeDomainService? creatures = null, ISelectedSessionDomainService? sessions = null,
-    ICargoTransferDomainService? cargo = null)
+    ICreatureRuntimeDomainService creatures, ISelectedSessionDomainService sessions,
+    ICargoTransferDomainService cargo)
     : IInventoryMoveDomainService
 {
     /// <summary>A piece of equipment does not stack, so exactly one of it ever moves.</summary>
@@ -123,11 +123,11 @@ internal sealed class InventoryMoveDomainService(
     {
         var touchesPet = command.SourceSlot.Space == BusinessInventorySpace.WornCreature
             || command.DestinationSlot.Space == BusinessInventorySpace.WornCreature;
-        var session = touchesPet ? sessions?.FindByCharacter(command.CharacterId) : null;
-        var before = creatures is not null && session is not null
+        var session = touchesPet ? sessions.FindByCharacter(command.CharacterId) : null;
+        var before = session is not null
             ? await creatures.AdvanceAsync(session, cancellationToken).ConfigureAwait(false) : [];
         var result = await MoveCoreAsync(command, cancellationToken).ConfigureAwait(false);
-        var after = creatures is not null && session is not null
+        var after = session is not null
             ? await creatures.AdvanceAsync(session, cancellationToken).ConfigureAwait(false) : [];
         return result with { CreatureChanges = [..before, ..after] };
     }
@@ -146,7 +146,7 @@ internal sealed class InventoryMoveDomainService(
         if (command.SourceSlot.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo
             || command.DestinationSlot.Space is BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo)
         {
-            if (cargo is null || command.Session is not { } selected || selected.CharacterId != command.CharacterId)
+            if (command.Session is not { } selected || selected.CharacterId != command.CharacterId)
                 return ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer);
             var cargoFrom = inventory.Find(command.CharacterId, command.SourceSlot);
             var cargoInto = inventory.Find(command.CharacterId, command.DestinationSlot);

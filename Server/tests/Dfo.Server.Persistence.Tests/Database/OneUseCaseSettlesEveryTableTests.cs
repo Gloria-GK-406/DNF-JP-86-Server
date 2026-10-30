@@ -26,7 +26,7 @@ public sealed class OneUseCaseSettlesEveryTableTests : IAsyncDisposable
 
     private readonly SqliteDatabase database;
 
-    private readonly DomainTransactionScope scope = new();
+    private readonly DomainTransactionScope scope = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
 
     public OneUseCaseSettlesEveryTableTests()
     {

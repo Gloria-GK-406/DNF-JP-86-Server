@@ -43,7 +43,7 @@ public sealed class DungeonPickupTransactionTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-pickup-tx-{Guid.NewGuid():N}.db");
         try
         {
-            var bootstrap = new DomainTransactionScope();
+            var bootstrap = TestRequired.TransactionScope();
             _ = new SqliteDatabase(path, bootstrap);
             await SeedAsync(path);
 
@@ -53,9 +53,10 @@ public sealed class DungeonPickupTransactionTests
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(TestParties.Create());
             services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
             services.AddSingleton<IDungeonRunDomainService, DungeonRunDomainService>();
+            services.AddAbsentDungeonRunDependencies();
             services.AddDungeonRunViews();
             services.AddSingleton<IQuestDomainStore>(new SqliteQuestDomainStore(path));
-            services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path));
+            services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
             services.AddFixtureCommand<StaleQuestPickupCommand, PickupReceipt,
                 StaleQuestPickupHandler>(FixtureUnitKind.Transactional);
             await using var provider = services.AddSessionSafetyStandIns().BuildServiceProvider();

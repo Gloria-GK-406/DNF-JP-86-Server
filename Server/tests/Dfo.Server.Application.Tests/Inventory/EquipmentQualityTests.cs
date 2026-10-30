@@ -283,7 +283,7 @@ public sealed class EquipmentQualityTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH unavailable.");
         using var f = new ShopFixture(s => s.AddSingleton<IItemPlacementDefinitionSource>(sp =>
-            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>())), useArchive: true);
+            new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>(), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())), useArchive: true);
         await f.SeedCore(9, Equipment with { ItemId = 450004 }); await f.Seed(65, 15, 1);
         var receipt = (await Roll(f, 450004)).Receipt;
         Assert.NotNull(receipt); Assert.Equal(0, f.Count(15));

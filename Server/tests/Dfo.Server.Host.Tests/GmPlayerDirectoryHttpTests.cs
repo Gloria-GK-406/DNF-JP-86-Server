@@ -149,7 +149,7 @@ public sealed class GmPlayerDirectoryHttpTests
                     services.Remove(descriptor);
                 services.AddSingleton(provider => new LoginSessionRegistry(
                     provider.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>(),
-                    provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<LoginSessionOptions>()));
+                    provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<LoginSessionOptions>(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>()));
             });
         await SeedAsync(host); Assert.Equal(HttpStatusCode.OK, (await host.LoginAsync(await host.CsrfAsync())).StatusCode);
         var online = host.Services.GetRequiredService<IOnlineUserDomainService>();

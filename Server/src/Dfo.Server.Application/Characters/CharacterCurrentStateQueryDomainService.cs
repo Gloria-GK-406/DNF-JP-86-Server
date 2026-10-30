@@ -30,14 +30,14 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     ISessionAdjacentEntryDomainService adjacent,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     TimeProvider timeProvider,
-    IEventManagementDomainService? events = null,
-    IWeeklyAttendanceDomainService? attendance = null,
-    IJoustProjectionDomainService? joust = null,
-    IEpicBookDomainService? epicBook = null,
-    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
-    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null, ICollectionBoxDomainService? collections = null,
-    ISouthernDaleQuestDomainService? southern = null,
-    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService? crystalExchange = null) : ICharacterCurrentStateQueryDomainService
+    IEventManagementDomainService events,
+    IWeeklyAttendanceDomainService attendance,
+    IJoustProjectionDomainService joust,
+    IEpicBookDomainService epicBook,
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService titles,
+    Dfo.Server.Abstractions.Achievements.IAchievementDomainService achievements, ICollectionBoxDomainService collections,
+    ISouthernDaleQuestDomainService southern,
+    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService crystalExchange) : ICharacterCurrentStateQueryDomainService
 {
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -71,20 +71,17 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             entries, rules, appearanceRules, readAt, cancellationToken).ConfigureAwait(false);
 
         characterEntry = CharacterStateProjection.CompleteAppearanceProjection(appearanceRules, character, characterEntry, characterInventory);
-        if (achievements is not null)
-            characterEntry = characterEntry with { Features = characterEntry.Features with
+        characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with
             { Achievements = await achievements.GetAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) } } };
-        if (titles is not null)
-            characterEntry = characterEntry with { Features = characterEntry.Features with
+        characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with
             { TitleBooks = await titles.GetAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) } } };
         var contentSubject = CharacterStateProjection.BuildContentSubject(
             equippedCreature, character, characterEntry, characterInventory);
-        if (southern is not null)
-            contentSubject = contentSubject with { SouthernDaleQuestAvailable = await southern.CanAcceptAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
-        contentSubject = contentSubject with { GiantDragonCrystalExchangeAvailable = crystalExchange is not null
-            && await crystalExchange.CanAcceptAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
+        contentSubject = contentSubject with { SouthernDaleQuestAvailable = await southern.CanAcceptAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
+        contentSubject = contentSubject with { GiantDragonCrystalExchangeAvailable =
+            await crystalExchange.CanAcceptAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken).ConfigureAwait(false);
         // Channel flags are independent of login placement. No arrival gate is needed to query
         // a character already standing in a declared town area, such as Time Gate (town 12).
@@ -123,11 +120,11 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             new GameWorldEntryState(readAt, content, channelPolicy, contentSubject),
             new CharacterSessionEntryState(session.AccountId, session.CharacterId, adjacentState),
             roster, rosterEntry,
-            events is null || attendance is null ? null : Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new EventPlayerSnapshot(
+            Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new EventPlayerSnapshot(
                 await events.GetEventInfoListAsync(session.AccountId, readAt, cancellationToken),
                 await attendance.StateAsync(session.AccountId, readAt, cancellationToken),
-                joust is null ? null : await joust.ReadAsync(session.CharacterId, readAt, cancellationToken))),
-            epicBook is null ? [] : await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false))
-        { CollectionBoxes = collections is null ? null : await collections.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
+                await joust.ReadAsync(session.CharacterId, readAt, cancellationToken))),
+            await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false))
+        { CollectionBoxes = await collections.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
     }
 }

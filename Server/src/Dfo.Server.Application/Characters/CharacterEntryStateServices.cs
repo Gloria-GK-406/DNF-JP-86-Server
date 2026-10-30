@@ -232,10 +232,10 @@ internal sealed class CharacterEntryStateDomainService(
     ICharacterFeatureEntryProjection features,
     ICharacterDomainService characters, INoticeStateDomainService notices,
     IPremiumServiceDomainService premiums, IHerasQuotaDomainService heras,
-    ICreatureDomainStore? creatureStore = null, AmbientStoreAccess? stores = null,
-    IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null,
-    IClientSettingsDomainService? clientSettings = null,
-    IGoldSilverHornDomainService? goldSilverHorn = null, ICharacterNameTagDomainService? nameTags = null) : ICharacterEntryStateDomainService
+    ICreatureDomainStore creatureStore, AmbientStoreAccess stores,
+    IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments,
+    IClientSettingsDomainService clientSettings,
+    IGoldSilverHornDomainService goldSilverHorn, ICharacterNameTagDomainService nameTags) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -273,32 +273,21 @@ internal sealed class CharacterEntryStateDomainService(
                 SpecialRewardQuestIds = specialRewardQuestIds,
             },
         };
-        if (clientSettings is not null)
-        {
-            var appearance = await clientSettings.ReadAppearanceAsync(accountId, checked((byte)publicState.VisibilityBits), cancellationToken).ConfigureAwait(false);
-            publicState = publicState with { VisibilityBits = appearance.VisibilityBits,
-                Settings = publicState.Settings with { UserStateBits = appearance.VisibilityBits } };
-        }
-        if (nameTags is not null)
-        {
-            var tag = await nameTags.ReadEffectiveAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
-            publicState = publicState with { Extras = publicState.Extras with
-                { NameTagItemId = tag.ItemId, NameTagExpireTime = tag.ExpiresAtUnixSeconds } };
-        }
+        var appearance = await clientSettings.ReadAppearanceAsync(accountId, checked((byte)publicState.VisibilityBits), cancellationToken).ConfigureAwait(false);
+        publicState = publicState with { VisibilityBits = appearance.VisibilityBits,
+            Settings = publicState.Settings with { UserStateBits = appearance.VisibilityBits } };
+        var tag = await nameTags.ReadEffectiveAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
+        publicState = publicState with { Extras = publicState.Extras with
+            { NameTagItemId = tag.ItemId, NameTagExpireTime = tag.ExpiresAtUnixSeconds } };
         var remainingEntries = new List<(int DungeonId, int Remaining)>();
-        if (altars is not null)
-            remainingEntries.AddRange((await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
+        remainingEntries.AddRange((await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
                 .Select(value => (value.DungeonId, value.Remaining)));
-        if (tournaments is not null)
-            remainingEntries.AddRange((await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
+        remainingEntries.AddRange((await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
                 .Select(value => (value.DungeonId, value.Remaining)));
         var herasQuota = await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
         remainingEntries.Add((herasQuota.DungeonId, herasQuota.Remaining));
-        if (goldSilverHorn is not null)
-        {
-            var quota = await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
-            remainingEntries.Add((quota.DungeonId, quota.Remaining));
-        }
+        var quota = await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false);
+        remainingEntries.Add((quota.DungeonId, quota.Remaining));
         if (remainingEntries.Count > 0)
         {
             // A21 subtype1 and NOTI0227 write the same counter cache. Legacy dimensions
@@ -317,16 +306,12 @@ internal sealed class CharacterEntryStateDomainService(
             publicState = publicState with { Extras = publicState.Extras with { Dimensions = dimensions } };
         }
         var featureState = features.Build(storage.Features);
-        if (creatureStore is not null)
+        var creatureStates = await stores.ReadAsync(creatureStore,
+            pets => pets.ReadAllAsync(characterId, cancellationToken)).ConfigureAwait(false);
+        featureState = featureState with
         {
-            var access = stores ?? throw new InvalidOperationException("Creature projection requires store access.");
-            var creatureStates = await access.ReadAsync(creatureStore,
-                pets => pets.ReadAllAsync(characterId, cancellationToken)).ConfigureAwait(false);
-            featureState = featureState with
-            {
-                Pets = creatureStates.Select(CreatureRuntimeProjection.Build).ToArray()
-            };
-        }
+            Pets = creatureStates.Select(CreatureRuntimeProjection.Build).ToArray()
+        };
         return new CharacterEntryState(
             characterId,
             publicState,

@@ -89,7 +89,7 @@ public sealed class MonsterDeathHandlerTests
         Dfo.Server.Application.Commands.SelectedSessionSafety? safety = null)
     {
         _ = unusedView;
-        var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+        var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
         var service = new MonsterDeathDomainService(scope, sessions, characters,
             runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers),
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IQuestItemDropDomainService>(),
@@ -528,7 +528,7 @@ public sealed class MonsterDeathHandlerTests
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,
                 sender,
                 ExperienceDiagnostics.None,
@@ -591,7 +591,7 @@ public sealed class MonsterDeathHandlerTests
                 new DungeonClearDomainService(run, kills),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender), bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
-                    new RecordingQuestLogs(), CurrentCharacterStub.Domain()), registry, sender,
+                    new RecordingQuestLogs(), CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()), registry, sender,
                 ExperienceDiagnostics.None, NullLogger<MonsterDeathHandler>.Instance);
             await handler.HandleAsync(ContextOf(leader),
                 new MonsterDeathRequest(GameMessageMetadata.Empty, 0, ushort.MaxValue) { ObjectCode = 8961 }, default);
@@ -672,7 +672,7 @@ public sealed class MonsterDeathHandlerTests
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,
                 sender,
                 ExperienceDiagnostics.None,
@@ -726,7 +726,7 @@ public sealed class MonsterDeathHandlerTests
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,
                 sender,
                 ExperienceDiagnostics.None,
@@ -838,7 +838,7 @@ public sealed class MonsterDeathHandlerTests
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,
                 sender,
                 ExperienceDiagnostics.None,
@@ -999,7 +999,7 @@ public sealed class MonsterDeathHandlerTests
                 bus,
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(), new RecordingQuestLogs(),
-                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                    Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry, sender, ExperienceDiagnostics.None,
                 NullLogger<MonsterDeathHandler>.Instance);
 
@@ -1073,7 +1073,7 @@ public sealed class MonsterDeathHandlerTests
                 new QuestOfferRefreshDomainService(
                     new StubWorldContentEntryRuleService(),
                     new RecordingQuestLogs(),
-                    CurrentCharacterStub.Domain()),
+                    CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,
                 sender,
                 ExperienceDiagnostics.None,
@@ -1131,7 +1131,7 @@ public sealed class MonsterDeathHandlerTests
         {
             var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
                 run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),bus,
-                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
+                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
             await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
                 await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default));
@@ -1172,7 +1172,7 @@ public sealed class MonsterDeathHandlerTests
         {
             var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
                 run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, outbound.Game),bus,
-                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain()),
+                new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,outbound.Game,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default);
         });
@@ -1252,7 +1252,7 @@ public sealed class MonsterDeathHandlerTests
             global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
-                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain()),
+                content ?? new StubWorldContentEntryRuleService(), new RecordingQuestLogs(), Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
             registry,
             sender,
             ExperienceDiagnostics.None,

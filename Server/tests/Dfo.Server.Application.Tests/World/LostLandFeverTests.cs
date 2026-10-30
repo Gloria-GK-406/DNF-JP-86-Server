@@ -116,7 +116,7 @@ public sealed class LostLandFeverTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var transactions = new DomainTransactionScope();
+            var transactions = TestRequired.TransactionScope();
             IDungeonRunDomainService runs = global::Dfo.Server.Testing.TestParties.Runs(transactions);
             Begin(runs);
             for (ushort actor = 1; actor <= 99; actor++) Death(runs, actor, At);

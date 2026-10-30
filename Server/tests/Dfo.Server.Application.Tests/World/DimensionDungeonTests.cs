@@ -284,10 +284,9 @@ public sealed class DimensionDungeonTests
     }
     private static DimensionDungeonDomainService Service(LearningFixture f, Clock clock, Visits visits) => new(
         new DimensionDungeonRuleService(new Source()), new Structures(), visits,
-        f.Services.GetRequiredService<IUsageQuotaDomainService>(), new DungeonAdmissionDomainService(new Structures(),
-            f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService>(),
-            new DungeonDifficultyRuleService(), f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService>(),
-            quotas: f.Services.GetRequiredService<IUsageQuotaDomainService>(), events: f.Services.GetRequiredService<IEventService>(), transactions: f.Scope),
+        f.Services.GetRequiredService<IUsageQuotaDomainService>(), new DungeonAdmissionDomainService(f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterDungeonDifficultyDomainService>(),
+            new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService>(),
+            quotas: f.Services.GetRequiredService<IUsageQuotaDomainService>(), events: f.Services.GetRequiredService<IEventService>(), transactions: f.Scope, characters: Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(new() { Progress = new(85, 0) }), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(new Structures()), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), materials: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonEntryMaterialsDomainService>()),
         new Daily(), clock);
     private sealed class Source : IDimensionDungeonContentSource
     {

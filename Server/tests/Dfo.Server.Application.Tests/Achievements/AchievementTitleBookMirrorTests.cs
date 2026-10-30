@@ -32,7 +32,7 @@ public sealed partial class AchievementTitleBookTests
     }
     private static async ValueTask<ItemMoveResult> MoveTitle(Fixture f, BusinessSlot source, BusinessSlot destination)
     {
-        var h=new InventoryMoveDomainService(f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(),f.Services.GetRequiredService<IItemMovementDomainService>());
+        var h=new InventoryMoveDomainService(f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(),f.Services.GetRequiredService<IItemMovementDomainService>(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
         return await h.MoveAsync(new(Character,source,1,destination),default);
     }
     [PvfFact]

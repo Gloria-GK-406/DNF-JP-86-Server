@@ -375,7 +375,7 @@ public sealed partial class AchievementTitleBookTests(ITestOutputHelper output)
                         f.Services.GetRequiredService<IItemDomainStore>(),f.Services.GetRequiredService<IDomainTransactionAccessor>(),
                         f.Services.GetRequiredService<IItemPlacementRuleService>(),f.Services.GetRequiredService<IItemSlotRuleService>()));
             var handler = new Dfo.Server.Application.Inventory.InventoryMoveDomainService(
-                f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(), f.Services.GetRequiredService<IItemMovementDomainService>());
+                f.Services.GetRequiredService<IBusinessInventorySlotDomainService>(), f.Services.GetRequiredService<IItemMovementDomainService>(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
             var carried = new BusinessSlot(BusinessInventorySpace.CarriedEquipment,0);
             await using (var tx = f.Scope.Begin()) {
                 var result = await handler.MoveAsync(

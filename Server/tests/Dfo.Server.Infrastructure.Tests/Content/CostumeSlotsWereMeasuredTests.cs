@@ -79,7 +79,7 @@ public sealed class CostumeSlotsWereMeasuredTests
         _ = slot;
         _ = equipmentType;
 
-        var placement = await new PvfItemPlacementDefinitionSource(provider)
+        var placement = await new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())
             .GetAsync(itemId, CancellationToken.None);
 
         Assert.NotNull(placement);

@@ -24,10 +24,10 @@ internal sealed class DungeonVisitDomainService(
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterFatigueDomainService fatigue, IDungeonAdmissionDomainService admission,
-    IIllusionTowerDomainService? tower = null,
-    ILogger<DungeonVisitDomainService>? logger = null) : IDungeonVisitDomainService
+    IIllusionTowerDomainService tower,
+    ILogger<DungeonVisitDomainService> logger) : IDungeonVisitDomainService
 {
-    private readonly ILogger<DungeonVisitDomainService> logger = logger ?? NullLogger<DungeonVisitDomainService>.Instance;
+    private readonly ILogger<DungeonVisitDomainService> logger = logger;
     public bool DefersSelectionState(byte characterLevel, bool tutorialCompleted = false) =>
         selection.DefersSelectionState(characterLevel, tutorialCompleted);
 
@@ -109,7 +109,7 @@ internal sealed class DungeonVisitDomainService(
                 startedAt,
                 participants),
             cancellationToken).ConfigureAwait(false);
-        if (tower is not null && !tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
+        if (!tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
         if (layout.ConsumesFatigue)
             foreach (var participant in participants)

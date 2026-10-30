@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Text;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
@@ -120,7 +121,7 @@ public sealed class SchemaOwnershipTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-alone-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
 
             await using var connection = new SqliteConnection(
                 new SqliteConnectionStringBuilder { DataSource = path }.ToString());
@@ -154,7 +155,7 @@ public sealed class SchemaOwnershipTests
         {
             for (var attempt = 0; attempt < times; attempt++)
             {
-                _ = new SqliteDatabase(path, new DomainTransactionScope());
+                _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             }
 
             return await DescribeAsync(path);

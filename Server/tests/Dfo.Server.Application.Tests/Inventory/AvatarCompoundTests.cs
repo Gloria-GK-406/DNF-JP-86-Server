@@ -46,7 +46,7 @@ public sealed class AvatarCompoundTests
             if (archive)
             {
                 Dfo.Server.Application.Tests.Support.ShopFixtureContent.RegisterArchive(s);
-                s.AddSingleton<IItemPlacementDefinitionSource>(sp => new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>()));
+                s.AddSingleton<IItemPlacementDefinitionSource>(sp => new PvfItemPlacementDefinitionSource(sp.GetRequiredService<PvfArchiveProvider>(), new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()));
             }
             else
             {

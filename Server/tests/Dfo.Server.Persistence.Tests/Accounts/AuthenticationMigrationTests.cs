@@ -44,7 +44,7 @@ public sealed class AuthenticationMigrationTests
         await TestGameplay.RunAsync(fixture.Services, async () =>
         {
             var noAllowlist = new AuthenticationDomainService(fixture.Store, fixture.Clock,
-                new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions()), new LoginSessionOptions(), null!);
+                new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>()), new LoginSessionOptions(), null!);
             await using var transaction = fixture.Scope.Begin();
             Assert.Equal(AuthenticationStatus.Success, (await noAllowlist.AuthenticateAndIssueTicketAsync(verified, default)).Status);
             await transaction.CommitAsync(default);

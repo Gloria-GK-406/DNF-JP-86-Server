@@ -10,7 +10,7 @@ internal sealed partial class DungeonRunDomainService
         IReadOnlyList<DungeonCellActorState> actors, bool mechanismBlocksClear)
     {
         GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageDynamicCell));
-        var transaction = this.transactions?.Current
+        var transaction = this.transactions.Current
             ?? throw new InvalidOperationException("Dynamic cells require a transaction.");
         if (transaction.IsReadOnly) throw new InvalidOperationException("Dynamic cells require a writable transaction.");
         lock (this.gate)

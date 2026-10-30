@@ -23,4 +23,5 @@
     <Compile Include="../../Server/tests/Support/TestGameplay.cs" Link="Support/TestGameplay.cs" />
     <Compile Include="../../Server/tests/Support/GameplayAssertionRecorder.cs" Link="Support/GameplayAssertionRecorder.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../../Server/tests/Support/TestRequired.cs" Link="Support/TestRequired.cs" /></ItemGroup>
 </Project>

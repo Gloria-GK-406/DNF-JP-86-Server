@@ -22,7 +22,7 @@ internal sealed class NpcShopDomainService(
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
     INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, IDungeonParticipationDomainService? participation = null) : INpcShopDomainService
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower, IDungeonParticipationDomainService participation) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -31,9 +31,9 @@ internal sealed class NpcShopDomainService(
         footprint.DemandActive(session);
         if (!sessions.IsInWorld(session))
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
-        var inBossTower = bossTower?.Find(session) is not null;
-        if (inBossTower ? !bossTower!.CanShop(session, npcId, shopId)
-            : participation?.Find(session.CharacterId) is not null
+        var inBossTower = bossTower.Find(session) is not null;
+        if (inBossTower ? !bossTower.CanShop(session, npcId, shopId)
+            : participation.Find(session.CharacterId) is not null
                 || onlineCharacters.StandingOf(session) is not { } member)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
         var character = characters.Get(session.CharacterId);

@@ -198,7 +198,7 @@ public sealed class AvatarCarrierRulesTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-avatar-facts-{Guid.NewGuid():N}.db");
         try
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var database = new SqliteDatabase(path, scope);
             await ExecuteAsync(path, $"""
                 INSERT INTO accounts(account_id,m_id) VALUES({Account},'pin');

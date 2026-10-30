@@ -215,9 +215,9 @@ public sealed partial class DungeonRunDomainServiceTests
                 new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
                 TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
             Runs = new DungeonRunDomainService(
-                transactions: null!, parties: Parties, lostLandFever: new LostLandFeverRuleService(),
+                transactions: TestRequired.TransactionScope(), parties: Parties, lostLandFever: new LostLandFeverRuleService(),
                 weakness: Weakness, creatures: Combat,
-                lifecycle: Lifecycle, participation: Participation);
+                lifecycle: Lifecycle, participation: Participation, clock: TimeProvider.System, mechanismRules: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.DungeonRunDomainService>.Instance, settlementRules: new Dfo.Server.Application.World.DungeonSettlementRuleService(), mechanismWake: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRoomMechanismWakeSignal>(), sealedTreasureRules: TestRequired.Absent<Dfo.Server.Abstractions.World.ISealedTreasureRuleService>(), giantDragons: TestRequired.Absent<Dfo.Server.Abstractions.World.IGiantDragonRuleService>());
         }
 
         public PartyService Parties { get; }

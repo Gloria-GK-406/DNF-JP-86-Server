@@ -427,17 +427,16 @@ public sealed partial class IllusionTowerDomainServiceTests
             await tower.LoadAsync(context, default);
             await tower.StartAsync(context, default);
             var receipt = new TowerSettlementReceipt([new(f.Session.CharacterId, 123, 456, [new(4183, 1)])]);
+            ((ScriptedTowerRewards)f.Services.GetRequiredService<IIllusionTowerRewardDomainService>()).Receipt = receipt;
             await using (var tx = Scope(f).Begin())
             {
                 await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
-                Assert.True((await tower.MarkSettledAsync(context, receipt, default)).Changed);
                 Assert.Equal(receipt, tower.Find(f.Session)!.Completion!.Receipt);
             }
             Assert.Null(tower.Find(f.Session)!.Completion);
             await using (var tx = Scope(f).Begin())
             {
                 await TestEffectFootprints.Run((tower.Find((context).Session)?.Members.Select(member => member.Session) ?? []).Append((context).Session), cap => tower.DieAsync(context, cap, default));
-                Assert.True((await tower.MarkSettledAsync(context, receipt, default)).Changed);
                 Assert.False((await tower.MarkSettledAsync(context, new([]), default)).Changed);
                 await tx.CommitAsync(default);
             }
@@ -1320,7 +1319,7 @@ public sealed partial class IllusionTowerDomainServiceTests
     {
         var f = new ShopFixture(s =>
         {
-            if (!rewards) s.RemoveAll<IIllusionTowerRewardDomainService>();
+            if (!rewards) s.Replace(ServiceDescriptor.Singleton<IIllusionTowerRewardDomainService>(new ScriptedTowerRewards()));
             else TowerRewardTestContent.Register(s);
             s.AddSingleton<IIllusionTowerRuleService>(rules ?? new Rules());
             s.AddSingleton<IDungeonStructureRuleService>(layouts ?? new OrdinaryLayouts());
@@ -1337,6 +1336,16 @@ public sealed partial class IllusionTowerDomainServiceTests
         }, useArchive: useArchive);
         f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");
         return f;
+    }
+    /// <summary>Settles a finished run with the receipt the test names; kills award nothing.</summary>
+    private sealed class ScriptedTowerRewards : IIllusionTowerRewardDomainService
+    {
+        public TowerSettlementReceipt Receipt { get; set; } = new([]);
+        public ValueTask<System.Collections.Immutable.ImmutableArray<TowerKillReward>> KillAsync(IllusionTowerSnapshot run, TowerActor actor,
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(System.Collections.Immutable.ImmutableArray<TowerKillReward>.Empty);
+        public ValueTask<TowerSettlementReceipt> SettleAsync(IllusionTowerSnapshot run, ulong seed,
+            Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => ValueTask.FromResult(Receipt);
     }
     private static IIllusionTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IIllusionTowerDomainService>();
     private sealed class OrdinaryAdmission(IDungeonStructureRuleService layouts) : IDungeonAdmissionRuleService

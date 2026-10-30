@@ -30,8 +30,8 @@ internal sealed class LoginSessionRegistry(
     IDomainTransactionAccessor transactions,
     TimeProvider clock,
     LoginSessionOptions options,
-    IOnlineUserDomainService? onlineUsers = null,
-    INetworkConnectionCloser? closer = null)
+    IOnlineUserDomainService onlineUsers,
+    INetworkConnectionCloser closer)
 {
     private const int MinimumMId = 100_000;
     private const int MaximumMIdExclusive = 1_000_000;
@@ -98,9 +98,8 @@ internal sealed class LoginSessionRegistry(
         {
             // Selected-session cleanup remains in the disconnect observer, including its orphan path.
             // Removing the online identity prevents further character operations now.
-            onlineUsers?.TryDisconnectConnection(connection);
-            if (closer is not null)
-                await closer.RequestCloseAsync(connection, cancellationToken).ConfigureAwait(false);
+            onlineUsers.TryDisconnectConnection(connection);
+            await closer.RequestCloseAsync(connection, cancellationToken).ConfigureAwait(false);
         }
     }
     private readonly Dictionary<string, Session> byMId = new(StringComparer.Ordinal);
@@ -143,8 +142,7 @@ internal sealed class LoginSessionRegistry(
             () =>
             {
                 var participant = new LoginSessionParticipant(this);
-                if (onlineUsers is not null || closer is not null)
-                    transaction.RegisterAfterCommit(participant, ct => ReleaseSupersededAsync(participant, ct));
+                transaction.RegisterAfterCommit(participant, ct => ReleaseSupersededAsync(participant, ct));
                 return participant;
             });
     }

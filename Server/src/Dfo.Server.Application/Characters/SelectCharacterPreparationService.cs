@@ -33,16 +33,16 @@ public sealed class SelectCharacterPreparationService(
     ISessionAdjacentEntryDomainService sessionAdjacent,
     ISelectedSessionPositionPersistence positions,
     TimeProvider timeProvider,
-    Dfo.Server.Abstractions.Events.IEventManagementDomainService? events = null,
-    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService? attendance = null,
-    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService? joust = null,
-    IEpicBookDomainService? epicBook = null,
-    Dfo.Server.Abstractions.Achievements.IAchievementDomainService? achievements = null,
-    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService? titles = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService? marriage = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? weddingQuests = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null, Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService? capsules = null, ICollectionBoxDomainService? collections = null, ISouthernDaleQuestDomainService? southern = null,
-    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService? crystalExchange = null) : ISelectCharacterPreparationDomainService
+    Dfo.Server.Abstractions.Events.IEventManagementDomainService events,
+    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService attendance,
+    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService joust,
+    IEpicBookDomainService epicBook,
+    Dfo.Server.Abstractions.Achievements.IAchievementDomainService achievements,
+    Dfo.Server.Abstractions.Achievements.ITitleBookDomainService titles,
+    Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService marriage,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService weddingQuests,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing, Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService capsules, ICollectionBoxDomainService collections, ISouthernDaleQuestDomainService southern,
+    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService crystalExchange) : ISelectCharacterPreparationDomainService
 {
     public async ValueTask<SelectCharacterResult> PlaceAtSpawnAsync(
         SelectedSessionIdentity session,
@@ -127,13 +127,9 @@ public sealed class SelectCharacterPreparationService(
             accountId,
             character.Identity.CharacterId,
             cancellationToken).ConfigureAwait(false);
-        if (achievements is not null)
-        {
-            await achievements.PrepareAsync(character.Identity.CharacterId, character.Progression.Level, cancellationToken).ConfigureAwait(false);
-            await achievements.UnlockSatisfiedAchievementsAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
-        }
-        if (titles is not null)
-            await titles.PrepareAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
+        await achievements.PrepareAsync(character.Identity.CharacterId, character.Progression.Level, cancellationToken).ConfigureAwait(false);
+        await achievements.UnlockSatisfiedAchievementsAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
+        await titles.PrepareAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false);
         var characterEntry = await characterEntries.LoadAsync(
             accountId,
             character.Identity.CharacterId,
@@ -164,21 +160,17 @@ public sealed class SelectCharacterPreparationService(
             cancellationToken).ConfigureAwait(false);
 
         characterEntry = CharacterStateProjection.CompleteAppearanceProjection(appearanceRules, character, characterEntry, characterInventory);
-        if (achievements is not null)
-            characterEntry = characterEntry with { Features = characterEntry.Features with
+        characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with
             { Achievements = await achievements.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
-        if (titles is not null)
-            characterEntry = characterEntry with { Features = characterEntry.Features with
+        characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with
             { TitleBooks = await titles.GetAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) } } };
         var contentSubject = CharacterStateProjection.BuildContentSubject(equippedCreature, character, characterEntry, characterInventory);
-        if (weddingQuests is not null)
-            contentSubject = contentSubject with { EligibleWeddingQuestIds = await weddingQuests.EligibleQuestIdsAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
-        if (southern is not null)
-            contentSubject = contentSubject with { SouthernDaleQuestAvailable = await southern.CanAcceptAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
-        contentSubject = contentSubject with { GiantDragonCrystalExchangeAvailable = crystalExchange is not null
-            && await crystalExchange.CanAcceptAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
+        contentSubject = contentSubject with { EligibleWeddingQuestIds = await weddingQuests.EligibleQuestIdsAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
+        contentSubject = contentSubject with { SouthernDaleQuestAvailable = await southern.CanAcceptAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
+        contentSubject = contentSubject with { GiantDragonCrystalExchangeAvailable =
+            await crystalExchange.CanAcceptAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
         var content = await worldContent.LoadAsync(contentSubject, cancellationToken)
             .ConfigureAwait(false);
         var channelPolicy = await placement.ResolveAsync(
@@ -235,14 +227,14 @@ public sealed class SelectCharacterPreparationService(
                 adjacent),
             roster,
             rosterEntry,
-            events is null || attendance is null ? null : Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new(
+            Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new(
                 await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
                 await attendance.StateAsync(accountId,preparedAt,cancellationToken),
-                joust is null ? null : await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
-            epicBook is null ? [] : await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false),
-            marriage is null ? null : await marriage.SnapshotAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
+                await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
+            await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false),
+            await marriage.SnapshotAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
 
-        return result with { CollectionBoxes = collections is null ? null : await collections.ReadAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Capsules = capsules is null ? null : await capsules.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Housing = housing is null ? null : await housing.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
+        return result with { CollectionBoxes = await collections.ReadAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Capsules = await capsules.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Housing = await housing.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
     }
 
     internal static async ValueTask<CharacterSkillsEntryState> BuildInitialPvpSkillProfileAsync(

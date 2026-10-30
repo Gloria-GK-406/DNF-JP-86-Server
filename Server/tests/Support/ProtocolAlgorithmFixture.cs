@@ -55,7 +55,7 @@ internal static class ProtocolAlgorithmFixture
     // rules are pure and answer without any.
     private static Dfo.Server.Application.World.EntryPlacementRuleService Placement(List<object> values) => new(
         values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
-        values.OfType<Dfo.Server.Abstractions.Channel.ChannelEntryOptions>().LastOrDefault() ?? Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy);
+        values.OfType<Dfo.Server.Abstractions.Channel.ChannelEntryOptions>().LastOrDefault() ?? Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
     /// <summary>The town-move service a test's town projection was built beside.</summary>
     internal static ITownTransitDomainService TownTransit(object? town, params object?[] extra) =>
         Transit(Complete([.. town is not null && suppliedTo.TryGetValue(town, out var values) ? values : [], .. extra]).ToList());

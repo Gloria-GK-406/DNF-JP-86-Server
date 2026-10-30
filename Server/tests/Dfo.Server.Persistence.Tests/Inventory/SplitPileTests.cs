@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
@@ -227,7 +228,7 @@ public sealed class SplitPileTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-split-{Guid.NewGuid():N}.db");
 
         // The repositories own the schema; everything here only writes into it.
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
         return path;
     }
 

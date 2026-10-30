@@ -267,7 +267,7 @@ public sealed class WorldRowSurvivesTheMoveTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             await using var transaction = scope.Begin();
             await work(store.Value.SessionIn(scope.Current!));
             await transaction.CommitAsync(CancellationToken.None);
@@ -409,7 +409,7 @@ public sealed class WorldRowSurvivesTheMoveTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-worldrow-{Guid.NewGuid():N}.db");
         // The repositories own the schema; this store only writes into it.
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
         await using (var connection = Open(path))
         {
             await using var character = connection.CreateCommand();
@@ -418,7 +418,7 @@ public sealed class WorldRowSurvivesTheMoveTests
             await character.ExecuteNonQueryAsync();
         }
 
-        return new StoreUnderTest(path, new SqliteItemDomainStore(path));
+        return new StoreUnderTest(path, new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
     }
 
     private static SqliteConnection Open(string path)

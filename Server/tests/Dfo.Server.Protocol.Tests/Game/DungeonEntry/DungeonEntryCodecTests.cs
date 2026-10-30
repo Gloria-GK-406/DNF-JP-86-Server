@@ -574,7 +574,7 @@ public sealed class DungeonEntryCodecTests
     /// being a monster, and the number a room's first actor takes. Neither reads a source.
     /// </summary>
     private static readonly IDungeonRoomRuleService Rooms =
-        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops(), new ObjectDropRuleService(null!, null!, null!, new()), new NoRoomObjects());
+        new DungeonRoomRuleService(new NoRoomActors(), new NoRoomDrops(), new ObjectDropRuleService(null!, null!, null!, new()), new NoRoomObjects(), mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
 
     private static DungeonCellCreationContext CreationContext(DungeonRunState run) => new(
         run.RunId,

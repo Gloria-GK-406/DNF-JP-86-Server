@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Data.Sqlite;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -713,11 +714,12 @@ public sealed class SelectCharacterPayloadCodecTests
             // This profile/quest fixture does not register dungeon or account-settings storage.
             services.Replace(ServiceDescriptor.Singleton<Dfo.Server.Abstractions.World.IHerasQuotaDomainService>(
                 new Dfo.Server.Application.Tests.Support.NoHerasEntries()));
-            services.RemoveAll<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>();
-            services.RemoveAll<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>();
-            services.RemoveAll<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>();
-            services.RemoveAll<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>();
-            services.RemoveAll<ICharacterNameTagDomainService>();
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<ICharacterNameTagDomainService>()));
+            services.TryAddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>());
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
                 new AccountId(12), new CharacterId(22), CancellationToken.None);

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
@@ -191,6 +192,7 @@ public sealed class OtherCharacterDetailFlowTests
             var services = new ServiceCollection();
             services.AddNetworkMessageDispatching();
             services.AddNotificationDispatching();
+            services.TryAddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
             services.AddEventDispatching();
             services.AddSingleton<ISelectedSessionDomainService>(Sessions);
             Query = new(CharacterDetailQueryResult.Success(Projection));

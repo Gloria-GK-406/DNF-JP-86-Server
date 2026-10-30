@@ -32,4 +32,5 @@
     <Compile Include="../Support/OutboundRegistrationParts.cs" Link="Support/OutboundRegistrationParts.cs" />
     <Compile Include="../Support/RecordedOutbound.cs" Link="Support/RecordedOutbound.cs" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../Support/TestRequired.cs" Link="Support/TestRequired.cs" /></ItemGroup>
 </Project>

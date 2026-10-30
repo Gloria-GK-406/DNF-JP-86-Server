@@ -33,7 +33,7 @@ public sealed class CardRewardDomainServiceTests
             var run = runs.BeginParty([leader, member], Tutorial, (DungeonDifficulty)Difficulty);
             var premiums = new Dfo.Server.Application.Tests.Support.CardPremiums(11);
             var rules = new RecordingRules();
-            var service = new CardRewardDomainService(rules, runs, premiums);
+            var service = new CardRewardDomainService(rules, runs, premiums, dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
             var first = await service.SettleAsync(new(leader.CharacterId, Level, 2, run.RunId), default);
             var second = await service.SettleAsync(new(member.CharacterId, Level, 2, run.RunId), default);
             Assert.NotNull(first!.Cards.BlackDiamond);
@@ -210,7 +210,7 @@ public sealed class CardRewardDomainServiceTests
         var runs = TestParties.Runs();
         runs.Begin(Character, layout, (DungeonDifficulty)Difficulty);
         var rules = new RecordingRules();
-        return (new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums()), runs, rules);
+        return (new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>()), runs, rules);
     }
 
     private static int?[] ItemIds(ClearRewardCardFace face) =>
@@ -298,7 +298,7 @@ public sealed class CardRewardDomainServiceTests
             var killed = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
             Assert.NotNull(runs.TryOpenClear(Character, killed.RunId, killed.RoomVersion));
             var rules = new RecordingRules();
-            var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
+            var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
 
             var settled = await service.SettleAsync(Settlement, CancellationToken.None);
 
@@ -323,7 +323,7 @@ public sealed class CardRewardDomainServiceTests
             var runs = TestParties.Runs();
             var old = runs.Begin(Character, Tutorial, (DungeonDifficulty)Difficulty);
             var rules = new RecordingRules(pauseOffers: true);
-            var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
+            var service = new CardRewardDomainService(rules, runs, new Dfo.Server.Application.Tests.Support.CardPremiums(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
             var pending = service.SettleAsync(
                 Settlement with { RunId = old.RunId }, CancellationToken.None).AsTask();
             await rules.WaitForOffersAsync();
@@ -625,7 +625,7 @@ public sealed class CardRewardDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var rules = new RecordingRules();
-            var service = new CardRewardDomainService(rules, TestParties.Runs(), new Dfo.Server.Application.Tests.Support.CardPremiums());
+            var service = new CardRewardDomainService(rules, TestParties.Runs(), new Dfo.Server.Application.Tests.Support.CardPremiums(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
 
             Assert.Null(await service.SettleAsync(Settlement, CancellationToken.None));
             Assert.Null(

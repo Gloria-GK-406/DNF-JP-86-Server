@@ -53,7 +53,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void A_write_unit_of_work_opened_off_the_executor_throws_reports_and_leaves_nothing_open()
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var seen = ViolationCapture.Attach();
 
         var thrown = Assert.Throws<GameplayOffExecutorException>(() => scope.Begin());
@@ -67,7 +67,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task A_read_only_unit_of_work_opens_anywhere_and_a_write_one_opens_in_a_job()
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var seen = ViolationCapture.Attach();
 
         await using (scope.Begin(readOnly: true))
@@ -86,7 +86,7 @@ public sealed class GameplayWriteAssertionTests
     public async Task The_write_mode_read_snapshot_is_not_a_write_and_opens_off_the_executor()
     {
         // TASK-18 ruling 3: ReadSnapshotAsync keeps its write-mode transaction but goes through BeginSnapshot.
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var seen = ViolationCapture.Attach();
 
         var writable = await new AmbientStoreAccess(scope).ReadSnapshotAsync(() =>
@@ -194,7 +194,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void OnlineStateRegistry_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var registry = new OnlineStateRegistry(new DomainTransactionScope());
+        var registry = new OnlineStateRegistry(TestRequired.TransactionScope());
         var connection = new NetworkConnectionContext(new NetworkConnectionId("registry"), NetworkEndpointKind.Game, 10011);
         var seen = ViolationCapture.Attach();
 
@@ -209,7 +209,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void LoginSessionRegistry_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var registry = new LoginSessionRegistry(new DomainTransactionScope(), TimeProvider.System, new LoginSessionOptions());
+        var registry = new LoginSessionRegistry(TestRequired.TransactionScope(), TimeProvider.System, new LoginSessionOptions(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>());
         var connection = new NetworkConnectionId("login");
         var seen = ViolationCapture.Attach();
 
@@ -295,7 +295,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task DungeonParticipationDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var participation = new DungeonParticipationDomainService(scope);
         var owner = new DungeonParticipationOwner(DungeonParticipationMode.Ordinary, Guid.NewGuid());
         await TestGameplay.RunAsync(async () =>
@@ -334,9 +334,9 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task BossTowerDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, scope, TimeProvider.System);
+            null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
@@ -353,9 +353,9 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public async Task IllusionTowerDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var towers = new IllusionTowerDomainService(null!, null!, null!, null!, null!, null!, null!, scope,
-            TimeProvider.System);
+            TimeProvider.System, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardDomainService>(), towerInventory: null!, events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
@@ -478,9 +478,9 @@ public sealed class GameplayWriteAssertionTests
     {
         // The tower members open their unit of work through Execute; their own assertion comes first, so the
         // report names the member, and Begin is not reached.
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, scope, TimeProvider.System);
+            null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
@@ -515,7 +515,7 @@ public sealed class GameplayWriteAssertionTests
     public async Task WeaknessDomainService_refuses_a_write_through_its_handle_off_the_executor_and_reads_anywhere()
     {
         // The writes are on the private handle For returns; the classification table lists its members too.
-        var weakness = new WeaknessDomainService(null!, null!);
+        var weakness = new WeaknessDomainService(null!, null!, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.WeaknessDomainService>.Instance, transactions: TestRequired.TransactionScope());
         var seen = ViolationCapture.Attach();
 
         Assert.Throws<GameplayOffExecutorException>(() => weakness.For(Character).Recover());
@@ -533,7 +533,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void CharacterContainerDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var seen = ViolationCapture.Attach();
 
         Assert.Throws<GameplayOffExecutorException>(() => containers.Clear(Character));
@@ -863,7 +863,7 @@ public sealed class GameplayWriteAssertionTests
         SelectedSessionIdentity.Create(Account, Character, new NetworkConnectionId("write-assertion"), 1, 10011);
 
     private static CreatureRuntimeDomainService Creatures(IDomainTransactionAccessor transactions) =>
-        new(null!, null!, transactions, TestSessions.Directory(), TimeProvider.System);
+        new(null!, null!, transactions, TestSessions.Directory(), TimeProvider.System, inventories: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>());
 
     private static void AssertOneViolation(
         System.Collections.Concurrent.ConcurrentQueue<GameplayAssertionViolation> seen, string entry)

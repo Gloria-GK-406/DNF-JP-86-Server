@@ -78,7 +78,7 @@ public sealed class CardRewardTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var world = new World(blackDiamond: BonusFace, transactions: scope);
             world.Bag.RefuseAtCall = 2;
             await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -1297,7 +1297,7 @@ public sealed class CardRewardTests
             this.Bag = new Bag(bagAnswer);
             this.Gold = new CarriedGold(startingGold);
 
-            ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs, new Dfo.Server.Protocol.Tests.Support.CardPremiums());
+            ICardRewardDomainService cards = new CardRewardDomainService(this._rules, this._runs, new Dfo.Server.Protocol.Tests.Support.CardPremiums(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
             this._handler = new CardAwardAlgorithmDriver(
                 cards,
                 this._runs,

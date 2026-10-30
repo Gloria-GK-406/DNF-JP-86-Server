@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -112,6 +113,7 @@ public sealed class GmCeraReminderTests
                 services.AddSingleton<IAccountWalletDomainService>(Wallets);
                 services.AddEventDispatching();
                 services.AddNotificationDispatching();
+                services.TryAddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
                 services.AddNotificationHandler<AccountWalletChanged, AccountWalletChangedHandler>();
                 services.AddSingleton<GmCeraReminderDomainService>();
             });

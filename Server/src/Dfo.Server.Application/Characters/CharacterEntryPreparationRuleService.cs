@@ -17,7 +17,7 @@ internal sealed class CharacterEntryPreparationRuleService(
     ISkillPointDefinitionSource skillPoints,
     IExpertSkillContractDefinitionSource expertContracts,
     ICreatureEquipmentLifetimeSource creatureLifetimes,
-    ILogger<CharacterEntryPreparationRuleService>? logger = null)
+    ILogger<CharacterEntryPreparationRuleService> logger)
     : ICharacterEntryPreparationRuleService
 {
     public CharacterSkillProtocolMirrorState RemainingPoints(
@@ -28,7 +28,7 @@ internal sealed class CharacterEntryPreparationRuleService(
     {
         var ledger = SkillPointLedgerRules.Calculate(definitions, characterLevel, pages, basis);
         if (!ledger.IsComplete)
-            logger?.LogWarning("Skill point ledger is incomplete: missing definitions for skill ids {SkillIds}",
+            logger.LogWarning("Skill point ledger is incomplete: missing definitions for skill ids {SkillIds}",
                 string.Join(',', ledger.MissingSkillIds));
         return ledger.ToProtocolMirror();
     }

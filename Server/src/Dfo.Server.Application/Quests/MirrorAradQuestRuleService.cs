@@ -8,7 +8,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.Quests;
 
 internal sealed class MirrorAradQuestRuleService(IQuestContentRuleService quests,
-    IMirrorDungeonRuleService mirror, IItemPlacementRuleService placements, IQuestMapClearRuleService? mapClears = null) : IMirrorAradQuestRuleService
+    IMirrorDungeonRuleService mirror, IItemPlacementRuleService placements, IQuestMapClearRuleService mapClears) : IMirrorAradQuestRuleService
 {
     public MirrorDungeonCatalog Catalog => mirror.Catalog;
 
@@ -36,7 +36,7 @@ internal sealed class MirrorAradQuestRuleService(IQuestContentRuleService quests
             return new(q, MirrorQuestKind.Hunt, targets);
         }
         if (type == "clear map")
-            return (mapClears ?? new QuestMapClearRuleService()).TargetMapOf(q) is { } mapId
+            return (mapClears).TargetMapOf(q) is { } mapId
                 ? new(q, MirrorQuestKind.ClearMap, [], MapId: mapId) : null;
         if (type != "condition under clear" || a.Count < 2 || a[0] != dungeonId || a[1] < -1) return null;
         return q.ObjectiveSubType switch

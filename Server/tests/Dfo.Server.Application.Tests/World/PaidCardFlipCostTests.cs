@@ -406,7 +406,7 @@ public sealed class PaidCardFlipCostTests
             int dungeonId = OrdinaryDungeonId)
         {
             this._path = Path.Combine(Path.GetTempPath(), $"dfo-flip-{Guid.NewGuid():N}.db");
-            var database = new SqliteDatabase(this._path, new DomainTransactionScope());
+            var database = new SqliteDatabase(this._path, TestRequired.TransactionScope());
             OpenCharacter(database);
             this._carried = new SqliteCharacterCarriedGoldTable(database);
             this._carried.AddAsync(Character, funded, int.MaxValue, CancellationToken.None)
@@ -414,7 +414,7 @@ public sealed class PaidCardFlipCostTests
 
             var runs = TestParties.Runs();
             var run = runs.Begin(Character, LayoutFor(dungeonId), difficulty: (DungeonDifficulty)1);
-            this._cards = new CardRewardDomainService(Rules(provider), runs, new Dfo.Server.Application.Tests.Support.CardPremiums());
+            this._cards = new CardRewardDomainService(Rules(provider), runs, new Dfo.Server.Application.Tests.Support.CardPremiums(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
 
             if (settleAtLevel is { } settledAt)
             {

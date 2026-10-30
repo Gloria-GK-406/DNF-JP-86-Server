@@ -24,7 +24,7 @@ internal sealed partial class MonsterDropDomainService(
     IExtraDropRuleService extraDrops,
     IIndependentDropRuleService independentDrops,
     IPremiumServiceDomainService premiums, ICharacterDomainService characters,
-    IDimensionDungeonRuleService? dimensions = null) : IMonsterDropDomainService
+    IDimensionDungeonRuleService dimensions) : IMonsterDropDomainService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -56,7 +56,7 @@ internal sealed partial class MonsterDropDomainService(
             throw new ArgumentException("Personal drop recipient must belong to the run.", nameof(characterId));
         var result = new List<RolledDrop>(await questDrops.DrawAsync(
             QuestEnemyDropRequest.FromMonster(new MonsterDropRequest(monsterId, context)), matches[0], cancellationToken).ConfigureAwait(false));
-        if (context.SourceType == IndependentDropSourceType.Monster && dimensions?.IsDimension(context.DungeonId) == true)
+        if (context.SourceType == IndependentDropSourceType.Monster && dimensions.IsDimension(context.DungeonId))
         {
             var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence)
                 ^ unchecked((ulong)characterId.Value * 0x9E3779B97F4A7C15UL) ^ 0x44494D454E53494FUL;

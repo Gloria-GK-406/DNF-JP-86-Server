@@ -408,7 +408,7 @@ public sealed class FinishQuestHandlerTests
 
             var current = views ?? new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel, StartingExperience));
             var characters = new OnePlayingCharacter(ledger);
-            var offers = new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain());
+            var offers = new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
             var clock = new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
             var town = areas ?? new Dfo.Server.Application.Sessions.SessionPresenceDomainService();
             var dungeon = runs ?? TestParties.Runs();

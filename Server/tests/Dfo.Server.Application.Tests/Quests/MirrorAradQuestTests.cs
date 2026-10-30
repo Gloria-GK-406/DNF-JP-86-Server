@@ -81,7 +81,7 @@ public sealed class MirrorAradQuestTests
     public async Task Five_objective_kinds_use_run_facts_and_distinct_map_identity()
     {
         var definitions = new Definitions();
-        var rules = new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements());
+        var rules = new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements(), mapClears: new Dfo.Server.Application.Quests.QuestMapClearRuleService());
         var run = Run(true);
         var state = new MirrorQuestState(new(71), run.RunId, 14299, Now, 1);
         definitions.Value = Quest("hunt enemy", null, 32, -1, -3, 1, 2);
@@ -299,7 +299,7 @@ public sealed class MirrorAradQuestTests
                 new QuestStateRuleService(definitions), null!,
                 fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
                 mirror: store, runs: runtime,
-                mirrorRules: new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements()));
+                mirrorRules: new MirrorAradQuestRuleService(definitions, new MirrorRules(), new Placements(), mapClears: new Dfo.Server.Application.Quests.QuestMapClearRuleService()));
             Assert.True(Assert.Single(await query.ReadAcceptedAsync(new(1), new(71), default)).CanComplete);
             definitions.Value = Quest("hunt enemy", null, 32, -1, -3, 1, 1);
             await Write(fixture, async () => await store.WriteAsync(new(1), before! with { TriggerValue = 0 }, default));
@@ -347,7 +347,7 @@ public sealed class MirrorAradQuestTests
     [Fact]
     public async Task Catalog_reward_band_and_daily_bonus_are_both_in_effect_plan()
     {
-        var rules = new MirrorAradQuestRuleService(new Definitions(), new MirrorRules(), new Placements());
+        var rules = new MirrorAradQuestRuleService(new Definitions(), new MirrorRules(), new Placements(), mapClears: new Dfo.Server.Application.Quests.QuestMapClearRuleService());
         var normal = await rules.RewardEffectsAsync(85, new(Clears: 3), default);
         Assert.Single(normal!.Value);
         var threshold = await rules.RewardEffectsAsync(85, new(Clears: 4), default);
@@ -363,7 +363,7 @@ public sealed class MirrorAradQuestTests
         var catalog = content.GetRequiredService<IMirrorDungeonDefinitionSource>().Load();
         var definitions = new QuestContentRuleService(content.GetRequiredService<IQuestDefinitionSource>(),
             content.GetRequiredService<IQuestParameterSource>());
-        var rules = new MirrorAradQuestRuleService(definitions, new CatalogRules(catalog), new Placements());
+        var rules = new MirrorAradQuestRuleService(definitions, new CatalogRules(catalog), new Placements(), mapClears: new Dfo.Server.Application.Quests.QuestMapClearRuleService());
         foreach (var candidate in catalog.Candidates)
             Assert.True(await rules.ResolveAsync(candidate.DungeonId, candidate.QuestId, default) is not null,
                 $"Unsupported mirror pair DGN={candidate.DungeonId}, QST={candidate.QuestId}");
@@ -382,13 +382,13 @@ public sealed class MirrorAradQuestTests
         var store = fixture.Services.GetRequiredService<IMirrorAradQuestDomainStore>();
         var preview = new Preview();
         var effects = new Effects(fixture.Services.GetRequiredService<SqliteDatabase>());
-        var service = new MirrorAradQuestDomainService(store, new MirrorAradQuestRuleService(new Definitions(), new MirrorRules(), new Placements()), runs,
+        var service = new MirrorAradQuestDomainService(store, new MirrorAradQuestRuleService(new Definitions(), new MirrorRules(), new Placements(), mapClears: new Dfo.Server.Application.Quests.QuestMapClearRuleService()), runs,
             fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), fixture.Services.GetRequiredService<ICharacterDomainService>(),
             preview, new Clock { Now = Now }, fixture.Services.GetRequiredService<IEventService>(), fixture.Services.GetRequiredService<IUsageQuotaDomainService>(),
             fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>());
         var settlement = new QuestCompletionSettlementService(null!, new DefinitionDomain(), effects,
             fixture.Services.GetRequiredService<IEventService>(),
-            fixture.Services.GetRequiredService<IGiantDragonCrystalExchangeDomainService>(), service);
+            fixture.Services.GetRequiredService<IGiantDragonCrystalExchangeDomainService>(), service, southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>());
         return (service, store, preview, effects, settlement);
     }
     private static ValueTask<QuestCompletionReceipt> Finish(IQuestCompletionSettlementDomainService service) =>

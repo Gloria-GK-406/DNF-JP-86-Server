@@ -31,7 +31,7 @@ public sealed class PvfLotteryDefinitionCacheTests
         }
         Assert.NotEmpty(ids);
         var source = new PvfPackageOpeningDefinitionSource(provider,
-            new PvfCeraShopDefinitionSource(provider), new PvfItemPlacementDefinitionSource(provider));
+            new PvfCeraShopDefinitionSource(provider), new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => source.InitializeAsync(new(true)).AsTask());
         Assert.Equal(ids.Count, await source.InitializeAsync());
         var definitions = new Dictionary<int, OpeningPackageDefinition>();

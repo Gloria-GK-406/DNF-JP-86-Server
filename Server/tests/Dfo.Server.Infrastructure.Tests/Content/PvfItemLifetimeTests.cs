@@ -32,7 +32,7 @@ public sealed class PvfItemLifetimeTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
-        var item = await new PvfItemPlacementDefinitionSource(provider).GetAsync(id, default);
+        var item = await new PvfItemPlacementDefinitionSource(provider, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService()).GetAsync(id, default);
         Assert.NotNull(item);
         Assert.Equal(days, item.Lifetime.Days);
         Assert.Equal(daily, item.Lifetime.DailyDelete);

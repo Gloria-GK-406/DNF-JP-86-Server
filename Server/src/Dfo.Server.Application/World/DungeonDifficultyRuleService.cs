@@ -4,8 +4,8 @@ using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class DungeonDifficultyRuleService(IDungeonDefinitionSource? definitions = null,
-    IDungeonAdmissionDefinitionSource? admissions = null) : IDungeonDifficultyRuleService
+internal sealed class DungeonDifficultyRuleService(
+    IDungeonAdmissionDefinitionSource admissions) : IDungeonDifficultyRuleService
 {
     public bool Allows(DungeonDifficulty requested, DungeonDifficulty maximum) =>
         Enum.IsDefined(requested) && Enum.IsDefined(maximum) && requested <= maximum;
@@ -33,7 +33,7 @@ internal sealed class DungeonDifficultyRuleService(IDungeonDefinitionSource? def
     {
         if (!Enum.IsDefined(requested) || !Enum.IsDefined(maximum)) return null;
         var definition = await DefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
-        if ((definitions is not null || admissions is not null) && definition is null) return null;
+        if (definition is null) return null;
         return Enum.GetValues<DungeonDifficulty>().Where(tier => IsUnlocked(tier, maximum, definition))
             .OrderBy(tier => Math.Abs((int)tier - (int)requested)).ThenBy(tier => tier)
             .Select(tier => (DungeonDifficulty?)tier).FirstOrDefault();
@@ -50,7 +50,6 @@ internal sealed class DungeonDifficultyRuleService(IDungeonDefinitionSource? def
     public async ValueTask<DungeonDifficulty?> NextAfterClearAsync(int dungeonId, DungeonDifficulty cleared, CancellationToken cancellationToken)
     {
         if (!Enum.IsDefined(cleared)) throw new ArgumentOutOfRangeException(nameof(cleared));
-        if (definitions is null && admissions is null) throw new InvalidOperationException("Dungeon progression requires content rules.");
         var definition = await DefinitionAsync(dungeonId, cancellationToken).ConfigureAwait(false);
         if (definition?.ArchivePath.StartsWith("dungeon/quest/", StringComparison.OrdinalIgnoreCase) == true)
             return null;
@@ -59,9 +58,6 @@ internal sealed class DungeonDifficultyRuleService(IDungeonDefinitionSource? def
         var next = tiers.Where(value => value > (byte)cleared).Order().Select(value => (byte?)value).FirstOrDefault();
         return next is null ? null : (DungeonDifficulty)next.Value;
     }
-    private async ValueTask<DungeonAdmissionDefinition?> DefinitionAsync(int id, CancellationToken ct) => admissions is not null
-        ? await admissions.GetAdmissionAsync(id, ct).ConfigureAwait(false)
-        : definitions is not null && await definitions.GetAsync(id, ct).ConfigureAwait(false) is { } d
-            ? DungeonAdmissionDefinition.From(d) : null;
+    private ValueTask<DungeonAdmissionDefinition?> DefinitionAsync(int id, CancellationToken ct) => admissions.GetAdmissionAsync(id, ct);
 
 }

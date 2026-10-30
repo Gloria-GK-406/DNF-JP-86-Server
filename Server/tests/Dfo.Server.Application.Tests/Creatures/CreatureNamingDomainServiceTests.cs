@@ -119,7 +119,7 @@ public sealed class CreatureNamingDomainServiceTests
         await TestGameplay.RunAsync(async () =>
         {
             var store=new FakeCreatureStore();var name=Enumerable.Repeat((byte)0x41,12).ToArray();
-            var plan=new SpecialConsumableEffectPlanRuleService(null!,null!,null!,null!,null!).Rename(new(CardSlot,store.Card.Item,
+            var plan=new SpecialConsumableEffectPlanRuleService(null!,null!,null!,null!,null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>()).Rename(new(CardSlot,store.Card.Item,
                 await store.GetContainer(BusinessInventorySpace.WornCreature).GetAsync(0,default),await store.CurrentAsync(default),
                 System.Collections.Immutable.ImmutableArray.CreateRange(name),DateTimeOffset.UtcNow));
             name[0]=0;
@@ -132,14 +132,14 @@ public sealed class CreatureNamingDomainServiceTests
 
     private static (CreatureNamingDomainService Service, DomainTransactionScope Scope) Service(FakeCreatureStore store,TimeProvider? clock=null)
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var creatures = new FakeCreatureDomain(store,clock);
         var slots = new Slots(store);
         var sessions = new FakeSessions();
         var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots, store.Card.Lifecycle), new RenamePetEffectHandler(creatures)],
             scope, new EffectCharacterStore(new(Session.AccountId, Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
         return (new CreatureNamingDomainService(creatures, sessions, clock ?? TimeProvider.System,
-            new SpecialConsumableEffectPlanRuleService(null!, null!, null!, null!, null!), executor), scope);
+            new SpecialConsumableEffectPlanRuleService(null!, null!, null!, null!, null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>()), executor), scope);
     }
     private sealed class Slots(FakeCreatureStore store) : IBusinessInventorySlotDomainService
     {

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
@@ -20,7 +21,7 @@ public sealed class SqliteItemPositionTransferTests
         var path = await SeedAsync();
         try
         {
-            var store = new SqliteItemDomainStore(path);
+            var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             var before = await WorldRowAsync(path);
             var take = new DomainTransaction();
             var session = store.SessionIn(take);
@@ -43,7 +44,7 @@ public sealed class SqliteItemPositionTransferTests
         var path = await SeedAsync(occupiedReceiver: true);
         try
         {
-            var store = new SqliteItemDomainStore(path);
+            var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             var before = await WorldRowAsync(path);
             var rollback = new DomainTransaction();
             var session = store.SessionIn(rollback);
@@ -63,7 +64,7 @@ public sealed class SqliteItemPositionTransferTests
     private static async Task<string> SeedAsync(bool occupiedReceiver = false)
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-transfer-{Guid.NewGuid():N}.db");
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
         await using var connection = Open(path);
         await using var command = connection.CreateCommand();
         command.CommandText = """

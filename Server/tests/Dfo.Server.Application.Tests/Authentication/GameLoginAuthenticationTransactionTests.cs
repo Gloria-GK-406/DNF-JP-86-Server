@@ -15,7 +15,7 @@ public sealed class GameLoginAuthenticationTransactionTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var state = new OnlineStateRegistry(scope);
             var registered = Register(state, "Game:commit-order");
             using var cancellation = new CancellationTokenSource();
@@ -45,7 +45,7 @@ public sealed class GameLoginAuthenticationTransactionTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var state = new OnlineStateRegistry(scope);
             var registered = Register(state, "Game:commit-failure");
             await using var transaction = scope.Begin();
@@ -70,7 +70,7 @@ public sealed class GameLoginAuthenticationTransactionTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var state = new OnlineStateRegistry(scope);
             var registered = Register(state, "Game:prepare-missing");
             await using var transaction = scope.Begin();
@@ -91,7 +91,7 @@ public sealed class GameLoginAuthenticationTransactionTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var state = new OnlineStateRegistry(scope);
             var registered = Register(state, "Game:post-commit-missing");
             await using var transaction = scope.Begin();
@@ -113,7 +113,7 @@ public sealed class GameLoginAuthenticationTransactionTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var state = new OnlineStateRegistry(scope);
             var registered = Register(state, "Game:rollback");
             await using (scope.Begin())

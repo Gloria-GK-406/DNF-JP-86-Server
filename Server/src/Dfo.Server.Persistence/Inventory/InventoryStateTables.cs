@@ -254,7 +254,7 @@ internal sealed class SqliteCharacterItemLockTable(SqliteDatabase database)
 /// which the load already read into one list. The order is stated because a single table can no
 /// longer get it from which of the two a row came out of.
 /// </remarks>
-internal sealed class SqliteCharacterRentalTable(SqliteDatabase database, TimeProvider? clock = null) : ICharacterRentalTable
+internal sealed class SqliteCharacterRentalTable(SqliteDatabase database, TimeProvider clock) : ICharacterRentalTable
 {
     public async ValueTask<IReadOnlyList<RentalRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken)

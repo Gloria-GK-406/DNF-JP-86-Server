@@ -64,7 +64,7 @@ public sealed class InitialConnectionDeliveryFailureTests
     {
         public InitialWorld()
         {
-            var state = new OnlineStateRegistry(new DomainTransactionScope());
+            var state = new OnlineStateRegistry(TestRequired.TransactionScope());
             Online = new OnlineUserDomainService(state);
             Outbound = new XoDelivery();
             Outbound.Connect(Connection);

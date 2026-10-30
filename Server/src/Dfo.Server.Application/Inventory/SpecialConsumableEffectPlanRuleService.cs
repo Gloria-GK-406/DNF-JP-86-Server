@@ -12,10 +12,9 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDefinitionSource actions,
-    IItemUsageRuleSource usages, IDailyResetRuleService days, IItemUseJudgementService uses,
-    IQuestContentRuleService quests, ICharacterSkillRuleService? skills = null, IQuestClearancePlanRuleService? clearance = null) : ISpecialConsumableEffectPlanRuleService
+    IItemUsageRuleSource usages, IDailyResetRuleService days, IItemUseJudgementService uses, ICharacterSkillRuleService skills, IQuestClearancePlanRuleService clearance) : ISpecialConsumableEffectPlanRuleService
 {
-    private readonly IQuestClearancePlanRuleService clearance = clearance ?? new Dfo.Server.Application.Quests.QuestClearancePlanRuleService(quests);
+    private readonly IQuestClearancePlanRuleService clearance = clearance;
 
     public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, CancellationToken ct)
     {
@@ -65,7 +64,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
 
     public RefundSkillPlan RefundSkills(CharacterSkillFacts facts, int page, IReadOnlyList<CharacterSkillLearningChange> changes, int learningLevel)
     {
-        var rules = skills ?? throw new InvalidOperationException("Skill rules unavailable.");
+        var rules = skills;
         var current = facts.Pages.SingleOrDefault(x => x.PageIndex == page)?.Skills ?? [];
         var target = current.ToDictionary(x => checked((int)x.SkillId));
         var occupied = current.Select(x => (int)x.Slot).ToHashSet();

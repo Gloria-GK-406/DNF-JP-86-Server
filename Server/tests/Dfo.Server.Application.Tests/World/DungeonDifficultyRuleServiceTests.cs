@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.World;
@@ -18,7 +19,7 @@ public sealed class DungeonDifficultyRuleServiceTests
     public async Task Nearest_cycle_tier_honors_supported_tiers_and_unlocks_even_when_story_mode_exists(
         byte requested, byte maximum, int expected)
     {
-        var rules = new DungeonDifficultyRuleService(new Definitions("dungeon/timegate/a.dgn", story: true));
+        var rules = new DungeonDifficultyRuleService(TestRequired.Admissions(new Definitions("dungeon/timegate/a.dgn", story: true)));
         var actual = await rules.NearestUnlockedAsync(70, (DungeonDifficulty)requested, (DungeonDifficulty)maximum, default);
         Assert.Equal(expected < 0 ? null : (DungeonDifficulty?)expected, actual);
         Assert.False(await rules.IsUnlockedAsync(70, DungeonDifficulty.Tier3, DungeonDifficulty.Normal, default));
@@ -28,7 +29,7 @@ public sealed class DungeonDifficultyRuleServiceTests
     [Fact]
     public async Task Lowest_declared_tier_is_available_when_normal_is_not_supported()
     {
-        var rules = new DungeonDifficultyRuleService(new FixedDefinitions());
+        var rules = new DungeonDifficultyRuleService(TestRequired.Admissions(new FixedDefinitions()));
         Assert.Equal(DungeonDifficulty.Tier2,
             await rules.NearestUnlockedAsync(1500, DungeonDifficulty.Normal, DungeonDifficulty.Normal, default));
     }
@@ -40,7 +41,7 @@ public sealed class DungeonDifficultyRuleServiceTests
     [InlineData("dungeon/quest/a.dgn", 0, -1)]
     public async Task Clear_uses_declared_tiers_and_does_not_advance_quest_dungeons(string path, byte cleared, int next)
     {
-        var rules = new DungeonDifficultyRuleService(new Definitions(path));
+        var rules = new DungeonDifficultyRuleService(TestRequired.Admissions(new Definitions(path)));
         var result = await rules.NextAfterClearAsync(70, (DungeonDifficulty)cleared, default);
         Assert.Equal(next < 0 ? null : (DungeonDifficulty?)next, result);
     }
@@ -51,7 +52,7 @@ public sealed class DungeonDifficultyRuleServiceTests
     [InlineData(3, 4, false)]
     public async Task Fixed_ancient_difficulty_is_available_without_progression(byte requested, byte maximum, bool expected)
     {
-        var rules = new DungeonDifficultyRuleService(new FixedDefinitions());
+        var rules = new DungeonDifficultyRuleService(TestRequired.Admissions(new FixedDefinitions()));
         Assert.Equal(expected, await rules.AllowsAsync(1500, (DungeonDifficulty)requested, (DungeonDifficulty)maximum, default));
     }
 
@@ -62,7 +63,7 @@ public sealed class DungeonDifficultyRuleServiceTests
     [InlineData(2, 4, false)]
     public async Task Ordinary_tiers_still_require_clear_progression(byte requested, byte maximum, bool expected)
     {
-        var rules = new DungeonDifficultyRuleService(new Definitions("dungeon/timegate/a.dgn"));
+        var rules = new DungeonDifficultyRuleService(TestRequired.Admissions(new Definitions("dungeon/timegate/a.dgn")));
         Assert.Equal(expected, await rules.AllowsAsync(70, (DungeonDifficulty)requested, (DungeonDifficulty)maximum, default));
     }
 

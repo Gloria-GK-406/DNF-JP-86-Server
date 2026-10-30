@@ -29,7 +29,7 @@ public sealed class DungeonEntryMaterialTests
     {
         var runs = TestParties.Runs(f.Scope);
         return (Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(throwCell),
-            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+            f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f),
             materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(),
             characters: f.Services.GetRequiredService<ICharacterDomainService>(), transactions: f.Scope), runs);
     }
@@ -145,7 +145,7 @@ public sealed class DungeonEntryMaterialTests
             }
             var runs = TestParties.Runs(f.Scope);
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures([new(3037, 12, true)]), runs, new Selection(), new Cells(false),
-                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f),
                 materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
             await using (var tx = f.Scope.Begin())
             {
@@ -203,7 +203,7 @@ public sealed class DungeonEntryMaterialTests
                 throw new InvalidOperationException("room creation failed after payment");
             });
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), cells,
-                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f),
                 materials: f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
             await using (var tx = f.Scope.Begin())
             {
@@ -226,10 +226,10 @@ public sealed class DungeonEntryMaterialTests
             await using var f = Fixture(); await f.SeedAsync();
             await SeedTicket(f, new(71), 6337, 30, 0); await SeedTicket(f, new(71), 3332, 2, 1); await SeedTicket(f, new(71), 5555, 1, 2);
             var runs = TestParties.Runs(f.Scope);
-            var admission = new DungeonAdmissionDomainService(new Structures(), f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
-                new DungeonDifficultyRuleService(), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope, runs: runs);
+            var admission = new DungeonAdmissionDomainService(f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
+                new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope, runs: runs, tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(new Structures()), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), characters: Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(new() { Progress = new(85, 0) }));
             var visits = Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new Structures(), runs, new Selection(), new Cells(false),
-                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
+                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f),
                 admission: admission);
             await using (var tx = f.Scope.Begin())
             {
@@ -250,9 +250,9 @@ public sealed class DungeonEntryMaterialTests
     }
 
     private static DungeonAdmissionDomainService Admission(LearningFixture f, IReadOnlyList<DungeonRequiredItem>? requirements = null) =>
-        new(new Structures(requirements), f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
-            new DungeonDifficultyRuleService(), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(),
-            transactions: f.Scope);
+        new(f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(),
+            new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f), f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(),
+            transactions: f.Scope, tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(new Structures(requirements)), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), characters: Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(new() { Progress = new(85, 0) }));
     private static DungeonEntryContext Context(params DungeonRunParticipant[] members) => new(1500, DungeonEntryFacts.None, 0, 0, members);
 
     [Fact]
@@ -406,9 +406,8 @@ public sealed class DungeonEntryMaterialTests
             if (regular > 0) await SeedTicket(f, new(71), 10003196, regular, 0);
             if (free > 0) await SeedTicket(f, new(71), 10003235, free, 1);
             var structures = new Structures([new(10003196, 1, true)], [new(10003235, 1, true)]);
-            var admission = new DungeonAdmissionDomainService(structures,
-                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
-                f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+            var admission = new DungeonAdmissionDomainService(f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f),
+                f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope, tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(structures), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), characters: Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(new() { Progress = new(85, 0) }));
             await using (var tx = f.Scope.Begin())
             {
                 var result = await admission.PrepareAsync(Context(Party[0]), new(), default);
@@ -433,9 +432,8 @@ public sealed class DungeonEntryMaterialTests
             await using var f = Fixture(); await f.SeedAsync();
             await SeedTicket(f, new(71), 6337, 2, 0); await SeedTicket(f, new(71), 3332, 1, 1);
             var structures = new Structures([new(6337, 1, true)], [new(3332, 1, true), new(5555, 1, true)]);
-            var admission = new DungeonAdmissionDomainService(structures,
-                f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(), Fatigue(f),
-                f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope);
+            var admission = new DungeonAdmissionDomainService(f.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions), Fatigue(f),
+                f.Services.GetRequiredService<IDungeonEntryMaterialsDomainService>(), transactions: f.Scope, tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(structures), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), characters: Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(new() { Progress = new(85, 0) }));
             await using (var tx = f.Scope.Begin())
             {
                 Assert.NotNull((await admission.ConsumeAsync((await admission.PrepareAsync(Context(Party[0]), new(), default)).Batch!, default)).Receipt);

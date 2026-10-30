@@ -65,7 +65,7 @@ public sealed class IllusionTowerStageFrameIntegrationTests
         builder.Services.AddSingleton<IIllusionTowerRuleService>(new TowerRules());
         builder.Services.AddSingleton<ICharacterDomainService>(new Characters());
         builder.Services.AddSingleton<IItemPlacementDefinitionSource>(new Placements());
-        builder.Services.RemoveAll<IIllusionTowerRewardDomainService>();
+        builder.Services.Replace(ServiceDescriptor.Singleton(Dfo.Server.Testing.TestRequired.Absent<IIllusionTowerRewardDomainService>()));
 
         using var host = TestInfrastructure.Build(builder);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));

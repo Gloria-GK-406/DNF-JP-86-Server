@@ -18,7 +18,7 @@ internal sealed class DungeonRoomRuleService(
     IDungeonRoomDropSource roomDrops,
     IObjectDropRuleService objectDrops,
     IDungeonRoomObjectSource roomObjects,
-    IDungeonRoomMechanismRuleService? mechanisms = null) : IDungeonRoomRuleService
+    IDungeonRoomMechanismRuleService mechanisms) : IDungeonRoomRuleService
 {
     /// <summary>Where an actor type stops being a monster and starts being an AI character.</summary>
     /// <remarks>
@@ -66,7 +66,7 @@ internal sealed class DungeonRoomRuleService(
         {
             Objects = objects,
             Mechanisms = objects.Where(obj => obj.Mechanism is not null).Select(obj => obj.Mechanism!.Value)
-                .Distinct().Select(kind => (mechanisms ?? new DungeonRoomMechanismRuleService()).Define(kind)).ToArray(),
+                .Distinct().Select(kind => (mechanisms).Define(kind)).ToArray(),
         };
     }
 

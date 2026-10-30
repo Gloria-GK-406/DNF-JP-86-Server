@@ -290,7 +290,7 @@ public sealed class PartyServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var state = new OnlineStateRegistry(new DomainTransactionScope());
+            var state = new OnlineStateRegistry(TestRequired.TransactionScope());
             var onlineUsers = new OnlineUserDomainService(state);
             var sessionEndpoints = new GameSessionEndpointDomainService(state);
             var selectedSessions = new SelectedSessionDomainService(state);

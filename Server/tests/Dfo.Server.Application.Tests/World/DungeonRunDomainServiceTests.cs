@@ -1590,7 +1590,7 @@ public sealed partial class DungeonRunDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var service = TestParties.Runs(scope);
             var run = PrepareCardPanel(service);
 
@@ -1615,7 +1615,7 @@ public sealed partial class DungeonRunDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var service = TestParties.Runs(scope);
             var run = PrepareCardPanel(service);
 
@@ -1648,7 +1648,7 @@ public sealed partial class DungeonRunDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var service = TestParties.Runs(scope);
             var leader = new DungeonRunParticipant(
                 new AccountId(101), new CharacterId(1), Slot: 0, IsLeader: true);

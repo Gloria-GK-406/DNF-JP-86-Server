@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using System.Collections.Immutable;
@@ -15,20 +14,20 @@ namespace Dfo.Server.Application.World;
 /// <summary>Keeps process-local dungeon runs as shared aggregates with participant views.</summary>
 internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
 {
-    private readonly ILogger<DungeonRunDomainService> logger = NullLogger<DungeonRunDomainService>.Instance;
-    private readonly IDomainTransactionAccessor? transactions;
+    private readonly ILogger<DungeonRunDomainService> logger;
+    private readonly IDomainTransactionAccessor transactions;
     private readonly IPartyService parties;
-    private readonly IDungeonParticipationDomainService? participation;
-    private readonly IWeaknessDomainService? weakness;
-    private readonly ICreatureRuntimeDomainService? creatures;
-    private readonly IDungeonLifecycleDomainService? lifecycle;
-    private readonly TimeProvider clock = TimeProvider.System;
-    private readonly IDungeonSettlementRuleService settlementRules = new DungeonSettlementRuleService();
+    private readonly IDungeonParticipationDomainService participation;
+    private readonly IWeaknessDomainService weakness;
+    private readonly ICreatureRuntimeDomainService creatures;
+    private readonly IDungeonLifecycleDomainService lifecycle;
+    private readonly TimeProvider clock;
+    private readonly IDungeonSettlementRuleService settlementRules;
     private readonly object gate = new();
-    private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
-    private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
-    private readonly IDungeonDeadlineWake? deadlines;
-    private readonly IGiantDragonRuleService? giantDragons;
+    private readonly IDungeonRoomMechanismRuleService mechanismRules;
+    private readonly ISealedTreasureRuleService sealedTreasureRules;
+    private readonly IDungeonDeadlineWake deadlines;
+    private readonly IGiantDragonRuleService giantDragons;
     private readonly ILostLandFeverRuleService lostLandFever;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
     private readonly Dictionary<DungeonRunId, DateTimeOffset> clearReturnDeadlines = [];
@@ -50,26 +49,26 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IDomainTransactionAccessor transactions,
         IPartyService parties,
         ILostLandFeverRuleService lostLandFever,
-        IWeaknessDomainService? weakness = null,
-        ICreatureRuntimeDomainService? creatures = null,
-        IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
-        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonDeadlineWake? deadlines = null,
-        ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null,
-        ILogger<DungeonRunDomainService>? logger = null, IDungeonSettlementRuleService? settlementRules = null,
-        IGiantDragonRuleService? giantDragons = null)
+        IWeaknessDomainService weakness,
+        ICreatureRuntimeDomainService creatures,
+        IDungeonLifecycleDomainService lifecycle, TimeProvider clock,
+        IDungeonRoomMechanismRuleService mechanismRules, IDungeonDeadlineWake deadlines,
+        ISealedTreasureRuleService sealedTreasureRules, IDungeonParticipationDomainService participation,
+        ILogger<DungeonRunDomainService> logger, IDungeonSettlementRuleService settlementRules,
+        IGiantDragonRuleService giantDragons)
     {
-        this.settlementRules = settlementRules ?? new DungeonSettlementRuleService();
-        this.logger = logger ?? NullLogger<DungeonRunDomainService>.Instance;
+        this.settlementRules = settlementRules;
+        this.logger = logger;
         this.transactions = transactions;
         this.participation = participation;
-        this.parties = parties ?? throw new ArgumentNullException(nameof(parties));
+        this.parties = parties;
         this.weakness = weakness;
         this.creatures = creatures;
         this.lifecycle = lifecycle;
-        this.clock = clock ?? TimeProvider.System;
-        this.mechanismRules = mechanismRules ?? new DungeonRoomMechanismRuleService();
+        this.clock = clock;
+        this.mechanismRules = mechanismRules;
         this.deadlines = deadlines;
-        this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
+        this.sealedTreasureRules = sealedTreasureRules;
         this.giantDragons = giantDragons;
         this.lostLandFever = lostLandFever;
     }

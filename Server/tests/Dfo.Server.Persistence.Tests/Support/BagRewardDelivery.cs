@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Accounts;
@@ -26,7 +27,7 @@ internal sealed class BagRewardDelivery(IItemGrantDomainService grants, ICharact
                 // They do not prove mail persistence; ItemDeliveryTests covers that with full DI.
                 var space = constraint.Destination.Space;
                 var bag = new Dfo.Server.Application.Inventory.CharacterBusinessInventoryDomainService(containers,
-                    new RefillPlacementRule(constraint)).GetStore(character, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
+                    new RefillPlacementRule(constraint), transactions: TestRequired.TransactionScope(), arrivals: null!, creatures: null!, items: null!, slotRules: null!, capacities: null!, lifecycle: null!).GetStore(character, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
                 var remaining = item.Count;
                 while (remaining > 0)
                 {

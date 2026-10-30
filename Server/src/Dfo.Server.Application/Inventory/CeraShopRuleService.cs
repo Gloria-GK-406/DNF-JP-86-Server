@@ -11,8 +11,8 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals, IAccountWalletRuleService wallets,
-    IInventoryExpansionDefinitionSource? expansionContent = null,
-    IItemExpirationRuleService? expirationRules = null) : ICeraShopRuleService
+    IInventoryExpansionDefinitionSource expansionContent,
+    IItemExpirationRuleService expirationRules) : ICeraShopRuleService
 {
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -53,7 +53,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                     if (!entry.AvatarChoices.IsEmpty || !entry.Selections.IsEmpty
                         || entry.Attribute is not (0 or 255) || entry.Variant is not (0 or 255))
                         throw Refuse(CeraShopRejection.InvalidChoice, "Unexpected subscription options.");
-                    var expansion = expansionContent is null ? null : await expansionContent.ProductAsync(
+                    var expansion = await expansionContent.ProductAsync(
                         product.ProductId, product.ItemId, cancellationToken).ConfigureAwait(false);
                     if (expansion is not null && product.Count == 1 && price.Period == 0)
                         expansions.Add(expansion);
@@ -261,11 +261,8 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                 throw Refuse(CeraShopRejection.UnsupportedProduct, "Too many expanded rewards.");
             var placement = await placements.PlacementForAsync(item.ItemId, cancellationToken).ConfigureAwait(false)
                 ?? throw Refuse(CeraShopRejection.UnsupportedProduct, $"No placement for item {item.ItemId}.");
-            if (expirationRules is not null)
-            {
-                var declared = expirationRules.Prepare(new ItemSnapshot(), placement.Lifetime, now).ExpireTime;
-                if (declared > 0) expiration = expiration == 0 ? declared : Math.Min(expiration, declared);
-            }
+            var declared = expirationRules.Prepare(new ItemSnapshot(), placement.Lifetime, now).ExpireTime;
+            if (declared > 0) expiration = expiration == 0 ? declared : Math.Min(expiration, declared);
             byte ability = 0;
             if (item.Kind == CeraShopItemKind.Avatar)
             {

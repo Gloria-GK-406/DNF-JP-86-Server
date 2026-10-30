@@ -631,7 +631,7 @@ public sealed class OrdinaryQuestEffectTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null,"PVF_ARCHIVE_PATH is not available.");
         using var archive=new PvfArchiveProvider(new PvfContentOptions());
-        using var shop=new ShopFixture(true,s=>s.AddSingleton<IItemPlacementDefinitionSource>(new PvfItemPlacementDefinitionSource(archive)), useArchive: true);
+        using var shop=new ShopFixture(true,s=>s.AddSingleton<IItemPlacementDefinitionSource>(new PvfItemPlacementDefinitionSource(archive, new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())), useArchive: true);
         shop.Sql("UPDATE characters SET job=0,level=1,exp=0 WHERE character_id=1; UPDATE character_stats SET carried_gold=0 WHERE character_id=1; INSERT INTO character_active_quests VALUES(1,0,1776,0)");
         var result=await new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1),new(1),1776,ushort.MaxValue,1,0));
         Assert.True(result.Finished); Assert.Equal(1,shop.Count(101010437)); Assert.Equal(1,shop.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_scope='character' AND owner_id=1"));

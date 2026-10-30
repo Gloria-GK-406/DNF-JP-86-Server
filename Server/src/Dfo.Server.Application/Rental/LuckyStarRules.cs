@@ -15,7 +15,7 @@ internal sealed class LuckyStarRuleService(ILuckyStarRentalContentSource content
 }
 internal sealed class EquipmentRentalRuleService(ILuckyStarRentalContentSource content,
     IEquipmentDefinitionSource equipment,
-    IItemDeliveryRuleService? delivery = null) : IEquipmentRentalRuleService
+    IItemDeliveryRuleService delivery) : IEquipmentRentalRuleService
 {
     public async ValueTask<RentalQuote> QuoteAsync(int itemId, byte job, int level, DateTimeOffset now, CancellationToken ct)
     {
@@ -27,7 +27,7 @@ internal sealed class EquipmentRentalRuleService(ILuckyStarRentalContentSource c
         var offer = offers.FirstOrDefault(x => x.CharacterJob is {} exact ? exact == job : x.Job == family);
         if (offer is null || !usableJobs.Contains(job)) return new(EquipmentRentalRejection.WrongJob,0,now);
         // Rental may precede wearing; the existing wear service owns level and contract eligibility.
-        var snapshot = delivery is null ? null : await delivery.TemplateAsync(itemId,ct).ConfigureAwait(false);
+        var snapshot = await delivery.TemplateAsync(itemId,ct).ConfigureAwait(false);
         if (snapshot is not null && await content.QualityTierAsync(itemId,ct).ConfigureAwait(false) is {} quality)
             snapshot = snapshot with {InstanceValue=EquipmentQualitySeeds.FixedFor(quality)};
         return new(EquipmentRentalRejection.None,offer.Price,now.AddHours(24)){Snapshot=snapshot};

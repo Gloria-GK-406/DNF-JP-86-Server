@@ -462,7 +462,7 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         if (defect == "type") script.Quoted("bad"); else script.Int(0).Int(8);
         script.End();
         using var file = new BuiltArchive(builder);
-        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfEntryLifecycleContentSource(file.Provider)
+        var error = await Assert.ThrowsAsync<InvalidDataException>(() => new PvfEntryLifecycleContentSource(file.Provider, slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService())
             .GetDailyRefillRulesAsync(DateTimeOffset.UtcNow, default).AsTask());
         Assert.Contains("[refill item]", error.Message);
         Assert.Contains("etc/chn_server_limititemusageinfo.etc", error.Message);

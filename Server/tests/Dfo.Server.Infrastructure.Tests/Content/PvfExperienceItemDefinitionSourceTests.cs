@@ -19,7 +19,7 @@ public sealed class PvfExperienceItemDefinitionSourceTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
 
-        var definition = await new PvfExperienceItemDefinitionSource(provider)
+        var definition = await new PvfExperienceItemDefinitionSource(provider, options: new Dfo.Server.Infrastructure.Content.PvfContentOptions())
             .GetAsync(itemId, default);
 
         Assert.NotNull(definition);
@@ -66,8 +66,9 @@ public sealed class PvfExperienceItemDefinitionSourceTests
         try
         {
             File.WriteAllBytes(path, builder.Build());
-            using var provider = new PvfArchiveProvider(new PvfContentOptions { ArchivePath = path });
-            var source = new PvfExperienceItemDefinitionSource(provider);
+            var options = new PvfContentOptions { ArchivePath = path };
+            using var provider = new PvfArchiveProvider(options);
+            var source = new PvfExperienceItemDefinitionSource(provider, options: options);
 
             var fixedDefinition = await source.GetAsync(777, default);
             Assert.Equal(new(ExperienceItemGrantKind.Fixed, 4321, 7, 70, true), fixedDefinition);

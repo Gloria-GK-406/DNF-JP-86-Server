@@ -53,7 +53,7 @@ public sealed class CreatureIdentityFitsTheWireTests
         await WithADatabaseAsync(async (path, database, scope) =>
         {
             await WindTheSequenceToAsync(path, LargestSayable - 1);
-            var store = new SqliteItemDomainStore(path);
+            var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             var identity = await InUseCaseAsync(scope, async token =>
             {
                 var session = store.SessionIn(scope.Current!);
@@ -92,7 +92,7 @@ public sealed class CreatureIdentityFitsTheWireTests
         await WithADatabaseAsync(async (path, database, scope) =>
         {
             await WindTheSequenceToAsync(path, LargestSayable);
-            var store = new SqliteItemDomainStore(path);
+            var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
             var refusal = await Assert.ThrowsAsync<SqliteException>(
                 () => InUseCaseAsync(scope, token => store.SessionIn(scope.Current!).CreateAsync(
                     ItemSnapshot.FromCore(Core(), false,
@@ -203,7 +203,7 @@ public sealed class CreatureIdentityFitsTheWireTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-creaturewire-{Guid.NewGuid():N}.db");
         try
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var database = new SqliteDatabase(path, scope);
             await body(path, database, scope);
         }

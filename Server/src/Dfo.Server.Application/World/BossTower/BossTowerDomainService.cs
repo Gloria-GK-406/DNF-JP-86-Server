@@ -27,9 +27,9 @@ internal sealed class BossTowerDomainService(
     IDungeonAdmissionDomainService admission, IEventManagementDomainService activities,
     IMonsterDropDomainService monsterDrops, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     IDungeonRunQueryDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
-    IBossTowerRewardDomainService? rewards = null,
-    IEventService? events = null, IDungeonParticipationDomainService? participation = null,
-    ILogger<BossTowerDomainService>? logger = null)
+    IBossTowerRewardDomainService rewards,
+    IEventService events, IDungeonParticipationDomainService participation,
+    ILogger<BossTowerDomainService> logger)
     : IBossTowerDomainService
 {
     private readonly object sync = new();
@@ -85,7 +85,7 @@ internal sealed class BossTowerDomainService(
         {
             if (!ValidSession(candidate.Session)) return Refuse("NoSession", candidate.Slot);
             if (IsInTower(candidate.Session.CharacterId) || ordinary.Find(candidate.Session.CharacterId) is not null
-                || participation?.Find(candidate.Session.CharacterId) is not null) return Refuse("AlreadyInDungeon", candidate.Slot);
+                || participation.Find(candidate.Session.CharacterId) is not null) return Refuse("AlreadyInDungeon", candidate.Slot);
         }
         var participants = members.Select(x => new DungeonRunParticipant(x.Session.AccountId, x.Session.CharacterId,
             x.Slot, x.Session == leader)).ToImmutableArray();
@@ -110,7 +110,7 @@ internal sealed class BossTowerDomainService(
             if (consumed.Receipt is null) { scope.Current!.RequireRollback(); return Refuse(consumed.Refusal?.Failure.ToString() ?? "PaymentRefused"); }
             if (admission.BeginEntry(consumed.Receipt, participants, context.DungeonId) is { } refused)
             { scope.Current!.RequireRollback(); return Refuse(refused.Failure?.ToString() ?? "EntryRefused"); }
-            if (participation is not null && !participation.TryClaim(members.Select(x => x.Session.CharacterId).ToArray(),
+            if (!participation.TryClaim(members.Select(x => x.Session.CharacterId).ToArray(),
                 new(DungeonParticipationMode.BossTower, run.RunId))) throw new InvalidOperationException("Tower participation changed during admission.");
             foreach (var member in members) Pending.AuthenticatedSessions.Add(member.Session);
             Pending.Add(run);
@@ -181,7 +181,7 @@ internal sealed class BossTowerDomainService(
         var current = Match(context);
         if (current is null)
         {
-            logger?.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} target=({X},{Y}) reason=SessionOrRunMismatch",
+            logger.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} target=({X},{Y}) reason=SessionOrRunMismatch",
                 context.Session.CharacterId.Value, context.RunId, context.RoomVersion, targetX, targetY);
             return new BossTowerActionResult(false, null);
         }
@@ -191,7 +191,7 @@ internal sealed class BossTowerDomainService(
             var reason = !targetAccepted ? "TargetCoordinateMismatch"
                 : current.Completion is not null ? "RunCompleted"
                 : current.Room.State.Phase != TowerRoomPhase.Cleared ? "RoomNotCleared" : "NotLeader";
-            logger?.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} stage={Stage} map={MapId} phase={Phase} target=({X},{Y}) remainingBlocking={RemainingBlocking} deadActors={DeadActors}/{ActorCount} reason={Reason}",
+            logger.LogWarning("Boss tower move refused character={CharacterId} run={RunId} roomVersion={RoomVersion} stage={Stage} map={MapId} phase={Phase} target=({X},{Y}) remainingBlocking={RemainingBlocking} deadActors={DeadActors}/{ActorCount} reason={Reason}",
                 context.Session.CharacterId.Value, current.RunId, current.Room.State.Version, current.Room.State.Level,
                 current.Room.State.MapId, current.Room.State.Phase, targetX, targetY,
                 current.Room.State.Actors.Count(x => x.Seed.BlocksClear && !x.Dead),
@@ -247,7 +247,7 @@ internal sealed class BossTowerDomainService(
         foreach (var member in current.Members)
         {
             if (ValidSession(member.Session)) Pending.AuthenticatedSessions.Add(member.Session);
-            participation?.Release(member.Session.CharacterId, new(DungeonParticipationMode.BossTower, current.RunId));
+            participation.Release(member.Session.CharacterId, new(DungeonParticipationMode.BossTower, current.RunId));
             next.Leave(member.Session, false, clock.GetUtcNow());
         }
         Pending.Put(current, next);
@@ -337,7 +337,7 @@ internal sealed class BossTowerDomainService(
         {
             var participants = next.Members.Where(x => ValidSession(x.Session)).ToArray();
             foreach (var member in participants) Pending.AuthenticatedSessions.Add(member.Session);
-            await (events ?? throw new InvalidOperationException("Map-clear events are unavailable."))
+            await events
                 .EnqueueAsync(new DungeonMapCleared(new(next.RunId), next.DungeonId, DungeonDifficulty.Normal,
                     new(checked((byte)(next.Room.State.Level % 2)), 0), next.Room.State.MapId, next.Room.State.Version,
                     next.Room.State.ClearedAt!.Value, [.. participants.Select(member =>
@@ -346,15 +346,11 @@ internal sealed class BossTowerDomainService(
         }
         var wasSettled = current.Completion is { Settled: true };
         var killRewards = ImmutableArray<TowerKillReward>.Empty;
-        if (rewards is not null)
-        {
-            // Stale identities must not block cleanup, nor receive another session's awards.
-            var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
-            foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
-            if (result.KilledActor is { } actor)
-                killRewards = await rewards.KillAsync(eligible, actor, footprint, token).ConfigureAwait(false);
-
-        }
+        // Stale identities must not block cleanup, nor receive another session's awards.
+        var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
+        foreach (var member in eligible.Members) Pending.AuthenticatedSessions.Add(member.Session);
+        if (result.KilledActor is { } actor)
+            killRewards = await rewards.KillAsync(eligible, actor, footprint, token).ConfigureAwait(false);
         var produced = ImmutableArray<BossTowerGroundItem>.Empty;
         var autoUpdates = ImmutableArray.CreateBuilder<TowerInventoryUpdate>();
         if (result.KilledActor is { } killed)
@@ -387,14 +383,14 @@ internal sealed class BossTowerDomainService(
                 produced = next.GroundItems.Where(x => x.ActorUid == killed.Uid && !x.Claimed).ToImmutableArray();
             }
         }
-        if (rewards is not null && next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
+        if (next.Completion is { Settled: false, Reason: TowerEndReason.Completed or TowerEndReason.Defeated })
         {
-            var eligible = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
-            next.Settle(await rewards.SettleAsync(eligible, next.Seed, footprint, token).ConfigureAwait(false), clock.GetUtcNow(), rules.ResultTimeout);
+            var settling = next.Snapshot() with { Members = next.Members.Where(x => ValidSession(x.Session)).ToImmutableArray() };
+            next.Settle(await rewards.SettleAsync(settling, next.Seed, footprint, token).ConfigureAwait(false), clock.GetUtcNow(), rules.ResultTimeout);
         }
         footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         foreach (var departed in current.Members.Where(member => !next.Members.Any(x => x.Session == member.Session)))
-            participation?.Release(departed.Session.CharacterId, new(DungeonParticipationMode.BossTower, current.RunId));
+            participation.Release(departed.Session.CharacterId, new(DungeonParticipationMode.BossTower, current.RunId));
         footprint.DemandEffects(new(context.Session.AccountId, context.Session.CharacterId, context.Session));
         Pending.Put(current, next);
         return next.Result(true, result.KilledActor) with

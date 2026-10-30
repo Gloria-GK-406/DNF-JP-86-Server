@@ -6,7 +6,7 @@ namespace Dfo.Server.Application.Inventory;
 /// <summary>Moving a piece between the bag and what the character is wearing.</summary>
 internal sealed class ItemMovementDomainService(
     IItemPlacementRuleService placementRules,
-    IItemSlotRuleService slotRules, IEquipmentWearDomainService wearing, IItemMirrorDomainService? mirrors = null) : IItemMovementDomainService
+    IItemSlotRuleService slotRules, IEquipmentWearDomainService wearing, IItemMirrorDomainService mirrors) : IItemMovementDomainService
 {
     public ValueTask<ItemMoveOutcome> MoveWithinBackingAsync(BoundInventorySlot source,
         BoundInventorySlot destination, int requestedCount, CancellationToken cancellationToken)
@@ -91,7 +91,7 @@ internal sealed class ItemMovementDomainService(
 
     public ValueTask<bool> RemoveMirrorAsync(BoundInventorySlot source, ItemReference item, CancellationToken ct) =>
         !item.Snapshot.IsMirror ? ValueTask.FromResult(false)
-        : (mirrors ?? throw new InvalidOperationException("Mirror movement requires mirror lifecycle services."))
+        : mirrors
             .RemoveAsync(source.Container, item, ct);
 
     public ItemSnapshot UnsealForEquip(ItemSnapshot item) => wearing.UnsealForEquip(item);

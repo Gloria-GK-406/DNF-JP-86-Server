@@ -28,7 +28,7 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     [InlineData(5, 5)]
     [InlineData(4, 4)]
     [InlineData(0, 0)]
-    public async Task Quest_entry_repairs_only_out_of_range_regional_residuals(int before, int after)
+    public async Task Quest_entry_writes_back_only_the_progress_the_query_corrected(int before, int after)
     {
         var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(602), 602, 1);
         result = result with
@@ -45,9 +45,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         {
             Carried = { [602] = [new CarriedQuest(0, 14396, before)] },
         };
-        var source = new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
-            { [14396] = [] }, QuestKillObjectiveParser.Parse("hunt monster", [-2, 31, -1, -3, 5]));
-        var service = new SelectCharacterQuestEntryService(new QuestContentRuleService(source, new NoQuestParameters()), logs);
+        // What the quest query evaluates now; this service only writes the difference back.
+        var service = new SelectCharacterQuestEntryService(logs, new AcceptedQuests([new(new CarriedQuest(0, 14396, after), [])]));
         var projection = await service.SynchronizeAsync(Session(result), result, default);
         if (before == after)
         {
@@ -70,11 +69,11 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var previous = Session(result);
         var next = previous with { ConnectionGeneration = previous.ConnectionGeneration + 1 };
         var loader = new InventoryLoader(result.CharacterInventory);
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillConfiguration(new RefillContent()), new RefillMutation(), loader,
-            containers, new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
+            containers, new VolatileItemDomainStore(), TestRequired.TransactionScope(),
+            null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory(), slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(), capacities: null!);
 
         var updated = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(next, result, CancellationToken.None));
 
@@ -101,8 +100,8 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         };
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillConfiguration(new RefillContent()), new RefillMutation(), new InventoryLoader(reloaded),
-            new CharacterContainerDomainService(),
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
+            new CharacterContainerDomainService(TestRequired.TransactionScope()),
+            new VolatileItemDomainStore(), TestRequired.TransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory(), slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(), capacities: null!);
         _ = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(session, result, CancellationToken.None));
 
         var prepared = await service.ApplyDailyRefillAsync(session, result, CancellationToken.None);
@@ -122,163 +121,14 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
         var loader = new InventoryLoader(result.CharacterInventory);
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillConfiguration(new RefillContent()), new FailingRefillMutation(), loader,
-            new CharacterContainerDomainService(), new VolatileItemDomainStore(), new DomainTransactionScope(),
-            null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
+            new CharacterContainerDomainService(TestRequired.TransactionScope()), new VolatileItemDomainStore(), TestRequired.TransactionScope(),
+            null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory(), slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(), capacities: null!);
         _ = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(session, result, CancellationToken.None));
 
         await Assert.ThrowsAsync<IOException>(async () =>
             await service.ApplyDailyRefillAsync(session, result, CancellationToken.None));
 
         Assert.Equal(1, loader.LoadCount);
-    }
-
-    [Fact]
-    public async Task QuestSynchronization_UsesVirtualGoldAndCountsCreatureAsOneInstance()
-    {
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(602), 602, 1);
-        result = result with
-        {
-            CharacterEntry = result.CharacterEntry with
-            {
-                Quests = result.CharacterEntry.Quests with
-                {
-                    ActiveQuests = [new CharacterQuestProgressState(0, 100, 0),
-                        new CharacterQuestProgressState(1, 101, 0)]
-                }
-            },
-            CharacterInventory = result.CharacterInventory with
-            {
-                VirtualResources = [new InventoryRuntimeValueState(0, 0, 7)],
-                Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
-                    [new InventoryItemState(new ItemIdentity(1), 65, Core(itemKind: 5, itemId: 99, value: 999_999))]),
-                    new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
-                    new InventoryContainerState(InventoryContainerType.Avatar, 0, [])]
-            }
-        };
-        var logs = new RecordingQuestLogs
-        {
-            Carried =
-            {
-                [602] = [new CarriedQuest(0, 100, 0), new CarriedQuest(1, 101, 0)],
-            },
-        };
-        var service = new SelectCharacterQuestEntryService(
-            new QuestContentRuleService(
-                new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
-                {
-                    [100] = [new SeekingItemRequirement(0, 10)],
-                    [101] = [new SeekingItemRequirement(99, 2)],
-                }),
-                new NoQuestParameters()),
-            logs);
-
-        var projection = await service.SynchronizeAsync(Session(result), result, CancellationToken.None);
-
-        // The whole of each write, not just the value: the slot says which row was corrected, and
-        // the quest as last seen is the guard that stands between this snapshot and a row that
-        // moved since. A test that watched only the new value would pass with either thrown away.
-        Assert.Equal(
-            [(new CarriedQuest(0, 100, 0), 3), (new CarriedQuest(1, 101, 0), 1)],
-            logs.ProgressWrites);
-        Assert.Equal([3u, 1u], projection!.State.Quests.Select(value => value.TriggerValue));
-        Assert.Equal([3, 1], projection.Result.CharacterEntry.Quests.ActiveQuests
-            .Select(value => value.TriggerValue));
-    }
-
-    [Theory]
-    [InlineData(511, 1000, 0)]
-    [InlineData(0, 1000, 0)]
-    [InlineData(0, 999, 1)]
-    [InlineData(0, 0, 511)]
-    public async Task QuestSynchronization_UsesAccountMaterialsForAwakeningOnEveryLogin(
-        int before, int whiteCount, int expected)
-    {
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(602), 602, 1);
-        result = result with
-        {
-            CharacterEntry = result.CharacterEntry with
-            {
-                Quests = result.CharacterEntry.Quests with
-                {
-                    ActiveQuests = [new CharacterQuestProgressState(0, 974, before)]
-                }
-            },
-            CharacterInventory = result.CharacterInventory with
-            {
-                VirtualResources = [],
-                Containers = [new InventoryContainerState(InventoryContainerType.Main, 0,
-                    [new InventoryItemState(new ItemIdentity(1), 153, Core(3, 3155, 100)),
-                     new InventoryItemState(new ItemIdentity(2), 154, Core(3, 3150, 100)),
-                     // A legacy bag duplicate must not replace the account-owned count.
-                     new InventoryItemState(new ItemIdentity(3), 155, Core(11, 3034, 10000))])]
-            },
-            AccountInventory = result.AccountInventory with
-            {
-                VirtualResources = whiteCount == 0
-                    ? [new InventoryRuntimeValueState(356, 3035, 1000)]
-                    : [new InventoryRuntimeValueState(355, 3034, whiteCount),
-                       new InventoryRuntimeValueState(356, 3035, 1000)]
-            }
-        };
-        var logs = new RecordingQuestLogs
-        {
-            Carried = { [602] = [new CarriedQuest(0, 974, before)] }
-        };
-        var service = new SelectCharacterQuestEntryService(new QuestContentRuleService(
-            new QuestSource(new Dictionary<int, IReadOnlyList<SeekingItemRequirement>>
-            {
-                [974] = [new(3034, 1000), new(3035, 1000), new(3155, 100), new(3150, 100)]
-            }), new NoQuestParameters()), logs);
-
-        var projection = await service.SynchronizeAsync(Session(result), result, default);
-
-        if (before == expected)
-        {
-            Assert.Null(projection);
-            Assert.Empty(logs.ProgressWrites);
-        }
-        else
-        {
-            Assert.Equal([(new CarriedQuest(0, 974, before), expected)], logs.ProgressWrites);
-            Assert.Equal((uint)expected, Assert.Single(projection!.State.Quests).TriggerValue);
-            Assert.Equal(expected, Assert.Single(projection.Result.CharacterEntry.Quests.ActiveQuests).TriggerValue);
-        }
-    }
-
-    [Fact]
-    public async Task PetRevival_EmitsOnlyTheCommittedDeadToAliveTransition()
-    {
-        var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(new AccountId(603), 603, 1);
-        result = result with
-        {
-            CharacterEntry = result.CharacterEntry with
-            {
-                Features = result.CharacterEntry.Features with
-                {
-                    Pets = [new CharacterPetRuntimeState(77, 0, 0, 0, 0, 0, 0, [], 0)]
-                }
-            }
-        };
-        var characters = new RecordingCharacterDomainStore();
-        characters.Creatures[(603, 77)] = new StoredCreature(77, 0);
-        var accessor = new OpenTransactionAccessor();
-        var items = new VolatileItemDomainStore();
-        // The creature is named by its identity and by nothing else. Its core carries a different
-        // number on purpose: that value is what the wire shows for a creature, it is not the key
-        // its condition is kept under, and a revival that went looking by it would find the wrong
-        // creature or none.
-        items.Seed(ContainerId.ForCharacter(new CharacterId(603), InventoryContainerType.Equipment), 25,
-            ItemSnapshot.FromCore(Core(itemKind: 5, itemId: 1, value: 999), false, new(77),
-                creature: new(0, 0, 0, 0, 0, 1, [], 0)));
-        var service = new SelectCharacterPetEntryService(
-            characters, items, new AmbientStoreAccess(accessor));
-
-        var changed = await service.ReviveAsync(Session(result), result, CancellationToken.None);
-        var unchanged = await service.ReviveAsync(Session(result), result, CancellationToken.None);
-
-        Assert.Equal(new PetRevivalState(603, 77, 1), changed!.State);
-        Assert.Equal(1, Assert.Single(changed.Result.CharacterEntry.Features.Pets).Field04);
-        Assert.Null(unchanged);
     }
 
     /// <summary>
@@ -304,11 +154,11 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
                 new InventoryContainerState(InventoryContainerType.Equipment, 0, []),
                 new InventoryContainerState(InventoryContainerType.Avatar, 0, [])],
         };
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var service = new SelectCharacterEntryInventoryDomainService(
             new RefillConfiguration(new RefillContent()), new RefillMutation(),
             new InventoryLoader(expanded), containers,
-            new VolatileItemDomainStore(), new DomainTransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory());
+            new VolatileItemDomainStore(), TestRequired.TransactionScope(), null!, null!, null!, transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory(), slotMappings: new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(), capacities: null!);
 
         var prepared = await TestGameplay.RunAsync(async () => await service.PrepareLeaseAsync(session, result, CancellationToken.None));
 
@@ -417,31 +267,12 @@ public sealed class SelectCharacterEntryLifecycleServiceTests
     }
 
     /// <summary>Nothing reached through here works out a quest reward.</summary>
-    private sealed class NoQuestParameters : IQuestParameterSource
+    private sealed class AcceptedQuests(IReadOnlyList<AcceptedQuestState> accepted) : IQuestQueryDomainService
     {
-        public QuestParameters Load() =>
-            throw new NotSupportedException(
-                "No test on this path asks what a quest pays; a value here would be invented.");
-    }
-
-    private sealed class QuestSource(
-        IReadOnlyDictionary<int, IReadOnlyList<SeekingItemRequirement>> requirements,
-        QuestKillObjectiveDefinition? killObjectives = null)
-        : IQuestDefinitionSource
-    {
-        public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([]);
-
-        public ValueTask<QuestDefinition?> GetAsync(int questId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(requirements.TryGetValue(questId, out var values)
-                ? new QuestDefinition(questId, "", null, null, null, null, null, null, [], "", "",
-                    null, null, null, null, null, null, null, [], [], [], [], SeekingItems: values,
-                    KillObjectives: killObjectives)
-                : null);
-
-        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
+        public ValueTask<IReadOnlyList<AcceptedQuestState>> ReadAcceptedAsync(AccountId account, CharacterId character, CancellationToken ct) =>
+            ValueTask.FromResult(accepted);
+        public ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, CancellationToken ct) =>
+            throw new NotSupportedException();
     }
 
     private sealed class RefillConfiguration(IEntryLifecycleContentSource source) : IDailyRefillConfigurationDomainService

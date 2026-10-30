@@ -117,7 +117,7 @@ public sealed class EpicBookTests
     private sealed class Fixture : IDisposable
     {
         public string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"epic-book-{Guid.NewGuid():N}.db");
-        public DomainTransactionScope Scope { get; } = new();
+        public DomainTransactionScope Scope { get; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
         public EpicBookDomainService Book { get; }
         private readonly SqliteConnection connection;
         public Fixture()

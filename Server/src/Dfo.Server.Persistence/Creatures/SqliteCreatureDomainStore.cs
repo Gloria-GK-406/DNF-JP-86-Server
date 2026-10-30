@@ -11,7 +11,7 @@ using Microsoft.Data.Sqlite;
 namespace Dfo.Server.Persistence.Creatures;
 
 internal sealed class SqliteCreatureDomainStore(string databasePath,
-    IInventoryContentsEventDomainService? contentsEvents = null) : ICreatureDomainStore
+    IInventoryContentsEventDomainService contentsEvents) : ICreatureDomainStore
 {
     private readonly string connectionString = new SqliteConnectionStringBuilder
         { DataSource = Path.GetFullPath(databasePath) }.ToString();

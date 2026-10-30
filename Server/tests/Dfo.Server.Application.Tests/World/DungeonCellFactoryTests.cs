@@ -66,7 +66,7 @@ public sealed class DungeonCellFactoryTests
                 BasisLevel: mirror ? (byte)86 : (byte)55)
             { FixedMonsterLevel = mirror ? (byte)86 : null };
             var source = new LevelRoomSource(new(61670, declaredLevel, 0, offset));
-            var rooms = new DungeonRoomRuleService(source, source, source, source);
+            var rooms = new DungeonRoomRuleService(source, source, source, source, mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
             var loot = new RecordingLoot();
             var factory = new DungeonCellFactory(rooms, new NoPlacement(), loot,
                 new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops());
@@ -113,7 +113,7 @@ public sealed class DungeonCellFactoryTests
             BasisLevel: 86) { FixedMonsterLevel = 86 };
         var source = new LevelRoomSource(new DungeonRoomActor(61670, 26, type)
         { Declaration = new(61670, spawnSource, 0) { IsDummy = dummy, ParentObjectIndex = 0, ChildIndex = 0 } });
-        var contents = await new DungeonRoomRuleService(source, source, source, source)
+        var contents = await new DungeonRoomRuleService(source, source, source, source, mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService())
             .DescribeAsync(new(DungeonRunId.New(), layout, cell, 123, 0, DateTimeOffset.UnixEpoch, []), default);
         Assert.Equal((byte)26, Assert.Single(contents.Actors).Actor.Level);
     }

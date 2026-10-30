@@ -15,8 +15,8 @@ internal sealed class QuestFactsDomainService(ICharacterContainerDomainService c
     ICharacterDomainService characters, ICharacterQuestLogDomainService logs,
     IQuestStateRuleService rules, ICharacterTable owners, ICreatureDomainStore creatures, AmbientStoreAccess stores,
     IItemDomainStore items, IGiantDragonCrystalExchangeDomainService crystalExchange,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null,
-    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService? southern = null) : IQuestFactsDomainService
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
+    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern) : IQuestFactsDomainService
 {
     public async ValueTask<QuestHoldingsFacts> HoldingsAsync(CharacterId character, CancellationToken ct)
     {
@@ -53,7 +53,7 @@ internal sealed class QuestFactsDomainService(ICharacterContainerDomainService c
             cleared.Where(x => x.Mark != 0).ToDictionary(x => x.QuestId, x => (int)x.Mark),
             carried.Select(x => x.QuestId).ToArray(), [], [], creature?.ItemTemplateId ?? 0, creature?.Level ?? 0)
         { GiantDragonCrystalExchangeAvailable = await crystalExchange.CanAcceptAsync(character, ct).ConfigureAwait(false),
-            EligibleWeddingQuestIds = marriage is null ? [] : await marriage.EligibleQuestIdsAsync(account, character, ct).ConfigureAwait(false),
-            SouthernDaleQuestAvailable = southern is not null && await southern.CanAcceptAsync(character, ct).ConfigureAwait(false) };
+            EligibleWeddingQuestIds = await marriage.EligibleQuestIdsAsync(account, character, ct).ConfigureAwait(false),
+            SouthernDaleQuestAvailable = await southern.CanAcceptAsync(character, ct).ConfigureAwait(false) };
     }
 }
