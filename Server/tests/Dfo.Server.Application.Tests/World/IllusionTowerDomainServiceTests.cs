@@ -1303,6 +1303,9 @@ public sealed partial class IllusionTowerDomainServiceTests
     {
         private readonly Dictionary<SelectedSessionIdentity, DungeonEntryIntent> values = [];
 
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) =>
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.AuthorizeIntent(session, values.TryGetValue(session, out var held) ? held : null, dungeonId, mirror);
+
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) =>
             values[session] = intent;
 

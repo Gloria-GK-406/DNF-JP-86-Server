@@ -57,7 +57,7 @@ public sealed class LeaveDungeonTests
         await TestGameplay.RunAsync(async () =>
         {
             var runs = new OneRun();
-            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
                 new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
 
@@ -77,7 +77,7 @@ public sealed class LeaveDungeonTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             await StoryHandler(new OneRun(story: story), new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
                 new EplpCommandRequest(GameMessageMetadata.Empty, 1, option), default);
             Assert.Null(intents.Find(Identity));
@@ -100,7 +100,7 @@ public sealed class LeaveDungeonTests
                 "despair" => layout with { Mode = new DungeonRunMode.Despair(new(1, new DateOnly(2026, 10, 13))) },
                 _ => layout with { Mode = new DungeonRunMode.Hell(new(0, layout.BossCell, layout.StartRoomMapId, [])) },
             });
-            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             await StoryHandler(runs, new RecordingSender(), intents: intents).HandleAsync(Dispatch(),
                 new EplpCommandRequest(GameMessageMetadata.Empty, 1, 0), default);
             Assert.True(runs.Ended);
@@ -212,6 +212,7 @@ public sealed class LeaveDungeonTests
     private sealed class SelectedIntent : IDungeonEntryIntentDomainService
     {
         public DungeonEntryIntent? Find(SelectedSessionIdentity session) => DungeonEntryIntent.Directed(148);
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) => throw new NotSupportedException();
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) => throw new NotSupportedException();
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session) => throw new NotSupportedException();
         public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) => throw new NotSupportedException();

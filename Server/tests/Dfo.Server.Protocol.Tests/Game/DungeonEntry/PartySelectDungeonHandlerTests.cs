@@ -81,7 +81,7 @@ public sealed class PartySelectDungeonHandlerTests
         {
             var sessions = new Sessions(Leader, Member);
             var runtime = new Runtime(SelectCharacterPayloadTestData.CreateComplete(), [Leader, Member]);
-            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService();
+            var intents = new Dfo.Server.Application.World.DungeonEntryIntentDomainService(ProtocolAlgorithmFixture.NoSaoFloors.Create());
             foreach (var member in new[] { Leader, Member })
                 intents.Record(member, DungeonEntryIntent.OrdinaryRechallenge(DungeonId));
             var sender = new Sender();
@@ -1182,6 +1182,8 @@ public sealed class PartySelectDungeonHandlerTests
     private sealed class Intents : IDungeonEntryIntentDomainService
     {
         private readonly Dictionary<SelectedSessionIdentity, DungeonEntryIntent> values = [];
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) =>
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.AuthorizeIntent(session, values.TryGetValue(session, out var held) ? held : null, dungeonId, mirror);
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) => values[session] = intent;
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session) =>
             values.Remove(session, out var value) ? value : null;

@@ -165,6 +165,43 @@ public sealed class SelectDungeonHandlerTests
         Assert.Empty(visits.Facts);
     }
 
+    [Fact]
+    public async Task A_committed_entry_spends_the_selection()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = Handler(new RecordingVisits(), sender, commands: new MirrorCommands());
+            await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
+            var entered = sender.Sent.Count;
+            await handler.HandleAsync(Dispatch(), Request() with { MirrorQuestId = 14299 }, default);
+            Assert.Equal(entered + 1, sender.Sent.Count);
+            Assert.Equal(SelectDungeonRefusal.InvalidSelectionState, Assert.IsType<SelectDungeonRefusal>(sender.Sent.Last()).ErrorCode);
+        });
+    }
+
+    [Fact]
+    public async Task An_entry_that_throws_leaves_the_selection_for_a_retry()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var sender = new RecordingSender();
+            var handler = Handler(new RecordingVisits(), sender, commands: new FailingCommands());
+            await Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(Dispatch(), Request(), default).AsTask());
+            await Assert.ThrowsAsync<IOException>(() => handler.HandleAsync(Dispatch(), Request(), default).AsTask());
+            Assert.Empty(sender.Sent);
+        });
+    }
+
+    private sealed class FailingCommands : ICommandBus
+    {
+        public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
+            ValueTask.FromException<TInternal>(new NotSupportedException("This protocol-only test double does not accept internal commands."));
+
+        public ValueTask<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
+            where TResult : notnull => ValueTask.FromException<TResult>(new IOException("entry"));
+    }
+
     private sealed class RefusalCommands(DungeonEntryFailure failure) : ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>
@@ -924,6 +961,9 @@ public sealed class SelectDungeonHandlerTests
     {
         private DungeonEntryIntent? _intent = intent;
         public bool HasValue => _intent is not null;
+
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) =>
+            global::Dfo.Server.Testing.ProtocolAlgorithmFixture.AuthorizeIntent(session, _intent, dungeonId, mirror);
 
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent value) => _intent = value;
 

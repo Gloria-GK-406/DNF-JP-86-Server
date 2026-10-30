@@ -78,7 +78,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly ICharacterQuestLogDomainService questLogs;
     private readonly ICharacterFatigueDomainService fatigue;
     private readonly IOutboundOrdering ordering;
-    private readonly ISaoTowerDomainService sao;
+    private readonly IDespairTowerDomainService despair;
     private readonly IDungeonEntryRoutingDomainService entries;
     public GameSelectDungeonCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
         ITownAreaDomainService townAreas, IPartyService parties,
@@ -93,7 +93,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         ICharacterQuestLogDomainService questLogs,
         ICharacterFatigueDomainService fatigue,
         IOutboundOrdering ordering,
-        ISaoTowerDomainService sao,
+        IDespairTowerDomainService despair,
         IDungeonEntryRoutingDomainService entries)
 
     {
@@ -105,7 +105,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         this.questLogs = questLogs;
         this.fatigue = fatigue;
         this.ordering = ordering;
-        this.sao = sao;
+        this.despair = despair;
         this.entries = entries;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSelectDungeonCommand command, CancellationToken token)

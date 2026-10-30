@@ -455,6 +455,7 @@ public sealed class GameplayWriteEntryTableTests
         ["PvpLobbyDomainService.Withdraw(UInt16)"] = W,
 
         // DungeonEntryIntentDomainService
+        ["DungeonEntryIntentDomainService.Authorize(SelectedSessionIdentity, Int32, Boolean)"] = R,
         ["DungeonEntryIntentDomainService.ClearExact(SelectedSessionIdentity)"] = W,
         ["DungeonEntryIntentDomainService.Consume(SelectedSessionIdentity)"] = W,
         ["DungeonEntryIntentDomainService.Find(SelectedSessionIdentity)"] = R,

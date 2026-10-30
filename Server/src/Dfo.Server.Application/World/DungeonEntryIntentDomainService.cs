@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class DungeonEntryIntentDomainService : IDungeonEntryIntentDomainService
+internal sealed class DungeonEntryIntentDomainService(ISaoTowerRuleService sao) : IDungeonEntryIntentDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, OwnedIntent> _intents = new();
 
@@ -18,6 +18,16 @@ internal sealed class DungeonEntryIntentDomainService : IDungeonEntryIntentDomai
 
     public DungeonEntryIntent? Find(SelectedSessionIdentity session) =>
         _intents.TryGetValue(session.CharacterId, out var owned) && owned.Session == session ? owned.Intent : null;
+
+    public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror)
+    {
+        if (Find(session) is not { } intent) return null;
+        var bound = intent.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle or DungeonEntryIntentKind.OrdinaryRechallenge;
+        return bound && intent.DirectedDungeonId != dungeonId && !mirror
+            && !(intent.Kind == DungeonEntryIntentKind.Directed
+                && intent.DirectedDungeonId is { } prior && sao.Supports(prior) && sao.Supports(dungeonId))
+            ? null : intent;
+    }
 
     public bool TryReplaceExact(SelectedSessionIdentity session, DungeonEntryIntent expected, DungeonEntryIntent replacement)
     {

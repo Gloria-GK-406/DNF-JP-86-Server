@@ -11,6 +11,9 @@ public interface IDungeonEntryIntentDomainService
 
     DungeonEntryIntent? Find(SelectedSessionIdentity session) => null;
 
+    /// <summary>The session's intent, when it allows entering this dungeon; nothing is consumed.</summary>
+    DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror);
+
     bool TryReplaceExact(SelectedSessionIdentity session, DungeonEntryIntent expected, DungeonEntryIntent replacement) => false;
 
     DungeonEntryIntent? Consume(SelectedSessionIdentity session);

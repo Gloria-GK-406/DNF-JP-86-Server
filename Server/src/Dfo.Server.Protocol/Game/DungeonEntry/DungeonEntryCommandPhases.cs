@@ -32,7 +32,6 @@ internal sealed partial class GameSelectDungeonCommandHandler
         PartySnapshot roster,
         SelectDungeonRequest message,
         DungeonEntryFacts facts,
-        DungeonEntryIntent intent,
         CancellationToken cancellationToken)
     {
         var mirror = message.MirrorQuestId is not null;
@@ -41,17 +40,10 @@ internal sealed partial class GameSelectDungeonCommandHandler
         ValueTask RefuseCurrentRequesterAsync(NetworkConnectionId connection, SelectedSessionIdentity owner, CancellationToken ct) =>
             sessions.IsInWorld(owner)
                 ? RefuseAsync(connection, SelectDungeonRefusal.SelectionCohortUnavailable, 0, ct) : ValueTask.CompletedTask;
-        void RestoreSelection()
-        {
-            if (sessions.IsInWorld(requester))
-                entryIntents.RestoreIfAbsent(requester, intent);
-        }
-
         var attachments = await ResolveAttachmentsAsync(
             requester, requesterRuntime, roster, cancellationToken).ConfigureAwait(false);
         if (attachments.BlockedSlot is { } blockedSlot)
         {
-            RestoreSelection();
             await RefuseAsync(requesterConnection, SelectDungeonRefusal.SelectionCohortUnavailable, blockedSlot,
                 cancellationToken).ConfigureAwait(false);
             return;
@@ -76,7 +68,6 @@ internal sealed partial class GameSelectDungeonCommandHandler
         var entered = attempt.Entry;
         if (entered is null)
         {
-            RestoreSelection();
             if (attempt.Failure is not null)
             {
                 var error = mirror ? DungeonEntryRefusalCodes.ForMirror(attempt.Failure.Value)
@@ -158,11 +149,17 @@ internal sealed partial class GameSelectDungeonCommandHandler
             var hostSlot = orderedAttachments.Single(value =>
                 value.Session.CharacterId == participants.Single(participant => participant.IsLeader).CharacterId).Slot;
 
+            // The entry committed: the whole cohort's selection is spent, the requester's included.
+            // A peer that held none never saw the selection screen.
+            HashSet<SelectedSessionIdentity> lackedSelectionPreludes = [];
+            foreach (var member in orderedAttachments)
+                if (entryIntents.Consume(member.Session) is null && member.Session != requester)
+                    lackedSelectionPreludes.Add(member.Session);
+
             foreach (var receiver in orderedAttachments)
             {
                 var visit = entered.Visits[receiver.Session.CharacterId];
-                var lackedSelectionPrelude = receiver.Session != requester
-                    && entryIntents.Consume(receiver.Session) is null;
+                var lackedSelectionPrelude = lackedSelectionPreludes.Contains(receiver.Session);
                 var receiverFirst = orderedAttachments
                     .OrderBy(value => value.Session.CharacterId == receiver.Session.CharacterId ? 0 : 1)
                     .ThenBy(value => value.Slot)
@@ -243,7 +240,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                         visit.FirstActorSequence,
                         FloorPieceValues.Describe(visit.Run, visit.FloorDrops)));
                 }
-                if (layout.Mode is DungeonRunMode.Despair { Plan: { Floor: >= 10 and <= 90 } tower } && tower.Floor % 10 == 0)
+                if (layout.Mode is DungeonRunMode.Despair { Plan: var tower } && despair.PresentsFloorApc(tower.Floor))
                 {
                     var view = refreshed[receiver.Session.CharacterId];
                     var equipment = view.CharacterInventory.Containers.SingleOrDefault(x => x.ContainerType ==
@@ -363,7 +360,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
             participants.Length,
             layout.DungeonId,
             leaderVisit.Run.Difficulty,
-            message.Difficulty, intent, layout.MazeIndex, layout.Width, layout.Height, layout.StartRoomMapId,
+            message.Difficulty, facts.Intent, layout.MazeIndex, layout.Width, layout.Height, layout.StartRoomMapId,
             layout.Purpose.Kind, layout.Purpose.QuestId);
         if (layout.Mode is DungeonRunMode.LostLand && logger.IsEnabled(LogLevel.Debug))
         {

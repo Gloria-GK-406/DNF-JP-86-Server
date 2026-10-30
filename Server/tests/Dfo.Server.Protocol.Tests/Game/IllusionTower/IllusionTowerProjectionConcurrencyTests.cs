@@ -967,6 +967,7 @@ public sealed class IllusionTowerProjectionConcurrencyTests
 
     private sealed class Intents : IDungeonEntryIntentDomainService
     {
+        public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror) => null;
         public void Record(SelectedSessionIdentity session, DungeonEntryIntent intent) { }
         public DungeonEntryIntent? Consume(SelectedSessionIdentity session) => null;
         public void RestoreIfAbsent(SelectedSessionIdentity session, DungeonEntryIntent intent) { }
