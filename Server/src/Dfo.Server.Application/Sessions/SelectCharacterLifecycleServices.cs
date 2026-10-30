@@ -141,12 +141,12 @@ internal sealed class SelectedSessionCleanupService(
         if (illusionTower.Find(session) is { } towerRun)
         {
             TowerActionResult? towerDeparture = null;
-            await RunAsync(async () =>
+            await RunAsync(() => SettleStepAsync(async () =>
             {
                 towerDeparture = await illusionTower.LeaveAsync(
                     new TowerActionContext(session, towerRun.RunId, towerRun.Room.Version),
                     disconnected: true, footprint, CancellationToken.None).ConfigureAwait(false);
-            });
+            }));
             if (towerDeparture is { Changed: true } departed)
             {
                 foreach (var sink in illusionTowerDepartures)
@@ -157,8 +157,8 @@ internal sealed class SelectedSessionCleanupService(
         if (bossTower.Find(session) is { } bossRun)
         {
             Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult? bossDeparture = null;
-            await RunAsync(async () => bossDeparture = await bossTower.LeaveAsync(
-                new(session, bossRun.RunId, bossRun.Room.Version), true, footprint, CancellationToken.None).ConfigureAwait(false));
+            await RunAsync(() => SettleStepAsync(async () => bossDeparture = await bossTower.LeaveAsync(
+                new(session, bossRun.RunId, bossRun.Room.Version), true, footprint, CancellationToken.None).ConfigureAwait(false)));
             if (bossDeparture is { Changed: true } departed)
                 foreach (var sink in bossTowerDepartures)
                     await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));

@@ -254,7 +254,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             using var f = new ShopFixture(s => s.AddSingleton<IIllusionTowerRuleService>(new Rules()));
             f.Sql($"UPDATE characters SET level=50,exp={f.ExperienceForLevel(50)};");
             await f.Seed(65, 4183, 2);
-            var tower = f.Services.GetRequiredService<IIllusionTowerDomainService>();
+            var tower = Tower(f);
             var result = await tower.EnterAsync([new(f.Session, 2)], f.Session, 42, default, 11001);
             Assert.Null(result.Rejection);
             Assert.Equal(1, f.Count(4183));
@@ -574,7 +574,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         {
             using var f = Fixture();
             await f.Seed(65, 4183, 2);
-            var visits = f.Services.GetRequiredService<IDungeonVisitDomainService>();
+            var visits = UseCaseDungeons.Visits(f.Services);
             var tower = Tower(f);
             await using (var tx = Scope(f).Begin())
             {
@@ -610,7 +610,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             var layouts = new OrdinaryLayouts { Missing = reason == "map" };
             using var f = Fixture(layouts: layouts);
             await f.Seed(65, 4183, 2);
-            var visits = f.Services.GetRequiredService<IDungeonVisitDomainService>();
+            var visits = UseCaseDungeons.Visits(f.Services);
             var difficulty = reason == "difficulty" ? DungeonDifficulty.Adventure : DungeonDifficulty.Normal;
             await using (var tx = Scope(f).Begin())
             {
@@ -639,7 +639,7 @@ public sealed partial class IllusionTowerDomainServiceTests
             await f.Seed(65, 4183, 2);
             await using (var tx = Scope(f).Begin())
             {
-                Assert.NotNull(await f.Services.GetRequiredService<IDungeonVisitDomainService>().EnterAsync(f.Session.CharacterId,
+                Assert.NotNull(await UseCaseDungeons.Visits(f.Services).EnterAsync(f.Session.CharacterId,
                     10000, DungeonDifficulty.Normal, new(DungeonDifficulty.Normal, [], []), default));
                 Assert.Equal("AlreadyInDungeon", (await Enter(f)).Rejection);
             }
@@ -1347,7 +1347,7 @@ public sealed partial class IllusionTowerDomainServiceTests
         public ValueTask<TowerSettlementReceipt> SettleAsync(IllusionTowerSnapshot run, ulong seed,
             Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) => ValueTask.FromResult(Receipt);
     }
-    private static IIllusionTowerDomainService Tower(ShopFixture f) => f.Services.GetRequiredService<IIllusionTowerDomainService>();
+    private static IIllusionTowerDomainService Tower(ShopFixture f) => UseCaseDungeons.Illusion(f.Services);
     private sealed class OrdinaryAdmission(IDungeonStructureRuleService layouts) : IDungeonAdmissionRuleService
     {
         public async ValueTask<DungeonAdmissionDefinition?> GetAsync(int id, CancellationToken ct) =>

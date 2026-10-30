@@ -265,12 +265,9 @@ public sealed class MirrorAradQuestTests
         var old = runtime.Current.RunId;
         await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
         runtime.Current = null;
-        // Disconnects publish outside a CMD transaction; duplicate facts remain safe.
-        await TestGameplay.RunAsync(fixture.Services, async () =>
-        {
-            await lifecycle.RecordDepartureAsync(new(new(71), old, 32));
-            await lifecycle.RecordDepartureAsync(new(new(71), old, 32));
-        });
+        // Each departure commits in its own unit, as a disconnect cleanup step does; duplicate facts remain safe.
+        await Write(fixture, async () => await lifecycle.RecordDepartureAsync(new(new(71), old, 32)));
+        await Write(fixture, async () => await lifecycle.RecordDepartureAsync(new(new(71), old, 32)));
         runtime.Current = Run();
         await Write(fixture, async () => Assert.True((await service.AcceptAsync(new(1), new(71), 14299, default)).Accepted));
         Assert.NotNull(await store.ReadAsync(new(71), old, default));

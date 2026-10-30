@@ -9,14 +9,9 @@ internal sealed class DungeonLifecycleDomainService(IEventService events, Domain
 {
     public async ValueTask RecordDepartureAsync(DungeonParticipantLeft fact, CancellationToken cancellationToken = default)
     {
-        if (transactions.Current is not null)
-        {
-            await events.EnqueueAsync(fact, cancellationToken).ConfigureAwait(false);
-            return;
-        }
-        // Runtime departures also happen on disconnect, outside a command transaction.
-        await using var transaction = transactions.Begin();
+        // The event commits with the departure: a command's unit, or the disconnect cleanup's own step.
+        if (transactions.Current is null)
+            throw new InvalidOperationException("Recording a dungeon departure requires the caller's transaction.");
         await events.EnqueueAsync(fact, cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 }

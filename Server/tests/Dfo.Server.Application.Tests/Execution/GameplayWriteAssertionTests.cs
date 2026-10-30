@@ -39,7 +39,7 @@ namespace Dfo.Server.Application.Tests.Execution;
 /// <remarks>
 /// A counterexample class the zero-violation evidence subtracts: 22 write violations per run, one per off-executor
 /// write below (Begin 1, ChangeAsync 2, the creature advance 1, the fourteen types 14, a finished job's continuation
-/// 1, a cancelled caller 1, two tower members that open their own unit of work 2: 1 + 2 + 1 + 14 + 1 + 1 + 2 = 22),
+/// 1, a cancelled caller 1, two tower members that require the caller's unit of work 2: 1 + 2 + 1 + 14 + 1 + 1 + 2 = 22),
 /// plus one per write entry the TASK-30 census added (Application 10 + Protocol 7 + the ten daily refreshes 10 = 27,
 /// the weakness handle's case reporting three writes: 27 + 2 = 29): 22 + 29 = 51. Every case throws before it
 /// touches any state.
@@ -314,8 +314,16 @@ public sealed class GameplayWriteAssertionTests
         AssertOneViolation(seen, "BossTowerDomainService.LoadAsync");
         Assert.False(towers.IsInTower(Character));
         Assert.Empty(towers.FindReturnsDue(DateTimeOffset.UtcNow));
-        var result = await TestGameplay.RunAsync(async () => await towers.LoadAsync(context, CancellationToken.None));
-        Assert.False(result.Changed);
+        await TestGameplay.RunAsync(async () =>
+        {
+            // On the executor the only remaining requirement is the caller's transaction: no violation, a plain refusal.
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await towers.LoadAsync(context, CancellationToken.None));
+            Assert.Null(scope.Current);
+            await using var transaction = scope.Begin();
+            Assert.False((await towers.LoadAsync(context, CancellationToken.None)).Changed);
+            await transaction.CommitAsync(CancellationToken.None);
+        });
+        Assert.Single(seen);
     }
 
     [Fact]
@@ -332,8 +340,16 @@ public sealed class GameplayWriteAssertionTests
 
         AssertOneViolation(seen, "IllusionTowerDomainService.LoadAsync");
         Assert.False(towers.IsInTower(Character));
-        var result = await TestGameplay.RunAsync(async () => await towers.LoadAsync(context, CancellationToken.None));
-        Assert.False(result.Changed);
+        await TestGameplay.RunAsync(async () =>
+        {
+            // On the executor the only remaining requirement is the caller's transaction: no violation, a plain refusal.
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await towers.LoadAsync(context, CancellationToken.None));
+            Assert.Null(scope.Current);
+            await using var transaction = scope.Begin();
+            Assert.False((await towers.LoadAsync(context, CancellationToken.None)).Changed);
+            await transaction.CommitAsync(CancellationToken.None);
+        });
+        Assert.Single(seen);
     }
 
     [Fact]
@@ -442,10 +458,10 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public async Task A_member_that_opens_its_own_unit_of_work_reports_the_member_not_the_entry()
+    public async Task A_member_that_requires_a_unit_of_work_reports_the_member_off_the_executor()
     {
-        // The tower members open their unit of work through Execute; their own assertion comes first, so the
-        // report names the member, and Begin is not reached.
+        // The tower members require the caller's unit of work in Execute; their own assertion comes first, so the
+        // report names the member rather than the missing transaction.
         var scope = TestRequired.TransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
             null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
