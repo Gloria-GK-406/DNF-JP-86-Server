@@ -57,6 +57,10 @@ public interface IEntryPlacementRuleService
     /// <summary>
     /// Whether the content describes one shared town-presence space at this area.
     /// </summary>
+    /// <remarks>
+    /// The couple room is shared whatever its area says: one instance holds one household, and
+    /// both see each other.
+    /// </remarks>
     ValueTask<bool> SharesTownPresenceAsync(
         int townId,
         int areaId,

@@ -77,6 +77,8 @@ internal sealed class EntryPlacementRuleService(
         int areaId,
         CancellationToken cancellationToken)
     {
+        if (CoupleRoomTown.Is(townId))
+            return true;
         if (townId <= 0 || areaId < 0)
             return false;
 

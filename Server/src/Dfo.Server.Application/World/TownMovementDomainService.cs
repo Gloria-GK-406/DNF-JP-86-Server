@@ -1,6 +1,5 @@
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Channel;
-using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
 
@@ -20,7 +19,5 @@ internal sealed class TownMovementDomainService(
         int townId,
         int areaId,
         CancellationToken cancellationToken) =>
-        CoupleRoomTown.Is(townId)
-            ? ValueTask.FromResult(true)
-            : placement.SharesTownPresenceAsync(townId, areaId, cancellationToken);
+        placement.SharesTownPresenceAsync(townId, areaId, cancellationToken);
 }
