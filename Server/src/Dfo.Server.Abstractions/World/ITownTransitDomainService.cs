@@ -17,17 +17,46 @@ public sealed record TownDepartureResult(
     TownAreaKey PreviousArea,
     bool SharedTownPresence);
 
+/// <summary>Why the couple-room rules refuse an area crossing.</summary>
+public enum TownCrossingRefusal
+{
+    /// <summary>Only a married character enters, from an entry source or from inside, to area 0.</summary>
+    CoupleRoomEntry,
+
+    /// <summary>The couple room is left only for the area it was entered from.</summary>
+    CoupleRoomExit,
+}
+
 /// <summary>
 /// Moves characters being played between town areas, out of town and back into it.
 /// </summary>
 /// <remarks>
 /// The runtime record keeps where a character stands; this service decides which area a move lands
-/// in -- the couple room is one instance per household -- and what leaving an area ends: walking
-/// out of the couple room closes the session's housing lease and its remembered return. Callers
-/// project the results; none of these writes belong to a projection.
+/// in -- the couple room is one instance per household -- and what crossing it starts and ends:
+/// walking into the couple room remembers where to return to, and walking out closes the session's
+/// housing lease and that remembered return. Callers project the results; none of these writes
+/// belong to a projection.
 /// </remarks>
 public interface ITownTransitDomainService
 {
+    /// <summary>
+    /// Whether the couple-room rules refuse a character standing at <paramref name="standing"/>
+    /// crossing into this area; null when they allow it or do not apply.
+    /// </summary>
+    ValueTask<TownCrossingRefusal?> RefuseCrossingAsync(
+        SelectedSessionIdentity session,
+        CharacterPositionState standing,
+        byte townId,
+        byte areaId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The position to store for a crossing from <paramref name="standing"/> to
+    /// <paramref name="destination"/>. A couple-room position is never stored: a character inside
+    /// keeps the place it entered from, so the next login lands there.
+    /// </summary>
+    CharacterPositionState StoredPositionAfter(CharacterPositionState standing, CharacterPositionState destination);
+
     /// <summary>Crosses a character standing in town into another area of the channel.</summary>
     /// <returns>Null when the character is not standing in town, has no couple room to enter, or nothing changed.</returns>
     ValueTask<TownAreaMembershipChange?> CrossAsync(

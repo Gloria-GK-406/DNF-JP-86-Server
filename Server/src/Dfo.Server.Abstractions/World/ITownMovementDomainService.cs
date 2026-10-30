@@ -29,6 +29,7 @@ public interface ITownMovementDomainService
     /// The archive marks the per-character Seria arrival room as <c>[gate]</c> and ordinary
     /// public maps as <c>[normal]</c> or <c>[dungeon gate]</c>. Gate coordinates may be the
     /// same for every connection, but they do not describe one shared room.
+    /// <para>The couple room is shared: one instance holds one household, and both see each other.</para>
     /// </remarks>
     ValueTask<bool> SharesTownPresenceAsync(
         int townId,
