@@ -1,0 +1,74 @@
+name: Server E2E (local PVF)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'codex/e2e/**']
+    paths:
+      - 'Server/**'
+      - 'Tool/E2E/**'
+      - 'Tool/WireSmoke/**'
+      - '.github/workflows/e2e.yml'
+      - 'global.json'
+permissions:
+  contents: read
+concurrency:
+  # The production channel script has fixed ports. One lane per physical runner.
+  group: server-e2e-local-pvf
+  cancel-in-progress: false
+jobs:
+  e2e:
+    name: A21 production Host E2E
+    runs-on: [self-hosted, Linux, X64, dnf-e2e]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      PYTHONDONTWRITEBYTECODE: 1
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Local toolchain and fixture
+        run: |
+          set -euo pipefail
+          test -x "$HOME/dnf-e2e/dotnet/dotnet"
+          echo "$HOME/dnf-e2e/dotnet" >> "$GITHUB_PATH"
+          test -r "$HOME/dnf-e2e/assets/Script.pvf"
+          cd "$HOME/dnf-e2e/assets"
+          sha256sum -c Script.pvf.sha256
+          echo "PVF_ARCHIVE_PATH=$HOME/dnf-e2e/assets/Script.pvf" >> "$GITHUB_ENV"
+          echo "PVF_SHA256=$(cut -d ' ' -f1 Script.pvf.sha256)" >> "$GITHUB_ENV"
+          echo "E2E_OUT=artifacts/e2e/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+      - name: Verify E2E report guards
+        run: python3 -m unittest discover -s Tool/E2E -p 'test_*.py' -v
+      - name: Build production Host
+        run: dotnet build Server/src/Dfo.Server.Host/Dfo.Server.Host.csproj -c Release -p:ContinuousIntegrationBuild=true
+      - name: Sequential E2E cases
+        run: python3 Tool/E2E/run.py --out "$E2E_OUT"
+      - name: E2E summary
+        if: always()
+        run: |
+          if test -n "${E2E_OUT:-}" && test -f "$E2E_OUT/summary.md"; then
+            cat "$E2E_OUT/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'E2E did not run: toolchain, fixture, guard or build failed.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Retain E2E evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-${{ github.run_id }}-${{ github.run_attempt }}
+          # PVF, credentials and SQLite files stay on the local machine.
+          path: |
+            artifacts/e2e/**/results.json
+            artifacts/e2e/**/junit.xml
+            artifacts/e2e/**/summary.md
+            artifacts/e2e/**/frames.jsonl
+            artifacts/e2e/**/state-*.json
+            artifacts/e2e/**/host-*.log
+            artifacts/e2e/**/failure.txt
+          if-no-files-found: warn
+          retention-days: 14

@@ -48,3 +48,6 @@ Thumbs.db
 # Web dependencies
 node_modules/
 *.tsbuildinfo
+
+# Python tooling caches
+__pycache__/
