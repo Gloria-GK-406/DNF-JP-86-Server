@@ -39,11 +39,12 @@ internal sealed partial class GameDungeonSelectionCommandHandler
                 await SelectionLeaveTowerAsync(execution, illusionKind, illusion.Session, illusion.Run, new BackToVillageResponse(), cancellationToken).ConfigureAwait(false);
                 return true;
             default:
-                return await BackToVillageOrdinaryAsync(context, message, session, cancellationToken).ConfigureAwait(false);
+                return await BackToVillageOrdinaryAsync(execution, context, message, session, cancellationToken).ConfigureAwait(false);
         }
     }
 
     private async ValueTask<bool> BackToVillageOrdinaryAsync(
+        CommandExecutionContext execution,
         NetworkDispatchContext context,
         BackToVillageRequest message,
         SelectedSessionIdentity? session,
@@ -93,16 +94,12 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         if (requester is null)
             return false;
 
-        // Only the run's leader takes the whole party back: the run ends for all its members at
-        // once, and a member's request leaves it running. The run is reached through the
-        // requester's party, so that party's leader is the run's. A selection-intent holder
-        // normally has no run at all, so this is defensive.
         var currentRun = dungeonRuns.Find(session.CharacterId);
-        IReadOnlyList<CharacterId> ended = currentRun is not null
-            && parties.FindParty(new PartyCharacterSnapshot(
-                session.AccountId, session.CharacterId, session.WireUserId, null)).LeaderWireUserId == session.WireUserId
-            ? await dungeonRuns.EndRunAsync(currentRun.RunId).ConfigureAwait(false)
-            : [];
+        IReadOnlyList<CharacterId> ended = currentRun is null ? [] : await workUnits.WriteAsync(execution, new("return-to-selection",
+                returning.Select(member => new SelectedSessionRecipient(member.Session,
+                    member.Session == session ? context.Connection : null,
+                    member.Session == session ? message.Metadata : null)).ToArray()),
+                (_, token) => exits.ReturnToSelectionAsync(session, currentRun, token), cancellationToken).ConfigureAwait(false);
         foreach (var character in ended)
             departureSink.ParticipantDeparted(currentRun!.RunId, character);
         foreach (var member in returning)

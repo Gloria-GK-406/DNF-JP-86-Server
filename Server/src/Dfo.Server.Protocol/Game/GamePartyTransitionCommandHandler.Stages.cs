@@ -56,26 +56,16 @@ internal sealed partial class GamePartyTransitionCommandHandler
         CancellationToken token) => PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering, plan, recipients, token);
 
     internal ValueTask<PartyOperationResult> MutatePartyAsync(PartyChange change,
-        SelectedSessionIdentity caller, SelectedSessionIdentity? target, CancellationToken token) =>
-        MutatePartyStateAsync(parties!, runs, change, caller.CharacterId, target?.CharacterId, token);
-
-    internal static async ValueTask<PartyOperationResult> MutatePartyStateAsync(Dfo.Server.Abstractions.Parties.IPartyService parties,
-        IDungeonRunDepartureDomainService runs, PartyChange change, Dfo.Server.Data.Characters.CharacterId caller,
-        Dfo.Server.Data.Characters.CharacterId? target, CancellationToken token)
+        SelectedSessionIdentity caller, SelectedSessionIdentity? target, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var departing = change == PartyChange.Leave ? caller : change == PartyChange.Remove ? target : null;
-        var run = departing is null ? null : runs.Find(departing.Value);
-        var result = change switch
+        return change switch
         {
-            PartyChange.Leave => parties.LeaveParty(caller),
-            PartyChange.Remove => parties.RemoveMember(caller, target!.Value),
-            PartyChange.Transfer => parties.TransferLeadership(caller, target!.Value),
+            PartyChange.Leave => exits.LeavePartyAsync(caller.CharacterId, token),
+            PartyChange.Remove => exits.RemoveFromPartyAsync(caller.CharacterId, target!.CharacterId, token),
+            PartyChange.Transfer => ValueTask.FromResult(parties.TransferLeadership(caller.CharacterId, target!.CharacterId)),
             _ => throw new ArgumentOutOfRangeException(nameof(change)),
         };
-        if (result.Succeeded && run is not null)
-            _ = await runs.EndAsync(departing!.Value, run.RunId).ConfigureAwait(false);
-        return result;
     }
 
     internal SelectedSessionRecipient CaptureParticipant(SelectedSessionIdentity session) =>
@@ -387,11 +377,11 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 LogPartyMutation(change, caller, attempt.Target, targetSlot, attempt.Result);
                 return attempt.Result.Succeeded;
             default:
-                return await MutatePartyOrdinaryAsync(dispatch, change, caller, targetSlot, token).ConfigureAwait(false);
+                return await MutatePartyOrdinaryAsync(execution, dispatch, change, caller, targetSlot, token).ConfigureAwait(false);
         }
     }
 
-    private async ValueTask<bool> MutatePartyOrdinaryAsync(NetworkDispatchContext dispatch,
+    private async ValueTask<bool> MutatePartyOrdinaryAsync(CommandExecutionContext execution, NetworkDispatchContext dispatch,
         PartyChange change, SelectedSessionIdentity caller, byte? targetSlot, CancellationToken token)
     {
         SelectedSessionIdentity? target = null;
@@ -414,7 +404,11 @@ internal sealed partial class GamePartyTransitionCommandHandler
         var position = change == PartyChange.Remove && departingRun is not null ? onlineCharacters.PositionOf(target!) : null;
         var result = !sessions.IsInWorld(caller) || target is not null && !sessions.IsInWorld(target)
             ? PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)
-            : await MutatePartyAsync(change, caller, target, token).ConfigureAwait(false);
+            : departingRun is null
+                ? await MutatePartyAsync(change, caller, target, token).ConfigureAwait(false)
+                : await workUnits.WriteAsync(execution, new("party-departure-from-run",
+                    ProtectedParticipants(target is null ? [caller] : [caller, target], caller)),
+                    (_, ct) => MutatePartyAsync(change, caller, target, ct), token).ConfigureAwait(false);
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
         if (!result.Succeeded)
         {

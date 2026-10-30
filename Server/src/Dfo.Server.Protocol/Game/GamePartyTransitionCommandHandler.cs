@@ -76,6 +76,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private const bool projectWeakness = true;
 
     private readonly IDungeonRunDepartureDomainService runs;
+    private readonly IDungeonExitDomainService exits;
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly IDungeonCardPresentationControl cardPresentation;
     private readonly IDungeonEntryIntentDomainService entryIntents;
@@ -84,7 +85,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IGuardianAltarDomainService guardian;
     public GamePartyTransitionCommandHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
-        IDungeonRunDepartureDomainService runs, IDungeonRunProjectionDomainService registry, IPartyService parties,
+        IDungeonRunDepartureDomainService runs, IDungeonExitDomainService exits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ITownAreaDomainService townAreas, ICommandProjections projections, IPartyProjectionStateDomainService projectionState,
         ICharacterStateProjectionDomainService currentState, ICharacterDomainService characters,
         ITownTransitDomainService transit, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
@@ -97,7 +98,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
-        this.runs = runs; this.registry = registry; this.cardPresentation = cardPresentation;
+        this.runs = runs; this.exits = exits; this.registry = registry; this.cardPresentation = cardPresentation;
         this.entryIntents = entryIntents; this.altars = altars; this.ordering = ordering;
         this.guardian = guardian;
         Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
@@ -159,7 +160,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
 
         var isAltar = currentRun?.Layout.Mode is DungeonRunMode.Altar;
         var isGuardian = currentRun?.Layout.Mode is DungeonRunMode.Guardian;
-        var leaving = message.State == EplpCommandHandler.LeaveState && (isAltar || isGuardian || message.Option <= 2);
+        var leaving = message.State == EplpCommandHandler.LeaveState && exits.LeavesRun(currentRun, message.Option <= 2);
         if (message.State == EplpCommandHandler.LeaveState && currentRun is null && message.Option != 2)
         {
             logger.LogDebug("Eplp ignored after exit {ConnectionId}: state={State} option={Option} sequence={Sequence} ordinal={Ordinal}",
@@ -238,7 +239,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
             {
                 foreach (var member in returning)
                     cardPresentation.Cancel(member.Session.CharacterId, currentRun.RunId);
-                var ended = await EndOrdinaryRunAsync(currentRun.RunId, cancellationToken).ConfigureAwait(false);
+                var ended = await workUnits.WriteAsync(execution, new("end-dungeon-run",
+                    ProtectedParticipants(returning.Select(member => member.Session).ToArray(), session)),
+                    (_, token) => exits.EndWholeRunAsync(currentRun.RunId, token), cancellationToken).ConfigureAwait(false);
                 foreach (var character in ended)
                 {
                     registry.ParticipantDeparted(currentRun.RunId, character);
@@ -253,14 +256,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
                 returning.RemoveAll(value => !endedCharacters.Contains(value.Session.CharacterId));
                 if (!returning.Any(value => value.Session == session))
                     return;
-                // Native retry follows the exit with 000F(dungeonId). Retain the ordinary
-                // maze partition rather than treating that nonzero target as a story request.
-                if (message.Option == 0
-                    && currentRun.Layout is { Purpose.Kind: DungeonRunPurposeKind.Ordinary,
-                        Mode.Capabilities.AllowsOrdinaryRechallenge: true })
+                if (exits.RechallengeIntent(currentRun, message.Option == 0) is { } rechallenge)
                     foreach (var member in returning)
-                        entryIntents.RestoreIfAbsent(member.Session,
-                            DungeonEntryIntent.OrdinaryRechallenge(currentRun.Layout.DungeonId));
+                        entryIntents.RestoreIfAbsent(member.Session, rechallenge);
             }
         }
 
@@ -380,17 +378,14 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         if (currentRun is not null)
         {
             cardPresentation.Cancel(session.CharacterId, currentRun.RunId);
-            // The run's members are its party's, so giving up leaves the party first; the party
-            // mutation then ends this character's part of the run. Outside a real party the leave
-            // is refused and the run, which is theirs alone, ends below.
-            var partyResult = await MutatePartyAsync(PartyChange.Leave, session, null, cancellationToken).ConfigureAwait(false);
+            var gaveUp = await workUnits.WriteAsync(execution, new("give-up-dungeon-run", [CaptureParticipant(session)]),
+                (_, token) => exits.GiveUpAsync(session.CharacterId, currentRun.RunId, token), cancellationToken).ConfigureAwait(false);
+            var partyResult = gaveUp.Party;
             partyExecution = new PartyCommandExecution(
                 partyResult,
                 PartyNotificationRecipientCapture.Capture(
                     partyResult.Notifications, sessions, townAreas));
-            ended = partyResult.Succeeded && runs.Find(session.CharacterId)?.RunId != currentRun.RunId;
-            if (!ended)
-                ended = await runs.EndAsync(session.CharacterId, currentRun.RunId).ConfigureAwait(false);
+            ended = gaveUp.Ended;
             if (ended)
                 registry.ParticipantDeparted(currentRun.RunId, session.CharacterId);
         }

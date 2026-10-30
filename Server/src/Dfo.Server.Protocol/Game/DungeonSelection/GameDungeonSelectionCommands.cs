@@ -87,6 +87,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private readonly ICommandWorkUnits workUnits;
     private readonly IOnlineUserQueryDomainService onlineUsers;
     private readonly IDungeonRunDepartureDomainService dungeonRuns;
+    private readonly IDungeonExitDomainService exits;
     private readonly IDungeonRunProjectionDomainService departureSink;
     private readonly IPartyService parties;
     private const bool projectWeakness = true;
@@ -102,7 +103,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         IOnlineCharacterRuntimeDomainService onlineCharacters, ITownAreaDomainService townAreas, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ICharacterStateProjectionDomainService currentState,
         ICharacterDomainService characters, ITownTransitDomainService transit, IDungeonVisitDomainService visits,
-        IDungeonRunDepartureDomainService runs, IDungeonRunProjectionDomainService departureSink, ICommandProjections projections,
+        IDungeonRunDepartureDomainService runs, IDungeonExitDomainService exits, IDungeonRunProjectionDomainService departureSink, ICommandProjections projections,
         IGameCommandOutbox outbox, ICommandWorkUnits units, ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
         ILogger<GameDungeonSelectionCommandHandler> logger, IDungeonEntryIntentDomainService entryIntents,
         IMarriageHousingQueryDomainService housing, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
@@ -110,7 +111,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         IDespairTowerDomainService despair, ISaoTowerDomainService sao, TimeProvider clock, IWeaknessDomainService weakness, IDarkElfRuinsDomainService ruins)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
+        this.exits = exits; this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
         this.visits = visits;
         this.entryIntents = entryIntents;
         this.despair = despair;

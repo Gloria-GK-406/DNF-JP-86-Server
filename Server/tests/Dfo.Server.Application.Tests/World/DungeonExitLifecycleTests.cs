@@ -23,7 +23,7 @@ public sealed class DungeonExitLifecycleTests
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public async Task Task49_ordinary_Eplp_real_scope_has_no_transaction_and_ends_before_scope_failure(bool fail)
+    public async Task Task49_ordinary_Eplp_ends_in_one_unit_before_scope_failure(bool fail)
     {
         await using var probe = new EntryFailureProbe(false, fail, ordinary: true,
             commandOverride: Whole ? "GameEplpCommand" : "LeaveDungeonCommand");
@@ -33,9 +33,9 @@ public sealed class DungeonExitLifecycleTests
         var endedAtScope = false;
         probe.BeforeDispose = () => endedAtScope = f.Services.DungeonRuns().Find(f.Session.CharacterId) is null;
         var error = await Record.ExceptionAsync(() => probe.Wire(f, 0x48, [1, 2]).AsTask());
-        if (fail) Assert.Same(probe.Cause, error); else Assert.Null(error);
+        if (fail) Assert.Same(probe.Cause, Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(error).InnerException); else Assert.Null(error);
         if (fail) Assert.True(endedAtScope);
-        Assert.Empty(probe.Transactions); Assert.Empty(probe.Declarations);
+        Assert.Single(probe.Transactions); Assert.Equal("end-dungeon-run", Assert.Single(probe.Declarations).Name);
         TestGameplay.Run(f.Services, () => { Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)); Assert.Equal(fail && !Whole ? 1 : 0, f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Find(run).Count); });
         await probe.Sender.Settled();
         if (fail) await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -64,13 +64,13 @@ public sealed class DungeonExitLifecycleTests
         }
         else Assert.Empty(physical.Sends);
         Assert.Equal(fail ? 1 : 0, physical.CloseCalls);
-        Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+        Assert.Equal(fail, f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
         if (Whole) Assert.True(Assert.Single(probe.Executions).Request!.IsClosed);
     }
 
     [Theory]
     [InlineData(false)] [InlineData(true)]
-    public async Task Task49_ordinary_GiveUp_has_no_unit_and_encoder_failure_keeps_ended_run(bool fail)
+    public async Task Task49_ordinary_GiveUp_ends_in_one_unit_and_encoder_failure_keeps_ended_run(bool fail)
     {
         await using var probe = new EntryFailureProbe(false, false, ordinary: true,
             commandOverride: Whole ? "GameGiveUpGameCommand" : "LeaveDungeonCommand");
@@ -79,13 +79,13 @@ public sealed class DungeonExitLifecycleTests
         var physical = probe.Sender.Add(f.Connection);
         if (fail) f.Sender.Outbound.Encoder.Fail((_, message) => message is GiveUpGameResponse ? probe.Cause : null);
         var error = await Record.ExceptionAsync(() => probe.Wire(f, 0x2A, []).AsTask());
-        if (fail) Assert.Same(probe.Cause, error); else Assert.Null(error);
-        Assert.Empty(probe.Transactions); Assert.Empty(probe.Declarations);
+        if (fail) Assert.Same(probe.Cause, Assert.IsType<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(error).InnerException); else Assert.Null(error);
+        Assert.Single(probe.Transactions); Assert.Equal("give-up-dungeon-run", Assert.Single(probe.Declarations).Name);
         TestGameplay.Run(f.Services, () => { Assert.Null(f.Services.DungeonRuns().Find(f.Session.CharacterId)); Assert.Empty(f.Services.GetRequiredService<DungeonRunDeliveryRegistry>().Find(run)); });
         await probe.Sender.Settled();
         if (fail) { await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); Assert.Empty(physical.Sends); }
         else { var types = physical.Sends.SelectMany(CharacterDeathOracle.Types).ToArray(); Assert.Equal((ushort)0x2A, types[0]); Assert.Contains((ushort)0x03, types); }
-        Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+        Assert.Equal(fail, f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
     }
 
     [Theory]

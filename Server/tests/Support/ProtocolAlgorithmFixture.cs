@@ -33,11 +33,18 @@ internal static class ProtocolAlgorithmFixture
             values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue
                 : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values)
                 : parameter.ParameterType == typeof(ITownTransitDomainService) ? Transit(values)
+                : parameter.ParameterType == typeof(IDungeonExitDomainService) ? Exit(values.ToArray())
                 : parameter.ParameterType == typeof(IEntryPlacementRuleService) ? Placement(values)
                 : Default(parameter.ParameterType))).ToArray());
         suppliedTo.AddOrUpdate(created, values.ToArray());
         return created;
     }
+    // Departures go through the exit service; unless a test supplies one, it is built over the
+    // party and run departure doubles the test supplied.
+    internal static IDungeonExitDomainService Exit(params object?[] values) =>
+        new Dfo.Server.Application.World.DungeonExitDomainService(
+            values.OfType<Dfo.Server.Abstractions.Parties.IPartyService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Parties.IPartyService>(),
+            values.OfType<IDungeonRunDepartureDomainService>().LastOrDefault() ?? Default<IDungeonRunDepartureDomainService>());
     // What each created component was built from, so a driver handed only the component can still
     // reach the collaborators its test supplied alongside it.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object[]> suppliedTo = new();
