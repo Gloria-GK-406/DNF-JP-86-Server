@@ -234,7 +234,7 @@ internal sealed class MemoryItemContainer(ContainerId id, ContainerShape shape,
     IItemPlacementRuleService placements, IItemSlotRuleService slots)
     : StoreBackedItemContainer(id, shape, store, transactions, placements, slots)
 {
-    internal IItemLifecycleDomainService Lifecycle { get; } = new ItemLifecycleDomainService(store, transactions, placements);
+    internal IItemLifecycleDomainService Lifecycle { get; } = ItemLifecycleDomainService.WithoutLifetimes(store, transactions, placements);
     public override bool IsRemovable => false;
     public override bool IsDefault => true;
     public override bool IsPersistent => false;

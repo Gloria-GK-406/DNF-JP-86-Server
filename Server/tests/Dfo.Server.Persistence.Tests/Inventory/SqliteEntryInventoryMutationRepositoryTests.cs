@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -156,7 +157,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             var side = new InventorySide(path);
             side.BindMain(70);
@@ -208,7 +209,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 1234, count: 3);
             await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 5678, count: 1);
@@ -261,7 +262,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             if (seeded > 0)
             {
@@ -302,7 +303,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 1234, count: 3);
             var side = new InventorySide(path);
@@ -361,7 +362,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             var side = new InventorySide(path);
             side.BindMain(70);
@@ -410,7 +411,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, 8, 80);
             await SeedItemAsync(path, 80, 65, 2222, 5);
             var side = new InventorySide(path);
@@ -453,7 +454,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             var side = new InventorySide(path);
             side.BindMain(70);
@@ -492,7 +493,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             var side = new InventorySide(path);
             side.BindMain(70);
@@ -532,7 +533,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 70, itemId: 1234, count: 2);
             var side = new InventorySide(path);
@@ -571,7 +572,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             // Slot 3 is free and below the band; 65 and 66 are taken, so 67 is the answer.
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
@@ -598,7 +599,7 @@ public sealed class SqliteEntryInventoryMutationRepositoryTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-entry-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             await SeedCharacterAsync(path, accountId: 7, characterId: 70);
             await SeedItemAsync(path, characterId: 70, slot: 65, itemId: 9001, count: 1);
             await SeedItemAsync(path, characterId: 70, slot: 66, itemId: 9002, count: 1);

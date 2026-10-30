@@ -46,7 +46,7 @@ public sealed class CharacterDeathCodecTests
     [InlineData(1)]
     [InlineData(3)]
     public void Revival_rejects_non_u16_requests(int length) => Assert.Throws<InvalidDataException>(
-        () => new UseRevivalCoinDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
+        () => new UseRevivalCoinDecoder(options: new Dfo.Server.Protocol.Game.CharacterDeath.RevivalOptions(1)).Decode(GameMessageMetadata.Empty, new byte[length]));
 
     [Fact]
     public void Observed_death_preserves_all_three_words()

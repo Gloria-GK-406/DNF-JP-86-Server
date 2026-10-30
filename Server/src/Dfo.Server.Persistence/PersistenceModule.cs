@@ -151,7 +151,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Rental.ILuckyStarDomainStore, Dfo.Server.Persistence.Inventory.SqliteLuckyStarDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Rental.IEquipmentRentalDomainStore, Dfo.Server.Persistence.Inventory.SqliteEquipmentRentalDomainStore>();
         services.TryAddSingleton<ICharacterRentalTable>(
-            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>(), provider.GetService<TimeProvider>()));
+            provider => new SqliteCharacterRentalTable(provider.GetRequiredService<SqliteDatabase>(), provider.GetRequiredService<TimeProvider>()));
         services.TryAddSingleton<IPremiumServiceUsageTable, SqlitePremiumServiceUsageTable>();
         services.TryAddSingleton<IConsumableUsageTable, SqliteConsumableUsageTable>();
         services.TryAddSingleton<ICharacterFatigueTable, SqliteCharacterFatigueTable>();
@@ -207,13 +207,13 @@ public sealed class PersistenceModule : IServerModule
         // registered as the item store without qualification because it is the one that keeps
         // things; the store that does not is asked for by its own name.
         services.TryAddSingleton(provider => new SqliteItemDomainStore(databasePath,
-            provider.GetService<IInventoryContentsEventDomainService>()));
+            provider.GetRequiredService<IInventoryContentsEventDomainService>()));
         services.TryAddSingleton<ITransientItemDomainStoreFactory, Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory>();
         // The character's own rows, kept in the same database and therefore settled by the same
         // participant as the items it owns.
         services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));
         services.TryAddSingleton<ICreatureDomainStore>(provider => new SqliteCreatureDomainStore(databasePath,
-            provider.GetService<IInventoryContentsEventDomainService>()));
+            provider.GetRequiredService<IInventoryContentsEventDomainService>()));
         services.TryAddSingleton<IItemDomainStore>(
             provider => provider.GetRequiredService<SqliteItemDomainStore>());
         // The character's quests, kept in the same database and therefore settled by the same

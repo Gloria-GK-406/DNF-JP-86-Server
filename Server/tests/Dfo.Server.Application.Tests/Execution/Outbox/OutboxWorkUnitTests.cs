@@ -25,7 +25,7 @@ public sealed class OutboxWorkUnitTests : IAsyncDisposable
     public OutboxWorkUnitTests()
     {
         outboxes = new GameplayOutboxes(sender, new RecordingExecutionLogger<GameplayOutbox>());
-        scope = new DomainTransactionScope(outboxes: outboxes);
+        scope = new DomainTransactionScope(outboxes: outboxes, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance);
     }
 
     public ValueTask DisposeAsync() => executor.DisposeAsync();

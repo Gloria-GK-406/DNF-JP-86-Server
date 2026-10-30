@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Achievements;
 internal sealed class AchievementDomainService(IAchievementRuleService rules, IAchievementPersistence persistence,
     IEventService events, IAchievementCharacterFactsDomainService characterFacts,
     ITitleBookPersistence titlePersistence, ITitleBookRuleService titleRules,
-    ICharacterTable? characters = null) : IAchievementDomainService, IDomainEventSubscriber<MonsterDefeated>,
+    ICharacterTable characters) : IAchievementDomainService, IDomainEventSubscriber<MonsterDefeated>,
     IDomainEventSubscriber<DungeonCompleted>, IDomainEventSubscriber<QuestCompleted>, IDomainEventSubscriber<ItemUsed>,
     IDomainEventSubscriber<MaterialConsumed>, IDomainEventSubscriber<CharacterLevelChanged>,
     IDomainEventSubscriber<InventoryContentsChanged>
@@ -175,7 +175,6 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
             await CheckInventoryAsync(character, type, e.EventId, ct);
         else if (container.TryGetAccountOwner(out var account, out type) && type == InventoryContainerType.SharedMaterial)
         {
-            if (characters is null) throw new InvalidOperationException("Account inventory checks require the character directory.");
             foreach (var row in await characters.ReadByAccountAsync(account, ct))
                 await CheckInventoryAsync(new CharacterId(row.CharacterId), type, e.EventId, ct);
         }
@@ -184,7 +183,7 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
     {
         if (type is not (InventoryContainerType.Main or InventoryContainerType.SharedMaterial
             or InventoryContainerType.Avatar or InventoryContainerType.Pet or InventoryContainerType.Equipment)) return;
-        if (characters is not null && await characters.FindStandingAsync(character, ct) is null) return;
+        if (await characters.FindStandingAsync(character, ct) is null) return;
         if (!await persistence.TryConsumeFactAsync(character, eventId, ct)) return;
         var completed = await CheckSatisfiedAsync(character, d => MatchesInventory(d, type), ct);
         if (completed.Count > 0)

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Inventory;
@@ -342,7 +343,7 @@ public sealed class DraggedAvatarStaysWholeTests
     private static async Task<IReadOnlyList<InventoryItemState>> AvatarItemsAsync(InventorySide side)
     {
         var loaded = await side.InUseCaseAsync(token =>
-            new CharacterInventoryEntryDomainService(side.CharacterEntries)
+            new CharacterInventoryEntryDomainService(side.CharacterEntries, side.WornItems, containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>())
                 .LoadAsync(new AccountId(Account), new CharacterId(Character), token));
         return loaded.Containers
             .Single(container => container.ContainerType == InventoryContainerType.Avatar)

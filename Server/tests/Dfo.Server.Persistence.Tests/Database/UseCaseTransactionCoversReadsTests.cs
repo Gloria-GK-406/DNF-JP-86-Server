@@ -125,7 +125,7 @@ public sealed class UseCaseTransactionCoversReadsTests : IAsyncDisposable
     [Fact]
     public async Task AReadOutsideAnyUseCaseIsAllowed()
     {
-        var database = new SqliteDatabase(this.path, new DomainTransactionScope());
+        var database = new SqliteDatabase(this.path, TestRequired.TransactionScope());
 
         var level = await database.ReadAsync(
             async (command, token) =>
@@ -146,7 +146,7 @@ public sealed class UseCaseTransactionCoversReadsTests : IAsyncDisposable
     [Fact]
     public async Task AWriteOutsideAnyUseCaseIsRefused()
     {
-        var database = new SqliteDatabase(this.path, new DomainTransactionScope());
+        var database = new SqliteDatabase(this.path, TestRequired.TransactionScope());
 
         var refusal = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await database.WriteAsync(
@@ -171,7 +171,7 @@ public sealed class UseCaseTransactionCoversReadsTests : IAsyncDisposable
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var database = new SqliteDatabase(this.path, scope);
 
             await using (var lease = scope.Begin())

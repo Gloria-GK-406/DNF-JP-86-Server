@@ -81,7 +81,7 @@ public sealed class GiveUpQuestTests
             var content = new StubWorldContentEntryRuleService();
             var sender = new RecordingSender();
             var sessions = new OneSession(session);
-            var offers = new QuestOfferRefreshDomainService(content,new RecordingQuestLogs(),characters);
+            var offers = new QuestOfferRefreshDomainService(content,new RecordingQuestLogs(),characters, query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
             await QuestProjectionDriver.GiveUp(
                 [sessions,currentViews,characters,new SuccessfulGiveUp(),sender,offers,SkillGrowthDirectDriver.Logger],
                 [sessions,currentViews,characters,new QuestProjectionDriver.ValueUnits<GiveUpQuestOutcome>(new(true,1016,new QuestProgressSnapshot([]))),new SkillGrowthDirectDriver.Outbox(sender),offers,SkillGrowthDirectDriver.Logger,null,null,null],

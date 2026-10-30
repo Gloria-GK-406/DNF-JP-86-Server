@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Transactions;
@@ -153,11 +154,11 @@ public sealed class AccountEntryLoadCharacterizationTests
     /// <summary>The account load as it is put together today: one repository per table.</summary>
     private static AccountEntryAssembly Assemble(string path)
     {
-        var database = new SqliteDatabase(path, new DomainTransactionScope());
+        var database = new SqliteDatabase(path, TestRequired.TransactionScope());
         return new AccountEntryAssembly(
             new SqliteAccountTable(database),
             new SqliteAccountSettingsTable(database),
-            new PremiumServiceDomainService(new SqliteAccountPremiumTable(database), new DomainTransactionScope(), TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
+            new PremiumServiceDomainService(new SqliteAccountPremiumTable(database), TestRequired.TransactionScope(), TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
             new SqliteAccountLotteryProgressTable(database),
             new SqliteCharacterTable(database),
             new SqliteCharacterConditionTable(database),

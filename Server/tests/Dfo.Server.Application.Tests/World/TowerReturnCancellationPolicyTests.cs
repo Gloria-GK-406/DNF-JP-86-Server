@@ -80,7 +80,7 @@ internal static class TowerReturnCancellationCases
                 await towers.StartAsync(context, default);
                 await TestEffectFootprints.Run([fixture.Session, peer], cap => towers.DieAsync(context, cap, default));
                 await TestEffectFootprints.Run([fixture.Session, peer], cap => towers.DieAsync(context with { Session = peer }, cap, default));
-                Assert.True((await towers.MarkSettledAsync(context, new([]), default)).Changed);
+                Assert.True(towers.Find(context.Session)!.Completion!.Settled); // a death settles the run
             }
         });
         fixture.Clock.Advance(TimeSpan.FromMinutes(5));

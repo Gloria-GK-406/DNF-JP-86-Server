@@ -21,7 +21,7 @@ internal static class TestSessions
 
     public static SelectedSessionDomainService Directory(out OnlineStateRegistry state)
     {
-        state = new OnlineStateRegistry(new DomainTransactionScope());
+        state = new OnlineStateRegistry(TestRequired.TransactionScope());
         return new SelectedSessionDomainService(state);
     }
 

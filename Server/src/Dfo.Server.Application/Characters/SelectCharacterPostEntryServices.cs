@@ -11,21 +11,14 @@ using Dfo.Server.Application.Quests;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class SelectCharacterQuestEntryService(
-    IQuestContentRuleService quests,
-    ICharacterQuestLogDomainService logs, IQuestQueryDomainService? query = null,
-    IQuestStateRuleService? stateRules = null) : ISelectCharacterQuestEntryDomainService
+    ICharacterQuestLogDomainService logs, IQuestQueryDomainService query) : ISelectCharacterQuestEntryDomainService
 {
     public async ValueTask<SelectCharacterQuestSynchronization?> SynchronizeAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
     {
-        var rules = stateRules ?? new QuestStateRuleService(quests);
         var carried = result.CharacterEntry.Quests.ActiveQuests
             .Select(x => new CarriedQuest(x.Slot, x.QuestId, x.TriggerValue)).ToArray();
-        var evaluated = query is not null
-            ? await query.ReadAcceptedAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false)
-            : await rules.EvaluateAsync(carried,
-                result.CharacterEntry.Quests.VisibilityFlags.Select((mark, id) => new ClearedQuest(id, mark)).Where(x => x.Mark != 0).ToArray(),
-                EntryHoldings(result, rules), cancellationToken).ConfigureAwait(false);
+        var evaluated = await query.ReadAcceptedAsync(session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         var byQuestSlot = evaluated.ToDictionary(x => x.Quest.Slot, x => x.Quest);
         var planned = new List<QuestTriggerUpdate>();
         foreach (var active in carried)
@@ -76,20 +69,6 @@ internal sealed class SelectCharacterQuestEntryService(
                 checked((ushort)value.QuestId), unchecked((uint)value.TriggerValue))).ToArray()));
     }
 
-    private static QuestHoldingsFacts EntryHoldings(SelectCharacterResult result, IQuestStateRuleService rules)
-    {
-        var main = result.CharacterInventory.Containers.Where(x => x.ContainerType == InventoryContainerType.Main)
-            .SelectMany(x => x.Items).Select(x => ItemSnapshot.FromCore(x.Core,
-                x.Core.ItemKind is 2 or 3 or 4 or 7 or 9 or 10 or 11));
-        var shared = result.AccountInventory.VirtualResources.Select(x => new ItemSnapshot { ItemId = x.ItemId, Count = x.Value });
-        var gold = result.CharacterInventory.VirtualResources.SingleOrDefault(x => x.ItemId == 0)?.Value ?? 0;
-        var holdings = rules.Holdings(main, shared, gold);
-        var quantities = holdings.Quantities.ToDictionary(x => x.Key, x => x.Value);
-        foreach (var resource in result.CharacterInventory.VirtualResources.Where(x => !AccountMaterialCatalog.ContainsItem(x.ItemId)))
-            quantities[resource.ItemId] = Math.Max(0, resource.Value);
-        return new(quantities);
-    }
-
 }
 
 /// <remarks>
@@ -97,16 +76,9 @@ internal sealed class SelectCharacterQuestEntryService(
 /// </remarks>
 internal sealed class SelectCharacterPetEntryService(
     ICharacterDomainStore characters,
-    IItemDomainStore items,
     AmbientStoreAccess stores,
-    ICreatureDomainService? creatureDomains = null) : ISelectCharacterPetEntryDomainService
+    ICreatureDomainService creatureDomains) : ISelectCharacterPetEntryDomainService
 {
-    /// <summary>The equipment slot the equipped creature sits in.</summary>
-    private const int EquippedCreatureSlot = 25;
-
-    /// <summary>What an item core says it is when it is a creature.</summary>
-    private const byte CreatureItemKind = 5;
-
     public async ValueTask<SelectCharacterPetRevival?> ReviveAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
     {
@@ -117,39 +89,12 @@ internal sealed class SelectCharacterPetEntryService(
                 .ConfigureAwait(false))
             throw new InvalidDataException("Entry mutation character ownership does not match.");
 
-        long creatureKey;
-        int before;
-        if (creatureDomains is { } domain)
-        {
-            var creatureStore = domain.GetStore(session.CharacterId);
-            var current = await creatureStore.CurrentAsync(cancellationToken).ConfigureAwait(false);
-            if (current is null || current.Stomach > 0) return null;
-            creatureKey = current.ItemUid;
-            before = current.Stomach;
-            await creatureStore.ReviveIfEmptyAsync(current.ItemUid, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            // Compatibility for callers still constructing this service without the creature store.
-            var equipment = ContainerId.ForCharacter(
-                session.CharacterId, InventoryContainerType.Equipment);
-            var equipped = await stores.ReadAsync(
-                items, held => held.GetAsync(equipment, EquippedCreatureSlot, cancellationToken))
-                .ConfigureAwait(false);
-            if (equipped?.Snapshot is not { LegacyKind: CreatureItemKind, ItemUid: not null }) return null;
-            if (equipped.ItemUid is not { } worn) return null;
-            creatureKey = worn.Value;
-            var creature = await stores.ReadAsync(
-                characters, rows => rows.Creatures.ReadAsync(place, creatureKey, cancellationToken))
-                .ConfigureAwait(false);
-            if (creature is null || creature.Field04 > 0) return null;
-            before = creature.Field04;
-            await stores.ChangeAsync(characters, rows =>
-            {
-                rows.Creatures.Write(place, new StoredCreature(creatureKey, 1, OnlyWhenAtMostZero: true));
-                return ValueTask.CompletedTask;
-            }, cancellationToken).ConfigureAwait(false);
-        }
+        var creatureStore = creatureDomains.GetStore(session.CharacterId);
+        var current = await creatureStore.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        if (current is null || current.Stomach > 0) return null;
+        var creatureKey = current.ItemUid;
+        var before = current.Stomach;
+        await creatureStore.ReviveIfEmptyAsync(current.ItemUid, cancellationToken).ConfigureAwait(false);
         var mutation = new PetRevivalMutation(
             creatureKey, Math.Clamp(before, 0, byte.MaxValue), 1);
         var pets = result.CharacterEntry.Features.Pets

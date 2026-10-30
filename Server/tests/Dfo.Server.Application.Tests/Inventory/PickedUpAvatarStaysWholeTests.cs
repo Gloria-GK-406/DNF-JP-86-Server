@@ -335,7 +335,7 @@ public sealed class PickedUpAvatarStaysWholeTests
     private static async Task<InventoryItemState> OneItemAsync(InventorySide side, int slotIndex)
     {
         var loaded = await side.InUseCaseAsync(token =>
-            new CharacterInventoryEntryDomainService(side.CharacterEntries)
+            new CharacterInventoryEntryDomainService(side.CharacterEntries, side.WornItems, containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>())
                 .LoadAsync(new AccountId(Account), Who, token));
         var main = loaded.Containers.Single(
             container => container.ContainerType == InventoryContainerType.Avatar);

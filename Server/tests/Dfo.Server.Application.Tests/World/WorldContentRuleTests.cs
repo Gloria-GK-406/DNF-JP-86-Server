@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.World;
@@ -601,12 +602,13 @@ public sealed class WorldContentRuleTests
         IReadOnlyList<CollectionBoxDefinition>? collectionBoxes = null,
         IReadOnlyList<CreatureDefinition>? creatures = null,
         IReadOnlyDictionary<int, int>? creatureIdByEquipment = null) =>
-        new(new QuestContentRuleService(
-                new StubQuestSource(quests ?? [], trainingAvailability ?? []),
-                new NoQuestParameters()),
-            new StubDailyActivitySource(dailyActivities ?? []),
-            new StubCollectionBoxSource(collectionBoxes ?? []),
+        Compose(new QuestContentRuleService(new StubQuestSource(quests ?? [], trainingAvailability ?? []), new NoQuestParameters()),
+            new StubDailyActivitySource(dailyActivities ?? []), new StubCollectionBoxSource(collectionBoxes ?? []),
             new StubCreatureSource(creatures ?? [], creatureIdByEquipment));
+
+    private static WorldContentEntryRuleService Compose(QuestContentRuleService quests, StubDailyActivitySource dailyActivities,
+        StubCollectionBoxSource collectionBoxes, StubCreatureSource creatures) =>
+        new(quests, dailyActivities, collectionBoxes, creatures, new QuestAvailabilityRuleService(quests, creatures));
 
     /// <summary>
     /// Finishing a quest makes the quest that required it offerable.

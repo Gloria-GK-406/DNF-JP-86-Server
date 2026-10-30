@@ -19,7 +19,7 @@ namespace Dfo.Server.Application.Transactions;
 /// </para>
 /// </remarks>
 internal sealed class DomainTransactionScope(
-    ILogger<DomainTransaction>? logger = null, GameplayOutboxes? outboxes = null) : IDomainTransactionAccessor
+    ILogger<DomainTransaction> logger, GameplayOutboxes outboxes) : IDomainTransactionAccessor
 {
     private readonly AsyncLocal<DomainTransaction?> ambient = new();
 
@@ -46,7 +46,7 @@ internal sealed class DomainTransactionScope(
                 "A domain transaction is already open on this flow. One use case opens one.");
         }
 
-        var transaction = new DomainTransaction(readOnly, logger, readOnly ? null : outboxes?.CurrentOrNull?.BeginUnit());
+        var transaction = new DomainTransaction(readOnly, logger, readOnly ? null : outboxes.CurrentOrNull?.BeginUnit());
         this.ambient.Value = transaction;
         return new DomainTransactionLease(transaction);
     }

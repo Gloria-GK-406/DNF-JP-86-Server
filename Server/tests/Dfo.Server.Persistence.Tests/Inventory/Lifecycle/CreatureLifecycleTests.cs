@@ -138,10 +138,10 @@ public sealed class CreatureLifecycleTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            using var db = new Database(); var scope = new DomainTransactionScope(); var clock = new Clock();
+            using var db = new Database(); var scope = TestRequired.TransactionScope(); var clock = new Clock();
             var session = SelectedSessionIdentity.Create(new(3), Owner, new("Game:creature"), 1, 10021);
             var sessions = new Sessions(session);
-            var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock);
+            var runtime = new CreatureRuntimeDomainService(db.Creatures, new Rules(), scope, sessions, clock, inventories: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>());
             await using (var seed = scope.Begin())
             {
                 var items = db.Items.SessionIn(scope.Current!);
@@ -261,7 +261,7 @@ public sealed class CreatureLifecycleTests
             using var connection = new SqliteConnection($"Data Source={Path}"); connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = "INSERT INTO accounts(account_id,m_id) VALUES(3,'pet-test'); INSERT INTO characters(character_id,account_id,name,job,level) VALUES(7,3,'owner',3,60),(8,3,'other',3,60)";
-            command.ExecuteNonQuery(); Items = new(Path); Creatures = new(Path);
+            command.ExecuteNonQuery(); Items = new(Path, contentsEvents: TestRequired.NoContentsEvents); Creatures = new(Path, contentsEvents: TestRequired.NoContentsEvents);
         }
         public void Dispose() { SqliteConnection.ClearAllPools(); File.Delete(Path); }
     }

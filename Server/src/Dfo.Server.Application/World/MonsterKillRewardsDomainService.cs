@@ -18,7 +18,7 @@ namespace Dfo.Server.Application.World;
 /// <summary>All durable effects of a participant's verified kill, inside the caller's transaction.</summary>
 public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDomainService experience,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService quests,
-    IPartyService? parties = null, TimeProvider? clock = null, ICharacterGameplayFactDomainService? gameplay = null)
+    IPartyService parties, TimeProvider clock, ICharacterGameplayFactDomainService gameplay)
     : IMonsterKillRewardsDomainService
 {
     public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session,
@@ -31,7 +31,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
         var award = kill.IsMonster ? await experience.AwardAsync(
             new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill, accountId, characterId, dungeonId),
                 kill.Level, kill.Rank, difficulty, weight, partyMemberCount, kill.IsNamedMonster),
-            (clock ?? TimeProvider.System).GetUtcNow(), session, footprint, ct).ConfigureAwait(false) : null;
+            clock.GetUtcNow(), session, footprint, ct).ConfigureAwait(false) : null;
         footprint.DemandEffects(new(accountId, characterId, session));
         var grants = await GrantQuestItemsAsync(session, accountId, characterId, loot, partyKey, footprint, ct).ConfigureAwait(false);
         var facts = new List<QuestProgressFact> { new QuestEnemyDefeated(dungeonId, difficulty, kill.Code,
@@ -42,7 +42,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
         if (grants.QuestItems is not null || grants.AccountMaterials.Count > 0) facts.Add(new QuestHoldingsChanged());
         footprint.DemandEffects(new(accountId, characterId, session));
         var report = await quests.ReportAsync(accountId, characterId, facts, ct).ConfigureAwait(false);
-        if (gameplay is not null && kill.IsMonster)
+        if (kill.IsMonster)
         {
             footprint.DemandEffects(new(accountId, characterId, session));
             await gameplay.RecordMonsterDefeatedAsync(new(characterId, kill.Code, (int)kill.Rank, dungeonId, (int)difficulty), ct).ConfigureAwait(false);
@@ -60,12 +60,12 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
     {
         footprint.DemandEffects(new(account, character, session));
         var empty = new MonsterKillEffects(null, null, null, []);
-        if (party != default && (parties?.FindByKey(party) is not { } current
+        if (party != default && (parties.FindByKey(party) is not { } current
             || !current.Members.Any(x => x.CharacterId == character))) return empty;
         footprint.DemandEffects(new(account, character, session));
         var additions = await questItems.GrantAsync(account, character, loot, ct).ConfigureAwait(false);
         var (items, shared) = await ProjectQuestItemsAsync(
-            additions, (clock ?? TimeProvider.System).GetUtcNow(), ct).ConfigureAwait(false);
+            additions, clock.GetUtcNow(), ct).ConfigureAwait(false);
         return empty with { QuestItems = items, AccountMaterials = shared };
     }
 

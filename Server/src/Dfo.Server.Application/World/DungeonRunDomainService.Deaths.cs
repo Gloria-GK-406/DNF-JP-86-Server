@@ -112,7 +112,7 @@ internal sealed partial class DungeonRunDomainService
                 && !cell.HasLivingBossExcept(claim.Actor.Sequence))
             {
                 var elapsed = (claim.OccurredAt ?? this.clock.GetUtcNow()) - aggregate.StartedAt;
-                resolvedLoot = (this.giantDragons ?? throw new InvalidOperationException("Dragon reward rules unavailable."))
+                resolvedLoot = this.giantDragons
                     .ResolveTimeReward(timeReward, elapsed, killedActor.PendingLoot);
                 this.logger.LogInformation("Giant dragon time reward run={RunId} dungeon={DungeonId} actor={Actor} elapsedMs={ElapsedMs} item={ItemId} sharedCount={Count}",
                     aggregate.RunId, aggregate.Layout.DungeonId, claim.Actor.Sequence, elapsed.TotalMilliseconds,
@@ -145,10 +145,10 @@ internal sealed partial class DungeonRunDomainService
             if (cell.IsCleared)
                 cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state,
                     claim.OccurredAt ?? this.clock.GetUtcNow())).ToArray();
-            this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
+            this.deadlines.Wake(DungeonDeadlineKind.RoomMechanism);
             // Altar rounds and guardian waves read the living actors when their deadline is evaluated.
-            if (aggregate.Layout.Mode is DungeonRunMode.Altar) this.deadlines?.Wake(DungeonDeadlineKind.Altar);
-            else if (aggregate.Layout.Mode is DungeonRunMode.Guardian) this.deadlines?.Wake(DungeonDeadlineKind.GuardianAltar);
+            if (aggregate.Layout.Mode is DungeonRunMode.Altar) this.deadlines.Wake(DungeonDeadlineKind.Altar);
+            else if (aggregate.Layout.Mode is DungeonRunMode.Guardian) this.deadlines.Wake(DungeonDeadlineKind.GuardianAltar);
             aggregate.RuntimeRevision++;
             var run = aggregate.ViewFor(claim.CharacterId);
             return new DungeonActorDeathChange(

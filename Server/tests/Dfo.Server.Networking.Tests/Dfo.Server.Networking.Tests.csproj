@@ -44,4 +44,5 @@
   <ItemGroup>
     <None Include="Characterization\Golden\*.hex" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../Support/TestRequired.cs" Link="Support/TestRequired.cs" /></ItemGroup>
 </Project>

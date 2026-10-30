@@ -14,7 +14,7 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
     IItemUsageDomainService items, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService premiumUsage, TimeProvider clock, IDimensionDungeonDomainService dimensions,
     ILostLandDungeonDomainService lostLand,
-    IDespairTowerDomainService despair, IDailyResetRuleService daily, IHerasQuotaDomainService heras, IAltarDungeonDomainService? altars = null, ITournamentDungeonDomainService? tournaments = null, IGoldSilverHornDomainService? goldSilverHorn = null, IReviveCoinDomainService? reviveCoins = null) : IUsageQuotaSnapshotDomainService
+    IDespairTowerDomainService despair, IDailyResetRuleService daily, IHerasQuotaDomainService heras, IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments, IGoldSilverHornDomainService goldSilverHorn, IReviveCoinDomainService reviveCoins) : IUsageQuotaSnapshotDomainService
 {
     public async ValueTask<UsageQuotaSnapshot> ReadAsync(AccountId accountId, CharacterId characterId,
         UsageQuotaFamily family, CancellationToken cancellationToken)
@@ -27,15 +27,15 @@ internal sealed class UsageQuotaSnapshotDomainService(IUsageQuotaDomainService q
             UsageQuotaFamily.LostLand => new(at, [], null, [], null, LostLand:
                 await lostLand.ReadQuotaAtAsync(characterId, at, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.ReviveCoin => new(at, [], null, [], null, ReviveCoinClaimed:
-                await (reviveCoins ?? throw new InvalidOperationException("Revive coin quotas unavailable.")).ClaimedAsync(characterId, cancellationToken).ConfigureAwait(false)),
+                await reviveCoins.ClaimedAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.GoldSilverHorn => new(at, [], null, [], null, GoldSilverHorn:
-                await (goldSilverHorn ?? throw new InvalidOperationException("Gold/silver horn quotas unavailable.")).ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
+                await goldSilverHorn.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.HerasDungeon => new(at, [], null, [], null, Heras:
                 await heras.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.TournamentDungeon => new(at, [], null, [], null, Tournaments:
-                await (tournaments ?? throw new InvalidOperationException("Tournament quotas unavailable.")).ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
+                await tournaments.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.AltarDungeon => new(at, [], null, [], null, Altars:
-                await (altars ?? throw new InvalidOperationException("Altar quotas unavailable.")).ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
+                await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.DespairTower => new(at, [], null, [], null, Despair:
                 await despair.ReadStatusAsync(characterId, cancellationToken).ConfigureAwait(false)),
             UsageQuotaFamily.DimensionDungeon => new(at, [], null, [], null,

@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.Creatures;
 namespace Dfo.Server.Application.Creatures;
 
 internal sealed class CreatureRuleService(ICreatureRuleSource source,
-    ICreatureEquipmentLifetimeSource? lifetimes = null) : ICreatureRuleService
+    ICreatureEquipmentLifetimeSource lifetimes) : ICreatureRuleService
 {
     public ValueTask<CreatureRule?> GetAsync(int itemTemplateId, CancellationToken ct) =>
         source.GetAsync(itemTemplateId, ct);
@@ -15,8 +15,8 @@ internal sealed class CreatureRuleService(ICreatureRuleSource source,
     public async ValueTask<int> BirthExpirationAsync(int itemTemplateId, DateTimeOffset at,
         CancellationToken ct)
     {
-        var lifetime = lifetimes is null ? default
-            : await lifetimes.GetAsync(itemTemplateId, at, ct).ConfigureAwait(false);
+        var lifetime =
+            await lifetimes.GetAsync(itemTemplateId, at, ct).ConfigureAwait(false);
         var remaining = lifetime.DirectRemainingSeconds > 0
             ? lifetime.DirectRemainingSeconds : lifetime.DetailFallbackRemainingSeconds;
         return remaining == 0 ? 0 : checked((int)Math.Min(int.MaxValue, at.ToUnixTimeSeconds() + remaining));

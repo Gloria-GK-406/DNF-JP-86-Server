@@ -370,6 +370,7 @@ public sealed class UsageQuotaProjectionTests
                 Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton(services, Probe);
                 Dfo.Server.Application.DomainEvents.DomainEventDispatchingExtensions.AddEventDispatching(services);
                 Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationDispatching(services);
+                Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddSingleton(services, Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
                 Dfo.Server.Application.Notifications.NotificationDispatchingExtensions.AddNotificationHandler<UsageQuotaViewChanged, QuotaProbeHandler>(services);
             });
             Outbound.Connect(Sessions.Current!.ConnectionId);

@@ -173,7 +173,7 @@ public sealed class LuckyStarRentalTests
                 await tx.CommitAsync(default);
             }
             var original=f.Services.GetRequiredService<Dfo.Server.Persistence.Database.SqliteDatabase>();
-            var database=new Dfo.Server.Persistence.Database.SqliteDatabase(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(original.ConnectionString).DataSource,new DomainTransactionScope());
+            var database=new Dfo.Server.Persistence.Database.SqliteDatabase(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(original.ConnectionString).DataSource,TestRequired.TransactionScope());
             var reopened=new Dfo.Server.Persistence.Inventory.SqliteEquipmentRentalDomainStore(database);
             Assert.Equal(uid,Assert.Single(await reopened.ReadAsync(new(1),default)).Uid);
             Assert.Equal(uid,Assert.Single((await Rentals(f).PanelAsync(new(1),new(1),default)).Items).Uid);

@@ -39,7 +39,7 @@ public sealed class AuthenticationTicketTests
 
         await TestGameplay.RunAsync(fixture.Services, async () =>
         {
-            var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions());
+            var afterRestart = new LoginSessionRegistry(fixture.Scope, fixture.Clock, new LoginSessionOptions(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>());
             await using var transaction = fixture.Scope.Begin();
             Assert.Null(afterRestart.TryBind(new Dfo.Server.Data.Networking.NetworkConnectionId("restart"), login.MId!, login.Ticket!));
             await transaction.CommitAsync(default);

@@ -15,9 +15,9 @@ public sealed class LoginSessionCommitRaceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var clock = new Clock();
-            var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions());
+            var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions(), onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>(), closer: TestRequired.Absent<Dfo.Server.Abstractions.Networking.INetworkConnectionCloser>());
             LoginSessionRegistry.IssuedLoginSession issued;
             await using (var tx = scope.Begin())
             {
@@ -45,10 +45,10 @@ public sealed class LoginSessionCommitRaceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var clock = new Clock();
             var closes = new RecordingCloser();
-            var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions(), closer: closes);
+            var sessions = new LoginSessionRegistry(scope, clock, new LoginSessionOptions(), closer: closes, onlineUsers: TestRequired.Absent<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserDomainService>());
             LoginSessionRegistry.IssuedLoginSession issued;
             await using (var tx = scope.Begin())
             {

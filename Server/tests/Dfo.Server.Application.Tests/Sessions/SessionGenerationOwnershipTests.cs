@@ -327,12 +327,12 @@ public sealed class SessionGenerationOwnershipTests
         IEnumerable<IDungeonRunParticipantDepartureSink>? departures = null)
     {
         var areas = presence ?? new SessionPresenceDomainService();
-        return new(directory, new CharacterContainerDomainService(),
+        return new(directory, new CharacterContainerDomainService(TestRequired.TransactionScope()),
             areas, stores ?? new ExpertStoreDomainService(),
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),
-            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? []);
+            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
     }
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>

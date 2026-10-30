@@ -65,7 +65,7 @@ internal sealed partial class DungeonRunDomainService
         if (!currentParty.Members.Select(member => member.CharacterId)
                 .ToHashSet().SetEquals(frozen.Select(participant => participant.CharacterId)))
             throw new InvalidOperationException("The entry roster no longer matches the party.");
-        if (this.participation is not null && !this.participation.TryClaim(
+        if (!this.participation.TryClaim(
             frozen.Select(x => x.CharacterId).ToArray(), new(DungeonParticipationMode.Ordinary, runId.Value)))
             throw new InvalidOperationException("A dungeon participant is already occupied.");
         var aggregate = new DungeonRunAggregate(
@@ -73,7 +73,7 @@ internal sealed partial class DungeonRunDomainService
 
         lock (this.gate)
         {
-            if (this.transactions?.Current is { } transaction)
+            if (this.transactions.Current is { } transaction)
             {
                 var previous = this.runsByParty.GetValueOrDefault(partyKey);
                 transaction.Enlist(new object(), () => new EntryCommit(this, aggregate, previous));
@@ -85,7 +85,7 @@ internal sealed partial class DungeonRunDomainService
 
             this.Publish(aggregate);
             foreach (var participant in frozen)
-                this.weakness?.For(participant.CharacterId).PauseRecovery();
+                this.weakness.For(participant.CharacterId).PauseRecovery();
 
             return aggregate.EntryChange(
                 DungeonEntryChangeKind.Prepared,
@@ -118,7 +118,7 @@ internal sealed partial class DungeonRunDomainService
                 cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Start(state, this.clock.GetUtcNow())).ToArray();
                 if (cell.IsCleared)
                     cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state, this.clock.GetUtcNow())).ToArray();
-                this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
+                this.deadlines.Wake(DungeonDeadlineKind.RoomMechanism);
             }
             return aggregate.EntryChange(DungeonEntryChangeKind.ParticipantReady, characterId);
         }

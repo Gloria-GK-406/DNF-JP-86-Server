@@ -63,7 +63,7 @@ public sealed class UseStackableCodecTests
     public void A_body_shorter_than_the_prefix_is_refused()
     {
         Assert.Throws<InvalidDataException>(() =>
-            new UseStackableDecoder().Decode(GameMessageMetadata.Empty, new byte[6]));
+            new UseStackableDecoder(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Protocol.Game.UseStackable.UseStackableDecoder>.Instance).Decode(GameMessageMetadata.Empty, new byte[6]));
     }
 
     /// <remarks>
@@ -101,5 +101,5 @@ public sealed class UseStackableCodecTests
     }
 
     private static UseStackableRequest Decode(byte[] body) =>
-        (UseStackableRequest)new UseStackableDecoder().Decode(GameMessageMetadata.Empty, body)!;
+        (UseStackableRequest)new UseStackableDecoder(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Protocol.Game.UseStackable.UseStackableDecoder>.Instance).Decode(GameMessageMetadata.Empty, body)!;
 }

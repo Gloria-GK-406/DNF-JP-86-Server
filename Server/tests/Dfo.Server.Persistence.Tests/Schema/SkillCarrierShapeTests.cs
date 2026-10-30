@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
@@ -135,7 +136,7 @@ public sealed class SkillCarrierShapeTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-skillshape-{Guid.NewGuid():N}.db");
         try
         {
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
 
             await using var connection = new SqliteConnection(
                 new SqliteConnectionStringBuilder { DataSource = path }.ToString());

@@ -47,7 +47,7 @@ public sealed class BossTowerFoundationTests
         Assert.Equal(60, header.MinimumRequiredLevel);
         Assert.True(header.ProhibitsPractice);
         Assert.Equal(2749110, Assert.Single(header.RequiredItems).ItemId);
-        var difficulty = new DungeonDifficultyRuleService(admissions: ordinary);
+        var difficulty = new DungeonDifficultyRuleService(ordinary);
         Assert.True(await difficulty.AllowsAsync(3505, DungeonDifficulty.Normal, DungeonDifficulty.Normal, default));
         Assert.False(await difficulty.AllowsAsync(3505, DungeonDifficulty.Adventure, DungeonDifficulty.Tier4, default));
         var source = new PvfBossTowerContentSource(provider, ordinary);

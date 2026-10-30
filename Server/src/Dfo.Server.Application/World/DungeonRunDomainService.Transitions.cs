@@ -29,8 +29,8 @@ internal sealed partial class DungeonRunDomainService
                 owner.Publish(next);
                 foreach (var id in next.EntrantIds)
                 {
-                    owner.weakness?.For(id).PauseRecovery();
-                    owner.creatures?.ChangeCombat(id, true);
+                    owner.weakness.For(id).PauseRecovery();
+                    owner.creatures.ChangeCombat(id, true);
                 }
             }
             return ValueTask.CompletedTask;
@@ -77,7 +77,7 @@ internal sealed partial class DungeonRunDomainService
                 run.Cells.TryAdd(target, cell); run.CurrentCell = target;
                 run.VisitedCells = run.VisitedCells.Add(target); run.RoomVersion++;
                 run.EntryRevision++; run.ReadyParticipants.Clear();
-                owner.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
+                owner.deadlines.Wake(DungeonDeadlineKind.RoomMechanism);
             }
             return ValueTask.CompletedTask;
         }

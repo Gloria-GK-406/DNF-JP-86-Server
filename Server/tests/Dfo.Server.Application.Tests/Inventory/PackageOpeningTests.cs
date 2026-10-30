@@ -105,7 +105,7 @@ public sealed class PackageOpeningTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var shop = new CeraShopFixture(useArchive: true, configure: services => services.AddSingleton<IPackageOpeningRuleService>(
-            provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>(), provider.GetRequiredService<IItemPlacementRuleService>()))));
+            provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>(), provider.GetRequiredService<IItemPlacementRuleService>(), expirationRules: TestRequired.NoExpiration))));
         await shop.Host.Seed(66, 2682272, 60);
         var result = await OpeningDomainTestDriver.Box(shop.Host, shop.Host.Session, new(4, 66, 2682272, -1, -1, 60));
         Assert.NotNull(result.Receipt); Assert.Equal(0, shop.Host.Count(2682272));

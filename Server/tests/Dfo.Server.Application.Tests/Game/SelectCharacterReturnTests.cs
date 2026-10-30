@@ -58,12 +58,12 @@ public sealed partial class SelectCharacterLifecycleTests
                 new(10000, 0, 1, 1, new MazeCell(0, 0), new MazeCell(0, 0),
                     61000, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [new(0, 0)] = DungeonCellDefinition.Fixed(61000)}), 0);
             var cleanup = new SelectedSessionCleanupService(f.Directory,
-                new CharacterContainerDomainService(),
+                new CharacterContainerDomainService(TestRequired.TransactionScope()),
                 presence, stores, new PvpLobbyDomainService(), [f.Mutations], positions,
                 new StubChannelEntryPolicy(),
                 TestParties.Of(runs),
                 runs,
-                [departure]);
+                [departure], creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
             var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, cleanup);
 
             using var footprint = new TestEffectFootprints.Lease(selected);

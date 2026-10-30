@@ -88,11 +88,11 @@ public sealed class UserServiceTests
         });
         var parties = TestParties.Create();
         var cleanup = new SelectedSessionCleanupService(
-            service.Sessions, new Dfo.Server.Application.Inventory.CharacterContainerDomainService(),
+            service.Sessions, new Dfo.Server.Application.Inventory.CharacterContainerDomainService(transactions: TestRequired.TransactionScope()),
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
             [new KeptPositions()], runtime, new StubChannelEntryPolicy(),
             parties,
-            TestParties.Runs(parties: parties), []);
+            TestParties.Runs(parties: parties), [], creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
 
         TestGameplay.Run(() =>
         {

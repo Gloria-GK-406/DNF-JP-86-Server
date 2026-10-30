@@ -23,7 +23,7 @@ public sealed class CreatureDomainStoreTests
     {
         await using var fixture = new Fixture();
         await fixture.SeedAsync();
-        var store = new SqliteCreatureDomainStore(fixture.Path);
+        var store = new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents);
         await InTransactionAsync(async transaction =>
         {
             var session = store.SessionIn(transaction);
@@ -58,8 +58,8 @@ public sealed class CreatureDomainStoreTests
     {
         await using var fixture = new Fixture();
         await fixture.SeedAsync();
-        var creatures = new SqliteCreatureDomainStore(fixture.Path);
-        var items = new SqliteItemDomainStore(fixture.Path);
+        var creatures = new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents);
+        var items = new SqliteItemDomainStore(fixture.Path, TestRequired.NoContentsEvents);
         var main = ContainerId.ForCharacter(Owner, InventoryContainerType.Main);
         await Assert.ThrowsAsync<InvalidOperationException>(() => InTransactionAsync(async transaction =>
         {
@@ -90,7 +90,7 @@ public sealed class CreatureDomainStoreTests
     {
         await using var fixture = new Fixture();
         await fixture.SeedAsync();
-        var creatures = new SqliteCreatureDomainStore(fixture.Path);
+        var creatures = new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents);
         ItemReference? oldReference = null;
         CreatureState? state = null;
         await InTransactionAsync(async transaction =>
@@ -124,7 +124,7 @@ public sealed class CreatureDomainStoreTests
         await fixture.ExecuteAsync("UPDATE items SET item_core=zeroblob(82) WHERE item_uid=101");
         await Assert.ThrowsAsync<InvalidDataException>(() => InTransactionAsync(async transaction =>
         {
-            await new SqliteCreatureDomainStore(fixture.Path).SessionIn(transaction).ReadCurrentAsync(Owner, default);
+            await new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents).SessionIn(transaction).ReadCurrentAsync(Owner, default);
         }));
     }
 
@@ -135,8 +135,8 @@ public sealed class CreatureDomainStoreTests
         await fixture.SeedAsync();
         await InTransactionAsync(async transaction =>
         {
-            var items = new SqliteItemDomainStore(fixture.Path).SessionIn(transaction);
-            var creatures = new SqliteCreatureDomainStore(fixture.Path).SessionIn(transaction);
+            var items = new SqliteItemDomainStore(fixture.Path, TestRequired.NoContentsEvents).SessionIn(transaction);
+            var creatures = new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents).SessionIn(transaction);
             var equipment = ContainerId.ForCharacter(Owner, InventoryContainerType.Equipment);
             var petBag = ContainerId.ForCharacter(Owner, InventoryContainerType.Pet);
             var moving = await items.TakeAsync((await items.GetAsync(equipment, 25, default))!, null, default);
@@ -155,10 +155,10 @@ public sealed class CreatureDomainStoreTests
         await fixture.SeedAsync();
         await InTransactionAsync(async transaction =>
         {
-            var items = new SqliteItemDomainStore(fixture.Path).SessionIn(transaction);
+            var items = new SqliteItemDomainStore(fixture.Path, TestRequired.NoContentsEvents).SessionIn(transaction);
             var source = (await items.GetAsync(ContainerId.ForCharacter(Owner, InventoryContainerType.Equipment), 25, default))!;
             await items.UpdateAsync(source, snapshot => snapshot with { ItemId = 63002 }, default);
-            var creatures = new SqliteCreatureDomainStore(fixture.Path).SessionIn(transaction);
+            var creatures = new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents).SessionIn(transaction);
             var updated = (await creatures.ReadCurrentAsync(Owner, default))!;
             Assert.Equal(101, updated.ItemUid);
             Assert.Equal(63002, updated.ItemTemplateId);
@@ -175,7 +175,7 @@ public sealed class CreatureDomainStoreTests
         await using var fixture = new Fixture();
         await fixture.SeedAsync();
         await fixture.ExecuteAsync("UPDATE items SET creature_field04=0 WHERE item_uid=101");
-        var store = new SqliteCreatureDomainStore(fixture.Path);
+        var store = new SqliteCreatureDomainStore(fixture.Path, TestRequired.NoContentsEvents);
         await InTransactionAsync(async transaction =>
         {
             var session = store.SessionIn(transaction);
@@ -194,7 +194,7 @@ public sealed class CreatureDomainStoreTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             await using var transaction = scope.Begin();
             await action(scope.Current!);
             await transaction.CommitAsync(default);

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
@@ -184,8 +185,8 @@ public sealed class OneDatabaseOneParticipantTests
         {
             this.Path = path;
             this.OtherPath = otherPath;
-            this.Items = new SqliteItemDomainStore(path);
-            this.OtherItems = new SqliteItemDomainStore(otherPath);
+            this.Items = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
+            this.OtherItems = new SqliteItemDomainStore(otherPath, TestRequired.NoContentsEvents);
             this.Marks = new MarkDomainStore(path);
         }
 
@@ -258,8 +259,8 @@ public sealed class OneDatabaseOneParticipantTests
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-onedb-{Guid.NewGuid():N}.db");
             // The repositories own the schema; the stores only write into it.
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             return path;
         }
 

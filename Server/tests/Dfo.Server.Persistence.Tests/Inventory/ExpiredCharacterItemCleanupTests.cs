@@ -21,11 +21,11 @@ public sealed class ExpiredCharacterItemCleanupTests
             var path = Path.Combine(Path.GetTempPath(), $"dfo-expired-entry-{Guid.NewGuid():N}.db");
             try
             {
-                var scope = new DomainTransactionScope();
+                var scope = TestRequired.TransactionScope();
                 var database = new SqliteDatabase(path, scope);
                 var cleanup = new ExpiredCharacterItemCleanupDomainService(
                     new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
-                    scope, TimeProvider.System, new SqliteItemDomainStore(path));
+                    scope, TimeProvider.System, new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
                 await SeedAsync(path);
 
                 await using (var transaction = scope.Begin())
@@ -64,11 +64,11 @@ public sealed class ExpiredCharacterItemCleanupTests
             var path = Path.Combine(Path.GetTempPath(), $"dfo-expired-owner-{Guid.NewGuid():N}.db");
             try
             {
-                var scope = new DomainTransactionScope();
+                var scope = TestRequired.TransactionScope();
                 var database = new SqliteDatabase(path, scope);
                 var cleanup = new ExpiredCharacterItemCleanupDomainService(
                     new SqliteCharacterTable(database), new SqliteCharacterItemTable(database),
-                    scope, TimeProvider.System, new SqliteItemDomainStore(path));
+                    scope, TimeProvider.System, new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
                 await SeedAsync(path);
 
                 await using (var transaction = scope.Begin())

@@ -145,17 +145,6 @@ public sealed class NotificationAudienceTests
     }
 
     [Fact]
-    public void A_scoped_audience_requires_a_presence_directory()
-    {
-        var resolver = new NotificationAudienceResolver(Dfo.Server.Testing.TestSessions.Directory());
-
-        var failure = Assert.Throws<InvalidOperationException>(() =>
-            resolver.Resolve(new NotificationAudience.Scoped(new TownAreaFilter())));
-
-        Assert.Contains("require town areas", failure.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void An_exact_session_audience_rejects_a_replacement_session()
     {
         TestGameplay.Run(() =>

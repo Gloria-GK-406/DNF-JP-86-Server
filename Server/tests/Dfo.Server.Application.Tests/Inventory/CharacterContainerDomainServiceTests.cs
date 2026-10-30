@@ -28,7 +28,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var first = Container("first");
             var second = Container("second");
 
@@ -46,7 +46,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var first = Container("first");
             var second = Container("second");
             containers.Register(Character, first);
@@ -69,7 +69,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var own = Container("own", removable: false);
             var dungeon = Container("dungeon");
             containers.Register(Character, own);
@@ -92,7 +92,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var only = Container("only");
             containers.Register(Character, only);
 
@@ -155,10 +155,10 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var container = Container(containerType.ToString(), containerType);
             containers.Register(Character, container);
-            var binding = new BusinessInventorySlotDomainService(
+            var binding = TestRequired.SlotsOver(
                 containers);
             var business = new BusinessSlot(businessSpace, businessIndex);
 
@@ -179,7 +179,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var registry = new CharacterContainerDomainService();
+            var registry = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var temporary = Container("temporary");
             var permanent = Container("permanent", removable: false);
             registry.Register(Character, temporary);
@@ -199,7 +199,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             ICharacterContainerDomainService registry = new CharacterContainerDomainService(transactions: scope);
             var original = Container("original", removable: false);
             var replacement = Container("replacement", removable: false);
@@ -238,7 +238,7 @@ public sealed class CharacterContainerDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            ICharacterContainerDomainService registry = new CharacterContainerDomainService();
+            ICharacterContainerDomainService registry = new CharacterContainerDomainService(TestRequired.TransactionScope());
             var original = Container("original", removable: false);
             var current = Container("current");
             registry.Register(Character, original);

@@ -205,13 +205,12 @@ public sealed class MirrorDungeonEntryTests
         if (boundary == "quota")
             fixture.Sql($"INSERT INTO character_mirror_daily(character_id,day,entries,clears,daily_reward_claimed) VALUES(72,'{DateOnly.FromDateTime(DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8)).DateTime):yyyy-MM-dd}',10,0,0);");
         var structures = new Structures(boundary == "late-session" ? () => sessions.Select(other with { ConnectionGeneration = other.ConnectionGeneration + 1 }) : null);
-        var admission = new DungeonAdmissionDomainService(structures,
-            fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(),
+        var admission = new DungeonAdmissionDomainService(fixture.Services.GetRequiredService<ICharacterDungeonDifficultyDomainService>(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions),
             fixture.Services.GetRequiredService<ICharacterFatigueDomainService>(), characters: fixture.Services.GetRequiredService<ICharacterDomainService>(),
             quests: fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(),
             quotas: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(),
             events: fixture.Services.GetRequiredService<Dfo.Server.Abstractions.DomainEvents.IEventService>(), transactions: fixture.Scope,
-            sessions: sessions, onlineCharacters: positions, runs: TestParties.Runs(fixture.Scope));
+            sessions: sessions, onlineCharacters: positions, runs: TestParties.Runs(fixture.Scope), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(structures), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), materials: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonEntryMaterialsDomainService>());
         visits.Admission = admission;
         return (new(new Rules(), structures, visits, fixture.Services.GetRequiredService<ICharacterDomainService>(), admission, TimeProvider.System,
             fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>()), visits, quota);

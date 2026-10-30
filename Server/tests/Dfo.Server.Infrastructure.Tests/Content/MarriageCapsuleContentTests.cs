@@ -21,7 +21,7 @@ public sealed class MarriageCapsuleContentTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason); using var provider=ContentArchive.CreateProvider();
         Assert.Equal(new MarriageCapsuleRules(10,10,2,10,10002910),new PvfMarriageCapsuleContentSource(provider).Load());
-        var item=await new PvfExperienceItemDefinitionSource(provider).GetAsync(10002910,default);
+        var item=await new PvfExperienceItemDefinitionSource(provider, options: new Dfo.Server.Infrastructure.Content.PvfContentOptions()).GetAsync(10002910,default);
         Assert.NotNull(item); Assert.True(item.IsReadable); Assert.Equal(ExperienceItemGrantKind.Fixed,item.GrantKind);
         Assert.Equal(30000u,item.Value); Assert.Equal(30,item.MinimumLevel); Assert.Equal(84,item.MaximumLevel);
         var dungeon=await new PvfDungeonDefinitionSource(provider).GetAsync(3541,default);

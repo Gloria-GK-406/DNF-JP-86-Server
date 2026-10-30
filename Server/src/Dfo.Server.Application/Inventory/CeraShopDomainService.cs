@@ -22,10 +22,10 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     ICharacterDomainService characters,
     IAccountWalletDomainService wallets, ICharacterBusinessInventoryDomainService stores,
     ICeraShopRuleService rules, IItemGrantDomainService grants, IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
-    ICharacterInventoryEntryDomainService inventory, ICharacterCreatureTable creatures, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
+    ICharacterInventoryEntryDomainService inventory, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
-    ICreatureDomainService? creatureDomains = null, IInventoryExpansionDomainService? expansion = null,
-    IInventoryCapacityRuleService? capacityRules = null, ICharacterNameTagDomainService? nameTags = null) : ICeraShopDomainService
+    ICreatureDomainService creatureDomains, IInventoryExpansionDomainService expansion,
+    IInventoryCapacityRuleService capacityRules, ICharacterNameTagDomainService nameTags) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
@@ -57,7 +57,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         IReadOnlyList<InventoryExpansionChange> capacityChanges = [];
         if (!quote.Expansions.IsEmpty)
         {
-            var changes = expansion is null ? null : await expansion.PlanPurchaseAsync(session, quote.Expansions, cancellationToken).ConfigureAwait(false);
+            var changes = await expansion.PlanPurchaseAsync(session, quote.Expansions, cancellationToken).ConfigureAwait(false);
             if (changes is null) return CeraShopPurchaseResult.Refused(CeraShopRejection.StateChanged, "Expansion stage is unavailable.");
             capacityChanges = changes;
         }
@@ -84,7 +84,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             var kind = space == BusinessInventorySpace.Avatar ? Dfo.Server.Abstractions.Content.InventoryExpansionKind.Avatar
                 : Dfo.Server.Abstractions.Content.InventoryExpansionKind.Main;
             var changedCapacity = capacityChanges.LastOrDefault(c => c.Kind == kind);
-            if (changedCapacity is not null && capacityRules is not null)
+            if (changedCapacity is not null)
                 open = capacityRules.OpenSlotCount(space, changedCapacity.Parameter);
             var placement = InventoryCapacityPlacement.Limit(grant.Placement, open);
             if (placement is null) return CeraShopPurchaseResult.Refused(CeraShopRejection.NoRoom);
@@ -116,10 +116,10 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         }
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (capacityChanges.Count > 0)
-            await expansion!.ApplyPurchaseAsync(session, capacityChanges, cancellationToken).ConfigureAwait(false);
+            await expansion.ApplyPurchaseAsync(session, capacityChanges, cancellationToken).ConfigureAwait(false);
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!quote.NameTags.IsEmpty)
-            await (nameTags ?? throw new InvalidOperationException("Name tag domain is unavailable."))
+            await nameTags
                 .PurchaseAsync(session.AccountId, session.CharacterId, quote.NameTags, now, cancellationToken).ConfigureAwait(false);
         foreach (var subscription in quote.Subscriptions)
         {
@@ -158,23 +158,11 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (hasCreatures)
         {
-            if (creatureDomains is not null)
-            {
-                var states = await creatureDomains.GetStore(session.CharacterId)
-                    .ReadAllAsync(cancellationToken).ConfigureAwait(false);
-                if (states.Count > byte.MaxValue)
-                    throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
-                pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
-            }
-            else
-            {
-                var rows = await creatures.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
-                if (rows.Count > byte.MaxValue)
-                    throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
-                pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
-                    row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
-                    row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
-            }
+            var states = await creatureDomains.GetStore(session.CharacterId)
+                .ReadAllAsync(cancellationToken).ConfigureAwait(false);
+            if (states.Count > byte.MaxValue)
+                throw new CeraShopPurchaseRejectedException(CeraShopRejection.NoRoom, "Creature list cannot fit its wire count.");
+            pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
         }
         AccountEntitlementEntryState? entitlements = null;
         IReadOnlyList<CharacterPremiumUsageSlotState> usage = [];
@@ -184,7 +172,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             usage = await premiumUsage.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
         }
         var expandedInventory = capacityChanges.Count == 0 ? null
-            : await expansion!.SnapshotAsync(session, now, cancellationToken).ConfigureAwait(false);
+            : await expansion.SnapshotAsync(session, now, cancellationToken).ConfigureAwait(false);
         return new(CeraShopRejection.None, new(session, quote.ProductIds, plan.Balances, gold, plan.GoldCost > 0,
             updates.ToImmutable(), pets, hasCreatures, now)
             { ExpandedCharacterInventory = expandedInventory?.Character, ExpandedAccountInventory = expandedInventory?.Account,

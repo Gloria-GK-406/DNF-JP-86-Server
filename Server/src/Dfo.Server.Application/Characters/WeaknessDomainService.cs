@@ -8,8 +8,8 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class WeaknessDomainService(
     ICharacterDomainService characters, IWeaknessRuleService rules,
-    ILogger<WeaknessDomainService>? logger = null,
-    IDomainTransactionAccessor? transactions = null) : IWeaknessDomainService
+    ILogger<WeaknessDomainService> logger,
+    IDomainTransactionAccessor transactions) : IWeaknessDomainService
 {
     private readonly ICharacterDomainService characterSource = characters;
     private readonly IWeaknessRuleService ruleSource = rules;
@@ -41,7 +41,7 @@ internal sealed class WeaknessDomainService(
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (Exception exception)
         {
-            logger?.LogWarning(exception, "Weakness application deferred character={CharacterId}; retained for retry", id);
+            logger.LogWarning(exception, "Weakness application deferred character={CharacterId}; retained for retry", id);
             return false;
         }
         lock (gate)

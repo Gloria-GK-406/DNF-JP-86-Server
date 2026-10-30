@@ -7,21 +7,21 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterVisibleSessionDomainService(ISelectedSessionDomainService sessions,
-    ITownAreaDomainService towns, IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunQueryDomainService runs, IIllusionTowerDomainService? towers = null,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null)
+    ITownAreaDomainService towns, IOnlineCharacterRuntimeDomainService onlineCharacters, IDungeonRunQueryDomainService runs, IIllusionTowerDomainService towers,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower)
     : ICharacterVisibleSessionDomainService
 {
     public IReadOnlyList<SelectedSessionIdentity> Resolve(SelectedSessionIdentity owner)
     {
         if (!sessions.IsInWorld(owner)) return [];
         var result = new HashSet<SelectedSessionIdentity> { owner };
-        if (bossTower?.Find(owner) is { } boss)
+        if (bossTower.Find(owner) is { } boss)
         {
             foreach (var member in boss.Members)
                 if (sessions.IsInWorld(member.Session)
                     && bossTower.Find(member.Session)?.RunId == boss.RunId) result.Add(member.Session);
         }
-        else if (towers?.Find(owner) is { } tower)
+        else if (towers.Find(owner) is { } tower)
         {
             foreach (var member in tower.Members)
                 if (sessions.IsInWorld(member.Session)

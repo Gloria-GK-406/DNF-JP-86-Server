@@ -31,7 +31,7 @@ public sealed class CommandSelectedSessionCleanupTests
             { SelectedSessionCleanup = CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle };
         return new(Guid.NewGuid(), typeof(CommandSelectedSessionCleanupTests), typeof(CommandSelectedSessionCleanupTests)) { Request = request };
     }
-    private static ICommandWorkUnits Units() => new CommandWorkUnits(new DomainTransactionScope(),
+    private static ICommandWorkUnits Units() => new CommandWorkUnits(TestRequired.TransactionScope(),
         Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider()));
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class CommandSelectedSessionCleanupTests
         ((TowerProxy)(object)illusion).Snapshot = new IllusionTowerSnapshot(Guid.NewGuid(),11001,
             [new(Actor,0,true,false),new(third,1,false,false)],null!,[],null,DateTimeOffset.UtcNow);
         var cleanup = new Dfo.Server.Application.Sessions.SelectedSessionCleanupService(null!, null!, null!, null!, null!, [], null!, null!,
-            null!, null!, [], illusionTower: illusion, bossTower: boss);
+            null!, null!, [], illusionTower: illusion, bossTower: boss, creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTowerDepartures: []);
         Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor, Peer, third }, cleanup.AffectedSessions(Actor));
         ((TowerProxy)(object)boss).Snapshot = null; ((TowerProxy)(object)illusion).Snapshot = null;
         Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor }, cleanup.AffectedSessions(Actor));
@@ -117,7 +117,7 @@ public sealed class CommandSelectedSessionCleanupTests
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(async () =>
         {
-            var ctx=Context(); var scope=new DomainTransactionScope(); var safety=Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider());
+            var ctx=Context(); var scope=TestRequired.TransactionScope(); var safety=Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider());
             var units=new CommandWorkUnits(scope,safety); var calls=0;
             var cap=new CommandSelectedSessionCleanup(new Cleanup((_,_) => { calls++; return ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(Actor)); }));
             await Assert.ThrowsAnyAsync<Exception>(() => units.WriteAsync(ctx,new("prepare",[]),(unit,_) =>
@@ -134,7 +134,7 @@ public sealed class CommandSelectedSessionCleanupTests
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(async () =>
         {
-            var ctx=Context(); var scope=new DomainTransactionScope();
+            var ctx=Context(); var scope=TestRequired.TransactionScope();
             var units=new CommandWorkUnits(scope,Dfo.Server.Testing.TestSessionSafety.Create(new ServiceCollection().BuildServiceProvider()));
             var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var began=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

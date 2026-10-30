@@ -4,8 +4,8 @@ namespace Dfo.Server.Application.World;
 
 internal sealed class ExperienceCalculationDomainService(
     IExperienceValuationDomainService valuation, IExperienceBonusDomainService bonuses,
-    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService? tower = null,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService? bossTower = null)
+    Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService tower,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService bossTower)
     : IExperienceCalculationDomainService
 {
     public async ValueTask<ExperienceBreakdown> CalculateAsync(ExperienceCalculationContext context,
@@ -50,7 +50,7 @@ internal sealed class ExperienceCalculationDomainService(
                 _ = settlement.Total;
                 return settlement;
             case TowerKillExperienceContext { Tower: DungeonParticipationMode.BossTower } kill:
-                var bossKillBase = await (bossTower ?? throw new InvalidOperationException("Boss tower reward rules unavailable."))
+                var bossKillBase = await bossTower
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false);
                 var bossKill = new ExperienceBreakdown(Base: bossKillBase);
                 if (bossKillBase == 0) return bossKill;
@@ -59,7 +59,7 @@ internal sealed class ExperienceCalculationDomainService(
                 _ = bossKill.Total;
                 return bossKill;
             case TowerClearExperienceContext { Tower: DungeonParticipationMode.BossTower } clear:
-                var bossBase = await (bossTower ?? throw new InvalidOperationException("Boss tower reward rules unavailable."))
+                var bossBase = await bossTower
                     .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken).ConfigureAwait(false);
                 var remaining = 1_100_000u - Math.Min(1_100_000u, bossBase);
                 var bossResult = new ExperienceBreakdown(Base: Math.Min(1_100_000u, bossBase));
@@ -71,10 +71,10 @@ internal sealed class ExperienceCalculationDomainService(
                 }
                 return bossResult;
             case TowerKillExperienceContext { Tower: DungeonParticipationMode.IllusionTower } kill:
-                return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
+                return new(Base: await tower
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken, kill.Occasion.DungeonId).ConfigureAwait(false));
             case TowerClearExperienceContext { Tower: DungeonParticipationMode.IllusionTower } clear:
-                return new(Base: await (tower ?? throw new InvalidOperationException("Tower reward rules unavailable."))
+                return new(Base: await tower
                     .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken, clear.Occasion.DungeonId).ConfigureAwait(false));
             case QuestExperienceContext quest:
                 return new(Base: quest.Base);

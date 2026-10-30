@@ -430,16 +430,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IEquipmentResealDomainService, EquipmentResealDomainService>();
         services.TryAddSingleton<IAvatarCompoundRuleService, AvatarCompoundRuleService>();
         services.TryAddSingleton<IAvatarCompoundDomainService, AvatarCompoundDomainService>();
-        // The store is looked up rather than demanded, because a host may be assembled without
-        // persistence at all and this seam is built eagerly by the cleanup service. Asking for it
-        // outright would make such a host fail to start; asking for it optionally lets it start
-        // and fail loudly only if it ever actually tries to save a position.
-        services.TryAddSingleton<SelectedSessionPositionPersistence>(
-            provider => new SelectedSessionPositionPersistence(
-                provider.GetService<ICharacterDomainStore>(),
-                provider.GetRequiredService<IDomainTransactionAccessor>(),
-                provider.GetService<ICharacterDomainStore>() is null ? null
-                    : provider.GetRequiredService<IEntryPlacementRuleService>()));
+        services.TryAddSingleton<SelectedSessionPositionPersistence>();
         services.TryAddSingleton<ISelectedSessionPositionPersistence>(p => p.GetRequiredService<SelectedSessionPositionPersistence>());
         services.TryAddSingleton<ICharacterLocationDomainService>(p => p.GetRequiredService<SelectedSessionPositionPersistence>());
         // What a job starts with and what a creation request may ask for; and what entry

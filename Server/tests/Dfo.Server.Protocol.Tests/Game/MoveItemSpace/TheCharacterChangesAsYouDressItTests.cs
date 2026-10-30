@@ -474,7 +474,7 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         byte itemKind = 8)
     {
         var character = new CharacterId(Character);
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var fixture = new MoveItemFixture();
         var bag = new SlotBook(InventoryContainerType.Main, character, fixture);
         var avatars = new SlotBook(InventoryContainerType.Avatar, character, fixture);
@@ -490,10 +490,10 @@ public sealed class TheCharacterChangesAsYouDressItTests(ArchiveContentFixture a
         containers.Register(character, worn);
 
         var commandHandler = new InventoryMoveDomainService(
-            new BusinessInventorySlotDomainService(containers),
+            TestRequired.SlotsOver(containers),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                new ItemSlotRuleService(), new TheCharacterChangesAsYouDressItTestsWearEligibility(canWear)));
+                new ItemSlotRuleService(), new TheCharacterChangesAsYouDressItTestsWearEligibility(canWear), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
 
         var runtime = new RecordingRuntime(sessionCopyWears, sessionRefusesReplacement, shouldPersistPosition);
         var inventory = new StoreBackedInventory(worn, character);

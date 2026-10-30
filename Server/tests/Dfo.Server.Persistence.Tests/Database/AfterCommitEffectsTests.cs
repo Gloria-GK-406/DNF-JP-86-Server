@@ -9,7 +9,7 @@ namespace Dfo.Server.Persistence.Tests.Database;
 public sealed class AfterCommitEffectsTests : IAsyncDisposable
 {
     private readonly string path = Path.Combine(Path.GetTempPath(), $"dfo-after-commit-{Guid.NewGuid():N}.db");
-    private readonly DomainTransactionScope scope = new();
+    private readonly DomainTransactionScope scope = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
     private readonly SqliteDatabase database;
 
     public AfterCommitEffectsTests()

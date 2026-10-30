@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -647,7 +648,7 @@ public sealed class QuestLogTests
             this.Store = new SqliteQuestDomainStore(path);
             this.Transactions = new SwappableTransactionAccessor();
             this.Logs = new CharacterQuestLogDomainService(
-                this.Store, new AmbientStoreAccess(this.Transactions));
+                this.Store, new AmbientStoreAccess(this.Transactions), clock: TimeProvider.System);
         }
 
         public string Path { get; }
@@ -665,7 +666,7 @@ public sealed class QuestLogTests
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-questlog-{Guid.NewGuid():N}.db");
             // The database owns the schema; the store only writes into it.
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var fixture = new Fixture(path);
             await using var connection = Open(path);
             await using var character = connection.CreateCommand();

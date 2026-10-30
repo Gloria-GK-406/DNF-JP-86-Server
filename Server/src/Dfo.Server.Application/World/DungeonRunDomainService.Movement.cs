@@ -109,7 +109,7 @@ internal sealed partial class DungeonRunDomainService
             return Refused("PreparedCellMismatch", aggregate);
         if (!aggregate.Cells.ContainsKey(target) && (preparedCell is null || !preparedCell.IsComplete))
             return Refused("IncompleteCell", aggregate);
-        if (this.transactions?.Current is { } transaction)
+        if (this.transactions.Current is { } transaction)
         {
             var cell = aggregate.Cells.GetValueOrDefault(target) ?? aggregate.CreateCell(preparedCell!);
             var movement = transaction.Enlist(new object(), () => new MoveCommit(this, aggregate, characterId, target, cell));
@@ -128,7 +128,7 @@ internal sealed partial class DungeonRunDomainService
         aggregate.RoomVersion++;
         aggregate.EntryRevision++;
         aggregate.ReadyParticipants.Clear();
-        this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
+        this.deadlines.Wake(DungeonDeadlineKind.RoomMechanism);
         return aggregate.ViewFor(characterId);
     }
 

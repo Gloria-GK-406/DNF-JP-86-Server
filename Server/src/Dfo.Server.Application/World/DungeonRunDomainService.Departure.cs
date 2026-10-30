@@ -89,10 +89,9 @@ internal sealed partial class DungeonRunDomainService
     {
         foreach (var characterId in departure.Characters)
         {
-            if (this.lifecycle is not null)
-                await this.lifecycle.RecordDepartureAsync(
+            await this.lifecycle.RecordDepartureAsync(
                     new(characterId, departure.RunId, departure.DungeonId)).ConfigureAwait(false);
-            if (departure.Failed && this.weakness is not null)
+            if (departure.Failed)
                 await this.weakness.For(characterId).SetWeakness().ConfigureAwait(false);
         }
     }
@@ -112,9 +111,9 @@ internal sealed partial class DungeonRunDomainService
     private CharacterId Release(DungeonRunAggregate aggregate, CharacterId characterId)
     {
         aggregate.ProgressFor(characterId).Released = true;
-        this.participation?.ReleaseCommitted(characterId, new(DungeonParticipationMode.Ordinary, aggregate.RunId.Value));
-        this.weakness?.For(characterId).ResumeRecovery();
-        this.creatures?.ChangeCombat(characterId, false);
+        this.participation.ReleaseCommitted(characterId, new(DungeonParticipationMode.Ordinary, aggregate.RunId.Value));
+        this.weakness.For(characterId).ResumeRecovery();
+        this.creatures.ChangeCombat(characterId, false);
         aggregate.ReadyParticipants.Remove(characterId);
         aggregate.DeadParticipants.Remove(characterId);
         aggregate.EntryRevision++;

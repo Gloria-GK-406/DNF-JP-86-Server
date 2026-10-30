@@ -212,7 +212,7 @@ public sealed class ExperienceBonusDomainServiceTests
         bool blackDiamond = false) =>
         new ExperienceBonusDomainService(
             new OneSession(published),
-            new PremiumServiceDomainService(new NoPremium(premiums ?? []), new DomainTransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
+            new PremiumServiceDomainService(new NoPremium(premiums ?? []), TestRequired.TransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
             new OneChannel(channelId),
             new ExperienceRuleService(
                 new UnpricedKills(),

@@ -40,12 +40,12 @@ internal sealed class SelectedSessionCleanupService(
     IPartyService parties,
     IDungeonRunDepartureDomainService dungeonRuns,
     IEnumerable<IDungeonRunParticipantDepartureSink> dungeonDepartures,
-    ICreatureRuntimeDomainService? creatures = null,
-    IIllusionTowerDomainService? illusionTower = null,
-    IEnumerable<IIllusionTowerDepartureSink>? illusionTowerDepartures = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService? housing = null,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null,
-    IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink>? bossTowerDepartures = null) : ISelectedSessionCleanupDomainService
+    ICreatureRuntimeDomainService creatures,
+    IIllusionTowerDomainService illusionTower,
+    IEnumerable<IIllusionTowerDepartureSink> illusionTowerDepartures,
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housing,
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower,
+    IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink> bossTowerDepartures) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {
@@ -130,14 +130,13 @@ internal sealed class SelectedSessionCleanupService(
         DungeonRunState? run = null;
         if (ownsSelectedCharacter)
         {
-            if (creatures is not null)
-                await RunAsync(() => creatures.LeaveAsync(session, CancellationToken.None));
+            await RunAsync(() => creatures.LeaveAsync(session, CancellationToken.None));
             run = dungeonRuns.Find(session.CharacterId);
         }
 
         // Tower membership belongs to the exact selected-session generation. It must be released
         // even after that generation has already lost the selected-session directory race.
-        if (illusionTower?.Find(session) is { } towerRun)
+        if (illusionTower.Find(session) is { } towerRun)
         {
             TowerActionResult? towerDeparture = null;
             await RunAsync(async () =>
@@ -148,18 +147,18 @@ internal sealed class SelectedSessionCleanupService(
             });
             if (towerDeparture is { Changed: true } departed)
             {
-                foreach (var sink in illusionTowerDepartures ?? [])
+                foreach (var sink in illusionTowerDepartures)
                     await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));
             }
         }
 
-        if (bossTower?.Find(session) is { } bossRun)
+        if (bossTower.Find(session) is { } bossRun)
         {
             Dfo.Server.Abstractions.World.BossTower.BossTowerActionResult? bossDeparture = null;
             await RunAsync(async () => bossDeparture = await bossTower.LeaveAsync(
                 new(session, bossRun.RunId, bossRun.Room.Version), true, footprint, CancellationToken.None).ConfigureAwait(false));
             if (bossDeparture is { Changed: true } departed)
-                foreach (var sink in bossTowerDepartures ?? [])
+                foreach (var sink in bossTowerDepartures)
                     await RunAsync(() => sink.DepartedAsync(departed, CancellationToken.None));
         }
 
@@ -195,7 +194,7 @@ internal sealed class SelectedSessionCleanupService(
             }
         }
         Run(() => expertStores.CloseExact(session));
-        Run(() => { housing?.CloseExact(session); return true; });
+        Run(() => { housing.CloseExact(session); return true; });
         Run(() => pvp.ClearReadyExact(session));
         // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
         // and only if this session still owns them: a successor that has already begun keeps its own.
@@ -284,7 +283,7 @@ internal sealed class SelectCharacterSessionEntryService(
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
     IOnlineCharacterRuntimeDomainService runtime,
-    ICreatureRuntimeDomainService? creatures = null) : ISelectCharacterSessionEntryDomainService
+    ICreatureRuntimeDomainService creatures) : ISelectCharacterSessionEntryDomainService
 {
     public async ValueTask<TownParticipantPublicationPlan?> PlanTownPublicationAsync(
         SelectedSessionIdentity session, SelectCharacterResult result,
@@ -392,7 +391,7 @@ internal sealed class SelectCharacterSessionEntryService(
     {
         if (!sessions.IsSelected(session))
             throw new InvalidOperationException("Cannot publish a replaced selection.");
-        creatures?.Enter(session);
+        creatures.Enter(session);
         var position = result.Character.Position;
         runtime.Begin(
             session,

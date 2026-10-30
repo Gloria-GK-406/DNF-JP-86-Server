@@ -29,13 +29,14 @@ public sealed class SeekingQuestProgressDomainServiceTests
         {
             Carried = { [Character.Value] = [new CarriedQuest(0, 1779, 15)] },
         };
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, held)));
-        var service = new SeekingQuestProgressDomainService(
-            new Rules(Definition()),
-            logs,
-            containers,
-            CurrentCharacterStub.Domain(new CurrentCharacterStub { Id = Character }));
+        var content = new Rules(Definition());
+        var rules = new QuestStateRuleService(content);
+        var service = new SeekingQuestProgressDomainService(content, logs, containers, rules,
+            TestRequired.QuestFacts(containers, CurrentCharacterStub.Domain(new CurrentCharacterStub { Id = Character }), rules),
+            owners: TestRequired.Absent<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
+            events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>());
 
         var result = await service.SynchronizeAsync(Account, Character, CancellationToken.None);
 
@@ -63,13 +64,14 @@ public sealed class SeekingQuestProgressDomainServiceTests
                 [new CarriedQuest(0, 1779, 15), new CarriedQuest(1, 2000, 7)],
             },
         };
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, 15)));
-        var service = new SeekingQuestProgressDomainService(
-            new Rules(Definition()),
-            logs,
-            containers,
-            CurrentCharacterStub.Domain(new CurrentCharacterStub { Id = Character }));
+        var content = new Rules(Definition());
+        var rules = new QuestStateRuleService(content);
+        var service = new SeekingQuestProgressDomainService(content, logs, containers, rules,
+            TestRequired.QuestFacts(containers, CurrentCharacterStub.Domain(new CurrentCharacterStub { Id = Character }), rules),
+            owners: TestRequired.Absent<Dfo.Server.Abstractions.Persistence.ICharacterTable>(),
+            events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>());
 
         var result = await service.SynchronizeAsync(Account, Character, CancellationToken.None);
 
@@ -86,10 +88,10 @@ public sealed class SeekingQuestProgressDomainServiceTests
     public async Task Outstanding_materials_use_holdings_ignore_gold_and_do_not_write_progress(int held, bool needed)
     {
         var logs = new RecordingQuestLogs { Carried = { [Character.Value] = [new(0, 1779, 0)] } };
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, held)));
         var definition = Definition() with { SeekingItems = [new(10149163, 15), new(10149163, 10), new(0, 100)] };
-        var service = new QuestMaterialRequirementDomainService(new Rules(definition), logs, containers);
+        var service = new QuestMaterialRequirementDomainService(logs, new QuestStateRuleService(new Rules(definition)), TestRequired.QuestFacts(containers, TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterDomainService>(), new QuestStateRuleService(new Rules(definition))));
         var result = await service.GetOutstandingMaterialIdsAsync(Account, Character, default);
         Assert.Equal(needed, result.Contains(10149163));
         Assert.Equal(needed ? 1 : 0, result.Count);
@@ -102,12 +104,12 @@ public sealed class SeekingQuestProgressDomainServiceTests
     public async Task Outstanding_union_includes_only_carried_unmet_requirements_without_summing_across_quests()
     {
         var logs = new RecordingQuestLogs { Carried = { [Character.Value] = [new(0, 1779, 15), new(1, 1780, 0)] } };
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         TestGameplay.Run(() => containers.Register(Character, new Bag(10149163, 15)));
         var first = Definition();
         var second = first with { QuestId = 1780, SeekingItems = [new(10149163, 20), new(3205, 5)] };
         var unaccepted = first with { QuestId = 1781, SeekingItems = [new(999, 10)] };
-        var service = new QuestMaterialRequirementDomainService(new Rules(first, second, unaccepted), logs, containers);
+        var service = new QuestMaterialRequirementDomainService(logs, new QuestStateRuleService(new Rules(first, second, unaccepted)), TestRequired.QuestFacts(containers, TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterDomainService>(), new QuestStateRuleService(new Rules(first, second, unaccepted))));
         Assert.Equal(new[] { 3205, 10149163 }, (await service.GetOutstandingMaterialIdsAsync(Account, Character, default)).Order());
         logs.Carried[Character.Value] = [new(0, 1779, 15)];
         Assert.Empty(await service.GetOutstandingMaterialIdsAsync(Account, Character, default));

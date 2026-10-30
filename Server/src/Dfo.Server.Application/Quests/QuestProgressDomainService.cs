@@ -14,7 +14,7 @@ public sealed class QuestProgressDomainService(
     IQuestDefinitionDomainService definitions,
     ICharacterQuestLogDomainService logs,
     IQuestTriggerDomainService clientReports,
-    ISeekingQuestProgressDomainService seeking, IMirrorAradQuestDomainService? mirror = null) : IQuestProgressDomainService
+    ISeekingQuestProgressDomainService seeking, IMirrorAradQuestDomainService mirror) : IQuestProgressDomainService
 {
     public async ValueTask<QuestProgressReport> ReportAsync(
         AccountId accountId,
@@ -48,7 +48,7 @@ public sealed class QuestProgressDomainService(
                     var definition = await definitions.FindAsync(report.QuestId, cancellationToken)
                         .ConfigureAwait(false);
                     clientResponse = definition?.Grade == QuestGrade.Crack
-                        ? mirror is null ? QuestAdvance.Refused : await mirror.TriggerAsync(accountId, characterId, checked((ushort)report.QuestId), cancellationToken).ConfigureAwait(false)
+                        ? await mirror.TriggerAsync(accountId, characterId, checked((ushort)report.QuestId), cancellationToken).ConfigureAwait(false)
                         : definition is null ? QuestAdvance.Refused
                         : await clientReports.ApplyClientReportAsync(
                             accountId, characterId, definition, report.Selector,
@@ -93,12 +93,12 @@ public sealed class QuestProgressDomainService(
             }
         }
 
-        if (mirror is not null && clientFact is null)
+        if (clientFact is null)
             serverProgressChanged |= await mirror.ReportAsync(accountId, characterId, facts, cancellationToken).ConfigureAwait(false);
         var snapshot = serverProgressChanged
             ? new QuestProgressSnapshot(await log.CarriedAsync(cancellationToken).ConfigureAwait(false))
             : null;
-        if (snapshot is not null && mirror is not null)
+        if (snapshot is not null)
             snapshot = await mirror.MergeAsync(characterId, snapshot, cancellationToken).ConfigureAwait(false);
         return new QuestProgressReport(clientResponse, changes, snapshot);
     }

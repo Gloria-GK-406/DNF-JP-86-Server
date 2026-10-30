@@ -187,7 +187,7 @@ public sealed class CreatureGoesBackOnTests
 
         private readonly CharacterId character = new(Character);
 
-        private readonly DomainTransactionScope scope = new();
+        private readonly DomainTransactionScope scope = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
 
         private readonly LegacyWornItemNormalizer normalizer;
 
@@ -201,10 +201,10 @@ public sealed class CreatureGoesBackOnTests
             var rules = new ItemPlacementRuleService(
                 content.GetRequiredService<IItemPlacementDefinitionSource>(),
                 content.GetRequiredService<IEquipmentSlotDefinitionSource>());
-            var store = this.store = new SqliteItemDomainStore(databasePath);
+            var store = this.store = new SqliteItemDomainStore(databasePath, TestRequired.NoContentsEvents);
             this.normalizer = new LegacyWornItemNormalizer(store, rules,
                 new Dfo.Server.Application.Characters.AmbientStoreAccess(this.scope));
-            var containers = new CharacterContainerDomainService();
+            var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
             foreach (var type in new[]
                      {
                          InventoryContainerType.Main, InventoryContainerType.Equipment,
@@ -223,9 +223,9 @@ public sealed class CreatureGoesBackOnTests
             this.Containers = containers;
             this.bus = new DirectInventoryMove(
                 move: new InventoryMoveDomainService(
-                    new BusinessInventorySlotDomainService(containers),
+                    TestRequired.SlotsOver(containers),
                     new ItemMovementDomainService(
-                        rules, new ItemSlotRuleService(), new CreatureGoesBackOnTestsWearEligibility())),
+                        rules, new ItemSlotRuleService(), new CreatureGoesBackOnTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>()),
                 scope: this.scope);
         }
 

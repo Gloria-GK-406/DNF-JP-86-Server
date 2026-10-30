@@ -359,7 +359,7 @@ public sealed class QuestEnemyDropDomainServiceTests
         if (memberCarriesQuest)
             logs.Carried[Member.Value] = [new CarriedQuest(0, 1779, 15)];
 
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var bag = new Bag(10149163, held);
         TestGameplay.Run(() => containers.Register(Leader, bag));
         if (memberCarriesQuest)

@@ -23,7 +23,7 @@ public sealed class SealedTreasureRunTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var runs = TestParties.Runs(scope);
             var road = new MazeCell(x, y);
             var layout = Layout(3557, road);
@@ -69,7 +69,7 @@ public sealed class SealedTreasureRunTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var runs = TestParties.Runs(scope);
             var seed = DungeonCellSeed.CompleteEmpty(Center, 10) with {
                 Objects = [new(new(new(DungeonObjectSection.SpecialPassive, 0), 15150, 10, 10, 0), [])],

@@ -81,4 +81,5 @@
   <ItemGroup><Compile Include="../Support/ProtocolAlgorithmFixture.cs" Link="Support/ProtocolAlgorithmFixture.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Support/DerivedDungeonParticipation.cs" Link="Support/DerivedDungeonParticipation.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Support/DungeonClearProjectionDriver.cs" Link="Support/DungeonClearProjectionDriver.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Support/TestRequired.cs" Link="Support/TestRequired.cs" /></ItemGroup>
 </Project>

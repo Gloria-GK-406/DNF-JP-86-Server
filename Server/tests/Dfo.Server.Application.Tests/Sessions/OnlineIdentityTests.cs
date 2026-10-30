@@ -269,7 +269,7 @@ public sealed class OnlineIdentityTests
 
     private sealed class Identity
     {
-        private readonly OnlineStateRegistry state = new(new DomainTransactionScope());
+        private readonly OnlineStateRegistry state = new(TestRequired.TransactionScope());
 
         public Identity()
         {

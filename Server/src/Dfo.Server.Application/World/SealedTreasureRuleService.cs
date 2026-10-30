@@ -4,7 +4,7 @@ using Dfo.Server.Data.Events;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class SealedTreasureRuleService(IDungeonDefinitionSource? content = null) : ISealedTreasureRuleService
+internal sealed class SealedTreasureRuleService(IDungeonDefinitionSource content) : ISealedTreasureRuleService
 {
     internal const int DungeonId = 3557;
     internal const int ActivityId = 2331;
@@ -22,7 +22,7 @@ internal sealed class SealedTreasureRuleService(IDungeonDefinitionSource? conten
 
     public async ValueTask<DungeonDefinition> DefinitionAsync(CancellationToken ct)
     {
-        var definition = content is null ? null : await content.GetAsync(DungeonId, ct).ConfigureAwait(false);
+        var definition = await content.GetAsync(DungeonId, ct).ConfigureAwait(false);
         if (definition is null || !definition.IsSpiciesDungeon || definition.ConsumesFatigue
             || definition.PartyLimit != 1 || !definition.ProhibitsPractice
             || definition.SupportedDifficulties is not { Count: 1 } tiers || tiers[0] != 2

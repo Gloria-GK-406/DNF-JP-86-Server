@@ -20,8 +20,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemSlotRuleService slotRules,
-    ICharacterEntryPreparationRuleService preparationRules, IInventoryCapacityDomainService? capacities = null,
-    ITransientItemDomainStoreFactory? transientStores = null) : ISelectCharacterEntryInventoryDomainService
+    ICharacterEntryPreparationRuleService preparationRules, IInventoryCapacityDomainService capacities,
+    ITransientItemDomainStoreFactory transientStores) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
@@ -76,7 +76,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             ?? throw new InvalidDataException(
                 "Entry inventory has no avatar container to bind the character to.");
 
-        var transient = (transientStores ?? throw new InvalidOperationException("Memory inventory storage is not configured.")).Create();
+        var transient = transientStores.Create();
         containers.Clear(characterId);
         foreach (var container in ((InventoryContainerState[])[main, equipment, avatar])
             .Concat(inventory.Containers.Where(value => value.ContainerType is InventoryContainerType.Pet

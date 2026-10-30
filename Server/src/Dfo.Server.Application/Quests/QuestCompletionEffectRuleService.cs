@@ -15,10 +15,10 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
     IQuestRewardRuleService rewards, IExperienceRuleService experience, ICarriedGoldRuleService gold,
     IItemPlacementRuleService placements, IAccountMaterialRuleService accounts,
     ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures,
-    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService? stateRules = null)
+    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService stateRules)
     : IQuestCompletionEffectRuleService
 {
-    private readonly IQuestStateRuleService stateRules = stateRules ?? new QuestStateRuleService(quests);
+    private readonly IQuestStateRuleService stateRules = stateRules;
 
     public ValueTask<QuestDefinition?> DefinitionAsync(int id, CancellationToken ct) => quests.FindAsync(id, ct);
     public QuestRewardResolution Rewards(QuestDefinition definition, QuestCompletionFacts facts, ushort selection, ushort count)

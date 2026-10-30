@@ -12,14 +12,13 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService structures,
-    ICharacterDungeonDifficultyDomainService difficulties, IDungeonDifficultyRuleService difficultyRules,
-    ICharacterFatigueDomainService fatigue, IDungeonEntryMaterialsDomainService? materials = null,
-    ICharacterDomainService? characters = null, IIllusionTowerDomainService? tower = null,
-    ICharacterQuestLogDomainService? quests = null, IUsageQuotaDomainService? quotas = null,
-    IEventService? events = null, IDomainTransactionAccessor? transactions = null,
-    ISelectedSessionDomainService? sessions = null, IOnlineCharacterRuntimeDomainService? onlineCharacters = null,
-    IDungeonRunDomainService? runs = null, CoupleDungeonRule? couples = null, IDungeonAdmissionRuleService? admissionRules = null, IDungeonParticipationDomainService? participation = null) : IDungeonAdmissionDomainService
+internal sealed class DungeonAdmissionDomainService(ICharacterDungeonDifficultyDomainService difficulties, IDungeonDifficultyRuleService difficultyRules,
+    ICharacterFatigueDomainService fatigue, IDungeonEntryMaterialsDomainService materials,
+    ICharacterDomainService characters, IIllusionTowerDomainService tower,
+    ICharacterQuestLogDomainService quests, IUsageQuotaDomainService quotas,
+    IEventService events, IDomainTransactionAccessor transactions,
+    ISelectedSessionDomainService sessions, IOnlineCharacterRuntimeDomainService onlineCharacters,
+    IDungeonRunDomainService runs, CoupleDungeonRule couples, IDungeonAdmissionRuleService admissionRules, IDungeonParticipationDomainService participation) : IDungeonAdmissionDomainService
 {
     public async ValueTask<DungeonAdmissionDecision> PrepareAsync(DungeonEntryContext context, DungeonAdmissionOptions options, CancellationToken ct)
     {
@@ -27,7 +26,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             || context.Participants.Select(x => x.AccountId).Distinct().Count() != context.Participants.Count
             || context.Participants.Select(x => x.Slot).Distinct().Count() != context.Participants.Count)
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
-        if (context.DungeonId == CoupleDungeonRule.DungeonId && (couples is null || !await couples.EligibleAsync(context, ct).ConfigureAwait(false)))
+        if (context.DungeonId == CoupleDungeonRule.DungeonId && (!await couples.EligibleAsync(context, ct).ConfigureAwait(false)))
             return Refuse(DungeonEntryFailure.MissingPrerequisite);
         if (options.Quota is { } entryQuota && !DungeonAdmissionQuota.CountsEntries(entryQuota.Family))
             throw new ArgumentException("Unsupported dungeon entry quota family.", nameof(options));
@@ -35,10 +34,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
         DungeonAdmissionDefinition? definition;
         try
         {
-            definition = admissionRules is not null
-                ? await admissionRules.GetAsync(context.DungeonId, ct).ConfigureAwait(false)
-                : await structures.GetDefinitionAsync(context.DungeonId, ct).ConfigureAwait(false) is { } ordinary
-                    ? DungeonAdmissionDefinition.From(ordinary) : null;
+            definition = await admissionRules.GetAsync(context.DungeonId, ct).ConfigureAwait(false);
         }
         catch (InvalidDataException error) { return new(null, DungeonEntryAttempt.Refused(DungeonEntryFailure.ConfigurationInvalid, error.Message)); }
         if (options.RequireMinimumLevel && definition is null) return Refuse(DungeonEntryFailure.DungeonNotFound);
@@ -49,23 +45,23 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
         var eligible = new List<(DungeonRunParticipant Member, SelectedSessionIdentity? Selected)>();
         foreach (var member in context.Participants)
         {
-            if (participation?.Find(member.CharacterId) is not null || tower?.IsInTower(member.CharacterId) == true || options.MirrorCatalog is not null && runs?.Find(member.CharacterId) is not null)
+            if (participation.Find(member.CharacterId) is not null || tower.IsInTower(member.CharacterId) || options.MirrorCatalog is not null && runs.Find(member.CharacterId) is not null)
                 return Refuse(DungeonEntryFailure.AlreadyInDungeon, member.Slot);
             SelectedSessionIdentity? selected = null;
             if (context.DungeonId == CoupleDungeonRule.DungeonId)
             {
-                selected = sessions?.Find(member.AccountId);
-                if (selected?.CharacterId != member.CharacterId || !sessions!.IsInWorld(selected)) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
+                selected = sessions.Find(member.AccountId);
+                if (selected?.CharacterId != member.CharacterId || !sessions.IsInWorld(selected)) return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }
             if (options.MirrorCatalog is { } catalog)
             {
-                selected = sessions?.Find(member.AccountId);
-                var position = onlineCharacters?.PositionOf(member.CharacterId);
-                if (selected is null || selected.CharacterId != member.CharacterId || !sessions!.IsInWorld(selected) || position is null
+                selected = sessions.Find(member.AccountId);
+                var position = onlineCharacters.PositionOf(member.CharacterId);
+                if (selected is null || selected.CharacterId != member.CharacterId || !sessions.IsInWorld(selected) || position is null
                     || position.TownId != catalog.EntryTownId || position.AreaId != catalog.EntryAreaId)
                     return Refuse(DungeonEntryFailure.MissingPrerequisite, member.Slot);
             }
-            if (characters is not null && (options.MirrorCatalog is not null || options.RequireMinimumLevel || !options.Mirror && definition is { HasStoryMode: false }))
+            if ((options.MirrorCatalog is not null || options.RequireMinimumLevel || !options.Mirror && definition is { HasStoryMode: false }))
             {
                 var progress = await characters.Get(member.CharacterId).ProgressAsync(ct).ConfigureAwait(false);
                 if (progress is null || progress.Level < (options.MirrorCatalog?.MinimumLevel ?? definition!.MinimumRequiredLevel))
@@ -73,7 +69,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             }
             if (options.RequiredQuestIds.Count > 0)
             {
-                var cleared = await (quests ?? throw new InvalidOperationException("Entry quest service unavailable."))
+                var cleared = await quests
                     .LogOf(member.AccountId, member.CharacterId).ClearedAsync(ct).ConfigureAwait(false);
                 if (options.RequiredQuestIds.Any(id => !cleared.Any(x => x.QuestId == id && (options.MirrorCatalog is null || x.Mark != 0))))
                     return Refuse(options.HellTickets is null ? DungeonEntryFailure.MissingPrerequisite : DungeonEntryFailure.HellQuestNotCleared, member.Slot);
@@ -123,7 +119,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             if (options.GoldCosts.TryGetValue(member.CharacterId, out var goldCost))
             {
                 if (goldCost < 0) throw new InvalidDataException("Negative dungeon entry gold cost.");
-                if (await (characters ?? throw new InvalidOperationException("Character service unavailable.")).Get(member.CharacterId).GoldAsync(ct).ConfigureAwait(false) < goldCost)
+                if (await characters.Get(member.CharacterId).GoldAsync(ct).ConfigureAwait(false) < goldCost)
                     return Refuse(DungeonEntryFailure.InsufficientGold, member.Slot);
                 if (goldCost > 0) costs.Add(new DungeonGoldAdmissionCost(goldCost));
             }
@@ -146,14 +142,14 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             }
             permits.Add(new Permit(member, costs.ToImmutable(), requirements, selected, hellTicketItemId));
         }
-        return new(new Batch(this, transactions?.Current, context with { Participants = context.Participants.ToImmutableArray() },
+        return new(new Batch(this, transactions.Current, context with { Participants = context.Participants.ToImmutableArray() },
             options with { ConsumesFatigue = options.ConsumesFatigue ?? definition?.ConsumesFatigue ?? true }, permits.ToImmutable()));
     }
 
     public async ValueTask<DungeonAdmissionConsumption> ConsumeAsync(IDungeonAdmissionBatch batch, CancellationToken ct)
     {
         if (batch is not Batch owned || !ReferenceEquals(owned.Owner, this) || owned.Consumed
-            || !ReferenceEquals(owned.Transaction, transactions?.Current))
+            || !ReferenceEquals(owned.Transaction, transactions.Current))
             throw new InvalidOperationException("Admission permits are foreign, stale or already consumed.");
         owned.Consumed = true;
         var plans = new List<IDungeonEntryMaterialPlan>();
@@ -162,7 +158,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             var permit = (Permit)raw;
             if (owned.Options.ConsumesFatigue == true && (await fatigue.BalanceOfAsync(permit.Participant.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
                 return new(null, new(null, DungeonEntryFailure.InsufficientFatigue, permit.Participant.Slot));
-            if (permit.Selected is { } selected && sessions?.IsInWorld(selected) != true)
+            if (permit.Selected is { } selected && !sessions.IsInWorld(selected))
                 return new(null, new(null, DungeonEntryFailure.MissingPrerequisite, permit.Participant.Slot));
             if (permit.Requirements.Length > 0)
             {
@@ -174,7 +170,7 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
                 if (permit.Costs.OfType<DungeonMaterialAdmissionCost>().Any()) plans.Add(result.Plan);
             }
             foreach (var gold in permit.Costs.OfType<DungeonGoldAdmissionCost>())
-                if (await (characters ?? throw new InvalidOperationException("Character service unavailable.")).Get(permit.Participant.CharacterId).GoldAsync(ct).ConfigureAwait(false) < gold.Amount)
+                if (await characters.Get(permit.Participant.CharacterId).GoldAsync(ct).ConfigureAwait(false) < gold.Amount)
                     return new(null, new(null, DungeonEntryFailure.InsufficientGold, permit.Participant.Slot));
             foreach (var quota in permit.Costs.OfType<DungeonQuotaAdmissionCost>())
             {
@@ -195,11 +191,11 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             {
                 var member = raw.Participant;
                 foreach (var gold in raw.Costs.OfType<DungeonGoldAdmissionCost>())
-                    if (await (characters ?? throw new InvalidOperationException("Character service unavailable.")).Get(member.CharacterId).TrySpendGoldAsync(gold.Amount, ct).ConfigureAwait(false) is null)
+                    if (await characters.Get(member.CharacterId).TrySpendGoldAsync(gold.Amount, ct).ConfigureAwait(false) is null)
                         throw new InvalidOperationException("Entry gold changed after preflight.");
                 foreach (var quota in raw.Costs.OfType<DungeonQuotaAdmissionCost>())
                 {
-                    var bus = events ?? throw new InvalidOperationException("Entry event service unavailable.");
+                    var bus = events;
                     if (quota.Key.Family == UsageQuotaFamily.LostLand)
                         await bus.DirectAsync(new LostLandEntryRecorded(member.CharacterId, quota.Key.Day!.Value, quota.Expected, quota.Used), ct).ConfigureAwait(false);
                     else if (quota.Key.Family == UsageQuotaFamily.GoldSilverHorn)
@@ -227,10 +223,10 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
     public DungeonEntryAttempt? BeginEntry(IDungeonAdmissionReceipt receipt, IReadOnlyList<DungeonRunParticipant> participants, int dungeonId)
     {
         if (receipt is not Receipt paid || !ReferenceEquals(paid.Batch.Owner, this) || paid.Started
-            || !ReferenceEquals(paid.Batch.Transaction, transactions?.Current) || paid.Batch.Context.DungeonId != dungeonId
+            || !ReferenceEquals(paid.Batch.Transaction, transactions.Current) || paid.Batch.Context.DungeonId != dungeonId
             || !paid.Batch.Context.Participants.SequenceEqual(participants))
             throw new InvalidOperationException("Entry receipt is foreign, stale or already used.");
-        if (paid.Batch.Permits.Cast<Permit>().Any(x => x.Selected is { } selected && sessions?.IsInWorld(selected) != true))
+        if (paid.Batch.Permits.Cast<Permit>().Any(x => x.Selected is { } selected && !sessions.IsInWorld(selected)))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Mirror participants changed during entry.");
         paid.Started = true;
         return null;
@@ -248,18 +244,18 @@ internal sealed class DungeonAdmissionDomainService(IDungeonStructureRuleService
             var result = await enter(payment.Receipt, ct).ConfigureAwait(false);
             if (result.Entry is null)
             {
-                transactions?.Current?.RequireRollback();
+                transactions.Current?.RequireRollback();
                 return result;
             }
             return result with { Entry = result.Entry with { InventoryChanges = payment.Receipt.InventoryChanges.Concat(result.Entry.InventoryChanges).ToArray() } };
         }
-        catch { transactions?.Current?.RequireRollback(); throw; }
+        catch { transactions.Current?.RequireRollback(); throw; }
     }
 
-    private IUsageQuotaDomainService Quotas => quotas ?? throw new InvalidOperationException("Entry quota service unavailable.");
+    private IUsageQuotaDomainService Quotas => quotas;
     private ValueTask<DungeonEntryMaterialPreparation> PrepareMaterialsAsync(DungeonRunParticipant member,
         IReadOnlyList<DungeonRequiredItem> requirements, CancellationToken ct) =>
-        (materials ?? throw new InvalidOperationException("Entry material service unavailable.")).PrepareAsync([member], requirements, ct);
+        materials.PrepareAsync([member], requirements, ct);
     private static DungeonAdmissionDecision Refuse(DungeonEntryFailure failure, byte? slot = null) => new(null, new(null, failure, slot));
     private sealed record Permit(DungeonRunParticipant Participant, ImmutableArray<DungeonAdmissionCost> Costs,
         ImmutableArray<DungeonRequiredItem> Requirements, SelectedSessionIdentity? Selected, int? HellTicketItemId) : IDungeonAdmissionPermit;

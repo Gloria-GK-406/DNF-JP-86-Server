@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Characters;
@@ -278,7 +279,7 @@ public sealed class DarkKnightComboBookTests
         var transaction = new CountingTransaction();
 
         _ = new SqliteCharacterDomainStore(fixture.Path).SessionIn(transaction);
-        _ = new SqliteItemDomainStore(fixture.Path).SessionIn(transaction);
+        _ = new SqliteItemDomainStore(fixture.Path, TestRequired.NoContentsEvents).SessionIn(transaction);
         _ = new SqliteQuestDomainStore(fixture.Path).SessionIn(transaction);
         _ = fixture.Store.SessionIn(transaction);
 
@@ -292,7 +293,7 @@ public sealed class DarkKnightComboBookTests
         private Fixture(string path)
         {
             this.Path = path;
-            var database = new SqliteDatabase(path, new DomainTransactionScope());
+            var database = new SqliteDatabase(path, TestRequired.TransactionScope());
             this.Transactions = new OneUseCaseAtATime();
             this.Store = new SqliteDarkKnightComboDomainStore(
                 path, new SqliteCharacterComboPageTable(database));
@@ -315,7 +316,7 @@ public sealed class DarkKnightComboBookTests
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-combopages-{Guid.NewGuid():N}.db");
             // The database owns the schema; the store only writes into it.
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var fixture = new Fixture(path);
             await using var connection = Open(path);
             await using var character = connection.CreateCommand();

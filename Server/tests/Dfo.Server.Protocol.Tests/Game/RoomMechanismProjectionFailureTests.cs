@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
@@ -82,6 +83,7 @@ public sealed class RoomMechanismProjectionFailureTests
                 services.AddSingleton(Probe);
                 services.AddEventDispatching();
                 services.AddNotificationDispatching();
+                services.TryAddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>());
                 services.AddNotificationHandler<DungeonRoomMechanismsNotification, MechanismProbeHandler>();
                 services.AddSingleton<DungeonRoomMechanismNotificationSubscriber>();
             });

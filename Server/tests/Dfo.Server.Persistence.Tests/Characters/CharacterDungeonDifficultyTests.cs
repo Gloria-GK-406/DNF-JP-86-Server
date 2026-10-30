@@ -14,8 +14,8 @@ namespace Dfo.Server.Persistence.Tests.Characters;
 public sealed class CharacterDungeonDifficultyTests : IDisposable
 {
     private readonly string path = Path.Combine(Path.GetTempPath(), $"difficulty-{Guid.NewGuid():N}.db");
-    private readonly DomainTransactionScope scope = new();
-    private CharacterDungeonDifficultyDomainService Service => new(new SqliteCharacterDungeonPermissionTable(new SqliteDatabase(path, scope)), new DungeonDifficultyRuleService(new Definitions()));
+    private readonly DomainTransactionScope scope = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
+    private CharacterDungeonDifficultyDomainService Service => new(new SqliteCharacterDungeonPermissionTable(new SqliteDatabase(path, scope)), new DungeonDifficultyRuleService(TestRequired.Admissions(new Definitions())));
 
     public CharacterDungeonDifficultyTests()
     {
@@ -106,7 +106,7 @@ public sealed class CharacterDungeonDifficultyTests : IDisposable
         {
             var service = new CharacterDungeonDifficultyDomainService(
                 new SqliteCharacterDungeonPermissionTable(new SqliteDatabase(path, scope)),
-                new DungeonDifficultyRuleService(new Definitions()));
+                new DungeonDifficultyRuleService(TestRequired.Admissions(new Definitions())));
             await using (scope.Begin())
                 Assert.Equal(DungeonDifficulty.Adventure,
                     (await service.UnlockAfterClearAsync(new(1), 150, DungeonDifficulty.Normal, default))!.Maximum);

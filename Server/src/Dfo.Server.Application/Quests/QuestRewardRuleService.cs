@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Quests;
 
-internal sealed class QuestRewardRuleService(ICycleDungeonRuleService? cycles = null) : IQuestRewardRuleService
+internal sealed class QuestRewardRuleService(ICycleDungeonRuleService cycles) : IQuestRewardRuleService
 {
     private const ushort NoRewardSelection = ushort.MaxValue;
 
@@ -92,7 +92,7 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService? cycles = 
 
         if (definition.Grade == QuestGrade.Circle)
         {
-            var regional = cycles?.RewardsForQuest(definition.QuestId);
+            var regional = cycles.RewardsForQuest(definition.QuestId);
             if (regional is not { Count: > 0 } || !definition.Rewards.Any(x => x.Kind == QuestRewardKind.CircleDungeon))
                 return QuestRewardResolution.Refused(QuestRewardRejection.CycleRewardUnavailable);
             return QuestRewardResolution.Valid(new(experience, 0, regional, ConsumedItems: definition.SeekingItems));

@@ -14,8 +14,8 @@ using Microsoft.Data.Sqlite;
 namespace Dfo.Server.Persistence.Mail;
 
 /// <summary>Mailbox rows share the current use case's SQLite transaction with item and gold stores.</summary>
-internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDomainStore? items = null,
-    IDomainTransactionAccessor? transactions = null) : IMailboxRepository
+internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDomainStore items,
+    IDomainTransactionAccessor transactions) : IMailboxRepository
 {
     private const string Visible = "r.character_id=@recipient AND r.folder=0 AND r.saved_flag=0 AND r.deleted_flag=0";
 
@@ -181,7 +181,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
         Custody().TakeMailAttachmentAsync(recipient, attachmentId, now, cancellationToken);
 
     private IMailItemCustodySession Custody() =>
-        items?.SessionIn(transactions?.Current ?? throw new InvalidOperationException("Mail custody requires the item transaction."))
+        items.SessionIn(transactions.Current ?? throw new InvalidOperationException("Mail custody requires the item transaction."))
             as IMailItemCustodySession ?? throw new InvalidOperationException("This mailbox has no transactional item custody adapter.");
 
     public async ValueTask MarkReadAsync(CharacterId recipient, long mailId, CancellationToken cancellationToken)

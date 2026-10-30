@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Quests;
@@ -121,7 +122,7 @@ public sealed class QuestRewardRuleServiceTests
         byte growType = 0,
         ushort selection = ushort.MaxValue,
         ushort completionCount = 1) =>
-        new QuestRewardRuleService().Resolve(
+        new QuestRewardRuleService(cycles: TestRequired.Absent<Dfo.Server.Abstractions.World.ICycleDungeonRuleService>()).Resolve(
             quest,
             Parameters,
             new(job, growType, 1),

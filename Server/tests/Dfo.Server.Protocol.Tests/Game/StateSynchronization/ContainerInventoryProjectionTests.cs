@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -93,7 +94,7 @@ public sealed class ContainerInventoryProjectionTests
         {
             var path = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"dfo-projection-{Guid.NewGuid():N}.db");
-            _ = new SqliteDatabase(path, new DomainTransactionScope());
+            _ = new SqliteDatabase(path, TestRequired.TransactionScope());
             var storage = new SqliteStorage(path);
             await using var connection = Open(path);
             await using var command = connection.CreateCommand();
@@ -108,8 +109,8 @@ public sealed class ContainerInventoryProjectionTests
             new PersistentItemContainer(
                 ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 new ContainerShape(InventoryContainerType.Main, parameter),
-                new SqliteItemDomainStore(Path),
-                new DomainTransactionScope(),
+                new SqliteItemDomainStore(Path, TestRequired.NoContentsEvents),
+                TestRequired.TransactionScope(),
                 new ItemPlacementRuleService(new NothingDeclared(), new NoWearables()),
                 null!);
 
@@ -129,7 +130,7 @@ public sealed class ContainerInventoryProjectionTests
         public async Task<InventoryContainerState> LoadContainerAsync(
             InventoryContainerType containerType)
         {
-            var loaded = await new CharacterInventoryEntryDomainService(Entries)
+            var loaded = await new CharacterInventoryEntryDomainService(Entries, TestRequired.NoLegacyWornItems(), containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>())
                 .LoadAsync(Account, Character, CancellationToken.None);
             return loaded.Containers.Single(value => value.ContainerType == containerType);
         }

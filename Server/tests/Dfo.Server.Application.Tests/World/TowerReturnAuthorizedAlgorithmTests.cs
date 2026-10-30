@@ -83,7 +83,7 @@ internal static class TowerReturnAuthorizedCases
                     await towers.LoadAsync(context, default);
                     await towers.StartAsync(context, default);
                     await TestEffectFootprints.Run([session], cap => towers.DieAsync(context, cap, default));
-                    Assert.True((await towers.MarkSettledAsync(context, new([]), default)).Changed);
+                    Assert.True(towers.Find(context.Session)!.Completion!.Settled); // a death settles the run
                 }
             }
         });
@@ -160,7 +160,7 @@ internal static class TowerReturnAuthorizedCases
                     await towers.LoadAsync(context, default);
                     await towers.StartAsync(context, default);
                     await TestEffectFootprints.Run([peer], cap => towers.DieAsync(context, cap, default));
-                    Assert.True((await towers.MarkSettledAsync(context, new([]), default)).Changed);
+                    Assert.True(towers.Find(context.Session)!.Completion!.Settled); // a death settles the run
                 }
             });
             fixture.Clock.Advance(TimeSpan.FromMinutes(5));

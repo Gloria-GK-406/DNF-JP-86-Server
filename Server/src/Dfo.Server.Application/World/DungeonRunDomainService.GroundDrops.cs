@@ -104,7 +104,7 @@ internal sealed partial class DungeonRunDomainService
     {
         GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(StageGroundDrop));
         ArgumentNullException.ThrowIfNull(claim);
-        var transaction = this.transactions?.Current;
+        var transaction = this.transactions.Current;
         if (transaction is null)
             return DungeonPickupCommit.Completed(this.CommitGroundDrop(claim, kind));
 

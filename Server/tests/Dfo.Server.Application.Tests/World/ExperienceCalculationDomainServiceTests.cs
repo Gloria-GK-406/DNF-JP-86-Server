@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
@@ -11,7 +12,7 @@ public sealed class ExperienceCalculationDomainServiceTests
     public async Task Named_flag_reaches_valuation_and_bonuses_use_the_named_base()
     {
         var valuation = new NamedWorth();
-        var service = new ExperienceCalculationDomainService(valuation, new Bonuses());
+        var service = new ExperienceCalculationDomainService(valuation, new Bonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
         var result = await service.CalculateAsync(new KillExperienceContext(
             Occasion(ExperienceEvent.MonsterKill), 5, MonsterRank.Champion, 0, 1, 1, true), 3, default);
         Assert.True(valuation.Last.IsNamedMonster);
@@ -29,7 +30,7 @@ public sealed class ExperienceCalculationDomainServiceTests
     [Fact]
     public async Task EachSourceRoundsSeparatelyAndRetainsItsDisplayAmount()
     {
-        var service = new ExperienceCalculationDomainService(new FixedWorth(), new Bonuses());
+        var service = new ExperienceCalculationDomainService(new FixedWorth(), new Bonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
         var result = await service.CalculateAsync(new KillExperienceContext(
             Occasion(ExperienceEvent.MonsterKill), 5, MonsterRank.Ordinary, 0, 1, 1),
             3, CancellationToken.None);
@@ -41,7 +42,7 @@ public sealed class ExperienceCalculationDomainServiceTests
     [Fact]
     public async Task BlackDiamondUsesScoredBaseWithoutCompoundingOtherBonuses()
     {
-        var service = new ExperienceCalculationDomainService(new FixedWorth(), new ClearBonuses());
+        var service = new ExperienceCalculationDomainService(new FixedWorth(), new ClearBonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
         var clear = await service.CalculateAsync(new ClearExperienceContext(
             Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, CancellationToken.None);
         var quest = await service.CalculateAsync(new QuestExperienceContext(
@@ -54,7 +55,7 @@ public sealed class ExperienceCalculationDomainServiceTests
     [Fact]
     public async Task BlackDiamondFloorsFractionalScoredExperience()
     {
-        var service = new ExperienceCalculationDomainService(new FixedWorth(101, 22), new ClearBonuses());
+        var service = new ExperienceCalculationDomainService(new FixedWorth(101, 22), new ClearBonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
         var result = await service.CalculateAsync(new ClearExperienceContext(
             Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, CancellationToken.None);
         Assert.Equal(6u, result.BlackDiamond);

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
@@ -98,7 +99,7 @@ public sealed class ItemStorageSchemaTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-item-schema-{Guid.NewGuid():N}.db");
         try
         {
-            var database = new SqliteDatabase(path, new DomainTransactionScope());
+            var database = new SqliteDatabase(path, TestRequired.TransactionScope());
             await using var connection = new SqliteConnection(database.ConnectionString);
             await connection.OpenAsync();
             await work(connection);

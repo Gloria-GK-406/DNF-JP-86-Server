@@ -52,7 +52,7 @@ public sealed class IndependentDropRuleServiceTests
         Assert.Empty(service.Draw(request with {Context=request.Context with {DungeonId=999}},20,20));
         Assert.Empty(service.Draw(request with {Context=request.Context with {MonsterRank=0}},20,20));
         Assert.Empty(service.Draw(request with {Context=request.Context with {SourceType=IndependentDropSourceType.APC}},20,20));
-        var normal = new IndependentDropRuleService(source, NullLogger<IndependentDropRuleService>.Instance);
+        var normal = new IndependentDropRuleService(source, NullLogger<IndependentDropRuleService>.Instance, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
         Assert.Empty(normal.Draw(request,20,20));
         Assert.Equal(0, table.Rows[0].Fields[3]);
     }
@@ -89,7 +89,7 @@ public sealed class IndependentDropRuleServiceTests
         }
     }
     private static IndependentDropRuleService Service(params IndependentDropRow[] rows) =>
-        new(new Source(rows), NullLogger<IndependentDropRuleService>.Instance);
+        new(new Source(rows), NullLogger<IndependentDropRuleService>.Instance, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
 
     [Theory]
     [InlineData(1, 1)] [InlineData(2, 3)] [InlineData(3, 4)] [InlineData(4, 4)]
@@ -133,7 +133,7 @@ public sealed class IndependentDropRuleServiceTests
     public void Cache_is_built_once_and_rows_can_independently_both_drop()
     {
         var source = new Source(Row(), Row(item:101, ordinal:1));
-        var service = new IndependentDropRuleService(source, NullLogger<IndependentDropRuleService>.Instance);
+        var service = new IndependentDropRuleService(source, NullLogger<IndependentDropRuleService>.Instance, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
         Assert.Equal(2, service.Initialize());
         Assert.Equal(new[] {100, 101}, service.Draw(Request(), 20).Select(d => d.ItemId));
         service.Initialize();
@@ -156,7 +156,7 @@ public sealed class IndependentDropRuleServiceTests
     public void The_level_drawn_against_is_the_one_handed_in_and_is_not_retained_in_static_cache()
     {
         var service = new IndependentDropRuleService(new Source(Row(min:10, max:20), Row(ordinal:1, min:10, max:20)),
-            NullLogger<IndependentDropRuleService>.Instance);
+            NullLogger<IndependentDropRuleService>.Instance, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
         Assert.Equal(2, service.Draw(Request(), 20).Count);
         Assert.Empty(service.Draw(Request(), 21));
     }
@@ -165,7 +165,7 @@ public sealed class IndependentDropRuleServiceTests
     {
         var source = new MissingMetadataSource();
         var logger = new CaptureLogger();
-        var service = new IndependentDropRuleService(source, logger);
+        var service = new IndependentDropRuleService(source, logger, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
         Assert.Equal(2, service.Initialize());
         Assert.Equal(2, logger.Warnings.Count);
         var request = Request();
@@ -205,7 +205,7 @@ public sealed class IndependentDropRuleServiceTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var scope = ContentArchive.CreateContentProvider();
         var logger = new CaptureLogger();
-        var service = new IndependentDropRuleService(scope.GetRequiredService<IIndependentDropTableSource>(), logger);
+        var service = new IndependentDropRuleService(scope.GetRequiredService<IIndependentDropTableSource>(), logger, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
         Assert.Equal(3046, service.Initialize());
         Assert.Contains("10150672", Assert.Single(logger.Warnings));
         service.Initialize();

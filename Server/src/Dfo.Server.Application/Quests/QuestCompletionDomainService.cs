@@ -16,8 +16,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     ICharacterSkillStateDomainService skills, IQuestCompletionEffectRuleService rules,
     IInventoryEffectPreflightDomainService preview,
     ICharacterCarriedGoldTable gold,
-    IMirrorAradQuestDomainService? mirror = null,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService? marriage = null) : IQuestCompletionDomainService
+    IMirrorAradQuestDomainService mirror,
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null)
@@ -27,8 +27,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
         if (definition is null || definition.IsManagedByAchievement) return Refuse();
         var character = characters.Get(id);
-        if (definition.Grade == QuestGrade.Wedding && (marriage is null
-            || !await marriage.CanCompleteAsync(account, id, quest, ct).ConfigureAwait(false))) return Refuse();
+        if (definition.Grade == QuestGrade.Wedding
+            && !await marriage.CanCompleteAsync(account, id, quest, ct).ConfigureAwait(false)) return Refuse();
         var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         var bag = containers.FindContainer(id, InventoryContainerType.Main);
@@ -43,7 +43,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
             shared.Select(item => item.Snapshot)).ConfigureAwait(false);
         var projected = effective.Any(x => quests.Carried.Single(y => y.Slot == x.Slot).TriggerValue != x.TriggerValue)
             ? new QuestProgressSnapshot(effective) : null;
-        if (projected is not null && mirror is not null)
+        if (projected is not null)
             projected = await mirror.MergeAsync(id, projected, ct).ConfigureAwait(false);
         if (effective.FirstOrDefault(x => x.QuestId == quest) is not { TriggerValue: 0 }) return Refuse(projected);
         var reward = rules.Rewards(definition, facts, selection, count);

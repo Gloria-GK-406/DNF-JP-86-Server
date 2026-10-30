@@ -11,7 +11,7 @@ namespace Dfo.Server.Protocol.Tests.Support;
 internal sealed class MoveItemFixture
 {
     private readonly VolatileItemDomainStore store = new();
-    private readonly DomainTransactionScope scope = new();
+    private readonly DomainTransactionScope scope = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
     public IItemDomainStoreSession Session => store.SessionIn(scope.Current
         ?? throw new InvalidOperationException("The move requires an open transaction."));
 

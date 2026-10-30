@@ -74,9 +74,9 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
             var path = Path.Combine(Path.GetTempPath(), $"dfo-creature-kind-{Guid.NewGuid():N}.db");
             try
             {
-                var scope = new DomainTransactionScope();
+                var scope = TestRequired.TransactionScope();
                 _ = new SqliteDatabase(path, scope);
-                var store = new SqliteItemDomainStore(path);
+                var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
                 var pet = ContainerId.ForCharacter(
                     new CharacterId(Character), InventoryContainerType.Pet);
                 var container = new PersistentItemContainer(
@@ -86,10 +86,10 @@ public sealed class CreatureKindAgreesWithTheArchiveTests
                     scope,
                     rules,
                     new ItemSlotRuleService());
-                var registered = new CharacterContainerDomainService();
+                var registered = new CharacterContainerDomainService(TestRequired.TransactionScope());
                 registered.Register(new CharacterId(Character), container);
                 var business = new CharacterBusinessInventoryDomainService(registered, rules,
-                    new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>(), lifecycle: new ItemLifecycleDomainService(store, scope, rules))
+                    new ItemArrivalRuleService(), content.GetRequiredService<ICreatureDefinitionSource>(), lifecycle: new ItemLifecycleDomainService(store, scope, rules, clock: TimeProvider.System, expiration: null!), transactions: TestRequired.TransactionScope(), items: null!, slotRules: null!, capacities: null!)
                     .GetStore(new CharacterId(Character), BusinessInventoryStoreKind.Creature)
                     .GetContainer(BusinessInventorySpace.CreatureInventory);
 

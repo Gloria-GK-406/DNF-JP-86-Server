@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Inventory;
@@ -13,10 +14,10 @@ internal sealed class TestCreatureContainer : IBusinessItemContainer
         Space = space;
         var backend = new VolatileItemDomainStore();
         backend.Seed(StorageId, Physical(0), item);
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         _ = scope.Begin();
         session = backend.SessionIn(scope.Current!);
-        Lifecycle = new Dfo.Server.Application.Inventory.ItemLifecycleDomainService(backend, scope, null!);
+        Lifecycle = new Dfo.Server.Application.Inventory.ItemLifecycleDomainService(backend, scope, null!, clock: TimeProvider.System, expiration: null!);
     }
     private int Physical(int index) => Space == BusinessInventorySpace.WornCreature ? 25 : index;
     public ItemReference? Item => GetAsync(0, default).GetAwaiter().GetResult();

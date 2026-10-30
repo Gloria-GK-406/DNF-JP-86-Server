@@ -7,7 +7,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 /// <summary>Character-local current bindings, with explicit default fallbacks.</summary>
-internal sealed class CharacterContainerDomainService(IDomainTransactionAccessor? transactions = null) : ICharacterContainerDomainService
+internal sealed class CharacterContainerDomainService(IDomainTransactionAccessor transactions) : ICharacterContainerDomainService
 {
     private readonly object sync = new();
     private readonly Dictionary<int, Held> byCharacter = [];
@@ -16,7 +16,7 @@ internal sealed class CharacterContainerDomainService(IDomainTransactionAccessor
     {
         lock (sync)
         {
-            if (transactions?.Current is { } transaction)
+            if (transactions.Current is { } transaction)
                 return transaction.Enlist(this, () => new Changes(this)).Access(character.Value, mutate, action);
             var held = byCharacter.GetValueOrDefault(character.Value) ?? new Held();
             var result = action(held);

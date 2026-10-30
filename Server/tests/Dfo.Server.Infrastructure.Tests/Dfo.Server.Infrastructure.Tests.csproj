@@ -23,4 +23,5 @@
     <!-- The rules the repository now asks instead of deciding. -->
     <ProjectReference Include="..\..\src\Dfo.Server.Application\Dfo.Server.Application.csproj" />
   </ItemGroup>
+  <ItemGroup><Compile Include="../Support/TestRequired.cs" Link="Support/TestRequired.cs" /></ItemGroup>
 </Project>

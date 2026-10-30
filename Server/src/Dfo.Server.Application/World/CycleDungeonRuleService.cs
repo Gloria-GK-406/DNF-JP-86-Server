@@ -6,7 +6,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.World;
 
 internal sealed class CycleDungeonRuleService(ICycleDungeonDefinitionSource definitions,
-    IQuestContentRuleService quests, IWorldContentEntryRuleService offers, IQuestAvailabilityRuleService? questAvailability = null) : ICycleDungeonRuleService
+    IQuestContentRuleService quests, IQuestAvailabilityRuleService questAvailability) : ICycleDungeonRuleService
 {
     public async ValueTask<CycleDungeonRegion?> EligibleAsync(int dungeonId, int questId, WorldContentSubject subject,
         CancellationToken cancellationToken)
@@ -17,9 +17,7 @@ internal sealed class CycleDungeonRuleService(ICycleDungeonDefinitionSource defi
         if (quest?.Grade != QuestGrade.Circle || !quest.Rewards.Any(x => x.Kind == QuestRewardKind.CircleDungeon)) return null;
         // Circle quests are not normal NPC offers. A retry may already carry the same quest;
         // its declared prerequisites still apply, independently of the recommendation list.
-        return await (questAvailability is null
-            ? offers.MeetsQuestRequirementsAsync(quest, subject, cancellationToken)
-            : questAvailability.MeetsRequirementsAsync(quest, subject, cancellationToken)).ConfigureAwait(false) ? region : null;
+        return await questAvailability.MeetsRequirementsAsync(quest, subject, cancellationToken).ConfigureAwait(false) ? region : null;
     }
 
     public IReadOnlyList<QuestRewardItemGrant> RewardsForQuest(int questId) =>

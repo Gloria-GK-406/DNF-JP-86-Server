@@ -35,8 +35,7 @@ internal sealed class CharacterRosterService(
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
     IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue,
-    IItemGrantDomainService grants, ICharacterAppearanceRuleService appearanceRules,
-    ICharacterAppearanceDomainService? appearances = null) : ICharacterRepository
+    IItemGrantDomainService grants, ICharacterAppearanceDomainService appearances) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -118,9 +117,8 @@ internal sealed class CharacterRosterService(
         foreach (var row in rows)
         {
             var pieces = byCharacter.GetValueOrDefault(row.CharacterId) ?? [];
-            var display = appearances is null
-                ? appearanceRules.Resolve(new(CharacterCareer.FromPacked(checked((byte)row.Job), row.GrowType)), pieces, new(null, 0))
-                : await appearances.ResolveAsync(accountId, new(row.CharacterId), pieces, cancellationToken).ConfigureAwait(false);
+            var display =
+                await appearances.ResolveAsync(accountId, new(row.CharacterId), pieces, cancellationToken).ConfigureAwait(false);
             result.Add(Summary(row, display.Parts) with
             { CloneTitleItemId = display.TitleAppearanceItemId, Display = display });
         }

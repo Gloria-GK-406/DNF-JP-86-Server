@@ -31,7 +31,7 @@ public sealed class PersistentContainerBoundaryTests
     [Fact]
     public async Task ChangingItOutsideAUseCaseIsRefused()
     {
-        var container = Persistent(new DomainTransactionScope(), out var lifecycle);
+        var container = Persistent(TestRequired.TransactionScope(), out var lifecycle);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await lifecycle.CreateAsync(ItemSnapshot.FromCore(Core(1), true), CancellationToken.None));
@@ -46,7 +46,7 @@ public sealed class PersistentContainerBoundaryTests
     [Fact]
     public async Task ReadingItOutsideAUseCaseIsAllowed()
     {
-        var container = Persistent(new DomainTransactionScope(), out var lifecycle);
+        var container = Persistent(TestRequired.TransactionScope(), out var lifecycle);
 
         Assert.Null(await container.GetAsync(3, CancellationToken.None));
     }
@@ -56,7 +56,7 @@ public sealed class PersistentContainerBoundaryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             var container = Persistent(scope, out var lifecycle);
 
             await using (var transaction = scope.Begin())
@@ -84,10 +84,10 @@ public sealed class PersistentContainerBoundaryTests
     private static IItemContainer Persistent(DomainTransactionScope scope, out IItemLifecycleDomainService lifecycle)
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-boundary-{Guid.NewGuid():N}.db");
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
-        var store = new SqliteItemDomainStore(path);
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
+        var store = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
         var rules = new ItemPlacementRuleService(new MainBandPlacements(), new NoWearables());
-        lifecycle = new ItemLifecycleDomainService(store, scope, rules);
+        lifecycle = new ItemLifecycleDomainService(store, scope, rules, clock: TimeProvider.System, expiration: null!);
         return new PersistentItemContainer(
             Main,
             new ContainerShape(InventoryContainerType.Main, 0),

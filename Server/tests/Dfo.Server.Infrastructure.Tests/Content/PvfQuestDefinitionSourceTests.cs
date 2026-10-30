@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Quests;
@@ -462,7 +463,7 @@ public sealed class PvfQuestDefinitionSourceTests
         var source = new PvfQuestDefinitionSource(provider);
 
         var quest = await source.GetAsync(1776, CancellationToken.None);
-        var reward = new QuestRewardRuleService().Resolve(
+        var reward = new QuestRewardRuleService(cycles: TestRequired.Absent<Dfo.Server.Abstractions.World.ICycleDungeonRuleService>()).Resolve(
             quest!,
             new PvfQuestParameterSource(provider).Load(),
             new(Job: 0, GrowType: 0, Level: 1),

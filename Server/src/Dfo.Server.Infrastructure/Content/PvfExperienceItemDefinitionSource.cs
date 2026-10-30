@@ -7,7 +7,7 @@ namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfExperienceItemDefinitionSource(
     PvfArchiveProvider provider,
-    PvfContentOptions? options = null)
+    PvfContentOptions options)
     : IExperienceItemDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
@@ -55,7 +55,7 @@ internal sealed class PvfExperienceItemDefinitionSource(
             // run without an archive. Keep this additive classifier absent there instead of making
             // every unrelated stackable use open Script.pvf before the configured source runs.
             // Once the list is loaded, avoid probing the filesystem again for every item use.
-            if (paths is null && options is not null && options.ResolveArchivePath() is null)
+            if (paths is null && options.ResolveArchivePath() is null)
                 return ValueTask.FromResult<ExperienceItemDefinition?>(null);
             if (cache.TryGetValue(itemId, out var cached)) return ValueTask.FromResult(cached);
             var archive = provider.Archive;

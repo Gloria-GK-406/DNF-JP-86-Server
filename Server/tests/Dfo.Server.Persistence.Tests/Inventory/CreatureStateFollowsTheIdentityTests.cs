@@ -345,9 +345,9 @@ public sealed class CreatureStateFollowsTheIdentityTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             await using var transaction = scope.Begin();
-            await work(new SqliteItemDomainStore(path).SessionIn(scope.Current!));
+            await work(new SqliteItemDomainStore(path, TestRequired.NoContentsEvents).SessionIn(scope.Current!));
             await transaction.CommitAsync(CancellationToken.None);
         });
     }
@@ -356,7 +356,7 @@ public sealed class CreatureStateFollowsTheIdentityTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var scope = new DomainTransactionScope();
+            var scope = TestRequired.TransactionScope();
             await using var transaction = scope.Begin();
             work(new SqliteCharacterDomainStore(path).SessionIn(scope.Current!));
             await transaction.CommitAsync(CancellationToken.None);

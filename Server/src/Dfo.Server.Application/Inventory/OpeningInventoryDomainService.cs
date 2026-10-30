@@ -21,9 +21,9 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     ICharacterBusinessInventoryDomainService businessInventories, IItemDomainStore store,
     IBusinessInventorySlotDomainService slots,
     IDomainTransactionAccessor transactions, ICharacterInventoryEntryDomainService inventory,
-    IPremiumServiceDomainService premiums, ICharacterCreatureTable creatures,
+    IPremiumServiceDomainService premiums,
     ICharacterItemUseDomainService itemUse, IApplyEffectsDomainService effects,
-    ICreatureDomainService? creatureDomains = null) : IOpeningInventoryDomainService
+    ICreatureDomainService creatureDomains) : IOpeningInventoryDomainService
 {
     public async ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken ct)
     {
@@ -105,21 +105,10 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         ImmutableArray<CharacterPetRuntimeState> pets = [];
         if (creaturesChanged)
         {
-            if (creatureDomains is not null)
-            {
-                var states = await creatureDomains.GetStore(session.CharacterId).ReadAllAsync(ct).ConfigureAwait(false);
-                if (states.Count > byte.MaxValue)
-                    throw new OpeningRejectedException(OpeningRejection.NoRoom, "Creature count cannot fit the protocol.");
-                pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
-            }
-            else
-            {
-                var rows = await creatures.ReadAsync(session.CharacterId, ct).ConfigureAwait(false);
-                if (rows.Count > byte.MaxValue) throw new OpeningRejectedException(OpeningRejection.NoRoom, "Creature count cannot fit the protocol.");
-                pets = rows.OrderBy(row => row.SortOrder).Select(row => new CharacterPetRuntimeState(row.CreatureKey,
-                    row.Field04, checked((byte)row.ModeFlag), row.ProgressValue, row.Mode1Field0A, row.Mode1Field0B,
-                    row.FieldAfterValue, [.. row.CreatureText], checked((byte)row.TailFlag))).ToImmutableArray();
-            }
+            var states = await creatureDomains.GetStore(session.CharacterId).ReadAllAsync(ct).ConfigureAwait(false);
+            if (states.Count > byte.MaxValue)
+                throw new OpeningRejectedException(OpeningRejection.NoRoom, "Creature count cannot fit the protocol.");
+            pets = states.Select(CreatureRuntimeProjection.Build).ToImmutableArray();
         }
         return new(new OpeningInventoryReceipt(session, updates.ToImmutable(), cleared.ToImmutable(), displayed, now,
             changedPremiums, pets, creaturesChanged) { Replaced = replaced.ToImmutable() }, applied);

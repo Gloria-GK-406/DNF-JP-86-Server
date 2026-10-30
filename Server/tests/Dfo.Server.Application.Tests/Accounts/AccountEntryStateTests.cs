@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Accounts;
@@ -16,7 +17,7 @@ public sealed class AccountEntryStateTests
             new AccountSettingsEntryProjection(),
             new AccountWalletEntitlementEntryProjection(),
             new AccountProgressionEntryProjection(),
-            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub(), new RestrictionStub(Storage(accountId)), TimeProvider.System);
+            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub(), new RestrictionStub(Storage(accountId)), TimeProvider.System, clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>());
 
         var result = await service.LoadAsync(accountId, CancellationToken.None);
         Assert.Equal(new byte[] { 8 }, result.Settings.SeenNotices);
@@ -43,7 +44,7 @@ public sealed class AccountEntryStateTests
             new AccountSettingsEntryProjection(),
             new AccountWalletEntitlementEntryProjection(),
             new AccountProgressionEntryProjection(),
-            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub(), new RestrictionStub(Storage(new AccountId(72))), TimeProvider.System);
+            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub(), new RestrictionStub(Storage(new AccountId(72))), TimeProvider.System, clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await service.LoadAsync(new AccountId(71), CancellationToken.None));
@@ -91,7 +92,7 @@ public sealed class AccountEntryStateTests
             new AccountSettingsEntryProjection(),
             new AccountWalletEntitlementEntryProjection(),
             new AccountProgressionEntryProjection(),
-            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub(), new RestrictionStub(storage), TimeProvider.System);
+            new AccountRelationCompatibilityEntryProjection(), new Dfo.Server.Application.Tests.Support.NoticeStateStub(), new RestrictionStub(storage), TimeProvider.System, clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>());
 
         await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await service.LoadAsync(accountId, CancellationToken.None));

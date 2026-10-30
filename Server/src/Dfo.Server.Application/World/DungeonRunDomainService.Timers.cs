@@ -101,10 +101,10 @@ internal sealed partial class DungeonRunDomainService
     {
         GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryEndPartyWipeAsync));
         var ended = TryEndPartyWipe(runId, now);
-        if (ended is not null && this.lifecycle is not null)
+        if (ended is not null)
             foreach (var member in ended.Participants)
                 await this.lifecycle.RecordDepartureAsync(new(member.CharacterId, ended.RunId, ended.Layout.DungeonId)).ConfigureAwait(false);
-        if (ended is not null && ended.Layout.AppliesFailureWeakness && this.weakness is not null)
+        if (ended is not null && ended.Layout.AppliesFailureWeakness)
             foreach (var member in ended.Participants)
                 await this.weakness.For(member.CharacterId).SetWeakness().ConfigureAwait(false);
         return ended;
@@ -114,7 +114,7 @@ internal sealed partial class DungeonRunDomainService
     {
         GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(TryEndClearReturnAsync));
         var ended = TryEndClearReturn(runId, now);
-        if (ended is not null && this.lifecycle is not null)
+        if (ended is not null)
             foreach (var member in ended.Participants)
                 await this.lifecycle.RecordDepartureAsync(new(member.CharacterId, ended.RunId, ended.Layout.DungeonId)).ConfigureAwait(false);
         return ended;

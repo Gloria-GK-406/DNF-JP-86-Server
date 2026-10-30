@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Characters;
@@ -98,7 +99,7 @@ public sealed class RetiredColumnMigrationTests
     {
         private readonly string path = Unversioned.NewPath("retired-columns");
 
-        public Database() => _ = new SqliteDatabase(path, new DomainTransactionScope());
+        public Database() => _ = new SqliteDatabase(path, TestRequired.TransactionScope());
 
         public string Path => path;
 
@@ -117,7 +118,7 @@ public sealed class RetiredColumnMigrationTests
         /// <summary>Each character's active page and unlocked pages, as the server reads them.</summary>
         public async Task<string[]> SkillPagesAsync(params int[] characters)
         {
-            var table = new SqliteCharacterSkillBuildTable(new SqliteDatabase(path, new DomainTransactionScope()));
+            var table = new SqliteCharacterSkillBuildTable(new SqliteDatabase(path, TestRequired.TransactionScope()));
             var pages = new List<string>();
             foreach (var character in characters)
             {

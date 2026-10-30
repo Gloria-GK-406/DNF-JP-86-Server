@@ -307,9 +307,9 @@ internal sealed class QuestLog(
 /// are the same log in every way that matters: they read and write the same place through the same
 /// store.
 /// </remarks>
-internal sealed class CharacterQuestLogDomainService(IQuestDomainStore store, AmbientStoreAccess stores, TimeProvider? clock = null)
+internal sealed class CharacterQuestLogDomainService(IQuestDomainStore store, AmbientStoreAccess stores, TimeProvider clock)
     : ICharacterQuestLogDomainService
 {
     public IQuestLog LogOf(AccountId accountId, CharacterId characterId) =>
-        new QuestLog(new OwnedCharacterId(accountId, characterId), store, stores, clock ?? TimeProvider.System);
+        new QuestLog(new OwnedCharacterId(accountId, characterId), store, stores, clock);
 }

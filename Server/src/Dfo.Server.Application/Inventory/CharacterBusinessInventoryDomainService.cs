@@ -8,10 +8,10 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class CharacterBusinessInventoryDomainService(ICharacterContainerDomainService backing,
-    IItemPlacementRuleService? placements = null, IItemArrivalRuleService? arrivals = null,
-    ICreatureDefinitionSource? creatures = null, IItemDomainStore? items = null,
-    IDomainTransactionAccessor? transactions = null, IItemSlotRuleService? slotRules = null,
-    IInventoryCapacityDomainService? capacities = null, IItemLifecycleDomainService? lifecycle = null)
+    IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
+    ICreatureDefinitionSource creatures, IItemDomainStore items,
+    IDomainTransactionAccessor transactions, IItemSlotRuleService slotRules,
+    IInventoryCapacityDomainService capacities, IItemLifecycleDomainService lifecycle)
     : ICharacterBusinessInventoryDomainService
 {
     public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind)
@@ -23,16 +23,14 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
     public IBusinessInventoryStore GetPersistentStore(ContainerOwner owner, BusinessInventoryStoreKind kind)
     {
         if (owner.Value <= 0 || !Enum.IsDefined(owner.Scope)) throw new ArgumentOutOfRangeException(nameof(owner));
-        if (items is null || transactions is null || placements is null || slotRules is null)
-            throw new InvalidOperationException("Persistent inventory access is not configured.");
         return new PersistentBusinessInventoryStore(owner, kind, items, transactions, placements, slotRules,
             arrivals, creatures, capacities, lifecycle);
     }
 
     private sealed class BusinessInventoryStore(CharacterId characterId, BusinessInventoryStoreKind kind,
-        ICharacterContainerDomainService backing, IItemPlacementRuleService? placements,
-        IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
-        IInventoryCapacityDomainService? capacities, IItemLifecycleDomainService? lifecycle) : IBusinessInventoryStore
+        ICharacterContainerDomainService backing, IItemPlacementRuleService placements,
+        IItemArrivalRuleService arrivals, ICreatureDefinitionSource creatures,
+        IInventoryCapacityDomainService capacities, IItemLifecycleDomainService lifecycle) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
         public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false)
@@ -48,8 +46,8 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
 
     private sealed class PersistentBusinessInventoryStore(ContainerOwner owner, BusinessInventoryStoreKind kind,
         IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placements,
-        IItemSlotRuleService slots, IItemArrivalRuleService? arrivals, ICreatureDefinitionSource? creatures,
-        IInventoryCapacityDomainService? capacities, IItemLifecycleDomainService? lifecycle) : IBusinessInventoryStore
+        IItemSlotRuleService slots, IItemArrivalRuleService arrivals, ICreatureDefinitionSource creatures,
+        IInventoryCapacityDomainService capacities, IItemLifecycleDomainService lifecycle) : IBusinessInventoryStore
     {
         public BusinessInventoryStoreKind Kind => kind;
         public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) => GetContainer(space, isDefault);

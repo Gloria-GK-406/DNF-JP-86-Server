@@ -722,7 +722,7 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
     private Side Build()
     {
         var character = new CharacterId(Character);
-        var containers = new CharacterContainerDomainService();
+        var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
         var fixture = new MoveItemFixture();
         foreach (var type in (InventoryContainerType[])
             [InventoryContainerType.Main, InventoryContainerType.Avatar,
@@ -734,10 +734,10 @@ public sealed class EitherEndMayBeHoldingItTests(ArchiveContentFixture archive)
         return new Side(
             containers,
             new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers),
+                TestRequired.SlotsOver(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
-                    new ItemSlotRuleService(), new EitherEndMayBeHoldingItTestsWearEligibility())),
+                    new ItemSlotRuleService(), new EitherEndMayBeHoldingItTestsWearEligibility(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>()), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>()),
             character, fixture);
     }
 

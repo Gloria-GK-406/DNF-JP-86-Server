@@ -94,7 +94,7 @@ public sealed class GrantKillExperienceCommandTests
                     new NoChannelExperience(),
                     ExperienceTuning.Default,
                     ExperienceEntitlementPolicy.None)),
-                new FixedChannelBonus(channelRate)), characterLevel: 3);
+                new FixedChannelBonus(channelRate), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>()), characterLevel: 3);
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(new(1),new(60),null),
                 cap => handler.AwardAsync(new KillExperienceContext(

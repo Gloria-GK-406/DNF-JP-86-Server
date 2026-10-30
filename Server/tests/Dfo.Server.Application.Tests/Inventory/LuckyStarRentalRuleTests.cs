@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Application.Rental;
@@ -11,7 +12,7 @@ public sealed class LuckyStarRentalRuleTests
     public async Task Rental_offer_checks_both_catalog_and_actual_equipment_and_expires_after_24_hours()
     {
         var content = new Content();
-        var rules = new EquipmentRentalRuleService(content, content);
+        var rules = new EquipmentRentalRuleService(content, content, delivery: TestRequired.Absent<Dfo.Server.Application.Inventory.IItemDeliveryRuleService>());
         var now = DateTimeOffset.Parse("2026-10-20T15:00:00+08:00");
         var quote = await rules.QuoteAsync(9001, 0, 30, now, default);
         Assert.Equal(EquipmentRentalRejection.None, quote.Rejection);

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
@@ -253,7 +254,7 @@ public sealed class QuestProgressDomainServiceTests
         RecordingQuestLogs logs,
         IQuestTriggerDomainService clientReports,
         ISeekingQuestProgressDomainService? seeking = null) =>
-        new(new FixedDefinitions(), logs, clientReports, seeking ?? new NoSeekingProgress());
+        new(new FixedDefinitions(), logs, clientReports, seeking ?? new NoSeekingProgress(), mirror: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>());
 
     private sealed class FixedDefinitions : IQuestDefinitionDomainService
     {

@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
@@ -131,11 +132,11 @@ public sealed class CharacterEntryInventoryTests
                         characterId, 10, InventoryContainerType.AccountCargo, 3, 2, 600),
                 ]));
 
-        var characterResult = await new CharacterInventoryEntryDomainService(repository).LoadAsync(
+        var characterResult = await new CharacterInventoryEntryDomainService(repository, TestRequired.NoLegacyWornItems(), containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>()).LoadAsync(
             accountId,
             characterId,
             CancellationToken.None);
-        var accountResult = await new AccountInventoryEntryDomainService(repository).LoadAsync(
+        var accountResult = await new AccountInventoryEntryDomainService(repository, containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>()).LoadAsync(
             accountId,
             characterId,
             CancellationToken.None);
@@ -318,7 +319,7 @@ public sealed class CharacterEntryInventoryTests
                 new CharacterEntryPreparationRuleService(
                     new AllocationSkillSource(),
                     new UnusedExpertContracts(),
-                    new UnusedCreatureLifetimes()),
+                    new UnusedCreatureLifetimes(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
                 CancellationToken.None);
 
         Assert.Equal([(short)0, (short)102, (short)150],

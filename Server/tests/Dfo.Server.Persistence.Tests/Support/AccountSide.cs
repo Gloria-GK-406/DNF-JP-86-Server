@@ -16,7 +16,7 @@ internal sealed class AccountSide
 
     public AccountSide(string databasePath)
     {
-        this.Scope = new DomainTransactionScope();
+        this.Scope = TestRequired.TransactionScope();
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
 

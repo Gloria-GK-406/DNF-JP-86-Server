@@ -180,7 +180,7 @@ public sealed class SessionCurrencyChecksTests
 
     private sealed class Identity
     {
-        private readonly OnlineStateRegistry state = new(new DomainTransactionScope());
+        private readonly OnlineStateRegistry state = new(TestRequired.TransactionScope());
 
         public Identity()
         {

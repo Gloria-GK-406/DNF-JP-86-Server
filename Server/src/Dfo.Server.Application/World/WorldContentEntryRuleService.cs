@@ -18,7 +18,7 @@ internal sealed class WorldContentEntryRuleService(
     IQuestContentRuleService quests,
     IDailyActivityDefinitionSource dailyActivities,
     ICollectionBoxDefinitionSource collectionBoxes,
-    ICreatureDefinitionSource creatures, IQuestAvailabilityRuleService? questAvailability = null) : IWorldContentEntryRuleService
+    ICreatureDefinitionSource creatures, IQuestAvailabilityRuleService questAvailability) : IWorldContentEntryRuleService
 {
     private readonly IQuestAvailabilityRuleService availability = questAvailability
         ?? new Dfo.Server.Application.Quests.QuestAvailabilityRuleService(quests, creatures);

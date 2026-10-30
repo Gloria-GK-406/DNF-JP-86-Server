@@ -130,7 +130,7 @@ public sealed class CeraShopStorageTests
     {
         private readonly string path = Path.Combine(Path.GetTempPath(), $"dfo-cera-storage-{Guid.NewGuid():N}.db");
         private readonly SqliteItemDomainStore store;
-        public DomainTransactionScope Scope { get; } = new();
+        public DomainTransactionScope Scope { get; } = new(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
         public SqliteDatabase Database { get; }
         public ContainerId Pets { get; } = ContainerId.ForCharacter(new CharacterId(1), InventoryContainerType.Pet);
         public IItemDomainStoreSession Items => store.SessionIn(Scope.Current!);
@@ -138,7 +138,7 @@ public sealed class CeraShopStorageTests
         public StorageFixture()
         {
             Database = new(path, Scope);
-            store = new(path);
+            store = new(path, contentsEvents: TestRequired.NoContentsEvents);
             Sql("INSERT INTO accounts(account_id,m_id,cera,token_cera,happy_token_cera,lucky_star,honor_exp,growth_capsule_exp) VALUES(1,'cera-storage',100000,20,30,4,11,23),(2,'other',777,0,0,0,0,0); INSERT INTO characters(character_id,account_id,name,job,level) VALUES(1,1,'buyer',12,85);");
         }
 

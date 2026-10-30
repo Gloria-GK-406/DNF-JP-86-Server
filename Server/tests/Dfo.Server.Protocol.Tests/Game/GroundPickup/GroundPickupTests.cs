@@ -506,7 +506,7 @@ public sealed class GroundPickupTests
             var path = Path.Combine(Path.GetTempPath(), $"epic-pickup-{Guid.NewGuid():N}.db");
             try
             {
-                var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope();
+                var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
                 var database = new Dfo.Server.Persistence.Database.SqliteDatabase(path, scope);
                 await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}"))
                 {

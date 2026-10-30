@@ -175,7 +175,7 @@ internal sealed partial class DungeonRunDomainService
     {
         GameplayWriteAssertion.Writing(nameof(DungeonRunDomainService) + "." + nameof(CommitClearRewardCard));
         ArgumentNullException.ThrowIfNull(claim);
-        var transaction = this.transactions?.Current;
+        var transaction = this.transactions.Current;
         if (transaction is null)
         {
             var prepared = this.TryPrepareClearRewardCard(claim);

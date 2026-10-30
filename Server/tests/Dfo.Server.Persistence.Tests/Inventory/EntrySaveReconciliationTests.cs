@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -40,7 +41,7 @@ public sealed class EntrySaveReconciliationTests
 
             var side = new InventorySide(path, new DeclaredArchive());
             var loaded = await side.InUseCaseAsync(token =>
-                new CharacterInventoryEntryDomainService(side.CharacterEntries)
+                new CharacterInventoryEntryDomainService(side.CharacterEntries, side.WornItems, containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>())
                     .LoadAsync(new AccountId(Account), new CharacterId(Character), token));
 
             var main = loaded.Containers.Single(
@@ -126,7 +127,7 @@ public sealed class EntrySaveReconciliationTests
 
             var side = new InventorySide(path, new DeclaredArchive());
             var loaded = await side.InUseCaseAsync(token =>
-                new CharacterInventoryEntryDomainService(side.CharacterEntries)
+                new CharacterInventoryEntryDomainService(side.CharacterEntries, side.WornItems, containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>())
                     .LoadAsync(new AccountId(Account), new CharacterId(Character), token));
             var sword = loaded.Containers
                 .Single(container => container.ContainerType == InventoryContainerType.Main)
@@ -259,7 +260,7 @@ public sealed class EntrySaveReconciliationTests
         var path = Path.Combine(Path.GetTempPath(), $"dfo-reconcile-{Guid.NewGuid():N}.db");
 
         // The repositories own the schema; everything here only writes into it.
-        _ = new SqliteDatabase(path, new DomainTransactionScope());
+        _ = new SqliteDatabase(path, TestRequired.TransactionScope());
         return path;
     }
 

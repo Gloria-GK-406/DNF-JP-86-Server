@@ -19,7 +19,7 @@ public sealed class WeaknessTests
         {
             var character = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
             var weakness = new WeaknessDomainService(CurrentCharacterStub.Domain(character),
-                new WeaknessRuleService(new ConfigurationBuilder().Build()));
+                new WeaknessRuleService(new ConfigurationBuilder().Build()), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.WeaknessDomainService>.Instance, transactions: TestRequired.TransactionScope());
             var runs = TestParties.Runs(weakness: weakness);
             var old = runs.Begin(Id, Layout, DungeonDifficulty.Normal);
             Assert.True(await runs.EndAsync(Id, old.RunId));
@@ -45,7 +45,7 @@ public sealed class WeaknessTests
             var read = new TaskCompletionSource<CharacterProgressionState?>();
             var character = new CurrentCharacterStub { ProgressReader = () => new(read.Task) };
             var weakness = new WeaknessDomainService(CurrentCharacterStub.Domain(character),
-                new WeaknessRuleService(new ConfigurationBuilder().Build()));
+                new WeaknessRuleService(new ConfigurationBuilder().Build()), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.WeaknessDomainService>.Instance, transactions: TestRequired.TransactionScope());
             var pending = weakness.For(Id).SetWeakness().AsTask();
             character.ProgressReader = null;
             if (newFailure)
@@ -68,7 +68,7 @@ public sealed class WeaknessTests
         {
             var second = new CurrentCharacterStub { ProgressReader = () => throw new IOException("transient") };
             var weakness = new WeaknessDomainService(new CharacterDomainStub(id => id == Id ? new CurrentCharacterStub() : second),
-                new WeaknessRuleService(new ConfigurationBuilder().Build()));
+                new WeaknessRuleService(new ConfigurationBuilder().Build()), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.WeaknessDomainService>.Instance, transactions: TestRequired.TransactionScope());
             var runs = TestParties.Runs(weakness: weakness);
             DungeonRunParticipant[] members = [new(new(1), Id, 0, true), new(new(2), new(2), 1, false)];
             var run = runs.PreparePartyEntry(members, Layout, DungeonDifficulty.Normal).Run;
@@ -96,7 +96,7 @@ public sealed class WeaknessTests
     private static readonly CharacterId Id = new(1);
     private static WeaknessDomainService Create(byte level = 20, Dictionary<string, string?>? config = null) =>
         new(CurrentCharacterStub.Domain(new() { Id = Id, Progress = new(level, 0) }),
-            new WeaknessRuleService(new ConfigurationBuilder().AddInMemoryCollection(config ?? []).Build()));
+            new WeaknessRuleService(new ConfigurationBuilder().AddInMemoryCollection(config ?? []).Build()), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.WeaknessDomainService>.Instance, transactions: TestRequired.TransactionScope());
 
     [Theory]
     [InlineData(19, 100)]

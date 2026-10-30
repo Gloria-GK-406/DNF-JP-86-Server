@@ -314,7 +314,7 @@ public sealed class MonsterDeathCodecTests
     [Fact]
     public void A_body_shorter_than_the_actor_number_and_the_user_is_refused()
     {
-        var decoder = new MonsterDeathDecoder();
+        var decoder = new MonsterDeathDecoder(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathDecoder>.Instance, diagnostics: new Dfo.Server.Abstractions.World.ExperienceDiagnostics(false));
 
         Assert.Throws<InvalidDataException>(
             () => decoder.Decode(default!, new byte[3]));

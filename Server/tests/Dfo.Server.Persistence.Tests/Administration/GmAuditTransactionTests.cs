@@ -18,7 +18,7 @@ public sealed class GmAuditTransactionTests
         await TestGameplay.RunAsync(async () =>
         {
             var directory = Path.Combine(Path.GetTempPath(), "dfo-gm-audit-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-            var path = Path.Combine(directory, "test.db"); var scope = new DomainTransactionScope();
+            var path = Path.Combine(directory, "test.db"); var scope = TestRequired.TransactionScope();
             var database = new SqliteDatabase(path, scope); IGmAdministrationPersistence persistence = new SqliteGmAdministrationPersistence(database);
             await using (var transaction = scope.Begin())
             {
@@ -38,7 +38,7 @@ public sealed class GmAuditTransactionTests
         await TestGameplay.RunAsync(async () =>
         {
             var directory = Path.Combine(Path.GetTempPath(), "dfo-gm-audit-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-            var path = Path.Combine(directory, "test.db"); var scope = new DomainTransactionScope();
+            var path = Path.Combine(directory, "test.db"); var scope = TestRequired.TransactionScope();
             var persistence = new SqliteGmAdministrationPersistence(new SqliteDatabase(path, scope)); var at = DateTimeOffset.UtcNow;
             await using (var transaction = scope.Begin())
             {
@@ -58,7 +58,7 @@ public sealed class GmAuditTransactionTests
     public async Task AuditCannotWriteOutsideAnOwnedTransaction()
     {
         var directory = Path.Combine(Path.GetTempPath(), "dfo-gm-audit-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
-        var path = Path.Combine(directory, "test.db"); var database = new SqliteDatabase(path, new DomainTransactionScope());
+        var path = Path.Combine(directory, "test.db"); var database = new SqliteDatabase(path, TestRequired.TransactionScope());
         var persistence = new SqliteGmAdministrationPersistence(database);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await persistence.AppendAuditAsync(new("test", DateTimeOffset.UtcNow, "Test", null, null, "fixture", "Succeeded", "隔离事务验证"), default));
         Assert.Equal(0, (await persistence.QueryAuditAsync(1, 20, GmAuditFilter.All, default)).Total);

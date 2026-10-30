@@ -81,7 +81,7 @@ public sealed class BusinessEquipmentSwapTests
             var uidWorn = shop.Host.Scalar("SELECT core_uid FROM item_slots WHERE owner_scope='character' AND owner_id=1 AND list_type=3 AND slot_index=14");
             var handler = new InventoryMoveDomainService(
                 shop.Host.Services.GetRequiredService<IBusinessInventorySlotDomainService>(),
-                shop.Host.Services.GetRequiredService<IItemMovementDomainService>());
+                shop.Host.Services.GetRequiredService<IItemMovementDomainService>(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), cargo: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICargoTransferDomainService>());
             var scope = (DomainTransactionScope)shop.Host.Services.GetRequiredService<IDomainTransactionAccessor>();
             await using (var tx = scope.Begin())
             {

@@ -19,7 +19,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class EntryPlacementRuleService(
     ITownDefinitionSource towns,
     ChannelEntryOptions options,
-    ILogger<EntryPlacementRuleService>? logger = null) : IEntryPlacementRuleService
+    ILogger<EntryPlacementRuleService> logger) : IEntryPlacementRuleService
 {
     /// <summary>The facing and area state the legacy server assigns to every arrival.</summary>
     private const byte ArrivalDirection = 5;
@@ -113,7 +113,7 @@ internal sealed class EntryPlacementRuleService(
 
         if (townId != options.DefaultTownId)
         {
-            logger?.LogWarning(
+            logger.LogWarning(
                 "Town {TownId} has no usable login arrival gate; falling back to initial town {DefaultTownId}",
                 townId, options.DefaultTownId);
             spawn = await TryResolveTownGateSpawnAsync(options.DefaultTownId, cancellationToken)

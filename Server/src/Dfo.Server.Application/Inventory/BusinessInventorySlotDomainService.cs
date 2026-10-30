@@ -8,10 +8,6 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class BusinessInventorySlotDomainService(
     ICharacterBusinessInventoryDomainService stores) : IBusinessInventorySlotDomainService
 {
-    internal BusinessInventorySlotDomainService(
-        ICharacterContainerDomainService containers) :
-        this(new CharacterBusinessInventoryDomainService(containers)) { }
-
     public BoundInventorySlot? Find(CharacterId characterId, BusinessSlot slot)
     {
         _ = LegacyInventoryStorageCoordinates.ToStorage(slot);

@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Rental;
 
 internal sealed class AccountLuckyStarDomainService(ILuckyStarDomainStore store, ILuckyStarRuleService rules,
     ICharacterDomainService characters, IDungeonRunQueryDomainService runs,
-    IDomainTransactionAccessor transactions, IEventService? events = null) : IAccountLuckyStarDomainService
+    IDomainTransactionAccessor transactions, IEventService events) : IAccountLuckyStarDomainService
 {
     public async ValueTask<int> BalanceAsync(AccountId account,CancellationToken ct) =>
         await store.ReadAsync(account,ct).ConfigureAwait(false) ?? 0;
@@ -29,7 +29,7 @@ internal sealed class AccountLuckyStarDomainService(ILuckyStarDomainStore store,
             {
                 if (!await store.CompareExchangeAsync(account,previous,next,ct).ConfigureAwait(false))
                     throw new InvalidOperationException("Lucky star balance changed during settlement.");
-                if(events is not null) await events.EnqueueAsync(new LuckyStarChanged(account,next,notifyGain && next>previous),ct).ConfigureAwait(false);
+                await events.EnqueueAsync(new LuckyStarChanged(account,next,notifyGain && next>previous),ct).ConfigureAwait(false);
             }
             return new(LuckyStarRejection.None,next,next-previous);
         }

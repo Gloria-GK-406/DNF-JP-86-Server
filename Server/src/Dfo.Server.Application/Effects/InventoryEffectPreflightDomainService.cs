@@ -12,9 +12,9 @@ namespace Dfo.Server.Application.Effects;
 internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySlotDomainService slots,
     IEquipmentDomainService equipment, ICharacterDomainService characters,
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
-    IEnumerable<IInventoryEffectPreviewHandler> extensions, ICharacterContainerDomainService? containers = null,
-    IPremiumServiceDomainService? premiums = null, IAccountTable? accountTable = null,
-    IPremiumServiceUsageDomainService? usage = null, IItemExpirationRuleService? expiration = null) : IInventoryEffectPreflightDomainService
+    IEnumerable<IInventoryEffectPreviewHandler> extensions, ICharacterContainerDomainService containers,
+    IPremiumServiceDomainService premiums, IAccountTable accountTable,
+    IPremiumServiceUsageDomainService usage, IItemExpirationRuleService expiration) : IInventoryEffectPreflightDomainService
 {
     private readonly IReadOnlyDictionary<Type, IInventoryEffectPreviewHandler> registered = extensions.ToDictionary(x => x.EffectType);
 
@@ -106,7 +106,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         placement = limited;
         var baseline = new ItemSnapshot { ItemId = itemId, LegacyKind = placement.ItemKind, Type = placement.Traits,
             IsPile = placement.WorldClass == ItemWorldClass.Interchangeable };
-        if (expiration is not null) baseline = expiration.Prepare(baseline, placement.Lifetime, at);
+        baseline = expiration.Prepare(baseline, placement.Lifetime, at);
         var available = Enumerable.Range(placement.Destination.FirstIndex,
             placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
             .Select(index => new BusinessSlot(placement.Destination.Space, index));
@@ -146,8 +146,8 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
 
     private sealed class Standing(EffectExecutionContext context, IBusinessInventorySlotDomainService slots,
         ICharacterDomainService characters,
-        ICharacterContainerDomainService? containers, IPremiumServiceDomainService? premiums,
-        IAccountTable? accountTable, IPremiumServiceUsageDomainService? usage) : IInventoryEffectPreviewState
+        ICharacterContainerDomainService containers, IPremiumServiceDomainService premiums,
+        IAccountTable accountTable, IPremiumServiceUsageDomainService usage) : IInventoryEffectPreviewState
     {
         private readonly Dictionary<BusinessSlot, ItemSnapshot?> items = [];
         private readonly HashSet<BusinessInventorySpace> loaded = [];
@@ -178,7 +178,7 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
             if (index is < 0 or > 2) Refuse(InventoryEffectRejection.InvalidTarget);
             if (!virtualItems.TryGetValue(index, out var item))
             {
-                var main = containers!.FindContainer(context.CharacterId, InventoryContainerType.Main)
+                var main = containers.FindContainer(context.CharacterId, InventoryContainerType.Main)
                     ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
                 virtualItems[index] = item = (await main.GetAsync(index, ct).ConfigureAwait(false))?.Snapshot;
             }
@@ -188,27 +188,27 @@ internal sealed class InventoryEffectPreflightDomainService(IBusinessInventorySl
         public async ValueTask<long> PremiumExpiryAsync(PremiumServiceType type, CancellationToken ct)
         {
             if (!expiries.TryGetValue(type, out var expiry))
-                expiries[type] = expiry = (await premiums!.For(context.AccountId).ReadAsync(ct).ConfigureAwait(false))
+                expiries[type] = expiry = (await premiums.For(context.AccountId).ReadAsync(ct).ConfigureAwait(false))
                     .SingleOrDefault(row => row.PremiumType == (int)type)?.ExpiresAtUnixSeconds ?? 0;
             return expiry;
         }
         public void SetPremiumExpiry(PremiumServiceType type, long expiry) => expiries[type] = expiry;
         public async ValueTask<int> SeriaLuckAsync(CancellationToken ct) => luck ??=
-            await accountTable!.FindSeriaLuckAsync(context.AccountId, ct).ConfigureAwait(false)
+            await accountTable.FindSeriaLuckAsync(context.AccountId, ct).ConfigureAwait(false)
             ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
         public void SetSeriaLuck(int value) => luck = value;
         public async ValueTask<DoublePotCounterState> DoublePotCountersAsync(CancellationToken ct) => doublePot ??=
-            (await usage!.DoublePotFactsAsync(context.AccountId, context.CharacterId, context.At, ct).ConfigureAwait(false)).Counters;
+            (await usage.DoublePotFactsAsync(context.AccountId, context.CharacterId, context.At, ct).ConfigureAwait(false)).Counters;
         public void SetDoublePotCounters(DoublePotCounterState counters) => doublePot = counters;
         public ValueTask<int> OpenSlotCountAsync(BusinessInventorySpace space, CancellationToken ct) =>
             slots.Get(context.CharacterId, new(space, 0)).Container.OpenSlotCountAsync(ct);
         public void AddedRewardEntries(int count) => RewardEntries += count;
         public async ValueTask<InventoryEffectHoldingsSnapshot> HoldingsAsync(CancellationToken ct)
         {
-            var main = containers?.FindContainer(context.CharacterId, InventoryContainerType.Main)
+            var main = containers.FindContainer(context.CharacterId, InventoryContainerType.Main)
                 ?? throw new InventoryEffectException(InventoryEffectRejection.InvalidTarget);
             var result = (await main.GetAllAsync(ct).ConfigureAwait(false)).ToDictionary(x => x.SlotIndex, x => x.Snapshot);
-            var sharedContainer = containers?.FindContainer(context.CharacterId, InventoryContainerType.SharedMaterial);
+            var sharedContainer = containers.FindContainer(context.CharacterId, InventoryContainerType.SharedMaterial);
             var shared = sharedContainer is null ? new Dictionary<int, ItemSnapshot>()
                 : (await sharedContainer.GetAllAsync(ct).ConfigureAwait(false)).ToDictionary(x => x.SlotIndex, x => x.Snapshot);
             foreach (var (slot, item) in items)

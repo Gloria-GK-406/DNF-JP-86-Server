@@ -157,7 +157,7 @@ public sealed class TutorialLevelUpHandlerTests
             var views=new OneRuntimeSession(ExperienceFrameEntry.At(StartingLevel,StartingExperience));
             var characters=new OnePlayingCharacter(ledger);
             var runs=new InARun();
-            var offers=new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain());
+            var offers=new QuestOfferRefreshDomainService(content ?? new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
             var dispatch=new NetworkDispatchContext(new NetworkConnectionContext(new NetworkConnectionId("one"),NetworkEndpointKind.Game,10010));
             await SkillGrowthDirectDriver.Handle("TutorialLevelUp","TutorialLevelUp",
                 [sessions,views,characters,runs,bus,sender,offers,SkillGrowthDirectDriver.Logger],

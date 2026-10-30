@@ -148,11 +148,11 @@ internal static class UseStackablePayloadCodec
 }
 
 internal sealed class UseStackableDecoder(
-    ILogger<UseStackableDecoder>? logger = null) : IGameMessageDecoder
+    ILogger<UseStackableDecoder> logger) : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        if (logger?.IsEnabled(LogLevel.Trace) == true)
+        if (logger.IsEnabled(LogLevel.Trace))
             logger.LogTrace(
                 "USE_STACKABLE capture metadata={Metadata} body({BodyLength}B)={Body}",
                 metadata, body.Length, Convert.ToHexString(body));

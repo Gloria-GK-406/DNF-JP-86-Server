@@ -45,7 +45,7 @@ internal sealed class InventorySide
     {
         this.databasePath = databasePath;
         this.placements = placements ?? new MainBandPlacements();
-        this.Scope = new DomainTransactionScope();
+        this.Scope = TestRequired.TransactionScope();
         this.database = new SqliteDatabase(databasePath, this.Scope);
     }
 
@@ -60,18 +60,18 @@ internal sealed class InventorySide
     /// reaches, so tests call <see cref="BindMain"/> for the character they are about to refill --
     /// which is the same one line entry does.
     /// </remarks>
-    public CharacterContainerDomainService Containers { get; } = new();
+    public CharacterContainerDomainService Containers { get; } = new(transactions: TestRequired.TransactionScope());
 
     public ValueTask<ItemMoveOutcome> MoveAsync(CharacterId characterId,
         BusinessSlot from, BusinessSlot into, int count, CancellationToken cancellationToken)
     {
         var rules = new ItemPlacementRuleService(this.placements, new NoWearables());
-        var inventory = new CharacterBusinessInventoryDomainService(this.Containers, rules);
+        var inventory = new CharacterBusinessInventoryDomainService(this.Containers, rules, transactions: TestRequired.TransactionScope(), arrivals: null!, creatures: null!, items: null!, slotRules: null!, capacities: null!, lifecycle: null!);
         var source = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(from.Space))
             .GetContainer(from.Space);
         var destination = inventory.GetStore(characterId, BusinessInventoryOwnership.StoreOf(into.Space))
             .GetContainer(into.Space);
-        return new ItemMovementDomainService(rules, new ItemSlotRuleService(), new NoWearables())
+        return new ItemMovementDomainService(rules, new ItemSlotRuleService(), new NoWearables(), mirrors: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemMirrorDomainService>())
             .MoveWithinBackingAsync(new(from, source), new(into, destination), count,
                 cancellationToken);
     }
@@ -79,14 +79,14 @@ internal sealed class InventorySide
     public IItemGrantDomainService Grants => new ItemGrantDomainService(
         new CharacterBusinessInventoryDomainService(Containers,
             new ItemPlacementRuleService(placements, new NoWearables()),
-            new ItemArrivalRuleService(), lifecycle: Lifecycle),
+            new ItemArrivalRuleService(), lifecycle: Lifecycle, transactions: TestRequired.TransactionScope(), creatures: null!, items: null!, slotRules: null!, capacities: null!),
         new ItemPlacementRuleService(placements, new NoWearables()), Lifecycle, Store, Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database), new SqliteAccountCargoStateTable(database), new InventoryCapacityRuleService()));
 
     public async ValueTask<IReadOnlyList<InventoryItemState>> ReadMainItemsAsync(
         AccountId account, CharacterId character, CancellationToken ct)
     {
         var source = Scope.Current is null ? (ICharacterInventoryEntryRepository)PerCall : CharacterEntries;
-        var inventory = await new CharacterInventoryEntryDomainService(source).ReadCurrentAsync(account, character, ct);
+        var inventory = await new CharacterInventoryEntryDomainService(source, TestRequired.NoLegacyWornItems(), containers: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterContainerDomainService>()).ReadCurrentAsync(account, character, ct);
         return inventory.Containers.Single(container => container.ContainerType == InventoryContainerType.Main).Items;
     }
 
@@ -94,10 +94,14 @@ internal sealed class InventorySide
 
     public IAccountInventoryEntryRepository AccountEntries => this.Assembly;
 
-    public IItemDomainStore Store => new SqliteItemDomainStore(this.databasePath);
+    /// <summary>The entry-time worn-item normalization over this database, as entry runs it.</summary>
+    public LegacyWornItemNormalizer WornItems => new(
+        Store, new ItemPlacementRuleService(this.placements, new NoWearables()), new AmbientStoreAccess(this.Scope));
+
+    public IItemDomainStore Store => new SqliteItemDomainStore(this.databasePath, TestRequired.NoContentsEvents);
 
     public IItemLifecycleDomainService Lifecycle => new ItemLifecycleDomainService(
-        Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()), new ItemExpirationRuleService(new TestReset()));
+        Store, Scope, new ItemPlacementRuleService(this.placements, new NoWearables()), new ItemExpirationRuleService(new TestReset()), clock: TimeProvider.System);
 
     private sealed class TestReset : Dfo.Server.Abstractions.Configuration.IDailyResetRuleService
     {
@@ -116,7 +120,7 @@ internal sealed class InventorySide
         new DailyRefillRuleService(new TestReset(), []),
         new CharacterBusinessInventoryDomainService(this.Containers,
             new ItemPlacementRuleService(this.placements, new NoWearables()),
-            new ItemArrivalRuleService(), lifecycle: Lifecycle),
+            new ItemArrivalRuleService(), lifecycle: Lifecycle, transactions: TestRequired.TransactionScope(), creatures: null!, items: null!, slotRules: null!, capacities: null!),
         new BagRewardDelivery(Grants, Containers));
 
     /// <summary>
@@ -149,7 +153,7 @@ internal sealed class InventorySide
         TestGameplay.Run(() => this.Containers.Register(character, new PersistentItemContainer(
             ContainerId.ForCharacter(character, containerType),
             new ContainerShape(containerType, parameter),
-            new SqliteItemDomainStore(this.databasePath),
+            new SqliteItemDomainStore(this.databasePath, TestRequired.NoContentsEvents),
             this.Scope,
             new ItemPlacementRuleService(
                 placements ?? this.placements, new NoWearables()),
@@ -259,9 +263,9 @@ internal sealed class InventorySide
 
     private InventoryEntryAssembly Assembly => new(
         new SqliteCharacterTable(this.database),
-        new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(),
+        new CharacterBusinessInventoryDomainService(new CharacterContainerDomainService(TestRequired.TransactionScope()),
                 new ItemPlacementRuleService(this.placements, new NoWearables()), new ItemArrivalRuleService(),
-                items: new SqliteItemDomainStore(this.databasePath), transactions: this.Scope, slotRules: new ItemSlotRuleService()),
+                items: new SqliteItemDomainStore(this.databasePath, TestRequired.NoContentsEvents), transactions: this.Scope, slotRules: new ItemSlotRuleService(), creatures: null!, capacities: null!, lifecycle: null!),
         new SqliteCharacterItemTable(this.database),
         new SqliteAccountCargoItemTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
@@ -271,6 +275,6 @@ internal sealed class InventorySide
         new SqliteCharacterItemCooldownTable(this.database),
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
-        new SqliteCharacterRentalTable(this.database),
+        new SqliteCharacterRentalTable(this.database, clock: TimeProvider.System),
         Store, Scope);
 }

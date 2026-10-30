@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class ItemGrantDelivery(IItemPlacementRuleService placements, ICharacterTable owners,
     DomainTransactionScope transactions, IItemDomainStore store,
     IItemArrivalRuleService arrivals, IItemSlotRuleService slotRules, IItemLifecycleDomainService lifecycle,
-    ICreatureDefinitionSource? creatures = null, IInventoryCapacityDomainService? capacities = null)
+    ICreatureDefinitionSource creatures, IInventoryCapacityDomainService capacities)
 {
     public async ValueTask<ContainerAddition> AddAsync(ICharacterContainerDomainService containers,
         CharacterId character, int itemId, int count, CancellationToken ct, bool persistent = false)

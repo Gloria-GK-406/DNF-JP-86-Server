@@ -11,21 +11,18 @@ namespace Dfo.Server.Application.Quests;
 
 /// <summary>Persists derived quest progress; condition evaluation is shared with all read paths.</summary>
 internal sealed class SeekingQuestProgressDomainService(IQuestContentRuleService quests,
-    ICharacterQuestLogDomainService logs, ICharacterContainerDomainService containers,
-    ICharacterDomainService characters, IQuestStateRuleService? stateRules = null,
-    IQuestFactsDomainService? facts = null, ICharacterTable? owners = null, IEventService? events = null)
+    ICharacterQuestLogDomainService logs, ICharacterContainerDomainService containers, IQuestStateRuleService stateRules,
+    IQuestFactsDomainService facts, ICharacterTable owners, IEventService events)
     : ISeekingQuestProgressDomainService, IDomainEventSubscriber<InventoryContentsChanged>
 {
-    private readonly IQuestStateRuleService rules = stateRules ?? new QuestStateRuleService(quests);
+    private readonly IQuestStateRuleService rules = stateRules;
     public async ValueTask<SeekingQuestProgressSynchronization?> SynchronizeAsync(AccountId accountId,
         CharacterId characterId, CancellationToken ct)
     {
         var log = logs.LogOf(accountId, characterId);
         var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
         if (carried.Count == 0 || containers.FindContainer(characterId, InventoryContainerType.Main) is null) return null;
-        var holdings = facts is not null ? await facts.HoldingsAsync(characterId, ct).ConfigureAwait(false)
-            : await QuestHoldingsReader.ReadAsync(containers, rules, characterId,
-                await characters.Get(characterId).GoldAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+        var holdings = await facts.HoldingsAsync(characterId, ct).ConfigureAwait(false);
         return await PersistAsync(log, carried, carried, holdings, ct).ConfigureAwait(false);
     }
 
@@ -34,13 +31,13 @@ internal sealed class SeekingQuestProgressDomainService(IQuestContentRuleService
         var container = message.Payload.Container;
         if (container.TryGetCharacterOwner(out var character, out var type) && type == InventoryContainerType.Main)
         {
-            var account = await (owners ?? throw new InvalidOperationException("Inventory quest checks require character ownership."))
+            var account = await owners
                 .FindOwnerAsync(character, ct).ConfigureAwait(false);
             if (account is { } owner) await SynchronizeItemsAsync(owner, character, message.Payload, ct).ConfigureAwait(false);
         }
         else if (container.TryGetAccountOwner(out var account, out type) && type == InventoryContainerType.SharedMaterial)
         {
-            foreach (var row in await (owners ?? throw new InvalidOperationException("Inventory quest checks require character ownership."))
+            foreach (var row in await owners
                 .ReadByAccountAsync(account, ct).ConfigureAwait(false))
                 await SynchronizeItemsAsync(account, new(row.CharacterId), message.Payload, ct).ConfigureAwait(false);
         }
@@ -59,10 +56,10 @@ internal sealed class SeekingQuestProgressDomainService(IQuestContentRuleService
                 related.Add(active);
         }
         if (related.Count == 0) return;
-        var holdings = await (facts ?? throw new InvalidOperationException("Queued quest checks require persistent holdings."))
+        var holdings = await facts
             .PersistentHoldingsAsync(account, character, ct).ConfigureAwait(false);
         if (await PersistAsync(log, carried, related, holdings, ct).ConfigureAwait(false) is not null)
-            await (events ?? throw new InvalidOperationException("Queued quest checks require event delivery."))
+            await events
                 .EnqueueAsync(new QuestProgressChanged(character), ct).ConfigureAwait(false);
     }
 

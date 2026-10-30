@@ -345,11 +345,11 @@ internal sealed class MonsterDeathEncoder : GameNotiMessageEncoder<MonsterDeathN
 }
 
 internal sealed class MonsterDeathDecoder(
-    ILogger<MonsterDeathDecoder>? logger = null, ExperienceDiagnostics? diagnostics = null) : IGameMessageDecoder
+    ILogger<MonsterDeathDecoder> logger, ExperienceDiagnostics diagnostics) : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        if (logger?.IsEnabled(LogLevel.Trace) == true)
+        if (logger.IsEnabled(LogLevel.Trace))
             logger.LogTrace(
                 "DIE_MONSTER capture metadata={Metadata} body({BodyLength}B)={Body}",
                 metadata, body.Length, Convert.ToHexString(body));
@@ -368,7 +368,7 @@ internal sealed class MonsterDeathDecoder(
         return new MonsterDeathRequest(metadata, passive == 0 ? (ushort)code : (ushort)0, killer)
         {
             ObjectCode = passive == 1 ? (int)code : null,
-            LabelProbe = diagnostics?.LabelProbe ?? false,
+            LabelProbe = diagnostics.LabelProbe,
         };
     }
 }

@@ -168,7 +168,7 @@ public sealed class EntryPlacementTests
     {
         var placement = new EntryPlacementRuleService(
             new StubTownSource([Town(1, [Area(0, "initial.map", TownAreaKind.Normal)])],
-                new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy);
+                new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
         var error = await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
             await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, townId, CancellationToken.None));
         Assert.Contains("Initial town 1", error.Message, StringComparison.Ordinal);
@@ -180,7 +180,7 @@ public sealed class EntryPlacementTests
         var placement = new EntryPlacementRuleService(new StubTownSource(
             [Town(1, [Area(0, "initial.map", TownAreaKind.Gate, 474, 234)]),
              Town(2, [Area(0, "invalid.map", TownAreaKind.Gate, int.MaxValue, 234)])],
-            new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy);
+            new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
         var result = await placement.ResolveAsync(StubChannelEntryPolicy.GeneralChannel, 2, CancellationToken.None);
         Assert.Equal(1, result.Spawn.TownId);
     }
@@ -195,7 +195,7 @@ public sealed class EntryPlacementTests
             : Area(4, "old-exit.map", TownAreaKind.DungeonGate);
         var placement = new EntryPlacementRuleService(new StubTownSource(
             [Town(1, [Area(0, "initial.map", TownAreaKind.Gate, 474, 234)]),
-             Town(17, [specialArea])], new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy);
+             Town(17, [specialArea])], new Dictionary<string, MapGeometry>()), ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
         await Assert.ThrowsAsync<EntryPlacementUnavailableException>(async () =>
             await placement.ResolveAsync(StubChannelEntryPolicy.RestrictedChannel, 1, default));
     }
@@ -234,7 +234,7 @@ public sealed class EntryPlacementTests
                 Town(10, [Area(0, "pvp-gate.map", TownAreaKind.Gate, 300, 200)]),
                 Town(19, [Area(0, "raid-gate.map", TownAreaKind.Gate, 400, 200)]),
             ], new Dictionary<string, MapGeometry>()),
-            ChannelEntryOptions.Legacy);
+            ChannelEntryOptions.Legacy, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.EntryPlacementRuleService>.Instance);
 
     private static TownDefinition Town(int townId, IReadOnlyList<TownAreaDefinition> areas) =>
         new(townId, $"town-{townId}", areas);

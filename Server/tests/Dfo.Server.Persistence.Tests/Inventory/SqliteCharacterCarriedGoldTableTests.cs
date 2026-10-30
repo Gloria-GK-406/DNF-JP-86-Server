@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
@@ -226,7 +227,7 @@ public sealed class SqliteCharacterCarriedGoldTableTests
     private static (SqliteCharacterCarriedGoldTable Table, string Path) Open()
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-carried-gold-{Guid.NewGuid():N}.db");
-        var database = new SqliteDatabase(path, new DomainTransactionScope());
+        var database = new SqliteDatabase(path, TestRequired.TransactionScope());
         using (var connection = new SqliteConnection(database.ConnectionString))
         {
             connection.Open();

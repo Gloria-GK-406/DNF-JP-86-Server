@@ -53,7 +53,7 @@ internal sealed partial class DungeonRunDomainService
         this.runsById.Remove(aggregate.RunId);
         if (this.runsByParty.GetValueOrDefault(aggregate.PartyKey) == aggregate)
             this.runsByParty.Remove(aggregate.PartyKey);
-        this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
+        this.deadlines.Wake(DungeonDeadlineKind.RoomMechanism);
         this.clearReturnDeadlines.Remove(aggregate.RunId);
         this.wipeDeadlines.Remove(aggregate.RunId);
         this.ClearDeathClaims(aggregate.RunId);

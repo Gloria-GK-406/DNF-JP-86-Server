@@ -9,8 +9,8 @@ namespace Dfo.Server.Persistence.Inventory;
 internal sealed class SqliteItemDomainStore : IItemDomainStore
 {
     private readonly string connectionString;
-    private readonly IInventoryContentsEventDomainService? contentsEvents;
-    public SqliteItemDomainStore(string databasePath, IInventoryContentsEventDomainService? contentsEvents = null)
+    private readonly IInventoryContentsEventDomainService contentsEvents;
+    public SqliteItemDomainStore(string databasePath, IInventoryContentsEventDomainService contentsEvents)
     {
         connectionString = new SqliteConnectionStringBuilder { DataSource = Path.GetFullPath(databasePath) }.ToString();
         this.contentsEvents = contentsEvents;
