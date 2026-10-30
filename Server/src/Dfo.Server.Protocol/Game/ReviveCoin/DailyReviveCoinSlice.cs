@@ -46,10 +46,10 @@ public sealed class GameDailyReviveCoinCommandHandler(ISelectedSessionDomainServ
     public async ValueTask<DailyReviveCoinResult> HandleAsync(CommandExecutionContext context,
         GameDailyReviveCoinCommand command, CancellationToken ct)
     {
-        var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
+        var session = sessions.TryGetInWorld(command.Dispatch.Connection.ConnectionId, out var inWorld) ? inWorld : null;
         var result = new DailyReviveCoinResult(false, false);
         if (session is not null && users.TryGetByConnection(session.ConnectionId, out var online) && online is not null)
-            result = await units.WriteAsync(context, new("DailyReviveCoin", [],
+            result = await units.WriteAsync(context, new("DailyReviveCoin", [new(session, command.Dispatch.Connection, command.Input.Metadata)],
                     Footprint: CommandFootprintMode.DeclaredNonRequest, FootprintOwners: [session]),
                 (unit, token) => coins.ClaimAsync(session, unit.Footprint, token), ct).ConfigureAwait(false);
         logger.LogInformation("Daily revive coin character={Character} granted={Granted} claimed={Claimed}", session?.CharacterId, result.Granted, result.Claimed);

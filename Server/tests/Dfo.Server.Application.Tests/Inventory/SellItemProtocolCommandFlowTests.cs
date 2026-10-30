@@ -96,16 +96,17 @@ public sealed class SellItemProtocolCommandFlowTests(ITestOutputHelper output)
             var typed=Assert.IsType<TransactionOutcomeUncertainException>(error);
             Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure,typed.Reason);Assert.Same(trace.Cause,typed.InnerException);
             var request=Assert.IsType<CommandRequestContext.ProtocolNonEffect>(Assert.Single(trace.Contexts).Request);
-            Assert.True(request.IsClosed);Assert.True(request.HasCommittedUnit);Assert.Empty(request.CommittedParticipants);
+            Assert.True(request.IsClosed);Assert.True(request.HasCommittedUnit);Assert.Same(f.Connection,Assert.Single(request.CommittedParticipants).Connection);
             Assert.Empty((System.Collections.ICollection)typeof(CommandRequestContext).GetField("attempts",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(request)!);
             Assert.NotNull(trace.Chain);var chain=trace.Chain.Value;Assert.True(chain.IsInitialized);Assert.Equal(nameof(GameSellItemCommand),chain.CommandType);Assert.Equal(0,chain.Depth);Assert.Null(chain.ParentId);Assert.Equal(GameplayCallSource.Connection,chain.Source);Assert.Equal(f.Connection.ConnectionId,chain.SourceConnection);
             var log=Assert.Single(trace.Logs,x=>x.Level==LogLevel.Error&&ReferenceEquals(x.Error,typed));Assert.Equal(chain.RootId,log.Fields["RootId"]);Assert.Equal(chain.ParentId,log.Fields["ParentId"]);Assert.Equal(chain.Depth,log.Fields["Depth"]);Assert.Equal(chain.Source,log.Fields["Source"]);Assert.Equal(chain.SourceConnection,log.Fields["SourceConnection"]);Assert.Equal(nameof(GameSellItemCommand),log.Fields["CommandType"]);
         }
         else Assert.Same(trace.Cause,error);
         Assert.True(GameplayJob.EndedAJob(error!));Assert.Equal(before,await Assets(f));Assert.Equal(1,calls);Assert.Empty(f.Sender.Messages);Assert.Empty(f.Sender.Batches);
-        var close=Assert.Single(f.Sender.Outbound.Entries);Assert.True(close.IsClose);Assert.Same(f.Connection,close.Connection);Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));AssertNoLedger(f);
+        // A committed sale protects its declared actor, which asks for one more exact close of the same source.
+        var protectedActor=branch=="normal";Assert.Equal(protectedActor?2:1,f.Sender.Outbound.Entries.Count());Assert.All(f.Sender.Outbound.Entries,entry=>{Assert.True(entry.IsClose);Assert.Same(f.Connection,entry.Connection);});var close=f.Sender.Outbound.Entries.First();Assert.Equal(protectedActor,f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));AssertNoLedger(f);
         if(branch=="pre")Assert.Empty(trace.Attempts);else Assert.Equal(branch=="normal"?DomainTransactionCompletion.Committed:DomainTransactionCompletion.ConfirmedRollback,Assert.Single(trace.Attempts).Transaction.Completion);
-        output.WriteLine(JsonSerializer.Serialize(new{task22Refusal=true,branch,before,after=await Assets(f),cause=error!.ToString(),causeSame=ReferenceEquals(error is TransactionOutcomeUncertainException envelope?envelope.InnerException:error,trace.Cause),typed=TransactionOutcomeUncertainException.Contains(error),reason=(error as TransactionOutcomeUncertainException)?.Reason.ToString(),chain=trace.Chain,completion=trace.Attempts.SingleOrDefault()?.Transaction.Completion.ToString(),calls,input=trace.Inputs.Single(),sourceCloseExact=ReferenceEquals(f.Connection,close.Connection),blocked=false,endedAJob=GameplayJob.EndedAJob(error)}));
+        output.WriteLine(JsonSerializer.Serialize(new{task22Refusal=true,branch,before,after=await Assets(f),cause=error!.ToString(),causeSame=ReferenceEquals(error is TransactionOutcomeUncertainException envelope?envelope.InnerException:error,trace.Cause),typed=TransactionOutcomeUncertainException.Contains(error),reason=(error as TransactionOutcomeUncertainException)?.Reason.ToString(),chain=trace.Chain,completion=trace.Attempts.SingleOrDefault()?.Transaction.Completion.ToString(),calls,input=trace.Inputs.Single(),sourceCloseExact=ReferenceEquals(f.Connection,close.Connection),blocked=protectedActor,endedAJob=GameplayJob.EndedAJob(error)}));
     }
     [Fact]
     public async Task Same_raw_sequence_executes_two_sales_and_exhausted_item_is_not_replayed()
@@ -115,11 +116,13 @@ public sealed class SellItemProtocolCommandFlowTests(ITestOutputHelper output)
         await SellWire.Send(f,65,1,7,trace:trace,observations:trace.Inputs);await SellWire.Send(f,65,1,7,trace:trace,observations:trace.Inputs);Assert.Equal(100093,f.Gold);Assert.Equal(17,Assert.IsType<SellItemResponse>(f.Sender.Messages.Last()).ErrorCode);AssertNoLedger(f);
     }
     [Fact]
-    public async Task Actual_wire_stale_query_keeps_original_character_assets_and_normal_refusal()
+    public async Task Actual_wire_stale_query_is_stopped_by_the_declared_actor_before_any_write()
     {
+        // The query proxy hands back the replaced selection; the declared actor's currency check refuses it.
         var trace=new Trace();using var f=Fixture(trace);await f.Seed(65,5000,10);var old=f.Session;f.Select(2);trace.Stale=old;var before=await Assets(f);
-        await SellWire.Send(f,65,1,trace:trace,observations:trace.Inputs);Assert.Equal(before,await Assets(f));Assert.Equal(new SellItemResponse(null,ErrorCode:1),Assert.Single(f.Sender.Messages));Assert.Equal(DomainTransactionCompletion.Committed,Assert.Single(trace.Attempts).Transaction.Completion);Assert.Empty(f.Sender.Outbound.Closes);
-        output.WriteLine(JsonSerializer.Serialize(new{task22Stale=true,before,after=await Assets(f),input=trace.Inputs.Single(),completion=trace.Attempts.Single().Transaction.Completion.ToString(),frames=f.Sender.Outbound.Frames.Select(Convert.ToHexString),scope="read-only query proxy returns real previous session; IsInWorld asks actual selected registry; wire has no old identity field"}));
+        var failure=await Record.ExceptionAsync(()=>SellWire.Send(f,65,1,trace:trace,observations:trace.Inputs).AsTask());
+        Assert.IsType<InvalidOperationException>(failure);Assert.Equal(before,await Assets(f));Assert.Empty(f.Sender.Messages);Assert.Empty(trace.Attempts);
+        output.WriteLine(JsonSerializer.Serialize(new{task22Stale=true,before,after=await Assets(f),input=trace.Inputs.Single(),failure=failure!.Message,frames=f.Sender.Outbound.Frames.Select(Convert.ToHexString),scope="query proxy returns the replaced session; the work unit's actor check refuses it"}));
     }
     internal static ShopFixture CreateFixture(Trace trace,int cap=1000000)=>Fixture(trace,cap);
     private static ShopFixture Fixture(Trace trace,int cap=1000000)=>new(services=>{
@@ -151,12 +154,12 @@ public sealed class SellItemProtocolCommandFlowTests(ITestOutputHelper output)
     {
         private ISelectedSessionDomainService actual=null!;private Trace trace=null!;
         internal static ISelectedSessionDomainService Create(ISelectedSessionDomainService actual,Trace trace){var x=Create<ISelectedSessionDomainService,QueryProxy>();((QueryProxy)x).actual=actual;((QueryProxy)x).trace=trace;return x;}
-        protected override object? Invoke(MethodInfo? method,object?[]? args){if(method!.Name==nameof(ISelectedSessionDomainService.FindByConnection)&&trace.Stale is {} stale)return stale;if(method.Name==nameof(ISelectedSessionDomainService.IsInWorld)&&trace.ComposerFault&&trace.Attempts.LastOrDefault()?.Transaction.Completion==DomainTransactionCompletion.Committed)throw trace.Cause;try{return method.Invoke(actual,args);}catch(TargetInvocationException error)when(error.InnerException is {} cause){ExceptionDispatchInfo.Throw(cause);throw;}}
+        protected override object? Invoke(MethodInfo? method,object?[]? args){if(method!.Name==nameof(ISelectedSessionDomainService.FindByConnection)&&trace.Stale is {} stale)return stale;if(method.Name==nameof(ISelectedSessionDomainService.TryGetInWorld)&&args![0] is NetworkConnectionId&&trace.Stale is {} staleInWorld){args[1]=staleInWorld;return true;}if(method.Name==nameof(ISelectedSessionDomainService.IsInWorld)&&trace.ComposerFault&&trace.Attempts.LastOrDefault()?.Transaction.Completion==DomainTransactionCompletion.Committed)throw trace.Cause;try{return method.Invoke(actual,args);}catch(TargetInvocationException error)when(error.InnerException is {} cause){ExceptionDispatchInfo.Throw(cause);throw;}}
     }
     private sealed class ObserveUnits(ICommandWorkUnits actual,Trace trace):ICommandWorkUnits
     {
         public ValueTask<TResult> WriteAsync<TResult>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CommandWorkUnit,CancellationToken,ValueTask<TResult>> action,CancellationToken ct=default)where TResult:notnull
-        {var plain=Assert.IsType<CommandRequestContext.ProtocolNonEffect>(context.Request);Assert.Empty(declaration.Participants);Assert.Equal(CommandWorkUnitKind.Ordinary,declaration.Kind);Assert.Equal(CommandFootprintMode.None,declaration.Footprint);Assert.Same(((SellItemRequest)plain.Message).Metadata,Assert.IsType<ProtocolFrameMetadata.Game>(plain.Metadata).Value);trace.Contexts.Add(context);trace.Chain=GameplayJob.Current;return actual.WriteAsync(context,declaration,action,ct);}
+        {var plain=Assert.IsType<CommandRequestContext.ProtocolNonEffect>(context.Request);var actor=Assert.Single(declaration.Participants);Assert.Same(plain.Dispatch.Connection,actor.Connection);Assert.Equal(plain.Dispatch.Connection.ConnectionId,actor.Session.ConnectionId);Assert.Equal(CommandWorkUnitKind.Ordinary,declaration.Kind);Assert.Equal(CommandFootprintMode.None,declaration.Footprint);Assert.Same(((SellItemRequest)plain.Message).Metadata,Assert.IsType<ProtocolFrameMetadata.Game>(plain.Metadata).Value);trace.Contexts.Add(context);trace.Chain=GameplayJob.Current;return actual.WriteAsync(context,declaration,action,ct);}
         public ValueTask<CommandWriteResult<TResult>> WriteResultAsync<TResult>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CommandWorkUnit,CancellationToken,ValueTask<TResult>> action,CancellationToken ct=default)where TResult:notnull=>throw new InvalidOperationException("Sale retains ordinary Write, not commit-result recovery.");
         public ValueTask<TResult> ReadOnlyAsync<TResult>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CancellationToken,ValueTask<TResult>> action,CancellationToken ct=default)where TResult:notnull=>throw new InvalidOperationException("Sale must keep its write transaction.");
     }

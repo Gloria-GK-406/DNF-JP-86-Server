@@ -65,7 +65,7 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
     }
 
     [Theory] [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
-    public async Task Actual_scope_Dispose_preserves_completion_and_frames_without_adding_selected_protection(int protocol)
+    public async Task Actual_scope_Dispose_preserves_completion_and_frames_and_protects_only_declared_actors(int protocol)
     {
         await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
         var trace = new Trace { ScopeFailure = new IOException("TASK55 actual DI Dispose") }; using var f = await Create(protocol, trace, delivery);
@@ -76,8 +76,9 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
         Changed(f, protocol); Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(trace.Transactions).Completion);
         await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); await delivery.Settled();
         Assert.Equal(Modern ? 1 : 0, Split(physical.Sends).Count()); Assert.Equal(1, physical.CloseCalls);
-        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
-        Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+        // Tutorial reward and durability declare their actor, so an uncertain end protects it.
+        Assert.Equal(Modern && protocol <= 1, f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        Assert.Equal(Modern && protocol <= 1, f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
         Assert.True(f.Services.GetRequiredService<GameplayCloseCauses>().TryTake(f.Connection, out var chain)); Assert.Equal(trace.Chain.RootId, chain.RootId);
         Declaration(trace, protocol);
     }
@@ -97,7 +98,7 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
         Changed(f, protocol); Assert.Equal(1, calls); Assert.Equal(DomainTransactionCompletion.Committed, Assert.Single(trace.Transactions).Completion);
         if (protocol != 1) await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));
         await delivery.Settled(); Assert.Empty(physical.Sends); Assert.Equal(protocol == 1 ? 0 : 1, physical.CloseCalls); Assert.Empty(next.Events); Assert.Equal(0, next.CloseCalls);
-        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection)); Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(replacement));
+        Assert.Equal(Modern && protocol == 0, f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection)); Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(replacement));
     }
 
     [Fact]
@@ -123,11 +124,28 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task Unattributed_selected_report_still_grants_and_declaration_is_read_before_transaction()
+    public async Task Unattributed_selected_report_fails_the_actor_check_and_declaration_is_read_before_transaction()
     {
+        // An in-world session is always owned by its online user; a query that disowns the connection
+        // contradicts the registry, so the declared actor fails its currency check before any write.
         var trace=new Trace{Unattributed=true};using var f=await Create(0,trace);
-        await Send(f,0);Changed(f,0);Assert.Equal(1,trace.Declarations);Assert.Single(trace.Transactions);
+        var failure=await Record.ExceptionAsync(()=>Send(f,0).AsTask());
+        Assert.IsType<InvalidOperationException>(failure);Assert.Equal(0,f.Count(8474));Assert.Equal(1,trace.Declarations);Assert.Empty(trace.Transactions);
     }
+    [Theory] [InlineData(0)] [InlineData(1)]
+    public async Task A_selection_that_has_not_entered_the_world_gets_no_tutorial_reward_or_durability_change(int protocol)
+    {
+        var trace=new Trace();using var f=await Create(protocol,trace);
+        TestGameplay.Run(f.Services,()=>
+        {
+            var sessions=f.Services.GetRequiredService<ISelectedSessionDomainService>();
+            Assert.True(sessions.ReleaseExact(f.Session));Assert.Null(sessions.Select(f.Session));Assert.False(sessions.IsInWorld(f.Session));
+        });
+        await Send(f,protocol);Assert.Empty(trace.Transactions);Assert.Empty(trace.Units);
+        if(protocol==0)Assert.Equal(0,f.Count(8474));else Assert.NotEqual((ushort)1,await f.Durability(InventoryContainerType.Equipment,12));
+        Assert.Single(f.Sender.Outbound.Frames);
+    }
+
     [Theory] [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
     public async Task Missing_selection_keeps_original_empty_ACK_error_or_silent_exit(int protocol)
     {
@@ -164,7 +182,7 @@ public sealed class ReportProtocolCommandFlowTests(ITestOutputHelper output)
     private static ushort Wire(int p) => p == 0 ? (ushort)0x8F : p == 1 ? (ushort)0x30 : (ushort)0x36F;
     private static ValueTask Send(ShopFixture f,int p,byte[]? body=null) => EffectRequestTransport.SendRaw(f,new(1,Wire(p),0,7),body ?? (p == 0 ? [0,31,0,0,0,1] : p == 1 ? [12] : [1,0,(byte)(p == 2 ? 3 : 4),0,..new byte[72]]));
     private static void Changed(ShopFixture f,int p) { if(p==0) {Assert.Equal(1,f.Count(8474));Assert.Equal(1,f.Scalar("SELECT tutorial_completed FROM characters WHERE character_id=1"));Assert.Equal(1,f.Scalar("SELECT level FROM characters WHERE character_id=1"));} if(p==1) Assert.Equal((ushort)1,f.Durability(InventoryContainerType.Equipment,12).AsTask().GetAwaiter().GetResult()); if(p==2) Assert.Equal(1,f.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'")); if(p==3) Assert.Equal(0,f.Scalar("SELECT count(*) FROM character_daily_counters WHERE counter_key='premium_dungeon_buff_used'")); }
-    private static void Declaration(Trace trace,int p) {if(!Modern)return;var d=Assert.Single(trace.Units);Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);Assert.Empty(d.Participants);}
+    private static void Declaration(Trace trace,int p) {if(!Modern)return;var d=Assert.Single(trace.Units);Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);if(p<=1)Assert.Single(d.Participants);else Assert.Empty(d.Participants);}
     private static ushort Type(byte[] b)=>BinaryPrimitives.ReadUInt16LittleEndian(b.AsSpan(1));
     private static IEnumerable<byte[]> Split(IEnumerable<byte[]> sends) {foreach(var bytes in sends)for(var i=0;i<bytes.Length;){var n=BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(i+3));yield return bytes[i..(i+n)];i+=n;}}
     private sealed class Rewards:ITutorialRewardDefinitionSource {public ValueTask<IReadOnlyList<TutorialRewardItem>> GetAsync(uint flag,CancellationToken ct)=>ValueTask.FromResult<IReadOnlyList<TutorialRewardItem>>([new(8474,1)]);}

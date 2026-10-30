@@ -47,13 +47,12 @@ public sealed class GameAcceptQuestCommandHandler(
     {
         var context = command.Dispatch;
         var message = command.Input;
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
+        if (!selectedSessions.TryGetInWorld(context.Connection.ConnectionId, out var session))
         {
-            // No character is selected, so there is nothing to carry the quest. Refused rather
-            // than ignored: silence is what made the client repeat itself.
+            // No character in the world on this connection, so there is nothing to carry the quest.
+            // Refused rather than ignored: silence is what made the client repeat itself.
             logger.LogWarning(
-                "Accept quest {ConnectionId}: quest {Quest} with no character selected",
+                "Accept quest {ConnectionId}: quest {Quest} with no character in the world",
                 context.Connection.ConnectionId, message.QuestId);
             await AnswerAsync(
                 context,
@@ -63,7 +62,7 @@ public sealed class GameAcceptQuestCommandHandler(
             return QuestAcceptOutcome.Refuse(message.QuestId, QuestAcceptRefusal.Unknown);
         }
 
-        var outcome = await units.WriteAsync(execution, new("AcceptQuest", []),
+        var outcome = await units.WriteAsync(execution, new("AcceptQuest", [new(session, context.Connection, message.Metadata)]),
             (_, token) => AcceptAsync(new(session.AccountId, session.CharacterId, message.QuestId), token),
             cancellationToken).ConfigureAwait(false);
 

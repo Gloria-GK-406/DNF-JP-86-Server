@@ -102,8 +102,7 @@ public sealed class GameMoveItemSpaceCommandHandler(
     private async ValueTask AppendCargoStateAsync(NetworkDispatchContext context, MoveItemSpaceResponse response,
         List<IGameServerMessage> frames, CancellationToken cancellationToken)
     {
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null) return;
+        if (!selectedSessions.TryGetInWorld(context.Connection.ConnectionId, out var session)) return;
         var character = await characterInventories.ReadCurrentAsync(session.AccountId, session.CharacterId,
             cancellationToken).ConfigureAwait(false);
         var account = await accountInventories.LoadAsync(session.AccountId, session.CharacterId,
@@ -162,17 +161,16 @@ public sealed class GameMoveItemSpaceCommandHandler(
         var destination = slotMappings.ToBusinessSlot(message.DestinationSlot);
         var responseSource = slotMappings.ToGameSlot(source);
         var responseDestination = slotMappings.ToGameSlot(destination);
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
+        if (!selectedSessions.TryGetInWorld(context.Connection.ConnectionId, out var session))
         {
             logger.LogWarning(
-                "Move item space {ConnectionId}: no published session",
+                "Move item space {ConnectionId}: no character in the world",
                 context.Connection.ConnectionId);
             return (MoveItemSpaceResponse.Failure(
                 responseSource, responseDestination, MoveItemSpaceResponse.Silent), null);
         }
 
-        var result = await units.WriteAsync(execution, new("MoveItemSpace", []),
+        var result = await units.WriteAsync(execution, new("MoveItemSpace", [new(session, context.Connection, message.Metadata)]),
             (_, token) => inventoryMoves.MoveAsync(new InventoryMoveRequest(
                 session.CharacterId,
                 source,

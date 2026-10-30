@@ -46,7 +46,7 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
     [Theory]
     [InlineData(false,"no-session")] [InlineData(false,"no-online")] [InlineData(false,"selected")]
     [InlineData(true,"no-session")] [InlineData(true,"no-online")] [InlineData(true,"selected")]
-    public async Task Missing_identity_and_selected_not_world_preserve_original_empty_boundary_and_wire(bool coin,string mode)
+    public async Task Missing_identity_and_selected_not_world_write_nothing_and_keep_the_wire(bool coin,string mode)
     {
         await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
         var trace = new Trace(); using var f = await Create(coin,mode,delivery,trace); var physical = delivery.Add(f.Connection);
@@ -59,7 +59,8 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         var frames=Split(physical.Sends).ToArray();
         if(coin) { Assert.Equal(new ushort[] {0xCF,0xB1},frames.Select(Type)); Assert.All(frames,frame=>Assert.Equal(new byte[] {0},frame[15..])); }
         else if(mode=="no-online") Assert.Equal(new byte[] {0,4},Assert.Single(frames)[15..]); else Assert.Empty(frames);
-        if(coin && mode=="selected") Assert.Equal(DomainTransactionCompletion.Committed,Assert.Single(trace.Transactions).Completion); else Assert.Empty(trace.Transactions);
+        // A released selection is no longer in the world, so the coin claim is refused before its unit.
+        Assert.Empty(trace.Transactions);
         Assert.Equal(100000,f.Gold); Assert.Equal(10,f.Services.GetRequiredService<IWeaknessDomainService>().For(f.Session.CharacterId).Value);
         Assert.Equal(0,f.Scalar("SELECT count(*) FROM character_daily_counters")); Assert.Equal(0,physical.CloseCalls); NoLedger(f);
     }
@@ -124,7 +125,8 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         AssertCloseChain(f,trace); Assert.False(f.Services.GetRequiredService<GameplayCloseCauses>().TryTake(replacement,out _));
         Assert.All(delivery.Recorder.Entries, e => Assert.Same(f.Connection, e.Connection));
         Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(replacement));
-        Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+        // The coin claim declares its actor, so an uncertain end fences that session.
+        Assert.Equal(!Legacy && coin, f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
         NoLedger(f);
     }
 
@@ -158,7 +160,7 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
     }
 
     [Theory] [InlineData(false)] [InlineData(true)]
-    public async Task Direct_refusal_actual_encoder_failure_closes_exact_source_without_new_selected_protection(bool coin)
+    public async Task Direct_refusal_actual_encoder_failure_closes_exact_source_and_protects_only_a_declared_actor(bool coin)
     {
         await using var delivery = new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
         using var f = await Create(coin, "success", delivery); var physical = delivery.Add(f.Connection);
@@ -169,8 +171,9 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         if(Legacy) Assert.Same(fault,failure); else { var typed=Assert.IsType<TransactionOutcomeUncertainException>(failure); Assert.Equal(TransactionUncertaintyReason.PostCommitPublicationFailure,typed.Reason); Assert.True(Includes(typed,fault)); }
         await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10)); await delivery.Settled();
         Assert.Equal(1,physical.CloseCalls); Assert.Empty(physical.Sends); Assert.Equal(100000,f.Gold);
-        Assert.False(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
-        Assert.False(f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced); NoLedger(f);
+        // The refused coin claim still committed its unit with the declared actor, which is now protected.
+        Assert.Equal(!Legacy && coin,f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        Assert.Equal(!Legacy && coin,f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced); NoLedger(f);
         output.WriteLine($"coin={coin} legacy={Legacy} directEncoderFailure={failure}");
     }
 
@@ -278,6 +281,7 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         protected override object? Invoke(MethodInfo? method,object?[]? args)
         {
             if(trace.Armed && trace.Mode=="no-session" && method!.Name=="FindByConnection") return null;
+            if(trace.Armed && trace.Mode=="no-session" && method!.Name=="TryGetInWorld" && args![0] is NetworkConnectionId) { args[1]=null; return false; }
             if(trace.Armed && trace.Mode=="no-online" && method!.Name=="TryGetByConnection") { args![1]=null; return false; }
             try { return method!.Invoke(actual,args); }
             catch(TargetInvocationException error) when(error.InnerException is {} cause) { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(cause); throw; }
@@ -289,7 +293,8 @@ public sealed class RecoveryAndReviveProtocolCommandFlowTests(ITestOutputHelper 
         {
             trace.Context = context;
             Assert.IsType<CommandRequestContext.ProtocolNonEffect>(context.Request);
-            Assert.Empty(declaration.Participants); Assert.Equal(CommandWorkUnitKind.Ordinary, declaration.Kind);
+            if(trace.Coin) Assert.Equal(trace.Session, Assert.Single(declaration.Participants).Session); else Assert.Empty(declaration.Participants);
+            Assert.Equal(CommandWorkUnitKind.Ordinary, declaration.Kind);
             Assert.Equal(trace.Coin ? CommandFootprintMode.DeclaredNonRequest : CommandFootprintMode.None, declaration.Footprint);
             if(trace.Coin) Assert.Equal(trace.Session, Assert.Single(declaration.FootprintOwners!)); else Assert.Null(declaration.FootprintOwners);
         }
