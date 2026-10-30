@@ -49,7 +49,7 @@ public sealed record GameSharedEffectCommand(NetworkDispatchContext Dispatch, Sh
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-public sealed class GameSharedEffectCommandHandler(ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService mappings,
+public sealed class GameSharedEffectCommandHandler(ISelectedSessionDomainService sessions,
     ITownAreaDomainService areas, ISharedEffectDomainService effects, ICommandWorkUnits units, IGameCommandOutbox outbox) : ICommandHandler<GameSharedEffectCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSharedEffectCommand command, CancellationToken ct)
@@ -58,7 +58,7 @@ public sealed class GameSharedEffectCommandHandler(ISelectedSessionDomainService
         var request = execution.Request ?? throw new InvalidOperationException("SharedEffect requires its explicit request.");
         var actor = sessions.FindByConnection(c.Connection.ConnectionId);
         BusinessSlot slot;
-        try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, m.Slot)); }
+        try { slot = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, m.Slot)); }
         catch (ArgumentOutOfRangeException) { await outbox.RegisterExplicitAsync(c.Connection.ConnectionId, new([new SharedEffectAck(false, m.Slot)], []), ct).ConfigureAwait(false); return false; }
         var result = new SharedEffectUseResult(false);
         if (actor is not null && request is not CommandRequestContext.ProtocolEffectRejected)

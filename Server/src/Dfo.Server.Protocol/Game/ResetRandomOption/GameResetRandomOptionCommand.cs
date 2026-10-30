@@ -18,8 +18,7 @@ public sealed record GameResetRandomOptionCommand(NetworkDispatchContext Dispatc
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameResetRandomOptionCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mappings, IEquipmentQualityDomainService quality,
+public sealed class GameResetRandomOptionCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers, IEquipmentQualityDomainService quality,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox, ILogger<GameResetRandomOptionCommandHandler> logger)
     : ICommandHandler<GameResetRandomOptionCommand, EquipmentQualityResult>
 {
@@ -38,8 +37,8 @@ public sealed class GameResetRandomOptionCommandHandler(ISelectedSessionDomainSe
         BusinessSlot material;
         try
         {
-            target = mappings.ToBusinessSlot(new(InventoryContainerType.Main, message.TargetSlot));
-            material = mappings.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot));
+            target = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.TargetSlot));
+            material = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot));
         }
         catch (InventorySlotMappingException)
         {

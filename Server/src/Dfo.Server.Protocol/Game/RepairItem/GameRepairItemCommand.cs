@@ -18,7 +18,7 @@ public sealed record GameRepairItemCommand(NetworkDispatchContext Dispatch, Repa
 }
 
 public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService slotMappings,
+    ISelectedSessionDomainService sessions,
     IEquipmentRepairDomainService repairs, ICommandWorkUnits units, ICommandProjections notifications,
     IGameCommandOutbox outbox, TimeProvider clock, ILogger<GameRepairItemCommandHandler> logger) : ICommandHandler<GameRepairItemCommand, bool>
 {
@@ -29,7 +29,7 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
         var message = command.Input;
         if (message.MaterialSlot >= 0 && GameRequestFreshness.IsStale(message.Metadata)) return false;
         BusinessSlot? slot = message.Slot is { } gameSlot
-            ? slotMappings.ToBusinessSlot(gameSlot)
+            ? A21InventoryLayout.ToBusinessSlot(gameSlot)
             : null;
         var session = sessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null) return false;
@@ -40,7 +40,7 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
         var invalidCoupon = message.MaterialSlot < -1;
         if (message.MaterialSlot >= 0)
         {
-            try { coupon = slotMappings.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot)); }
+            try { coupon = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlot)); }
             catch (InventorySlotMappingException) { invalidCoupon = true; }
         }
         EquipmentRepairResult result;

@@ -18,7 +18,7 @@ public sealed record GameSellItemCommand(NetworkDispatchContext Dispatch, SellIt
 }
 
 public sealed class GameSellItemCommandHandler(IOnlineUserQueryDomainService onlineUsers,
-    ISelectedSessionDomainService sessions, IInventorySlotMappingRuleService slotMappings,
+    ISelectedSessionDomainService sessions,
     IItemSaleDomainService sales, TimeProvider clock, ICommandWorkUnits units,
     ICommandProjections projections, IGameCommandOutbox outbox, ILogger<GameSellItemCommandHandler> logger)
     : ICommandHandler<GameSellItemCommand, bool>
@@ -26,7 +26,7 @@ public sealed class GameSellItemCommandHandler(IOnlineUserQueryDomainService onl
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameSellItemCommand command, CancellationToken ct)
     {
         var message = command.Input;
-        var slot = slotMappings.ToBusinessSlot(message.Slot);
+        var slot = A21InventoryLayout.ToBusinessSlot(message.Slot);
         var session = sessions.TryGetInWorld(command.Dispatch.Connection.ConnectionId, out var inWorld) ? inWorld : null;
         ItemSaleResult result;
         if (message.FieldSum != (byte)message.Slot.Space + message.Slot.Index + message.Count)

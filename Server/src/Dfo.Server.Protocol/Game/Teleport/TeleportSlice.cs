@@ -111,20 +111,18 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
     private readonly IPartyService parties;
 
     private readonly IOnlineUserQueryDomainService users;
-    private readonly IInventorySlotMappingRuleService mappings;
     private readonly IChannelEntryDomainService channels;
     private readonly ITeleportConsumableDomainService teleports;
     private readonly ICommandWorkUnits units;
     private readonly IGameCommandOutbox outbox;
     public GameTeleportCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-        ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas,
-        IInventorySlotMappingRuleService mappings, IChannelEntryDomainService channels, ITeleportConsumableDomainService teleports,
+        ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas, IChannelEntryDomainService channels, ITeleportConsumableDomainService teleports,
         ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
         Dfo.Server.Abstractions.Parties.IPartyService parties, Dfo.Server.Abstractions.Networking.IPartyProjectionStateDomainService projectionState,
         ILogger<GameTeleportCommandHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
 
     {
-        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.housing = housing; this.onlineUsers = onlineUsers; this.parties = parties; this.users = onlineUsers; this.mappings = mappings; this.channels = channels; this.teleports = teleports;
+        this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.housing = housing; this.onlineUsers = onlineUsers; this.parties = parties; this.users = onlineUsers; this.channels = channels; this.teleports = teleports;
       this.units = units; this.outbox = outbox; }
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameTeleportCommand command, CancellationToken ct) =>
         TeleportAsync(execution, command.Dispatch, command.Input, ct);
@@ -141,7 +139,7 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
         var previous = townAreas.Find(session.CharacterId);
         if (view is null || previous is null || previous.Session != session) return false;
         BusinessSlot source;
-        try { source = mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.SourceSlot)); }
+        try { source = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, request.SourceSlot)); }
         catch (InventorySlotMappingException)
         {
             await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
@@ -159,7 +157,7 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
             await outbox.RegisterCmdAsync(context.Connection.ConnectionId, new TeleportResponse(), ct).ConfigureAwait(false);
             return false;
         }
-        var wire = mappings.ToGameSlot(receipt.Source);
+        var wire = A21InventoryLayout.ToGameSlot(receipt.Source);
         var messages = new List<IGameServerMessage>();
         if (receipt.Cooldown > TimeSpan.Zero)
             messages.Add(new TeleportCooldownNotification(receipt.ItemId, checked((int)Math.Ceiling(receipt.Cooldown.TotalSeconds))));

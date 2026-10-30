@@ -28,7 +28,7 @@ internal sealed class BuyItemResponseEncoder : GameCmdMessageEncoder<BuyItemResp
             writer.Write((byte)0); return stream.ToArray();
         }
         var first = receipt.GrantedSlots[0];
-        var wire = new InventorySlotMappingRuleService().ToGameSlot(first.Slot);
+        var wire = A21InventoryLayout.ToGameSlot(first.Slot);
         if (message.InventoryAlreadyProjected && !first.Core.IsPile)
             throw new InvalidDataException("Only a pre-projected stack may use a zero-increment purchase acknowledgement.");
         // Native ACK adds Data to an existing pile. Its preceding 000E already applied the real

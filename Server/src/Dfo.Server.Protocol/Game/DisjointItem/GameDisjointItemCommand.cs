@@ -20,7 +20,6 @@ public sealed record GameDisjointItemCommand(NetworkDispatchContext Dispatch, Di
 public sealed class GameDisjointItemCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings,
     IEquipmentDisjointDomainService disjoint, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameDisjointItemCommandHandler> logger)
     : ICommandHandler<GameDisjointItemCommand, EquipmentDisjointResult>
@@ -29,10 +28,10 @@ public sealed class GameDisjointItemCommandHandler(
     {
         var requestContext = context.Request ?? throw new InvalidOperationException("Equipment requires its explicit request.");
         var message = command.Input;
-        var targetSlot = slotMappings.ToBusinessSlot(message.TargetSlot);
+        var targetSlot = A21InventoryLayout.ToBusinessSlot(message.TargetSlot);
         var invalidToolSlot = message.DisjointToolSlotIndex < -1;
         BusinessSlot? disjointToolSlot = message.DisjointToolSlotIndex >= 0
-            ? slotMappings.ToBusinessSlot(new GameSlot(
+            ? A21InventoryLayout.ToBusinessSlot(new GameSlot(
                 InventoryContainerType.Main, message.DisjointToolSlotIndex))
             : null;
         logger.LogDebug(

@@ -12,7 +12,6 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class ItemSlotRuleServiceTests
 {
     private static readonly ItemSlotRuleService Rules = new();
-    private static readonly InventorySlotMappingRuleService Mappings = new();
 
     /// <summary>A potion: kind 2, consumable band 65 to 120.</summary>
     private static readonly ItemPlacement Potion =
@@ -96,7 +95,7 @@ public sealed class ItemSlotRuleServiceTests
     }
 
     private static BusinessSlot BusinessMain(int index) =>
-        Mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, index));
+        A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, index));
 
     [Theory]
     [InlineData(BusinessInventorySpace.CreatureInventory, 5)]

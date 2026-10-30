@@ -289,19 +289,17 @@ public sealed class CeraShopPurchaseTests
         var placements = shop.Host.Services.GetRequiredService<IItemPlacementRuleService>();
         var hammer = await placements.PlacementForAsync(10007367, default);
         var box = await placements.PlacementForAsync(10007368, default);
-        var mappings = shop.Host.Services.GetRequiredService<IInventorySlotMappingRuleService>();
         Assert.NotNull(hammer);
         Assert.NotNull(box);
-        static IEnumerable<int> GameRange(ItemPlacement placement,
-            IInventorySlotMappingRuleService mappings) =>
+        static IEnumerable<int> GameRange(ItemPlacement placement) =>
             Enumerable.Range(placement.Destination.FirstIndex,
                     placement.Destination.LastIndex - placement.Destination.FirstIndex + 1)
-                .Select(index => mappings.ToGameSlot(
+                .Select(index => A21InventoryLayout.ToGameSlot(
                     new BusinessSlot(placement.Destination.Space, index)).Index);
         var occupied = Enumerable.Range(3, 6)
-            .Concat(GameRange(hammer, mappings))
-            .Concat(GameRange(box, mappings))
-            .Distinct().Where(slot => slot != mappings.ToGameSlot(new BusinessSlot(
+            .Concat(GameRange(hammer))
+            .Concat(GameRange(box))
+            .Distinct().Where(slot => slot != A21InventoryLayout.ToGameSlot(new BusinessSlot(
                 hammer.Destination.Space, hammer.Destination.FirstIndex)).Index).ToArray();
         foreach (var slot in occupied) await shop.Host.Seed(slot, 3, 1);
         var result = await shop.Buy(CeraShopTestContent.Entry(102929));

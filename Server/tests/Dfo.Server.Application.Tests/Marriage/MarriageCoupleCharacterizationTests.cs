@@ -53,8 +53,7 @@ public sealed class MarriageCoupleCharacterizationTests
                 await tx.CommitAsync(default);
             }
             var items = await containers.GetContainer(f.Session.CharacterId, InventoryContainerType.Main).GetAllAsync(default);
-            var mapping = new InventorySlotMappingRuleService();
-            BusinessSlot SlotOf(int item) => mapping.ToBusinessSlot(new(InventoryContainerType.Main, items.Single(x => x.ItemId == item).StorageSlotIndex));
+            BusinessSlot SlotOf(int item) => A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, items.Single(x => x.ItemId == item).StorageSlotIndex));
             var coupon = SlotOf(Coupon); var other = SlotOf(Other);
             var couponStorage = items.Single(x => x.ItemId == Coupon).StorageSlotIndex;
             var empty = new BusinessSlot(BusinessInventorySpace.Consumable, 50);

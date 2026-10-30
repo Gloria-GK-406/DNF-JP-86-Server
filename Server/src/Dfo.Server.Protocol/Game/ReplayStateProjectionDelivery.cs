@@ -98,10 +98,9 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
                 messages.Add(new InventorySnapshotMessage(container, inventory.VirtualResources, account.VirtualResources,
                     account.Cargo.SelectionKey, account.Cargo.Value32, state.At));
             }
-            var mapping = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService();
             foreach (var slot in state.Request.TouchedSlots.Distinct())
             {
-                var physical = mapping.ToGameSlot(slot);
+                var physical = A21InventoryLayout.ToGameSlot(slot);
                 // A receipt from a finished tower run must not clear the restored ordinary quick slots.
                 if (physical.Space == InventoryContainerType.QuickSlot
                     && inventory.Containers.All(x => x.ContainerType != InventoryContainerType.QuickSlot)) continue;

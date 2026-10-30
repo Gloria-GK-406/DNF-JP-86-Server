@@ -26,12 +26,9 @@ public sealed class DarkElfRuinsCodecTests
             Dfo.Server.Testing.TestSessions.EnterWorldWithConnection(sessions, online, session);
             var rewardSlots = new[] { new Dfo.Server.Data.Inventory.BusinessSlot(Dfo.Server.Data.Inventory.BusinessInventorySpace.Consumable, 0),
                 new Dfo.Server.Data.Inventory.BusinessSlot(Dfo.Server.Data.Inventory.BusinessInventorySpace.Material, 0) };
-            var mapping = new InventorySlotMappingRuleService();
             var items = new[] { (rewardSlots[0], 10155137, 3), (rewardSlots[1], 10155143, 8) };
-            var cores = items.Select(x => new Dfo.Server.Data.Inventory.InventoryItemState(null, mapping.ToGameSlot(x.Item1).Index,
+            var cores = items.Select(x => new Dfo.Server.Data.Inventory.InventoryItemState(null, A21InventoryLayout.ToGameSlot(x.Item1).Index,
                 Dfo.Server.Data.Inventory.StackableItemCore.Create(2, x.Item2, x.Item3))).ToArray();
-            var projection = Dfo.Server.Testing.ProtocolAlgorithmFixture.Decorate(Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IInventorySlotProjectionDomainService>(),
-                (method, args) => (true, mapping.ToGameSlot((Dfo.Server.Data.Inventory.BusinessSlot)args[0]!)));
             var binding = Dfo.Server.Testing.ProtocolAlgorithmFixture.Decorate(Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IBusinessInventorySlotDomainService>(),
                 (method, args) =>
                 {
@@ -42,7 +39,7 @@ public sealed class DarkElfRuinsCodecTests
                             ItemSnapshot.FromCore(Dfo.Server.Data.Inventory.StackableItemCore.Create(2, row.Item2, row.Item3), true), slot))));
                     return (true, new BoundInventorySlot(slot, container));
                 });
-            var handler = Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<RuinsInventoryRefreshHandler>(sessions, projection, binding);
+            var handler = Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<RuinsInventoryRefreshHandler>(sessions, binding);
             var frames = await handler.ComposeAsync(new(session.CharacterId, session.ConnectionId, session),
                 new(rewardSlots.Concat([rewardSlots[0]]).ToArray(), DateTimeOffset.UnixEpoch), default);
             var delta = Assert.IsType<InventoryDeltaMessage>(Assert.Single(frames));

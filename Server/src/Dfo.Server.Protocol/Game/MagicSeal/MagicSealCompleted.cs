@@ -13,7 +13,6 @@ public sealed record MagicSealCompleted(EquipmentMagicSealReceipt Receipt, bool 
 
 public sealed class MagicSealCompletedHandler(
     ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slots,
     IBusinessInventorySlotDomainService inventory,
     ICharacterDomainService characters)
     : INotificationHandler<MagicSealCompleted>
@@ -50,7 +49,7 @@ public sealed class MagicSealCompletedHandler(
         if (bound is null) return;
         var core = (await bound.Container.GetAsync(bound.Slot.Index, ct)
             .ConfigureAwait(false) )?.Snapshot.ToCore();
-        var game = slots.Project(slot);
+        var game = A21InventoryLayout.ToGameSlot(slot);
         messages.Add(core is null
             ? GameInventoryDelivery.ClearedSlotNotification(game.Space, game.Index, at)
             : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(game.Space,

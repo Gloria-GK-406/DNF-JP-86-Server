@@ -20,8 +20,7 @@ internal sealed record GameRenameCreatureCommand(NetworkDispatchContext Dispatch
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings, ICreatureNamingDomainService naming, ICommandWorkUnits units,
+internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainService sessions, ICreatureNamingDomainService naming, ICommandWorkUnits units,
     IGameCommandOutbox outbox, IDungeonRunQueryDomainService runs, ITownAreaDomainService towns,
     IDungeonParticipationDomainService participation, Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTowers,
     IIllusionTowerDomainService towers, ICommandConnectionClosures connections, Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
@@ -36,7 +35,7 @@ internal sealed class GameRenameCreatureCommandHandler(ISelectedSessionDomainSer
         BusinessSlot sourceSlot;
         try
         {
-            sourceSlot = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Pet, request.Slot));
+            sourceSlot = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Pet, request.Slot));
         }
         catch (InventorySlotMappingException)
         {

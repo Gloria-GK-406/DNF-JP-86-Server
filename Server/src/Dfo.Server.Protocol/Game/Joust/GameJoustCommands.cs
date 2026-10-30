@@ -55,7 +55,7 @@ public sealed class GameJoustQueryCommandHandler(ISelectedSessionDomainService s
     }
 }
 public sealed class GameJoustBetCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    IJoustDomainService joust, TimeProvider clock, IInventorySlotMappingRuleService mapping,
+    IJoustDomainService joust, TimeProvider clock,
     ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandProjections projections,
     IReplayStateDomainService replay, IReplayStateProjectionSink replaySink, ISelectedSessionSnapshotQuery selectedSessions)
     : ICommandHandler<GameJoustBetCommand, bool>
@@ -77,7 +77,7 @@ public sealed class GameJoustBetCommandHandler(ISelectedSessionDomainService ses
         request.DemandCurrent();
         // Invalid wire addresses were refused before opening the old settlement transaction.
         BusinessSlot slot;
-        try { slot = mapping.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlotIndex)); }
+        try { slot = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.MaterialSlotIndex)); }
         catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
         { await Refuse().ConfigureAwait(false); return false; }
         var requestId = $"joust:{selected.OperationId:N}";

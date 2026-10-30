@@ -71,14 +71,12 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly IDungeonRunProjectionDomainService departureSink;
     private readonly IPartyService parties;
 
-    private static readonly IInventorySlotMappingRuleService SlotMappings = new InventorySlotMappingRuleService();
     private readonly ICommandConnectionClosures entryClosures;
     private readonly IDungeonVisitDomainService visits;
     private readonly IDungeonRunEntryDomainService runs;
     private readonly IDungeonEntryIntentDomainService entryIntents;
     private readonly ICharacterQuestLogDomainService questLogs;
     private readonly ICharacterFatigueDomainService fatigue;
-    private readonly IInventorySlotProjectionDomainService inventoryProjection;
     private readonly IOutboundOrdering ordering;
     private readonly ISaoTowerDomainService sao;
     private readonly IDungeonEntryRoutingDomainService entries;
@@ -94,7 +92,6 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         IDungeonEntryIntentDomainService entryIntents,
         ICharacterQuestLogDomainService questLogs,
         ICharacterFatigueDomainService fatigue,
-        IInventorySlotProjectionDomainService inventoryProjection,
         IOutboundOrdering ordering,
         ISaoTowerDomainService sao,
         IDungeonEntryRoutingDomainService entries)
@@ -107,7 +104,6 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         this.entryIntents = entryIntents;
         this.questLogs = questLogs;
         this.fatigue = fatigue;
-        this.inventoryProjection = inventoryProjection;
         this.ordering = ordering;
         this.sao = sao;
         this.entries = entries;

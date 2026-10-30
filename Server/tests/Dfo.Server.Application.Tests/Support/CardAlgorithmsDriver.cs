@@ -18,6 +18,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.CardReward;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Microsoft.Extensions.Logging.Abstractions;
+using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Application.Tests.Support;
 // Direct domain fixtures execute the exact owning CMD algorithm, without claiming production scope evidence.
 internal sealed record CardAwardAlgorithmInput(AccountId AccountId, CharacterId CharacterId, ClearRewardCardKind Kind,
@@ -27,11 +28,9 @@ internal class CardAwardAlgorithmDriver(ICardRewardDomainService cards, IDungeon
     : ICommandHandler<CardAwardAlgorithmInput, SelectCardResult>
 {
     private readonly GameCardCommandHandler command = ProtocolAlgorithmFixture.Create<GameCardCommandHandler>(
-        runs, new Dfo.Server.Application.World.CardFlipDomainService(runs, cards, characters, itemDelivery, flipCosts), new Slots(), clock);
+        runs, new Dfo.Server.Application.World.CardFlipDomainService(runs, cards, characters, itemDelivery, flipCosts), clock);
     public ValueTask<SelectCardResult> HandleAsync(CommandExecutionContext c,CardAwardAlgorithmInput q,CancellationToken ct) =>
         command.AwardBodyAsync(q.AccountId,q.CharacterId,q.Kind,q.Index,q.ExpectedRunId,ct);
-    private sealed class Slots : IInventorySlotProjectionDomainService
-    { private readonly InventorySlotMappingRuleService slots=new(); public Dfo.Server.Data.Inventory.GameSlot Project(Dfo.Server.Data.Inventory.BusinessSlot slot)=>slots.ToGameSlot(slot); }
 }
 internal sealed record ClearExperienceAlgorithmInput(AccountId AccountId,CharacterId CharacterId,int DungeonId,
     ClearCircumstances Clear, SelectedSessionIdentity? Session=null,Guid RunId=default,int SettlementLevel=0,DateTimeOffset? SettledAt=null, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder? Footprint=null)

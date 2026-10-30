@@ -20,11 +20,9 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IDomainTransactionAccessor transactions,
     IItemPlacementRuleService placementRules,
     IItemSlotRuleService slotRules,
-    ICharacterEntryPreparationRuleService preparationRules,
-    IInventorySlotMappingRuleService? slotMappings = null, IInventoryCapacityDomainService? capacities = null,
+    ICharacterEntryPreparationRuleService preparationRules, IInventoryCapacityDomainService? capacities = null,
     ITransientItemDomainStoreFactory? transientStores = null) : ISelectCharacterEntryInventoryDomainService
 {
-    private readonly IInventorySlotMappingRuleService slotMappings = slotMappings ?? new InventorySlotMappingRuleService();
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
     {
@@ -121,7 +119,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
             reloaded, preparationRules, result.World.PreparedAt, cancellationToken).ConfigureAwait(false);
         var updated = result with { CharacterInventory = reloaded };
         var updates = committed.Grants
-            .Select(value => slotMappings.ToGameSlot(value.Slot))
+            .Select(value => A21InventoryLayout.ToGameSlot(value.Slot))
             .GroupBy(value => value.Space)
             .OrderBy(group => (byte)group.Key)
             .Select(group => new CommittedInventoryUpdateState(

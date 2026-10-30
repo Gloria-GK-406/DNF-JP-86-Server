@@ -49,7 +49,6 @@ public sealed class EpicCraftHandler(ICommandBus commands) : ClientMessageHandle
 public sealed record EpicCraftCompleted(EpicCraftReceipt Receipt) : INotification<EpicCraftCompleted>;
 public sealed class EpicCraftCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<EpicCraftCompleted>
 {
-    private static readonly IInventorySlotMappingRuleService Mappings = new InventorySlotMappingRuleService();
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, EpicCraftCompleted notification, CancellationToken ct)
     {
         var receipt = notification.Receipt.Inventory;
@@ -57,14 +56,14 @@ public sealed class EpicCraftCompletedHandler(ISelectedSessionDomainService sess
             || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage> { new EpicCraftResponse(true), new EpicBookStateMessage(1, [notification.Receipt.Pieces]) };
-        var updates = receipt.Updates.GroupBy(x => OpeningWireSlots.Project(x.Slot, Mappings).Space)
+        var updates = receipt.Updates.GroupBy(x => OpeningWireSlots.Project(x.Slot).Space)
             .Select(group => new CommittedInventoryUpdateState(group.Key, group.Select(x => new InventoryItemState(x.Identity,
-                OpeningWireSlots.Project(x.Slot, Mappings).Index, x.Core.ToCore())).ToArray(), receipt.PreparedAt)).ToArray();
+                OpeningWireSlots.Project(x.Slot).Index, x.Core.ToCore())).ToArray(), receipt.PreparedAt)).ToArray();
         messages.AddRange(GameInventoryDelivery.Notifications(updates));
         // Unlike recipe/opening ACKs, CMD0313 carries no cost list: exhausted account materials also need explicit removal.
         foreach (var slot in receipt.Cleared)
         {
-            var wire = OpeningWireSlots.Project(slot, Mappings);
+            var wire = OpeningWireSlots.Project(slot);
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
         }
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);

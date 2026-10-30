@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Protocol.Game;
 
@@ -39,7 +40,7 @@ internal sealed class SaoTowerNotificationSubscriber(IEventService events) : IDo
 
 internal sealed class SaoTowerRefreshHandler(ISaoTowerDomainService sao, ISelectedSessionDomainService sessions,
     IDungeonRunQueryDomainService runs, ICharacterInventoryEntryDomainService inventories,
-    IAccountInventoryEntryDomainService accounts, IInventorySlotProjectionDomainService slots)
+    IAccountInventoryEntryDomainService accounts)
     : INotificationHandler<SaoTowerRefresh>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -60,7 +61,7 @@ internal sealed class SaoTowerRefreshHandler(ISaoTowerDomainService sao, ISelect
         {
             var inventory = await inventories.ReadCurrentAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             var account = await accounts.LoadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-            foreach (var space in reward.Slots.Select(x => slots.Project(x).Space).Distinct())
+            foreach (var space in reward.Slots.Select(x => A21InventoryLayout.ToGameSlot(x).Space).Distinct())
                 result.Add(new InventoryFullSnapshotMessage(inventory.Containers.Single(x => x.ContainerType == space),
                     inventory, account, notification.At));
         }

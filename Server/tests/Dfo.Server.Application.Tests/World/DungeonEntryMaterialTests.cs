@@ -154,7 +154,7 @@ public sealed class DungeonEntryMaterialTests
                 {
                     var change = Assert.Single(result.Entry!.InventoryChanges);
                     Assert.Equal(BusinessInventorySpace.SharedMaterial, change.Slot.Space);
-                    var wire = f.Services.GetRequiredService<IInventorySlotProjectionDomainService>().Project(change.Slot);
+                    var wire = A21InventoryLayout.ToGameSlot(change.Slot);
                     Assert.Equal(358, wire.Index);
                     Assert.Equal(available - 12, change.Remaining!.Value);
                 }

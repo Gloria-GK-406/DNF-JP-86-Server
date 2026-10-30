@@ -50,14 +50,13 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
         if (message.Receipt is null && !message.Recovery) return OnePayload(0x0063, GameCmdEnvelope.Refuse(message.Error));
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         var receipt = message.Receipt;
-        var mapping = new InventorySlotMappingRuleService();
         writer.Write((byte)1); writer.Write(checked((byte)(receipt?.Deductions.Length ?? 0)));
         if (receipt is not null)
         {
             if (receipt.Outputs.Length is < 1 or > 2) throw new InvalidDataException("Avatar compound output count.");
             foreach (var deduction in receipt.Deductions)
             {
-                var slot = mapping.ToGameSlot(deduction.Slot);
+                var slot = A21InventoryLayout.ToGameSlot(deduction.Slot);
                 if (slot.Space is not (InventoryContainerType.Main or InventoryContainerType.Avatar) || deduction.Count <= 0)
                     throw new InvalidDataException("Invalid compound deduction.");
                 writer.Write((byte)slot.Space); writer.Write(checked((ushort)slot.Index)); writer.Write(deduction.Count);
@@ -71,7 +70,7 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
                 writer.Write(ushort.MaxValue); writer.Write(0); writer.Write(0); writer.Write((ushort)0);
                 continue;
             }
-            var output = receipt.Outputs[i]; var slot = mapping.ToGameSlot(output.Slot);
+            var output = receipt.Outputs[i]; var slot = A21InventoryLayout.ToGameSlot(output.Slot);
             var detail = output.Item.AvatarDetail ?? throw new InvalidDataException("Missing avatar details.");
             if (slot.Space != InventoryContainerType.Avatar || detail.JewelSocket.Length != 30)
                 throw new InvalidDataException("Invalid compound output.");

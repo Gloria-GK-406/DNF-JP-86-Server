@@ -12,8 +12,7 @@ namespace Dfo.Server.Application.Achievements;
 internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchievementPersistence persistence,
     IAchievementRuleService achievementRules,
     ITitleBookPersistence titlePersistence, IAchievementCharacterFactsDomainService characterFacts,
-    IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placement,
-    IInventorySlotMappingRuleService mapping, IInventoryCapacityDomainService capacity, IEventService events,
+    IItemDomainStore items, IDomainTransactionAccessor transactions, IItemPlacementRuleService placement, IInventoryCapacityDomainService capacity, IEventService events,
     IEquipmentWearDomainService wear, IItemMirrorDomainService mirrors) : ITitleBookDomainService, IDomainEventSubscriber<AchievementCompleted>
 {
     private static ContainerId Book(CharacterId character, int category) =>
@@ -140,7 +139,7 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         if (definition is null || !definition.AllowsItem(itemId)) return Fail("InvalidTitleSlot");
         if (!await QualifiedAsync(character, definition, ct)) return Fail("TitleLocked");
         if (source.Index < 0 || source.Space is not (BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment)) return Fail("InvalidSource");
-        var game = mapping.ToGameSlot(source); var container = ContainerId.ForCharacter(character, game.Space);
+        var game = A21InventoryLayout.ToGameSlot(source); var container = ContainerId.ForCharacter(character, game.Space);
         if (source.Space == BusinessInventorySpace.CarriedEquipment && source.Index >= await capacity.OpenSlotCountAsync(container, source.Space, ct)) return Fail("InvalidSource");
         var session = Session; var current = await session.GetAsync(container, game.Index, ct);
         if (current is null || current.ItemId != itemId || !await UsableAsync(current.Snapshot, source, ct)) return Fail("InvalidItem");
@@ -187,7 +186,7 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         var bag = ContainerId.ForCharacter(character, InventoryContainerType.Main);
         if (source.Index >= await capacity.OpenSlotCountAsync(bag, source.Space, ct)) return Fail("InvalidSource");
         var session = Session;
-        var piece = await session.GetAsync(bag, mapping.ToGameSlot(source).Index, ct);
+        var piece = await session.GetAsync(bag, A21InventoryLayout.ToGameSlot(source).Index, ct);
         var original = await session.GetAsync(Book(character, category), index, ct);
         var worn = await session.GetAsync(ContainerId.ForCharacter(character, InventoryContainerType.Equipment), 13, ct);
         if (original is null || worn?.Snapshot.IsMirror != true || worn.Snapshot.MirrorSourceUid != original.ItemUid)
@@ -212,7 +211,7 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
         if (!await QualifiedAsync(character, definition, ct)) return Fail("TitleLocked");
         if (definition.QuestId > 0 && destination.Space != BusinessInventorySpace.WornEquipment) return Fail("MustEquipTitle");
         if (destination.Index < 0 || destination.Space is not (BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment)) return Fail("InvalidDestination");
-        var game = mapping.ToGameSlot(destination); var container = ContainerId.ForCharacter(character, game.Space);
+        var game = A21InventoryLayout.ToGameSlot(destination); var container = ContainerId.ForCharacter(character, game.Space);
         if (destination.Space == BusinessInventorySpace.CarriedEquipment && destination.Index >= await capacity.OpenSlotCountAsync(container, destination.Space, ct)) return Fail("InvalidDestination");
         var session = Session; var current = await session.GetAsync(Book(character, category), index, ct);
         if (current is null || current.ItemId != itemId || !await UsableAsync(current.Snapshot, destination, ct)) return Fail("InvalidItem");
@@ -232,7 +231,7 @@ internal sealed class TitleBookDomainService(ITitleBookRuleService rules, IAchie
                 var open = await capacity.OpenSlotCountAsync(bag, BusinessInventorySpace.CarriedEquipment, ct);
                 for (var i = 0; i < open; i++)
                 {
-                    var candidate = mapping.ToGameSlot(new(BusinessInventorySpace.CarriedEquipment, i));
+                    var candidate = A21InventoryLayout.ToGameSlot(new(BusinessInventorySpace.CarriedEquipment, i));
                     if (await session.GetAsync(bag, candidate.Index, ct) is null) { free = candidate.Index; break; }
                 }
                 if (free is null) return Fail("InventoryFull");

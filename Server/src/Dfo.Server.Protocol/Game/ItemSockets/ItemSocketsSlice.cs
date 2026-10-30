@@ -96,7 +96,7 @@ public sealed class ItemSocketHandler(ICommandBus commands) : ClientMessageHandl
         _ = await commands.SendAsync(new GameItemSocketCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed record ItemSocketCompleted(ushort Type, ItemSocketReceipt Receipt) : INotification<ItemSocketCompleted>;
-public sealed class ItemSocketCompletedHandler(ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService projection,
+public sealed class ItemSocketCompletedHandler(ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService inventory) : INotificationHandler<ItemSocketCompleted>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, ItemSocketCompleted notification, CancellationToken ct)
@@ -109,10 +109,10 @@ public sealed class ItemSocketCompletedHandler(ISelectedSessionDomainService ses
         foreach (var material in receipt.Materials)
         {
             var state = await Read(material.Slot);
-            remains.Add(new(checked((ushort)projection.Project(material.Slot).Index), state?.Count ?? 0));
+            remains.Add(new(checked((ushort)A21InventoryLayout.ToGameSlot(material.Slot).Index), state?.Count ?? 0));
         }
         // Open ACK decrements one drill locally. It must precede the authoritative material NOTI.
-        messages.Add(new ItemSocketResponse(notification.Type, true, checked((ushort)projection.Project(receipt.Input.Target).Index),
+        messages.Add(new ItemSocketResponse(notification.Type, true, checked((ushort)A21InventoryLayout.ToGameSlot(receipt.Input.Target).Index),
             receipt.Input.Open && receipt.Materials.Length != 0 ? remains[0].Slot : ushort.MaxValue, remains.ToImmutable()));
         foreach (var material in receipt.Materials) Add(material.Slot, await Read(material.Slot));
         Add(receipt.Input.Target, await Read(receipt.Input.Target));
@@ -124,7 +124,7 @@ public sealed class ItemSocketCompletedHandler(ISelectedSessionDomainService ses
         }
         void Add(BusinessSlot slot, ItemSnapshot? item)
         {
-            var game = projection.Project(slot);
+            var game = A21InventoryLayout.ToGameSlot(slot);
             messages.Add(item is null ? GameInventoryDelivery.ClearedSlotNotification(game.Space, game.Index, receipt.At)
                 : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(game.Space,
                     [new InventoryItemState(item.ItemUid, game.Index, item.ToCore(), item.AvatarDetail)], receipt.At)));

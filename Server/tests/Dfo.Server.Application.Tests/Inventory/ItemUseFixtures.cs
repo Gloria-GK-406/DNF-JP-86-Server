@@ -257,7 +257,7 @@ internal static class WholeUse
     {
         var query = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService>(services);
         if (!query.TryGetByConnection(session.ConnectionId, out var user) || user is null) throw new InvalidOperationException("Missing physical fixture connection.");
-        var game = new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService().ToGameSlot(slot);
+        var game = A21InventoryLayout.ToGameSlot(slot);
         return new(new(user.Connection), Input(game, itemCode));
     }
     internal static Dfo.Server.Protocol.Game.UseStackable.UseStackableRequest Input(GameSlot slot, int itemCode, int instance = 0)
@@ -296,12 +296,12 @@ internal static class MoveWholeTestDriver
 {
     internal sealed record Execution(IInventoryMoveDomainService Domain,DomainTransactionScope Scope);
     internal static MoveItemSpaceHandler Create(ISelectedSessionDomainService sessions,
-        ISelectedCharacterCurrentViewDomainService views,IInventorySlotMappingRuleService slots,
+        ISelectedCharacterCurrentViewDomainService views,
         Execution execution,Dfo.Server.Protocol.Game.IGameMessageSender sender,
         Microsoft.Extensions.Logging.ILogger<GameMoveItemSpaceCommandHandler> logger,
         ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
         TimeProvider time,Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing=null)=>
-        new(new Bus(new(sessions,views,slots,execution.Domain,new Units(execution.Scope),new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
+        new(new Bus(new(sessions,views,execution.Domain,new Units(execution.Scope),new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

@@ -457,7 +457,7 @@ internal static class MailboxTestWire
                 for (var index = 0; index < selections.Count; index++)
                 {
                     var selection = selections[index];
-                    var slot = new InventorySlotMappingRuleService().ToGameSlot(selection.Slot);
+                    var slot = A21InventoryLayout.ToGameSlot(selection.Slot);
                     if (!send.Multi || index != 0) writer.Write((byte)slot.Space);
                     writer.Write(checked((ushort)slot.Index)); writer.Write(selection.ItemId); writer.Write(selection.Count);
                 }

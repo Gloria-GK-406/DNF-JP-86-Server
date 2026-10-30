@@ -16,8 +16,7 @@ using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Protocol.Game.CardReward;
 internal sealed partial class GameCardCommandHandler(
     ISelectedSessionDomainService selectedSessions, ISelectedCharacterCurrentViewDomainService currentViews,
-    IDungeonRunDomainService runs, ICardFlipDomainService flips,
-    IInventorySlotProjectionDomainService inventoryProjection, ICommandWorkUnits units, IGameCommandOutbox outbox,
+    IDungeonRunDomainService runs, ICardFlipDomainService flips, ICommandWorkUnits units, IGameCommandOutbox outbox,
     IDungeonCardPresentationControl cardPresentation, IDungeonRunProjectionDomainService deliveries,
     IPartyService parties, TimeProvider clock, ILogger<GameCardCommandHandler> logger)
     : ICommandHandler<GameScoreScrollStateCommand, bool>, ICommandHandler<GameCardSelectRightStateCommand, bool>,

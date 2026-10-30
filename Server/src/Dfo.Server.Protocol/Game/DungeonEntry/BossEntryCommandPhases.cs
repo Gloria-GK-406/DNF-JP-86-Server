@@ -211,7 +211,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
     private static void BossEntryAppendDebit(List<IGameServerMessage> frames, DungeonEntryInventoryChange debit, DateTimeOffset at)
     {
-        var slot = SlotMappings.ToGameSlot(debit.Slot);
+        var slot = A21InventoryLayout.ToGameSlot(debit.Slot);
         frames.Add(debit.Remaining is null
             ? GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, at)
             : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(slot.Space,

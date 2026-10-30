@@ -15,7 +15,6 @@ public sealed record SweepTournamentCandidateCommand(TournamentDungeonState Cand
 public sealed class SweepTournamentRewardsCommandHandler(ITournamentDungeonDomainService tournaments,
     ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
     Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
-    Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService slots,
     ICommandWorkUnits units, IGameCommandOutbox outbox, TimeProvider clock, ILogger<SweepTournamentRewardsCommandHandler> logger)
     : ICommandHandler<SweepTournamentRewardsCommand, bool>, ICommandHandler<SweepTournamentCandidateCommand, bool>
 {
@@ -48,7 +47,7 @@ public sealed class SweepTournamentRewardsCommandHandler(ITournamentDungeonDomai
             if (result.Action is not {} action) continue;
             current = action.State;
             var slot = runs.Find(candidate.CharacterId)?.Participant?.Slot ?? 0;
-            await outbox.RegisterExplicitAsync(session.ConnectionId, new([.. TournamentCompletionFrames.CompletionFrames(action, slots, clock),
+            await outbox.RegisterExplicitAsync(session.ConnectionId, new([.. TournamentCompletionFrames.CompletionFrames(action, clock),
                 new TournamentSelectionResponse(current, slot)], []), token).ConfigureAwait(false);
             logger.LogInformation("Tournament automatic card selected character={CharacterId} run={RunId} row={Row} deadlineLagMs={Lag}",
                 current.CharacterId, current.RunId, row, (clock.GetUtcNow() - deadline).TotalMilliseconds);

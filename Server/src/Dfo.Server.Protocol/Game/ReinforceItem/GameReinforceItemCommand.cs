@@ -20,7 +20,6 @@ public sealed record GameReinforceItemCommand(NetworkDispatchContext Dispatch, R
 public sealed class GameReinforceItemCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings,
     IEquipmentReinforcementDomainService reinforcement, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameReinforceItemCommandHandler> logger)
     : ICommandHandler<GameReinforceItemCommand, EquipmentReinforcementResult>
@@ -94,13 +93,13 @@ public sealed class GameReinforceItemCommandHandler(
             return false;
         try
         {
-            target = slotMappings.ToBusinessSlot(
+            target = A21InventoryLayout.ToBusinessSlot(
                 new(message.TargetList, message.TargetSlot));
             if (message.MaterialSlot >= 0)
-                material = slotMappings.ToBusinessSlot(
+                material = A21InventoryLayout.ToBusinessSlot(
                     new(InventoryContainerType.Main, message.MaterialSlot));
             if (message.OptionalTicketSlot >= 0)
-                ticket = slotMappings.ToBusinessSlot(
+                ticket = A21InventoryLayout.ToBusinessSlot(
                     new(InventoryContainerType.Main, message.OptionalTicketSlot));
             return true;
         }
@@ -116,10 +115,10 @@ public sealed class GameReinforceItemCommandHandler(
             OldLevel: receipt.OldLevel,
             Outcome: receipt.Outcome,
             NewLevel: receipt.NewLevel,
-            TargetSlot: checked((short)slotMappings.ToGameSlot(receipt.TargetSlot).Index),
-            TargetList: slotMappings.ToGameSlot(receipt.TargetSlot).Space,
+            TargetSlot: checked((short)A21InventoryLayout.ToGameSlot(receipt.TargetSlot).Index),
+            TargetList: A21InventoryLayout.ToGameSlot(receipt.TargetSlot).Space,
             DestroyRewards: receipt.DestroyRewards.Select(reward =>
-                new ReinforceItemReward(slotMappings.ToGameSlot(reward.Slot),
+                new ReinforceItemReward(A21InventoryLayout.ToGameSlot(reward.Slot),
                     reward.ItemId, reward.Count)).ToArray());
 
     internal static byte ErrorCode(EquipmentReinforcementRejection rejection) => rejection switch

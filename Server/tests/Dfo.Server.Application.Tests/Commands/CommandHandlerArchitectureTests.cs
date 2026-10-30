@@ -54,7 +54,6 @@ public sealed class CommandHandlerArchitectureTests
             [typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections)] = "只登记即时投影，不发布领域事实。",
             [typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox)] = "Protocol所有的CMD/NOTI强类型登记。",
             [typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)] = "显式收件人的登记顺序组。",
-            [typeof(Dfo.Server.Abstractions.Inventory.IInventorySlotMappingRuleService)] = "固定协议槽位到业务位置的地址换算。",
             [typeof(IPartyService)] =
                 "队伍聚合的权威边界按领域语言明确命名为 PartyService；用户要求该名称不追加 Domain 后缀。",
         };
@@ -176,7 +175,6 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox))]
     [InlineData(typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering))]
-    [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IInventorySlotMappingRuleService))]
     [InlineData(typeof(Microsoft.Extensions.Logging.ILogger<CommandHandlerArchitectureTests>))]
     public void ADomainShapeOrANamedExemptionIsPermitted(Type type) => Assert.True(IsPermitted(type));
 

@@ -31,7 +31,7 @@ public sealed class KnightCoinShopTests
         Assert.Equal(BusinessInventorySpace.Material,granted.Slot.Space);
         Assert.Equal(0,granted.Core.ExpireTime);
         var before = shop.Sender.Messages.Count;
-        var physical = shop.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(granted.Slot);
+        var physical = A21InventoryLayout.ToGameSlot(granted.Slot);
         await SellWire.Sell(shop, physical.Index, 2, physical.Space);
         var sale = Assert.IsType<SellItemResponse>(Assert.Single(shop.Sender.Messages.Skip(before)));
         Assert.NotNull(sale.Slot); Assert.Equal(physical, sale.Slot); Assert.Equal(2, sale.Count);

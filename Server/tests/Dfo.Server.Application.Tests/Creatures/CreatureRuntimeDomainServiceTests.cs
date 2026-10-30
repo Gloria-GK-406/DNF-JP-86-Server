@@ -45,7 +45,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             f.Enter();
             var food = new FoodInventory { Scope = f.Scope };
             food.Seed(3, 24, 2);
-            var slots = new BusinessInventorySlotDomainService(food.Containers(), new InventorySlotMappingRuleService());
+            var slots = new BusinessInventorySlotDomainService(food.Containers());
             var source = new BusinessSlot(BusinessInventorySpace.QuickSlot, 0);
             var executor = new ApplyEffectsDomainService([new ConsumeFromContainerEffectHandler(slots, food.Lifecycle),
                 new AddPetStomachEffectHandler(f.Runtime)], f.Scope, new SqliteCharacterDomainStore(f.Path), f.Sessions, ConsumptionEffectPreflight.For(slots));

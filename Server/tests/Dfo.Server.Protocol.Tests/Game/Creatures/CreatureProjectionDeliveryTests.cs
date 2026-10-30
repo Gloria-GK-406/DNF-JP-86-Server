@@ -212,7 +212,7 @@ public sealed class CreatureProjectionDeliveryTests
             DispatchProxy.Create<IDungeonRunDomainService, NullProxy>(), towns, new TowerParticipation(tower),
             ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(),
             tower ?? ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), new GameOutboxFixture(sender), new ConnectionClosureFixture(closer),
-            new Dfo.Server.Abstractions.Inventory.InventorySlotMappingRuleService(), ProtocolAlgorithmFixture.Default<Dfo.Server.Application.Commands.ICommandWorkUnits>(), TimeProvider.System, NullLogger<AdvanceCreatureTickCommandHandler>.Instance);
+            ProtocolAlgorithmFixture.Default<Dfo.Server.Application.Commands.ICommandWorkUnits>(), TimeProvider.System, NullLogger<AdvanceCreatureTickCommandHandler>.Instance);
 
     private static SelectedSessionIdentity Session(int id, string connection) =>
         SelectedSessionIdentity.Create(new AccountId(id), new CharacterId(id),

@@ -20,6 +20,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Testing;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Marriage;
 
@@ -578,7 +579,7 @@ public sealed class MarriageChurchTests
             await using (var tx = f.Scope.Begin())
             { await f.Services.GetRequiredService<IItemDeliveryDomainService>().DeliverAsync(f.Session.AccountId, f.Session.CharacterId, [new(10002901, 3)], "love-test", default, ItemDeliveryMode.InventoryOnly); await tx.CommitAsync(default); }
             var delivered = (await f.Services.GetRequiredService<ICharacterContainerDomainService>().GetContainer(f.Session.CharacterId, Dfo.Server.Data.Inventory.InventoryContainerType.Main).GetAllAsync(default)).Single(x => x.ItemId == 10002901);
-            var source = new InventorySlotMappingRuleService().ToBusinessSlot(new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, delivered.StorageSlotIndex));
+            var source = A21InventoryLayout.ToBusinessSlot(new(Dfo.Server.Data.Inventory.InventoryContainerType.Main, delivered.StorageSlotIndex));
             var love = f.Services.GetRequiredService<IMarriageCoupleDomainService>();
             var accounts = await f.Services.GetRequiredService<IMarriageQueryDomainService>().CoupleAccountsAsync(f.Session, default);
             async Task<MarriageLovePointResult> Use(bool commit = true, IReadOnlyList<AccountId>? expected = null)

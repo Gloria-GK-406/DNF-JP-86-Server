@@ -1,11 +1,14 @@
-using Dfo.Server.Data.Inventory;
+namespace Dfo.Server.Data.Inventory;
 
-namespace Dfo.Server.Abstractions.Inventory;
-
-/// <summary>The one table that gives A21 game slots their business meaning.</summary>
-public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleService
+/// <summary>The A21 inventory layout: the one table that gives A21 game slots their business meaning.</summary>
+/// <remarks>
+/// A fixed fact of the A21 client, not a rule: it reads no content or configuration.  Protocol codecs,
+/// storage rows and PVF slot ranges all speak A21 coordinates, so every edge converts through here.
+/// </remarks>
+public static class A21InventoryLayout
 {
-    public BusinessSlot ToBusinessSlot(GameSlot source) => source.Space switch
+    /// <exception cref="InventorySlotMappingException">The game coordinate is not a normal item slot.</exception>
+    public static BusinessSlot ToBusinessSlot(GameSlot source) => source.Space switch
     {
         InventoryContainerType.QuickSlot when In(source.Index, 3, 8) => Business(BusinessInventorySpace.TowerQuickSlot, source.Index, 3),
         InventoryContainerType.Main when In(source.Index, 3, 8) => Business(BusinessInventorySpace.QuickSlot, source.Index, 3),
@@ -32,7 +35,8 @@ public sealed class InventorySlotMappingRuleService : IInventorySlotMappingRuleS
         _ => throw new InventorySlotMappingException(source),
     };
 
-    public GameSlot ToGameSlot(BusinessSlot source) => source.Space switch
+    /// <exception cref="InventorySlotMappingException">The business coordinate cannot be represented by A21.</exception>
+    public static GameSlot ToGameSlot(BusinessSlot source) => source.Space switch
     {
         BusinessInventorySpace.TowerQuickSlot => Game(source, InventoryContainerType.QuickSlot, 3, 5),
         BusinessInventorySpace.QuickSlot => Game(source, InventoryContainerType.Main, 3, 5),

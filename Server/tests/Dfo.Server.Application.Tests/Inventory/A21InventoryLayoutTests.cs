@@ -1,13 +1,10 @@
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
 [Trait("Category", "Unit")]
-public sealed class InventorySlotMappingRuleServiceTests
+public sealed class A21InventoryLayoutTests
 {
-    private readonly InventorySlotMappingRuleService _rules = new();
-
     [Theory]
     [InlineData(24, BusinessInventorySpace.WornEquipment, 12)]
     [InlineData(25, BusinessInventorySpace.WornCreature, 0)]
@@ -17,8 +14,8 @@ public sealed class InventorySlotMappingRuleServiceTests
         int wireIndex, BusinessInventorySpace expectedSpace, int localIndex)
     {
         var business = new BusinessSlot(expectedSpace, localIndex);
-        Assert.Equal(business, _rules.ToBusinessSlot(new GameSlot(InventoryContainerType.Equipment, wireIndex)));
-        Assert.Equal(new GameSlot(InventoryContainerType.Equipment, wireIndex), _rules.ToGameSlot(business));
+        Assert.Equal(business, A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Equipment, wireIndex)));
+        Assert.Equal(new GameSlot(InventoryContainerType.Equipment, wireIndex), A21InventoryLayout.ToGameSlot(business));
     }
 
     [Fact]
@@ -40,7 +37,7 @@ public sealed class InventorySlotMappingRuleServiceTests
         var business = LegacyInventoryStorageCoordinates.ToBusiness(physical, 1);
         Assert.Equal(new(BusinessInventorySpace.WornEquipment, 0), business);
         Assert.Equal(physical, LegacyInventoryStorageCoordinates.ToStorage(business));
-        Assert.Equal(new GameSlot(InventoryContainerType.Equipment, 12), _rules.ToGameSlot(business));
+        Assert.Equal(new GameSlot(InventoryContainerType.Equipment, 12), A21InventoryLayout.ToGameSlot(business));
     }
 
     public static TheoryData<GameSlot, BusinessSlot> Boundaries => new()
@@ -93,8 +90,28 @@ public sealed class InventorySlotMappingRuleServiceTests
     [MemberData(nameof(Boundaries))]
     public void Every_supported_boundary_round_trips(GameSlot game, BusinessSlot business)
     {
-        Assert.Equal(business, _rules.ToBusinessSlot(game));
-        Assert.Equal(game, _rules.ToGameSlot(business));
+        Assert.Equal(business, A21InventoryLayout.ToBusinessSlot(game));
+        Assert.Equal(game, A21InventoryLayout.ToGameSlot(business));
+    }
+
+    [Fact]
+    public void Every_mapped_slot_round_trips_and_no_two_game_slots_share_a_business_slot()
+    {
+        var seen = new Dictionary<BusinessSlot, GameSlot>();
+        foreach (var space in Enum.GetValues<InventoryContainerType>())
+            for (var index = -1; index <= 400; index++)
+            {
+                var game = new GameSlot(space, index);
+                BusinessSlot business;
+                try { business = A21InventoryLayout.ToBusinessSlot(game); }
+                catch (InventorySlotMappingException) { continue; }
+                Assert.Equal(game, A21InventoryLayout.ToGameSlot(business));
+                Assert.True(seen.TryAdd(business, game), $"{business} is reached from {seen.GetValueOrDefault(business)} and {game}.");
+            }
+        Assert.Equal(seen.Keys.ToHashSet(), Enum.GetValues<BusinessInventorySpace>()
+            .SelectMany(space => Enumerable.Range(-1, 402).Select(index => new BusinessSlot(space, index)))
+            .Where(slot => { try { A21InventoryLayout.ToGameSlot(slot); return true; } catch (InventorySlotMappingException) { return false; } })
+            .ToHashSet());
     }
 
     public static TheoryData<GameSlot> InvalidGameSlots => new()
@@ -114,7 +131,7 @@ public sealed class InventorySlotMappingRuleServiceTests
     [MemberData(nameof(InvalidGameSlots))]
     public void Invalid_game_slots_throw_with_the_source(GameSlot source)
     {
-        var failure = Assert.Throws<InventorySlotMappingException>(() => _rules.ToBusinessSlot(source));
+        var failure = Assert.Throws<InventorySlotMappingException>(() => A21InventoryLayout.ToBusinessSlot(source));
 
         Assert.Equal(source, failure.GameSlot);
         Assert.Null(failure.BusinessSlot);
@@ -135,8 +152,7 @@ public sealed class InventorySlotMappingRuleServiceTests
     [MemberData(nameof(InvalidBusinessSlots))]
     public void Invalid_business_slots_throw_with_the_source(BusinessSlot source)
     {
-
-        var failure = Assert.Throws<InventorySlotMappingException>(() => _rules.ToGameSlot(source));
+        var failure = Assert.Throws<InventorySlotMappingException>(() => A21InventoryLayout.ToGameSlot(source));
 
         Assert.Equal(source, failure.BusinessSlot);
         Assert.Null(failure.GameSlot);

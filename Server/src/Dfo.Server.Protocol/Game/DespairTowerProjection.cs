@@ -72,12 +72,11 @@ internal sealed class DespairApcInfoEncoder : GameNotiMessageEncoder<DespairApcI
 }
 internal static class DespairTowerProjection
 {
-    public static IEnumerable<IGameServerMessage> Rewards(DespairTowerSettlement settlement, DateTimeOffset preparedAt,
-        Dfo.Server.Abstractions.Inventory.IInventorySlotProjectionDomainService projection)
+    public static IEnumerable<IGameServerMessage> Rewards(DespairTowerSettlement settlement, DateTimeOffset preparedAt)
     {
         foreach (var update in settlement.InventoryUpdates)
         {
-            var slot = projection.Project(update.Slot);
+            var slot = A21InventoryLayout.ToGameSlot(update.Slot);
             yield return new InventoryDeltaMessage(slot.Space,
                 [new InventoryItemState(null, slot.Index, update.Item.ToCore())], preparedAt);
         }

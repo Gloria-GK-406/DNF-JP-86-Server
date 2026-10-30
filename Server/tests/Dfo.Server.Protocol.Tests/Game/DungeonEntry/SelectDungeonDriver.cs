@@ -39,14 +39,13 @@ internal static class SelectDungeonDriver
     IIllusionTowerDomainService? illusionTower = null,
     IllusionTowerProjectionDriver? illusionTowerProjection = null, ISaoTowerDomainService? sao = null,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService? bossTower = null, BossTowerProjectionDriver? bossProjection = null) => new(characters,currentState,selectedSessions,currentViews,parties,runs,deliveryRegistry,entryIntents,visits,questLogs,fatigue,sender,connectionCloser,townAreaProjection,
-        entryProjection?.Commands, illusionTower,bossTower,sao,entryProjection?.Ordering,entryProjection?.Inventory,onlineUsers:entryProjection?.OnlineUsers);
+        entryProjection?.Commands, illusionTower,bossTower,sao,entryProjection?.Ordering,onlineUsers:entryProjection?.OnlineUsers);
 }
 internal sealed class EntryProjectionOptions
 {
     internal ICommandBus? Commands { get; }
     internal IOnlineUserQueryDomainService? OnlineUsers { get; }
     internal IOutboundOrdering? Ordering { get; }
-    internal IInventorySlotProjectionDomainService? Inventory { get; }
     public EntryProjectionOptions(
     ICharacterDomainService characters,
     ICharacterStateProjectionDomainService currentState,
@@ -62,8 +61,7 @@ internal sealed class EntryProjectionOptions
     TownAreaProjectionDelivery townAreaProjection,
     ILogger<EntryProjectionOptions> logger,
     ICommandBus? commands = null,
-    IInventorySlotProjectionDomainService? inventoryProjection = null,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService? housing = null,
     IOutboundOrdering? ordering = null, IOnlineUserQueryDomainService? onlineUsers = null)
-    { Commands=commands; Ordering=ordering; Inventory=inventoryProjection; OnlineUsers=onlineUsers; }
+    { Commands=commands; Ordering=ordering; OnlineUsers=onlineUsers; }
 }

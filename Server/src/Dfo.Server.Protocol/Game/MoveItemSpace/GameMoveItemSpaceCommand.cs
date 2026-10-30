@@ -25,7 +25,6 @@ public sealed record GameMoveItemSpaceCommand(NetworkDispatchContext Dispatch, M
 public sealed class GameMoveItemSpaceCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
-    IInventorySlotMappingRuleService slotMappings,
     IInventoryMoveDomainService inventoryMoves,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
@@ -157,10 +156,10 @@ public sealed class GameMoveItemSpaceCommandHandler(
         MoveItemSpaceRequest message,
         CancellationToken cancellationToken)
     {
-        var source = slotMappings.ToBusinessSlot(message.SourceSlot);
-        var destination = slotMappings.ToBusinessSlot(message.DestinationSlot);
-        var responseSource = slotMappings.ToGameSlot(source);
-        var responseDestination = slotMappings.ToGameSlot(destination);
+        var source = A21InventoryLayout.ToBusinessSlot(message.SourceSlot);
+        var destination = A21InventoryLayout.ToBusinessSlot(message.DestinationSlot);
+        var responseSource = A21InventoryLayout.ToGameSlot(source);
+        var responseDestination = A21InventoryLayout.ToGameSlot(destination);
         if (!selectedSessions.TryGetInWorld(context.Connection.ConnectionId, out var session))
         {
             logger.LogWarning(
@@ -183,7 +182,7 @@ public sealed class GameMoveItemSpaceCommandHandler(
         if (result.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged or ItemMoveStatus.MirrorRemoved)
         {
             if (result.ActualDestinationSlot is { } actualDestination)
-                responseDestination = slotMappings.ToGameSlot(actualDestination);
+                responseDestination = A21InventoryLayout.ToGameSlot(actualDestination);
             logger.LogInformation(
                 "Move item space {ConnectionId} character={CharacterId}: item {ItemId} "
                     + "from list {FromList} slot {From} to list {ToList} slot {To} count={Count}",

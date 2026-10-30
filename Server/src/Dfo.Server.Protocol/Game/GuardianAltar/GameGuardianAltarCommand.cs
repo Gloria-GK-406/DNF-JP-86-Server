@@ -26,8 +26,7 @@ internal sealed record GuardianAltarMutation(GuardianAltarProgress? Progress = n
     ItemDeliveryReceipt? Delivery = null);
 
 internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
-    IDungeonRunQueryDomainService runs, ICommandWorkUnits units, IGameCommandOutbox outbox,
-    IInventorySlotProjectionDomainService slots, ICharacterDomainService characters, TimeProvider clock)
+    IDungeonRunQueryDomainService runs, ICommandWorkUnits units, IGameCommandOutbox outbox, ICharacterDomainService characters, TimeProvider clock)
     : ICommandHandler<GameGuardianAltarCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameGuardianAltarCommand command, CancellationToken ct)
@@ -52,9 +51,9 @@ internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainServic
                 frames.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(session.CharacterId).GoldAsync(ct).ConfigureAwait(false), clock.GetUtcNow()));
             }
         }
-        frames.AddRange(GuardianAltarProjection.InventoryFrames(result.Delivery, slots, clock));
+        frames.AddRange(GuardianAltarProjection.InventoryFrames(result.Delivery, clock));
         await outbox.RegisterExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
-        if (result.Action is { } action) await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, slots, clock, ct).ConfigureAwait(false);
+        if (result.Action is { } action) await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, clock, ct).ConfigureAwait(false);
         return true;
     }
     private async ValueTask<GuardianAltarMutation> MutateAsync(SelectedSessionIdentity session, GuardianAltarRequest r, CancellationToken ct)

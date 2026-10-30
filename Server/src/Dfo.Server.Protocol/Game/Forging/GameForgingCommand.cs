@@ -20,7 +20,6 @@ public sealed record GameForgingCommand(NetworkDispatchContext Dispatch, Forging
 public sealed class GameForgingCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService mappings,
     IEquipmentForgingDomainService forging, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameForgingCommandHandler> logger)
     : ICommandHandler<GameForgingCommand, EquipmentForgingResult>
@@ -56,9 +55,9 @@ public sealed class GameForgingCommandHandler(
         BusinessSlot material;
         try
         {
-            target = mappings.ToBusinessSlot(new(
+            target = A21InventoryLayout.ToBusinessSlot(new(
                 (InventoryContainerType)request.TargetListType, request.TargetSlot));
-            material = mappings.ToBusinessSlot(new(InventoryContainerType.Main,
+            material = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main,
                 request.MaterialSlot));
         }
         catch (InventorySlotMappingException)

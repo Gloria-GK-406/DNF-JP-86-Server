@@ -238,9 +238,8 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         if (displacedItemId is { } item) worn.Seed(14, item);
         containers.Register(character, worn);
 
-        var mappings = new InventorySlotMappingRuleService();
         var commandHandler = new InventoryMoveDomainService(
-            new BusinessInventorySlotDomainService(containers, mappings),
+            new BusinessInventorySlotDomainService(containers),
             new ItemMovementDomainService(
                 new ItemPlacementRuleService(archive.Placements, archive.EquipmentSlots),
                 new ItemSlotRuleService(), new RefusedEquipIsRecordedWithItsTemplateTestsWearEligibility()));
@@ -250,7 +249,6 @@ public sealed class RefusedEquipIsRecordedWithItsTemplateTests(ArchiveContentFix
         return (
             MoveItemProtocolTestDriver.Create(
                 new OneSession(), new NoPublishedRuntime(),
-                mappings,
                 new MoveItemProtocolTestDriver.Execution(commandHandler, fixture), sender, logger, null!, null!, TimeProvider.System),
             sender,
             logger);

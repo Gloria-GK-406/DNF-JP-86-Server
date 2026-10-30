@@ -166,7 +166,7 @@ public sealed partial class AchievementTitleBookTests
         var bag=ContainerId.ForCharacter(Character,InventoryContainerType.Main);
         var open=await f.Services.GetRequiredService<IInventoryCapacityDomainService>().OpenSlotCountAsync(bag,TitleBag.Space,default);
         for(var i=0;i<open;i++) {
-            var game=f.Services.GetRequiredService<IInventorySlotMappingRuleService>().ToGameSlot(new(TitleBag.Space,i));
+            var game=A21InventoryLayout.ToGameSlot(new(TitleBag.Space,i));
             await SeedTitle(f,26628,bag,game.Index);
         }
         var before=f.ItemsAndPositions();

@@ -99,7 +99,7 @@ internal sealed class TitleBookEventSubscriber(IEventService events)
             : ValueTask.CompletedTask;
 }
 internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, ISelectedSessionDomainService sessions,
-    ISelectedCharacterCurrentViewDomainService views, IInventorySlotProjectionDomainService slots)
+    ISelectedCharacterCurrentViewDomainService views)
     : INotificationHandler<TitleBookChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient, TitleBookChanged notification, CancellationToken ct)
@@ -108,7 +108,7 @@ internal sealed class TitleBookChangedHandler(ITitleBookDomainService titles, IS
         var messages = new List<IServerNetworkMessage>();
         if (notification.Unlock is { } unlock) messages.Add(new TitleUnlockedMessage(unlock));
         // ACK completes before committed equipment and silent book snapshots are delivered.
-        var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? slots.Project(changed).Space : (InventoryContainerType?)null);
+        var changedType = notification.ChangedContainer ?? (notification.ChangedSlot is { } changed ? A21InventoryLayout.ToGameSlot(changed).Space : (InventoryContainerType?)null);
         if (changedType is { } type && sessions.TryGetInWorld(recipient.ConnectionId, out var session)
             && await views.TryLoadAsync(session, ct).ConfigureAwait(false) is { } current)
         {

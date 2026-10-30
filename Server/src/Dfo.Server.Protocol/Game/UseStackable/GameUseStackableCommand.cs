@@ -23,8 +23,7 @@ public sealed record GameUseStackableCommand(NetworkDispatchContext Dispatch, Us
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings, IBusinessInventorySlotDomainService inventory,
+public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService sessions, IBusinessInventorySlotDomainService inventory,
     IItemUseEffectDomainService effects, ICommandWorkUnits units, IGameCommandOutbox outbox,
     ILogger<GameUseStackableCommandHandler> logger, TimeProvider timeProvider)
     : ICommandHandler<GameUseStackableCommand, ItemUseResult>
@@ -33,8 +32,8 @@ public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService
     {
         var request = context.Request ?? throw new InvalidOperationException("Use requires its explicit request.");
         var message = command.Input;
-        var slot = slotMappings.ToBusinessSlot(message.Slot);
-        var responseSlot = slotMappings.ToGameSlot(slot);
+        var slot = A21InventoryLayout.ToBusinessSlot(message.Slot);
+        var responseSlot = A21InventoryLayout.ToGameSlot(slot);
         var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
         var selected = request as CommandRequestContext.ProtocolEffectSelected;
         ItemUseResult result;

@@ -12,8 +12,7 @@ public sealed record EquipmentReinforcementCompleted(
     : INotification<EquipmentReinforcementCompleted>;
 
 public sealed class EquipmentReinforcementCompletedHandler(
-    ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slots)
+    ISelectedSessionDomainService sessions)
     : INotificationHandler<EquipmentReinforcementCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
@@ -29,7 +28,7 @@ public sealed class EquipmentReinforcementCompletedHandler(
         var messages = new List<IServerNetworkMessage> { notification.Response };
         var finalSlots = receipt.Changes.Where(change => change.Slot.Space != BusinessInventorySpace.SharedMaterial || change.Core is not null).GroupBy(change => change.Slot)
             .Select(group => group.Last())
-            .Select(change => (Slot: slots.Project(change.Slot), change.Core))
+            .Select(change => (Slot: A21InventoryLayout.ToGameSlot(change.Slot), change.Core))
             .GroupBy(change => change.Slot.Space)
             .OrderBy(group => (byte)group.Key);
         foreach (var container in finalSlots)

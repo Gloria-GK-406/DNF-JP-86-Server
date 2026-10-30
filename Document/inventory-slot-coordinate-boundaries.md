@@ -17,8 +17,8 @@
 ## 适配方向
 
 ```text
-A21 body -> GameSlot -> 唯一映射规则 -> BusinessSlot -> 领域行为
-领域结果 -> BusinessSlot -> 只读协议投影 -> GameSlot -> A21 body
+A21 body -> GameSlot -> A21InventoryLayout -> BusinessSlot -> 领域行为
+领域结果 -> BusinessSlot -> A21InventoryLayout -> GameSlot -> A21 body
 
 PVF 绝对区段 -> 内容源适配 -> BusinessSlotRange -> 到达/放置规则
 BusinessSlot -> BusinessItemContainer -> LegacyInventoryStorageCoordinates -> 既有持久化
@@ -43,8 +43,9 @@ BusinessSlot -> BusinessItemContainer -> LegacyInventoryStorageCoordinates -> �
 
 ## 单一真源约束
 
-- 候选 A21 wire 偏移只存在于 `InventorySlotMappingRuleService`，旧 SQLite 偏移独立位于 `LegacyInventoryStorageCoordinates`。两表数字可能相同，但证据来源和职责不同。宠物 `25`、神器 `26..28` 仅有上游参考，尚待 A21 实机裁决。
+- 候选 A21 wire 偏移只存在于 `Dfo.Server.Data` 的静态 `A21InventoryLayout`，旧 SQLite 偏移独立位于 `LegacyInventoryStorageCoordinates`。两表数字可能相同，但证据来源和职责不同。宠物 `25`、神器 `26..28` 仅有上游参考，尚待 A21 实机裁决。
 - Application 的放置、到达、商城、开包、补充和分解规则只消费业务空间及局部索引。
 - 角色先按 Item、Avatar、Creature、Medal 取得业务 store，再按业务空间取得局部 container；共享底层 `IItemDomainStore` 不改变归属。旧 `IItemContainer.MoveToAsync` 物理移动接口已移除。
 - `IBusinessInventorySlotDomainService` 只负责业务槽与已绑定容器之间的关系，不暴露协议坐标。读取槽位得到当前 `ItemReference`，`Take` 校验该次占用并返回 `ItemRecord`，`Put` 消费该记录放入目标槽；实例与堆叠物统一使用这条链路。旧引用在占用变化后失效，不能用裸来源槽重新解析来替代身份校验。详见 [物品生命周期规格](tasks/item-container-lifecycle/spec.md)。
-- 通知阶段的反向转换通过独立只读投影服务完成，不能读取或修改库存。
+- `A21InventoryLayout` 是 A21 客户端布局这一固定事实，不读内容与配置、没有状态，因此不是规则服务，也不经 DI 注入；
+  协议切片、通知阶段、内容源适配和测试都直接调用这同一张表，不另建包装服务或替身。

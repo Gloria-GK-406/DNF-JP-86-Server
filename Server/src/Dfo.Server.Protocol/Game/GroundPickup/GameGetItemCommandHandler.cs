@@ -67,18 +67,17 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
     private readonly IQuestQueryDomainService quests;
     private readonly IGroundPickupDomainService floor;
     private readonly ICommandConnectionClosures closures;
-    private readonly IInventorySlotProjectionDomainService slots;
 
     public GameGetItemCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IGroundPickupDomainService floor, IQuestQueryDomainService quests, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
-        ICommandConnectionClosures closures, TimeProvider clock, IInventorySlotProjectionDomainService slots, ILogger<GameGetItemCommandHandler> logger )
+        ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameGetItemCommandHandler> logger )
 
     {
         this.sessions = sessions; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs=runs;this.registry=registry;this.clearEvaluator=clearEvaluator;this.quests=quests;
-        this.floor=floor;this.closures=closures;this.slots=slots;
+        this.floor=floor;this.closures=closures;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution,GameGetItemCommand command,CancellationToken token)
     {

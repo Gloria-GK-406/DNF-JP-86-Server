@@ -52,7 +52,7 @@ internal sealed class VendingMachineEncoder : GameCmdMessageEncoder<VendingMachi
         var slots = result.Receipt.Rewards.Where(r => r.Slot is not null).Select(r => r.Slot!.Value).ToHashSet();
         var entries = result.Receipt.Updates.Where(update => slots.Contains(update.Slot)
             && update.Core.ItemId == result.Reward.ItemId)
-            .Select(update => (Wire: OpeningWireSlots.Project(update.Slot, new InventorySlotMappingRuleService()),
+            .Select(update => (Wire: OpeningWireSlots.Project(update.Slot),
                 Item: new InventoryItemState(update.Identity,
                     OpeningWireSlots.RewardIndex(update.Slot), update.Core.ToCore()))).ToArray();
         if (entries.Length != slots.Count || entries.Any(e => e.Wire.Space != InventoryContainerType.Main))

@@ -43,10 +43,9 @@ public sealed class ItemPathFrameTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var storage = await Storage.CreateAsync((65, PotionId, 1));
-            var mappings = new InventorySlotMappingRuleService();
             var containers = storage.Containers();
             var handler = new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers, mappings),
+                new BusinessInventorySlotDomainService(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                     new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));
@@ -87,10 +86,9 @@ public sealed class ItemPathFrameTests
         await TestGameplay.RunAsync(async () =>
         {
             await using var storage = await Storage.CreateAsync();
-            var mappings = new InventorySlotMappingRuleService();
             var containers = storage.Containers();
             var handler = new InventoryMoveDomainService(
-                new BusinessInventorySlotDomainService(containers, mappings),
+                new BusinessInventorySlotDomainService(containers),
                 new ItemMovementDomainService(
                     new ItemPlacementRuleService(new ConsumableBand(), new NoWearables()),
                     new ItemSlotRuleService(), new ItemPathFrameTestsWearEligibility()));

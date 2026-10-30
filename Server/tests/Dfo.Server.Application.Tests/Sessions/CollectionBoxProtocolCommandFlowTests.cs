@@ -197,7 +197,7 @@ public sealed class CollectionBoxProtocolCommandFlowTests(ITestOutputHelper outp
     }
 
     [Theory]
-    [InlineData("callback")] [InlineData("clock")] [InlineData("mapping")] [InlineData("full")] [InlineData("current")]
+    [InlineData("callback")] [InlineData("clock")] [InlineData("full")] [InlineData("current")]
     public async Task Nonencoder_failure_after_actual_Main_uses_default_typed_fence_and_keeps_its_cause(string kind)
     {
         var trace=new Trace{FaultKind=kind};using var f=Fixture(trace);await f.Seed(65,1000,3);var encoderCalls=0;var callbacks=0;
@@ -208,7 +208,7 @@ public sealed class CollectionBoxProtocolCommandFlowTests(ITestOutputHelper outp
         Assert.NotNull(error);Assert.IsType<TransactionOutcomeUncertainException>(error);Assert.Equal(2,f.Scalar("SELECT count FROM item_slots WHERE list_type=0 AND slot_index=65"));
         Assert.Equal(EffectOperationState.Committed,Entry(f).State);Assert.True(f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
         Assert.True(f.Sender.Outbound.Entries.Last().IsClose);Assert.Same(f.Connection,f.Sender.Outbound.Entries.Last().Connection);
-        if(kind is "callback" or "clock" or "mapping")Assert.True(Contains(error,trace.Cause));
+        if(kind is "callback" or "clock")Assert.True(Contains(error,trace.Cause));
         Assert.Equal(0,encoderCalls);
         Assert.Equal(kind is "callback" or "current"?1:0,callbacks);
     }
@@ -219,7 +219,6 @@ public sealed class CollectionBoxProtocolCommandFlowTests(ITestOutputHelper outp
         services.AddSingleton(trace);
         var clock=(TimeProvider)services.Last(x=>x.ServiceType==typeof(TimeProvider)).ImplementationInstance!;
         services.AddSingleton<TimeProvider>(new ObservedClock(clock,trace));
-        services.AddSingleton<IInventorySlotMappingRuleService>(new ObservedMapping(trace));
         services.AddScoped<GameCollectionBoxCommandHandler>();services.AddScoped<ICommandHandler<GameCollectionBoxCommand,bool>,ObserveWhole>();
         services.AddSingleton<CollectionBoxDomainService>();
         services.AddSingleton<ICollectionBoxDomainService>(p=>new Observe(p.GetRequiredService<CollectionBoxDomainService>(),p,trace));
@@ -262,13 +261,6 @@ public sealed class CollectionBoxProtocolCommandFlowTests(ITestOutputHelper outp
             }
             return actual.GetUtcNow();
         }
-    }
-    private sealed class ObservedMapping(Trace trace):IInventorySlotMappingRuleService
-    {
-        private readonly InventorySlotMappingRuleService actual=new();
-        public BusinessSlot ToBusinessSlot(GameSlot source)=>actual.ToBusinessSlot(source);
-        public GameSlot ToGameSlot(BusinessSlot source)
-        {if(trace.FaultKind=="mapping"&&trace.Attempts.LastOrDefault()?.Transaction.Completion==DomainTransactionCompletion.Committed)throw trace.Cause;return actual.ToGameSlot(source);}
     }
     private sealed record Attempt(EffectOperationEntry Entry,DomainTransaction Transaction)
     {

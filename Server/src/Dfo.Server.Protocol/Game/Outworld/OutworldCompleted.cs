@@ -12,7 +12,6 @@ public sealed record OutworldCompleted(EquipmentOutworldReceipt Receipt,
 
 public sealed class OutworldCompletedHandler(
     ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slots,
     IBusinessInventorySlotDomainService inventory)
     : INotificationHandler<OutworldCompleted>
 {
@@ -37,8 +36,8 @@ public sealed class OutworldCompletedHandler(
         var materialRemaining = material?.ItemId == receipt.MaterialItemId
             ? material.Count : 0;
         var messages = new List<IServerNetworkMessage>();
-        var targetGame = slots.Project(receipt.TargetSlot);
-        var materialGame = slots.Project(receipt.MaterialSlot);
+        var targetGame = A21InventoryLayout.ToGameSlot(receipt.TargetSlot);
+        var materialGame = A21InventoryLayout.ToGameSlot(receipt.MaterialSlot);
         if (notification.Purify)
             messages.Add(new PurifyItemResponse(true, checked((short)materialGame.Index),
                 materialRemaining, checked((short)targetGame.Index),
@@ -56,7 +55,7 @@ public sealed class OutworldCompletedHandler(
     private void AddSlot(List<IServerNetworkMessage> messages,
         BusinessSlot slot, InventoryItemCoreState? core, DateTimeOffset at)
     {
-        var game = slots.Project(slot);
+        var game = A21InventoryLayout.ToGameSlot(slot);
         messages.Add(core is null
             ? GameInventoryDelivery.ClearedSlotNotification(game.Space, game.Index, at)
             : GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(game.Space,

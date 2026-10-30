@@ -18,7 +18,7 @@ public sealed record GameWeddingLovePointCommand(NetworkDispatchContext Dispatch
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 public sealed class GameWeddingLovePointCommandHandler(ISelectedSessionDomainService sessions, IMarriageQueryDomainService marriage,
-    ICommandWorkUnits units, IGameCommandOutbox outbox, IMarriageCoupleDomainService couple, IInventorySlotMappingRuleService mappings) : ICommandHandler<GameWeddingLovePointCommand, bool>
+    ICommandWorkUnits units, IGameCommandOutbox outbox, IMarriageCoupleDomainService couple) : ICommandHandler<GameWeddingLovePointCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameWeddingLovePointCommand command, CancellationToken ct)
     { await RunAsync(execution, command.Dispatch, command.Input, ct).ConfigureAwait(false); return true; }
@@ -29,7 +29,7 @@ private async ValueTask RunAsync(CommandExecutionContext execution, NetworkDispa
         if (actor is not null && execution.Request is not CommandRequestContext.ProtocolEffectRejected && m.Slot <= ushort.MaxValue)
         {
             BusinessSlot? slot = null;
-            try { slot = mappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, checked((int)m.Slot))); }
+            try { slot = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, checked((int)m.Slot))); }
             catch (InventorySlotMappingException) { }
             if (slot is { } source)
             {

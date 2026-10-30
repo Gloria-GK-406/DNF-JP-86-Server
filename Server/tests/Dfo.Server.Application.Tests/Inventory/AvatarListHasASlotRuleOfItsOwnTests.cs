@@ -69,7 +69,7 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
     [InlineData(289)]
     public void The_avatar_list_ends_at_two_hundred_and_nine(int slotIndex) =>
         Assert.Throws<InventorySlotMappingException>(() =>
-            new InventorySlotMappingRuleService().ToGameSlot(
+            A21InventoryLayout.ToGameSlot(
                 new BusinessSlot(BusinessInventorySpace.Avatar, slotIndex)));
 
     /// <summary>
@@ -131,7 +131,7 @@ public sealed class AvatarListHasASlotRuleOfItsOwnTests
         bool potion,
         bool creature)
     {
-        var slot = new InventorySlotMappingRuleService().ToBusinessSlot(
+        var slot = A21InventoryLayout.ToBusinessSlot(
             new GameSlot(InventoryContainerType.Main, slotIndex));
 
         Assert.Equal(costume, Rules.CanOccupySlot(slot, Costume));

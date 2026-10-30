@@ -13,8 +13,7 @@ public sealed record GameTournamentRewardCommand(NetworkDispatchContext Dispatch
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 public sealed class GameTournamentRewardCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
-    ITournamentDungeonDomainService tournaments, ICommandWorkUnits units, IGameCommandOutbox outbox,
-    IInventorySlotProjectionDomainService slots, TimeProvider clock) : ICommandHandler<GameTournamentRewardCommand, bool>
+    ITournamentDungeonDomainService tournaments, ICommandWorkUnits units, IGameCommandOutbox outbox, TimeProvider clock) : ICommandHandler<GameTournamentRewardCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameTournamentRewardCommand command, CancellationToken ct)
     {
@@ -43,7 +42,7 @@ public sealed class GameTournamentRewardCommandHandler(ISelectedSessionDomainSer
         var action = (await units.WriteAsync(execution, new("SelectTournamentReward", participants),
             async (_, token) => new TournamentCommandResult(await tournaments.SelectRewardAsync(session, run.RunId,
                 message.Row.Value, message.Index!.Value, token).ConfigureAwait(false)), ct).ConfigureAwait(false)).Action;
-        var frames = action is null ? new List<IGameServerMessage>() : TournamentCompletionFrames.CompletionFrames(action, slots, clock).ToList();
+        var frames = action is null ? new List<IGameServerMessage>() : TournamentCompletionFrames.CompletionFrames(action, clock).ToList();
         frames.Add(new TournamentSelectionResponse(action?.State, slot));
         await outbox.RegisterExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
         return action is not null;

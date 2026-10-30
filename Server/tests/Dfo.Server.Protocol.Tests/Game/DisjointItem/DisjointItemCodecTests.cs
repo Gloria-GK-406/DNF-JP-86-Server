@@ -73,7 +73,7 @@ public sealed class DisjointItemCodecTests
                 new BusinessSlot(BusinessInventorySpace.Consumable, 0));
 
             var messages = await new EquipmentDisjointCompletedHandler(
-                sessions, new SlotProjection()).ComposeAsync(
+                sessions).ComposeAsync(
                 new NotificationRecipient(session.CharacterId, session.ConnectionId),
                 new EquipmentDisjointCompleted(receipt),
                 CancellationToken.None);
@@ -108,7 +108,7 @@ public sealed class DisjointItemCodecTests
                 DateTimeOffset.UnixEpoch);
 
             var messages = await new EquipmentDisjointCompletedHandler(
-                sessions, new SlotProjection()).ComposeAsync(
+                sessions).ComposeAsync(
                 new NotificationRecipient(session.CharacterId, session.ConnectionId),
                 new EquipmentDisjointCompleted(receipt),
                 CancellationToken.None);
@@ -131,11 +131,4 @@ public sealed class DisjointItemCodecTests
     public void Any_body_length_other_than_nine_is_rejected(int length) =>
         Assert.Throws<InvalidDataException>(() => new DisjointItemMessageDecoder()
             .Decode(GameMessageMetadata.Empty, new byte[length]));
-
-    private sealed class SlotProjection : IInventorySlotProjectionDomainService
-    {
-        private readonly InventorySlotMappingRuleService mappings = new();
-
-        public GameSlot Project(BusinessSlot slot) => mappings.ToGameSlot(slot);
-    }
 }

@@ -18,8 +18,7 @@ internal sealed record GameHatchCreatureCommand(NetworkDispatchContext Dispatch,
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-internal sealed class GameHatchCreatureCommandHandler(ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService slotMappings, ICreatureRuntimeDomainService creatures,
+internal sealed class GameHatchCreatureCommandHandler(ISelectedSessionDomainService sessions, ICreatureRuntimeDomainService creatures,
     ICommandWorkUnits units, IGameCommandOutbox outbox, TimeProvider clock) : ICommandHandler<GameHatchCreatureCommand, bool>
 {
     private sealed record HatchReceipt(CreatureTransformationReceipt? Receipt);
@@ -30,7 +29,7 @@ internal sealed class GameHatchCreatureCommandHandler(ISelectedSessionDomainServ
         BusinessSlot? source = null;
         if (request.List == 7 && request.Slot is >= 0 and <= 139)
         {
-            try { source = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Pet, request.Slot)); }
+            try { source = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Pet, request.Slot)); }
             catch (InventorySlotMappingException) { }
         }
 

@@ -20,7 +20,6 @@ public sealed record GameMagicSealCommand(NetworkDispatchContext Dispatch, Magic
 public sealed class GameMagicSealCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService mappings,
     IEquipmentMagicSealDomainService seals, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameMagicSealCommandHandler> logger)
     : ICommandHandler<GameMagicSealCommand, EquipmentMagicSealResult>
@@ -50,7 +49,7 @@ public sealed class GameMagicSealCommandHandler(
         BusinessSlot target;
         try
         {
-            target = mappings.ToBusinessSlot(
+            target = A21InventoryLayout.ToBusinessSlot(
                 new(InventoryContainerType.Main, request.TargetSlot));
         }
         catch (InventorySlotMappingException)

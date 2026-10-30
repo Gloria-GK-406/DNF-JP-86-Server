@@ -327,7 +327,6 @@ public sealed class GameFinishQuestCommandHandler(
                 command.RewardSelection, command.CompletionCount, DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime), footprint, cancellationToken, command.Session).ConfigureAwait(false);
             var isMirror = result.MirrorCompletion;
             if (!result.Finished) return QuestFinishOutcome.Refuse(command.QuestId, result.Projection);
-            var slots = new InventorySlotMappingRuleService();
             var items = new List<FinishedQuestItem>();
             var account = new List<InventoryRuntimeValueState>();
             var consumed = new HashSet<BusinessSlot>();
@@ -338,14 +337,14 @@ public sealed class GameFinishQuestCommandHandler(
                         consumed.Add(change.Slot);
                         break;
                     case Dfo.Server.Abstractions.Effects.BasicCharacterItemChange basic:
-                        items.AddRange(basic.Additions.Select(x => new FinishedQuestItem(checked((ushort)slots.ToGameSlot(x.Slot).Index),
+                        items.AddRange(basic.Additions.Select(x => new FinishedQuestItem(checked((ushort)A21InventoryLayout.ToGameSlot(x.Slot).Index),
                             (uint)((Dfo.Server.Abstractions.Effects.GrantBasicCharacterItemEffect)applied.Effect).ItemId, checked((uint)x.Count))));
                         foreach (var addition in basic.Additions.Where(x => x.Slot.Space == BusinessInventorySpace.SharedMaterial))
                         {
                             var bound = inventorySlots.Find(command.CharacterId, addition.Slot)!;
                             var held = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false)
                                 ?? throw new InvalidDataException("Shared reward disappeared before commit.");
-                            account.Add(new(slots.ToGameSlot(addition.Slot).Index, held.ItemId, held.Count));
+                            account.Add(new(A21InventoryLayout.ToGameSlot(addition.Slot).Index, held.ItemId, held.Count));
                         }
                         break;
                     case Dfo.Server.Abstractions.Effects.QuestRewardGoldChange gold when gold.After > gold.Before:
@@ -371,7 +370,7 @@ public sealed class GameFinishQuestCommandHandler(
             {
                 var bound = inventorySlots.Find(command.CharacterId, slot) ?? throw new InvalidDataException("Consumed quest slot vanished.");
                 var item = await bound.Container.GetAsync(bound.Slot.Index, cancellationToken).ConfigureAwait(false);
-                var wire = slots.ToGameSlot(slot);
+                var wire = A21InventoryLayout.ToGameSlot(slot);
                 updates.Add(new(wire.Space, [new(item?.ItemUid, wire.Index,
                     item?.Snapshot.ToCore() ?? StackableItemCore.Create(0, -1, 0))], DateTimeOffset.FromUnixTimeSeconds(command.AcquiredAtUnixTime)));
             }

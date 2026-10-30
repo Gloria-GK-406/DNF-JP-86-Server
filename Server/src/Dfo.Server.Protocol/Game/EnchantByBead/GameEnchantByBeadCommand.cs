@@ -20,7 +20,6 @@ public sealed record GameEnchantByBeadCommand(NetworkDispatchContext Dispatch, E
 public sealed class GameEnchantByBeadCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ISelectedSessionDomainService sessions,
-    IInventorySlotMappingRuleService mappings,
     IEquipmentEnchantDomainService enchant, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameEnchantByBeadCommandHandler> logger)
     : ICommandHandler<GameEnchantByBeadCommand, EquipmentEnchantResult>
@@ -53,8 +52,8 @@ public sealed class GameEnchantByBeadCommandHandler(
         BusinessSlot target;
         try
         {
-            bead = mappings.ToBusinessSlot(new(request.BeadList, request.BeadSlot));
-            target = mappings.ToBusinessSlot(new(request.TargetList, request.TargetSlot));
+            bead = A21InventoryLayout.ToBusinessSlot(new(request.BeadList, request.BeadSlot));
+            target = A21InventoryLayout.ToBusinessSlot(new(request.TargetList, request.TargetSlot));
         }
         catch (InventorySlotMappingException)
         {

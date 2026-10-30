@@ -36,7 +36,7 @@ internal static class MailSendWire
                 if (!multi && item == 0 && quantity == 0 && type == 0 && slot is 0 or ushort.MaxValue) continue;
                 if (item <= 0 || quantity <= 0 || type is not (0 or 7)) throw new InvalidDataException("Invalid mail attachment.");
                 BusinessSlot business;
-                try { business = new InventorySlotMappingRuleService().ToBusinessSlot(
+                try { business = A21InventoryLayout.ToBusinessSlot(
                     new GameSlot((InventoryContainerType)type, slot)); }
                 catch (InventorySlotMappingException e)
                 { throw new InvalidDataException("Invalid mail attachment slot.", e); }

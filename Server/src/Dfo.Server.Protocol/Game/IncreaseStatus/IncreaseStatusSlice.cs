@@ -53,7 +53,7 @@ public sealed record GameIncreaseStatusCommand(NetworkDispatchContext Dispatch, 
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
-public sealed class GameIncreaseStatusCommandHandler(ISelectedSessionDomainService sessions,IInventorySlotMappingRuleService mappings,
+public sealed class GameIncreaseStatusCommandHandler(ISelectedSessionDomainService sessions,
     IBusinessInventorySlotDomainService slots,IExperienceItemDomainService experience,IReviveCoinDomainService reviveCoins,TimeProvider clock,
     ICommandWorkUnits units,IGameCommandOutbox outbox,ILogger<GameIncreaseStatusCommandHandler> logger) : ICommandHandler<GameIncreaseStatusCommand,IncreaseStatusResult>
 {
@@ -71,7 +71,7 @@ public sealed class GameIncreaseStatusCommandHandler(ISelectedSessionDomainServi
                 throw new InvalidOperationException("Increase status requires its originally selected actor.");
             BusinessSlot? slot = null;
             IncreaseStatusResult? mappingFailure=null;
-            try { slot = mappings.ToBusinessSlot(new(InventoryContainerType.Main, message.SourceSlot)); }
+            try { slot = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, message.SourceSlot)); }
             catch (InventorySlotMappingException) { }
             catch(Exception error) when(error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
             { mappingFailure=Refused(error,message.SourceSlot); }

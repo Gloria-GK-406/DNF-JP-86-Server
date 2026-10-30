@@ -17,8 +17,7 @@ public sealed record EquipmentRepairCompleted(
     : INotification<EquipmentRepairCompleted>;
 
 public sealed class EquipmentRepairCompletedHandler(
-    ISelectedSessionDomainService sessions,
-    IInventorySlotProjectionDomainService slotProjection)
+    ISelectedSessionDomainService sessions)
     : INotificationHandler<EquipmentRepairCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -32,14 +31,14 @@ public sealed class EquipmentRepairCompletedHandler(
         List<IServerNetworkMessage> messages = [];
         if (receipt.Coupon is { } coupon)
         {
-            var source = slotProjection.Project(coupon.Slot);
+            var source = A21InventoryLayout.ToGameSlot(coupon.Slot);
             messages.Add(coupon.Remaining is null
                 ? GameInventoryDelivery.ClearedSlotNotification(source.Space, source.Index, notification.PreparedAt)
                 : GameInventoryDelivery.Notification(new(source.Space,
                     [new InventoryItemState(null, source.Index, coupon.Remaining)], notification.PreparedAt)));
         }
         messages.Add(new RepairItemResponse(
-            receipt.Slot is { } slot ? slotProjection.Project(slot) : null, receipt.Gold,
+            receipt.Slot is { } slot ? A21InventoryLayout.ToGameSlot(slot) : null, receipt.Gold,
             RepairAllSpace: notification.RepairAllSpace));
         if (notification.Entitlements is { } entitlements)
             messages.Add(new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt));

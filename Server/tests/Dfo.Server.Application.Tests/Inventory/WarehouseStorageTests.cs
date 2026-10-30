@@ -300,7 +300,7 @@ public sealed class WarehouseStorageTests
     }
     internal static Task<InventoryExpansionResult> Command(ShopFixture host, ushort type, int value = 0) =>
         WarehouseDomainTestDriver.Expand(host, host.Session, type, value,
-            type is 0x0198 or 0x01AF ? new InventorySlotMappingRuleService().ToBusinessSlot(new(InventoryContainerType.Main, value)) : null);
+            type is 0x0198 or 0x01AF ? A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, value)) : null);
     internal static IBusinessItemContainer Bag(ShopFixture host, BusinessInventorySpace space) => host.Services
         .GetRequiredService<ICharacterBusinessInventoryDomainService>().GetStore(host.Session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).GetContainer(space);
     private static async Task<ItemMoveOutcome> Move(ShopFixture host, BusinessSlot from, BusinessSlot into, int count = 0)

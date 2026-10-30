@@ -20,8 +20,7 @@ public sealed record GameSortLockCommand(NetworkDispatchContext Dispatch, SortLo
 public sealed record SortLockReceipt(SelectedSessionIdentity Session, BusinessSlot Slot, bool Locked);
 
 public sealed class GameSortLockCommandHandler(IInventorySortDomainService sorting,
-    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users,
-    IInventorySlotMappingRuleService slots, ICommandWorkUnits units, ICommandProjections projections)
+    ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService users, ICommandWorkUnits units, ICommandProjections projections)
     : ICommandHandler<GameSortLockCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameSortLockCommand command, CancellationToken ct)
@@ -30,7 +29,7 @@ public sealed class GameSortLockCommandHandler(IInventorySortDomainService sorti
         if (session is null || !users.TryGetByConnection(command.Dispatch.Connection.ConnectionId, out var online)
             || online is null) return false;
         BusinessSlot slot;
-        try { slot = slots.ToBusinessSlot(command.Input.Slot); }
+        try { slot = A21InventoryLayout.ToBusinessSlot(command.Input.Slot); }
         catch (InventorySlotMappingException) { return false; }
         var onlineUserId = online.OnlineUserId;
         var outcome = await units.WriteAsync(context, new("SortLock", []), async (_, token) =>

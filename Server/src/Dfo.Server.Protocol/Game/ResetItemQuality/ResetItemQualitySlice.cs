@@ -62,7 +62,7 @@ public sealed class ResetItemQualityHandler(ICommandBus commands) : ClientMessag
         _ = await commands.SendAsync(new GameResetItemQualityCommand(context, message), ct).ConfigureAwait(false);
 }
 public sealed record EquipmentQualityCompleted(EquipmentQualityReceipt Receipt) : INotification<EquipmentQualityCompleted>;
-public sealed class EquipmentQualityCompletedHandler(ISelectedSessionDomainService sessions, IInventorySlotProjectionDomainService slots)
+public sealed class EquipmentQualityCompletedHandler(ISelectedSessionDomainService sessions)
     : INotificationHandler<EquipmentQualityCompleted>
 {
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
@@ -72,8 +72,8 @@ public sealed class EquipmentQualityCompletedHandler(ISelectedSessionDomainServi
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
-        var material = slots.Project(receipt.MaterialSlot);
-        var target = slots.Project(receipt.TargetSlot);
+        var material = A21InventoryLayout.ToGameSlot(receipt.MaterialSlot);
+        var target = A21InventoryLayout.ToGameSlot(receipt.TargetSlot);
         // CMD0051 updates/removes the material itself. Only the target needs NOTI000E.
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([
             new ResetItemQualityResponse(true, checked((ushort)material.Index), receipt.MaterialRemaining, Operation: receipt.Operation),

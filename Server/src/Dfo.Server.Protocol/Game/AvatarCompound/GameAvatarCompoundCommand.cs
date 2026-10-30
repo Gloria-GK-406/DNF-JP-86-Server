@@ -18,8 +18,7 @@ public sealed record GameAvatarCompoundCommand(NetworkDispatchContext Dispatch, 
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
-public sealed class GameAvatarCompoundCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
-    IInventorySlotMappingRuleService mappings, IAvatarCompoundDomainService avatars, ICommandWorkUnits units, ICommandProjections projections,
+public sealed class GameAvatarCompoundCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers, IAvatarCompoundDomainService avatars, ICommandWorkUnits units, ICommandProjections projections,
     IGameCommandOutbox outbox, ILogger<GameAvatarCompoundCommandHandler> logger) : ICommandHandler<GameAvatarCompoundCommand, AvatarCompoundResult>
 {
     public async ValueTask<AvatarCompoundResult> HandleAsync(CommandExecutionContext context, GameAvatarCompoundCommand command, CancellationToken ct)
@@ -33,9 +32,9 @@ public sealed class GameAvatarCompoundCommandHandler(ISelectedSessionDomainServi
         AvatarCompoundInput? input = null;
         try
         {
-            input = new(mappings.ToBusinessSlot(new(InventoryContainerType.Main, request.MaterialSlot)),
-                mappings.ToBusinessSlot(new(InventoryContainerType.Avatar, request.FirstSlot)), request.FirstItemId,
-                mappings.ToBusinessSlot(new(InventoryContainerType.Avatar, request.SecondSlot)), request.SecondItemId,
+            input = new(A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, request.MaterialSlot)),
+                A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Avatar, request.FirstSlot)), request.FirstItemId,
+                A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Avatar, request.SecondSlot)), request.SecondItemId,
                 request.TargetItemId, request.Ability, request.RandomTarget, request.Category);
         }
         catch (InventorySlotMappingException) { }

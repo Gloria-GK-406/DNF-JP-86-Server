@@ -9,8 +9,7 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEntryLifecycleContentSource(
-    PvfArchiveProvider provider,
-    IInventorySlotMappingRuleService? slotMappings = null)
+    PvfArchiveProvider provider)
     : IEntryLifecycleContentSource
 {
     private static class Fields
@@ -20,8 +19,6 @@ internal sealed class PvfEntryLifecycleContentSource(
         internal static readonly PvfField<IReadOnlyList<PvfToken>> StackableTypeField = PvfField.Tokens("[stackable type]", optional: true);
     }
 
-    private readonly IInventorySlotMappingRuleService slotMappings =
-        slotMappings ?? new InventorySlotMappingRuleService();
     private const string RefillPath = "etc/chn_server_limititemusageinfo.etc";
     private const string StackableListPath = "stackable/stackable.lst";
     private const string EquipmentListPath = "equipment/equipment.lst";
@@ -91,7 +88,7 @@ internal sealed class PvfEntryLifecycleContentSource(
                             refillStackables, refillEquipment);
                         refillMetadata.Add(declaration.ItemId, metadata);
                     }
-                    rule = Compile(declaration, metadata, slotMappings);
+                    rule = Compile(declaration, metadata);
                     compiledRules.Add(declaration, rule);
                 }
                 if (rule is not null) result.Add(rule);
@@ -146,12 +143,11 @@ internal sealed class PvfEntryLifecycleContentSource(
         return result.AsReadOnly();
     }
 
-    private static DailyRefillRule? Compile(RefillDeclaration declaration, RefillItemMetadata item,
-        IInventorySlotMappingRuleService slotMappings)
+    private static DailyRefillRule? Compile(RefillDeclaration declaration, RefillItemMetadata item)
     {
         if (item.SlotEnd < item.SlotStart) return null;
-        var first = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.SlotStart));
-        var last = slotMappings.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.SlotEnd));
+        var first = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.SlotStart));
+        var last = A21InventoryLayout.ToBusinessSlot(new GameSlot(InventoryContainerType.Main, item.SlotEnd));
         if (first.Space != last.Space)
             throw new InvalidDataException($"PVF daily refill Main/{item.SlotStart}..{item.SlotEnd} crosses business spaces.");
         return new(declaration.ItemId, declaration.Quantity, declaration.ExpiresAt, declaration.Mode,
@@ -159,15 +155,13 @@ internal sealed class PvfEntryLifecycleContentSource(
     }
 
     internal static IReadOnlyList<DailyRefillRule> Parse(
-        IReadOnlyList<string> values, DateTimeOffset preparedAt, Func<int, RefillItemMetadata> metadata,
-        IInventorySlotMappingRuleService? slotMappings = null, bool includeInactive = false)
+        IReadOnlyList<string> values, DateTimeOffset preparedAt, Func<int, RefillItemMetadata> metadata, bool includeInactive = false)
     {
-        slotMappings ??= new InventorySlotMappingRuleService();
         var result = new List<DailyRefillRule>();
         foreach (var declaration in ParseDeclarations(values))
         {
             if (!includeInactive && !declaration.IsActive(preparedAt)) continue;
-            if (Compile(declaration, metadata(declaration.ItemId), slotMappings) is { } rule) result.Add(rule);
+            if (Compile(declaration, metadata(declaration.ItemId)) is { } rule) result.Add(rule);
         }
         return result.AsReadOnly();
     }

@@ -357,7 +357,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IIllusionTowerRewardDomainService, IllusionTowerRewardDomainService>();
         services.TryAddSingleton<IIllusionTowerDomainService, IllusionTowerDomainService>();
         services.TryAddSingleton<IObjectDropRuleService, ObjectDropRuleService>();
-        services.TryAddSingleton<IInventorySlotMappingRuleService, InventorySlotMappingRuleService>();
         services.TryAddSingleton<IBusinessInventorySlotDomainService, BusinessInventorySlotDomainService>();
         services.TryAddSingleton<ICharacterBusinessInventoryDomainService, CharacterBusinessInventoryDomainService>();
         services.TryAddSingleton<IEquipmentDomainService, EquipmentDomainService>();
@@ -371,7 +370,6 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<ICreatureRuntimeDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
         services.TryAddSingleton<ICreatureInstanceDomainService>(provider => provider.GetRequiredService<CreatureRuntimeDomainService>());
         services.TryAddSingleton<LegacyWornItemNormalizer>();
-        services.TryAddSingleton<IInventorySlotProjectionDomainService, InventorySlotProjectionDomainService>();
         services.TryAddSingleton<IItemSlotRuleService, ItemSlotRuleService>();
         services.TryAddSingleton<IInventoryExpansionRuleService, InventoryExpansionRuleService>();
         services.TryAddSingleton<IInventoryExpansionDomainService, InventoryExpansionDomainService>();
