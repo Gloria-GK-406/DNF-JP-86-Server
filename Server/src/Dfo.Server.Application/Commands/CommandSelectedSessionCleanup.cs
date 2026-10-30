@@ -2,15 +2,12 @@ using System.Collections.Frozen;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Abstractions.World.BossTower;
-using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Commands;
 
-internal sealed class CommandSelectedSessionCleanup(ISelectedSessionCleanupDomainService cleanup,
-    IIllusionTowerDomainService? illusion = null, IBossTowerDomainService? boss = null) : ICommandSelectedSessionCleanup
+internal sealed class CommandSelectedSessionCleanup(ISelectedSessionCleanupDomainService cleanup) : ICommandSelectedSessionCleanup
 {
     public void RecordDisconnectedDeliveryFailure(CommandExecutionContext context, Exception cause)
     {
@@ -30,13 +27,9 @@ internal sealed class CommandSelectedSessionCleanup(ISelectedSessionCleanupDomai
         object invocation;
         try { invocation = request.BeginSelectedSessionCleanup(action); }
         catch (Exception error) { request.Failed(error); GameplayJob.RecordProgramError(error); throw; }
-        // Freeze before any await. Leave can settle the remaining exact members, not just its actor.
-        var owners = new HashSet<SelectedSessionIdentity> { session };
-        try
-        {
-            if (illusion?.Find(session) is { } tower) owners.UnionWith(tower.Members.Select(member => member.Session));
-            if (boss?.Find(session) is { } towerBoss) owners.UnionWith(towerBoss.Members.Select(member => member.Session));
-        }
+        // Freeze before any await: the cleanup may settle more exact sessions than its actor.
+        FrozenSet<SelectedSessionIdentity> owners;
+        try { owners = cleanup.AffectedSessions(session).ToFrozenSet(); }
         catch (Exception error) { request.EndSelectedSessionCleanup(invocation); request.Failed(error); throw; }
         var operation = RunAsync().AsTask();
         request.TrackOperation(operation);
@@ -45,7 +38,7 @@ internal sealed class CommandSelectedSessionCleanup(ISelectedSessionCleanupDomai
 
         async ValueTask<SelectedSessionCleanupNotificationPlan> RunAsync()
         {
-            using var footprint = new CleanupFootprint(request, invocation, action, owners.ToFrozenSet());
+            using var footprint = new CleanupFootprint(request, invocation, action, owners);
             try
             {
                 return await cleanup.CleanupAsync(session, includeOwner, footprint, cancellationToken).ConfigureAwait(false);

@@ -1416,6 +1416,7 @@ public sealed partial class SelectCharacterLifecycleTests
         ISelectedSessionDomainService directory, List<string> ledger)
         : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => new HashSet<SelectedSessionIdentity> { session };
         public List<(SelectedSessionIdentity Session, bool IncludeOwner)> Calls { get; } = [];
         public List<SelectedSessionIdentity?> SelectedOwnersAtCall { get; } = [];
         public SelectedSessionIdentity? FailureSession { get; set; }

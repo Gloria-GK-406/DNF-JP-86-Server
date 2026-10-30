@@ -110,6 +110,7 @@ public sealed class InitialConnectionDeliveryFailureTests
 
     private sealed class NoCleanup : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => new HashSet<SelectedSessionIdentity> { session };
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(
             SelectedSessionIdentity session, bool includeOwner, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

@@ -60,31 +60,42 @@ public sealed class CommandSelectedSessionCleanupTests
     }
 
     [Fact]
-    public async Task Exact_owners_are_frozen_from_both_tower_runs_before_cleanup_awaits()
+    public async Task Exact_owners_are_frozen_from_the_cleanup_owner_before_it_awaits()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() => TestGameplay.RunAsync(async () =>
         {
             var third = Session(3); var foreign = Session(4);
-            var boss = DispatchProxy.Create<IBossTowerDomainService, TowerProxy>();
-            ((TowerProxy)(object)boss).Snapshot = new BossTowerSnapshot(Guid.NewGuid(), 11012,
-                [new(Actor,0,true,false),new(Peer,1,false,false)], null!,[],null,DateTimeOffset.UtcNow);
-            var illusion = DispatchProxy.Create<IIllusionTowerDomainService, TowerProxy>();
-            ((TowerProxy)(object)illusion).Snapshot = new IllusionTowerSnapshot(Guid.NewGuid(),11001,
-                [new(Actor,0,true,false),new(third,1,false,false)],null!,[],null,DateTimeOffset.UtcNow);
+            var affected = new HashSet<SelectedSessionIdentity> { Actor, Peer, third };
             var ctx = Context();
             var cap = new CommandSelectedSessionCleanup(new Cleanup(async (_, footprint) =>
             {
                 await Task.Yield();
-                ((TowerProxy)(object)boss).Snapshot = ((BossTowerSnapshot)((TowerProxy)(object)boss).Snapshot!) with { Members = [new(foreign,0,true,false)] };
-                ((TowerProxy)(object)illusion).Snapshot = ((IllusionTowerSnapshot)((TowerProxy)(object)illusion).Snapshot!) with { Members = [new(foreign,0,true,false)] };
+                affected.Clear(); affected.Add(foreign);
                 footprint.DemandEffects(new(Peer.AccountId,Peer.CharacterId,Peer));
                 footprint.DemandEffects(new(third.AccountId,third.CharacterId,third));
                 Assert.Throws<InvalidOperationException>(() => footprint.DemandActive(foreign));
                 return SelectedSessionCleanupNotificationPlan.Empty(Actor);
-            }),illusion,boss);
+            }, _ => affected));
             await cap.CleanupAsync(ctx,Actor,true);
             Assert.NotNull(ctx.Request!.Failure);
         }));
+    }
+
+    [Fact]
+    public void A_departure_reaches_the_members_of_both_tower_runs()
+    {
+        var third = Session(3);
+        var boss = DispatchProxy.Create<IBossTowerDomainService, TowerProxy>();
+        ((TowerProxy)(object)boss).Snapshot = new BossTowerSnapshot(Guid.NewGuid(), 11012,
+            [new(Actor,0,true,false),new(Peer,1,false,false)], null!,[],null,DateTimeOffset.UtcNow);
+        var illusion = DispatchProxy.Create<IIllusionTowerDomainService, TowerProxy>();
+        ((TowerProxy)(object)illusion).Snapshot = new IllusionTowerSnapshot(Guid.NewGuid(),11001,
+            [new(Actor,0,true,false),new(third,1,false,false)],null!,[],null,DateTimeOffset.UtcNow);
+        var cleanup = new Dfo.Server.Application.Sessions.SelectedSessionCleanupService(null!, null!, null!, null!, null!, [], null!, null!,
+            null!, null!, [], illusionTower: illusion, bossTower: boss);
+        Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor, Peer, third }, cleanup.AffectedSessions(Actor));
+        ((TowerProxy)(object)boss).Snapshot = null; ((TowerProxy)(object)illusion).Snapshot = null;
+        Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor }, cleanup.AffectedSessions(Actor));
     }
 
     [Fact]
@@ -192,8 +203,10 @@ public sealed class CommandSelectedSessionCleanupTests
         }));
     }
 
-    private sealed class Cleanup(Func<SelectedSessionIdentity,IEffectFootprintRecorder,ValueTask<SelectedSessionCleanupNotificationPlan>> action) : ISelectedSessionCleanupDomainService
+    private sealed class Cleanup(Func<SelectedSessionIdentity,IEffectFootprintRecorder,ValueTask<SelectedSessionCleanupNotificationPlan>> action,
+        Func<SelectedSessionIdentity,IReadOnlySet<SelectedSessionIdentity>>? affected = null) : ISelectedSessionCleanupDomainService
     {
+        public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session) => affected?.Invoke(session) ?? new HashSet<SelectedSessionIdentity> { session };
         public ValueTask<SelectedSessionCleanupNotificationPlan> CleanupAsync(SelectedSessionIdentity session,bool includeOwner,IEffectFootprintRecorder footprint,CancellationToken ct) => action(session,footprint);
     }
     public class TowerProxy : DispatchProxy
