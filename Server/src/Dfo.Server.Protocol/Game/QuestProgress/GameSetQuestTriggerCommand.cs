@@ -41,13 +41,12 @@ public sealed class GameSetQuestTriggerCommandHandler(
     {
         var context = command.Dispatch;
         var message = command.Input;
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
-        if (session is null)
+        if (!selectedSessions.TryGetInWorld(context.Connection.ConnectionId, out var session))
         {
-            // No character is selected, so there is no log to move. Refused rather than ignored:
-            // silence is what made the client repeat itself.
+            // No character in the world on this connection, so there is no log to move. Refused
+            // rather than ignored: silence is what made the client repeat itself.
             logger.LogWarning(
-                "Quest trigger {ConnectionId}: quest {Quest} with no character selected",
+                "Quest trigger {ConnectionId}: quest {Quest} with no character in the world",
                 context.Connection.ConnectionId, message.QuestId);
             await this.AnswerAsync(
                 context,
@@ -57,7 +56,7 @@ public sealed class GameSetQuestTriggerCommandHandler(
             return QuestTriggerOutcome.Refuse(message.QuestId);
         }
 
-        var outcome = await units.WriteAsync(execution, new("SetQuestTrigger", []),
+        var outcome = await units.WriteAsync(execution, new("SetQuestTrigger", [new(session, context.Connection, message.Metadata)]),
             (_, token) => ReportAsync(new(session.AccountId, session.CharacterId, message.QuestId,
                 message.Selector, message.Increment), token), cancellationToken).ConfigureAwait(false);
 

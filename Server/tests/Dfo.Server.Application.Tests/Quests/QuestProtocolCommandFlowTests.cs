@@ -59,6 +59,20 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.Equal(ReplayProjectionNeeds.Inventory|ReplayProjectionNeeds.Quests,new Dfo.Server.Protocol.Game.QuestCompletion.FinishQuestRequest(GameMessageMetadata.Empty,2001,ushort.MaxValue,1).MinimumReplayNeeds);
     }
 
+    [Theory] [InlineData(0)] [InlineData(1)] [InlineData(2)]
+    public async Task A_selection_that_has_not_entered_the_world_changes_no_quest_state(int protocol)
+    {
+        // Accept, give up and trigger refuse through their own refusal ACK; no work unit begins.
+        var trace=new Trace();using var f=await Create(protocol,trace);var before=Assets(f);
+        TestGameplay.Run(f.Services,()=>
+        {
+            var sessions=f.Services.GetRequiredService<ISelectedSessionDomainService>();
+            Assert.True(sessions.ReleaseExact(f.Session));Assert.Null(sessions.Select(f.Session));Assert.False(sessions.IsInWorld(f.Session));
+        });
+        await Send(f,protocol);
+        Assert.Equal(before,Assets(f));Assert.Empty(trace.Units);Assert.Empty(trace.Domain.Attempts);Assert.Single(f.Sender.Outbound.Frames);
+    }
+
     [Theory] [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
     public async Task Four_wire_routes_commit_once_with_original_state_and_frame_order(int protocol)
     {
@@ -86,14 +100,14 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
         await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));await delivery.Settled();Assert.Equal(1,physical.CloseCalls);CloseChain(f,trace);
         var frames=Split(physical.Sends).ToArray();
         if(Modern) Assert.Equal(ExpectedFrames(protocol),frames.Select(Type));else Assert.Empty(frames);
-        Assert.Equal(Modern && protocol==3,f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
-        Assert.Equal(Modern&&protocol==3?new[]{f.Session}:[],trace.Discarded);
-        Assert.Equal(Modern&&protocol==3,f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+        Assert.Equal(Modern,f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        Assert.Equal(Modern?new[]{f.Session}:[],trace.Discarded);
+        Assert.Equal(Modern,f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
         AssertDeclaration(f,trace,protocol);ClosedMainRequest(f,trace,protocol);
     }
 
     [Theory] [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
-    public async Task First_actual_encoder_failure_keeps_commit_and_empty_ordinary_protection(int protocol)
+    public async Task First_actual_encoder_failure_keeps_commit_and_protects_the_declared_actor(int protocol)
     {
         await using var delivery=new RemainingOpeningProtocolCommandFlowTests.SenderProbe();
         var trace=new Trace();using var f=await Create(protocol,trace,delivery);var physical=delivery.Add(f.Connection);
@@ -102,9 +116,9 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
         if(Modern) Assert.Same(cause,Assert.IsType<TransactionOutcomeUncertainException>(failure).InnerException);else Assert.Same(cause,failure);
         AssertChange(f,protocol);Assert.Equal(DomainTransactionCompletion.Committed,Assert.Single(trace.Domain.Attempts).Transaction.Completion);
         await physical.Closed.Task.WaitAsync(TimeSpan.FromSeconds(10));await delivery.Settled();Assert.Equal(1,physical.CloseCalls);Assert.Empty(physical.Sends);CloseChain(f,trace);
-        Assert.Equal(Modern && protocol==3,f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
-        Assert.Equal(Modern&&protocol==3?new[]{f.Session}:[],trace.Discarded);
-        Assert.Equal(Modern&&protocol==3,f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
+        Assert.Equal(Modern,f.Services.GetRequiredService<SelectedSessionSafety>().IsBlocked(f.Connection));
+        Assert.Equal(Modern?new[]{f.Session}:[],trace.Discarded);
+        Assert.Equal(Modern,f.Services.GetRequiredService<ISelectedSessionDomainService>().StandingOf(f.Session)!.Fenced);
         if(protocol==3)Assert.Equal(EffectOperationState.Committed,Entry(f).State);AssertDeclaration(f,trace,protocol);
     }
 
@@ -189,7 +203,7 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
     private static string Assets(ShopFixture f)=>string.Join('|',f.Scalar("SELECT exp FROM characters WHERE character_id=1"),f.Count(2000),f.Scalar("SELECT count(*) FROM character_active_quests WHERE character_id=1"),f.Scalar("SELECT count(*) FROM character_invisible_flags WHERE character_id=1"));
     private static ushort Type(byte[] frame)=>BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1));
     private static void AssertChange(ShopFixture f,int p){Assert.Equal(p==0||p==2?1:0,f.Scalar("SELECT count(*) FROM character_active_quests WHERE character_id=1"));Assert.Equal(p==0?3:p==3?4:1,f.Count(2000));if(p==2)Assert.Equal(0,f.Scalar("SELECT trigger_value FROM character_active_quests WHERE character_id=1"));if(p==3){Assert.Equal(1,f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=2001"));Assert.Equal((int)f.ExperienceForLevel(20)+101,f.Scalar("SELECT exp FROM characters WHERE character_id=1"));}}
-    private static void AssertDeclaration(ShopFixture f,Trace trace,int p){if(!Modern)return;var d=Assert.Single(trace.Units);Assert.Equal(p==3?CommandWorkUnitKind.MainSettlement:CommandWorkUnitKind.Ordinary,d.Kind);if(p==3){var actor=Assert.Single(d.Participants);Assert.Equal(f.Session,actor.Session);Assert.Same(f.Connection,actor.Connection);}else{Assert.Empty(d.Participants);Assert.Equal(CommandFootprintMode.None,d.Footprint);}}
+    private static void AssertDeclaration(ShopFixture f,Trace trace,int p){if(!Modern)return;var d=Assert.Single(trace.Units);Assert.Equal(p==3?CommandWorkUnitKind.MainSettlement:CommandWorkUnitKind.Ordinary,d.Kind);var actor=Assert.Single(d.Participants);Assert.Equal(f.Session,actor.Session);Assert.Same(f.Connection,actor.Connection);if(p!=3)Assert.Equal(CommandFootprintMode.None,d.Footprint);}
     private static EffectOperationEntry Entry(ShopFixture f) {
         var table=typeof(EffectOperationLedger).GetField("ledgers",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(f.Services.GetRequiredService<EffectOperationLedger>())!;
         object?[] args=[f.Connection,null]; Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table,args)!);

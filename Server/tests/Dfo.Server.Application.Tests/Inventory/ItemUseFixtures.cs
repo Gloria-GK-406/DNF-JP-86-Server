@@ -313,7 +313,7 @@ internal static class MoveWholeTestDriver
     private sealed class Units(DomainTransactionScope scope):ICommandWorkUnits
     {
         public async ValueTask<T> WriteAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull
-        {Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);Assert.Empty(d.Participants);if(scope.Current is not null)return await a(null!,ct);await using var tx=scope.Begin();var result=await a(null!,ct);await tx.CommitAsync(ct);return result;}
+        {Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);Assert.Single(d.Participants);if(scope.Current is not null)return await a(null!,ct);await using var tx=scope.Begin();var result=await a(null!,ct);await tx.CommitAsync(ct);return result;}
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
     }

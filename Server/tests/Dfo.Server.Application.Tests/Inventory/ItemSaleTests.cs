@@ -177,9 +177,10 @@ public sealed class ItemSaleTests
         var old = shop.Session;
         shop.Select(2);
         trace.Stale = old;
-        await Sell(shop, 65, 1);
-        Assert.Equal(ItemSaleRejection.NoSession, trace.Attempts.Last().Result!.Rejection);
-        Assert.Equal(new SellItemResponse(null, ErrorCode: 1), shop.Sender.Messages.Last());
+        var attempts = trace.Attempts.Count;
+        // The replaced selection fails the declared actor's currency check before the sale runs.
+        Assert.IsType<InvalidOperationException>(await Record.ExceptionAsync(async () => await Sell(shop, 65, 1)));
+        Assert.Equal(attempts, trace.Attempts.Count);
         Assert.Equal(10, shop.Scalar("SELECT count FROM item_slots WHERE owner_id=1 AND list_type=0 AND slot_index=65"));
         Assert.Equal(100000, shop.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
     }

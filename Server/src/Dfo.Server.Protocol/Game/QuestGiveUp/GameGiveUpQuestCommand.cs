@@ -35,10 +35,10 @@ public sealed class GameGiveUpQuestCommandHandler(
     {
         var context = command.Dispatch;
         var message = command.Input;
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        var session = sessions.TryGetInWorld(context.Connection.ConnectionId, out var inWorld) ? inWorld : null;
         var outcome = session is null
             ? GiveUpQuestOutcome.Refused(message.QuestId)
-            : await units.WriteAsync(execution, new("GiveUpQuest", []),
+            : await units.WriteAsync(execution, new("GiveUpQuest", [new(session, context.Connection, message.Metadata)]),
                 (_, token) => GiveUpAsync(new(session.AccountId, session.CharacterId, message.QuestId), token),
                 cancellationToken).ConfigureAwait(false);
 

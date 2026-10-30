@@ -23,13 +23,13 @@ public sealed class GameDecreaseDurabilityCommandHandler(IOnlineUserQueryDomainS
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameDecreaseDurabilityCommand command, CancellationToken cancellationToken)
     {
         var context = command.Dispatch; var message = command.Input;
-        var session = sessions.FindByConnection(context.Connection.ConnectionId);
+        var session = sessions.TryGetInWorld(context.Connection.ConnectionId, out var inWorld) ? inWorld : null;
         EquipmentDurabilityResult result;
         if (session is null || !onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
             || online is null)
             result = new(EquipmentDurabilityRejection.NoSession);
         else if (TryMapSlot(message.SlotIndex, out var slot))
-            result = await units.WriteAsync(execution, new("DecreaseDurability", []),
+            result = await units.WriteAsync(execution, new("DecreaseDurability", [new(session, context.Connection, message.Metadata)]),
                 (_, token) => durability.DecreaseAsync(session, slot, token), cancellationToken).ConfigureAwait(false);
         else
             result = new(EquipmentDurabilityRejection.InvalidSlot);

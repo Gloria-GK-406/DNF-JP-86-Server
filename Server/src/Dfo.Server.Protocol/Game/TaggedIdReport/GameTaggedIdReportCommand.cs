@@ -45,7 +45,7 @@ public sealed class GameTaggedIdReportCommandHandler(
         // An item that was refused -- unknown to the archive, or its band already full -- is left
         // out, because naming it here would tell the client to draw something the server does not
         // hold.
-        var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
+        var session = selectedSessions.TryGetInWorld(context.Connection.ConnectionId, out var inWorld) ? inWorld : null;
         var granted = new List<GrantedTutorialItem>(declared.Count);
         TutorialRewardResult? rewardResult = null;
         if (session is null)
@@ -54,7 +54,7 @@ public sealed class GameTaggedIdReportCommandHandler(
             {
                 logger.LogWarning(
                     "Tagged id report {ConnectionId}: flag {Flag} gives {Declared} item(s) but no "
-                        + "character is selected, skipping",
+                        + "character is in the world, skipping",
                     context.Connection.ConnectionId, message.FlagIndex, declared.Count);
             }
         }
@@ -62,7 +62,7 @@ public sealed class GameTaggedIdReportCommandHandler(
         {
             // One command for the whole step, so its items settle together rather than one at a
             // time -- and so each placement sees the ones before it.
-            rewardResult = await units.WriteAsync(execution, new("TaggedIdReport", []),
+            rewardResult = await units.WriteAsync(execution, new("TaggedIdReport", [new(session, context.Connection, message.Metadata)]),
                 (_, token) => GrantAsync(containers, delivery, tutorial, session.CharacterId,
                     [.. declared.Select(item => new DeclaredRewardItem(item.ItemId, item.Count))],
                     session.AccountId, message.CompletesTutorial, token), cancellationToken).ConfigureAwait(false);

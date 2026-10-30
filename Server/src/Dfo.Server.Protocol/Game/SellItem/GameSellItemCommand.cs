@@ -27,7 +27,7 @@ public sealed class GameSellItemCommandHandler(IOnlineUserQueryDomainService onl
     {
         var message = command.Input;
         var slot = slotMappings.ToBusinessSlot(message.Slot);
-        var session = sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
+        var session = sessions.TryGetInWorld(command.Dispatch.Connection.ConnectionId, out var inWorld) ? inWorld : null;
         ItemSaleResult result;
         if (message.FieldSum != (byte)message.Slot.Space + message.Slot.Index + message.Count)
             result = new(ItemSaleRejection.InvalidRequest);
@@ -35,7 +35,7 @@ public sealed class GameSellItemCommandHandler(IOnlineUserQueryDomainService onl
             result = new(ItemSaleRejection.NoSession);
         else
         {
-            var outcome = await units.WriteAsync(context, new("SellItem", []), async (unit, token) =>
+            var outcome = await units.WriteAsync(context, new("SellItem", [new(session, command.Dispatch.Connection, message.Metadata)]), async (unit, token) =>
             {
                 ItemSaleResult? value = null;
                 ItemSaleRejectedException? rejected = null;
