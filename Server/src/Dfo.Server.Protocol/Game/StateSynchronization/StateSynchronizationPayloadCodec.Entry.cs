@@ -731,10 +731,10 @@ internal static partial class StateSynchronizationPayloadCodec
         // Worked out where the roster screen works it out, so the two pictures of one character
         // cannot disagree. This used to be a filter and eight literal writes inline here; the
         // writes below are the same eight fields, now read off the part rather than recomputed.
-        var display = entry.Display ?? CharacterAppearanceRuleService.Shared.Resolve(
-            new(CharacterCareer.FromPacked(character.Identity.Job, character.Identity.GrowType)), equipment,
-            new(null, checked((byte)entry.VisibilityBits)));
-        var appearance = display.Parts;
+        // A refresh that did not resolve the display still draws: the parts depend on the worn
+        // items alone, and the visibility bits are the entry's own.
+        var appearance = entry.Display?.Parts ?? DrawnAppearance.Of(equipment);
+        var visibility = entry.Display?.VisibilityBits ?? checked((byte)entry.VisibilityBits);
         if (appearance.Count > byte.MaxValue) throw CountError("appearance", "u8");
         var creature = equipment.SingleOrDefault(item => item.SlotIndex == Noti2CreatureSlot && item.Core.ItemKind == 5);
         var pet = creature is null ? null : pets.SingleOrDefault(value => value.PetKey == creature.Core.Value);
@@ -755,7 +755,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(entry.Display?.TitleAppearanceItemId ?? entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
         writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, display.VisibilityBits));
+        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility));
         return stream.ToArray();
     }
 

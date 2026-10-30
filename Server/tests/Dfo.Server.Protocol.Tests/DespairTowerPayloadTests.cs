@@ -41,11 +41,27 @@ public sealed class DespairTowerPayloadTests
     {
         var character = new ActiveCharacterState(new(new(71), 0, [65, 66], 0, 1), new(85, 0),
             new(156, 0), new(0, 0, 0, 0, 0), DateTimeOffset.UnixEpoch);
-        var body = DespairTowerPayloadCodec.Apc(new(10, character, []));
+        var body = DespairTowerPayloadCodec.Apc(new(10, character, [], []));
         Assert.Equal(114, body.Length);
         Assert.Equal(10, body[0]);
         Assert.Equal(2, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1)));
         Assert.Equal(new byte[] { 65, 66, 85, 0, 1 }, body[5..10]);
         Assert.All(body[10..], value => Assert.Equal(0, value));
+    }
+
+    [Fact]
+    public void APC_appearance_and_creature_bytes_stay_fixed()
+    {
+        var character = new ActiveCharacterState(new(new(71), 0, [65, 66], 3, 1), new(85, 0),
+            new(156, 0), new(0, 0, 0, 0, 0), DateTimeOffset.UnixEpoch);
+        var core = Dfo.Server.Data.Inventory.StackableItemCore.Create(1, 1000003, 1);
+        Dfo.Server.Data.Inventory.InventoryItemState[] equipment = [
+            new(null, 0, core with { ItemId = 1010 }), new(null, 7, core with { ItemId = 305419896, Attribute = 0x35 }),
+            new(null, 12, core with { ItemId = 1012 }), new(null, 13, core with { ItemId = 1013 }),
+            new(null, 25, core with { ItemId = 7777, ItemKind = 5 })];
+        var body = DespairTowerPayloadCodec.Apc(new(20, character,
+            Dfo.Server.Application.Characters.DrawnAppearance.Of(equipment), equipment));
+        Assert.Equal("140200000041425503010000000000000000F2030000000000000000000000000000000000000000000000000000785634120000000000000000F4030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000611E0000",
+            Convert.ToHexString(body));
     }
 }

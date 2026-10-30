@@ -84,14 +84,14 @@ public static class ClearRewardProfiles
 /// order reproduces.
 /// <para>
 /// Whether these are ever handed out is a rule decision and not this type's business, and the
-/// decision is <see cref="Dfo.Server.Abstractions.World.ClearRewardBlankItemSwitches"/>: one
+/// decision is <c>ClearRewardBlankItemSwitches</c>: one
 /// switch per card, all off, each saying in its own place what its item is unusable for. The paid
 /// table's six rows all point at one 2013 event item.
 /// </para>
 /// <para>
 /// The weight is a share of the weights beside it and of nothing fixed -- A21's six paid rows sum
 /// to ten thousand and its one PC-room row to fifty -- which is why the draw is
-/// <see cref="Dfo.Server.Abstractions.World.ClearRewardRules.BlankItemOf"/>'s and not a rate read
+/// <c>ClearRewardRules.BlankItemOf</c>'s and not a rate read
 /// against the basis the rest of this file is counted against.
 /// </para>
 /// </remarks>
@@ -168,9 +168,9 @@ public sealed record ClearRewardBlankItem(int Weight, int ItemId, int Quantity);
 /// for</b> -- it stands as the base value for a maze of that size, which the difficulty bonus and
 /// the dice are then added to, the dice having been multiplied by the party's bonus first -- is
 /// not this type's business and is settled at
-/// <see cref="Dfo.Server.Abstractions.World.ClearRewardRules.ChanceOf"/>; neither is what to do
+/// <c>ClearRewardRules.ChanceOf</c>; neither is what to do
 /// about a maze the file lists no row for, which
-/// <see cref="Dfo.Server.Abstractions.World.ClearRewardRules.MapBaseRate"/> answers with the
+/// <c>ClearRewardRules.MapBaseRate</c> answers with the
 /// largest declared row. The point here is only that such a total has no row of its own, which
 /// <see cref="MapCountRate"/> says with null.
 /// </param>
@@ -215,7 +215,7 @@ public sealed record ClearRewardBlankItem(int Weight, int ItemId, int Quantity);
 /// </param>
 /// <param name="GoldCardBlankItems">
 /// <c>[gold card blank item]</c>, the paid flip's weighted fallback rows. Handed out only where
-/// <see cref="Dfo.Server.Abstractions.World.ClearRewardBlankItemSwitches.GoldCard"/> is switched
+/// <c>ClearRewardBlankItemSwitches.GoldCard</c> is switched
 /// on, which it is not.
 /// </param>
 /// <param name="PcRoomCardBlankItems">
@@ -223,7 +223,7 @@ public sealed record ClearRewardBlankItem(int Weight, int ItemId, int Quantity);
 /// them</b>: there is no PC-room card in
 /// <see cref="Dfo.Server.Abstractions.World.ClearRewardCardKind"/> and the flip request carries no
 /// face byte for one. They are read, drawable, and switched by
-/// <see cref="Dfo.Server.Abstractions.World.ClearRewardBlankItemSwitches.PcRoomCard"/> all the
+/// <c>ClearRewardBlankItemSwitches.PcRoomCard</c> all the
 /// same -- the section is the same shape as the paid one and reading it costs a line.
 /// </param>
 /// <param name="GradeBands">

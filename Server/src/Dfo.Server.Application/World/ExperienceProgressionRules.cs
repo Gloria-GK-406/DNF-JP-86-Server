@@ -1,7 +1,9 @@
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Characters;
 
-namespace Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World;
+
+namespace Dfo.Server.Application.World;
 
 internal static class ExperienceProgressionRules
 {

@@ -102,7 +102,7 @@ public sealed record ClearRewardSettlementResult(ClearRewardCardSet Cards, int? 
 /// The seed of a face is the caller's -- see <see cref="IClearRewardRuleService.FaceFor"/> -- and
 /// with every fallback switch off, and all three are, two faces handed one seed have no other way
 /// left to differ. A switched-on paid card would part them at their blank positions
-/// (<see cref="ClearRewardBlankItemSwitches"/>), and that makes the case for two seeds stronger
+/// (<c>ClearRewardBlankItemSwitches</c>), and that makes the case for two seeds stronger
 /// rather than weaker: whether a clear's two faces differ may not be a function of a configuration
 /// key. The seeds are derived from the run rather than drawn, because a clear settled twice has to
 /// fix the same cards both times.

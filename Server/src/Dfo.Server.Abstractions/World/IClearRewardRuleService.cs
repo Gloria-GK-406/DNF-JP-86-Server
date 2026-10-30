@@ -34,7 +34,7 @@ public readonly record struct ClearRewardCardItem(
 /// in can roll a quality whose bucket in the pool holds nothing.
 /// <para>
 /// It stays null unless the card's fallback is switched on, and no card's is; see
-/// <see cref="ClearRewardBlankItemSwitches"/>.
+/// <c>ClearRewardBlankItemSwitches</c>.
 /// </para>
 /// </remarks>
 /// <param name="Index">Which position of the face this is, counted from zero.</param>
@@ -56,7 +56,7 @@ public sealed record ClearRewardCardSlot(int Index, ClearRewardCardItem? Item)
 /// <param name="Gold">
 /// What a flip of this face pays, whatever the positions hold. Decided here with the positions and
 /// from the same seed, so a clear that is asked twice -- or reconnected into -- answers the same
-/// figure both times. See <see cref="ClearRewardRules.CardGoldOf"/> for where it comes from.
+/// figure both times. See <c>ClearRewardRules.CardGoldOf</c> for where it comes from.
 /// <para>
 /// The figure only. Which of the player's two golds it is paid into is the flip's business and not
 /// this face's. Today it is paid into the account cargo. The reference server pays it into the
@@ -131,7 +131,7 @@ public sealed record ClearRewardCardFace(
 /// and every one of them declares non-zero: a switch whose name is "replace the monster's level
 /// with the character's" is only worth declaring where not replacing it is the default. This
 /// repository already prices a clear's experience the same way -- see
-/// <see cref="DungeonClearExperienceRules"/> -- so paying experience by the dungeon and equipment
+/// <c>DungeonClearExperienceRules</c> -- so paying experience by the dungeon and equipment
 /// by the character would have been two standards inside one settlement.
 /// </para>
 /// <para>
@@ -146,7 +146,7 @@ public sealed record ClearRewardCardFace(
 /// <c>[reward item rate per map max count]</c> is keyed on and the only thing about the maze the
 /// composition reads. Real mazes are routinely larger than the five rows that table declares --
 /// dungeon 144's are ten, six, four, six and four -- so a count with no row is the ordinary case;
-/// see <see cref="ClearRewardRules.MapBaseRate"/> for what is answered then.
+/// see <c>ClearRewardRules.MapBaseRate</c> for what is answered then.
 /// </param>
 /// <param name="PartyMemberCount">
 /// How many were in the party, counted from one. Handed in like every other fact here rather than
@@ -174,7 +174,7 @@ public sealed record ClearRewardOccasion(
 /// </summary>
 /// <remarks>
 /// The one reader of the clear-reward rate table and of the equipment pool on this path, and the
-/// only caller of <see cref="ClearRewardRules"/>. It holds no world state and is handed none: an
+/// only caller of <c>ClearRewardRules</c>. It holds no world state and is handed none: an
 /// occasion and a seed go in, a face comes out, and the same pair going in twice produces the same
 /// four positions.
 /// <para>
@@ -208,7 +208,7 @@ public interface IClearRewardRuleService
     /// rather than a gap -- the map-count table stops at five rooms and real mazes hold more -- and
     /// it is priced at the largest row the table does declare. Reading it as a gap is what emptied
     /// both faces of most real clears until it was corrected; see
-    /// <see cref="ClearRewardRules.MapBaseRate"/>.
+    /// <c>ClearRewardRules.MapBaseRate</c>.
     /// </para>
     /// </remarks>
     ClearRewardChance ChanceOf(ClearRewardOccasion occasion);
@@ -221,8 +221,8 @@ public interface IClearRewardRuleService
     /// fallback for two of its cards -- <c>[gold card blank item]</c> and
     /// <c>[pcroom card blank item]</c> -- and this server hands neither of them out, because each
     /// names an item that is unusable here; the mechanism is built and every switch is off. See
-    /// <see cref="ClearRewardBlankItemSwitches"/> for the three switches and for what each is off
-    /// for, and <see cref="ClearRewardRules.BlankItemOf"/> for how a switched-on card draws.
+    /// <c>ClearRewardBlankItemSwitches</c> for the three switches and for what each is off
+    /// for, and <c>ClearRewardRules.BlankItemOf</c> for how a switched-on card draws.
     /// <para>
     /// A switched-on card's fallback answers for a position that was <b>drawn</b> and came up
     /// empty, and for nothing else. An occasion these tables could not answer at all -- a level in

@@ -1,31 +1,9 @@
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
-namespace Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World;
 
-/// <summary>What rank a monster is, in the numbering the client draws it by.</summary>
-public enum MonsterRank : byte
-{
-    Ordinary = 0,
-    Champion = 1,
-    SuperChampion = 2,
-    Boss = 3,
-}
-
-/// <summary>Everything about one kill that decides what it is worth.</summary>
-/// <remarks>
-/// Nothing about who made the kill beyond their level. What a character carries is added on top of
-/// this and belongs to a different rule; anyone of the same level killing the same monster in the
-/// same run earns the same amount here.
-/// </remarks>
-public readonly record struct KillCircumstances(
-    int MonsterLevel,
-    MonsterRank Rank,
-    int CharacterLevel,
-    DungeonDifficulty Difficulty,
-    double DungeonWeight,
-    int PartyMemberCount,
-    bool IsNamedMonster = false);
+namespace Dfo.Server.Application.World;
 
 /// <summary>
 /// What one kill is worth, before anything the killing character carries.
@@ -52,7 +30,7 @@ public readonly record struct KillCircumstances(
 /// <see cref="ExperienceTuning"/>, where each carries how well it is evidenced.
 /// </para>
 /// </remarks>
-public static class MonsterExperienceRules
+internal static class MonsterExperienceRules
 {
     /// <summary>What a kill of these circumstances is worth.</summary>
     public static uint WorthOf(

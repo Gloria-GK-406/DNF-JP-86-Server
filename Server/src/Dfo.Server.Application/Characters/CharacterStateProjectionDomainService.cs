@@ -4,7 +4,7 @@ namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterStateProjectionDomainService(
     ICharacterDomainService characters, ICharacterSkillStateDomainService skills,
-    ICharacterSkillPointDomainService points) : ICharacterStateProjectionDomainService
+    ICharacterSkillPointDomainService points, ICharacterAppearanceRuleService appearanceRules) : ICharacterStateProjectionDomainService
 {
     public async ValueTask<SelectCharacterResult> RefreshAsync(SelectCharacterResult result, CancellationToken cancellationToken)
     {
@@ -38,7 +38,7 @@ internal sealed class CharacterStateProjectionDomainService(
                 },
             },
         };
-        return refreshed with { CharacterEntry = CharacterStateProjection.CompleteAppearanceProjection(
+        return refreshed with { CharacterEntry = CharacterStateProjection.CompleteAppearanceProjection(appearanceRules,
             refreshed.Character, refreshed.CharacterEntry, refreshed.CharacterInventory) };
     }
 }

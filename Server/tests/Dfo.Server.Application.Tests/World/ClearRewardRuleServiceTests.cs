@@ -1564,7 +1564,7 @@ internal static class ClearRewardFixture
             {
                 RateBasis = basis,
                 DebugGuaranteePaidEquipment = guaranteePaidEquipment,
-                BlankItems =
+                BlankItems = new()
                 {
                     FreeCard = freeCardBlankItems,
                     GoldCard = goldCardBlankItems,

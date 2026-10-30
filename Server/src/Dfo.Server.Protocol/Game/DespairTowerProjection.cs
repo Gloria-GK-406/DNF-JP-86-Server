@@ -10,7 +10,10 @@ internal sealed record DespairClearRewardNotification(DespairTowerSettlement Set
 {
     public ServerMessageType MessageType => ServerMessageType.GameDespairClearReward;
 }
+/// <param name="Appearance">The character's already-resolved worn appearance parts.</param>
+/// <param name="Equipment">Worn equipment; only the creature in slot 25 is read from it.</param>
 internal sealed record DespairApcInfoNotification(byte Floor, ActiveCharacterState Character,
+    IReadOnlyList<Dfo.Server.Data.Game.CharacterRosterAppearanceState> Appearance,
     IReadOnlyList<InventoryItemState> Equipment) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameDespairApcInfo;
@@ -44,9 +47,7 @@ internal static class DespairTowerPayloadCodec
         writer.Write(message.Character.Identity.GrowType);
         writer.Write(0); // empty guild Dstr
         writer.Write(0); // guild id
-        var appearances = Dfo.Server.Application.Characters.CharacterAppearanceRuleService.Shared.Resolve(
-            new(CharacterCareer.FromPacked(message.Character.Identity.Job, message.Character.Identity.GrowType)),
-            message.Equipment, new(null, 0)).Parts;
+        var appearances = message.Appearance;
         for (var i = 0; i < 22; i++)
         {
             var wornSlot = i < 10 ? i : i == 10 ? 12 : -1;

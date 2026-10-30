@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Content;
 namespace Dfo.Server.Abstractions.World;
 
 public sealed record HellRewardRateBand(int Low, int High, IReadOnlyList<int> Rates);
+
 public sealed record HellRewardDefinition(
     IReadOnlyList<HellRewardRateBand> Bands,
     IReadOnlyList<IReadOnlyList<int>> RarityThresholds,
@@ -16,6 +17,7 @@ public interface IHellRewardDefinitionSource
 }
 
 public sealed record HellActorReward(IReadOnlyList<RolledDrop> Loot, bool EligibleForGroupReward);
+
 public sealed record HellGroupRewardContext(MonsterDropContext Drop, byte HellDifficulty,
     int GroupIndex, int BasisLevel);
 
@@ -32,12 +34,4 @@ public interface IHellRewardDomainService
         CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<RolledDrop>> FreezeGroupAsync(HellGroupRewardContext context,
         CancellationToken cancellationToken);
-}
-
-public sealed class HellRewardOptions
-{
-    // Upstream uses 100. This is a server policy, not a recovered official baseDropRate.
-    public int EquipmentRatePercent { get; set; } = 100;
-    // Upstream fragment attempts by ordinary difficulty; A adds one.
-    public IReadOnlyList<int> EpicPieceAttempts { get; set; } = [5, 6, 8, 9, 10];
 }

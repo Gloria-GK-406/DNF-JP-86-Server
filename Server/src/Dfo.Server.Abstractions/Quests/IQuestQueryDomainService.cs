@@ -44,4 +44,10 @@ public interface IQuestQueryDomainService
 {
     ValueTask<IReadOnlyList<AcceptedQuestState>> ReadAcceptedAsync(AccountId account, CharacterId character, CancellationToken ct);
     ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, CancellationToken ct);
+
+    /// <summary>A cycle run, cleared, for a quest the client can name.</summary>
+    bool IsCycleClear(Dfo.Server.Abstractions.World.DungeonRunState? run);
+
+    /// <summary>A cycle clear whose quest is among <paramref name="accepted"/> and can be completed from inside the run.</summary>
+    bool CanSubmitCycleQuest(Dfo.Server.Abstractions.World.DungeonRunState? run, IReadOnlyList<AcceptedQuestState> accepted);
 }

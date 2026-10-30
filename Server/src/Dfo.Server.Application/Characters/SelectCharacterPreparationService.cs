@@ -21,6 +21,7 @@ public sealed class SelectCharacterPreparationService(
     IAccountInventoryEntryDomainService accountInventoryEntries,
     ICharacterEntryStateDomainService characterEntries,
     IAccountEntryStateDomainService accountEntries,
+    ICharacterAppearanceRuleService appearanceRules,
     IEquippedCreatureQuery equippedCreature,
     IWorldContentEntryRuleService worldContent,
     ICharacterEntryPreparationRuleService preparationRules,
@@ -159,10 +160,10 @@ public sealed class SelectCharacterPreparationService(
         accountEntry = await CharacterStateProjection.CompleteSupportCharacterProjectionAsync(
             accountId, character, roster, accountEntry,
             rosters, characterInventoryEntries.LoadAsync, characterEntries,
-            preparationRules, preparedAt,
+            preparationRules, appearanceRules, preparedAt,
             cancellationToken).ConfigureAwait(false);
 
-        characterEntry = CharacterStateProjection.CompleteAppearanceProjection(character, characterEntry, characterInventory);
+        characterEntry = CharacterStateProjection.CompleteAppearanceProjection(appearanceRules, character, characterEntry, characterInventory);
         if (achievements is not null)
             characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with

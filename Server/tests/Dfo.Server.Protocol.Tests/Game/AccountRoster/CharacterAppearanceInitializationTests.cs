@@ -16,7 +16,7 @@ public sealed class CharacterAppearanceInitializationTests
     [InlineData(33)]
     public void Closed_options_survive_both_roster_packets_without_changing_real_career(byte packedCareer)
     {
-        var display = CharacterAppearanceRuleService.Shared.Resolve(
+        var display = new CharacterAppearanceRuleService().Resolve(
             new(CharacterCareer.FromPacked(0, packedCareer)), [], new(new byte[150], 3));
         var summary = new CharacterSummary(new(2), 0, "1123"u8.ToArray(), 0, packedCareer, 86, 0, []) { Display = display };
         var first = AccountCharacterRosterPayloadCodec.Encode(new(new AccountId(4), 32, [summary]));

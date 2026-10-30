@@ -181,7 +181,7 @@ public sealed class SelectCharacterProductionStateTests
 
     private static CharacterCurrentStateQueryDomainService Query(
         Sources sources, SelectCharacterResult seed, IOnlineCharacterRuntimeDomainService positions, IAchievementDomainService? achievements = null) =>
-        new(sources, sources, sources, sources, sources, sources, sources,
+        new(sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
 
@@ -248,7 +248,7 @@ public sealed class SelectCharacterProductionStateTests
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var sources = new Sources(seed, []);
         var handler = new SelectCharacterPreparationService(
-            sources, sources, sources, sources, sources, sources, sources,
+            sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, sources, sources, sources,
             new FixedTimeProvider(seed.World.PreparedAt), epicBook: new QueryOnlyEpicBook());
@@ -358,7 +358,7 @@ public sealed class SelectCharacterProductionStateTests
         Sources sources, SelectCharacterResult seed, IAchievementDomainService? achievements = null)
     {
         var handler = new SelectCharacterPreparationService(
-            sources, sources, sources, sources, sources, sources, sources,
+            sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources),
             sources, sources, sources, sources, sources, sources, sources,
             new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements);
