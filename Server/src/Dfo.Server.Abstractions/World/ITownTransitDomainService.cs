@@ -17,25 +17,15 @@ public sealed record TownDepartureResult(
     TownAreaKey PreviousArea,
     bool SharedTownPresence);
 
-/// <summary>Why the couple-room rules refuse an area crossing.</summary>
-public enum TownCrossingRefusal
-{
-    /// <summary>Only a married character enters, from an entry source or from inside, to area 0.</summary>
-    CoupleRoomEntry,
-
-    /// <summary>The couple room is left only for the area it was entered from.</summary>
-    CoupleRoomExit,
-}
-
 /// <summary>
 /// Moves characters being played between town areas, out of town and back into it.
 /// </summary>
 /// <remarks>
-/// The runtime record keeps where a character stands; this service decides which area a move lands
-/// in -- the couple room is one instance per household -- and what crossing it starts and ends:
-/// walking into the couple room remembers where to return to, and walking out closes the session's
-/// housing lease and that remembered return. Callers project the results; none of these writes
-/// belong to a projection.
+/// The runtime record keeps where a character stands; this service gathers the facts a move needs,
+/// asks the placement rules which area instance it lands in and what crossing it starts or ends,
+/// and makes those writes: walking into the couple room remembers where to return to, walking out
+/// closes the session's housing lease and that remembered return. Callers project the results;
+/// none of these writes belong to a projection.
 /// </remarks>
 public interface ITownTransitDomainService
 {

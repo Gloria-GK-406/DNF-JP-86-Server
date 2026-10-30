@@ -49,7 +49,7 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 | 状态 | 所有者与使用边界 |
 |---|---|
 | 身份、等级、经验、基础属性、已学技能、SP/TP | `ICharacter` 按 ID 查询；不要求在线，不缓存角色查询结果 |
-| 坐标与所在城镇区域、血蓝百分比、冷却、灵药加成 | `IOnlineCharacterRuntimeDomainService`，记录属于精确会话代数；位置由它背后的位置服务保存，按区查成员走只读的 `ITownAreaDomainService`；跨区、回城、离城经 `ITownTransitDomainService`，它决定婚房实例，离开婚房时关闭婚房会话。城镇投影帮助类只读结果组包，不写位置 |
+| 坐标与所在城镇区域、血蓝百分比、冷却、灵药加成 | `IOnlineCharacterRuntimeDomainService`，记录属于精确会话代数；位置由它背后的位置服务保存，按区查成员走只读的 `ITownAreaDomainService`；跨区、回城、离城经 `ITownTransitDomainService`：婚房实例、准入、离开与不落库由放置规则 `IEntryPlacementRuleService` 判定，该服务收集事实并执行写入，进入婚房前记住返回位置、离开时关闭婚房会话。城镇投影帮助类只读结果组包，不写位置 |
 | 任务 | `ICharacterQuestLogDomainService`，进本由 CMD 收集迷宫筛选所需 facts |
 | 物品、耐久、修理结果 | 物品领域；外观、进图与回城读取当前库存，不维护会话物品副本 |
 | 客户端设置 blob | 账号 `IClientSettingsDomainService` 与角色 `ICharacterOptionsDomainService`，见下节 |

@@ -13,6 +13,7 @@ internal sealed class TownTransitDomainService(
     ITownAreaDomainService townAreas,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     ITownMovementDomainService towns,
+    IEntryPlacementRuleService placement,
     IMarriageHousingQueryDomainService housing,
     IMarriageHousingSessionDomainService housingSessions) : ITownTransitDomainService
 {
@@ -25,19 +26,20 @@ internal sealed class TownTransitDomainService(
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(standing);
-        if (CoupleRoomTown.Is(townId)
-            && (areaId != 0
-                || !CoupleRoomTown.Is(standing.TownId) && !housing.IsEntrySource(standing.TownId, standing.AreaId)
-                || await CoupleRoomInstanceAsync(session, townId, cancellationToken).ConfigureAwait(false) is null))
-            return TownCrossingRefusal.CoupleRoomEntry;
-        if (CoupleRoomTown.Is(standing.TownId) && !CoupleRoomTown.Is(townId)
-            && (housingSessions.ReturnFor(session) is not { } home || home.TownId != townId || home.AreaId != areaId))
-            return TownCrossingRefusal.CoupleRoomExit;
-        return null;
+        // Household facts are read only for a crossing into or out of a household town.
+        var entering = placement.IsHouseholdTown(townId);
+        var leaving = !entering && placement.IsHouseholdTown(standing.TownId);
+        return placement.RefuseCrossing(new TownCrossingFacts(
+            standing,
+            townId,
+            areaId,
+            entering && housing.IsEntrySource(standing.TownId, standing.AreaId),
+            entering ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) : null,
+            leaving ? housingSessions.ReturnFor(session) : null));
     }
 
     public CharacterPositionState StoredPositionAfter(CharacterPositionState standing, CharacterPositionState destination) =>
-        CoupleRoomTown.Is(destination.TownId) ? standing : destination;
+        placement.StoredPositionAfter(standing, destination);
 
     public async ValueTask<TownAreaMembershipChange?> CrossAsync(
         SelectedSessionIdentity session,
@@ -50,7 +52,7 @@ internal sealed class TownTransitDomainService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
-        return await CoupleRoomInstanceAsync(session, townId, cancellationToken).ConfigureAwait(false) is { } instance
+        return await AreaInstanceAsync(session, townId, cancellationToken).ConfigureAwait(false) is { } instance
             ? Cross(session, new TownAreaKey(channelId, townId, areaId, instance), x, y, sharesTownPresence)
             : null;
     }
@@ -65,13 +67,16 @@ internal sealed class TownTransitDomainService(
     {
         ArgumentNullException.ThrowIfNull(session);
         var previous = onlineCharacters.StandingOf(session);
+        var housingChange = previous is null
+            ? TownHousingChange.None
+            : placement.HousingChangeOf(previous.Area.TownId, destination.TownId);
         // The way back is remembered before the character moves: if remembering fails, it is still
         // standing where it was rather than inside a couple room it has no exit from.
-        if (previous is not null && !CoupleRoomTown.Is(previous.Area.TownId) && CoupleRoomTown.Is(destination.TownId))
-            housingSessions.RememberReturn(session, previous.Position);
+        if (housingChange == TownHousingChange.Enters)
+            housingSessions.RememberReturn(session, previous!.Position);
         var change = onlineCharacters.CrossInto(session, destination, x, y, sharesTownPresence, direction);
-        if (change is not null && previous is not null && CoupleRoomTown.Is(previous.Area.TownId)
-            && change.CurrentArea?.Key != previous.Area)
+        if (change is not null && housingChange == TownHousingChange.Leaves
+            && change.CurrentArea?.Key != previous!.Area)
             housingSessions.CloseExact(session);
         return change;
     }
@@ -90,7 +95,7 @@ internal sealed class TownTransitDomainService(
                 continue;
             var sharesTownPresence = await towns.SharesTownPresenceAsync(
                 request.Position.TownId, request.Position.AreaId, cancellationToken).ConfigureAwait(false);
-            if (await CoupleRoomInstanceAsync(request.Session, request.Position.TownId, cancellationToken)
+            if (await AreaInstanceAsync(request.Session, request.Position.TownId, cancellationToken)
                     .ConfigureAwait(false) is not { } instance)
                 continue;
             candidates.Add((request, sharesTownPresence, instance));
@@ -130,14 +135,10 @@ internal sealed class TownTransitDomainService(
         return departures;
     }
 
-    // The area instance a character stands in: its household's couple room, zero for any other
-    // town, or null when it has no household to enter.
-    private async ValueTask<int?> CoupleRoomInstanceAsync(
-        SelectedSessionIdentity session, int townId, CancellationToken cancellationToken)
-    {
-        if (!CoupleRoomTown.Is(townId)) return 0;
-        return await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false) is > 0 and var instance
-            ? instance
-            : null;
-    }
+    // The household instance is read only for a household town, whose area instance it decides.
+    private async ValueTask<int?> AreaInstanceAsync(
+        SelectedSessionIdentity session, int townId, CancellationToken cancellationToken) =>
+        placement.AreaInstance(townId, placement.IsHouseholdTown(townId)
+            ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false)
+            : null);
 }

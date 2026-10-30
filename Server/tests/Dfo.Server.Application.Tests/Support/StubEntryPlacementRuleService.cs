@@ -40,6 +40,20 @@ internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? sta
         int townId,
         int areaId,
         CancellationToken cancellationToken) => ValueTask.FromResult(true);
+    public bool IsHouseholdTown(int townId) => Dfo.Server.Application.World.CoupleRoomRules.IsHouseholdTown(townId);
+
+    public int? AreaInstance(int townId, int? householdInstance) =>
+        Dfo.Server.Application.World.CoupleRoomRules.AreaInstance(townId, householdInstance);
+
+    public TownCrossingRefusal? RefuseCrossing(TownCrossingFacts facts) =>
+        Dfo.Server.Application.World.CoupleRoomRules.RefuseCrossing(facts);
+
+    public Dfo.Server.Data.Characters.CharacterPositionState StoredPositionAfter(
+        Dfo.Server.Data.Characters.CharacterPositionState standing, Dfo.Server.Data.Characters.CharacterPositionState destination) =>
+        Dfo.Server.Application.World.CoupleRoomRules.StoredPositionAfter(standing, destination);
+
+    public TownHousingChange HousingChangeOf(int fromTownId, int toTownId) =>
+        Dfo.Server.Application.World.CoupleRoomRules.HousingChangeOf(fromTownId, toTownId);
 }
 
 /// <summary>Placement that cannot resolve, for proving entry fails before publication.</summary>
@@ -69,4 +83,18 @@ internal sealed class FailingEntryPlacementRuleService : IEntryPlacementRuleServ
         int townId,
         int areaId,
         CancellationToken cancellationToken) => ValueTask.FromResult(false);
+    public bool IsHouseholdTown(int townId) => Dfo.Server.Application.World.CoupleRoomRules.IsHouseholdTown(townId);
+
+    public int? AreaInstance(int townId, int? householdInstance) =>
+        Dfo.Server.Application.World.CoupleRoomRules.AreaInstance(townId, householdInstance);
+
+    public TownCrossingRefusal? RefuseCrossing(TownCrossingFacts facts) =>
+        Dfo.Server.Application.World.CoupleRoomRules.RefuseCrossing(facts);
+
+    public Dfo.Server.Data.Characters.CharacterPositionState StoredPositionAfter(
+        Dfo.Server.Data.Characters.CharacterPositionState standing, Dfo.Server.Data.Characters.CharacterPositionState destination) =>
+        Dfo.Server.Application.World.CoupleRoomRules.StoredPositionAfter(standing, destination);
+
+    public TownHousingChange HousingChangeOf(int fromTownId, int toTownId) =>
+        Dfo.Server.Application.World.CoupleRoomRules.HousingChangeOf(fromTownId, toTownId);
 }

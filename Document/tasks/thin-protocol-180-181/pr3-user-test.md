@@ -8,7 +8,7 @@
 |---|---|---|
 | C1–C4 | 跨区、区内移动、批量回城、批量离城的位置写入从三个城镇投影帮助类移回 CMD，经 `ITownTransitDomainService` 执行；离开婚房时关闭婚房会话也移入该服务 | 无变化 |
 | C5 | 删除只有测试使用的 `TownAreaProjectionDelivery.EnterAsync` | 无变化 |
-| C6 | 婚房准入、只能从入口返回原城、实例号检查、记住返回位置、婚房位置不落库，统一由 `ITownTransitDomainService` 判定；婚房算共享在场归放置规则 `IEntryPlacementRuleService` | 无变化；唯一的语义差异见下 |
+| C6 | 婚房准入、只能从入口返回原城、实例号、婚房位置不落库、婚房算共享在场，统一由放置规则 `IEntryPlacementRuleService` 判定；`ITownTransitDomainService` 收集事实并执行记住返回位置等写入 | 无变化；唯一的语义差异见下 |
 
 C6 的语义差异：记住婚房返回位置原来只在非临时频道、经换区请求（SetUserArea）进入婚房时发生，现在凡是从婚房外进入婚房都会记住。
 临时频道能否进入婚房由 `CanEnterTownAsync` 决定，目前其他入口不会把角色送进婚房，预期没有可观察差异。

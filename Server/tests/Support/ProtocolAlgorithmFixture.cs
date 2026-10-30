@@ -33,6 +33,7 @@ internal static class ProtocolAlgorithmFixture
             values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue
                 : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values)
                 : parameter.ParameterType == typeof(ITownTransitDomainService) ? Transit(values)
+                : parameter.ParameterType == typeof(IEntryPlacementRuleService) ? Placement(values)
                 : Default(parameter.ParameterType))).ToArray());
         suppliedTo.AddOrUpdate(created, values.ToArray());
         return created;
@@ -47,8 +48,14 @@ internal static class ProtocolAlgorithmFixture
         values.OfType<ITownAreaDomainService>().LastOrDefault() ?? Default<ITownAreaDomainService>(),
         values.OfType<IOnlineCharacterRuntimeDomainService>().LastOrDefault() ?? Default<IOnlineCharacterRuntimeDomainService>(),
         values.OfType<ITownMovementDomainService>().LastOrDefault() ?? Default<ITownMovementDomainService>(),
+        values.OfType<IEntryPlacementRuleService>().LastOrDefault() ?? Placement(values),
         values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
         values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>());
+    // Placement reads content only through the town definitions a test supplies; its couple-room
+    // rules are pure and answer without any.
+    private static Dfo.Server.Application.World.EntryPlacementRuleService Placement(List<object> values) => new(
+        values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
+        values.OfType<Dfo.Server.Abstractions.Channel.ChannelEntryOptions>().LastOrDefault() ?? Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy);
     /// <summary>The town-move service a test's town projection was built beside.</summary>
     internal static ITownTransitDomainService TownTransit(object? town, params object?[] extra) =>
         Transit(Complete([.. town is not null && suppliedTo.TryGetValue(town, out var values) ? values : [], .. extra]).ToList());
