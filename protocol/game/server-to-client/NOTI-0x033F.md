@@ -95,13 +95,13 @@ ClientStatic / High，2026-10-27，A21镜像SHA256
 `startAdvanceAltar`并发送[CMD0392](../client-to-server/0x0392.md)。
 
 本工作区投影正文为四个u32 `4,1,10,0`（`04000000010000000A00000000000000`），关闭明确使用state0。
-客户端还有本地化feature flag影响显示分支，因此这只是原生入口的静态支持方案，
-尚未实机证明显隐或点击。不能用类别0／DGN3511替代这个通用调度身份，不能把70的活动119自动当作A21必发依赖。
+客户端还有本地化feature flag影响显示分支；当前玩家已确认祭坛入口／大厅可用，
+但未逐项差分开关显隐或全部本地化分支。不能用类别0／DGN3511替代这个通用调度身份，不能把70的活动119自动当作A21必发依赖。
 
-CurrentImplementation：受管活动119默认常驻；选角及在线活动变化均通过ScheduledActivityStateMessage投影4／10，0392准入读取同一活动状态。没有新增WireCaptured或ClientVerified。
+CurrentImplementation：受管活动119默认常驻；选角及在线活动变化均通过ScheduledActivityStateMessage投影4／10，0392准入读取同一活动状态。入口／大厅已有有限ClientVerified，具体范围见[祭坛验收](../../../Document/tasks/guardian-altar/acceptance.md)；没有新增本通知的完整WireCaptured，不把成功入场当作四字段逐项差分。
 输入身份、只读地图扫描和原始反汇编见[任务证据](../../../Document/tasks/guardian-altar/README.md)。
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
+本通知尚未归档原版服务端完整样本；有限行为观察和明确标记的注入分别见各玩法段落。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 
 ## 2026-10-27 马戏团气球20057显示门
@@ -111,7 +111,8 @@ state0/1/2 分别写马戏团事件对象 `+0x3D` 为false/true/true；setter为
 入口NPC20057的`0175A5EF..0175A644`、`0175F239..0175F287`检查该状态，getter为`00877A50`。
 这说明仅投影活动2226不足以打开气球；最小候选正文为`00000000010000000710000000000000`。
 探查代理明确标记注入该033F后，用户已确认气球出现、点击有反应并可进入正式图。
-这是有限ClientVerified；未验证关闭对照，注入不是原版服务端WireCaptured。
+这是受控入口路径的有限ClientVerified；未验证关闭对照，注入不是原版服务端WireCaptured。
+正式马戏团的活动准入／次数／奖励与正常天幕抽取尚未接入，不能把本次显示门差分当作正式活动整体验收。
 输入身份、PVF放置与完整边界见[马戏团流程](../../patterns/flow-circus.md#原生气球-npc-的可见门)。
 
 ## 待实机补全

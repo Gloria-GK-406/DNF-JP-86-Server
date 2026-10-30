@@ -54,7 +54,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## A21字段与实现
 
-ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation为本工作区代码及自动测试；没有WireCaptured或ClientVerified。
+ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`，基址00400000，以下地址使用VA。70Reference只补充字段语义；A21采用紧凑布局，不能复制70的结构体对齐。CurrentImplementation对应已合入主干的实现与自动测试；没有本任务完整WireCaptured，实机确认范围单列如下。
 
 头20B：stageType:i32（0普通、1生存）、round:i32、mapId:i32、totalDurationMs:i32、basisLevel:i32。随后u32 phaseCount + 每行12B（phaseIndex:i32、startOffsetMs:i32、phaseType:i32，0普通／1精英／2Boss）。**之后还有u32 initialActorCount及每行13B**：mapRecordIndex:i32、sequence:u16、resourceCode:u16、level:u8、rank:u8、unknown三字节当前0。完整长度`28+12P+13M`，机器区24+12P仅是下界。客户端`VA0115C4E5`以后的计数与记录读取补全尾部；生存round>1在`0115C3B6–0115C3FD`保留当前场景后返回，不重新Loading，初始actorCount为0。
 
@@ -63,7 +63,7 @@ ClientStatic / Confirmed：A21镜像 SHA256 `AAAE24216E0E260AFA528445775E767D104
 普通关卡的wire round必须为1，不能直接复制领域中的非生存轮次0。
 70Reference的`getCurrentSurvivalRoundNo`（VA08134878）返回内部索引+1；普通关卡内部索引为0。
 A21 `VA0115C41E–0115C42A`仅在普通关卡round=1时调用场景初始化`VA01460A10`。
-当前编码已修正；重复入场的客户端效果仍待修复候选实机复验。
+当前编码已修正，已测简单／中等表现见下节；连续多局的完整回归仍未逐项确认。
 
 `basisLevel`是战斗等级偏移，来自DGN的`[advance altar map]`第三列，不是角色50级准入门槛或星数要求。
 第1关三档为0／10／17；70Reference `startStage`（VA0812E04D–0812E062）取对应难度表写入基准，
@@ -74,3 +74,8 @@ A21地图通知把此值交给`VA0114C970`写入祭坛对象`+36C`，生成敌�
 补充原始证据：[70初始化](../../../Document/tasks/guardian-altar/70-stage-initialization.txt)、
 [70重置](../../../Document/tasks/guardian-altar/70-stage-reset.txt)、
 [A21基准写入](../../../Document/tasks/guardian-altar/client-basis-setter.txt)。
+
+## 验证范围
+
+ClientVerified（限定）：玩家确认第1关简单正常、中等出怪恢复。普通关卡加载／初始化已有该范围实机反馈；连续多局、全部关卡难度、暂停恢复及生存续轮仍须分别验证，不能仅凭首关反馈标为通过。
+完整实机范围及未覆盖项见[祭坛验收记录](../../../Document/tasks/guardian-altar/acceptance.md)；该记录的总体反馈不替代逐字段WireCaptured。

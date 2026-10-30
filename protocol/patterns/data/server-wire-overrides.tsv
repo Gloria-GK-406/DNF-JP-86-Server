@@ -68,3 +68,7 @@ NOTI	RuinsByteNotification	0x02FB	Game/DarkElfRuins/DarkElfRuinsSlice.cs	selecti
 CMD	RuinsAcknowledgement	0x032C	Game/DarkElfRuins/DarkElfRuinsSlice.cs	acknowledges the specialized result request
 CMD	RuinsAcknowledgement	0x032D	Game/DarkElfRuins/DarkElfRuinsSlice.cs	acknowledges the specialized reward request
 CMD	RuinsAcknowledgement	0x002E	Game/DarkElfRuins/DarkElfRuinsSlice.cs	legacy result route preserves the request type
+CMD	CollectionBoxAck	0x03E5	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Select = 0; encoder emits 0x03E5 + Action
+CMD	CollectionBoxAck	0x03E6	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Put = 1; encoder emits 0x03E5 + Action
+CMD	CollectionBoxAck	0x03E7	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Withdraw = 2; encoder emits 0x03E5 + Action
+CMD	CollectionBoxAck	0x03E8	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Extend = 3; refusal preserves the request type
