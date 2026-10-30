@@ -27,6 +27,10 @@ internal sealed class ExperienceRuleService(
     private CharacterExperienceScale? scale;
     public CharacterExperienceScale CharacterScale() => scale ??= new(Progression().LevelThresholds);
 
+    public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(
+        Dfo.Server.Data.Characters.CharacterProgressionState before, ExperienceBreakdown breakdown) =>
+        ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
+
     public uint WorthOfKill(in KillCircumstances kill) =>
         MonsterExperienceRules.WorthOf(kill, parameters.Load(), tuning);
     public uint MobReward(int level) => MonsterExperienceWorth.For(level, tuning.Curve);

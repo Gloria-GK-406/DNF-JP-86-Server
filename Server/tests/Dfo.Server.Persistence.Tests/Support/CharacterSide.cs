@@ -64,7 +64,7 @@ internal sealed class CharacterSide
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
         new ItemGrantDomainService(null!, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()),
             new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots())),
-            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())));
+            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())), new Dfo.Server.Application.Characters.CharacterAppearanceRuleService());
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.

@@ -6,11 +6,16 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Characters;
 
-public sealed class CharacterAppearanceRuleService : ICharacterAppearanceRuleService
+internal sealed class CharacterAppearanceRuleService : ICharacterAppearanceRuleService
 {
-    public static CharacterAppearanceRuleService Shared { get; } = new();
-
     public CharacterAppearance Resolve(CharacterAvatarCandidates avatars,
+        IReadOnlyList<InventoryItemState> equipment, ClientAppearanceOptions options) =>
+        CharacterAppearanceRules.Resolve(avatars, equipment, options);
+}
+
+internal static class CharacterAppearanceRules
+{
+    public static CharacterAppearance Resolve(CharacterAvatarCandidates avatars,
         IReadOnlyList<InventoryItemState> equipment, ClientAppearanceOptions options)
     {
         ArgumentNullException.ThrowIfNull(avatars);
@@ -45,5 +50,5 @@ public static class DrawnAppearance
 {
     public static bool DrawsFrom(int slot) => EquipmentAppearanceParts.DrawsFrom(slot);
     public static IReadOnlyList<Dfo.Server.Data.Game.CharacterRosterAppearanceState> Of(IReadOnlyList<InventoryItemState> worn) =>
-        CharacterAppearanceRuleService.Shared.Resolve(new(new(0)), worn, new(null, 0)).Parts;
+        Array.AsReadOnly(EquipmentAppearanceParts.Of(worn).ToArray());
 }

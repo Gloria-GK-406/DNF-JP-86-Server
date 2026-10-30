@@ -5,6 +5,10 @@ namespace Dfo.Server.Application.Tests.Support;
 
 internal sealed class TestExperienceRules : IExperienceRuleService
 {
+    public Dfo.Server.Abstractions.World.CharacterExperienceScale CharacterScale() => new(Progression().LevelThresholds);
+    public uint MobReward(int level) => Dfo.Server.Application.World.MonsterExperienceWorth.For(level, Dfo.Server.Abstractions.World.MonsterWorthCurve.Recovered);
+    public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(Dfo.Server.Data.Characters.CharacterProgressionState before,
+        Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
     public DungeonExperienceProgressionPolicy Progression() => new(Enumerable.Range(1, 85).Select(x => (uint)x * 100).ToArray(), 100000, 10000, 100);
     public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
     public bool IsMonster(byte actor) => throw new NotSupportedException();

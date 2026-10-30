@@ -1,6 +1,8 @@
-namespace Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World;
 
-public static class HellRewardRules
+namespace Dfo.Server.Application.World;
+
+internal static class HellRewardRules
 {
     // 70 CLuckPoint::GetItemRarity compares cumulative thresholds inclusively.
     public static DropRarity? RarityFor(int roll, IReadOnlyList<int> cumulativeThresholds)

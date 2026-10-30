@@ -18,10 +18,11 @@ namespace Dfo.Server.Application.Characters;
 /// <summary>Shared projections of character facts, without login placement or recovery.</summary>
 internal static class CharacterStateProjection
 {
-    internal static CharacterEntryState CompleteAppearanceProjection(ActiveCharacterState character, CharacterEntryState entry, CharacterInventoryEntryState inventory)
+    internal static CharacterEntryState CompleteAppearanceProjection(ICharacterAppearanceRuleService appearance,
+        ActiveCharacterState character, CharacterEntryState entry, CharacterInventoryEntryState inventory)
     {
         var equipment = inventory.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
-        var display = CharacterAppearanceRuleService.Shared.Resolve(
+        var display = appearance.Resolve(
             new(CharacterCareer.FromPacked(character.Identity.Job, character.Identity.GrowType)), equipment,
             new(null, checked((byte)entry.Public.VisibilityBits)));
         return entry with { Public = entry.Public with { Display = display, CloneTitleItemId = display.TitleAppearanceItemId } };
@@ -152,6 +153,7 @@ internal static class CharacterStateProjection
         Func<AccountId, CharacterId, CancellationToken, ValueTask<CharacterInventoryEntryState>> readInventory,
         ICharacterEntryStateDomainService entries,
         ICharacterEntryPreparationRuleService preparationRules,
+        ICharacterAppearanceRuleService appearance,
         DateTimeOffset preparedAt,
         CancellationToken cancellationToken)
     {
@@ -174,7 +176,7 @@ internal static class CharacterStateProjection
         supportInventory = await SupportCreatureMarkerProjection.CompleteAsync(
             supportInventory, preparationRules, preparedAt, cancellationToken)
             .ConfigureAwait(false);
-        supportEntry = CompleteAppearanceProjection(support, supportEntry, supportInventory);
+        supportEntry = CompleteAppearanceProjection(appearance, support, supportEntry, supportInventory);
         var completed = relation with
         {
             SupportProjection = new AccountSupportCharacterEntryState(

@@ -23,7 +23,7 @@ internal sealed class QuestProgressViewChangedHandler(IQuestQueryDomainService q
         if (currentRun?.RunId != expectedRunId) return [];
         // A clear-map/inventory event can finish after the initial clear was projected.
         // Offer the native check again only while this run's bound task is still accepted/ready.
-        var ready = CycleQuestRechallengeProjection.ReadyFrames(currentRun, accepted);
+        var ready = CycleQuestRechallengeProjection.ReadyFrames(quests, currentRun, accepted);
         return ready.Count > 0 ? [.. ready] : [CycleQuestRechallengeProjection.Progress(accepted)];
     }
 }

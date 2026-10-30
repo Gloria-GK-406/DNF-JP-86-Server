@@ -458,6 +458,10 @@ public sealed class SqliteEntryLifecycleRecoveryTests
     /// <summary>Only the progression policy; recovery asks nothing else of the rules.</summary>
     private sealed class ProgressionPolicy : IExperienceRuleService
     {
+        public Dfo.Server.Abstractions.World.CharacterExperienceScale CharacterScale() => new(Progression().LevelThresholds);
+        public uint MobReward(int level) => Dfo.Server.Application.World.MonsterExperienceWorth.For(level, Dfo.Server.Abstractions.World.MonsterWorthCurve.Recovered);
+        public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(Dfo.Server.Data.Characters.CharacterProgressionState before,
+            Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
         public DungeonExperienceProgressionPolicy Progression() => new(
             Enumerable.Range(1, 85).Select(value => checked((uint)(value * 1000))).ToArray(),
             1_000_000, 10_000, 100);

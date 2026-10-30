@@ -1,9 +1,10 @@
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.World;
 
-namespace Dfo.Server.Abstractions.World;
+namespace Dfo.Server.Application.Quests;
 
 /// <summary>When a cycle run's quest can be handed in from inside the run.</summary>
-public static class CycleQuestSubmission
+internal static class CycleQuestSubmission
 {
     /// <summary>A cycle run, cleared, for a quest the client can name.</summary>
     public static bool IsCycleClear(DungeonRunState? run) =>

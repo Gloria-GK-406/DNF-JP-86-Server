@@ -34,14 +34,14 @@ internal static class DungeonClearCommandProjection
             List<IGameServerMessage> frames = run?.Layout.Mode is DungeonRunMode.DarkElfRuins
                 ? [.. Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.ClearPreamble(run)]
                 : [new EnableClearDungeonNotification(), new SecretShopNpcNotification(GameProtocol.SecretShopNpcId)];
-            if (CycleQuestSubmission.IsCycleClear(run))
+            if (quests.IsCycleClear(run))
             {
                 // The map-clear subscriber is asynchronous. Resynchronize an already-ready
                 // task after the kill frames, which may contain an older trigger snapshot.
                 {
                     var accepted = await quests.ReadAcceptedAsync(target.AccountId, target.CharacterId,
                         cancellationToken).ConfigureAwait(false);
-                    if (CycleQuestSubmission.IsReady(run, accepted))
+                    if (quests.CanSubmitCycleQuest(run, accepted))
                         frames.Add(CycleQuestRechallengeProjection.Progress(accepted));
                 }
                 frames.Add(CycleQuestRechallengeProjection.Check());

@@ -12,6 +12,11 @@ internal sealed class QuestQueryDomainService(
     IQuestAvailabilityRuleService availability, ICharacterTable owners, IDungeonRunQueryDomainService runs,
     IMirrorAradQuestDomainStore? mirror = null, IMirrorAradQuestRuleService? mirrorRules = null) : IQuestQueryDomainService
 {
+    public bool IsCycleClear(DungeonRunState? run) => CycleQuestSubmission.IsCycleClear(run);
+
+    public bool CanSubmitCycleQuest(DungeonRunState? run, IReadOnlyList<AcceptedQuestState> accepted) =>
+        CycleQuestSubmission.IsReady(run, accepted);
+
     private async ValueTask AuthorizeAsync(AccountId account, CharacterId character, CancellationToken ct)
     {
         if (await owners.FindOwnerAsync(character, ct).ConfigureAwait(false) != account)

@@ -28,7 +28,9 @@ public readonly record struct ClearExperienceWorth(uint Base, uint RankBonus);
 /// </remarks>
 public interface IExperienceRuleService
 {
-    uint MobReward(int level) => MonsterExperienceWorth.For(level, MonsterWorthCurve.Recovered);
+    /// <summary>What a monster of this level is worth on the configured curve, before anything about the run.</summary>
+    uint MobReward(int level);
+
     /// <summary>What one kill is worth before anything the character carries.</summary>
     uint WorthOfKill(in KillCircumstances kill);
 
@@ -57,8 +59,10 @@ public interface IExperienceRuleService
     /// <summary>How much a level costs, and the caps a run's experience is held to.</summary>
     DungeonExperienceProgressionPolicy Progression();
 
-    CharacterExperienceScale CharacterScale() => new(Progression().LevelThresholds);
+    /// <summary>The level thresholds of <see cref="Progression"/>, as a character's experience scale.</summary>
+    CharacterExperienceScale CharacterScale();
 
+    /// <summary>What this breakdown does to a character at <paramref name="before"/> on this scale.</summary>
     Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(
-        Dfo.Server.Data.Characters.CharacterProgressionState before, ExperienceBreakdown breakdown) => ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
+        Dfo.Server.Data.Characters.CharacterProgressionState before, ExperienceBreakdown breakdown);
 }

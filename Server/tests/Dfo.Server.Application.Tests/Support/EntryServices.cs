@@ -48,6 +48,7 @@ internal static class EntryServices
             inventory,
             characterEntries,
             accountEntries,
+            new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(),
             new EquippedCreatureQuery(),
             worldContent ?? new StubWorldContentEntryRuleService(),
             new CharacterEntryPreparationRuleService(

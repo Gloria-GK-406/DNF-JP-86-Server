@@ -361,6 +361,10 @@ public sealed class DungeonCellFactoryTests
 
     private sealed class MonsterBoundary : IExperienceRuleService
     {
+        public Dfo.Server.Abstractions.World.CharacterExperienceScale CharacterScale() => new(Progression().LevelThresholds);
+        public uint MobReward(int level) => Dfo.Server.Application.World.MonsterExperienceWorth.For(level, Dfo.Server.Abstractions.World.MonsterWorthCurve.Recovered);
+        public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(Dfo.Server.Data.Characters.CharacterProgressionState before,
+            Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
         public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
 
         public bool IsMonster(byte declaredActorType) =>

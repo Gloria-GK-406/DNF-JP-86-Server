@@ -159,6 +159,10 @@ public sealed class MonsterDeathTransactionTests
     }
     private sealed class FixedProgression : IExperienceRuleService
     {
+        public Dfo.Server.Abstractions.World.CharacterExperienceScale CharacterScale() => new(Progression().LevelThresholds);
+        public uint MobReward(int level) => Dfo.Server.Application.World.MonsterExperienceWorth.For(level, Dfo.Server.Abstractions.World.MonsterWorthCurve.Recovered);
+        public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(Dfo.Server.Data.Characters.CharacterProgressionState before,
+            Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
         public DungeonExperienceProgressionPolicy Progression() => new([100, 250, 450, 700], 0, 1, 100);
         public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
         public bool IsMonster(byte type) => throw new NotSupportedException();

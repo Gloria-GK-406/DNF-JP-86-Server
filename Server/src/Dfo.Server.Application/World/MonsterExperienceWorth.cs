@@ -1,4 +1,6 @@
-namespace Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World;
+
+namespace Dfo.Server.Application.World;
 
 /// <summary>
 /// What killing a monster of a given level is worth, before anything about the run or the
@@ -23,7 +25,7 @@ namespace Dfo.Server.Abstractions.World;
 /// stops being 100. Where they meet is exact rather than fitted, because
 /// <c>100 + 3(n - 15)</c> is 100 precisely at 15.
 /// </remarks>
-public static class MonsterExperienceWorth
+internal static class MonsterExperienceWorth
 {
     /// <summary>What a monster of this level is worth, or zero when there is no such level.</summary>
     /// <param name="monsterLevel">The monster's level as the room declared it.</param>

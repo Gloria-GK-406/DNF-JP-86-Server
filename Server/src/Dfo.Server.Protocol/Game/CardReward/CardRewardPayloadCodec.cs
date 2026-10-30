@@ -21,7 +21,7 @@ internal static class CardRewardPayloadCodec
     /// <remarks>
     /// Eight in both, and the same eight: the layout writes one 16-bit word per position and the
     /// answer writes one record per position. A face has fewer than that -- see
-    /// <see cref="ClearRewardRules.CardSlotCount"/> -- and this does not read that number, because
+    /// <c>ClearRewardRules.CardSlotCount</c> -- and this does not read that number, because
     /// how wide the frame is, is a fact about the frame.
     /// </remarks>
     public const int WirePositionCount = 8;

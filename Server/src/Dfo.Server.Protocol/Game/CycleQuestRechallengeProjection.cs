@@ -14,7 +14,7 @@ internal static class CycleQuestRechallengeProjection
         new([.. accepted.OrderBy(x => x.Quest.Slot).Select(x => new AcceptedQuestProgressState(
             checked((ushort)x.Quest.QuestId), unchecked((uint)x.Quest.TriggerValue)))]);
 
-    internal static IReadOnlyList<IGameServerMessage> ReadyFrames(
+    internal static IReadOnlyList<IGameServerMessage> ReadyFrames(IQuestQueryDomainService quests,
         DungeonRunState? run, IReadOnlyList<AcceptedQuestState> accepted) =>
-        CycleQuestSubmission.IsReady(run, accepted) ? [Progress(accepted), Check()] : [];
+        quests.CanSubmitCycleQuest(run, accepted) ? [Progress(accepted), Check()] : [];
 }

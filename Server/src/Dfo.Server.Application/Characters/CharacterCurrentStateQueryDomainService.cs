@@ -20,6 +20,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IAccountInventoryEntryDomainService accountInventories,
     ICharacterEntryStateDomainService entries,
     IAccountEntryStateDomainService accounts,
+    ICharacterAppearanceRuleService appearanceRules,
     IEquippedCreatureQuery equippedCreature,
     IWorldContentEntryRuleService worldContent,
     ICharacterEntryPreparationRuleService rules,
@@ -67,9 +68,9 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             characterInventory, rules, readAt, cancellationToken).ConfigureAwait(false);
         accountEntry = await CharacterStateProjection.CompleteSupportCharacterProjectionAsync(
             session.AccountId, character, roster, accountEntry, rosters, inventories.ReadCurrentAsync,
-            entries, rules, readAt, cancellationToken).ConfigureAwait(false);
+            entries, rules, appearanceRules, readAt, cancellationToken).ConfigureAwait(false);
 
-        characterEntry = CharacterStateProjection.CompleteAppearanceProjection(character, characterEntry, characterInventory);
+        characterEntry = CharacterStateProjection.CompleteAppearanceProjection(appearanceRules, character, characterEntry, characterInventory);
         if (achievements is not null)
             characterEntry = characterEntry with { Features = characterEntry.Features with
             { Collections = characterEntry.Features.Collections with

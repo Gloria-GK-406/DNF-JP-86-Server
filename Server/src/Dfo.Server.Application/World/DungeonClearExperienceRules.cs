@@ -1,15 +1,12 @@
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 
-namespace Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.World;
 
-/// <summary>Server-owned facts for a completed run; character level is supplied inside the award transaction.</summary>
-public readonly record struct ClearCircumstances(
-    int BasisLevel, DungeonDifficulty Difficulty, double DungeonWeight, byte ClientRankPoint,
-    int KilledMonsterCount = 0, int PartyMemberCount = 1, int CharacterLevel = 0);
+namespace Dfo.Server.Application.World;
 
 /// <summary>70-style ordinary clear valuation using actual kills, not the quest reward table.</summary>
-public static class DungeonClearExperienceRules
+internal static class DungeonClearExperienceRules
 {
     public static uint BaseWorth(in ClearCircumstances clear, ExperienceTuning tuning,
         ExperienceParameters parameters)

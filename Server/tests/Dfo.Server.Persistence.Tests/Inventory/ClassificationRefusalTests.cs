@@ -116,7 +116,7 @@ public sealed class ClassificationRefusalTests
             new SqliteCharacterItemTable(database.Value),
             Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue(),
             new ItemGrantDomainService(null!, Rules(declared), Lifecycle(database, declared),
-                new SqliteItemDomainStore(database.Path), database.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database.Value), new SqliteAccountCargoStateTable(database.Value), new InventoryCapacityRuleService())));
+                new SqliteItemDomainStore(database.Path), database.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database.Value), new SqliteAccountCargoStateTable(database.Value), new InventoryCapacityRuleService())), new Dfo.Server.Application.Characters.CharacterAppearanceRuleService());
 
     private static IItemLifecycleDomainService Lifecycle(TestDatabase database, ItemWorldClass declared) =>
         new ItemLifecycleDomainService(new SqliteItemDomainStore(database.Path), database.Scope, Rules(declared));

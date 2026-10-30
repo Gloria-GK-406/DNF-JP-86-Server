@@ -268,6 +268,11 @@ public sealed class DungeonClearProjectionDeliveryTests
         }
         public ValueTask<AvailableQuestEntryState> ReadAvailableAsync(AccountId account, CharacterId character, CancellationToken ct) =>
             throw new NotSupportedException();
+        public bool IsCycleClear(Dfo.Server.Abstractions.World.DungeonRunState? run) =>
+            Dfo.Server.Application.Quests.CycleQuestSubmission.IsCycleClear(run);
+        public bool CanSubmitCycleQuest(Dfo.Server.Abstractions.World.DungeonRunState? run,
+            IReadOnlyList<Dfo.Server.Abstractions.Quests.AcceptedQuestState> accepted) =>
+            Dfo.Server.Application.Quests.CycleQuestSubmission.IsReady(run, accepted);
     }
 
     private sealed class Sessions(IReadOnlyList<SelectedSessionIdentity> sessions)

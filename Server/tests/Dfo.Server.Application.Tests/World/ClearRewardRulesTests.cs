@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.World;
 
 namespace Dfo.Server.Application.Tests.World;
 

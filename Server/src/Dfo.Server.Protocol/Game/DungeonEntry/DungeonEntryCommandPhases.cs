@@ -248,8 +248,10 @@ internal sealed partial class GameSelectDungeonCommandHandler
                     var view = refreshed[receiver.Session.CharacterId];
                     var equipment = view.CharacterInventory.Containers.SingleOrDefault(x => x.ContainerType ==
                         Dfo.Server.Data.Inventory.InventoryContainerType.Equipment)?.Items ?? [];
-                    frames.Add(new DespairApcInfoNotification(0, view.Character, equipment));
-                    frames.Add(new DespairApcInfoNotification(checked((byte)tower.Floor), view.Character, equipment));
+                    var appearance = (view.CharacterEntry.Public.Display
+                        ?? throw new InvalidDataException("Refreshed character view has no resolved appearance.")).Parts;
+                    frames.Add(new DespairApcInfoNotification(0, view.Character, appearance, equipment));
+                    frames.Add(new DespairApcInfoNotification(checked((byte)tower.Floor), view.Character, appearance, equipment));
                 }
                 if (HellPartyProjection.For(visit.Run) is { } hellInfo) frames.Add(hellInfo);
                 frames.Add(new Fatigue.FatigueNotification(await fatigue.BalanceOfAsync(receiver.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
