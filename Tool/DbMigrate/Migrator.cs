@@ -26,8 +26,9 @@ public static class Migrator
         if (!File.Exists(databasePath))
             throw new FileNotFoundException("There is no database to migrate.", databasePath);
 
+        // An offline migration must release its file handle on return, including when invoked in-process.
         using var connection = new SqliteConnection(
-            new SqliteConnectionStringBuilder { DataSource = Path.GetFullPath(databasePath), Mode = SqliteOpenMode.ReadWrite }.ToString());
+            new SqliteConnectionStringBuilder { DataSource = Path.GetFullPath(databasePath), Mode = SqliteOpenMode.ReadWrite, Pooling = false }.ToString());
         connection.Open();
         var from = CharacterDatabaseSchema.VersionOf(connection);
         if (from == CharacterDatabaseSchema.Version)
