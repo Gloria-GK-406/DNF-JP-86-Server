@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.HttpOperations;
 using Dfo.Server.Data.Administration;
 using Dfo.Server.HttpApi;
 using Microsoft.AspNetCore.Builder;
@@ -22,6 +23,9 @@ internal sealed class GmRouteReplyMapper : IHttpRouteReplyMapper
     {
         if (reply.Error is { } error)
         {
+            // A grant answers with an outcome even when its input never reached the executor's grant.
+            if (reply.Outcome is null && operation is HttpRouteOperation.CeraGrant or HttpRouteOperation.MailSend)
+                reply = reply with { Outcome = Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error) ? "unknown" : "rejected" };
             if (!reply.ExecutorFailed && reply.Outcome is "auditFailed" or "unknown" or "reminderFailed")
                 context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(operation == HttpRouteOperation.CeraGrant
                     ? "Dfo.Server.GmWeb.Cera" : "Dfo.Server.GmWeb.OfficialMail").LogError(error,

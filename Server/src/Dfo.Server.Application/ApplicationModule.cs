@@ -34,6 +34,7 @@ using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Creatures;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.HttpOperations;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Notifications;
@@ -845,8 +846,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddTypedGameplayTimer<LoginSessionMaintenanceService>();
         services.TryAddSingleton<IAuthenticationDomainService, AuthenticationDomainService>();
         services.TryAddSingleton<IGameLoginAuthenticationDomainService, GameLoginAuthenticationDomainService>();
-        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead,
-            failureAudit: CommandFailureAuditCapability.AuditedFailure);
+        services.AddHttpOperationCommands();
         services.AddNetworkMessageDispatching();
         services.AddNotificationDispatching();
         AddContentWarmups(services);

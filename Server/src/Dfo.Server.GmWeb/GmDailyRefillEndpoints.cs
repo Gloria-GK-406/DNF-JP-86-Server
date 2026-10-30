@@ -18,10 +18,10 @@ internal static class GmDailyRefillEndpoints
     internal static void Map(RouteGroupBuilder group)
     {
         var permission = new GmRequiredPermission(GmPermission.All);
-        Map("GET", "", HttpRouteOperation.DailyRefill, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
-        Map("POST", "", HttpRouteOperation.DailyRefillChange, async (HttpContext c) => new HttpRouteInput.DailyChange(Secret(c), await Read(c)));
-        Map("GET", "/items", HttpRouteOperation.DailyRefillItems, (HttpContext c) => new HttpRouteInput.Catalog(Secret(c), GmInitializationEndpoints.Filter(c)));
-        Map("GET", "/items/{id:int}", HttpRouteOperation.DailyRefillItem, (HttpContext c, int id) => new HttpRouteInput.CatalogItem(Secret(c), id));
+        Map("GET", "", HttpRouteOperation.DailyRefill, (HttpContext c) => new QueryGmDailyRefillCommand(Secret(c)));
+        Map("POST", "", HttpRouteOperation.DailyRefillChange, async (HttpContext c) => new ChangeGmDailyRefillCommand(Secret(c), await Read(c)));
+        Map("GET", "/items", HttpRouteOperation.DailyRefillItems, (HttpContext c) => new SearchGmDailyRefillItemsCommand(Secret(c), GmInitializationEndpoints.Filter(c)));
+        Map("GET", "/items/{id:int}", HttpRouteOperation.DailyRefillItem, (HttpContext c, int id) => new ReadGmDailyRefillItemCommand(Secret(c), id));
         void Map(string method, string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, method, Prefix + path, operation, parser, permission);
     }
     private static string Secret(HttpContext c) => c.Request.Cookies[GmAccessBoundary.SessionCookie]!;

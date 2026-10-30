@@ -11,8 +11,10 @@
 内部来源明确给出 timer／event／lifecycle／http／gm／startup 标签与调用链。
 
 **生产者只组织输入、提交、等待。** 薄 handler、定时源、事件组循环、HTTP／GM 路由与启动服务不在队列外
-读写玩法世界、开写事务或发包。HTTP 的解析、身份输入、密码计算与响应映射属于外侧边界，路由操作
-由同一种 `HttpRouteCommand` 按纯数据输入执行；不能传入业务 `Func`。定时源按原规则合并 hosted tick，
+读写玩法世界、开写事务或发包。HTTP 的解析、身份输入、密码计算与响应映射属于外侧边界，每条路由的
+解析器构造自己的具名 CMD（`HttpOperationCommand`，账号用例在 `Application/Authentication`，GM 用例在
+`Application/Administration`），只带纯数据，不能传入业务 `Func`；解析失败也作为 `FailedHttpInputCommand`
+入队。`HttpRouteOperation` 只是 HttpApi／GmWeb 选择响应映射的路由标识，不进入 Application。定时源按原规则合并 hosted tick，
 两塔与每日刷新跟踪完整扫描／逐项轮次，手工已接受轮次仍须排空；同一轮的不同 CMD 之间允许正常 FIFO 插入。
 每日刷新在真实 outbox 登记接受后才推进当前周期和精确会话水位，不把“尝试过”当成接受。
 

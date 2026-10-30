@@ -92,7 +92,7 @@ public static class HttpApiApplicationExtensions
         }
 
         var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
-            new HttpRouteCommand(HttpRouteOperation.Register, new HttpRouteInput.Registration(registration))).ConfigureAwait(false);
+            new RegisterAccountCommand(registration)).ConfigureAwait(false);
         if (reply.Error is { } registrationFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(registrationFailure);
         var result = (RegistrationResult)reply.Value!;
         return result.Status switch
@@ -179,7 +179,7 @@ public static class HttpApiApplicationExtensions
             if (verified.Login is not { } login)
                 return new AuthenticationResult(verified.Status, FieldErrors: verified.FieldErrors);
             var reply = await HttpGameplay.RunAsync(context, GameplayCallSource.Http,
-                new HttpRouteCommand(HttpRouteOperation.Login, new HttpRouteInput.Authentication(login))).ConfigureAwait(false);
+                new AuthenticateAccountCommand(login)).ConfigureAwait(false);
             if (reply.Error is { } loginFailure) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(loginFailure);
             var result = (AuthenticationResult)reply.Value!;
             if (result.Status != AuthenticationStatus.CredentialChanged) return result;

@@ -4,7 +4,9 @@ using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.HttpOperations;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Application.Tests.Execution;
 using Dfo.Server.Application.Transactions;
@@ -56,7 +58,7 @@ public sealed class HttpRouteMechanismTests
         }
         // A new request has a new scope and request identity after either outcome.
         state.Mode = "ok";
-        await world.Bus.SendInternalAsync(new HttpRouteCommand(HttpRouteOperation.Overview, new HttpRouteInput.Empty()), Origin());
+        await world.Bus.SendInternalAsync(new QueryGmOverviewCommand(), Origin());
         Assert.Equal(2, state.Resources.Count);
         Assert.NotSame(state.Resources[0], state.Resources[1]);
     }
@@ -69,7 +71,7 @@ public sealed class HttpRouteMechanismTests
         var state = new ProbeState { Mode = failScope ? "ro-scope" : "ro", Cause = new OperationCanceledException("body", producer.Token) };
         await using var world = World(state); state.Services = world.Services;
         var failure = await Record.ExceptionAsync(() => world.Bus.SendInternalAsync(
-            new HttpRouteCommand(HttpRouteOperation.Events, new HttpRouteInput.Session("secret")), Origin(), producer.Token).AsTask());
+            new QueryGmEventsCommand("secret"), Origin(), producer.Token).AsTask());
         if (!failScope) Assert.Same(state.Cause, failure);
         else Assert.NotNull(failure);
         Assert.Equal(failScope, GameplayJob.EndedAJob(failure!));
@@ -80,15 +82,16 @@ public sealed class HttpRouteMechanismTests
     }
 
     [Theory]
-    [InlineData("wrong-kind")] [InlineData("unknown-operation")] [InlineData("wrong-input")] [InlineData("wrong-query")]
+    [InlineData("wrong-kind")] [InlineData("wrong-query")] [InlineData("wrong-mail-query")] [InlineData("unknown-edit")]
     public async Task Invalid_source_or_closed_operation_shape_is_a_failed_command_before_any_domain_action(string mode)
     {
         var state = new ProbeState(); await using var world = World(state); state.Services = world.Services;
-        var command = mode switch
+        HttpOperationCommand command = mode switch
         {
-            "unknown-operation" => new HttpRouteCommand((HttpRouteOperation)999, new HttpRouteInput.Empty()),
-            "wrong-query" => new HttpRouteCommand(HttpRouteOperation.CeraAccounts, new HttpRouteInput.Cera("secret", GmCeraQuery.Normalize, new())),
-            _ => new HttpRouteCommand(HttpRouteOperation.Overview, mode == "wrong-input" ? new HttpRouteInput.Session("secret") : new HttpRouteInput.Empty())
+            "wrong-query" => new QueryGmCeraCommand("secret", GmCeraQuery.Normalize, new()),
+            "wrong-mail-query" => new QueryGmMailCommand("secret", GmMailQuery.Prepare, new()),
+            "unknown-edit" => new EditGmMailCommand("secret", (GmMailEdit)999, Guid.Empty, new("title", "body", [1], [], 0)),
+            _ => new QueryGmOverviewCommand(),
         };
         var origin = mode == "wrong-kind" ? new InternalCommandOrigin(GameplayCallSource.Timer, GameplayCallChain.NewRoot(GameplayCallSource.Timer), "same-label") : Origin();
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => world.Bus.SendInternalAsync(command, origin).AsTask());
@@ -114,9 +117,9 @@ public sealed class HttpRouteMechanismTests
         || error is AggregateException aggregate && aggregate.InnerExceptions.Any(x => Contains(x, cause))
         || error.InnerException is { } inner && Contains(inner, cause);
     private static InternalCommandOrigin Origin() => new(GameplayCallSource.Gm, GameplayCallChain.NewRoot(GameplayCallSource.Gm), "gm:POST /probe", InternalCommandCancellation.BodyOnly);
-    private static HttpRouteCommand Command(bool isMail) => isMail
-        ? new(HttpRouteOperation.MailSend, new HttpRouteInput.MailSendRequest("secret", new("title", "body", [1], [], 0, RequestId: Guid.NewGuid())))
-        : new(HttpRouteOperation.CeraGrant, new HttpRouteInput.CeraGrantRequest("secret", new([1], "Cera", 1, "reason", Guid.NewGuid())));
+    private static HttpOperationCommand Command(bool isMail) => isMail
+        ? new SendGmMailCommand("secret", new("title", "body", [1], [], 0, RequestId: Guid.NewGuid()))
+        : new GrantGmCeraCommand("secret", new([1], "Cera", 1, "reason", Guid.NewGuid()));
     private static ProtocolCommandExecutionTests.CommandWorld World(ProbeState state) => new(configure: services =>
     {
         services.AddSingleton<ILogger<GameplayExecutor>>(state.Log);
@@ -127,11 +130,17 @@ public sealed class HttpRouteMechanismTests
             var proxy = DispatchProxy.Create(type, typeof(DomainProxy)); ((DomainProxy)proxy).State = state;
             services.AddSingleton(type, proxy);
         }
-        services.AddInternalCommandHandler<HttpRouteCommand, HttpRouteReply, HttpRouteCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead,
-            failureAudit: CommandFailureAuditCapability.AuditedFailure);
-        services.AddScoped<HttpRouteCommandHandler>();
-        services.AddScoped<ICommandHandler<HttpRouteCommand, HttpRouteReply>>(provider =>
-            new ObservingHandler(provider.GetRequiredService<HttpRouteCommandHandler>(), provider.GetRequiredService<ICommandWorkUnits>(), state, new Resource(state)));
+        // Production registrations, each command's handler observed through the same scope.
+        services.AddGmAdministrationCommands();
+        services.AddScoped<GmCeraCommandHandler>(); services.AddScoped<GmOfficialMailCommandHandler>();
+        services.AddScoped<GmPlayerDirectoryCommandHandler>(); services.AddScoped<GmEventsCommandHandler>();
+        Observe<GrantGmCeraCommand, GmCeraCommandHandler>(); Observe<QueryGmCeraCommand, GmCeraCommandHandler>();
+        Observe<SendGmMailCommand, GmOfficialMailCommandHandler>(); Observe<QueryGmMailCommand, GmOfficialMailCommandHandler>();
+        Observe<EditGmMailCommand, GmOfficialMailCommandHandler>();
+        Observe<QueryGmOverviewCommand, GmPlayerDirectoryCommandHandler>(); Observe<QueryGmEventsCommand, GmEventsCommandHandler>();
+        void Observe<TCommand, THandler>() where TCommand : HttpOperationCommand where THandler : ICommandHandler<TCommand, HttpRouteReply> =>
+            services.AddScoped<ICommandHandler<TCommand, HttpRouteReply>>(provider => new ObservingHandler<TCommand>(provider.GetRequiredService<THandler>(),
+                provider.GetRequiredService<ICommandWorkUnits>(), state, new Resource(state)));
     });
 
     internal sealed class ProbeState
@@ -153,10 +162,10 @@ public sealed class HttpRouteMechanismTests
         internal Resource(ProbeState state) { state.Resources.Add(this); }
         public ValueTask DisposeAsync() { Disposed = true; return Failure is { } error ? ValueTask.FromException(error) : ValueTask.CompletedTask; }
     }
-    private sealed class ObservingHandler(HttpRouteCommandHandler inner, ICommandWorkUnits units, ProbeState state, Resource resource)
-        : ICommandHandler<HttpRouteCommand, HttpRouteReply>, IAsyncDisposable
+    private sealed class ObservingHandler<TCommand>(ICommandHandler<TCommand, HttpRouteReply> inner, ICommandWorkUnits units, ProbeState state, Resource resource)
+        : ICommandHandler<TCommand, HttpRouteReply>, IAsyncDisposable where TCommand : class, ICommand<HttpRouteReply>
     {
-        public async ValueTask<HttpRouteReply> HandleAsync(CommandExecutionContext context, HttpRouteCommand command, CancellationToken ct)
+        public async ValueTask<HttpRouteReply> HandleAsync(CommandExecutionContext context, TCommand command, CancellationToken ct)
         {
             state.Context = context;
             if (state.Mode == "scope") resource.Failure = new IOException("independent scope cleanup");

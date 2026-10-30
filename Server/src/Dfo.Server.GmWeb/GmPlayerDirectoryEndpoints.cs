@@ -2,6 +2,7 @@ using Dfo.Server.HttpApi;
 using System.Globalization;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Administration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,17 +17,17 @@ internal static class GmPlayerDirectoryEndpoints
     internal static void Map(RouteGroupBuilder group)
     {
         var permission = new GmRequiredPermission(GmPermission.QueryPlayers);
-        Map("/overview", HttpRouteOperation.Overview, () => new HttpRouteInput.Empty());
-        Map("/accounts", HttpRouteOperation.Accounts, (HttpContext c) => Players(c, false));
-        Map("/characters", HttpRouteOperation.Characters, (HttpContext c) => Players(c, true));
-        Map("/accounts/{accountId}", HttpRouteOperation.Account, (string accountId) => Player(accountId, "账号"));
-        Map("/characters/{characterId}", HttpRouteOperation.Character, (string characterId) => Player(characterId, "角色"));
+        Map("/overview", HttpRouteOperation.Overview, () => new QueryGmOverviewCommand());
+        Map("/accounts", HttpRouteOperation.Accounts, (HttpContext c) => new QueryGmAccountsCommand(Players(c, false)));
+        Map("/characters", HttpRouteOperation.Characters, (HttpContext c) => new QueryGmCharactersCommand(Players(c, true)));
+        Map("/accounts/{accountId}", HttpRouteOperation.Account, (string accountId) => new FindGmAccountCommand(Player(accountId, "账号")));
+        Map("/characters/{characterId}", HttpRouteOperation.Character, (string characterId) => new FindGmCharacterCommand(Player(characterId, "角色")));
         void Map(string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, "GET", "/api/gm/v1" + path, operation, parser, permission);
     }
-    private static HttpRouteInput Players(HttpContext c, bool characters) => TryFilter(c.Request.Query, characters, out var filter)
-        ? new HttpRouteInput.Players(filter!) : throw new HttpRouteInputException(400, "查询参数无效。");
-    private static HttpRouteInput Player(string value, string kind) => Id(value, out var id)
-        ? new HttpRouteInput.Player(id) : throw new HttpRouteInputException(400, kind + " ID 无效。");
+    private static GmPlayerFilter Players(HttpContext c, bool characters) => TryFilter(c.Request.Query, characters, out var filter)
+        ? filter! : throw new HttpRouteInputException(400, "查询参数无效。");
+    private static int Player(string value, string kind) => Id(value, out var id)
+        ? id : throw new HttpRouteInputException(400, kind + " ID 无效。");
     private static async Task<IResult> Safe(HttpContext context, Func<Task<IResult>> action)
     {
         try { return await action(); }

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Administration;
 using Dfo.Server.HttpApi;
@@ -23,8 +24,7 @@ public sealed class HttpAuditedFailureBoundaryTests
         login.EnsureSuccessStatusCode();
         var cookie = login.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith("Dfo.Gm.Session=", StringComparison.Ordinal));
         var secret = cookie.Split(';')[0].Split('=')[1];
-        var command = new HttpRouteCommand(HttpRouteOperation.CeraGrant,
-            new HttpRouteInput.CeraGrantRequest(secret, new([1], "Cera", 1, "reason", Guid.NewGuid())));
+        var command = new GrantGmCeraCommand(secret, new([1], "Cera", 1, "reason", Guid.NewGuid()));
         var firstOrigin = new InternalCommandOrigin(GameplayCallSource.Gm, GameplayCallChain.NewRoot(GameplayCallSource.Gm),
             "gm:POST /api/gm/v1/cera/grant", InternalCommandCancellation.BodyOnly);
         var first = await Assert.ThrowsAsync<CommandAuditedFailureException>(() => host.Services.GetRequiredService<ICommandBus>()

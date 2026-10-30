@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Initialization;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.HttpApi;
 using Dfo.Server.Data.Administration;
 using Dfo.Server.Data.Initialization;
 using Microsoft.AspNetCore.Builder;
@@ -22,11 +23,11 @@ internal static class GmInitializationEndpoints
     internal static void Map(RouteGroupBuilder group)
     {
         var permission = new GmRequiredPermission(GmPermission.All);
-        Map("GET", "", HttpRouteOperation.Initialization, (HttpContext c) => new HttpRouteInput.Session(Secret(c)));
-        Map("POST", "/account", HttpRouteOperation.InitializationAccount, async (HttpContext c) => new HttpRouteInput.AccountInitializationRequest(Secret(c), await Read<AccountInitialization>(c)));
-        Map("POST", "/character", HttpRouteOperation.InitializationCharacter, async (HttpContext c) => new HttpRouteInput.CharacterInitializationRequest(Secret(c), await Read<CharacterInitialization>(c)));
-        Map("GET", "/items", HttpRouteOperation.InitializationItems, (HttpContext c) => new HttpRouteInput.Catalog(Secret(c), Filter(c)));
-        Map("GET", "/items/{id:int}", HttpRouteOperation.InitializationItem, (HttpContext c, int id) => new HttpRouteInput.CatalogItem(Secret(c), id));
+        Map("GET", "", HttpRouteOperation.Initialization, (HttpContext c) => new QueryGmInitializationCommand(Secret(c)));
+        Map("POST", "/account", HttpRouteOperation.InitializationAccount, async (HttpContext c) => new SaveGmAccountInitializationCommand(Secret(c), await Read<AccountInitialization>(c)));
+        Map("POST", "/character", HttpRouteOperation.InitializationCharacter, async (HttpContext c) => new SaveGmCharacterInitializationCommand(Secret(c), await Read<CharacterInitialization>(c)));
+        Map("GET", "/items", HttpRouteOperation.InitializationItems, (HttpContext c) => new SearchGmInitializationItemsCommand(Secret(c), Filter(c)));
+        Map("GET", "/items/{id:int}", HttpRouteOperation.InitializationItem, (HttpContext c, int id) => new ReadGmInitializationItemCommand(Secret(c), id));
         void Map(string method, string path, HttpRouteOperation operation, Delegate parser) => GmRouteMapping.Map(group, method, Prefix + path, operation, parser, permission);
     }
     private static string Secret(HttpContext c) => c.Request.Cookies[GmAccessBoundary.SessionCookie]!;

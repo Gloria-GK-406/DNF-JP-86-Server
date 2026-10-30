@@ -257,7 +257,7 @@ public sealed class CommandHandlerArchitectureTests
     private sealed record OptionalBusinessInput(Dfo.Server.Data.Characters.CharacterId? Character);
 
     private static IEnumerable<Type> ProductionCommandHandlers() =>
-        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.Commands.HttpRouteCommand).Assembly }
+        new[] { typeof(ChannelConnectHandler).Assembly, typeof(Dfo.Server.Application.HttpOperations.HttpOperationCommand).Assembly }
             .Distinct().SelectMany(assembly => assembly.GetTypes())
             .Where(type => !type.IsAbstract && type.GetInterfaces().Any(contract =>
                 contract.IsGenericType
