@@ -14,7 +14,7 @@ public sealed class PremiumTimerOrderTests
         using var shop = new ShopFixture();
         var end = shop.Clock.GetUtcNow().AddMinutes(expiredBeforeFirstTick ? -1 : 1).ToUnixTimeSeconds();
         shop.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,97,{end}),(1,84,{end})");
-        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Premium]));
         if (!expiredBeforeFirstTick)
         { await refresh.RefreshAsync(default); shop.Sender.Messages.Clear(); shop.Clock.Advance(TimeSpan.FromMinutes(1)); }
         await refresh.RefreshAsync(default); await refresh.RefreshAsync(default);

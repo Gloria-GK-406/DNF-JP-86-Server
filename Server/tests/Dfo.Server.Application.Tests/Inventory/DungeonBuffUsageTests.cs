@@ -112,7 +112,7 @@ public sealed class DungeonBuffUsageTests
         using var shop = Fixture(false);
         var end = shop.Clock.GetUtcNow().AddMinutes(1).ToUnixTimeSeconds();
         shop.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,583,{end})");
-        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Premium]));
         await refresh.RefreshAsync(default);
         await refresh.RefreshAsync(default);
         Assert.Single(shop.Sender.Messages);
@@ -132,7 +132,7 @@ public sealed class DungeonBuffUsageTests
         using var shop = Fixture(false);
         var premium = shop.Services.GetRequiredService<IPremiumServiceDomainService>().For(shop.Session.AccountId);
         Assert.True(await premium.IsActiveAsync(PremiumServiceType.BlackDiamond, default));
-        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Premium]));
         await refresh.RefreshAsync(default);
         Assert.Single(shop.Sender.Messages);
         shop.Clock.Advance(TimeSpan.FromMinutes(1));
@@ -157,7 +157,7 @@ public sealed class DungeonBuffUsageTests
         using var shop = Fixture(false);
         var now = shop.Clock.GetUtcNow();
         shop.Sql($"INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,{type},{now.AddMinutes(expiredBeforeFirstTick ? -1 : 1).ToUnixTimeSeconds()})");
-        var refresh = ActivatorUtilities.CreateInstance<PremiumDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Premium]));
         await refresh.RefreshAsync(default);
         shop.Clock.Advance(TimeSpan.FromMinutes(1));
         await refresh.RefreshAsync(default);

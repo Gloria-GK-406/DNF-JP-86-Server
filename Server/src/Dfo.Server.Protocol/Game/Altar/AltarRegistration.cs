@@ -17,7 +17,6 @@ internal static class AltarRegistration
     internal static IServiceCollection AddAltarSlice(this IServiceCollection services)
     {
         services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.Altar.AltarDeadlineSource>();
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
         services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
             Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>();
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler, Dfo.Server.Protocol.Game.Altar.AltarPrepareRequest, Dfo.Server.Protocol.Game.Altar.GameAltarPrepareCommand>(ClientMessageType.GameAltarPrepare);

@@ -661,23 +661,15 @@ public sealed class GameplayWriteAssertionTests
         Assert.Single(registry.Find(runId));
     }
 
+    public static TheoryData<Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic> RefreshTopics =>
+        new(Enum.GetValues<Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic>());
+
     [Theory]
-    [InlineData("Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.DimensionQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.GoldSilverHornQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.ItemUsageDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.MirrorQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.PremiumDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.StateSynchronization.ReviveCoinQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService")]
-    [InlineData("Dfo.Server.Protocol.Game.Fatigue.FatigueDailyRefreshService")]
-    public async Task A_daily_refresh_refuses_its_timer_body_off_the_executor_and_runs_it_in_a_job(string typeName)
+    [MemberData(nameof(RefreshTopics))]
+    public async Task A_daily_refresh_refuses_its_timer_body_off_the_executor_and_runs_it_in_a_job(
+        Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic topic)
     {
         var refresh = Make<Dfo.Server.Application.Sessions.SelectedSessionRefreshDomainService>();
-        var topicName = typeName.Split('.').Last().Replace("QuotaDailyRefreshService", "", StringComparison.Ordinal)
-            .Replace("DailyRefreshService", "", StringComparison.Ordinal);
-        var topic = Enum.Parse<Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic>(topicName);
         ValueTask Body() { refresh.Capture(topic); return ValueTask.CompletedTask; }
         var seen = ViolationCapture.Attach();
         await Assert.ThrowsAsync<GameplayOffExecutorException>(async () => await Body());

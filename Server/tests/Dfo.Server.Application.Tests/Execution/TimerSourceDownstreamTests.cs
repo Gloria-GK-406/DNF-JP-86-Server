@@ -25,7 +25,7 @@ namespace Dfo.Server.Application.Tests.Execution;
 public sealed class TimerSourceDownstreamTests
 {
     private static readonly TimeSpan Patience = TimeSpan.FromSeconds(10);
-    private const string Fatigue = "timer:FatigueDailyRefreshService";
+    private const string Fatigue = "timer:SelectedSessionRefreshService/fatigue";
 
     [Fact]
     public async Task A_fatigue_refresh_sends_from_its_timer_cmd_whether_the_loop_or_the_entry_drives_it()
@@ -34,7 +34,7 @@ public sealed class TimerSourceDownstreamTests
         using var shop = new ShopFixture(services => services.AddSingleton<TimeProvider>(clock));
         var sent = new ConcurrentQueue<(bool OnExecutor, GameplayCallChain? Chain)>();
         shop.Sender.BeforeSend = () => sent.Enqueue((GameplayJob.IsOnExecutor, GameplayJob.Current));
-        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Fatigue]));
         await SpendAsync(shop, 20);
 
         await refresh.RefreshAsync(CancellationToken.None);
@@ -76,7 +76,7 @@ public sealed class TimerSourceDownstreamTests
                 new GameplayQueue(sp.GetRequiredService<GameplayShardSelector>())) { Watched = Fatigue });
         });
         var recorder = Assert.IsType<RecordingGameplayQueue>(shop.Services.GetRequiredService<IGameplayQueue>());
-        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Fatigue]));
         var blocker = new ExecutorBlocker();
         await blocker.HoldAsync(recorder, Patience);
 

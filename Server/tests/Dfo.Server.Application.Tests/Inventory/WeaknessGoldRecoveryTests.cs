@@ -181,7 +181,7 @@ public sealed class WeaknessGoldRecoveryTests
         await Weaken(shop);
         await Recover(shop, 1);
         var old = shop.Session;
-        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.PremiumDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Premium]));
         shop.Sender.Messages.Clear();
         await refresh.RefreshAsync(default);
         Assert.Equal("PremiumServiceStateMessage", Assert.Single(shop.Sender.Messages).GetType().Name);

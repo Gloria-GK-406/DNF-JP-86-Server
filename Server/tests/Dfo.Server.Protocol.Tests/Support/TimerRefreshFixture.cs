@@ -19,11 +19,12 @@ namespace Dfo.Server.Protocol.Tests.Support;
 internal sealed class TimerRefreshFixture : IDisposable
 {
     private readonly ServiceProvider provider;
-    private readonly SelectedSessionRefreshSource source;
+    private readonly SelectedSessionRefreshService source;
     internal TimerRefreshFixture(SelectedSessionRefreshTopic topic, ISelectedSessionSnapshotQuery directory,
         ISelectedSessionDomainService sessions, IEventService? events, IDailyResetRuleService daily, TimeProvider clock,
         IGameplayQueue queue, IItemUsageDomainService? items = null, IGameMessageSender? sender = null,
-        Dfo.Server.Abstractions.World.ILostLandDungeonDomainService? lostLand = null)
+        Dfo.Server.Abstractions.World.ILostLandDungeonDomainService? lostLand = null,
+        IReadOnlyList<SelectedSessionRefreshTopic>? round = null)
     {
         var services = new ServiceCollection().AddLogging();
         services.AddCommandDispatching();
@@ -41,20 +42,7 @@ internal sealed class TimerRefreshFixture : IDisposable
         services.AddInternalCommandHandler<RefreshQuotaSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
         services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
         provider = services.AddSessionSafetyStandIns().BuildServiceProvider();
-        var type = topic switch
-        {
-            SelectedSessionRefreshTopic.Altar => typeof(Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.Dimension => typeof(DimensionQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.GoldSilverHorn => typeof(GoldSilverHornQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.ReviveCoin => typeof(ReviveCoinQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.Mirror => typeof(MirrorQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.LostLand => typeof(LostLandQuotaRefreshService),
-            SelectedSessionRefreshTopic.Heras => typeof(Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.Tournament => typeof(Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService),
-            SelectedSessionRefreshTopic.ItemUsage => typeof(ItemUsageDailyRefreshService),
-            _ => throw new NotSupportedException(),
-        };
-        source = (SelectedSessionRefreshSource)ActivatorUtilities.CreateInstance(provider, type);
+        source = ActivatorUtilities.CreateInstance<SelectedSessionRefreshService>(provider, new SelectedSessionRefreshTopics(round ?? [topic]));
     }
     public Task RefreshAsync(CancellationToken token) => source.RefreshAsync(token);
     public void Dispose() { source.Dispose(); provider.Dispose(); }

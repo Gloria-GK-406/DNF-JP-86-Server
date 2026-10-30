@@ -48,6 +48,33 @@ public sealed class UsageQuotaProjectionTests
         await worker.RefreshAsync(default); Assert.Equal(4, events.Projections.Count);
     }
 
+    /// <summary>
+    /// The topics share one timer, so a topic that fails must not take the rest of the round with it.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task A_failing_topic_does_not_stop_the_topics_after_it_in_the_round()
+    {
+        var sessions = new Sessions(); var clock = new Clock();
+        var events = new Events { Family = UsageQuotaFamily.MirrorDungeon };
+        await using var executor = new GameplayExecutor(NullLogger<GameplayExecutor>.Instance);
+        using var worker = new TimerRefreshFixture(SelectedSessionRefreshTopic.LostLand, sessions, sessions, events,
+            new Daily(), clock, new GameplayQueue(new GameplayShardSelector(executor)), lostLand: new FailingLostLand(),
+            round: [SelectedSessionRefreshTopic.LostLand, SelectedSessionRefreshTopic.Mirror]);
+        await worker.RefreshAsync(default);
+        Assert.Single(events.Projections);
+    }
+
+    private sealed class FailingLostLand : ILostLandDungeonDomainService
+    {
+        public bool Supports(int dungeonId) => false;
+        public ValueTask<LostLandQuotaSnapshot> ReadQuotaAsync(CharacterId character, CancellationToken ct) =>
+            throw new InvalidOperationException("Lost land quota is unavailable.");
+        public ValueTask<LostLandQuotaSnapshot> ReadQuotaAtAsync(CharacterId character, DateTimeOffset at, CancellationToken ct) =>
+            ReadQuotaAsync(character, ct);
+        public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct) => throw new NotSupportedException();
+    }
+
     private sealed class LostLandCounter : ILostLandDungeonDomainService
     {
         public int Remaining { get; set; } = 1;

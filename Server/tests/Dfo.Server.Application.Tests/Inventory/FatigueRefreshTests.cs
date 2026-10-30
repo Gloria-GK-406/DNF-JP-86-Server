@@ -22,7 +22,7 @@ public sealed class FatigueRefreshTests
                 await tx.CommitAsync(default);
             }
         });
-        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Fatigue]));
         await refresh.RefreshAsync(default);
         await refresh.RefreshAsync(default);
         Assert.Single(shop.Sender.Messages);

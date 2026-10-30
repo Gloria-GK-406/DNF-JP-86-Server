@@ -16,7 +16,7 @@ public sealed class F07FifoBoundaryTests
         ScanBoundaryQueue? boundary = null;
         using var shop = new ShopFixture(services => services.AddSingleton<IGameplayQueue>(provider =>
             boundary = new ScanBoundaryQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>()))));
-        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Fatigue]));
         shop.Sender.BeforeSend = () => order.Enqueue("refresh");
         var run = refresh.RefreshAsync(default);
         var queue = Assert.IsType<ScanBoundaryQueue>(boundary);
@@ -36,7 +36,7 @@ public sealed class F07FifoBoundaryTests
         ScanBoundaryQueue? boundary = null;
         using var shop = new ShopFixture(services => services.AddSingleton<IGameplayQueue>(provider =>
             boundary = new ScanBoundaryQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>()))));
-        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Fatigue]));
         var first = refresh.RefreshAsync(default); var queue = Assert.IsType<ScanBoundaryQueue>(boundary);
         await queue.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
         var change = queue.RunAsync(new GameplayWork(GameplayShardKey.World, GameplayCallChain.NewRoot(GameplayCallSource.Connection), "test:change-current", _ =>
@@ -52,7 +52,7 @@ public sealed class F07FifoBoundaryTests
         ScanBoundaryQueue? boundary = null;
         using var shop = new ShopFixture(services => services.AddSingleton<IGameplayQueue>(provider =>
             boundary = new ScanBoundaryQueue(new GameplayQueue(provider.GetRequiredService<GameplayShardSelector>()))));
-        var refresh = ActivatorUtilities.CreateInstance<FatigueDailyRefreshService>(shop.Services);
+        var refresh = ActivatorUtilities.CreateInstance<Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshService>(shop.Services, new Dfo.Server.Protocol.Game.StateSynchronization.SelectedSessionRefreshTopics([Dfo.Server.Abstractions.Sessions.SelectedSessionRefreshTopic.Fatigue]));
         var first = refresh.RefreshAsync(default); var queue = Assert.IsType<ScanBoundaryQueue>(boundary);
         await queue.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
         var second = refresh.RefreshAsync(default);
@@ -73,7 +73,7 @@ public sealed class F07FifoBoundaryTests
             return inner.RunAsync(work with { Body = async ct =>
             {
                 var value = await body(ct);
-                if (work.CommandType == "timer:FatigueDailyRefreshService" && Interlocked.Exchange(ref held, 1) == 0)
+                if (work.CommandType == "timer:SelectedSessionRefreshService/fatigue" && Interlocked.Exchange(ref held, 1) == 0)
                 { Entered.TrySetResult(); await Release.Task; }
                 return value;
             } }, token);
