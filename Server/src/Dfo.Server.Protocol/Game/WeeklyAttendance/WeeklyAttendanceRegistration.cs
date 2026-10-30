@@ -17,7 +17,7 @@ internal static class WeeklyAttendanceRegistration
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler, Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand>(ClientMessageType.GameWeeklyAttendance);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand, bool, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameWeeklyAttendance, typeof(Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(ClientMessageType.GameWeeklyAttendance);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();

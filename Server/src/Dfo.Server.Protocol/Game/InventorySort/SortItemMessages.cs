@@ -23,7 +23,7 @@ internal sealed class SortItemMessageDecoder : IGameMessageDecoder
 internal sealed class SortItemResponseEncoder : GameCmdMessageEncoder<SortItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SortItemResponse message) =>
-        OnePayload(GameProtocol.SortItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
     internal static byte[] EncodeBody(SortItemResponse message) => message.Success
         ? [1, message.ListType] : [0, message.ErrorCode, message.ListType];
 }

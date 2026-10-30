@@ -48,5 +48,5 @@ internal sealed class MercenaryInfoResponseEncoder : GameCmdMessageEncoder<Merce
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         MercenaryInfoResponse message) =>
-        OnePayload(GameProtocol.MercenaryInfoType, GameCmdEnvelope.Accept(EmptyRoster));
+        OnePayload(message, GameCmdEnvelope.Accept(EmptyRoster));
 }

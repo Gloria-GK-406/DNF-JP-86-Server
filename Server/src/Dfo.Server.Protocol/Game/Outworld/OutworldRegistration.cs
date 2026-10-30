@@ -17,10 +17,8 @@ internal static class OutworldRegistration
     {
         services.AddNotificationHandler<OutworldCompleted,
             OutworldCompletedHandler>();
-        services.AddGameCmdMessageDecoder<PurifyItemDecoder>(
-            GameProtocol.PurifyItemType, ClientMessageType.GamePurifyItem);
-        services.AddGameCmdMessageDecoder<InvestAmplifyOptionDecoder>(
-            GameProtocol.InvestAmplifyOptionType, ClientMessageType.GameInvestAmplifyOption);
+        services.AddGameCmdMessageDecoder<PurifyItemDecoder>(ClientMessageType.GamePurifyItem);
+        services.AddGameCmdMessageDecoder<InvestAmplifyOptionDecoder>(ClientMessageType.GameInvestAmplifyOption);
         services.AddGameCmdMessageEncoder<PurifyItemResponse, PurifyItemEncoder>();
         services.AddGameCmdMessageEncoder<InvestAmplifyOptionResponse, InvestAmplifyOptionEncoder>();
         services.AddProtocolCommandHandler<GameOutworldCommand, EquipmentOutworldResult, GameOutworldCommandHandler>(

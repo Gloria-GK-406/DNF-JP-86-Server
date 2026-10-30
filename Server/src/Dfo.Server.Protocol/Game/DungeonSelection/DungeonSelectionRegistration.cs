@@ -13,10 +13,8 @@ internal static class DungeonSelectionRegistration
 {
     internal static IServiceCollection AddDungeonSelectionSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<EnterSelectDungeonDecoder>(
-            GameProtocol.EnterSelectDungeonType, ClientMessageType.GameEnterSelectDungeon);
-        services.AddGameCmdMessageDecoder<BackToVillageDecoder>(
-            GameProtocol.BackToVillageType, ClientMessageType.GameBackToVillage);
+        services.AddGameCmdMessageDecoder<EnterSelectDungeonDecoder>(ClientMessageType.GameEnterSelectDungeon);
+        services.AddGameCmdMessageDecoder<BackToVillageDecoder>(ClientMessageType.GameBackToVillage);
         services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
         services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
         services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();

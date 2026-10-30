@@ -16,7 +16,7 @@ internal static class SaveCharacterOptionRegistration
         services.AddProtocolCommandHandler<GameSaveCharacterOptionCommand, bool, GameSaveCharacterOptionCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveCharacterOption, typeof(SaveCharacterOptionRequest)));
         services.RegisterProtocolMessageHandler<SaveCharacterOptionHandler, SaveCharacterOptionRequest, GameSaveCharacterOptionCommand>(ClientMessageType.GameSaveCharacterOption);
-        services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
+        services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(ClientMessageType.GameSaveCharacterOption);
         return services;
     }
 }

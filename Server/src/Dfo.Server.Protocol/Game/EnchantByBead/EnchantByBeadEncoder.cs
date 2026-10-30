@@ -5,7 +5,7 @@ namespace Dfo.Server.Protocol.Game.EnchantByBead;
 internal sealed class EnchantByBeadEncoder : GameCmdMessageEncoder<EnchantByBeadResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(EnchantByBeadResponse message) =>
-        OnePayload(GameProtocol.EnchantByBeadType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(EnchantByBeadResponse message)
     {

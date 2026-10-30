@@ -26,6 +26,6 @@ internal sealed class HellPartyMonsterInfoEncoder : GameNotiMessageEncoder<HellP
         using var writer = new BinaryWriter(stream);
         writer.Write(message.Actors.Count);
         foreach (var (index, level) in message.Actors) { writer.Write(index); writer.Write(level); }
-        return OnePayload(0x02A7, stream.ToArray());
+        return OnePayload(message, stream.ToArray());
     }
 }

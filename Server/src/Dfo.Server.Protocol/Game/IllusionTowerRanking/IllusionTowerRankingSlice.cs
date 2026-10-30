@@ -43,7 +43,7 @@ internal static class IllusionTowerRankingPayloadCodec
 internal sealed class IllusionTowerRankingEncoder : GameNotiMessageEncoder<IllusionTowerRankingNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(IllusionTowerRankingNotification message) =>
-        OnePayload(GameProtocol.IllusionTowerRankingType,
+        OnePayload(message,
             IllusionTowerRankingPayloadCodec.Encode(
                 message.DungeonId, message.CompletedLevels, message.ElapsedMilliseconds));
 }

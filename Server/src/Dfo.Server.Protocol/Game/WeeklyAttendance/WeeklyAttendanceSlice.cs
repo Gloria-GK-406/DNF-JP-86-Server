@@ -96,11 +96,11 @@ public sealed record WeeklyAttendanceRequest(GameMessageMetadata Metadata,byte[]
 internal sealed class WeeklyAttendanceDecoder : IGameMessageDecoder
 { public IClientNetworkMessage? Decode(GameMessageMetadata metadata,ReadOnlySpan<byte> body)=>EventPayloadCodec.Decode(metadata,body); }
 public sealed record WeeklyAttendanceResponse(uint Result) : IGameCmdMessage
-{ public ServerMessageType MessageType=>ServerMessageType.GameStateSynchronization; }
+{ public ServerMessageType MessageType=>ServerMessageType.GameStateSynchronization; internal ushort Type=>0x0441; }
 internal sealed class WeeklyAttendanceResponseEncoder : GameCmdMessageEncoder<WeeklyAttendanceResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeeklyAttendanceResponse message)
-    { var bytes=new byte[4];BinaryPrimitives.WriteUInt32LittleEndian(bytes,message.Result);return OnePayload(0x0441,bytes); }
+    { var bytes=new byte[4];BinaryPrimitives.WriteUInt32LittleEndian(bytes,message.Result);return OnePayload(message.Type,bytes); }
 }
 public sealed record AttendanceCompleted(SelectedSessionIdentity Session,bool Succeeded) : INotification<AttendanceCompleted>;
 public sealed class AttendanceCompletedHandler(ISelectedSessionDomainService sessions) : INotificationHandler<AttendanceCompleted>

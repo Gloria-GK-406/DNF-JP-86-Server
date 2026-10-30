@@ -5,7 +5,7 @@ namespace Dfo.Server.Protocol.Game.RepairItem;
 internal sealed class RepairItemResponseEncoder : GameCmdMessageEncoder<RepairItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(RepairItemResponse message) =>
-        OnePayload(GameProtocol.RepairItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(RepairItemResponse message)
     {

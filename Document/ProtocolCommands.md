@@ -123,6 +123,7 @@ Game 经 `IGameCommandOutbox` 登记，Channel 经 `ICommandMessageOutbox` 登�
   `AccountCharacterRoster` 就是因为这个。
 - 新协议的注册写在切片自己的 `<切片>Registration.cs`（`Add<切片>Slice()`），`ProtocolModule` 只加一行调用。
   `ApplicationModule` 不承载任何单个协议的注册。
+- opcode 只在目录成员（`ClientMessageType`／`ServerMessageType`）里写一次。解码器用 `AddGameCmdMessageDecoder<T>(ClientMessageType.X)` 登记，线上类型由成员推出；一组 opcode 解到同一个成员（收藏箱、婚房、胶囊的各动作）时用 `AddGameCmdFamilyDecoder`，且该成员自己的键也必须已登记。编码器写 `OnePayload(message, …)`，取消息的 `MessageType`；目录没有成员的同步帧（`GameStateSynchronization` 哨兵）由消息记录声明 `Type`，编码器读它。`OpcodeArchitectureTests` 在生产组合上检查解码键，并扫描 Protocol 源码拒绝 `OnePayload` 首参出现数字，均带反例。
 
 Game `0x01` 是 CMD、`0x00` 是 NOTI；每个出站消息必须且只能实现 `IGameCmdMessage` 或
 `IGameNotiMessage` 之一，编码器继承固定类别基类。CMD 用 `IGameCommandOutbox.RegisterCmdAsync`／

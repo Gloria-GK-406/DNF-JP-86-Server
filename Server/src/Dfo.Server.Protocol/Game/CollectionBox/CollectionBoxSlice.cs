@@ -43,7 +43,7 @@ internal sealed record CollectionBoxAck(CollectionBoxAction Action, byte BoxId, 
 internal sealed class CollectionBoxAckEncoder : GameCmdMessageEncoder<CollectionBoxAck>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CollectionBoxAck m) =>
-        OnePayload(checked((ushort)(0x03E5 + (int)m.Action)), m.Error is { } error ? GameCmdEnvelope.Refuse(error)
+        OnePayload(checked((ushort)(GameWireKey.TypeOf(m.MessageType) + (int)m.Action)), m.Error is { } error ? GameCmdEnvelope.Refuse(error)
             : m.Action == CollectionBoxAction.Select ? GameCmdEnvelope.Accept([m.BoxId])
             : m.Action == CollectionBoxAction.Extend ? throw new InvalidDataException("Permanent boxes cannot extend.") : GameCmdEnvelope.Accept());
 }
@@ -75,7 +75,7 @@ internal sealed record CollectionBoxContentsMessage(CollectionBoxContents Box, b
 }
 internal sealed class CollectionBoxContentsEncoder : GameNotiMessageEncoder<CollectionBoxContentsMessage>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CollectionBoxContentsMessage m) => OnePayload(0x03EB, m.EncodeBody());
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CollectionBoxContentsMessage m) => OnePayload(m.Type, m.EncodeBody());
 }
 internal sealed class CollectionBoxHandler(ICommandBus commands) : ClientMessageHandler<CollectionBoxRequest>, IProtocolCommandMessageHandler<GameCollectionBoxCommand>
 {

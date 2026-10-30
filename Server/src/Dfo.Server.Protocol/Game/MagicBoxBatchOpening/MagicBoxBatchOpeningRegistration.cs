@@ -14,7 +14,7 @@ internal static class MagicBoxBatchOpeningRegistration
 {
     internal static IServiceCollection AddMagicBoxBatchOpeningSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<MagicBoxBatchOpeningDecoder>(0x0450, ClientMessageType.GameMagicBoxBatchOpening);
+        services.AddGameCmdMessageDecoder<MagicBoxBatchOpeningDecoder>(ClientMessageType.GameMagicBoxBatchOpening);
         services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();
         services.AddProtocolCommandHandler<GameMagicBoxBatchOpeningCommand, MagicBoxOpeningResult, GameMagicBoxBatchOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

@@ -131,7 +131,7 @@ internal sealed class ScoreScrollStateResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         ScoreScrollStateResponse message) =>
-        OnePayload(GameProtocol.ScoreScrollStateType, new byte[] { 0x01 });
+        OnePayload(message, new byte[] { 0x01 });
 }
 
 /// <summary>Opens the cards through the coordinator, or answers the scroll without it.</summary>

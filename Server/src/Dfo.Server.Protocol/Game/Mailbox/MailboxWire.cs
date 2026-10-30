@@ -48,19 +48,19 @@ public sealed record MailboxAlarm(ushort Count) : IGameNotiMessage
 { public ServerMessageType MessageType => ServerMessageType.GameMailboxAlarm; }
 internal sealed class MailboxClaimEncoder : GameCmdMessageEncoder<MailboxClaimResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxClaimResponse m) => OnePayload(0x5F, MailboxWire.Ack(m.Error, w => w.Write(m.AttachmentId)));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxClaimResponse m) => OnePayload(m, MailboxWire.Ack(m.Error, w => w.Write(m.AttachmentId)));
 }
 internal sealed class MailboxActionEncoder : GameCmdMessageEncoder<MailboxActionResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxActionResponse m) => OnePayload(0x86, MailboxWire.Ack(m.Error, w => { w.Write(m.MailId); w.Write(m.Action); }));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxActionResponse m) => OnePayload(m, MailboxWire.Ack(m.Error, w => { w.Write(m.MailId); w.Write(m.Action); }));
 }
 internal sealed class MailboxOpenEncoder : GameCmdMessageEncoder<MailboxOpenResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxOpenResponse m) => OnePayload(0x60, MailboxWire.Ack(m.Error, w => w.Write(m.NotLoaded)));
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxOpenResponse m) => OnePayload(m, MailboxWire.Ack(m.Error, w => w.Write(m.NotLoaded)));
 }
 internal sealed class MailboxQueryEncoder : GameCmdMessageEncoder<MailboxQueryResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxQueryResponse m) => OnePayload(0x144, MailboxWire.Ack(m.Recipient is null ? m.Error : (byte)0, w =>
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxQueryResponse m) => OnePayload(m, MailboxWire.Ack(m.Recipient is null ? m.Error : (byte)0, w =>
     {
         var r = m.Recipient!;
         w.Write(r.Name.Length); w.Write(r.Name); w.Write((byte)0);
@@ -70,7 +70,7 @@ internal sealed class MailboxQueryEncoder : GameCmdMessageEncoder<MailboxQueryRe
 internal sealed class MailboxAlarmEncoder : GameNotiMessageEncoder<MailboxAlarm>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MailboxAlarm m)
-    { var body = new byte[2]; BinaryPrimitives.WriteUInt16LittleEndian(body, m.Count); return OnePayload(0x63, body); }
+    { var body = new byte[2]; BinaryPrimitives.WriteUInt16LittleEndian(body, m.Count); return OnePayload(m, body); }
 }
 internal static class MailboxWire
 {

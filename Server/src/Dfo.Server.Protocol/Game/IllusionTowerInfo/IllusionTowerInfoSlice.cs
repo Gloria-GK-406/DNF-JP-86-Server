@@ -25,6 +25,6 @@ internal static class IllusionTowerInfoPayloadCodec
 internal sealed class IllusionTowerInfoEncoder : GameNotiMessageEncoder<IllusionTowerInfoNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(IllusionTowerInfoNotification message) =>
-        OnePayload(GameProtocol.IllusionTowerInfoType,
+        OnePayload(message,
             IllusionTowerInfoPayloadCodec.Encode(message.DungeonId, message.TotalLevels));
 }

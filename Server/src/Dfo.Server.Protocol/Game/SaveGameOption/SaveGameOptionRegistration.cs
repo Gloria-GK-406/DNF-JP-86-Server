@@ -13,8 +13,7 @@ internal static class SaveGameOptionRegistration
 {
     internal static IServiceCollection AddSaveGameOptionSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<SaveGameOption1MessageDecoder>(
-            GameProtocol.SaveGameOption1Type, ClientMessageType.GameSaveGameOption1);
+        services.AddGameCmdMessageDecoder<SaveGameOption1MessageDecoder>(ClientMessageType.GameSaveGameOption1);
         services.RegisterProtocolMessageHandler<SaveGameOption1Handler, SaveGameOption1Request, GameSaveGameOption1Command>(ClientMessageType.GameSaveGameOption1);
         services.AddProtocolCommandHandler<GameSaveGameOption1Command, bool, GameSaveGameOption1CommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveGameOption1, typeof(SaveGameOption1Request)));

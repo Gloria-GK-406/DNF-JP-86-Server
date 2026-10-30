@@ -60,7 +60,7 @@ internal sealed class PackageOpeningEncoder : GameCmdMessageEncoder<PackageOpeni
     {
         var body = message.Result.Receipt is { } receipt ? OpeningPayloads.Popup(message.SourceSlot, receipt.Rewards)
             : Convert.FromHexString("0000FFFFFFFFFFFFFFFF000000000000000000000000");
-        return OnePayload(0x00A0, body);
+        return OnePayload(message, body);
     }
 }
 public sealed class PackageOpeningHandler(ICommandBus commands) : ClientMessageHandler<PackageOpeningRequest>, IProtocolCommandMessageHandler<GamePackageOpeningCommand>

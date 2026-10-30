@@ -27,5 +27,5 @@ internal sealed class FatigueEncoder : GameNotiMessageEncoder<FatigueNotificatio
         return body;
     }
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(FatigueNotification message) =>
-        OnePayload(0x0024, Body(message.Balance));
+        OnePayload(message, Body(message.Balance));
 }

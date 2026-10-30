@@ -13,7 +13,7 @@ internal static class LotteryOpeningRegistration
 {
     internal static IServiceCollection AddLotteryOpeningSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<LotteryOpeningDecoder>(0x001B, ClientMessageType.GameLotteryOpening);
+        services.AddGameCmdMessageDecoder<LotteryOpeningDecoder>(ClientMessageType.GameLotteryOpening);
         services.AddGameCmdMessageEncoder<LotteryOpeningResponse, LotteryOpeningEncoder>();
         services.AddProtocolCommandHandler<GameLotteryOpeningCommand, bool, GameLotteryOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

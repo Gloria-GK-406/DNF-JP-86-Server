@@ -48,5 +48,5 @@ internal sealed class HiddenCharacterInfoResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         HiddenCharacterInfoResponse message) =>
-        OnePayload(GameProtocol.HiddenCharacterInfoType, GameCmdEnvelope.Refuse(0x04));
+        OnePayload(message, GameCmdEnvelope.Refuse(0x04));
 }

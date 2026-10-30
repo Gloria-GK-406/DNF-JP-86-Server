@@ -15,8 +15,7 @@ internal static class EquipmentDurabilityRegistration
     internal static IServiceCollection AddEquipmentDurabilitySlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>();
-        services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(
-            GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
+        services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(ClientMessageType.GameDecreaseDurability);
         services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
         services.AddProtocolCommandHandler<GameDecreaseDurabilityCommand, bool, GameDecreaseDurabilityCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameDecreaseDurability, typeof(DecreaseDurabilityRequest)));
         services.RegisterProtocolMessageHandler<DecreaseDurabilityHandler, DecreaseDurabilityRequest, GameDecreaseDurabilityCommand>(ClientMessageType.GameDecreaseDurability);

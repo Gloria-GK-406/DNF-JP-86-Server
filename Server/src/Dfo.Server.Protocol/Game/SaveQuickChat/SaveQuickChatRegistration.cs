@@ -15,7 +15,7 @@ internal static class SaveQuickChatRegistration
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler, Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest, Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand>(ClientMessageType.GameSaveQuickChat);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand, bool, Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSaveQuickChat, typeof(Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatDecoder>(0x0170, ClientMessageType.GameSaveQuickChat);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatDecoder>(ClientMessageType.GameSaveQuickChat);
         return services;
     }
 }

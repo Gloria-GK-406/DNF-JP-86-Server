@@ -16,9 +16,9 @@ internal static class InventorySortRegistration
     {
         services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>();
         services.AddNotificationHandler<InventorySorted, InventorySortedHandler>();
-        services.AddGameCmdMessageDecoder<SortLockDecoder>(GameProtocol.SortLockType, ClientMessageType.GameSortLock);
-        services.AddGameCmdMessageDecoder<SortUnlockDecoder>(GameProtocol.SortUnlockType, ClientMessageType.GameSortUnlock);
-        services.AddGameCmdMessageDecoder<SortItemMessageDecoder>(GameProtocol.SortItemType, ClientMessageType.GameSortItem);
+        services.AddGameCmdMessageDecoder<SortLockDecoder>(ClientMessageType.GameSortLock);
+        services.AddGameCmdMessageDecoder<SortUnlockDecoder>(ClientMessageType.GameSortUnlock);
+        services.AddGameCmdMessageDecoder<SortItemMessageDecoder>(ClientMessageType.GameSortItem);
         services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
         services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
         services.AddProtocolCommandHandler<GameSortLockCommand, bool, GameSortLockCommandHandler>(

@@ -48,19 +48,19 @@ internal static class HousingWire
     { w.Write(1); Endpoint(w, new(1, message.Request.Slot, message.Request.ItemId), message.Snapshot); });
 }
 internal sealed class HousingRoomEncoder : GameNotiMessageEncoder<HousingRoomMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingRoomMessage m) => OnePayload(0x03D8, m.EncodeBody()); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingRoomMessage m) => OnePayload(m.Type, m.EncodeBody()); }
 internal sealed class HousingStorageEncoder : GameNotiMessageEncoder<HousingStorageMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingStorageMessage m) => OnePayload(0x03D9, HousingWire.Storage(m.Snapshot)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingStorageMessage m) => OnePayload(m, HousingWire.Storage(m.Snapshot)); }
 internal sealed class HousingTreeEncoder : GameNotiMessageEncoder<HousingTreeMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingTreeMessage m) => OnePayload(0x03DC, HousingWire.Tree(m.Tree)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingTreeMessage m) => OnePayload(m, HousingWire.Tree(m.Tree)); }
 internal sealed class HousingRingEncoder : GameNotiMessageEncoder<HousingRingMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingRingMessage m) => OnePayload(0x03D1, new byte[] { m.Level }); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingRingMessage m) => OnePayload(m.Type, m.EncodeBody()); }
 internal sealed class HousingRewardsEncoder : GameNotiMessageEncoder<HousingRewardsMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingRewardsMessage m) => OnePayload(0x03DE, HousingWire.Rewards(m.Rewards)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingRewardsMessage m) => OnePayload(m, HousingWire.Rewards(m.Rewards)); }
 internal sealed class HousingMoveEncoder : GameNotiMessageEncoder<HousingMoveMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingMoveMessage m) => OnePayload(0x03DA, HousingWire.Move(m)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingMoveMessage m) => OnePayload(m, HousingWire.Move(m)); }
 internal sealed class HousingDeleteEncoder : GameNotiMessageEncoder<HousingDeleteMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingDeleteMessage m) => OnePayload(0x03DB, HousingWire.Delete(m)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(HousingDeleteMessage m) => OnePayload(m, HousingWire.Delete(m)); }
 
 /// <summary>Receiver-owned marriage facts after a native USERINFO rebuild. Never use the observed peer's room.</summary>
 internal static class HousingCurrentProjection

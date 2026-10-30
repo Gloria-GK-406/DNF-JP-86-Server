@@ -81,7 +81,7 @@ internal sealed class PartyInviteRequestEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         PartyInviteRequestMessage message) =>
-        OnePayload(GameProtocol.PartyInviteRequestNotificationType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(PartyInviteRequestMessage message)
     {
@@ -109,7 +109,7 @@ internal sealed class PartyInviteAcceptedEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         PartyInviteAcceptedMessage message) =>
-        OnePayload(GameProtocol.PartyInviteAcceptedNotificationType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(PartyInviteAcceptedMessage message)
     {
@@ -161,7 +161,7 @@ internal sealed class PartyEndpointsEncoder : GameNotiMessageEncoder<PartyEndpoi
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         PartyEndpointsMessage message) =>
-        OnePayload(GameProtocol.PartyEndpointsNotificationType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(PartyEndpointsMessage message)
     {

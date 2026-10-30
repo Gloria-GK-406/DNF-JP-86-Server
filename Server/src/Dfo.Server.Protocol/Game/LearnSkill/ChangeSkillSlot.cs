@@ -29,7 +29,7 @@ public sealed record ChangeSkillSlotResponse(bool Success, byte Page, byte First
 internal sealed class ChangeSkillSlotEncoder : GameCmdMessageEncoder<ChangeSkillSlotResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ChangeSkillSlotResponse message) =>
-        OnePayload(0x001C, message.Success ? new byte[] { 1, message.Page, message.First, message.Second } : new byte[] { 0, 3 });
+        OnePayload(message, message.Success ? new byte[] { 1, message.Page, message.First, message.Second } : new byte[] { 0, 3 });
 }
 public sealed class ChangeSkillSlotHandler(ICommandBus commands) : ClientMessageHandler<ChangeSkillSlotRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameChangeSkillSlotCommand>
 {

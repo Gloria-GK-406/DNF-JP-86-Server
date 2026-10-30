@@ -137,15 +137,14 @@ internal sealed class UserPositionEncoder : GameNotiMessageEncoder<UserPositionN
         BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(4), message.Y);
         body[6] = message.Direction;
         BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(7), message.Trailer);
-        return OnePayload(GameProtocol.UserPositionNotificationType, body);
+        return OnePayload(message, body);
     }
 }
 
 internal sealed class AreaUsersEncoder : GameNotiMessageEncoder<AreaUsersNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AreaUsersNotification message) =>
-        OnePayload(
-            GameProtocol.AreaUsersNotificationType,
+        OnePayload(message,
             TownProjectionPayloadCodec.EncodeAreaUsers(
                 message.TownId, message.AreaId, message.Users));
 }

@@ -5,7 +5,6 @@ internal sealed class GameInitialConnectionNoticeEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         GameInitialConnectionNotice message) =>
-        OnePayload(
-            GameProtocol.LoginType,
+        OnePayload(message,
             GameInitialConnectionPayloadCodec.EncodeBody(message));
 }

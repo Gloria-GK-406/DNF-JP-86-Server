@@ -36,14 +36,14 @@ internal sealed class IncreaseStatusEncoder : GameCmdMessageEncoder<IncreaseStat
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(IncreaseStatusResponse message)
     {
-        if (message.Error is { } error) return OnePayload(0x001E, new byte[] { 0, error });
+        if (message.Error is { } error) return OnePayload(message, new byte[] { 0, error });
         // A21 VA0112E00A..42: source i16, status type u8, value i32, two u16 fields.
         // FF declares no direct stat mutation: authoritative EXP is sent separately as NOTI0025.
         var body = new byte[12];
         body[0] = 1;
         BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(1), message.SourceSlot);
         body[3] = 0xFF;
-        return OnePayload(0x001E, body);
+        return OnePayload(message, body);
     }
 }
 public sealed record IncreaseStatusSlotState(ItemSnapshot? Item, DateTimeOffset At);

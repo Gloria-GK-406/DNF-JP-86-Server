@@ -40,24 +40,14 @@ internal static class PartyRegistration
         services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>();
         services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>();
         services.AddNotificationHandler<PartyLeadershipChanged, PartyLeadershipChangedHandler>();
-        services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(
-            GameProtocol.SetUdpIpPortType, ClientMessageType.GameSetUdpIpPort);
-        services.AddGameCmdMessageDecoder<RequestPeerDecoder>(
-            GameProtocol.RequestPeerType, ClientMessageType.GameRequestPeer);
-        services.AddGameCmdMessageDecoder<ResponsePeerDecoder>(
-            GameProtocol.ResponsePeerType, ClientMessageType.GameResponsePeer);
-        services.AddGameCmdMessageDecoder<LeavePartyDecoder>(
-            GameProtocol.LeavePartyType, ClientMessageType.GameLeaveParty);
-        services.AddGameCmdMessageDecoder<RemovePartyMemberDecoder>(
-            GameProtocol.RemovePartyMemberType, ClientMessageType.GameRemovePartyMember);
-        services.AddGameCmdMessageDecoder<ChangePartyLeaderDecoder>(
-            GameProtocol.ChangePartyLeaderType, ClientMessageType.GameChangePartyLeader);
-        services.AddGameCmdMessageDecoder<CallPartyMemberRealtimeInfoDecoder>(
-            GameProtocol.CallPartyMemberRealtimeInfoType,
-            ClientMessageType.GameCallPartyMemberRealtimeInfo);
-        services.AddGameCmdMessageDecoder<SetPartyInfoDecoder>(
-            GameProtocol.SetPartyInfoType,
-            ClientMessageType.GameSetPartyInfo);
+        services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(ClientMessageType.GameSetUdpIpPort);
+        services.AddGameCmdMessageDecoder<RequestPeerDecoder>(ClientMessageType.GameRequestPeer);
+        services.AddGameCmdMessageDecoder<ResponsePeerDecoder>(ClientMessageType.GameResponsePeer);
+        services.AddGameCmdMessageDecoder<LeavePartyDecoder>(ClientMessageType.GameLeaveParty);
+        services.AddGameCmdMessageDecoder<RemovePartyMemberDecoder>(ClientMessageType.GameRemovePartyMember);
+        services.AddGameCmdMessageDecoder<ChangePartyLeaderDecoder>(ClientMessageType.GameChangePartyLeader);
+        services.AddGameCmdMessageDecoder<CallPartyMemberRealtimeInfoDecoder>(ClientMessageType.GameCallPartyMemberRealtimeInfo);
+        services.AddGameCmdMessageDecoder<SetPartyInfoDecoder>(ClientMessageType.GameSetPartyInfo);
         services.AddGameNotiMessageEncoder<PartyInviteRequestMessage, PartyInviteRequestEncoder>();
         services.AddGameNotiMessageEncoder<PartyInviteAcceptedMessage, PartyInviteAcceptedEncoder>();
         services.AddGameNotiMessageEncoder<PartyRealtimeMessage, PartyRealtimeEncoder>();

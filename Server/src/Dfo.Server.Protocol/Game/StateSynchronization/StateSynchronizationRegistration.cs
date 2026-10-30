@@ -51,7 +51,7 @@ internal static class StateSynchronizationRegistration
         services.TryAddSingleton(lotteryCounterExperiment);
         services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
         services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>();
-        services.AddGameCmdMessageDecoder<PremiumServiceUsageReportDecoder>(0x036F, ClientMessageType.GamePremiumServiceUsageReport);
+        services.AddGameCmdMessageDecoder<PremiumServiceUsageReportDecoder>(ClientMessageType.GamePremiumServiceUsageReport);
 
         StateSynchronizationEncoderRegistration.AddStateSynchronizationEncoders(services);
         SupplementalSynchronizationEncoderRegistration.AddSupplementalSynchronizationEncoders(services);

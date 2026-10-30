@@ -24,8 +24,7 @@ internal static class MoveItemSpaceRegistration
 {
     internal static IServiceCollection AddMoveItemSpaceSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
-            GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
+        services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(ClientMessageType.GameMoveItemSpace);
         services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
         // Both act on one character's own container, which the registry already keeps per
         // character; neither reads or writes anything the account owns, so neither takes it.

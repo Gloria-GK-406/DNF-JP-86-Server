@@ -78,15 +78,14 @@ internal sealed class FinishLoadingDecoder : IGameMessageDecoder
 internal sealed class FinishLoadingResponseEncoder : GameCmdMessageEncoder<FinishLoadingResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(FinishLoadingResponse message) =>
-        OnePayload(GameProtocol.FinishLoadingType, FinishLoadingPayloadCodec.EncodeResponse());
+        OnePayload(message, FinishLoadingPayloadCodec.EncodeResponse());
 }
 
 internal sealed class LoadingCompleteEncoder : GameNotiMessageEncoder<LoadingCompleteNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         LoadingCompleteNotification message) =>
-        OnePayload(
-            GameProtocol.LoadingCompleteNotificationType,
+        OnePayload(message,
             FinishLoadingPayloadCodec.EncodeLoadingComplete());
 }
 

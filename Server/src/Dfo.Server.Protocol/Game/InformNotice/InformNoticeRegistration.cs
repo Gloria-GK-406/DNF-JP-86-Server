@@ -13,12 +13,11 @@ internal static class InformNoticeRegistration
 {
     internal static IServiceCollection AddInformNoticeSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<InformNoticeSecondDecoder>(
-            GameProtocol.InformNoticeSecondType, ClientMessageType.GameInformNoticeSecond);
+        services.AddGameCmdMessageDecoder<InformNoticeSecondDecoder>(ClientMessageType.GameInformNoticeSecond);
         services.AddGameNotiMessageEncoder<InformNoticeNotice, InformNoticeNoticeEncoder>();
         services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport));
         services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest));
-        services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(0x01DE, ClientMessageType.GameNoticeSeen);
+        services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(ClientMessageType.GameNoticeSeen);
         services.AddProtocolCommandHandler<GameNoticeSeenCommand, bool, GameNoticeSeenCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport)));

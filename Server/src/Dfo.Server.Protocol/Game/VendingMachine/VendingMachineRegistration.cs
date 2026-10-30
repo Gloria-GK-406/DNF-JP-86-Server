@@ -13,7 +13,7 @@ internal static class VendingMachineRegistration
 {
     internal static IServiceCollection AddVendingMachineSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<VendingMachineDecoder>(0x00D7, ClientMessageType.GameVendingMachine);
+        services.AddGameCmdMessageDecoder<VendingMachineDecoder>(ClientMessageType.GameVendingMachine);
         services.AddGameCmdMessageEncoder<VendingMachineResponse, VendingMachineEncoder>();
         services.AddProtocolCommandHandler<GameVendingMachineCommand, bool, GameVendingMachineCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

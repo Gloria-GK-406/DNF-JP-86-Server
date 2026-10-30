@@ -30,7 +30,7 @@ internal sealed class DailyReviveCoinEncoder : GameCmdMessageEncoder<DailyRevive
     {
         // A21 VA 01127277 reads one u8 grant count after the CMD success selector.
         byte[] body = message.Granted ? [1, 1] : [0];
-        return OnePayload(0x00CF, body);
+        return OnePayload(message, body);
     }
 }
 public sealed record GameDailyReviveCoinCommand(NetworkDispatchContext Dispatch, DailyReviveCoinRequest Input)

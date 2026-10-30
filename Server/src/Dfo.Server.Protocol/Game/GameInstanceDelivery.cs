@@ -40,7 +40,7 @@ public static class GameInstanceDelivery
 }
 
 internal sealed record PremiumGrantedMessage(AccountPremiumEntryState Premium, DateTimeOffset PreparedAt) : IGameNotiMessage
-{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; }
+{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; internal ushort Type => 0x0042; }
 internal sealed class PremiumGrantedEncoder : GameNotiMessageEncoder<PremiumGrantedMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(PremiumGrantedMessage message)
@@ -48,21 +48,21 @@ internal sealed class PremiumGrantedEncoder : GameNotiMessageEncoder<PremiumGran
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         writer.Write((ushort)2); writer.Write(checked((byte)message.Premium.PremiumType));
         writer.Write(Math.Max(0, message.Premium.ExpiresAtUnixSeconds - message.PreparedAt.ToUnixTimeSeconds()));
-        return OnePayload(0x0042, stream.ToArray());
+        return OnePayload(message.Type, stream.ToArray());
     }
 }
 
 internal sealed record CeraBalanceUpdateMessage(AccountCeraBalances Balances) : IGameNotiMessage
-{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; }
+{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; internal ushort Type => 0x0035; }
 internal sealed record CreatureListUpdateMessage(IReadOnlyList<CharacterPetRuntimeState> Pets) : IGameNotiMessage
-{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; }
+{ public ServerMessageType MessageType => ServerMessageType.GameStateSynchronization; internal ushort Type => 0x0069; }
 internal sealed class CeraBalanceUpdateEncoder : GameNotiMessageEncoder<CeraBalanceUpdateMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CeraBalanceUpdateMessage message) =>
-        OnePayload(0x0035, GameInstanceDelivery.EncodeWallet(message.Balances));
+        OnePayload(message.Type, GameInstanceDelivery.EncodeWallet(message.Balances));
 }
 internal sealed class CreatureListUpdateEncoder : GameNotiMessageEncoder<CreatureListUpdateMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CreatureListUpdateMessage message) =>
-        OnePayload(0x0069, GameInstanceDelivery.EncodeCreatures(message.Pets));
+        OnePayload(message.Type, GameInstanceDelivery.EncodeCreatures(message.Pets));
 }

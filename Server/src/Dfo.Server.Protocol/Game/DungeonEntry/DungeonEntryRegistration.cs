@@ -13,10 +13,8 @@ internal static class DungeonEntryRegistration
 {
     internal static IServiceCollection AddDungeonEntrySlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<SelectDungeonDecoder>(
-            GameProtocol.SelectDungeonType, ClientMessageType.GameSelectDungeon);
-        services.AddGameCmdMessageDecoder<MoveMapDecoder>(
-            GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
+        services.AddGameCmdMessageDecoder<SelectDungeonDecoder>(ClientMessageType.GameSelectDungeon);
+        services.AddGameCmdMessageDecoder<MoveMapDecoder>(ClientMessageType.GameMoveMap);
         services.AddGameNotiMessageEncoder<DungeonInfoNotification, DungeonInfoEncoder>();
         services.AddGameNotiMessageEncoder<StartMapNotification, StartMapEncoder>();
         services.AddGameNotiMessageEncoder<SupportTagNotification, SupportTagEncoder>();

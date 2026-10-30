@@ -72,5 +72,5 @@ public sealed record InformNoticeNotice(IReadOnlyList<byte> NoticeIds) : IGameNo
 internal sealed class InformNoticeNoticeEncoder : GameNotiMessageEncoder<InformNoticeNotice>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(InformNoticeNotice message) =>
-        OnePayload(GameProtocol.InformNoticeNotificationType, NoticeStateCodec.Encode(message.NoticeIds));
+        OnePayload(message, NoticeStateCodec.Encode(message.NoticeIds));
 }

@@ -3,7 +3,7 @@ namespace Dfo.Server.Protocol.Game.LearnSkill;
 internal sealed class LearnSkillResponseEncoder : GameCmdMessageEncoder<LearnSkillResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(LearnSkillResponse message) =>
-        OnePayload(GameProtocol.LearnSkillType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(LearnSkillResponse message)
     {

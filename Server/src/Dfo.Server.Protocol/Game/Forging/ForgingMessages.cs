@@ -41,7 +41,7 @@ internal sealed class ForgingDecoder : IGameMessageDecoder
 internal sealed class ForgingEncoder : GameCmdMessageEncoder<ForgingResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ForgingResponse message) =>
-        OnePayload(GameProtocol.SeparateUpgradeType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(ForgingResponse message)
     {

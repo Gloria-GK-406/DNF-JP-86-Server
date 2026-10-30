@@ -53,7 +53,7 @@ public sealed record TitleBookMutationResponse(bool Store, int Space, int Slot, 
 internal sealed class TitleBookMutationEncoder : GameCmdMessageEncoder<TitleBookMutationResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TitleBookMutationResponse message) =>
-        OnePayload(message.Store ? (ushort)0x019C : (ushort)0x019D, message.Body());
+        OnePayload(message, message.Body());
 }
 internal sealed class TitleBookMutationHandler(ICommandBus commands) : ClientMessageHandler<TitleBookMutationRequest>, IProtocolCommandMessageHandler<GameTitleBookMutationCommand>
 {

@@ -16,10 +16,10 @@ internal static class ItemSocketsRegistration
     internal static IServiceCollection AddItemSocketsSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<ItemSocketCompleted, ItemSocketCompletedHandler>();
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x037A, ClientMessageType.GameEquipmentSocketOpen);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x0379, ClientMessageType.GameEquipmentEmblem);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x00CE, ClientMessageType.GameAvatarSocketOpen);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x00C9, ClientMessageType.GameAvatarEmblem);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(ClientMessageType.GameEquipmentSocketOpen);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(ClientMessageType.GameEquipmentEmblem);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(ClientMessageType.GameAvatarSocketOpen);
+        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(ClientMessageType.GameAvatarEmblem);
         services.AddGameCmdMessageEncoder<ItemSocketResponse, ItemSocketEncoder>();
         services.AddProtocolCommandHandler<GameItemSocketCommand, ItemSocketResult, GameItemSocketCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

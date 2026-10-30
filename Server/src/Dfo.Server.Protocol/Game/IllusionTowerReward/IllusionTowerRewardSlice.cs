@@ -38,6 +38,6 @@ internal static class IllusionTowerRewardPayloadCodec
 internal sealed class IllusionTowerRewardEncoder : GameNotiMessageEncoder<IllusionTowerRewardNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(IllusionTowerRewardNotification message) =>
-        OnePayload(GameProtocol.IllusionTowerRewardType,
+        OnePayload(message,
             IllusionTowerRewardPayloadCodec.Encode(message.Experience, message.Slots));
 }

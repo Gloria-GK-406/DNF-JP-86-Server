@@ -20,8 +20,7 @@ internal static class EnchantByBeadRegistration
         services.AddProtocolCommandHandler<GameEnchantByBeadCommand, EquipmentEnchantResult, GameEnchantByBeadCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameEnchantByBead, typeof(EnchantByBeadRequest)));
-        services.AddGameCmdMessageDecoder<EnchantByBeadDecoder>(
-            GameProtocol.EnchantByBeadType, ClientMessageType.GameEnchantByBead);
+        services.AddGameCmdMessageDecoder<EnchantByBeadDecoder>(ClientMessageType.GameEnchantByBead);
         services.AddGameCmdMessageEncoder<EnchantByBeadResponse, EnchantByBeadEncoder>();
         services.RegisterProtocolMessageHandler<EnchantByBeadHandler, EnchantByBeadRequest, GameEnchantByBeadCommand>(ClientMessageType.GameEnchantByBead);
         return services;

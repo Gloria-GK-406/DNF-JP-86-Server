@@ -41,7 +41,7 @@ internal sealed class CapsuleAckEncoder : GameCmdMessageEncoder<CapsuleAck>
             if (m.Action == MarriageCapsuleAction.Make) { BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), m.Result.State.Energy); body[8] = m.Result.State.Owned; }
             else body[4] = m.Action == MarriageCapsuleAction.Give ? m.Result.State.Owned : m.Result.State.Pending;
         }
-        return OnePayload(checked((ushort)(0x0404 + (int)m.Action)), GameCmdEnvelope.Accept(body));
+        return OnePayload(checked((ushort)(GameWireKey.TypeOf(m.MessageType) + (int)m.Action)), GameCmdEnvelope.Accept(body));
     }
 }
 internal sealed class CapsuleHandler(ICommandBus commands) : ClientMessageHandler<CapsuleRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameCapsuleCommand>
@@ -67,7 +67,7 @@ internal sealed record CapsuleStateMessage(MarriageCapsuleSnapshot Snapshot) : D
 internal sealed class CapsuleStateEncoder : GameNotiMessageEncoder<CapsuleStateMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CapsuleStateMessage m)
-        => OnePayload(0x03DF, Body(m.Snapshot));
+        => OnePayload(m.Type, m.EncodeBody());
     internal static byte[] Body(MarriageCapsuleSnapshot snapshot)
     {
         var b = new byte[7]; BinaryPrimitives.WriteInt32LittleEndian(b, snapshot.State.Energy);
@@ -80,7 +80,7 @@ internal sealed record CapsuleEnergyMessage(int Energy) : IGameNotiMessage
 internal sealed class CapsuleEnergyEncoder : GameNotiMessageEncoder<CapsuleEnergyMessage>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(CapsuleEnergyMessage m)
-    { var b = new byte[4]; BinaryPrimitives.WriteInt32LittleEndian(b, m.Energy); return OnePayload(0x03E0, b); }
+    { var b = new byte[4]; BinaryPrimitives.WriteInt32LittleEndian(b, m.Energy); return OnePayload(m, b); }
 }
 internal sealed record CapsuleEnergyRefresh(int Energy) : INotification<CapsuleEnergyRefresh>;
 internal sealed class CapsuleEnergyRefreshHandler(ISelectedSessionDomainService sessions, IMarriageCapsuleQueryDomainService query) : INotificationHandler<CapsuleEnergyRefresh>

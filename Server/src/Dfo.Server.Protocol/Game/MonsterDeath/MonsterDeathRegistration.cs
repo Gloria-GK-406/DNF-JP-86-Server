@@ -15,8 +15,7 @@ internal static class MonsterDeathRegistration
     {
         services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
         services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
-        services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
-            GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
+        services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(ClientMessageType.GameMonsterDeath);
         services.AddProtocolCommandHandler<GameMonsterDeathCommand, bool, GameMonsterDeathCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameMonsterDeath, typeof(MonsterDeathRequest)));
         services.RegisterProtocolMessageHandler<MonsterDeathHandler, MonsterDeathRequest, GameMonsterDeathCommand>(ClientMessageType.GameMonsterDeath);

@@ -21,8 +21,7 @@ internal static class GroundPickupRegistration
         services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
         services.AddGameNotiMessageEncoder<
             GroundGoldPickupNotification, GroundGoldPickupEncoder>();
-        services.AddGameCmdMessageDecoder<GetItemDecoder>(
-            GameProtocol.GetItemType, ClientMessageType.GameGetItem);
+        services.AddGameCmdMessageDecoder<GetItemDecoder>(ClientMessageType.GameGetItem);
         services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
         // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
         // change, and a piece that left the floor without arriving anywhere is the thing to avoid.

@@ -14,8 +14,7 @@ internal static class CreateCharacterRegistration
 {
     internal static IServiceCollection AddCreateCharacterSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<CreateCharacterMessageDecoder>(
-            GameProtocol.CreateCharacterType, ClientMessageType.GameCreateCharacter);
+        services.AddGameCmdMessageDecoder<CreateCharacterMessageDecoder>(ClientMessageType.GameCreateCharacter);
         services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
         services.AddProtocolCommandHandler<GameCreateCharacterCommand, CharacterCreationResult, GameCreateCharacterCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameCreateCharacter, typeof(CreateCharacterRequest)));

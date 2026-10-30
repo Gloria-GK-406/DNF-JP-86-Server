@@ -13,8 +13,7 @@ internal static class ClientSpecProfileRegistration
 {
     internal static IServiceCollection AddClientSpecProfileSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<ClientSpecProfileMessageDecoder>(
-            GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
+        services.AddGameCmdMessageDecoder<ClientSpecProfileMessageDecoder>(ClientMessageType.GameClientSpecProfile);
         services.AddProtocolCommandHandler<GameClientSpecProfileCommand, bool, GameClientSpecProfileCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameClientSpecProfile, typeof(ClientSpecProfileReportRequest)));
         services.RegisterProtocolMessageHandler<ClientSpecProfileHandler, ClientSpecProfileReportRequest, GameClientSpecProfileCommand>(ClientMessageType.GameClientSpecProfile);

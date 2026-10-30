@@ -328,8 +328,7 @@ internal sealed class ExperienceEncoder : GameNotiMessageEncoder<ExperienceNotif
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         ExperienceNotification message) =>
-        OnePayload(
-            GameProtocol.ExperienceNotificationType,
+        OnePayload(message,
             MonsterDeathPayloadCodec.EncodeExperience(
                 message.Level, message.TotalExperience, message.SkillPoints, message.Honor,
                 message.Lines, message.LabelProbe));

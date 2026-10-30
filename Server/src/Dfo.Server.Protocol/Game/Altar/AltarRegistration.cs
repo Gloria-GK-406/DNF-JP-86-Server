@@ -29,9 +29,9 @@ internal static class AltarRegistration
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler, Dfo.Server.Protocol.Game.Altar.AltarDifficultyRequest, Dfo.Server.Protocol.Game.Altar.GameAltarDifficultyCommand>(ClientMessageType.GameAltarDifficulty);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarDifficultyCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameAltarDifficulty, typeof(Dfo.Server.Protocol.Game.Altar.AltarDifficultyRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarPrepareDecoder>(0x0102, ClientMessageType.GameAltarPrepare);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(0x00FF, ClientMessageType.GameAltarDeathBatch);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(0x013D, ClientMessageType.GameAltarDifficulty);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarPrepareDecoder>(ClientMessageType.GameAltarPrepare);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(ClientMessageType.GameAltarDeathBatch);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(ClientMessageType.GameAltarDifficulty);
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage>>();

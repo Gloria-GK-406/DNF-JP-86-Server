@@ -12,10 +12,10 @@ internal static class CollectionBoxRegistration
 {
     internal static IServiceCollection AddCollectionBoxSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxSelectDecoder>(0x03E5, ClientMessageType.GameCollectionBox);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxPutDecoder>(0x03E6, ClientMessageType.GameCollectionBox);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxWithdrawDecoder>(0x03E7, ClientMessageType.GameCollectionBox);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxExtendDecoder>(0x03E8, ClientMessageType.GameCollectionBox);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxSelectDecoder>(ClientMessageType.GameCollectionBox);
+        services.AddGameCmdFamilyDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxPutDecoder>(0x03E6, ClientMessageType.GameCollectionBox);
+        services.AddGameCmdFamilyDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxWithdrawDecoder>(0x03E7, ClientMessageType.GameCollectionBox);
+        services.AddGameCmdFamilyDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxExtendDecoder>(0x03E8, ClientMessageType.GameCollectionBox);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxHandler, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest, Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand>(ClientMessageType.GameCollectionBox);
         services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand, bool, Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch, CommandRegistrationExit.SettledInitialBatch },

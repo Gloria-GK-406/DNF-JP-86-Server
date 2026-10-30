@@ -76,7 +76,6 @@ internal sealed class ConnectionCheckResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         ConnectionCheckResponse message) =>
-        OnePayload(
-            GameProtocol.ConnectionCheckType,
+        OnePayload(message,
             ConnectionCheckPayloadCodec.EncodeResponse());
 }

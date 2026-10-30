@@ -47,7 +47,7 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AvatarCompoundResponse message)
     {
-        if (message.Receipt is null && !message.Recovery) return OnePayload(0x0063, GameCmdEnvelope.Refuse(message.Error));
+        if (message.Receipt is null && !message.Recovery) return OnePayload(message, GameCmdEnvelope.Refuse(message.Error));
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
         var receipt = message.Receipt;
         writer.Write((byte)1); writer.Write(checked((byte)(receipt?.Deductions.Length ?? 0)));
@@ -81,7 +81,7 @@ internal sealed class AvatarCompoundEncoder : GameCmdMessageEncoder<AvatarCompou
             writer.Write(30); writer.Write(detail.JewelSocket);
             writer.Write(4); writer.Write(detail.Color1); writer.Write(detail.Color2);
         }
-        return OnePayload(0x0063, stream.ToArray());
+        return OnePayload(message, stream.ToArray());
     }
 }
 public sealed class AvatarCompoundHandler(ICommandBus commands) : ClientMessageHandler<AvatarCompoundRequest>, IProtocolCommandMessageHandler<GameAvatarCompoundCommand>

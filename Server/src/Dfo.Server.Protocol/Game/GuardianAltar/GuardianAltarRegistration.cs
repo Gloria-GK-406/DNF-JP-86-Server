@@ -34,15 +34,15 @@ internal static class GuardianAltarRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarPause, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarAchievement, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarReset, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenDecoder>(0x0392, ClientMessageType.GameGuardianAltarOpen);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarBuyDecoder>(0x0393, ClientMessageType.GameGuardianAltarBuy);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSetSlotDecoder>(0x0394, ClientMessageType.GameGuardianAltarSetSlot);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarUpgradeDecoder>(0x0395, ClientMessageType.GameGuardianAltarUpgradeEnergy);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSummonDecoder>(0x0396, ClientMessageType.GameGuardianAltarSummon);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarExchangeDecoder>(0x0397, ClientMessageType.GameGuardianAltarExchange);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarPauseDecoder>(0x0398, ClientMessageType.GameGuardianAltarPause);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarAchievementDecoder>(0x0399, ClientMessageType.GameGuardianAltarAchievement);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResetDecoder>(0x039A, ClientMessageType.GameGuardianAltarReset);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenDecoder>(ClientMessageType.GameGuardianAltarOpen);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarBuyDecoder>(ClientMessageType.GameGuardianAltarBuy);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSetSlotDecoder>(ClientMessageType.GameGuardianAltarSetSlot);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarUpgradeDecoder>(ClientMessageType.GameGuardianAltarUpgradeEnergy);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSummonDecoder>(ClientMessageType.GameGuardianAltarSummon);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarExchangeDecoder>(ClientMessageType.GameGuardianAltarExchange);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarPauseDecoder>(ClientMessageType.GameGuardianAltarPause);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarAchievementDecoder>(ClientMessageType.GameGuardianAltarAchievement);
+        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResetDecoder>(ClientMessageType.GameGuardianAltarReset);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenResponse>>();
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarActionResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarActionResponse>>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarProfileMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarProfileMessage>>();

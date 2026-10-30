@@ -17,10 +17,8 @@ internal static class MagicSealRegistration
     {
         services.AddNotificationHandler<MagicSealCompleted,
             MagicSealCompletedHandler>();
-        services.AddGameCmdMessageDecoder<UnsealRandomOptionDecoder>(
-            GameProtocol.UnsealRandomOptionType, ClientMessageType.GameUnsealRandomOption);
-        services.AddGameCmdMessageDecoder<ChangeRandomOptionDecoder>(
-            GameProtocol.ChangeRandomOptionType, ClientMessageType.GameChangeRandomOption);
+        services.AddGameCmdMessageDecoder<UnsealRandomOptionDecoder>(ClientMessageType.GameUnsealRandomOption);
+        services.AddGameCmdMessageDecoder<ChangeRandomOptionDecoder>(ClientMessageType.GameChangeRandomOption);
         services.AddGameCmdMessageEncoder<ChangeRandomOptionResponse, ChangeRandomOptionEncoder>();
         services.AddProtocolCommandHandler<GameMagicSealCommand, EquipmentMagicSealResult, GameMagicSealCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

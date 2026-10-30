@@ -27,32 +27,19 @@ internal static class UnansweredReportsRegistration
 {
     internal static IServiceCollection AddUnansweredReportsSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(
-            GameProtocol.CharacterStatisticType, ClientMessageType.GameCharacterStatistic);
-        services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(
-            GameProtocol.RequestBlacklistType, ClientMessageType.GameRequestBlacklist);
-        services.AddGameCmdMessageDecoder<FarmEventActionDecoder>(
-            GameProtocol.FarmEventActionType, ClientMessageType.GameFarmEventAction);
-        services.AddGameCmdMessageDecoder<PiDecoder>(
-            GameProtocol.PiType, ClientMessageType.GamePi);
-        services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(
-            GameProtocol.RequestIgaVersionType, ClientMessageType.GameRequestIgaVersion);
-        services.AddGameCmdMessageDecoder<FpsPerformanceStatisticDecoder>(
-            GameProtocol.FpsPerformanceStatisticType, ClientMessageType.GameFpsPerformanceStatistic);
-        services.AddGameCmdMessageDecoder<FrameLagPerDungeonDecoder>(
-            GameProtocol.FrameLagPerDungeonType, ClientMessageType.GameFrameLagPerDungeon);
-        services.AddGameCmdMessageDecoder<LagStatisticsDecoder>(
-            GameProtocol.LagStatisticsType, ClientMessageType.GameLagStatistics);
-        services.AddGameCmdMessageDecoder<UseSkillDecoder>(
-            GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
-        services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
-            GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
-        services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
-            GameProtocol.OverflowInfoType, ClientMessageType.GameOverflowInfo);
-        services.AddGameCmdMessageDecoder<LogDomainConnectDecoder>(
-            GameProtocol.LogDomainConnectType, ClientMessageType.GameLogDomainConnect);
-        services.AddGameCmdMessageDecoder<LogConnectProcessDecoder>(
-            GameProtocol.LogConnectProcessType, ClientMessageType.GameLogConnectProcess);
+        services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(ClientMessageType.GameCharacterStatistic);
+        services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(ClientMessageType.GameRequestBlacklist);
+        services.AddGameCmdMessageDecoder<FarmEventActionDecoder>(ClientMessageType.GameFarmEventAction);
+        services.AddGameCmdMessageDecoder<PiDecoder>(ClientMessageType.GamePi);
+        services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(ClientMessageType.GameRequestIgaVersion);
+        services.AddGameCmdMessageDecoder<FpsPerformanceStatisticDecoder>(ClientMessageType.GameFpsPerformanceStatistic);
+        services.AddGameCmdMessageDecoder<FrameLagPerDungeonDecoder>(ClientMessageType.GameFrameLagPerDungeon);
+        services.AddGameCmdMessageDecoder<LagStatisticsDecoder>(ClientMessageType.GameLagStatistics);
+        services.AddGameCmdMessageDecoder<UseSkillDecoder>(ClientMessageType.GameUseSkill);
+        services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(ClientMessageType.GameSyncItemSpace);
+        services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(ClientMessageType.GameOverflowInfo);
+        services.AddGameCmdMessageDecoder<LogDomainConnectDecoder>(ClientMessageType.GameLogDomainConnect);
+        services.AddGameCmdMessageDecoder<LogConnectProcessDecoder>(ClientMessageType.GameLogConnectProcess);
 
         // Known reports that this server intentionally does not answer. A durability request is
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.

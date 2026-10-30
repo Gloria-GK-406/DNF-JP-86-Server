@@ -14,8 +14,7 @@ internal static class LoginRegistration
     internal static IServiceCollection AddLoginSlice(this IServiceCollection services)
     {
 
-        services.AddGameCmdMessageDecoder<GameLoginMessageDecoder>(
-            GameProtocol.LoginType, ClientMessageType.GameLogin);
+        services.AddGameCmdMessageDecoder<GameLoginMessageDecoder>(ClientMessageType.GameLogin);
         services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
         services.AddProtocolCommandHandler<GameLoginCommand, GameLoginCompleted, GameLoginCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameLogin, typeof(GameLoginRequest)));

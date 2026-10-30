@@ -14,7 +14,7 @@ internal static class PackageOpeningRegistration
 {
     internal static IServiceCollection AddPackageOpeningSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
+        services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(ClientMessageType.GamePackageOpening);
         services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
         services.AddProtocolCommandHandler<GamePackageOpeningCommand, PackageOpeningResult, GamePackageOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

@@ -13,8 +13,7 @@ internal static class QuestCompletionRegistration
 {
     internal static IServiceCollection AddQuestCompletionSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<FinishQuestMessageDecoder>(
-            GameProtocol.FinishQuestType, ClientMessageType.GameFinishQuest);
+        services.AddGameCmdMessageDecoder<FinishQuestMessageDecoder>(ClientMessageType.GameFinishQuest);
         services.AddGameCmdMessageEncoder<FinishQuestAcknowledgement, FinishQuestAcknowledgementEncoder>();
         services.AddProtocolCommandHandler<GameFinishQuestCommand, QuestFinishOutcome, GameFinishQuestCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

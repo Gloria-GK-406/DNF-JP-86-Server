@@ -13,8 +13,7 @@ internal static class TaggedIdReportRegistration
 {
     internal static IServiceCollection AddTaggedIdReportSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
-            GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
+        services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(ClientMessageType.GameTaggedIdReport);
         services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
         services.AddProtocolCommandHandler<GameTaggedIdReportCommand, bool, GameTaggedIdReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameTaggedIdReport, typeof(TaggedIdReportRequest)));
         services.RegisterProtocolMessageHandler<TaggedIdReportHandler, TaggedIdReportRequest, GameTaggedIdReportCommand>(ClientMessageType.GameTaggedIdReport);

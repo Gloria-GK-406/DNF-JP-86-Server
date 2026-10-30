@@ -14,8 +14,7 @@ internal static class QuestAcceptanceRegistration
 {
     internal static IServiceCollection AddQuestAcceptanceSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(
-            GameProtocol.AcceptQuestType, ClientMessageType.GameAcceptQuest);
+        services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(ClientMessageType.GameAcceptQuest);
         services.AddGameCmdMessageEncoder<AcceptQuestAcknowledgement, AcceptQuestAcknowledgementEncoder>();
         services.AddProtocolCommandHandler<GameAcceptQuestCommand, QuestAcceptOutcome, GameAcceptQuestCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameAcceptQuest, typeof(AcceptQuestRequest)));

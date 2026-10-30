@@ -13,8 +13,7 @@ internal static class SessionMetricsRegistration
 {
     internal static IServiceCollection AddSessionMetricsSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<SessionMetricsMessageDecoder>(
-            GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
+        services.AddGameCmdMessageDecoder<SessionMetricsMessageDecoder>(ClientMessageType.GameSessionMetrics);
         services.AddProtocolCommandHandler<GameSessionMetricsCommand, bool, GameSessionMetricsCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSessionMetrics, typeof(SessionMetricsReportRequest)));
         services.RegisterProtocolMessageHandler<SessionMetricsHandler, SessionMetricsReportRequest, GameSessionMetricsCommand>(ClientMessageType.GameSessionMetrics);

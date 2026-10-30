@@ -66,17 +66,17 @@ internal static class WeddingProposalPayload
 internal sealed class WeddingProposalAckEncoder : GameCmdMessageEncoder<WeddingProposalAck>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingProposalAck message) =>
-        OnePayload(GameProtocol.WeddingProposalType, WeddingProposalPayload.Cmd(message.Status, message.Target, message.Action));
+        OnePayload(message, WeddingProposalPayload.Cmd(message.Status, message.Target, message.Action));
 }
 internal sealed class WeddingResponseAckEncoder : GameCmdMessageEncoder<WeddingResponseAck>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingResponseAck message) =>
-        OnePayload(GameProtocol.WeddingResponseType, WeddingProposalPayload.Cmd(message.Status, message.Target, message.Action, message.Outcome));
+        OnePayload(message, WeddingProposalPayload.Cmd(message.Status, message.Target, message.Action, message.Outcome));
 }
 internal sealed class WeddingProposalNotificationEncoder : GameNotiMessageEncoder<WeddingProposalNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingProposalNotification message) =>
-        OnePayload(GameProtocol.WeddingProposalNotificationType, WeddingProposalPayload.Fields(0, message.Actor, message.Action, tier: message.Tier));
+        OnePayload(message, WeddingProposalPayload.Fields(0, message.Actor, message.Action, tier: message.Tier));
 }
 internal sealed class WeddingResponseNotificationEncoder : GameNotiMessageEncoder<WeddingResponseNotification>
 {

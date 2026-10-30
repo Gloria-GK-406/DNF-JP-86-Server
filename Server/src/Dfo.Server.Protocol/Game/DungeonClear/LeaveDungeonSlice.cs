@@ -75,8 +75,7 @@ internal sealed class EplpCommandResponseEncoder : GameCmdMessageEncoder<EplpCom
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         EplpCommandResponse message) =>
-        OnePayload(
-            GameProtocol.EplpCommandType,
+        OnePayload(message,
             new byte[] { 0x01, message.State, message.Option });
 }
 

@@ -77,7 +77,7 @@ internal sealed class EnterSelectDungeonAcknowledgementEncoder
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         EnterSelectDungeonAcknowledgement message) =>
-        OnePayload(GameProtocol.EnterSelectDungeonType, SuccessAck);
+        OnePayload(message, SuccessAck);
 }
 
 /// <summary>NOTI 0x0017 <c>USER_AREA</c>: where a user is, as the client should display it.</summary>
@@ -169,7 +169,7 @@ internal sealed class BackToVillageResponseEncoder : GameCmdMessageEncoder<BackT
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         BackToVillageResponse message) =>
-        OnePayload(GameProtocol.BackToVillageType, new byte[] { 0x01 });
+        OnePayload(message, new byte[] { 0x01 });
 }
 
 /// <summary>
@@ -309,8 +309,7 @@ internal static class DungeonSelectionPayloadCodec
 internal sealed class UserAreaEncoder : GameNotiMessageEncoder<UserAreaNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UserAreaNotification message) =>
-        OnePayload(
-            GameProtocol.UserAreaNotificationType,
+        OnePayload(message,
             DungeonSelectionPayloadCodec.EncodeUserArea(
                 message.WireUserId, message.Spawn, message.AreaId));
 }

@@ -88,15 +88,15 @@ internal static class TournamentPayloadCodec
     }
 }
 internal sealed class TournamentInfoEncoder : GameNotiMessageEncoder<TournamentInfoMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentInfoMessage m) => OnePayload(0x0183, TournamentPayloadCodec.Info(m.Plan)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentInfoMessage m) => OnePayload(m, TournamentPayloadCodec.Info(m.Plan)); }
 internal sealed class TournamentMapEncoder : GameNotiMessageEncoder<TournamentMapMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentMapMessage m) => OnePayload(0x0184, TournamentPayloadCodec.Map(m.Plan)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentMapMessage m) => OnePayload(m, TournamentPayloadCodec.Map(m.Plan)); }
 internal sealed class TournamentRewardEncoder : GameNotiMessageEncoder<TournamentRewardMessage>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentRewardMessage m) => OnePayload(0x0185, TournamentPayloadCodec.Reward(m.State)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentRewardMessage m) => OnePayload(m, TournamentPayloadCodec.Reward(m.State)); }
 internal sealed class TournamentStatusEncoder : GameCmdMessageEncoder<TournamentStatusResponse>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentStatusResponse m) => OnePayload(0x01ca, TournamentPayloadCodec.Status(m)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentStatusResponse m) => OnePayload(m, TournamentPayloadCodec.Status(m)); }
 internal sealed class TournamentSelectionEncoder : GameCmdMessageEncoder<TournamentSelectionResponse>
-{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentSelectionResponse m) => OnePayload(0x01cb, TournamentPayloadCodec.Selection(m)); }
+{ protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TournamentSelectionResponse m) => OnePayload(m, TournamentPayloadCodec.Selection(m)); }
 internal sealed class TournamentStatusDecoder : IGameMessageDecoder
 { public IClientNetworkMessage? Decode(GameMessageMetadata meta, ReadOnlySpan<byte> body) => body.Length == 0 ? new TournamentRewardRequest(meta) : null; }
 internal sealed class TournamentSelectionDecoder : IGameMessageDecoder

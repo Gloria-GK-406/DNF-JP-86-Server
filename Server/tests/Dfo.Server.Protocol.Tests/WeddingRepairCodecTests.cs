@@ -38,13 +38,13 @@ public sealed class WeddingRepairCodecTests
     public void Guestbook_response_has_exact_42_byte_row_header_and_native_ack_shapes()
     {
         var item = new MarriageGuestComment(8, new CharacterId(99), "guest"u8.ToArray(), 1234, new byte[] { 0xD0, 0xC2 });
-        var b = Assert.Single(new WeddingCommentEncoder().Encode(new WeddingCommentAck(0x03FA, 72, 0, new(0, [item]))))[15..];
+        var b = Assert.Single(new WeddingCommentEncoder().Encode(new WeddingCommentAck(WeddingCommentKind.Read, 72, 0, new(0, [item]))))[15..];
         Assert.Equal(57, b.Length); Assert.Equal(1, b[0]); Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(9)));
         Assert.Equal(8u, BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(13)));
         Assert.Equal(1234u, BinaryPrimitives.ReadUInt32LittleEndian(b.AsSpan(47)));
         Assert.Equal(2, BinaryPrimitives.ReadInt32LittleEndian(b.AsSpan(51))); Assert.Equal(item.Text, b[55..]);
-        Assert.Equal(Convert.FromHexString("010000000008000000"), Assert.Single(new WeddingCommentEncoder().Encode(new WeddingCommentAck(0x03F9, 72, 8, new(0, []))))[15..]);
-        Assert.Equal(Convert.FromHexString("01FFFFFFFF"), Assert.Single(new WeddingCommentEncoder().Encode(new WeddingCommentAck(0x03FA, 72, 0, new(-1, []))))[15..]);
+        Assert.Equal(Convert.FromHexString("010000000008000000"), Assert.Single(new WeddingCommentEncoder().Encode(new WeddingCommentAck(WeddingCommentKind.Delete, 72, 8, new(0, []))))[15..]);
+        Assert.Equal(Convert.FromHexString("01FFFFFFFF"), Assert.Single(new WeddingCommentEncoder().Encode(new WeddingCommentAck(WeddingCommentKind.Read, 72, 0, new(-1, []))))[15..]);
     }
     [Fact]
     public void Shared_effect_native_vectors_distinguish_cmd_ack_and_scene_notification()

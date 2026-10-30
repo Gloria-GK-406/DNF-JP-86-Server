@@ -372,24 +372,20 @@ internal static class DungeonEntryPayloadCodec
 internal sealed class SelectDungeonRefusalEncoder : GameCmdMessageEncoder<SelectDungeonRefusal>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SelectDungeonRefusal message) =>
-        OnePayload(
-            message.Mirror ? (ushort)0x02B6 : GameProtocol.SelectDungeonType,
-            new byte[] { 0x00, message.ErrorCode, message.Context });
+        OnePayload(message, new byte[] { 0x00, message.ErrorCode, message.Context });
 }
 
 internal sealed class DungeonInfoEncoder : GameNotiMessageEncoder<DungeonInfoNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DungeonInfoNotification message) =>
-        OnePayload(
-            GameProtocol.DungeonInfoNotificationType,
+        OnePayload(message,
             DungeonEntryPayloadCodec.EncodeDungeonInfo(message.Layout, message.Difficulty));
 }
 
 internal sealed class StartMapEncoder : GameNotiMessageEncoder<StartMapNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(StartMapNotification message) =>
-        OnePayload(
-            GameProtocol.StartMapNotificationType,
+        OnePayload(message,
             DungeonEntryPayloadCodec.EncodeStartMap(
                 message.Run, message.FirstEntry, message.Actors, message.FirstActorSequence,
                 message.Drops));

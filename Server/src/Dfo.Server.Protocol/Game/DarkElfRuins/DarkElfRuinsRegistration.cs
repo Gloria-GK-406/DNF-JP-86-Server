@@ -17,8 +17,8 @@ internal static class DarkElfRuinsRegistration
 {
     internal static IServiceCollection AddDarkElfRuinsSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<RuinsPlayResultDecoder>(0x032C, ClientMessageType.GameRuinsPlayResult);
-        services.AddGameCmdMessageDecoder<RuinsRewardDecoder>(0x032D, ClientMessageType.GameRuinsReward);
+        services.AddGameCmdMessageDecoder<RuinsPlayResultDecoder>(ClientMessageType.GameRuinsPlayResult);
+        services.AddGameCmdMessageDecoder<RuinsRewardDecoder>(ClientMessageType.GameRuinsReward);
         services.AddProtocolCommandHandler<GameRuinsPlayResultCommand, bool, GameRuinsPlayResultCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRuinsPlayResult, typeof(RuinsPlayResultRequest)));
         services.RegisterProtocolMessageHandler<RuinsPlayResultHandler, RuinsPlayResultRequest, GameRuinsPlayResultCommand>(ClientMessageType.GameRuinsPlayResult);

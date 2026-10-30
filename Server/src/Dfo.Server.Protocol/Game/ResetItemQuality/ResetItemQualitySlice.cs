@@ -48,12 +48,12 @@ internal sealed class ResetItemQualityEncoder : GameCmdMessageEncoder<ResetItemQ
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ResetItemQualityResponse message)
     {
-        if (!message.Success) return OnePayload(0x0051, GameCmdEnvelope.Refuse(message.Error));
+        if (!message.Success) return OnePayload(message, GameCmdEnvelope.Refuse(message.Error));
         var body = new byte[9]; body[0] = 1;
         BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(1), message.MaterialSlot);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), message.Remaining);
         BinaryPrimitives.WriteUInt16LittleEndian(body.AsSpan(7), message.Operation);
-        return OnePayload(0x0051, body);
+        return OnePayload(message, body);
     }
 }
 public sealed class ResetItemQualityHandler(ICommandBus commands) : ClientMessageHandler<ResetItemQualityRequest>, IProtocolCommandMessageHandler<GameResetItemQualityCommand>

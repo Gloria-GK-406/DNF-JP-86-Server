@@ -44,12 +44,12 @@ internal sealed class RecoverStaminaEncoder : GameCmdMessageEncoder<RecoverStami
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(RecoverStaminaResponse message)
     {
         if (message.ErrorCode != 0)
-            return OnePayload(0x0009, new byte[] { 0, message.ErrorCode });
+            return OnePayload(message, new byte[] { 0, message.ErrorCode });
         // A21 reads the authoritative balance after the success byte, even for free recovery.
         var body = new byte[5];
         body[0] = 1;
         BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(1), checked((uint)message.Gold));
-        return OnePayload(0x0009, body);
+        return OnePayload(message, body);
     }
 }
 

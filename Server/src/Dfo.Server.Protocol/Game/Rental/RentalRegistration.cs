@@ -17,8 +17,8 @@ internal static class RentalRegistration
 {
     internal static IServiceCollection AddRentalSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
-        services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(0x03D0, ClientMessageType.GameChargeRentPoint);
+        services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(ClientMessageType.GameRentEquipment);
+        services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(ClientMessageType.GameChargeRentPoint);
         services.RegisterProtocolMessageHandler<RentEquipmentHandler,RentEquipmentRequest,GameRentEquipmentCommand>(ClientMessageType.GameRentEquipment);
         services.RegisterProtocolMessageHandler<ChargeRentPointHandler,ChargeRentPointRequest,GameChargeRentPointCommand>(ClientMessageType.GameChargeRentPoint);
         services.AddGameCmdMessageEncoder<RentEquipmentResponse, RentEquipmentEncoder>();

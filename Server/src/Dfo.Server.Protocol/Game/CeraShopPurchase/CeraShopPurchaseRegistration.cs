@@ -20,7 +20,7 @@ internal static class CeraShopPurchaseRegistration
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Characters.CharacterNameTagExpired, NameTagExpiredSubscriber>(
             "character.name-tag.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
         services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>();
-        services.AddGameCmdMessageDecoder<CeraShopPurchaseMessageDecoder>(0x0040, ClientMessageType.GameCeraShopPurchase);
+        services.AddGameCmdMessageDecoder<CeraShopPurchaseMessageDecoder>(ClientMessageType.GameCeraShopPurchase);
         services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
         services.AddProtocolCommandHandler<GameCeraShopPurchaseCommand, CeraShopPurchaseResult, GameCeraShopPurchaseCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameCeraShopPurchase, typeof(CeraShopPurchaseRequest)));

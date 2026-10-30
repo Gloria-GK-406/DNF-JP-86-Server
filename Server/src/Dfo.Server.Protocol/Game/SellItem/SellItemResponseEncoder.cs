@@ -3,7 +3,7 @@ namespace Dfo.Server.Protocol.Game.SellItem;
 internal sealed class SellItemResponseEncoder : GameCmdMessageEncoder<SellItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SellItemResponse message) =>
-        OnePayload(GameProtocol.SellItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(SellItemResponse message)
     {

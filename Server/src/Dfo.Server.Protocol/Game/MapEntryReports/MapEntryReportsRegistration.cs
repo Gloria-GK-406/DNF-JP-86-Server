@@ -13,12 +13,9 @@ internal static class MapEntryReportsRegistration
 {
     internal static IServiceCollection AddMapEntryReportsSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<CeraQueryDecoder>(
-            GameProtocol.CeraQueryType, ClientMessageType.GameCeraQuery);
-        services.AddGameCmdMessageDecoder<SecurityStatusDecoder>(
-            GameProtocol.SecurityStatusType, ClientMessageType.GameSecurityStatus);
-        services.AddGameCmdMessageDecoder<RuntimeTingStatisticDecoder>(
-            GameProtocol.RuntimeTingStatisticType, ClientMessageType.GameRuntimeTingStatistic);
+        services.AddGameCmdMessageDecoder<CeraQueryDecoder>(ClientMessageType.GameCeraQuery);
+        services.AddGameCmdMessageDecoder<SecurityStatusDecoder>(ClientMessageType.GameSecurityStatus);
+        services.AddGameCmdMessageDecoder<RuntimeTingStatisticDecoder>(ClientMessageType.GameRuntimeTingStatistic);
         services.AddGameCmdMessageEncoder<SecurityStatusAcknowledgement, SecurityStatusAcknowledgementEncoder>();
 
         // One handler, the remaining wire keys in the map-entry report family.

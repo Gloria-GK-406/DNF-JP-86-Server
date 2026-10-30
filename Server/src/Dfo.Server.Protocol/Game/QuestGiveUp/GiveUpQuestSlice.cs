@@ -13,5 +13,5 @@ internal sealed class GiveUpQuestAcknowledgementEncoder
     : GameCmdMessageEncoder<GiveUpQuestAcknowledgement>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GiveUpQuestAcknowledgement message) =>
-        OnePayload(GameProtocol.GiveUpQuestType, GiveUpQuestPayloadCodec.Encode(message));
+        OnePayload(message, GiveUpQuestPayloadCodec.Encode(message));
 }

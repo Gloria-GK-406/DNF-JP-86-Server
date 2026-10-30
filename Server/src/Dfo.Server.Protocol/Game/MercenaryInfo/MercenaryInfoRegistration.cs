@@ -13,8 +13,7 @@ internal static class MercenaryInfoRegistration
 {
     internal static IServiceCollection AddMercenaryInfoSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<MercenaryInfoMessageDecoder>(
-            GameProtocol.MercenaryInfoType, ClientMessageType.GameMercenaryInfo);
+        services.AddGameCmdMessageDecoder<MercenaryInfoMessageDecoder>(ClientMessageType.GameMercenaryInfo);
         services.AddGameCmdMessageEncoder<MercenaryInfoResponse, MercenaryInfoResponseEncoder>();
         services.AddProtocolCommandHandler<GameMercenaryInfoCommand, bool, GameMercenaryInfoCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameMercenaryInfo, typeof(MercenaryInfoRequest)));

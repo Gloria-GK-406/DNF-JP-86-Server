@@ -15,7 +15,7 @@ internal static class RepairItemRegistration
     internal static IServiceCollection AddRepairItemSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>();
-        services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
+        services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(ClientMessageType.GameRepairItem);
         services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
         services.AddProtocolCommandHandler<GameRepairItemCommand, bool, GameRepairItemCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameRepairItem, typeof(RepairItemRequest)));

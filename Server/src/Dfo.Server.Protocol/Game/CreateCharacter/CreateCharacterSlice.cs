@@ -79,7 +79,6 @@ internal sealed class CreateCharacterResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         CreateCharacterResponse message) =>
-        OnePayload(
-            GameProtocol.CreateCharacterType,
+        OnePayload(message,
             CreateCharacterPayloadCodec.Encode(message.Status));
 }

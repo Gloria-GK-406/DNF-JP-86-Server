@@ -86,7 +86,6 @@ internal sealed class ContentsPlayInfoResponseEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         ContentsPlayInfoResponse message) =>
-        OnePayload(
-            GameProtocol.ContentsPlayInfoType,
+        OnePayload(message,
             ContentsPlayInfoPayloadCodec.EncodeResponse());
 }

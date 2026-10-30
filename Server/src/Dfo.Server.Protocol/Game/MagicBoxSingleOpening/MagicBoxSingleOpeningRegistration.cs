@@ -14,7 +14,7 @@ internal static class MagicBoxSingleOpeningRegistration
 {
     internal static IServiceCollection AddMagicBoxSingleOpeningSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<MagicBoxSingleOpeningDecoder>(0x00D0, ClientMessageType.GameMagicBoxSingleOpening);
+        services.AddGameCmdMessageDecoder<MagicBoxSingleOpeningDecoder>(ClientMessageType.GameMagicBoxSingleOpening);
         services.AddGameCmdMessageEncoder<MagicBoxSingleOpeningResponse, MagicBoxSingleOpeningEncoder>();
         services.AddProtocolCommandHandler<GameMagicBoxSingleOpeningCommand, MagicBoxOpeningResult, GameMagicBoxSingleOpeningCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

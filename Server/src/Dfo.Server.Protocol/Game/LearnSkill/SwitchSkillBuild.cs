@@ -26,7 +26,7 @@ public sealed record SwitchSkillBuildResponse(int? Active) : IGameCmdMessage
 internal sealed class SwitchSkillBuildEncoder : GameCmdMessageEncoder<SwitchSkillBuildResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SwitchSkillBuildResponse message) =>
-        OnePayload(0x0104, message.Active is { } active ? new byte[] { 1, checked((byte)active) } : new byte[] { 0, 3 });
+        OnePayload(message, message.Active is { } active ? new byte[] { 1, checked((byte)active) } : new byte[] { 0, 3 });
 }
 public sealed class SwitchSkillBuildHandler(ICommandBus commands) : ClientMessageHandler<SwitchSkillBuildRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameSwitchSkillBuildCommand>
 {

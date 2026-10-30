@@ -186,15 +186,14 @@ internal sealed class GetItemDecoder : IGameMessageDecoder
 internal sealed class GetItemResponseEncoder : GameCmdMessageEncoder<GetItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GetItemResponse message) =>
-        OnePayload(GameProtocol.GetItemType, GroundPickupPayloadCodec.EncodeResponse(message));
+        OnePayload(message, GroundPickupPayloadCodec.EncodeResponse(message));
 }
 
 internal sealed class GroundGoldPickupEncoder : GameNotiMessageEncoder<GroundGoldPickupNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         GroundGoldPickupNotification message) =>
-        OnePayload(
-            GameProtocol.GroundPickupNotificationType,
+        OnePayload(message,
             GroundPickupPayloadCodec.EncodeGoldNotification(message));
 }
 

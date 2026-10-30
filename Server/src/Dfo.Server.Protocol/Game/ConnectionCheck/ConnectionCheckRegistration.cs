@@ -13,8 +13,7 @@ internal static class ConnectionCheckRegistration
 {
     internal static IServiceCollection AddConnectionCheckSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<ConnectionCheckMessageDecoder>(
-            GameProtocol.ConnectionCheckType, ClientMessageType.GameConnectionCheck);
+        services.AddGameCmdMessageDecoder<ConnectionCheckMessageDecoder>(ClientMessageType.GameConnectionCheck);
         services.AddGameCmdMessageEncoder<ConnectionCheckResponse, ConnectionCheckResponseEncoder>();
         services.AddProtocolCommandHandler<GameConnectionCheckCommand, bool, GameConnectionCheckCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameConnectionCheck, typeof(ConnectionCheckRequest)));

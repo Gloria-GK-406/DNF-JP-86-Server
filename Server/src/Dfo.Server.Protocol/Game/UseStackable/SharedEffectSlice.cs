@@ -28,9 +28,9 @@ internal sealed class SharedEffectAckEncoder : GameCmdMessageEncoder<SharedEffec
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(SharedEffectAck m)
     {
-        if (!m.Success) return OnePayload(0x00FB, new byte[] { 0, 19 });
+        if (!m.Success) return OnePayload(m, new byte[] { 0, 19 });
         var b = new byte[4]; b[0] = 1; BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(1), m.Slot);
-        return OnePayload(0x00FB, b);
+        return OnePayload(m, b);
     }
 }
 internal sealed record SharedEffectNotification(ushort Actor, int ItemId, byte Selector) : IGameNotiMessage
@@ -41,7 +41,7 @@ internal sealed class SharedEffectNotificationEncoder : GameNotiMessageEncoder<S
     {
         var b = new byte[7]; BinaryPrimitives.WriteUInt16LittleEndian(b, m.Actor);
         BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(2), m.ItemId); b[6] = m.Selector;
-        return OnePayload(0x00DB, b);
+        return OnePayload(m, b);
     }
 }
 public sealed record GameSharedEffectCommand(NetworkDispatchContext Dispatch, SharedEffectRequest Input) : IProtocolCommand<bool>

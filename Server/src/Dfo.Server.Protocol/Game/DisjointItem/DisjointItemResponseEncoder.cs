@@ -3,7 +3,7 @@ namespace Dfo.Server.Protocol.Game.DisjointItem;
 internal sealed class DisjointItemResponseEncoder : GameCmdMessageEncoder<DisjointItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(DisjointItemResponse message) =>
-        OnePayload(GameProtocol.DisjointItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(DisjointItemResponse message)
     {

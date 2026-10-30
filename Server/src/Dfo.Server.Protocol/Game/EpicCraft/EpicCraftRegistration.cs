@@ -15,7 +15,7 @@ internal static class EpicCraftRegistration
     internal static IServiceCollection AddEpicCraftSlice(this IServiceCollection services)
     {
         services.AddNotificationHandler<EpicCraftCompleted, EpicCraftCompletedHandler>();
-        services.AddGameCmdMessageDecoder<EpicCraftDecoder>(GameProtocol.EpicCraftType, ClientMessageType.GameEpicCraft);
+        services.AddGameCmdMessageDecoder<EpicCraftDecoder>(ClientMessageType.GameEpicCraft);
         services.AddGameCmdMessageEncoder<EpicCraftResponse, EpicCraftEncoder>();
         services.AddProtocolCommandHandler<GameEpicCraftCommand, bool, GameEpicCraftCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

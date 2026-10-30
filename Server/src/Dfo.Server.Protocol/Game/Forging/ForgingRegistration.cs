@@ -17,8 +17,7 @@ internal static class ForgingRegistration
     {
         services.AddNotificationHandler<ForgingCompleted,
             ForgingCompletedHandler>();
-        services.AddGameCmdMessageDecoder<ForgingDecoder>(
-            GameProtocol.SeparateUpgradeType, ClientMessageType.GameSeparateUpgrade);
+        services.AddGameCmdMessageDecoder<ForgingDecoder>(ClientMessageType.GameSeparateUpgrade);
         services.AddGameCmdMessageEncoder<ForgingResponse, ForgingEncoder>();
         services.AddProtocolCommandHandler<GameForgingCommand, EquipmentForgingResult, GameForgingCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },

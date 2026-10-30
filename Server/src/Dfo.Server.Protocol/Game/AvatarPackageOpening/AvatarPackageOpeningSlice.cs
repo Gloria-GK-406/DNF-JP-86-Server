@@ -42,10 +42,10 @@ internal sealed class AvatarPackageOpeningEncoder : GameCmdMessageEncoder<Avatar
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AvatarPackageOpeningResponse message)
     {
-        if (message.Result.Receipt is null) return OnePayload(0x0207, new byte[] { 0, OpeningPayloads.Error(message.Result.Rejection) });
+        if (message.Result.Receipt is null) return OnePayload(message, new byte[] { 0, OpeningPayloads.Error(message.Result.Rejection) });
         var body = new byte[3]; body[0] = 1;
         BinaryPrimitives.WriteInt16LittleEndian(body.AsSpan(1), checked((short)message.SourceSlot));
-        return OnePayload(0x0207, body);
+        return OnePayload(message, body);
     }
 }
 public sealed class AvatarPackageOpeningHandler(ICommandBus commands) : ClientMessageHandler<AvatarPackageOpeningRequest>, IProtocolCommandMessageHandler<GameAvatarPackageOpeningCommand>

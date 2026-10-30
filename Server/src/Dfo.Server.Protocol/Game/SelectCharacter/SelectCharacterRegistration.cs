@@ -17,8 +17,7 @@ internal static class SelectCharacterRegistration
     {
         services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
         services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
-        services.AddGameCmdMessageDecoder<SelectCharacterMessageDecoder>(
-            GameProtocol.SelectCharacterType, ClientMessageType.GameSelectCharacter);
+        services.AddGameCmdMessageDecoder<SelectCharacterMessageDecoder>(ClientMessageType.GameSelectCharacter);
         services.AddProtocolCommandHandler<GameSelectCharacterCommand, bool, GameSelectCharacterCommandHandler>(
             CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,
             new ProtocolCommandMessageBinding(ClientMessageType.GameSelectCharacter, typeof(SelectCharacterRequest)));

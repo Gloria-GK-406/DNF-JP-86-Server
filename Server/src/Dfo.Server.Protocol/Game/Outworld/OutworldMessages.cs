@@ -62,7 +62,7 @@ internal sealed class InvestAmplifyOptionDecoder : IGameMessageDecoder
 internal sealed class PurifyItemEncoder : GameCmdMessageEncoder<PurifyItemResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(PurifyItemResponse message) =>
-        OnePayload(GameProtocol.PurifyItemType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(PurifyItemResponse message)
     {
@@ -83,7 +83,7 @@ internal sealed class InvestAmplifyOptionEncoder
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         InvestAmplifyOptionResponse message) =>
-        OnePayload(GameProtocol.InvestAmplifyOptionType, EncodeBody(message));
+        OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(InvestAmplifyOptionResponse message)
     {

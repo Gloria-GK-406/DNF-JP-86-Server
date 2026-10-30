@@ -24,10 +24,8 @@ internal static class TownProjectionRegistration
         services.AddNotificationHandler<TownParticipantPublished, TownParticipantPublishedHandler>();
         services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>();
         services.AddNotificationHandler<TownAreaRosterReconciled, TownAreaRosterReconciledHandler>();
-        services.AddGameCmdMessageDecoder<SetUserPositionDecoder>(
-            GameProtocol.SetUserPositionType, ClientMessageType.GameSetUserPosition);
-        services.AddGameCmdMessageDecoder<SetUserAreaDecoder>(
-            GameProtocol.SetUserAreaType, ClientMessageType.GameSetUserArea);
+        services.AddGameCmdMessageDecoder<SetUserPositionDecoder>(ClientMessageType.GameSetUserPosition);
+        services.AddGameCmdMessageDecoder<SetUserAreaDecoder>(ClientMessageType.GameSetUserArea);
         services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
         services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
         services.AddGameNotiMessageEncoder<ForcedTownPositionNotification, ForcedTownPositionEncoder>();

@@ -14,7 +14,7 @@ internal sealed class GameLoginResponseEncoder : GameCmdMessageEncoder<GameLogin
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GameLoginResponse message) =>
         message.Succeeded
-            ? OnePayload(GameProtocol.LoginType, EncodeSuccessBody(message))
+            ? OnePayload(message, EncodeSuccessBody(message))
             : throw new InvalidOperationException(
                 "The observed Game LOGIN protocol has no failure body yet.");
 

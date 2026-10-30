@@ -48,7 +48,7 @@ internal sealed class PrepareCycleDungeonEntryDecoder : IGameMessageDecoder
 internal sealed class PrepareCycleDungeonEntryEncoder : GameCmdMessageEncoder<PrepareCycleDungeonEntryResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(PrepareCycleDungeonEntryResponse message) =>
-        OnePayload(0x0308, PrepareCycleDungeonEntryCodec.Encode(message));
+        OnePayload(message, PrepareCycleDungeonEntryCodec.Encode(message));
 }
 
 internal sealed class GamePrepareCycleDungeonEntryCommandHandler(ISelectedSessionDomainService sessions, ICycleDungeonEntryDomainService cycles,

@@ -25,7 +25,7 @@ internal sealed record GenCeraTicketUnavailable : IGameCmdMessage
 internal sealed class GenCeraTicketResponseEncoder : GameCmdMessageEncoder<GenCeraTicketUnavailable>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GenCeraTicketUnavailable message) =>
-        OnePayload(0x0041, GameCmdEnvelope.Refuse(1));
+        OnePayload(message, GameCmdEnvelope.Refuse(1));
 }
 
 public sealed record GameGenCeraTicketCommand(NetworkDispatchContext Dispatch, GenCeraTicketRequest Input) : IProtocolCommand<bool>

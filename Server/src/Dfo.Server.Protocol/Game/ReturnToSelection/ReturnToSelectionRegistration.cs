@@ -13,8 +13,7 @@ internal static class ReturnToSelectionRegistration
 {
     internal static IServiceCollection AddReturnToSelectionSlice(this IServiceCollection services)
     {
-        services.AddGameCmdMessageDecoder<ReturnToSelectionMessageDecoder>(
-            GameProtocol.ReturnToSelectionType, ClientMessageType.GameReturnToSelection);
+        services.AddGameCmdMessageDecoder<ReturnToSelectionMessageDecoder>(ClientMessageType.GameReturnToSelection);
         services.AddGameCmdMessageEncoder<ReturnToSelectionResponse, ReturnToSelectionResponseEncoder>();
         services.AddProtocolCommandHandler<GameReturnToSelectionCommand, bool, GameReturnToSelectionCommandHandler>(
             CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,

@@ -38,7 +38,7 @@ public sealed record MagicBoxSingleOpeningResponse(MagicBoxOpeningInput? Input, 
 internal sealed class MagicBoxSingleOpeningEncoder : GameCmdMessageEncoder<MagicBoxSingleOpeningResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(MagicBoxSingleOpeningResponse message) =>
-        OnePayload(0x00D0, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, false));
+        OnePayload(message, OpeningPayloads.Box(message.Input ?? new(0, 0, 0, -1, 0, 0), message.Result, false));
 }
 public sealed class MagicBoxSingleOpeningHandler(ICommandBus commands) : ClientMessageHandler<MagicBoxSingleOpeningRequest>, IProtocolCommandMessageHandler<GameMagicBoxSingleOpeningCommand>
 {

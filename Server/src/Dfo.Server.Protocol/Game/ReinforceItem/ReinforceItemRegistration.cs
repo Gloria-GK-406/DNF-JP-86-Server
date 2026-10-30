@@ -20,8 +20,7 @@ internal static class ReinforceItemRegistration
         services.AddProtocolCommandHandler<GameReinforceItemCommand, EquipmentReinforcementResult, GameReinforceItemCommandHandler>(
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameReinforceItem, typeof(ReinforceItemRequest)));
-        services.AddGameCmdMessageDecoder<ReinforceItemMessageDecoder>(
-            GameProtocol.ReinforceItemType, ClientMessageType.GameReinforceItem);
+        services.AddGameCmdMessageDecoder<ReinforceItemMessageDecoder>(ClientMessageType.GameReinforceItem);
         services.AddGameCmdMessageEncoder<ReinforceItemResponse, ReinforceItemResponseEncoder>();
         services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);
         return services;

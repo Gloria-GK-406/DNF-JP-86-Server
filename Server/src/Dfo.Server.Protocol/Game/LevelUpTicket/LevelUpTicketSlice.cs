@@ -59,7 +59,7 @@ internal static class LevelUpTicketPayloadCodec
 internal sealed class LevelUpTicketEncoder : GameCmdMessageEncoder<LevelUpTicketResponse>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(LevelUpTicketResponse message) =>
-        OnePayload(GameProtocol.LevelUpTicketType, LevelUpTicketPayloadCodec.Encode(message));
+        OnePayload(message, LevelUpTicketPayloadCodec.Encode(message));
 }
 
 public sealed record GameLevelUpTicketCommand(NetworkDispatchContext Dispatch,LevelUpTicketRequest Input):IProtocolCommand<bool>

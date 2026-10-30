@@ -46,7 +46,7 @@ public sealed record AchievementTriggerResponse(int AchievementId, CharacterAchi
 }
 internal sealed class AchievementTriggerEncoder : GameCmdMessageEncoder<AchievementTriggerResponse>
 {
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AchievementTriggerResponse message) => OnePayload(0x01A1, message.Body());
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(AchievementTriggerResponse message) => OnePayload(message, message.Body());
 }
 internal sealed class AchievementTriggerHandler(ICommandBus commands) : ClientMessageHandler<AchievementTriggerRequest>, IProtocolCommandMessageHandler<GameAchievementTriggerCommand>
 {

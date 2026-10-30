@@ -44,6 +44,11 @@ internal abstract class GameMessageEncoder<TMessage>(GameMessageClass messageCla
     protected static IReadOnlyList<GameMessagePayload> OnePayload(
         ushort type,
         ReadOnlyMemory<byte> body) => [new(type, body)];
+
+    /// <summary>One payload under the wire type the message's catalog member declares.</summary>
+    protected static IReadOnlyList<GameMessagePayload> OnePayload(
+        TMessage message,
+        ReadOnlyMemory<byte> body) => [new(GameWireKey.TypeOf(message.MessageType), body)];
 }
 
 internal abstract class GameCmdMessageEncoder<TMessage>()
@@ -144,15 +149,44 @@ internal static class GameMessageRegistrationExtensions
         where TEncoder : GameNotiMessageEncoder<TMessage> =>
         services.AddServerMessageEncoder<TMessage, TEncoder>(NetworkEndpointKind.Game);
 
+    /// <summary>
+    /// Binds a decoder to the wire key its catalog member declares; the catalog value is the one place the opcode is
+    /// written.
+    /// </summary>
     public static IServiceCollection AddGameCmdMessageDecoder<TDecoder>(
         this IServiceCollection services,
-        ushort type,
+        ClientMessageType message,
+        params ClientMessageType[] alsoProduces)
+        where TDecoder : class, IGameMessageDecoder =>
+        services.AddGameMessageDecoder<TDecoder>(
+            GameWireKey.SelectorOf(message),
+            GameWireKey.TypeOf(message),
+            [message, .. alsoProduces]);
+
+    /// <summary>
+    /// Binds a decoder to a CMD wire type its catalog values do not spell out: one of several opcodes that decode to
+    /// the member heading their family (collection box, housing and capsule actions), or one opcode shared by
+    /// members the catalog tells apart by more than the opcode (the user-info request).
+    /// </summary>
+    public static IServiceCollection AddGameCmdFamilyDecoder<TDecoder>(
+        this IServiceCollection services,
+        ushort wireType,
         params ClientMessageType[] produces)
         where TDecoder : class, IGameMessageDecoder =>
         services.AddGameMessageDecoder<TDecoder>(
             (byte)GameMessageClass.Cmd,
-            type,
+            wireType,
             produces);
+}
+
+/// <summary>Reads a catalog value as the frame's selector and wire type: <c>selector &lt;&lt; 16 | type</c>.</summary>
+internal static class GameWireKey
+{
+    public static byte SelectorOf(ClientMessageType message) => checked((byte)((int)message >> 16));
+
+    public static ushort TypeOf(ClientMessageType message) => unchecked((ushort)(int)message);
+
+    public static ushort TypeOf(ServerMessageType message) => unchecked((ushort)(int)message);
 }
 
 internal static class GameDeliveryConversions

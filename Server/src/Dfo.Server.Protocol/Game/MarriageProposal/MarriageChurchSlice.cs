@@ -61,7 +61,7 @@ internal static class MarriageChurchPayload
 internal sealed class WeddingChurchPreparationEncoder : GameNotiMessageEncoder<WeddingChurchPreparationNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingChurchPreparationNotification message) =>
-        OnePayload(GameProtocol.WeddingCeremonyPreparationType, MarriageChurchPayload.Preparation(message.Snapshot, message.Remaining));
+        OnePayload(message, MarriageChurchPayload.Preparation(message.Snapshot, message.Remaining));
 }
 internal sealed class WeddingChurchEnterEncoder : GameCmdMessageEncoder<WeddingChurchEnterAck>
 {
@@ -69,7 +69,7 @@ internal sealed class WeddingChurchEnterEncoder : GameCmdMessageEncoder<WeddingC
     {
         var body = new byte[5]; body[0] = 1;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(1), message.Status);
-        return OnePayload(GameProtocol.WeddingChurchEntryType, body);
+        return OnePayload(message, body);
     }
 }
 

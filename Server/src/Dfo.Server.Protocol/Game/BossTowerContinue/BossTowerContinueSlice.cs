@@ -11,6 +11,6 @@ internal sealed record BossTowerContinueNotification(bool Eligible) : IGameNotiM
 internal sealed class BossTowerContinueEncoder : GameNotiMessageEncoder<BossTowerContinueNotification>
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(BossTowerContinueNotification message) =>
-        OnePayload(GameProtocol.BossTowerContinueType,
+        OnePayload(message,
             new byte[] { message.Eligible ? (byte)1 : (byte)0 });
 }
