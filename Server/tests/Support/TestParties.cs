@@ -49,15 +49,15 @@ internal static class TestParties
         parties ??= Create();
         var runs = new DungeonRunDomainService(
             transactions ?? Dfo.Server.Testing.TestRequired.TransactionScope(), parties, new LostLandFeverRuleService(),
-            weakness ?? Dfo.Server.Testing.TestRequired.Absent<IWeaknessDomainService>(),
-            creatures ?? Dfo.Server.Testing.TestRequired.Absent<ICreatureRuntimeDomainService>(),
-            lifecycle ?? Dfo.Server.Testing.TestRequired.Absent<IDungeonLifecycleDomainService>(), clock ?? TimeProvider.System,
+            weakness ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Characters.IWeaknessDomainService>(),
+            creatures ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(),
+            lifecycle ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonLifecycleDomainService>(), clock ?? TimeProvider.System,
             mechanismRules ?? new DungeonRoomMechanismRuleService(),
-            deadlines ?? Dfo.Server.Testing.TestRequired.Absent<IDungeonDeadlineWake>(),
+            deadlines ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonDeadlineWake>(),
             sealedTreasureRules ?? new SealedTreasureRuleService(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IDungeonDefinitionSource>()),
-            participation ?? Dfo.Server.Testing.TestRequired.Absent<IDungeonParticipationDomainService>(),
+            participation ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonRunDomainService>.Instance,
-            new DungeonSettlementRuleService(), giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<IGiantDragonRuleService>());
+            new DungeonSettlementRuleService(), giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IGiantDragonRuleService>());
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;
     }

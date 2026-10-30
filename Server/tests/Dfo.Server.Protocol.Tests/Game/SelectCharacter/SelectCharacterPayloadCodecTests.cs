@@ -718,7 +718,7 @@ public sealed class SelectCharacterPayloadCodecTests
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>()));
-            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<ICharacterNameTagDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>()));
             services.TryAddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>());
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(

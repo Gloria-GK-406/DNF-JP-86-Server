@@ -59,7 +59,7 @@ public sealed class DungeonDeadlineSchedulerTests
     [Fact]
     public Task An_altar_state_wakes_its_source_on_commit_and_not_on_rollback() => TestGameplay.RunAsync(async () =>
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var wake = new RecordingWake();
         var store = new AltarStateStore(wake);
         var state = new AltarDungeonState(DungeonRunId.New(),
@@ -81,7 +81,7 @@ public sealed class DungeonDeadlineSchedulerTests
     [Fact]
     public Task A_guardian_runtime_wakes_its_source_on_commit_and_not_on_rollback() => TestGameplay.RunAsync(async () =>
     {
-        var scope = new DomainTransactionScope();
+        var scope = TestRequired.TransactionScope();
         var wake = new RecordingWake();
         var store = new GuardianAltarRuntimeStore(scope, wake);
         var session = new SelectedSessionIdentity(new(1), new(1), new("guardian-deadline"), 1, 1, 10011);
