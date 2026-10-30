@@ -1,21 +1,32 @@
-using Dfo.Server.Application.World;
+using Dfo.Server.Protocol.Game.WeeklyAttendance;
+using Dfo.Server.Protocol.Game.Altar;
+using Dfo.Server.Protocol.Game.GuardianAltar;
+using Dfo.Server.Protocol.Game.MarriageProposal;
+using Dfo.Server.Protocol.Game.MarriageHousing;
+using Dfo.Server.Protocol.Game.CollectionBox;
+using Dfo.Server.Protocol.Game.RoomMechanisms;
+using Dfo.Server.Protocol.Game.EplpRechallenge;
+using Dfo.Server.Protocol.Game.SouthernDale;
+using Dfo.Server.Protocol.Game.BossTowerTicket;
+using Dfo.Server.Protocol.Game.TauKingdom;
+using Dfo.Server.Protocol.Game.ReviveCoin;
+using Dfo.Server.Protocol.Game.SaveHotkeys;
+using Dfo.Server.Protocol.Game.SaveQuickChat;
+using Dfo.Server.Protocol.Game.MirrorDungeonEntry;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Protocol.Game.DarkElfRuins;
 using Dfo.Server.Protocol.Game.ItemSockets;
 using Dfo.Server.Protocol.Game.Rental;
-using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Protocol.Game.Achievements;
 using Dfo.Server.Protocol.Game.CycleDungeonEntry;
 using Dfo.Server.Protocol.Game.Tournament;
 using Dfo.Server.Protocol.Game.TitleBook;
-using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Protocol.Game.Joust;
 using Dfo.Server.Protocol.Game.Warehouse;
 using Dfo.Server.Protocol.Game.Teleport;
 using Dfo.Server.Protocol.Game.Creatures;
-using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Protocol.Game.InventorySort;
 using Dfo.Server.Protocol.Game.CrystalContract;
 using Dfo.Server.Protocol.Game.Mailbox;
@@ -30,20 +41,10 @@ using Dfo.Server.Protocol.Game.BossTowerInfo;
 using Dfo.Server.Protocol.Game.BossTowerMap;
 using Dfo.Server.Protocol.Game.BossTowerReward;
 using Dfo.Server.Protocol.Game.BossTowerContinue;
-using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions;
-using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Notifications;
-using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Game;
-using Dfo.Server.Data.Inventory;
-using Dfo.Server.Data.Networking;
-using Dfo.Server.Data.Parties;
 using Dfo.Server.Protocol.Channel;
 using Dfo.Server.Protocol.Channel.Connect;
 using Dfo.Server.Protocol.Channel.Info;
@@ -154,297 +155,44 @@ public sealed class ProtocolModule : IServerModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
-        services.AddGameCmdMessageDecoder<RuinsPlayResultDecoder>(0x032C, ClientMessageType.GameRuinsPlayResult);
-        services.AddGameCmdMessageDecoder<RuinsRewardDecoder>(0x032D, ClientMessageType.GameRuinsReward);
-        services.AddProtocolCommandHandler<GameRuinsPlayResultCommand, bool, GameRuinsPlayResultCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRuinsPlayResult, typeof(RuinsPlayResultRequest)));
-        services.RegisterProtocolMessageHandler<RuinsPlayResultHandler, RuinsPlayResultRequest, GameRuinsPlayResultCommand>(ClientMessageType.GameRuinsPlayResult);
-        services.AddProtocolCommandHandler<GameRuinsRewardCommand, bool, GameRuinsRewardCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRuinsReward, typeof(RuinsRewardRequest)));
-        services.RegisterProtocolMessageHandler<RuinsRewardHandler, RuinsRewardRequest, GameRuinsRewardCommand>(ClientMessageType.GameRuinsReward);
-        services.AddGameNotiMessageEncoder<RuinsByteNotification, GameNotiStateSynchronizationEncoder<RuinsByteNotification>>();
-        services.AddGameNotiMessageEncoder<RuinsLicenseNotification, GameNotiStateSynchronizationEncoder<RuinsLicenseNotification>>();
-        services.AddGameNotiMessageEncoder<RuinsClearNotification, GameNotiStateSynchronizationEncoder<RuinsClearNotification>>();
-        services.AddGameNotiMessageEncoder<RuinsBossNotification, GameNotiStateSynchronizationEncoder<RuinsBossNotification>>();
-        services.AddGameCmdMessageEncoder<RuinsAcknowledgement, GameCmdStateSynchronizationEncoder<RuinsAcknowledgement>>();
-        services.AddDomainSubscriber<DarkElfRuinsInventoryChanged, RuinsInventorySubscriber>("darkelf-ruins.inventory-notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddNotificationHandler<RuinsInventoryRefresh, RuinsInventoryRefreshHandler>();
+        services.AddDarkElfRuinsSlice();
 
         services.AddEventDispatching();
-
-        services.RegisterProtocolMessageHandler<JoustQueryHandler, JoustQueryRequest, GameJoustQueryCommand>(ClientMessageType.GameJoustInfo);
-        services.AddProtocolCommandHandler<GameJoustQueryCommand, bool, GameJoustQueryCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameJoustInfo, typeof(JoustQueryRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameJoustHistory, typeof(JoustQueryRequest)));
-        services.RegisterProtocolMessageHandler<JoustQueryHandler, JoustQueryRequest, GameJoustQueryCommand>(ClientMessageType.GameJoustHistory);
-        services.RegisterProtocolMessageHandler<JoustBetHandler, JoustBetRequest, GameJoustBetCommand>(ClientMessageType.GameJoustBet);
-        services.AddProtocolCommandHandler<GameJoustBetCommand, bool, GameJoustBetCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameJoustBet, typeof(JoustBetRequest)));
-        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E6,ClientMessageType.GameJoustInfo);
-        services.AddGameCmdMessageDecoder<JoustQueryDecoder>(0x04E8,ClientMessageType.GameJoustHistory);
-        services.AddGameCmdMessageDecoder<JoustBetDecoder>(0x04E7,ClientMessageType.GameJoustBet);
-        services.AddGameCmdMessageEncoder<JoustResponse,JoustResponseEncoder>();
-        services.AddGameNotiMessageEncoder<JoustStateMessage,GameNotiStateSynchronizationEncoder<JoustStateMessage>>();
-        services.AddGameNotiMessageEncoder<JoustInfoMessage,GameNotiStateSynchronizationEncoder<JoustInfoMessage>>();
-        services.AddGameNotiMessageEncoder<JoustBetsMessage,GameNotiStateSynchronizationEncoder<JoustBetsMessage>>();
-        services.AddGameNotiMessageEncoder<JoustResultsMessage,GameNotiStateSynchronizationEncoder<JoustResultsMessage>>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustDetailsChanged,JoustDetailsChangedHandler>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.JoustLifecycleNotification,JoustLifecycleNotificationHandler>();
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceHandler, Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand>(ClientMessageType.GameWeeklyAttendance);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommand, bool, Dfo.Server.Protocol.Game.WeeklyAttendance.GameWeeklyAttendanceCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeeklyAttendance, typeof(Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceDecoder>(0x0441,ClientMessageType.GameWeeklyAttendance);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponse,Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceResponseEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.EventInformationMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.WeeklyAttendanceStateMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledDungeonStateMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledActivityStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledActivityStateMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage,GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.WeeklyAttendance.ScheduledQuestStateMessage>>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Events.EventsChanged,Dfo.Server.Protocol.Game.WeeklyAttendance.EventsChangedHandler>();
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompleted,Dfo.Server.Protocol.Game.WeeklyAttendance.AttendanceCompletedHandler>();
-        services.RegisterProtocolMessageHandler<MailboxSendHandler, MailboxSendRequest, GameMailboxCommand>(ClientMessageType.GameMailboxSend);
-        services.RegisterProtocolMessageHandler<MailboxSendHandler, MailboxSendRequest, GameMailboxCommand>(ClientMessageType.GameMailboxSendMulti);
-        services.AddGameCmdMessageDecoder<MailboxSendDecoder>(0x005E, ClientMessageType.GameMailboxSend);
-        services.AddGameCmdMessageDecoder<MailboxSendMultiDecoder>(0x013B, ClientMessageType.GameMailboxSendMulti);
-        services.AddGameCmdMessageEncoder<MailboxSendResponse, MailboxSendEncoder>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Mail.MailDelivered, MailDeliveredHandler>();
-        services.AddProtocolCommandHandler<GameMailboxCommand, GameMailboxOutcome, GameMailboxCommandHandler>(CommandSelfSettlementCapability.SelfSettledAction,
-            new(ClientMessageType.GameMailboxSend, typeof(MailboxSendRequest)),
-            new(ClientMessageType.GameMailboxSendMulti, typeof(MailboxSendRequest)),
-            new(ClientMessageType.GameMailboxClaim, typeof(MailboxClaimRequest)),
-            new(ClientMessageType.GameMailboxAction, typeof(MailboxActionRequest)),
-            new(ClientMessageType.GameMailboxOpen, typeof(MailboxOpenRequest)),
-            new(ClientMessageType.GameMailboxQuery, typeof(MailboxQueryRequest)));
-        services.AddNotificationHandler<MailboxCompleted, MailboxCompletedHandler>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.MirrorQuestViewChanged, Dfo.Server.Protocol.Game.QuestProgress.MirrorQuestViewChangedHandler>();
-        services.AddNotificationHandler<Dfo.Server.Abstractions.Quests.QuestProgressViewChanged, Dfo.Server.Protocol.Game.QuestProgress.QuestProgressViewChangedHandler>();
-        services.RegisterProtocolMessageHandler<MailboxClaimHandler, MailboxClaimRequest, GameMailboxCommand>(ClientMessageType.GameMailboxClaim);
-        services.AddGameCmdMessageDecoder<MailboxClaimDecoder>(0x005F, ClientMessageType.GameMailboxClaim);
-        services.AddGameCmdMessageEncoder<MailboxClaimResponse, MailboxClaimEncoder>();
-        services.RegisterProtocolMessageHandler<MailboxActionHandler, MailboxActionRequest, GameMailboxCommand>(ClientMessageType.GameMailboxAction);
-        services.AddGameCmdMessageDecoder<MailboxActionDecoder>(0x0086, ClientMessageType.GameMailboxAction);
-        services.AddGameCmdMessageEncoder<MailboxActionResponse, MailboxActionEncoder>();
-        // A21 character 000, 2026-09-24: CMD 0060 seq=28 has an empty body.
-        services.RegisterProtocolMessageHandler<MailboxOpenHandler, MailboxOpenRequest, GameMailboxCommand>(ClientMessageType.GameMailboxOpen);
-        services.AddGameCmdMessageDecoder<MailboxOpenDecoder>(0x0060, ClientMessageType.GameMailboxOpen);
-        services.AddGameCmdMessageEncoder<MailboxOpenResponse, MailboxOpenEncoder>();
-        services.RegisterProtocolMessageHandler<MailboxQueryHandler, MailboxQueryRequest, GameMailboxCommand>(ClientMessageType.GameMailboxQuery);
-        services.AddGameCmdMessageDecoder<MailboxQueryDecoder>(0x0144, ClientMessageType.GameMailboxQuery);
-        services.AddGameCmdMessageEncoder<MailboxQueryResponse, MailboxQueryEncoder>();
-        services.AddGameNotiMessageEncoder<MailboxAlarm, MailboxAlarmEncoder>();
-        services.TryAddSingleton<PartyClientIdRegistry>();
-        services.Replace(ServiceDescriptor.Singleton<IPartyService, PartyClientProjectionService>());
+        services.AddJoustSlice();
+        services.AddWeeklyAttendanceSlice();
+        services.AddMailboxSlice();
+        services.AddQuestProgressSlice();
+        services.AddPartySlice();
         services.AddGameMessageSending();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink, ReplayStateProjectionDelivery>();
-        services.TryAddSingleton<DungeonRunDeliveryRegistry>();
-        services.TryAddSingleton<DungeonPartyRecipients>();
-        services.AddTypedGameplayTimer<DungeonPartyWipeService>();
+        services.AddDungeonsSlice();
+        services.AddCharacterDeathSlice(configuration);
         services.AddInternalCommandHandler<MaintainDungeonReturnsCommand, System.Collections.Immutable.ImmutableArray<ReturnDungeonRunCommand>, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ProjectDungeonReturnCommand, bool, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ReturnDungeonRunCommand, System.Collections.Immutable.ImmutableArray<Dfo.Server.Data.World.SelectedSessionIdentity>, TowerReturnCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.AddProtocolCommandHandler<GameRecoverStaminaCommand, RecoverStaminaResult, GameRecoverStaminaCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRecoverStamina, typeof(RecoverStaminaRequest)));
-        services.AddNotificationHandler<StaminaRecovered, StaminaRecoveredHandler>();
+        services.AddRecoverStaminaSlice();
         services.AddTypedGameplayTimer<FatigueDailyRefreshService>();
-        services.AddGameNotiMessageEncoder<FatigueNotification, FatigueEncoder>();
-        services.TryAddSingleton<WeaknessRecoveryService>(provider => new(provider.GetRequiredService<ICommandBus>(),
-            provider.GetRequiredService<Dfo.Server.Abstractions.Characters.IWeaknessDomainService>().RecoveryInterval,
-            provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WeaknessRecoveryService>>()));
-        services.AddTypedGameplayTimer<WeaknessRecoveryService>();
-        services.AddInternalCommandHandler<RecoverWeaknessTickCommand, bool, RecoverWeaknessTickCommandHandler>();
-        services.AddTypedGameplayTimer<CreatureClockService>();
-        services.AddInternalCommandHandler<AdvanceCreatureTickCommand, bool, AdvanceCreatureTickCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.AddGameNotiMessageEncoder<CreatureExperienceNotification, CreatureExperienceEncoder>();
-        services.AddGameNotiMessageEncoder<CreatureStateNotification, CreatureStateEncoder>();
-        services.AddGameNotiMessageEncoder<CreatureDeathNotification, CreatureDeathEncoder>();
-        services.AddGameNotiMessageEncoder<CreatureRevivalNotification, CreatureRevivalEncoder>();
-        services.AddGameNotiMessageEncoder<CreatureRenameNotification, CreatureRenameEncoder>();
-        services.AddGameNotiMessageEncoder<CreatureEvolutionNotification, CreatureEvolutionEncoder>();
-        services.AddGameNotiMessageEncoder<CreatureResponseNotification, CreatureResponseEncoder>();
+        services.AddFatigueSlice();
+        services.AddWeaknessSlice();
+        services.AddCreaturesSlice();
         services.AddTypedGameplayTimer<PremiumDailyRefreshService>();
-        services.AddInternalCommandHandler<CaptureSelectedSessionRefreshCommand, SelectedSessionRefreshScan, SelectedSessionRefreshCommandHandler>();
-        services.AddInternalCommandHandler<RefreshQuotaSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
-        services.AddInternalCommandHandler<RefreshFatigueSessionCommand, bool, SelectedSessionRefreshCommandHandler>();
-        services.AddInternalCommandHandler<RefreshPremiumSessionCommand, bool, SelectedSessionRefreshCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
-        services.AddInternalCommandHandler<RefreshItemUsageSessionCommand, bool, SelectedSessionRefreshCommandHandler>(ReadOnlyActionCancellationCapability.ConfirmedRollbackRead);
-        services.AddNotificationHandler<Dfo.Server.Abstractions.UsageQuotas.UsageQuotaViewChanged, UsageQuotaViewChangedHandler>();
-        services.TryAddScoped<ClientAppearanceVisibilityProjection>();
-        services.AddNotificationHandler<ClientAppearanceVisibilityRefresh, ClientAppearanceVisibilityProjection>();
-        services.AddNotificationHandler<ExpiredItemsRefresh, ExpiredItemsRefreshHandler>();
-        services.AddNotificationHandler<CharacterUserStateRefresh, CharacterUserStateRefreshHandler>();
-        services.AddDomainSubscriber<Dfo.Server.Abstractions.Characters.CharacterNameTagExpired, NameTagExpiredSubscriber>(
-            "character.name-tag.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<OnlineExpiredItemsRemoved, ExpiredItemsNotificationSubscriber>(
-            "inventory.expiration.notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<Dfo.Server.Abstractions.Accounts.ClientAppearanceSettingsChanged,
-            ClientAppearanceSettingsSubscriber>("settings.appearance-visibility", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
-            fact => $"{fact.AccountId.Value}:{fact.CharacterId.Value}");
+        services.AddStateSynchronizationSlice(configuration);
+        services.AddCeraShopPurchaseSlice();
         services.AddTypedGameplayTimer<MirrorQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<LostLandQuotaRefreshService>();
-        services.AddTypedGameplayTimer<LostLandCompletionMaintenanceService>();
-        services.AddInternalCommandHandler<CaptureLostLandCompletionsCommand, IReadOnlyList<LostLandCompletion>, LostLandCompletionCommandHandler>();
-        services.AddInternalCommandHandler<CompleteLostLandCommand, bool, LostLandCompletionCommandHandler>();
-        services.AddTypedGameplayTimer<LostLandFeverMaintenanceService>();
-        services.AddInternalCommandHandler<CaptureLostLandFeverExpiriesCommand, IReadOnlyList<LostLandFeverExpiry>, LostLandFeverCommandHandler>();
-        services.AddInternalCommandHandler<ExpireLostLandFeverCommand, bool, LostLandFeverCommandHandler>();
         services.AddTypedGameplayTimer<DimensionQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<GoldSilverHornQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<ReviveCoinQuotaDailyRefreshService>();
         services.AddTypedGameplayTimer<ItemUsageDailyRefreshService>();
-        var lotteryCounterExperiment = new LotteryCounterExperimentOptions(
-            configuration.GetValue<bool>("LotteryCounterExperiment:Enabled"),
-            configuration.GetValue<byte>("LotteryCounterExperiment:Current", 0),
-            configuration.GetValue<byte>("LotteryCounterExperiment:Threshold", 30));
-        if (lotteryCounterExperiment.Current > 127 || lotteryCounterExperiment.Threshold > 127)
-            throw new InvalidOperationException("LotteryCounterExperiment values must be in 0..127.");
-        services.TryAddSingleton(lotteryCounterExperiment);
-        var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
-        if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
-        services.TryAddSingleton(new RevivalOptions(revivalFlag));
-        services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.Altar.AltarDeadlineSource>();
-        services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarDeadlineSource>();
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarOpen);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarBuy);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarSetSlot);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarUpgradeEnergy);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarSummon);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarExchange);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarPause);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarAchievement);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarReset);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand, bool, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarOpen, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarBuy, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarSetSlot, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarUpgradeEnergy, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarSummon, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarExchange, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarPause, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarAchievement, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuardianAltarReset, typeof(Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenDecoder>(0x0392, ClientMessageType.GameGuardianAltarOpen);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarBuyDecoder>(0x0393, ClientMessageType.GameGuardianAltarBuy);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSetSlotDecoder>(0x0394, ClientMessageType.GameGuardianAltarSetSlot);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarUpgradeDecoder>(0x0395, ClientMessageType.GameGuardianAltarUpgradeEnergy);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSummonDecoder>(0x0396, ClientMessageType.GameGuardianAltarSummon);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarExchangeDecoder>(0x0397, ClientMessageType.GameGuardianAltarExchange);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarPauseDecoder>(0x0398, ClientMessageType.GameGuardianAltarPause);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarAchievementDecoder>(0x0399, ClientMessageType.GameGuardianAltarAchievement);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResetDecoder>(0x039A, ClientMessageType.GameGuardianAltarReset);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarOpenResponse>>();
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarActionResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarActionResponse>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarProfileMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarProfileMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarStageInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarStageInfoMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarMapMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSpawnMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarSpawnMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResultMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarResultMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarEplpMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarEplpMessage>>();
+        services.AddAltarSlice();
+        services.AddGuardianAltarSlice();
         services.AddIsolatedWorldMaintenanceCommands();
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarQuotaDailyRefreshService>();
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.TournamentQuotaDailyRefreshService>();
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Tournament.HerasQuotaDailyRefreshService>();
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingProposalCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingProposal, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingResponseCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingResponse, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingChurchEnterCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingChurchEntry, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingPartnerCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingPartnerQuery, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerQuery)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingCommentCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingCommentPost, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingCommentDelete, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingCommentRead, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLetterCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingSendLetter, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingGiftCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingMoneyGift, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLovePointCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLovePointCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWeddingLovePoint, typeof(Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.GameHousingCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.GameHousingCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMarriageHousing, typeof(Dfo.Server.Protocol.Game.MarriageHousing.HousingNetworkRequest)));
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.MarriageHousing.GameCapsuleCommand, bool, Dfo.Server.Protocol.Game.MarriageHousing.GameCapsuleCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMarriageCapsule, typeof(Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRequest)));
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler>();
-        services.AddInternalCommandHandler<Dfo.Server.Protocol.Game.MarriageProposal.AdvanceWeddingTickCommand, bool, Dfo.Server.Protocol.Game.MarriageProposal.GameMarriageCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.AddGameCmdMessageDecoder<RentEquipmentDecoder>(0x03CF, ClientMessageType.GameRentEquipment);
-        services.AddGameCmdMessageDecoder<ChargeRentPointDecoder>(0x03D0, ClientMessageType.GameChargeRentPoint);
-        services.RegisterProtocolMessageHandler<RentEquipmentHandler,RentEquipmentRequest,GameRentEquipmentCommand>(ClientMessageType.GameRentEquipment);
-        services.RegisterProtocolMessageHandler<ChargeRentPointHandler,ChargeRentPointRequest,GameChargeRentPointCommand>(ClientMessageType.GameChargeRentPoint);
-        services.AddGameCmdMessageEncoder<RentEquipmentResponse, RentEquipmentEncoder>();
-        services.AddGameCmdMessageEncoder<ChargeRentPointResponse, ChargeRentPointEncoder>();
-        services.AddProtocolCommandHandler<GameRentEquipmentCommand,bool,GameRentEquipmentCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRentEquipment,typeof(RentEquipmentRequest)));
-        services.AddProtocolCommandHandler<GameChargeRentPointCommand,bool,GameChargeRentPointCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameChargeRentPoint,typeof(ChargeRentPointRequest)));
-        services.AddDomainSubscriber<LuckyStarChanged, LuckyStarChangedSubscriber>("rental.lucky-star-refresh", DomainEventDeliveryPolicy.LiveOnly, x=>x.AccountId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        services.AddNotificationHandler<LuckyStarPanelRefresh, LuckyStarPanelRefreshHandler>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectDecoder>(0x00FB, ClientMessageType.GameSharedEffect);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.UseStackable.SharedEffectHandler, Dfo.Server.Protocol.Game.UseStackable.SharedEffectRequest, Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommand>(ClientMessageType.GameSharedEffect);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectAck, Dfo.Server.Protocol.Game.UseStackable.SharedEffectAckEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotification, Dfo.Server.Protocol.Game.UseStackable.SharedEffectNotificationEncoder>();
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommand, bool, Dfo.Server.Protocol.Game.UseStackable.GameSharedEffectCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSharedEffect, typeof(Dfo.Server.Protocol.Game.UseStackable.SharedEffectRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentPostDecoder>(0x03F8, ClientMessageType.GameWeddingCommentPost);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentDeleteDecoder>(0x03F9, ClientMessageType.GameWeddingCommentDelete);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentReadDecoder>(0x03FA, ClientMessageType.GameWeddingCommentRead);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingCommentCommand>(ClientMessageType.GameWeddingCommentPost);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingCommentCommand>(ClientMessageType.GameWeddingCommentDelete);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingCommentCommand>(ClientMessageType.GameWeddingCommentRead);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingInvitedGuestsNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingInvitedGuestsEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterDecoder>(0x03F6, ClientMessageType.GameWeddingSendLetter);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLetterCommand>(ClientMessageType.GameWeddingSendLetter);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterAckEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftDecoder>(0x03F2, ClientMessageType.GameWeddingMoneyGift);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingGiftCommand>(ClientMessageType.GameWeddingMoneyGift);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingGiftAckEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalDecoder>(GameProtocol.WeddingProposalType, ClientMessageType.GameWeddingProposal);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterDecoder>(GameProtocol.WeddingChurchEntryType, ClientMessageType.GameWeddingChurchEntry);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingChurchEnterCommand>(ClientMessageType.GameWeddingChurchEntry);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchEnterEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingChurchPreparationEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxSelectDecoder>(0x03E5, ClientMessageType.GameCollectionBox);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxPutDecoder>(0x03E6, ClientMessageType.GameCollectionBox);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxWithdrawDecoder>(0x03E7, ClientMessageType.GameCollectionBox);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxExtendDecoder>(0x03E8, ClientMessageType.GameCollectionBox);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxHandler, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest, Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand>(ClientMessageType.GameCollectionBox);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommand, bool, Dfo.Server.Protocol.Game.CollectionBox.GameCollectionBoxCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch, CommandRegistrationExit.SettledInitialBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCollectionBox, typeof(Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxRequest)));
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAck, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxAckEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsMessage, Dfo.Server.Protocol.Game.CollectionBox.CollectionBoxContentsEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleMakeDecoder>(0x0404, ClientMessageType.GameMarriageCapsule);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiveDecoder>(0x0405, ClientMessageType.GameMarriageCapsule);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleTakeDecoder>(0x0406, ClientMessageType.GameMarriageCapsule);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleHandler, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRequest, Dfo.Server.Protocol.Game.MarriageHousing.GameCapsuleCommand>(ClientMessageType.GameMarriageCapsule);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAck, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleAckEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyMessage, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyEncoder>();
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleRefreshHandler>();
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefresh, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergyRefreshHandler>();
-        services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleEnergyChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleEnergySubscriber>("marriage.capsule-notification", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<Dfo.Server.Abstractions.Marriage.MarriageCapsuleGiftChanged, Dfo.Server.Protocol.Game.MarriageHousing.CapsuleGiftSubscriber>("marriage.capsule-gift-notification", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingStorageDecoder>(0x03FD, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingMoveDecoder>(0x03FE, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingDeleteDecoder>(0x03FF, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingPlantDecoder>(0x0400, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingWaterDecoder>(0x0401, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingHarvestDecoder>(0x0402, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingClearDecoder>(0x0403, ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingRingDecoder>(0x03F4, ClientMessageType.GameMarriageHousing);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingHandler, Dfo.Server.Protocol.Game.MarriageHousing.HousingNetworkRequest, Dfo.Server.Protocol.Game.MarriageHousing.GameHousingCommand>(ClientMessageType.GameMarriageHousing);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageHousing.HousingAck, Dfo.Server.Protocol.Game.MarriageHousing.HousingAckEncoder>();
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.MarriageHousing.HousingChanged, Dfo.Server.Protocol.Game.MarriageHousing.HousingChangedHandler>();
+        services.AddTournamentSlice();
+        services.AddMarriageProposalSlice();
+        services.AddMarriageHousingSlice();
+        services.AddRentalSlice();
+        services.AddUseStackableSlice();
+        services.AddCollectionBoxSlice();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRoomMessage, Dfo.Server.Protocol.Game.HousingRoomEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingStorageMessage, Dfo.Server.Protocol.Game.HousingStorageEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingMoveMessage, Dfo.Server.Protocol.Game.HousingMoveEncoder>();
@@ -452,499 +200,125 @@ public sealed class ProtocolModule : IServerModule
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingTreeMessage, Dfo.Server.Protocol.Game.HousingTreeEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRingMessage, Dfo.Server.Protocol.Game.HousingRingEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.HousingRewardsMessage, Dfo.Server.Protocol.Game.HousingRewardsEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(0x03F5, ClientMessageType.GameWeddingLovePoint);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLovePointCommand>(ClientMessageType.GameWeddingLovePoint);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotificationEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerDecoder>(GameProtocol.WeddingPartnerType, ClientMessageType.GameWeddingPartnerQuery);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerQuery, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingPartnerCommand>(ClientMessageType.GameWeddingPartnerQuery);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoMessage, Dfo.Server.Protocol.Game.MarriageProposal.WeddingInfoEncoder>();
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseDecoder>(GameProtocol.WeddingResponseType, ClientMessageType.GameWeddingResponse);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingProposalCommand>(ClientMessageType.GameWeddingProposal);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingResponseCommand>(ClientMessageType.GameWeddingResponse);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalAckEncoder>();
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseAckEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingProposalNotificationEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingResponseNotificationEncoder>();
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.Altar.AltarStateChanged,
-            Dfo.Server.Protocol.Game.Altar.AltarStateChangedHandler>();
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarPrepareHandler, Dfo.Server.Protocol.Game.Altar.AltarPrepareRequest, Dfo.Server.Protocol.Game.Altar.GameAltarPrepareCommand>(ClientMessageType.GameAltarPrepare);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarPrepareCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAltarPrepare, typeof(Dfo.Server.Protocol.Game.Altar.AltarPrepareRequest)));
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchHandler, Dfo.Server.Protocol.Game.Altar.AltarDeathBatchRequest, Dfo.Server.Protocol.Game.Altar.GameAltarDeathBatchCommand>(ClientMessageType.GameAltarDeathBatch);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarDeathBatchCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAltarDeathBatch, typeof(Dfo.Server.Protocol.Game.Altar.AltarDeathBatchRequest)));
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.Altar.AltarDifficultyHandler, Dfo.Server.Protocol.Game.Altar.AltarDifficultyRequest, Dfo.Server.Protocol.Game.Altar.GameAltarDifficultyCommand>(ClientMessageType.GameAltarDifficulty);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.Altar.GameAltarDifficultyCommand, bool, Dfo.Server.Protocol.Game.Altar.GameAltarCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAltarDifficulty, typeof(Dfo.Server.Protocol.Game.Altar.AltarDifficultyRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarPrepareDecoder>(0x0102, ClientMessageType.GameAltarPrepare);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDeathBatchDecoder>(0x00FF, ClientMessageType.GameAltarDeathBatch);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyDecoder>(0x013D, ClientMessageType.GameAltarDifficulty);
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarInfoMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarMapMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarWaveMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarIntervalMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarIntervalMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyPromptMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyPromptMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResolvedMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResolvedMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRankingMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRankingMessage>>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage, GameNotiStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarRewardMessage>>();
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse, GameCmdStateSynchronizationEncoder<Dfo.Server.Protocol.Game.Altar.AltarDifficultyResponse>>();
-        services.AddTypedGameplayTimer<TournamentRewardSweepService>();
-        services.AddInternalCommandHandler<SweepTournamentRewardsCommand, bool, SweepTournamentRewardsCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.AddInternalCommandHandler<SweepTournamentCandidateCommand, bool, SweepTournamentRewardsCommandHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
-        services.RegisterProtocolMessageHandler<TournamentRewardHandler, TournamentRewardRequest, GameTournamentRewardCommand>(ClientMessageType.GameTournamentRewardStatus);
-        services.AddProtocolCommandHandler<GameTournamentRewardCommand, bool, GameTournamentRewardCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentRewardStatus, typeof(TournamentRewardRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameTournamentSelectReward, typeof(TournamentRewardRequest)));
-        services.RegisterProtocolMessageHandler<TournamentRewardHandler, TournamentRewardRequest, GameTournamentRewardCommand>(ClientMessageType.GameTournamentSelectReward);
-        services.AddGameCmdMessageDecoder<TournamentStatusDecoder>(0x01CA, ClientMessageType.GameTournamentRewardStatus);
-        services.AddGameCmdMessageDecoder<TournamentSelectionDecoder>(0x01CB, ClientMessageType.GameTournamentSelectReward);
-        services.AddGameNotiMessageEncoder<TournamentInfoMessage, TournamentInfoEncoder>();
-        services.AddGameNotiMessageEncoder<TournamentMapMessage, TournamentMapEncoder>();
-        services.AddGameNotiMessageEncoder<TournamentRewardMessage, TournamentRewardEncoder>();
-        services.AddGameCmdMessageEncoder<TournamentStatusResponse, TournamentStatusEncoder>();
-        services.AddGameCmdMessageEncoder<TournamentSelectionResponse, TournamentSelectionEncoder>();
-        services.TryAddSingleton(DungeonCardPresentationTiming.Production);
-        services.TryAddSingleton<IDungeonCardPresentationDelay,
-            SystemDungeonCardPresentationDelay>();
-        services.TryAddSingleton<DungeonCardPresentationCoordinator>();
-        services.AddSingleton<IDungeonCardPresentationControl>(p => p.GetRequiredService<DungeonCardPresentationCoordinator>());
-        services.AddSingleton<Dfo.Server.Abstractions.Execution.IGameplayProducerDrain>(provider => provider.GetRequiredService<DungeonCardPresentationCoordinator>());
-        services.TryAddSingleton<IDungeonRunProjectionDomainService>(provider =>
-            provider.GetRequiredService<DungeonRunDeliveryRegistry>());
-        services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
-            provider.GetRequiredService<DungeonRunDeliveryRegistry>());
+        services.AddCardRewardSlice();
         // Every notification type declared in this assembly must have a handler registered below,
         // and the server refuses to start if one does not. Declared rather than discovered: the
         // check is only worth having while something says which assemblies it covers, and this
         // line is that something.
         services.AddNotificationCatalog(typeof(ProtocolModule).Assembly);
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateMessage,
-            Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateEncoder>();
-        services.AddNotificationHandler<DungeonRoomMechanismsNotification,
-            Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>();
-        services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismDeadlineSource>();
+        services.AddRoomMechanismsSlice();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
-        services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>();
-        services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>();
-        services.AddNotificationHandler<CeraShopPurchaseCompleted, CeraShopPurchaseCompletedHandler>();
+        services.AddBuyItemSlice();
+        services.AddWarehouseSlice();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>();
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>();
-        services.AddNotificationHandler<EpicCraftCompleted, EpicCraftCompletedHandler>();
-        services.AddNotificationHandler<ItemSocketCompleted, ItemSocketCompletedHandler>();
-        services.AddNotificationHandler<EquipmentQualityCompleted, EquipmentQualityCompletedHandler>();
-        services.AddNotificationHandler<MagicSealGradeCompleted, MagicSealGradeCompletedHandler>();
-        services.AddNotificationHandler<AvatarCompoundCompleted, AvatarCompoundCompletedHandler>();
-        services.AddNotificationHandler<ShopPurchaseCountsReported, ShopPurchaseCountsReportedHandler>();
-        services.AddNotificationHandler<ItemSaleCompleted, ItemSaleCompletedHandler>();
-        services.AddNotificationHandler<EquipmentRepairCompleted, EquipmentRepairCompletedHandler>();
-        services.AddNotificationHandler<EquipmentDisjointCompleted, EquipmentDisjointCompletedHandler>();
-        services.AddNotificationHandler<EquipmentReinforcementCompleted,
-            EquipmentReinforcementCompletedHandler>();
-        services.AddNotificationHandler<EquipmentEnchantCompleted,
-            EquipmentEnchantCompletedHandler>();
-        services.AddNotificationHandler<MagicSealCompleted,
-            MagicSealCompletedHandler>();
-        services.AddNotificationHandler<OutworldCompleted,
-            OutworldCompletedHandler>();
-        services.AddNotificationHandler<ForgingCompleted,
-            ForgingCompletedHandler>();
-        services.AddNotificationHandler<SortLockChanged, SortLockChangedHandler>();
-        services.AddNotificationHandler<InventorySorted, InventorySortedHandler>();
-        services.AddNotificationHandler<EquipmentDurabilityChanged, EquipmentDurabilityChangedHandler>();
-        services.AddNotificationHandler<ItemDiscardCompleted, ItemDiscardCompletedHandler>();
-        services.AddNotificationHandler<CrystalContractSelected, CrystalContractSelectedHandler>();
-        services.AddNotificationHandler<MaterialsConsumed, MaterialsConsumedHandler>();
-        services.TryAddSingleton<PartyProjectionStreamRegistry>();
-        services.TryAddSingleton<IPartyProjectionStateDomainService>(provider => provider.GetRequiredService<PartyProjectionStreamRegistry>());
-        services.TryAddSingleton<PartyNotificationDelivery>();
-        services.TryAddSingleton<IPartyTownProjectionDelivery, PartyTownProjectionDelivery>();
-        services.TryAddSingleton<TownAreaProjectionDelivery>();
-        services.AddNotificationHandler<PartyInviteIssued, PartyInviteIssuedHandler>();
-        services.AddNotificationHandler<PartyRealtimeChanged, PartyRealtimeChangedHandler>();
-        services.AddNotificationHandler<PartyInviteAccepted, PartyInviteAcceptedHandler>();
-        services.AddNotificationHandler<PartyEndpointsChanged, PartyEndpointsChangedHandler>();
-        services.AddNotificationHandler<PartyRosterChanged, PartyRosterChangedHandler>();
-        services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>();
-        services.AddNotificationHandler<PartyLeadershipChanged, PartyLeadershipChangedHandler>();
-        services.AddNotificationHandler<
-            OtherCharacterDetailRequested,
-            OtherCharacterDetailRequestedHandler>();
-        services.TryAddSingleton<ICleanupNotificationDelivery, CleanupNotificationDelivery>();
-        services.AddNotificationHandler<SessionCleanupAnnounced, SessionCleanupAnnouncedHandler>();
-        services.AddNotificationHandler<TownParticipantPublished, TownParticipantPublishedHandler>();
-        services.AddNotificationHandler<TownPositionChanged, TownPositionChangedHandler>();
-        services.AddNotificationHandler<TownAreaRosterReconciled, TownAreaRosterReconciledHandler>();
+        services.AddEpicCraftSlice();
+        services.AddItemSocketsSlice();
+        services.AddResetItemQualitySlice();
+        services.AddResetRandomOptionSlice();
+        services.AddAvatarCompoundSlice();
+        services.AddShopPurchaseCountSlice();
+        services.AddSellItemSlice();
+        services.AddRepairItemSlice();
+        services.AddDisjointItemSlice();
+        services.AddReinforceItemSlice();
+        services.AddEnchantByBeadSlice();
+        services.AddMagicSealSlice();
+        services.AddOutworldSlice();
+        services.AddForgingSlice();
+        services.AddInventorySortSlice();
+        services.AddEquipmentDurabilitySlice();
+        services.AddDeleteItemSlice();
+        services.AddCrystalContractSlice();
+        services.AddTownProjectionSlice();
+        services.AddAccountRosterSlice();
         services.TryAddSingleton<ChannelProtocolKeyProvider>();
-        services.TryAddSingleton(SelectCharacterDeliveryOptions.Everything);
-        services.TryAddSingleton<ISelectedCharacterStateMessageFactory, SelectedCharacterStateMessageFactoryService>();
+        services.AddSelectCharacterSlice();
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, OnlineUserConnectionObserver>());
-        RegisterInboundDecoders(services);
-        RegisterOutboundEncoders(services);
-        RegisterCommands(services);
-        RegisterMessageHandlers(services);
-    }
-
-    /// <summary>The commands a protocol slice owns, with their execution kind and access modes.</summary>
-    private static void RegisterCommands(IServiceCollection services)
-    {
-        services.AddProtocolCommandHandler<ChannelConnectCommand, ChannelConnectCompleted, ChannelConnectCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.ChannelConnect, typeof(ChannelConnectRequest)));
-        services.AddProtocolCommandHandler<ChannelScriptVersionCommand, ChannelScriptVersionCompleted, ChannelScriptVersionCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.ChannelScriptVersion, typeof(ChannelScriptVersionRequest)));
-        services.AddProtocolCommandHandler<ChannelScriptCommand, ChannelScriptCompleted, ChannelScriptCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.ChannelScript, typeof(ChannelScriptRequest)));
-        services.AddProtocolCommandHandler<ChannelInfoCommand, ChannelInfoCompleted, ChannelInfoCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.ChannelInfo, typeof(ChannelInfoRequest)));
-        services.AddProtocolCommandHandler<GameAcceptQuestCommand, QuestAcceptOutcome, GameAcceptQuestCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAcceptQuest, typeof(AcceptQuestRequest)));
-        services.AddProtocolCommandHandler<GameGiveUpQuestCommand, GiveUpQuestOutcome, GameGiveUpQuestCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpQuest, typeof(GiveUpQuestRequest)));
-        services.AddProtocolCommandHandler<GameSetQuestTriggerCommand, QuestTriggerOutcome, GameSetQuestTriggerCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetQuestTrigger, typeof(SetQuestTriggerRequest)));
-        services.AddProtocolCommandHandler<GameFinishQuestCommand, QuestFinishOutcome, GameFinishQuestCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameFinishQuest, typeof(FinishQuestRequest)));
-        services.AddProtocolCommandHandler<GameMonsterDeathCommand, bool, GameMonsterDeathCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMonsterDeath, typeof(MonsterDeathRequest)));
-        services.AddProtocolCommandHandler<GameLoginCommand, GameLoginCompleted, GameLoginCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameLogin, typeof(GameLoginRequest)));
-        // These complete protocol commands own their original explicit write segments; no account gate remains.
-        services.AddProtocolCommandHandler<GameAccountRosterCommand, AccountCharacterRoster, GameAccountRosterCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGetAccountCharacterRoster, typeof(GetAccountCharacterRosterRequest)));
-        services.AddProtocolCommandHandler<GameCheckCharacterNameCommand, CharacterNameStatus, GameCheckCharacterNameCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCheckCharacterName, typeof(CheckCharacterNameRequest)));
-        services.AddProtocolCommandHandler<GameCreateCharacterCommand, CharacterCreationResult, GameCreateCharacterCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCreateCharacter, typeof(CreateCharacterRequest)));
-        services.AddProtocolCommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult, GameDeleteCharacterCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteCharacter, typeof(DeleteCharacterRequest)));
-        services.AddProtocolCommandHandler<GameSelectCharacterCommand, bool, GameSelectCharacterCommandHandler>(
-            CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSelectCharacter, typeof(SelectCharacterRequest)));
-        services.AddProtocolCommandHandler<GameReturnToSelectionCommand, bool, GameReturnToSelectionCommandHandler>(
-            CommandSelectedSessionCleanupCapability.SelectedSessionLifecycle,
-            new ProtocolCommandMessageBinding(ClientMessageType.GameReturnToSelection, typeof(ReturnToSelectionRequest)));
-        services.AddProtocolCommandHandler<GameExitCommand, bool, GameExitCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameExit, typeof(GameExitRequest)));
-        services.AddNotificationHandler<PvpParticipantPublished, PvpParticipantPublishedHandler>();
-        // Both act on one character's own container, which the registry already keeps per
-        // character; neither reads or writes anything the account owns, so neither takes it.
-        // Transactional, and in the same change that broke the move into separate writes. Marking
-        // it afterwards would leave a window in which a move was several writes with nothing to
-        // settle them together -- a window every test would pass through green.
-        services.AddProtocolCommandHandler<GameMoveItemSpaceCommand, bool, GameMoveItemSpaceCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMoveItemSpace, typeof(MoveItemSpaceRequest)));
-        services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(
-            new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));
-        services.AddProtocolCommandHandler<GameIncreaseStatusCommand, IncreaseStatusResult, GameIncreaseStatusCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameIncreaseStatus, typeof(IncreaseStatusRequest)));
-        services.RegisterProtocolMessageHandler<IncreaseStatusHandler, IncreaseStatusRequest, GameIncreaseStatusCommand>(ClientMessageType.GameIncreaseStatus);
-        services.AddGameCmdMessageDecoder<IncreaseStatusDecoder>(0x001E, ClientMessageType.GameIncreaseStatus);
-        services.AddGameCmdMessageEncoder<IncreaseStatusResponse, IncreaseStatusEncoder>();
-        services.AddProtocolCommandHandler<GameHatchCreatureCommand, bool, GameHatchCreatureCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameHatchCreature, typeof(HatchCreatureRequest)));
-        services.AddProtocolCommandHandler<GameRenameCreatureCommand, bool, GameRenameCreatureCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRenameCreature, typeof(RenameCreatureRequest)));
-        services.AddProtocolCommandHandler<GameGenCeraTicketCommand, bool, GameGenCeraTicketCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGenCeraTicket, typeof(GenCeraTicketRequest)));
-        services.AddProtocolCommandHandler<GameQuestClearCouponCommand, bool, GameQuestClearCouponCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameQuestClearCoupon, typeof(QuestClearCouponRequest)));
-        services.AddProtocolCommandHandler<GameTitleBookMutationCommand, bool, GameTitleBookMutationCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameStoreTitle, typeof(TitleBookMutationRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWithdrawTitle, typeof(TitleBookMutationRequest)));
-        services.AddProtocolCommandHandler<GameQueryTitleBookCommand, bool, GameQueryTitleBookCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameQueryTitleBook, typeof(QueryTitleBookRequest)));
-        services.AddProtocolCommandHandler<GameSetTitleAppearanceCommand, bool, GameSetTitleAppearanceCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetTitleAppearance, typeof(SetTitleAppearanceRequest)));
-        services.AddProtocolCommandHandler<GameAchievementTriggerCommand, bool, GameAchievementTriggerCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAchievementTrigger, typeof(AchievementTriggerRequest)));
-        services.AddDomainSubscriber<AchievementProgressChanged, AchievementEventSubscriber>("achievement.noti", DomainEventDeliveryPolicy.LiveOnly, f => f.CharacterId.Value.ToString());
-        services.AddDomainSubscriber<TitleUnlocked, TitleBookEventSubscriber>("title.noti-unlock", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<TitleStored, TitleBookEventSubscriber>("title.noti-store", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<TitleWithdrawn, TitleBookEventSubscriber>("title.noti-withdraw", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<ItemMirrorRemoved, TitleBookEventSubscriber>("inventory.noti-mirror-removed", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddNotificationHandler<AchievementChanged, AchievementChangedHandler>();
-        services.AddNotificationHandler<TitleBookChanged, TitleBookChangedHandler>();
-        services.RegisterProtocolMessageHandler<SetTitleAppearanceHandler, SetTitleAppearanceRequest, GameSetTitleAppearanceCommand>(ClientMessageType.GameSetTitleAppearance);
-        services.AddGameCmdMessageDecoder<SetTitleAppearanceDecoder>(0x0239, ClientMessageType.GameSetTitleAppearance);
-        services.AddGameCmdMessageEncoder<SetTitleAppearanceResponse, SetTitleAppearanceEncoder>();
-        services.AddDomainSubscriber<TitleAppearanceChanged, TitleBookEventSubscriber>("title.noti-appearance", DomainEventDeliveryPolicy.LiveOnly);
-        services.RegisterProtocolMessageHandler<TitleBookMutationHandler, TitleBookMutationRequest, GameTitleBookMutationCommand>(ClientMessageType.GameStoreTitle);
-        services.RegisterProtocolMessageHandler<TitleBookMutationHandler, TitleBookMutationRequest, GameTitleBookMutationCommand>(ClientMessageType.GameWithdrawTitle);
-        services.RegisterProtocolMessageHandler<AchievementTriggerHandler, AchievementTriggerRequest, GameAchievementTriggerCommand>(ClientMessageType.GameAchievementTrigger);
-        services.RegisterProtocolMessageHandler<QueryTitleBookHandler, QueryTitleBookRequest, GameQueryTitleBookCommand>(ClientMessageType.GameQueryTitleBook);
-        services.AddGameCmdMessageDecoder<StoreTitleDecoder>(0x019C, ClientMessageType.GameStoreTitle);
-        services.AddGameCmdMessageDecoder<WithdrawTitleDecoder>(0x019D, ClientMessageType.GameWithdrawTitle);
-        services.AddGameCmdMessageDecoder<AchievementTriggerDecoder>(0x01A1, ClientMessageType.GameAchievementTrigger);
-        services.AddGameCmdMessageDecoder<QueryTitleBookDecoder>(0x01A8, ClientMessageType.GameQueryTitleBook);
-        services.AddGameCmdMessageEncoder<TitleBookMutationResponse, TitleBookMutationEncoder>();
-        services.AddGameCmdMessageEncoder<AchievementTriggerResponse, AchievementTriggerEncoder>();
-        services.AddGameNotiMessageEncoder<TitleUnlockedMessage, GameNotiStateSynchronizationEncoder<TitleUnlockedMessage>>();
-        services.AddProtocolCommandHandler<GameLevelUpTicketCommand, bool, GameLevelUpTicketCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameLevelUpTicket, typeof(LevelUpTicketRequest)));
-        services.AddProtocolCommandHandler<GameChangeSkillSlotCommand, bool, GameChangeSkillSlotCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameChangeSkillSlot, typeof(ChangeSkillSlotRequest)));
-        services.RegisterProtocolMessageHandler<ChangeSkillSlotHandler, ChangeSkillSlotRequest, GameChangeSkillSlotCommand>(ClientMessageType.GameChangeSkillSlot);
-        services.AddGameCmdMessageDecoder<ChangeSkillSlotDecoder>(0x001C, ClientMessageType.GameChangeSkillSlot);
-        services.AddGameCmdMessageEncoder<ChangeSkillSlotResponse, ChangeSkillSlotEncoder>();
-        services.AddProtocolCommandHandler<GameSwitchSkillBuildCommand, bool, GameSwitchSkillBuildCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSwitchSkillBuild, typeof(SwitchSkillBuildRequest)));
-        services.RegisterProtocolMessageHandler<SwitchSkillBuildHandler, SwitchSkillBuildRequest, GameSwitchSkillBuildCommand>(ClientMessageType.GameSwitchSkillBuild);
-        services.AddGameCmdMessageDecoder<SwitchSkillBuildDecoder>(0x0104, ClientMessageType.GameSwitchSkillBuild);
-        services.AddGameCmdMessageEncoder<SwitchSkillBuildResponse, SwitchSkillBuildEncoder>();
-        services.AddProtocolCommandHandler<GameLearnSkillCommand, CharacterSkillLearningResult, GameLearnSkillCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameLearnSkill, typeof(LearnSkillRequest)));
-        services.AddProtocolCommandHandler<GameSellItemCommand, bool, GameSellItemCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSellItem, typeof(SellItemRequest)));
-        services.AddProtocolCommandHandler<GameRepairItemCommand, bool, GameRepairItemCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRepairItem, typeof(RepairItemRequest)));
-        services.AddProtocolCommandHandler<GameTeleportCommand, bool, GameTeleportCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameTeleport, typeof(TeleportRequest)));
-        services.AddProtocolCommandHandler<GameSetUserAreaCommand, bool, GameTownMovementCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetUserArea, typeof(SetUserAreaRequest)));
-        services.AddProtocolCommandHandler<GameSetUserPositionCommand, bool, GameTownMovementCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetUserPosition, typeof(SetUserPositionRequest)));
-        services.AddProtocolCommandHandler<GameMagicSealCommand, EquipmentMagicSealResult, GameMagicSealCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameUnsealRandomOption, typeof(MagicSealRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameChangeRandomOption, typeof(MagicSealRequest)));
-        services.AddProtocolCommandHandler<GameCompoundItemCommand, bool, GameCompoundItemCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCompoundItem, typeof(CompoundItemRequest)));
-        services.AddProtocolCommandHandler<GameAvatarCompoundCommand, AvatarCompoundResult, GameAvatarCompoundCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarCompound, typeof(AvatarCompoundRequest)));
-        services.AddProtocolCommandHandler<GameResetRandomOptionCommand, EquipmentQualityResult, GameResetRandomOptionCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameResetRandomOption, typeof(ResetRandomOptionRequest)));
-        services.AddProtocolCommandHandler<GameItemSocketCommand, ItemSocketResult, GameItemSocketCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarEmblem, typeof(ItemSocketRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarSocketOpen, typeof(ItemSocketRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameEquipmentEmblem, typeof(ItemSocketRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameEquipmentSocketOpen, typeof(ItemSocketRequest)));
-        services.AddProtocolCommandHandler<GameResetItemQualityCommand, EquipmentQualityResult, GameResetItemQualityCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameResetItemQuality, typeof(ResetItemQualityRequest)));
-        services.AddProtocolCommandHandler<GameEpicCraftCommand, bool, GameEpicCraftCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameEpicCraft, typeof(EpicCraftRequest)));
-        services.AddProtocolCommandHandler<GameOutworldCommand, EquipmentOutworldResult, GameOutworldCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GamePurifyItem, typeof(OutworldRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameInvestAmplifyOption, typeof(OutworldRequest)));
-        services.AddProtocolCommandHandler<GameForgingCommand, EquipmentForgingResult, GameForgingCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSeparateUpgrade, typeof(ForgingRequest)));
-        services.AddProtocolCommandHandler<GameSortLockCommand, bool, GameSortLockCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSortLock, typeof(SortLockRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSortUnlock, typeof(SortLockRequest)));
-        services.AddProtocolCommandHandler<GameWarehouseCommand, InventoryExpansionResult, GameWarehouseCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCreateAccountCargo, typeof(WarehouseRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeAccountCargo, typeof(WarehouseRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameDepositAccountCargo, typeof(WarehouseRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameWithdrawAccountCargo, typeof(WarehouseRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeCargo, typeof(WarehouseRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameUpgradeInventory, typeof(WarehouseRequest)));
-        services.AddProtocolCommandHandler<GameSortItemCommand, bool, GameSortItemCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSortItem, typeof(SortItemRequest)));
-        services.AddProtocolCommandHandler<GameCrystalContractCommand, bool, GameCrystalContractCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCrystalContract, typeof(CrystalContractRequest)));
-        services.AddProtocolCommandHandler<GameDeleteItemCommand, bool, GameDeleteItemCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteItem, typeof(DeleteItemRequest)));
-        services.AddProtocolCommandHandler<GameBuyItemCommand, BuyItemOutcome, GameBuyItemCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(BuyItemRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameBuyItem, typeof(HousingBuyItemRequest)));
-        services.AddProtocolCommandHandler<GameCeraShopPurchaseCommand, CeraShopPurchaseResult, GameCeraShopPurchaseCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCeraShopPurchase, typeof(CeraShopPurchaseRequest)));
-        services.AddProtocolCommandHandler<GameMagicBoxBatchOpeningCommand, MagicBoxOpeningResult, GameMagicBoxBatchOpeningCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMagicBoxBatchOpening, typeof(MagicBoxBatchOpeningRequest)));
-        services.AddProtocolCommandHandler<GameMagicBoxSingleOpeningCommand, MagicBoxOpeningResult, GameMagicBoxSingleOpeningCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMagicBoxSingleOpening, typeof(MagicBoxSingleOpeningRequest)));
-        services.AddProtocolCommandHandler<GameVendingMachineCommand, bool, GameVendingMachineCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameVendingMachine, typeof(VendingMachineRequest)));
-        services.AddProtocolCommandHandler<GameLotteryOpeningCommand, bool, GameLotteryOpeningCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameLotteryOpening, typeof(LotteryOpeningRequest)));
-        services.AddProtocolCommandHandler<GamePackageOpeningCommand, PackageOpeningResult, GamePackageOpeningCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GamePackageOpening, typeof(PackageOpeningRequest)));
-        services.AddProtocolCommandHandler<GameAvatarPackageOpeningCommand, PackageOpeningResult, GameAvatarPackageOpeningCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarPackageOpening, typeof(AvatarPackageOpeningRequest)));
-        // Taking a piece off a room's floor: the claim on the floor and the row in the bag are one
-        // change, and a piece that left the floor without arriving anywhere is the thing to avoid.
-        services.AddProtocolCommandHandler<GameGetItemCommand, bool, GameGetItemCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGetItem, typeof(GetItemRequest)));
-        // The tutorial's level: one row, written once, and the client is told what it now stands at.
-        services.AddProtocolCommandHandler<GameTutorialLevelUpCommand, bool, GameTutorialLevelUpCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameTutorialLevelUp, typeof(TutorialLevelUpRequest)));
-        // Turning a card over now hands the piece behind it to the character's bag, which is the
-        // moment the note left here foresaw: a claim on a run alone is memory, and a row in a bag
-        // is not. Transactional from that change onwards, on the same reading the ground pick-up
-        // was given -- the claim and the row are one change, and a position marked taken whose
-        // piece never arrived anywhere is the thing to avoid. The bag's own container refuses a
-        // write with no boundary open, so this is what makes the arrival possible at all.
-        services.AddProtocolCommandHandler<GameLeavePartyCommand, bool, GamePartyTransitionCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameLeaveParty, typeof(LeavePartyRequest)));
-        services.AddProtocolCommandHandler<GameRemovePartyMemberCommand, bool, GamePartyTransitionCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRemovePartyMember, typeof(RemovePartyMemberRequest)));
-        services.AddProtocolCommandHandler<GameChangePartyLeaderCommand, bool, GamePartyTransitionCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameChangePartyLeader, typeof(ChangePartyLeaderRequest)));
-        services.AddProtocolCommandHandler<GameSetUdpIpPortCommand, bool, GameSetUdpIpPortCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetUdpIpPort, typeof(SetUdpIpPortRequest)));
-        services.AddProtocolCommandHandler<GameRequestPeerCommand, bool, GameRequestPeerCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRequestPeer, typeof(RequestPeerRequest)));
-        services.AddProtocolCommandHandler<GameResponsePeerCommand, bool, GameResponsePeerCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameResponsePeer, typeof(ResponsePeerRequest)));
-        services.AddProtocolCommandHandler<GameSetPartyInfoCommand, bool, GameSetPartyInfoCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetPartyInfo, typeof(SetPartyInfoRequest)));
-        services.AddProtocolCommandHandler<GameCallPartyMemberRealtimeInfoCommand, bool, GameCallPartyMemberRealtimeInfoCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCallPartyMemberRealtimeInfo, typeof(CallPartyMemberRealtimeInfoRequest)));
-        services.AddProtocolCommandHandler<GameOtherCharacterDetailCommand, GameOtherCharacterDetailCompleted, GameOtherCharacterDetailCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGetOtherCharacterDetail, typeof(GetOtherCharacterDetailRequest)));
-    }
-
-    /// <summary>Binds each catalogue member to the handler that consumes it.</summary>
-    private static void RegisterMessageHandlers(IServiceCollection services)
-    {
-        services.RegisterProtocolMessageHandler<ChannelConnectHandler, ChannelConnectRequest, ChannelConnectCommand>(ClientMessageType.ChannelConnect);
-        services.RegisterProtocolMessageHandler<ChannelScriptVersionHandler, ChannelScriptVersionRequest, ChannelScriptVersionCommand>(ClientMessageType.ChannelScriptVersion);
-        services.RegisterProtocolMessageHandler<ChannelScriptHandler, ChannelScriptRequest, ChannelScriptCommand>(ClientMessageType.ChannelScript);
-        services.RegisterProtocolMessageHandler<ChannelInfoHandler, ChannelInfoRequest, ChannelInfoCommand>(ClientMessageType.ChannelInfo);
-        services.RegisterProtocolMessageHandler<ReturnToSelectionHandler, ReturnToSelectionRequest, GameReturnToSelectionCommand>(ClientMessageType.GameReturnToSelection);
-        services.RegisterProtocolMessageHandler<GameExitHandler, GameExitRequest, GameExitCommand>(ClientMessageType.GameExit);
-        services.AddProtocolCommandHandler<GameTaggedIdReportCommand, bool, GameTaggedIdReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameTaggedIdReport, typeof(TaggedIdReportRequest)));
-        services.AddProtocolCommandHandler<GameDecreaseDurabilityCommand, bool, GameDecreaseDurabilityCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameDecreaseDurability, typeof(DecreaseDurabilityRequest)));
-        services.AddProtocolCommandHandler<GamePremiumServiceUsageReportCommand, bool, GamePremiumServiceUsageReportCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GamePremiumServiceUsageReport, typeof(PremiumServiceUsageReport)));
-        services.RegisterProtocolMessageHandler<PremiumServiceUsageReportHandler, PremiumServiceUsageReport, GamePremiumServiceUsageReportCommand>(ClientMessageType.GamePremiumServiceUsageReport);
-        services.RegisterProtocolMessageHandler<RecoverStaminaHandler, RecoverStaminaRequest, GameRecoverStaminaCommand>(ClientMessageType.GameRecoverStamina);
-        services.RegisterProtocolMessageHandler<GameLoginHandler, GameLoginRequest, GameLoginCommand>(ClientMessageType.GameLogin);
-        services.RegisterProtocolMessageHandler<GetAccountCharacterRosterHandler, GetAccountCharacterRosterRequest, GameAccountRosterCommand>(ClientMessageType.GameGetAccountCharacterRoster);
-        services.RegisterProtocolMessageHandler<GetOtherCharacterDetailHandler, GetOtherCharacterDetailRequest, GameOtherCharacterDetailCommand>(
-            ClientMessageType.GameGetOtherCharacterDetail);
-        services.RegisterProtocolMessageHandler<SelectCharacterHandler, SelectCharacterRequest, GameSelectCharacterCommand>(ClientMessageType.GameSelectCharacter);
-        services.AddProtocolCommandHandler<GameClientSpecStatisticCommand, bool, GameClientSpecStatisticCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameClientSpecStatistic, typeof(ClientSpecStatisticReportRequest)));
-        services.RegisterProtocolMessageHandler<ClientSpecStatisticHandler, ClientSpecStatisticReportRequest, GameClientSpecStatisticCommand>(ClientMessageType.GameClientSpecStatistic);
-        services.AddProtocolCommandHandler<GameClientHardwareDetailCommand, bool, GameClientHardwareDetailCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameClientHardwareDetail, typeof(ClientHardwareDetailReportRequest)));
-        services.RegisterProtocolMessageHandler<ClientHardwareDetailHandler, ClientHardwareDetailReportRequest, GameClientHardwareDetailCommand>(ClientMessageType.GameClientHardwareDetail);
-        services.AddProtocolCommandHandler<GameClientSpecProfileCommand, bool, GameClientSpecProfileCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameClientSpecProfile, typeof(ClientSpecProfileReportRequest)));
-        services.RegisterProtocolMessageHandler<ClientSpecProfileHandler, ClientSpecProfileReportRequest, GameClientSpecProfileCommand>(ClientMessageType.GameClientSpecProfile);
-        services.AddProtocolCommandHandler<GameSessionMetricsCommand, bool, GameSessionMetricsCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSessionMetrics, typeof(SessionMetricsReportRequest)));
-        services.RegisterProtocolMessageHandler<SessionMetricsHandler, SessionMetricsReportRequest, GameSessionMetricsCommand>(ClientMessageType.GameSessionMetrics);
-        services.RegisterProtocolMessageHandler<AcceptQuestHandler, AcceptQuestRequest, GameAcceptQuestCommand>(ClientMessageType.GameAcceptQuest);
-        services.RegisterProtocolMessageHandler<GiveUpQuestHandler, GiveUpQuestRequest, GameGiveUpQuestCommand>(ClientMessageType.GameGiveUpQuest);
-        services.RegisterProtocolMessageHandler<SetQuestTriggerHandler, SetQuestTriggerRequest, GameSetQuestTriggerCommand>(ClientMessageType.GameSetQuestTrigger);
-        services.RegisterProtocolMessageHandler<FinishQuestHandler, FinishQuestRequest, GameFinishQuestCommand>(ClientMessageType.GameFinishQuest);
-        services.RegisterProtocolMessageHandler<TaggedIdReportHandler, TaggedIdReportRequest, GameTaggedIdReportCommand>(ClientMessageType.GameTaggedIdReport);
-        services.AddProtocolCommandHandler<GameRosterFollowUpCommand, bool, GameRosterFollowUpCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRosterFollowUp, typeof(RosterFollowUpRequest)));
-        services.RegisterProtocolMessageHandler<RosterFollowUpHandler, RosterFollowUpRequest, GameRosterFollowUpCommand>(ClientMessageType.GameRosterFollowUp);
-        services.RegisterProtocolMessageHandler<CheckCharacterNameHandler, CheckCharacterNameRequest, GameCheckCharacterNameCommand>(ClientMessageType.GameCheckCharacterName);
-        services.RegisterProtocolMessageHandler<CreateCharacterHandler, CreateCharacterRequest, GameCreateCharacterCommand>(ClientMessageType.GameCreateCharacter);
-        services.RegisterProtocolMessageHandler<DeleteCharacterHandler, DeleteCharacterRequest, GameDeleteCharacterCommand>(ClientMessageType.GameDeleteCharacter);
-        services.AddProtocolCommandHandler<GameMercenaryInfoCommand, bool, GameMercenaryInfoCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMercenaryInfo, typeof(MercenaryInfoRequest)));
-        services.RegisterProtocolMessageHandler<MercenaryInfoHandler, MercenaryInfoRequest, GameMercenaryInfoCommand>(ClientMessageType.GameMercenaryInfo);
-        services.RegisterTelemetryMessageHandler<HiddenCharacterInfoHandler>(ClientMessageType.GameHiddenCharacterInfo);
-        services.AddProtocolCommandHandler<GameSaveCharacterOptionCommand, bool, GameSaveCharacterOptionCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveCharacterOption, typeof(SaveCharacterOptionRequest)));
-        services.RegisterProtocolMessageHandler<SaveCharacterOptionHandler, SaveCharacterOptionRequest, GameSaveCharacterOptionCommand>(ClientMessageType.GameSaveCharacterOption);
-        services.AddGameCmdMessageDecoder<SaveCharacterOptionDecoder>(0x01C0, ClientMessageType.GameSaveCharacterOption);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysHandler, Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand>(ClientMessageType.GameSaveHotkeys);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommand, bool, Dfo.Server.Protocol.Game.SaveHotkeys.GameSaveHotkeysCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveHotkeys, typeof(Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveHotkeys.SaveHotkeysDecoder>(0x00C6, ClientMessageType.GameSaveHotkeys);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatHandler, Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest, Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand>(ClientMessageType.GameSaveQuickChat);
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommand, bool, Dfo.Server.Protocol.Game.SaveQuickChat.GameSaveQuickChatCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveQuickChat, typeof(Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatRequest)));
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.SaveQuickChat.SaveQuickChatDecoder>(0x0170, ClientMessageType.GameSaveQuickChat);
-        services.RegisterProtocolMessageHandler<SaveGameOption1Handler, SaveGameOption1Request, GameSaveGameOption1Command>(ClientMessageType.GameSaveGameOption1);
-        services.AddProtocolCommandHandler<GameSaveGameOption1Command, bool, GameSaveGameOption1CommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSaveGameOption1, typeof(SaveGameOption1Request)));
-        services.AddProtocolCommandHandler<GameContentsPlayInfoCommand, bool, GameContentsPlayInfoCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameContentsPlayInfo, typeof(ContentsPlayInfoRequest)));
-        services.RegisterProtocolMessageHandler<ContentsPlayInfoHandler, ContentsPlayInfoRequest, GameContentsPlayInfoCommand>(ClientMessageType.GameContentsPlayInfo);
-        services.AddProtocolCommandHandler<GameConnectionCheckCommand, bool, GameConnectionCheckCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameConnectionCheck, typeof(ConnectionCheckRequest)));
-        services.RegisterProtocolMessageHandler<ConnectionCheckHandler, ConnectionCheckRequest, GameConnectionCheckCommand>(ClientMessageType.GameConnectionCheck);
-
-        services.RegisterProtocolMessageHandler<SetUdpIpPortHandler, SetUdpIpPortRequest, GameSetUdpIpPortCommand>(ClientMessageType.GameSetUdpIpPort);
-        services.RegisterProtocolMessageHandler<RequestPeerHandler, RequestPeerRequest, GameRequestPeerCommand>(ClientMessageType.GameRequestPeer);
-        services.RegisterProtocolMessageHandler<ResponsePeerHandler, ResponsePeerRequest, GameResponsePeerCommand>(ClientMessageType.GameResponsePeer);
-        services.RegisterProtocolMessageHandler<LeavePartyHandler, LeavePartyRequest, GameLeavePartyCommand>(ClientMessageType.GameLeaveParty);
-        services.RegisterProtocolMessageHandler<RemovePartyMemberHandler, RemovePartyMemberRequest, GameRemovePartyMemberCommand>(
-            ClientMessageType.GameRemovePartyMember);
-        services.RegisterProtocolMessageHandler<ChangePartyLeaderHandler, ChangePartyLeaderRequest, GameChangePartyLeaderCommand>(
-            ClientMessageType.GameChangePartyLeader);
-        services.RegisterProtocolMessageHandler<CallPartyMemberRealtimeInfoHandler, CallPartyMemberRealtimeInfoRequest, GameCallPartyMemberRealtimeInfoCommand>(
-            ClientMessageType.GameCallPartyMemberRealtimeInfo);
-        services.RegisterProtocolMessageHandler<SetPartyInfoHandler, SetPartyInfoRequest, GameSetPartyInfoCommand>(ClientMessageType.GameSetPartyInfo);
-
-        // One handler, the remaining wire keys in the map-entry report family.
-        services.AddProtocolCommandHandler<GameMapEntryReportCommand, bool, GameMapEntryReportCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCeraQuery, typeof(CeraQueryReport)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameRuntimeTingStatistic, typeof(RuntimeTingStatisticReport)));
-        services.RegisterProtocolMessageHandler<MapEntryReportHandler, IMapEntryReport, GameMapEntryReportCommand>(ClientMessageType.GameCeraQuery, typeof(CeraQueryReport));
-        services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport));
-        services.RegisterProtocolMessageHandler<NoticeSeenHandler, INoticeSeenReport, GameNoticeSeenCommand>(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest));
-        services.AddGameCmdMessageDecoder<NoticeSeenDecoder>(0x01DE, ClientMessageType.GameNoticeSeen);
-        services.AddProtocolCommandHandler<GameNoticeSeenCommand, bool, GameNoticeSeenCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameNoticeSeen, typeof(NoticeSeenRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameInformNoticeSecond, typeof(InformNoticeSecondReport)));
-        services.AddProtocolCommandHandler<GameSecurityStatusCommand, bool, GameSecurityStatusCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSecurityStatus, typeof(SecurityStatusReport)));
-        services.RegisterProtocolMessageHandler<SecurityStatusHandler, SecurityStatusReport, GameSecurityStatusCommand>(ClientMessageType.GameSecurityStatus);
-        services.RegisterProtocolMessageHandler<MapEntryReportHandler, IMapEntryReport, GameMapEntryReportCommand>(ClientMessageType.GameRuntimeTingStatistic, typeof(RuntimeTingStatisticReport));
-        services.AddProtocolCommandHandler<GameEnterSelectDungeonCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEnterSelectDungeon, typeof(EnterSelectDungeonRequest)));
-        services.RegisterProtocolMessageHandler<EnterSelectDungeonHandler, EnterSelectDungeonRequest, GameEnterSelectDungeonCommand>(ClientMessageType.GameEnterSelectDungeon);
-        services.AddProtocolCommandHandler<GameSelectDungeonCommand, bool, GameSelectDungeonCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSelectDungeon, typeof(SelectDungeonRequest)),
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMirrorDungeonEntry, typeof(SelectDungeonRequest)));
-        services.RegisterProtocolMessageHandler<SelectDungeonHandler, SelectDungeonRequest, GameSelectDungeonCommand>(ClientMessageType.GameSelectDungeon);
-        services.RegisterProtocolMessageHandler<SelectDungeonHandler, SelectDungeonRequest, GameSelectDungeonCommand>(ClientMessageType.GameMirrorDungeonEntry);
-
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonEntryDecoder>(0x02B6, ClientMessageType.GameMirrorDungeonEntry);
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionNotification, Dfo.Server.Protocol.Game.MirrorDungeonEntry.MirrorDungeonMissionEncoder>();
-        services.RegisterProtocolMessageHandler<PrepareCycleDungeonEntryHandler, PrepareCycleDungeonEntryRequest, GamePrepareCycleDungeonEntryCommand>(ClientMessageType.GamePrepareCycleDungeonEntry);
-        services.AddProtocolCommandHandler<GamePrepareCycleDungeonEntryCommand, CycleDungeonPreparation, GamePrepareCycleDungeonEntryCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GamePrepareCycleDungeonEntry, typeof(PrepareCycleDungeonEntryRequest)));
-        services.AddGameCmdMessageDecoder<PrepareCycleDungeonEntryDecoder>(0x0308, ClientMessageType.GamePrepareCycleDungeonEntry);
-        services.AddGameCmdMessageEncoder<PrepareCycleDungeonEntryResponse, PrepareCycleDungeonEntryEncoder>();
-        services.AddProtocolCommandHandler<GameFinishLoadingCommand, bool, GameMapLoadingCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameFinishLoading, typeof(FinishLoadingRequest)));
-        services.RegisterProtocolMessageHandler<FinishLoadingHandler, FinishLoadingRequest, GameFinishLoadingCommand>(ClientMessageType.GameFinishLoading);
-        services.AddProtocolCommandHandler<GameMoveMapCommand, bool, GameMapLoadingCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameMoveMap, typeof(MoveMapRequest)));
-        services.RegisterProtocolMessageHandler<MoveMapHandler, MoveMapRequest, GameMoveMapCommand>(ClientMessageType.GameMoveMap);
-        services.AddProtocolCommandHandler<GameStoryPauseCommand, bool, GameStoryPauseCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameStoryPause, typeof(StoryPauseRequest)));
-        services.RegisterProtocolMessageHandler<StoryPauseHandler, StoryPauseRequest, GameStoryPauseCommand>(ClientMessageType.GameStoryPause);
-        services.AddProtocolCommandHandler<GameUseRevivalCoinCommand, bool, GameUseRevivalCoinCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameUseRevivalCoin, typeof(UseRevivalCoinRequest)));
-        services.RegisterProtocolMessageHandler<UseRevivalCoinHandler, UseRevivalCoinRequest, GameUseRevivalCoinCommand>(ClientMessageType.GameUseRevivalCoin);
-        services.AddProtocolCommandHandler<GameCharacterDeathCommand, bool, GameCharacterDeathCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCharacterDeath, typeof(CharacterDeathRequest)));
-        services.RegisterProtocolMessageHandler<CharacterDeathHandler, CharacterDeathRequest, GameCharacterDeathCommand>(ClientMessageType.GameCharacterDeath);
-        services.RegisterProtocolMessageHandler<MonsterDeathHandler, MonsterDeathRequest, GameMonsterDeathCommand>(ClientMessageType.GameMonsterDeath);
+        services.AddLoginSlice();
+        services.AddReturnToSelectionSlice();
+        services.AddExitSlice();
+        services.AddClientSpecStatisticSlice();
+        services.AddClientHardwareDetailSlice();
+        services.AddClientSpecProfileSlice();
+        services.AddSessionMetricsSlice();
+        services.AddQuestAcceptanceSlice();
+        services.AddQuestGiveUpSlice();
+        services.AddQuestCompletionSlice();
+        services.AddTaggedIdReportSlice();
+        services.AddStoryPauseSlice();
+        services.AddMonsterDeathSlice();
+        services.AddBossTowerInfoSlice();
+        services.AddBossTowerMapSlice();
+        services.AddBossTowerRewardSlice();
+        services.AddBossTowerContinueSlice();
+        services.AddIllusionTowerInfoSlice();
+        services.AddIllusionTowerMapSlice();
+        services.AddIllusionTowerRankingSlice();
+        services.AddIllusionTowerRewardSlice();
+        services.AddIllusionTowerContinueSlice();
+        services.AddGroundPickupSlice();
+        services.AddDungeonClearSlice();
+        services.AddEplpRechallengeSlice();
+        services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
+        services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
+        services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
+        services.AddSouthernDaleSlice();
+        services.AddBossTowerTicketSlice();
+        services.AddTauKingdomSlice();
+        services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>();
+        services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
+        services.AddRosterFollowUpSlice();
+        services.AddCharacterNameSlice();
+        services.AddCreateCharacterSlice();
+        services.AddDeleteCharacterSlice();
+        services.AddMercenaryInfoSlice();
+        services.AddSaveGameOptionSlice();
+        services.AddContentsPlayInfoSlice();
+        services.AddConnectionCheckSlice();
+        services.AddMapEntryReportsSlice();
+        services.AddInformNoticeSlice();
+        services.AddDungeonSelectionSlice();
+        services.AddDungeonEntrySlice();
+        services.AddFinishLoadingSlice();
+        services.AddIllusionTowerStageSlice();
+        services.AddTutorialLevelUpSlice();
+        services.AddUnansweredReportsSlice();
+        services.AddMoveItemSpaceSlice();
+        services.AddLearnSkillSlice();
+        services.AddMagicBoxBatchOpeningSlice();
+        services.AddMagicBoxSingleOpeningSlice();
+        services.AddVendingMachineSlice();
+        services.AddLotteryOpeningSlice();
+        services.AddCompoundItemSlice();
+        services.AddPackageOpeningSlice();
+        services.AddReviveCoinSlice();
+        services.AddAvatarPackageOpeningSlice();
+        services.AddGenCeraTicketSlice();
+        services.AddTeleportSlice();
+        services.AddQuestClearCouponSlice();
+        services.AddLevelUpTicketSlice();
+        services.AddHiddenCharacterInfoSlice();
+        services.AddScriptVersionSlice();
+        services.AddScriptSlice();
+        services.AddConnectSlice();
+        services.AddInfoSlice();
+        services.AddInitialConnectionSlice();
+        services.AddHonorLevelSlice();
+        services.AddAuctionServiceSlice();
+        services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();
+        services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
+        GameInstanceDelivery.AddEncoders(services);
+        services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();
+        services.AddIncreaseStatusSlice();
+        services.AddTitleBookSlice();
+        services.AddAchievementsSlice();
+        services.AddSaveCharacterOptionSlice();
+        services.AddSaveHotkeysSlice();
+        services.AddSaveQuickChatSlice();
+        services.AddMirrorDungeonEntrySlice();
+        services.AddCycleDungeonEntrySlice();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();
         services.TryAddSingleton<IBossTowerDepartureProjectionDomainService>(p => p.GetRequiredService<BossTowerDepartureProjectionQueue>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IBossTowerDepartureSink, BossTowerDepartureProjectionQueue>(p => p.GetRequiredService<BossTowerDepartureProjectionQueue>()));
@@ -967,539 +341,5 @@ public sealed class ProtocolModule : IServerModule
         services.AddInternalCommandHandler<ProjectIllusionTowerDepartureCommand, bool, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<CaptureIllusionTowerReturnsDueCommand, TowerReturnsDue<TowerActionContext>, TowerReturnCommandHandler>();
         services.AddInternalCommandHandler<ReturnIllusionTowerRunCommand, bool, TowerReturnCommandHandler>();
-        services.AddProtocolCommandHandler<GameIllusionTowerStageCommand, bool, GameMapLoadingCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameIllusionTowerStage, typeof(IllusionTowerStageRequest)));
-        services.RegisterProtocolMessageHandler<IllusionTowerStageHandler, IllusionTowerStageRequest, GameIllusionTowerStageCommand>(ClientMessageType.GameIllusionTowerStage);
-        services.RegisterProtocolMessageHandler<GetItemHandler, GetItemRequest, GameGetItemCommand>(ClientMessageType.GameGetItem);
-        services.RegisterProtocolMessageHandler<TutorialLevelUpHandler, TutorialLevelUpRequest, GameTutorialLevelUpCommand>(ClientMessageType.GameTutorialLevelUp);
-        services.AddProtocolCommandHandler<GameSetPlayResultCommand, bool, GameSetPlayResultCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSetPlayResult, typeof(SetPlayResultRequest)));
-        services.RegisterProtocolMessageHandler<SetPlayResultHandler, SetPlayResultRequest, GameSetPlayResultCommand>(ClientMessageType.GameSetPlayResult);
-        services.AddProtocolCommandHandler<GameBossDieCheckCommand, bool, GameBossDieCheckCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameBossDieCheck, typeof(BossDieCheckRequest)));
-        services.RegisterProtocolMessageHandler<BossDieCheckHandler, BossDieCheckRequest, GameBossDieCheckCommand>(ClientMessageType.GameBossDieCheck);
-        services.AddProtocolCommandHandler<GameScoreScrollStateCommand, bool, GameCardCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameScoreScrollState, typeof(ScoreScrollStateRequest)));
-        services.RegisterProtocolMessageHandler<ScoreScrollStateHandler, ScoreScrollStateRequest, GameScoreScrollStateCommand>(ClientMessageType.GameScoreScrollState);
-        services.AddProtocolCommandHandler<GameCardSelectRightStateCommand, bool, GameCardCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCardSelectRightState, typeof(CardSelectRightStateRequest)));
-        services.RegisterProtocolMessageHandler<CardSelectRightStateHandler, CardSelectRightStateRequest, GameCardSelectRightStateCommand>(ClientMessageType.GameCardSelectRightState);
-        services.AddProtocolCommandHandler<GameSelectCardCommand, bool, GameCardCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameSelectCard, typeof(SelectCardRequest)));
-        services.RegisterProtocolMessageHandler<SelectCardHandler, SelectCardRequest, GameSelectCardCommand>(ClientMessageType.GameSelectCard);
-        services.AddInternalCommandHandler<DungeonCardLayoutCommand, bool, GameCardCommandHandler>();
-        services.AddInternalCommandHandler<DungeonCardAutoFlipCommand, bool, GameCardCommandHandler>();
-        services.AddProtocolCommandHandler<GameEplpCommand, bool, GamePartyTransitionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameEplpCommand, typeof(EplpCommandRequest)));
-        services.RegisterProtocolMessageHandler<EplpCommandHandler, EplpCommandRequest, GameEplpCommand>(ClientMessageType.GameEplpCommand);
-        services.AddProtocolCommandHandler<GameGiveUpGameCommand, bool, GamePartyTransitionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGiveUpGame, typeof(GiveUpGameRequest)));
-        services.RegisterProtocolMessageHandler<GiveUpGameHandler, GiveUpGameRequest, GameGiveUpGameCommand>(ClientMessageType.GameGiveUpGame);
-        services.AddProtocolCommandHandler<GameBackToVillageCommand, bool, GameDungeonSelectionCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameBackToVillage, typeof(BackToVillageRequest)));
-        services.RegisterProtocolMessageHandler<BackToVillageHandler, BackToVillageRequest, GameBackToVillageCommand>(ClientMessageType.GameBackToVillage);
-
-        // Known reports that this server intentionally does not answer. A durability request is
-        // not one of them: it changes a persisted equipment instance and has its own CMD reply.
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
-        services.RegisterProtocolMessageHandler<SortLockHandler, SortLockRequest, GameSortLockCommand>(ClientMessageType.GameSortLock);
-        services.RegisterProtocolMessageHandler<SortLockHandler, SortLockRequest, GameSortLockCommand>(ClientMessageType.GameSortUnlock);
-        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameCreateAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0131, ClientMessageType.GameCreateAccountCargo);
-        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0132, ClientMessageType.GameUpgradeAccountCargo);
-        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameDepositAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0133, ClientMessageType.GameDepositAccountCargo);
-        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameWithdrawAccountCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0134, ClientMessageType.GameWithdrawAccountCargo);
-        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeCargo);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x0198, ClientMessageType.GameUpgradeCargo);
-        services.RegisterProtocolMessageHandler<WarehouseHandler, WarehouseRequest, GameWarehouseCommand>(ClientMessageType.GameUpgradeInventory);
-        services.AddGameCmdMessageDecoder<WarehouseDecoder>(0x01AF, ClientMessageType.GameUpgradeInventory);
-        services.RegisterProtocolMessageHandler<SortItemHandler, SortItemRequest, GameSortItemCommand>(ClientMessageType.GameSortItem);
-        services.RegisterProtocolMessageHandler<DecreaseDurabilityHandler, DecreaseDurabilityRequest, GameDecreaseDurabilityCommand>(ClientMessageType.GameDecreaseDurability);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFpsPerformanceStatistic);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFrameLagPerDungeon);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLagStatistics);
-        services.RegisterProtocolMessageHandler<MoveItemSpaceHandler, MoveItemSpaceRequest, GameMoveItemSpaceCommand>(ClientMessageType.GameMoveItemSpace);
-        services.RegisterProtocolMessageHandler<UseStackableHandler, UseStackableRequest, GameUseStackableCommand>(ClientMessageType.GameUseStackable);
-        services.RegisterProtocolMessageHandler<RenameCreatureHandler, RenameCreatureRequest, GameRenameCreatureCommand>(ClientMessageType.GameRenameCreature);
-        services.RegisterProtocolMessageHandler<HatchCreatureHandler, HatchCreatureRequest, GameHatchCreatureCommand>(ClientMessageType.GameHatchCreature);
-        services.AddProtocolCommandHandler<GameCreatureResponseReportCommand, bool, GameCreatureResponseReportCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCreatureResponseReport, typeof(CreatureResponseReport)));
-        services.RegisterProtocolMessageHandler<CreatureResponseReportHandler, CreatureResponseReport, GameCreatureResponseReportCommand>(ClientMessageType.GameCreatureResponseReport);
-        services.AddProtocolCommandHandler<GameCreatureScriptMessageCommand, bool, GameCreatureScriptMessageCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameCreatureScriptMessage, typeof(CreatureScriptMessageReport)));
-        services.RegisterProtocolMessageHandler<CreatureScriptMessageReportHandler, CreatureScriptMessageReport, GameCreatureScriptMessageCommand>(ClientMessageType.GameCreatureScriptMessage);
-        services.RegisterProtocolMessageHandler<QuestClearCouponHandler, QuestClearCouponRequest, GameQuestClearCouponCommand>(ClientMessageType.GameQuestClearCoupon);
-        services.RegisterProtocolMessageHandler<LevelUpTicketHandler, LevelUpTicketRequest, GameLevelUpTicketCommand>(ClientMessageType.GameLevelUpTicket);
-        services.RegisterProtocolMessageHandler<BuyItemHandler, BuyItemRequest, GameBuyItemCommand>(ClientMessageType.GameBuyItem,
-            typeof(BuyItemRequest), typeof(HousingBuyItemRequest));
-        services.RegisterProtocolMessageHandler<CeraShopPurchaseHandler, CeraShopPurchaseRequest, GameCeraShopPurchaseCommand>(ClientMessageType.GameCeraShopPurchase);
-        services.RegisterProtocolMessageHandler<MagicBoxBatchOpeningHandler, MagicBoxBatchOpeningRequest, GameMagicBoxBatchOpeningCommand>(ClientMessageType.GameMagicBoxBatchOpening);
-        services.RegisterProtocolMessageHandler<MagicBoxSingleOpeningHandler, MagicBoxSingleOpeningRequest, GameMagicBoxSingleOpeningCommand>(ClientMessageType.GameMagicBoxSingleOpening);
-        services.RegisterProtocolMessageHandler<VendingMachineHandler, VendingMachineRequest, GameVendingMachineCommand>(ClientMessageType.GameVendingMachine);
-        services.RegisterProtocolMessageHandler<LotteryOpeningHandler, LotteryOpeningRequest, GameLotteryOpeningCommand>(ClientMessageType.GameLotteryOpening);
-        services.RegisterProtocolMessageHandler<PackageOpeningHandler, PackageOpeningRequest, GamePackageOpeningCommand>(ClientMessageType.GamePackageOpening);
-        services.RegisterProtocolMessageHandler<AvatarPackageOpeningHandler, AvatarPackageOpeningRequest, GameAvatarPackageOpeningCommand>(ClientMessageType.GameAvatarPackageOpening);
-        services.RegisterProtocolMessageHandler<GenCeraTicketHandler, GenCeraTicketRequest, GameGenCeraTicketCommand>(ClientMessageType.GameGenCeraTicket);
-        services.RegisterProtocolMessageHandler<LearnSkillHandler, LearnSkillRequest, GameLearnSkillCommand>(ClientMessageType.GameLearnSkill);
-        services.RegisterProtocolMessageHandler<SellItemHandler, SellItemRequest, GameSellItemCommand>(ClientMessageType.GameSellItem);
-        services.RegisterProtocolMessageHandler<RepairItemHandler, RepairItemRequest, GameRepairItemCommand>(ClientMessageType.GameRepairItem);
-        services.RegisterProtocolMessageHandler<DisjointItemHandler, DisjointItemRequest, GameDisjointItemCommand>(ClientMessageType.GameDisjointItem);
-        services.RegisterProtocolMessageHandler<ReinforceItemHandler, ReinforceItemRequest, GameReinforceItemCommand>(ClientMessageType.GameReinforceItem);
-        services.RegisterProtocolMessageHandler<EnchantByBeadHandler, EnchantByBeadRequest, GameEnchantByBeadCommand>(ClientMessageType.GameEnchantByBead);
-        services.RegisterProtocolMessageHandler<TeleportHandler, TeleportRequest, GameTeleportCommand>(ClientMessageType.GameTeleport);
-        services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameUnsealRandomOption);
-        services.RegisterProtocolMessageHandler<MagicSealHandler, MagicSealRequest, GameMagicSealCommand>(ClientMessageType.GameChangeRandomOption);
-        services.RegisterProtocolMessageHandler<CompoundItemHandler, CompoundItemRequest, GameCompoundItemCommand>(ClientMessageType.GameCompoundItem);
-        services.RegisterProtocolMessageHandler<AvatarCompoundHandler, AvatarCompoundRequest, GameAvatarCompoundCommand>(ClientMessageType.GameAvatarCompound);
-        services.RegisterProtocolMessageHandler<EpicCraftHandler, EpicCraftRequest, GameEpicCraftCommand>(ClientMessageType.GameEpicCraft);
-        services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameEquipmentSocketOpen);
-        services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameEquipmentEmblem);
-        services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameAvatarSocketOpen);
-        services.RegisterProtocolMessageHandler<ItemSocketHandler, ItemSocketRequest, GameItemSocketCommand>(ClientMessageType.GameAvatarEmblem);
-        services.RegisterProtocolMessageHandler<ResetItemQualityHandler, ResetItemQualityRequest, GameResetItemQualityCommand>(ClientMessageType.GameResetItemQuality);
-        services.RegisterProtocolMessageHandler<ResetRandomOptionHandler, ResetRandomOptionRequest, GameResetRandomOptionCommand>(ClientMessageType.GameResetRandomOption);
-        services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GamePurifyItem);
-        services.RegisterProtocolMessageHandler<OutworldHandler, OutworldRequest, GameOutworldCommand>(ClientMessageType.GameInvestAmplifyOption);
-        services.RegisterProtocolMessageHandler<ForgingHandler, ForgingRequest, GameForgingCommand>(ClientMessageType.GameSeparateUpgrade);
-        services.RegisterProtocolMessageHandler<CrystalContractHandler, CrystalContractRequest, GameCrystalContractCommand>(ClientMessageType.GameCrystalContract);
-        services.RegisterProtocolMessageHandler<DeleteItemHandler, DeleteItemRequest, GameDeleteItemCommand>(ClientMessageType.GameDeleteItem);
-        services.AddProtocolCommandHandler<GameShopPurchaseCountCommand, bool, GameShopPurchaseCountCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameShopPurchaseCount, typeof(ShopPurchaseCountRequest)));
-        services.RegisterProtocolMessageHandler<ShopPurchaseCountHandler, ShopPurchaseCountRequest, GameShopPurchaseCountCommand>(ClientMessageType.GameShopPurchaseCount);
-
-        // Position and area: the only inputs that move a published character, and so the only
-        // way the town its next entry reports can change.
-        services.RegisterProtocolMessageHandler<SetUserPositionHandler, SetUserPositionRequest, GameSetUserPositionCommand>(ClientMessageType.GameSetUserPosition);
-        services.RegisterProtocolMessageHandler<SetUserAreaHandler, SetUserAreaRequest, GameSetUserAreaCommand>(ClientMessageType.GameSetUserArea);
-    }
-
-    /// <summary>
-    /// The inbound routing table: one line per protocol, binding its wire key to its decoder and
-    /// declaring which catalogue members that decoder can produce.
-    /// </summary>
-    /// <remarks>
-    /// Registration is unconditional on purpose. The declared set is what the startup coverage
-    /// check reads, and that check must hold whether or not this process is listening.
-    ///
-    /// Most lines declare the one catalogue member named after their wire key. GET_USERINFO does
-    /// not: type 0x0008 produces the account roster request, which carries a synthesised catalogue
-    /// value with no wire number of its own.
-    ///
-    /// Every client-originated Game line below is explicitly CMD. The selector remains part of the
-    /// wire key, so an unregistered selector/type pair matches nothing and is silently ignored.
-    /// </remarks>
-    private static void RegisterInboundDecoders(IServiceCollection services)
-    {
-        services.AddGameCmdMessageDecoder<GameLoginMessageDecoder>(
-            GameProtocol.LoginType, ClientMessageType.GameLogin);
-        services.AddGameCmdMessageDecoder<ReturnToSelectionMessageDecoder>(
-            GameProtocol.ReturnToSelectionType, ClientMessageType.GameReturnToSelection);
-        services.AddGameCmdMessageDecoder<GameExitMessageDecoder>(
-            GameProtocol.ExitType, ClientMessageType.GameExit);
-        services.AddGameCmdMessageDecoder<SelectCharacterMessageDecoder>(
-            GameProtocol.SelectCharacterType, ClientMessageType.GameSelectCharacter);
-        services.AddGameCmdMessageDecoder<GetUserInfoMessageDecoder>(
-            GameProtocol.GetUserInfoType,
-            ClientMessageType.GameGetAccountCharacterRoster,
-            ClientMessageType.GameGetOtherCharacterDetail);
-        services.AddGameCmdMessageDecoder<ClientSpecStatisticMessageDecoder>(
-            GameProtocol.ClientSpecStatisticType, ClientMessageType.GameClientSpecStatistic);
-        services.AddGameCmdMessageDecoder<ClientHardwareDetailMessageDecoder>(
-            GameProtocol.ClientHardwareDetailType, ClientMessageType.GameClientHardwareDetail);
-        services.AddGameCmdMessageDecoder<ClientSpecProfileMessageDecoder>(
-            GameProtocol.ClientSpecProfileType, ClientMessageType.GameClientSpecProfile);
-        services.AddGameCmdMessageDecoder<SessionMetricsMessageDecoder>(
-            GameProtocol.SessionMetricsType, ClientMessageType.GameSessionMetrics);
-        services.AddGameCmdMessageDecoder<AcceptQuestMessageDecoder>(
-            GameProtocol.AcceptQuestType, ClientMessageType.GameAcceptQuest);
-        services.AddGameCmdMessageDecoder<GiveUpQuestMessageDecoder>(
-            GameProtocol.GiveUpQuestType, ClientMessageType.GameGiveUpQuest);
-        services.AddGameCmdMessageDecoder<SetQuestTriggerMessageDecoder>(
-            GameProtocol.SetQuestTriggerType, ClientMessageType.GameSetQuestTrigger);
-        services.AddGameCmdMessageDecoder<FinishQuestMessageDecoder>(
-            GameProtocol.FinishQuestType, ClientMessageType.GameFinishQuest);
-        services.AddGameCmdMessageDecoder<TaggedIdReportMessageDecoder>(
-            GameProtocol.TaggedIdReportType, ClientMessageType.GameTaggedIdReport);
-        services.AddGameCmdMessageEncoder<AcceptQuestAcknowledgement, AcceptQuestAcknowledgementEncoder>();
-        services.AddGameCmdMessageEncoder<GiveUpQuestAcknowledgement, GiveUpQuestAcknowledgementEncoder>();
-        services.AddGameCmdMessageEncoder<SetQuestTriggerAcknowledgement, SetQuestTriggerAcknowledgementEncoder>();
-        services.AddGameCmdMessageEncoder<FinishQuestAcknowledgement, FinishQuestAcknowledgementEncoder>();
-        services.AddGameCmdMessageEncoder<TutorialFlagAcknowledgement, TutorialFlagAcknowledgementEncoder>();
-        services.AddGameNotiMessageEncoder<StoryPauseNotification, StoryPauseEncoder>();
-        services.AddGameNotiMessageEncoder<ExperienceNotification, ExperienceEncoder>();
-        services.AddGameNotiMessageEncoder<MonsterDeathNotification, MonsterDeathEncoder>();
-        services.AddGameNotiMessageEncoder<BossTowerInfoNotification, BossTowerInfoEncoder>();
-        services.AddGameNotiMessageEncoder<BossTowerMapNotification, BossTowerMapEncoder>();
-        services.AddGameNotiMessageEncoder<BossTowerRewardNotification, BossTowerRewardEncoder>();
-        services.AddGameNotiMessageEncoder<BossTowerContinueNotification, BossTowerContinueEncoder>();
-        services.AddGameNotiMessageEncoder<IllusionTowerInfoNotification, IllusionTowerInfoEncoder>();
-        services.AddGameNotiMessageEncoder<IllusionTowerMapNotification, IllusionTowerMapEncoder>();
-        services.AddGameNotiMessageEncoder<IllusionTowerRankingNotification, IllusionTowerRankingEncoder>();
-        services.AddGameNotiMessageEncoder<IllusionTowerRewardNotification, IllusionTowerRewardEncoder>();
-        services.AddGameNotiMessageEncoder<IllusionTowerContinueNotification, IllusionTowerContinueEncoder>();
-        services.AddGameCmdMessageDecoder<PremiumServiceUsageReportDecoder>(0x036F, ClientMessageType.GamePremiumServiceUsageReport);
-        services.AddGameCmdMessageDecoder<RecoverStaminaDecoder>(0x0009, ClientMessageType.GameRecoverStamina);
-        services.AddGameCmdMessageEncoder<RecoverStaminaResponse, RecoverStaminaEncoder>();
-        services.AddGameNotiMessageEncoder<WeaknessProjectionNotification, WeaknessProjectionEncoder>();
-        services.AddGameNotiMessageEncoder<CharacterLifeStateNotification, CharacterLifeStateEncoder>();
-        services.AddGameCmdMessageEncoder<CharacterDeathResponse, CharacterDeathResponseEncoder>();
-        services.AddGameCmdMessageEncoder<UseRevivalCoinResponse, UseRevivalCoinEncoder>();
-        services.AddGameNotiMessageEncoder<GroundPickupNotification, GroundPickupEncoder>();
-        services.AddGameNotiMessageEncoder<
-            GroundGoldPickupNotification, GroundGoldPickupEncoder>();
-        services.AddGameNotiMessageEncoder<EnableClearDungeonNotification, EnableClearDungeonEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.EplpRechallenge.EplpRechallengeNotification,
-            Dfo.Server.Protocol.Game.EplpRechallenge.EplpRechallengeEncoder>();
-        services.AddGameNotiMessageEncoder<SecretShopNpcNotification, SecretShopNpcEncoder>();
-        services.AddGameNotiMessageEncoder<DespairClearRewardNotification, DespairClearRewardEncoder>();
-        services.AddGameNotiMessageEncoder<SaoCurrentFloorNotification, SaoCurrentFloorEncoder>();
-        services.AddDomainSubscriber<SaoTowerCleared, SaoTowerNotificationSubscriber>("sao-tower.notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<SouthernDaleInventoryChanged, Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryNotificationSubscriber>(
-            "southern-dale.inventory-notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddDomainSubscriber<SouthernDaleDailyRefillCompleted, Dfo.Server.Protocol.Game.SouthernDale.SouthernDailyRefillNotificationSubscriber>(
-            "southern-dale.daily-refill-notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefresh,
-            Dfo.Server.Protocol.Game.SouthernDale.SouthernInventoryRefreshHandler>();
-        services.AddDomainSubscriber<BossTowerTicketRefilled, Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketNotificationSubscriber>(
-            "boss-tower.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefresh,
-            Dfo.Server.Protocol.Game.BossTowerTicket.BossTowerTicketRefreshHandler>();
-        services.AddDomainSubscriber<TauKingdomTicketRefilled, Dfo.Server.Protocol.Game.TauKingdom.TauTicketNotificationSubscriber>(
-            "tau-kingdom.ticket-notifications", DomainEventDeliveryPolicy.LiveOnly);
-        services.AddNotificationHandler<Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefresh,
-            Dfo.Server.Protocol.Game.TauKingdom.TauTicketRefreshHandler>();
-        services.AddNotificationHandler<SaoTowerRefresh, SaoTowerRefreshHandler>();
-        services.AddGameNotiMessageEncoder<DespairApcInfoNotification, DespairApcInfoEncoder>();
-        services.AddGameNotiMessageEncoder<PlayResultNotification, PlayResultEncoder>();
-        services.AddGameNotiMessageEncoder<ClearDungeonRewardNotification, ClearDungeonRewardEncoder>();
-        services.AddGameCmdMessageDecoder<RosterFollowUpMessageDecoder>(
-            GameProtocol.RosterFollowUpType, ClientMessageType.GameRosterFollowUp);
-        services.AddGameCmdMessageDecoder<CheckCharacterNameMessageDecoder>(
-            GameProtocol.CheckCharacterNameType, ClientMessageType.GameCheckCharacterName);
-        services.AddGameCmdMessageDecoder<CreateCharacterMessageDecoder>(
-            GameProtocol.CreateCharacterType, ClientMessageType.GameCreateCharacter);
-        services.AddGameCmdMessageDecoder<DeleteCharacterMessageDecoder>(
-            GameProtocol.DeleteCharacterType, ClientMessageType.GameDeleteCharacter);
-        services.AddGameCmdMessageDecoder<MercenaryInfoMessageDecoder>(
-            GameProtocol.MercenaryInfoType, ClientMessageType.GameMercenaryInfo);
-        services.AddGameCmdMessageDecoder<SaveGameOption1MessageDecoder>(
-            GameProtocol.SaveGameOption1Type, ClientMessageType.GameSaveGameOption1);
-        services.AddGameCmdMessageDecoder<ContentsPlayInfoMessageDecoder>(
-            GameProtocol.ContentsPlayInfoType, ClientMessageType.GameContentsPlayInfo);
-        services.AddGameCmdMessageDecoder<ConnectionCheckMessageDecoder>(
-            GameProtocol.ConnectionCheckType, ClientMessageType.GameConnectionCheck);
-        services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(
-            GameProtocol.SetUdpIpPortType, ClientMessageType.GameSetUdpIpPort);
-        services.AddGameCmdMessageDecoder<RequestPeerDecoder>(
-            GameProtocol.RequestPeerType, ClientMessageType.GameRequestPeer);
-        services.AddGameCmdMessageDecoder<ResponsePeerDecoder>(
-            GameProtocol.ResponsePeerType, ClientMessageType.GameResponsePeer);
-        services.AddGameCmdMessageDecoder<LeavePartyDecoder>(
-            GameProtocol.LeavePartyType, ClientMessageType.GameLeaveParty);
-        services.AddGameCmdMessageDecoder<RemovePartyMemberDecoder>(
-            GameProtocol.RemovePartyMemberType, ClientMessageType.GameRemovePartyMember);
-        services.AddGameCmdMessageDecoder<ChangePartyLeaderDecoder>(
-            GameProtocol.ChangePartyLeaderType, ClientMessageType.GameChangePartyLeader);
-        services.AddGameCmdMessageDecoder<CallPartyMemberRealtimeInfoDecoder>(
-            GameProtocol.CallPartyMemberRealtimeInfoType,
-            ClientMessageType.GameCallPartyMemberRealtimeInfo);
-        services.AddGameCmdMessageDecoder<SetPartyInfoDecoder>(
-            GameProtocol.SetPartyInfoType,
-            ClientMessageType.GameSetPartyInfo);
-        services.AddGameCmdMessageDecoder<CeraQueryDecoder>(
-            GameProtocol.CeraQueryType, ClientMessageType.GameCeraQuery);
-        services.AddGameCmdMessageDecoder<SetUserPositionDecoder>(
-            GameProtocol.SetUserPositionType, ClientMessageType.GameSetUserPosition);
-        services.AddGameCmdMessageDecoder<SetUserAreaDecoder>(
-            GameProtocol.SetUserAreaType, ClientMessageType.GameSetUserArea);
-        services.AddGameCmdMessageDecoder<InformNoticeSecondDecoder>(
-            GameProtocol.InformNoticeSecondType, ClientMessageType.GameInformNoticeSecond);
-        services.AddGameCmdMessageDecoder<SecurityStatusDecoder>(
-            GameProtocol.SecurityStatusType, ClientMessageType.GameSecurityStatus);
-        services.AddGameCmdMessageDecoder<RuntimeTingStatisticDecoder>(
-            GameProtocol.RuntimeTingStatisticType, ClientMessageType.GameRuntimeTingStatistic);
-        services.AddGameCmdMessageDecoder<EnterSelectDungeonDecoder>(
-            GameProtocol.EnterSelectDungeonType, ClientMessageType.GameEnterSelectDungeon);
-        services.AddGameCmdMessageDecoder<SelectDungeonDecoder>(
-            GameProtocol.SelectDungeonType, ClientMessageType.GameSelectDungeon);
-        services.AddGameCmdMessageDecoder<FinishLoadingDecoder>(
-            GameProtocol.FinishLoadingType, ClientMessageType.GameFinishLoading);
-        services.AddGameCmdMessageDecoder<MoveMapDecoder>(
-            GameProtocol.MoveMapType, ClientMessageType.GameMoveMap);
-        services.AddGameCmdMessageDecoder<StoryPauseDecoder>(
-            GameProtocol.StoryPauseType, ClientMessageType.GameStoryPause);
-        services.AddGameCmdMessageDecoder<UseRevivalCoinDecoder>(0x0029, ClientMessageType.GameUseRevivalCoin);
-        services.AddGameCmdMessageDecoder<CharacterDeathDecoder>(GameProtocol.CharacterDeathType, ClientMessageType.GameCharacterDeath);
-        services.AddGameCmdMessageDecoder<MonsterDeathDecoder>(
-            GameProtocol.MonsterDeathType, ClientMessageType.GameMonsterDeath);
-        services.AddGameCmdMessageDecoder<IllusionTowerStageDecoder>(
-            GameProtocol.IllusionTowerStageType, ClientMessageType.GameIllusionTowerStage);
-        services.AddGameCmdMessageDecoder<GetItemDecoder>(
-            GameProtocol.GetItemType, ClientMessageType.GameGetItem);
-        services.AddGameCmdMessageDecoder<TutorialLevelUpDecoder>(
-            GameProtocol.TutorialLevelUpType, ClientMessageType.GameTutorialLevelUp);
-        services.AddGameCmdMessageDecoder<SetPlayResultDecoder>(
-            GameProtocol.SetPlayResultType, ClientMessageType.GameSetPlayResult);
-        services.AddGameCmdMessageDecoder<BossDieCheckDecoder>(
-            GameProtocol.BossDieCheckType, ClientMessageType.GameBossDieCheck);
-        services.AddGameCmdMessageDecoder<ScoreScrollStateDecoder>(
-            GameProtocol.ScoreScrollStateType, ClientMessageType.GameScoreScrollState);
-        services.AddGameCmdMessageDecoder<CardSelectRightStateDecoder>(
-            GameProtocol.CardSelectRightStateType, ClientMessageType.GameCardSelectRightState);
-        services.AddGameCmdMessageDecoder<SelectCardDecoder>(
-            GameProtocol.SelectCardType, ClientMessageType.GameSelectCard);
-        services.AddGameCmdMessageDecoder<EplpCommandDecoder>(
-            GameProtocol.EplpCommandType, ClientMessageType.GameEplpCommand);
-        services.AddGameCmdMessageDecoder<GiveUpGameDecoder>(
-            GameProtocol.GiveUpGameType, ClientMessageType.GameGiveUpGame);
-        services.AddGameCmdMessageDecoder<BackToVillageDecoder>(
-            GameProtocol.BackToVillageType, ClientMessageType.GameBackToVillage);
-        services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(
-            GameProtocol.CharacterStatisticType, ClientMessageType.GameCharacterStatistic);
-        services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(
-            GameProtocol.RequestBlacklistType, ClientMessageType.GameRequestBlacklist);
-        services.AddGameCmdMessageDecoder<FarmEventActionDecoder>(
-            GameProtocol.FarmEventActionType, ClientMessageType.GameFarmEventAction);
-        services.AddGameCmdMessageDecoder<PiDecoder>(
-            GameProtocol.PiType, ClientMessageType.GamePi);
-        services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(
-            GameProtocol.RequestIgaVersionType, ClientMessageType.GameRequestIgaVersion);
-        services.AddGameCmdMessageDecoder<FpsPerformanceStatisticDecoder>(
-            GameProtocol.FpsPerformanceStatisticType, ClientMessageType.GameFpsPerformanceStatistic);
-        services.AddGameCmdMessageDecoder<FrameLagPerDungeonDecoder>(
-            GameProtocol.FrameLagPerDungeonType, ClientMessageType.GameFrameLagPerDungeon);
-        services.AddGameCmdMessageDecoder<LagStatisticsDecoder>(
-            GameProtocol.LagStatisticsType, ClientMessageType.GameLagStatistics);
-        services.AddGameCmdMessageDecoder<UseSkillDecoder>(
-            GameProtocol.UseSkillType, ClientMessageType.GameUseSkill);
-        services.AddGameCmdMessageDecoder<SyncItemSpaceDecoder>(
-            GameProtocol.SyncItemSpaceType, ClientMessageType.GameSyncItemSpace);
-        services.AddGameCmdMessageDecoder<SortLockDecoder>(GameProtocol.SortLockType, ClientMessageType.GameSortLock);
-        services.AddGameCmdMessageDecoder<SortUnlockDecoder>(GameProtocol.SortUnlockType, ClientMessageType.GameSortUnlock);
-        services.AddGameCmdMessageDecoder<SortItemMessageDecoder>(GameProtocol.SortItemType, ClientMessageType.GameSortItem);
-        services.AddGameCmdMessageDecoder<DecreaseDurabilityMessageDecoder>(
-            GameProtocol.DecreaseDurabilityType, ClientMessageType.GameDecreaseDurability);
-        services.AddGameCmdMessageDecoder<OverflowInfoDecoder>(
-            GameProtocol.OverflowInfoType, ClientMessageType.GameOverflowInfo);
-        services.AddGameCmdMessageDecoder<LogDomainConnectDecoder>(
-            GameProtocol.LogDomainConnectType, ClientMessageType.GameLogDomainConnect);
-        services.AddGameCmdMessageDecoder<LogConnectProcessDecoder>(
-            GameProtocol.LogConnectProcessType, ClientMessageType.GameLogConnectProcess);
-        services.AddGameCmdMessageDecoder<MoveItemSpaceDecoder>(
-            GameProtocol.MoveItemSpaceType, ClientMessageType.GameMoveItemSpace);
-        services.AddGameCmdMessageDecoder<LearnSkillMessageDecoder>(GameProtocol.LearnSkillType, ClientMessageType.GameLearnSkill);
-        services.AddGameCmdMessageDecoder<SellItemMessageDecoder>(GameProtocol.SellItemType, ClientMessageType.GameSellItem);
-        services.AddGameCmdMessageDecoder<RepairItemMessageDecoder>(GameProtocol.RepairItemType, ClientMessageType.GameRepairItem);
-        services.AddProtocolCommandHandler<GameDisjointItemCommand, EquipmentDisjointResult, GameDisjointItemCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameDisjointItem, typeof(DisjointItemRequest)));
-        services.AddGameCmdMessageDecoder<DisjointItemMessageDecoder>(
-            GameProtocol.DisjointItemType, ClientMessageType.GameDisjointItem);
-        services.AddProtocolCommandHandler<GameReinforceItemCommand, EquipmentReinforcementResult, GameReinforceItemCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameReinforceItem, typeof(ReinforceItemRequest)));
-        services.AddGameCmdMessageDecoder<ReinforceItemMessageDecoder>(
-            GameProtocol.ReinforceItemType, ClientMessageType.GameReinforceItem);
-        services.AddProtocolCommandHandler<GameEnchantByBeadCommand, EquipmentEnchantResult, GameEnchantByBeadCommandHandler>(
-            new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
-            new ProtocolCommandMessageBinding(ClientMessageType.GameEnchantByBead, typeof(EnchantByBeadRequest)));
-        services.AddGameCmdMessageDecoder<EnchantByBeadDecoder>(
-            GameProtocol.EnchantByBeadType, ClientMessageType.GameEnchantByBead);
-        services.AddGameCmdMessageDecoder<UnsealRandomOptionDecoder>(
-            GameProtocol.UnsealRandomOptionType, ClientMessageType.GameUnsealRandomOption);
-        services.AddGameCmdMessageDecoder<ChangeRandomOptionDecoder>(
-            GameProtocol.ChangeRandomOptionType, ClientMessageType.GameChangeRandomOption);
-        services.AddGameCmdMessageDecoder<PurifyItemDecoder>(
-            GameProtocol.PurifyItemType, ClientMessageType.GamePurifyItem);
-        services.AddGameCmdMessageDecoder<InvestAmplifyOptionDecoder>(
-            GameProtocol.InvestAmplifyOptionType, ClientMessageType.GameInvestAmplifyOption);
-        services.AddGameCmdMessageDecoder<ForgingDecoder>(
-            GameProtocol.SeparateUpgradeType, ClientMessageType.GameSeparateUpgrade);
-        services.AddGameCmdMessageDecoder<CrystalContractDecoder>(0x0218, ClientMessageType.GameCrystalContract);
-        services.AddGameCmdMessageDecoder<DeleteItemMessageDecoder>(
-            GameProtocol.DeleteItemType, ClientMessageType.GameDeleteItem);
-        services.AddGameCmdMessageDecoder<BuyItemMessageDecoder>(
-            GameProtocol.BuyItemType, ClientMessageType.GameBuyItem);
-        services.AddGameCmdMessageDecoder<CeraShopPurchaseMessageDecoder>(0x0040, ClientMessageType.GameCeraShopPurchase);
-        services.AddGameCmdMessageDecoder<MagicBoxBatchOpeningDecoder>(0x0450, ClientMessageType.GameMagicBoxBatchOpening);
-        services.AddGameCmdMessageDecoder<MagicBoxSingleOpeningDecoder>(0x00D0, ClientMessageType.GameMagicBoxSingleOpening);
-        services.AddGameCmdMessageDecoder<VendingMachineDecoder>(0x00D7, ClientMessageType.GameVendingMachine);
-        services.AddGameCmdMessageDecoder<LotteryOpeningDecoder>(0x001B, ClientMessageType.GameLotteryOpening);
-        services.AddGameCmdMessageDecoder<CompoundItemDecoder>(GameProtocol.CompoundItemType, ClientMessageType.GameCompoundItem);
-        services.AddGameCmdMessageDecoder<EpicCraftDecoder>(GameProtocol.EpicCraftType, ClientMessageType.GameEpicCraft);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x037A, ClientMessageType.GameEquipmentSocketOpen);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x0379, ClientMessageType.GameEquipmentEmblem);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x00CE, ClientMessageType.GameAvatarSocketOpen);
-        services.AddGameCmdMessageDecoder<ItemSocketDecoder>(0x00C9, ClientMessageType.GameAvatarEmblem);
-        services.AddGameCmdMessageDecoder<ResetItemQualityDecoder>(0x0051, ClientMessageType.GameResetItemQuality);
-        services.AddGameCmdMessageDecoder<ResetRandomOptionDecoder>(0x01C8, ClientMessageType.GameResetRandomOption);
-        services.AddGameCmdMessageDecoder<AvatarCompoundDecoder>(0x0063, ClientMessageType.GameAvatarCompound);
-        services.AddGameCmdMessageDecoder<PackageOpeningDecoder>(0x00A0, ClientMessageType.GamePackageOpening);
-        services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinHandler, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinRequest, Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommand>(ClientMessageType.GameDailyReviveCoin);
-        services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinDecoder>(0x00CF, ClientMessageType.GameDailyReviveCoin);
-        services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinResponse, Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinEncoder>();
-        services.AddProtocolCommandHandler<Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommand, DailyReviveCoinResult, Dfo.Server.Protocol.Game.ReviveCoin.GameDailyReviveCoinCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameDailyReviveCoin, typeof(Dfo.Server.Protocol.Game.ReviveCoin.DailyReviveCoinRequest)));
-        services.AddGameCmdMessageDecoder<AvatarPackageOpeningDecoder>(0x0207, ClientMessageType.GameAvatarPackageOpening);
-        services.AddGameCmdMessageDecoder<GenCeraTicketMessageDecoder>(0x0041, ClientMessageType.GameGenCeraTicket);
-        services.AddGameCmdMessageDecoder<ShopPurchaseCountDecoder>(
-            GameProtocol.ShopPurchaseCountType, ClientMessageType.GameShopPurchaseCount);
-        services.AddGameCmdMessageDecoder<UseStackableDecoder>(
-            GameProtocol.UseStackableType, ClientMessageType.GameUseStackable);
-        services.AddGameCmdMessageDecoder<HatchCreatureMessageDecoder>(
-            CreaturePayloadCodec.HatchCommandType, ClientMessageType.GameHatchCreature);
-        services.AddGameCmdMessageDecoder<RenameCreatureMessageDecoder>(
-            CreaturePayloadCodec.RenameCommandType, ClientMessageType.GameRenameCreature);
-        services.AddGameCmdMessageDecoder<CreatureResponseReportDecoder>(
-            0x0065, ClientMessageType.GameCreatureResponseReport);
-        services.AddGameCmdMessageDecoder<CreatureScriptMessageReportDecoder>(
-            0x007A, ClientMessageType.GameCreatureScriptMessage);
-        services.AddGameCmdMessageDecoder<TeleportDecoder>(0x00ED, ClientMessageType.GameTeleport);
-        services.AddGameCmdMessageDecoder<QuestClearCouponDecoder>(
-            GameProtocol.QuestClearCouponType, ClientMessageType.GameQuestClearCoupon);
-        services.AddGameCmdMessageDecoder<LevelUpTicketDecoder>(GameProtocol.LevelUpTicketType, ClientMessageType.GameLevelUpTicket);
-        services.AddGameCmdMessageDecoder<HiddenCharacterInfoMessageDecoder>(
-            GameProtocol.HiddenCharacterInfoType, ClientMessageType.GameHiddenCharacterInfo);
-        services.AddChannelMessageDecoder<ChannelScriptVersionMessageDecoder>(
-            ChannelProtocol.ScriptVersionMessageNumber, ClientMessageType.ChannelScriptVersion);
-        services.AddChannelMessageDecoder<ChannelScriptMessageDecoder>(
-            ChannelProtocol.ScriptMessageNumber, ClientMessageType.ChannelScript);
-        services.AddChannelMessageDecoder<ChannelConnectMessageDecoder>(
-            ChannelProtocol.ConnectMessageNumber, ClientMessageType.ChannelConnect);
-        services.AddChannelMessageDecoder<ChannelInfoMessageDecoder>(
-            ChannelProtocol.InfoMessageNumber, ClientMessageType.ChannelInfo);
-    }
-
-    /// <summary>
-    /// The outbound routing table: one line per message, binding it to its encoder and to the
-    /// endpoint allowed to receive it.
-    /// </summary>
-    /// <remarks>
-    /// Keyed by message CLR type rather than by catalogue member. An outbound message is built by
-    /// server code, so its type is known at the call site.
-    ///
-    /// The endpoint column is the whole endpoint rule. It used to be nine `when` clauses spliced
-    /// into the encoding switch, where no reader could check the routing without reading the bytes.
-    /// </remarks>
-    private static void RegisterOutboundEncoders(IServiceCollection services)
-    {
-        StateSynchronizationEncoderRegistration.AddStateSynchronizationEncoders(services);
-        SupplementalSynchronizationEncoderRegistration.AddSupplementalSynchronizationEncoders(services);
-        services.AddServerMessageEncoder<ChannelConnectResponse, ChannelConnectResponseEncoder>(
-            NetworkEndpointKind.Channel);
-        services.AddServerMessageEncoder<ChannelScriptVersionResponse, ChannelScriptVersionResponseEncoder>(
-            NetworkEndpointKind.Channel);
-        services.AddServerMessageEncoder<ChannelScriptResponse, ChannelScriptResponseEncoder>(
-            NetworkEndpointKind.Channel);
-        services.AddServerMessageEncoder<ChannelInfoResponse, ChannelInfoResponseEncoder>(
-            NetworkEndpointKind.Channel);
-        services.AddGameCmdMessageEncoder<GameExitResponse, GameExitResponseEncoder>();
-        services.AddGameCmdMessageEncoder<ReturnToSelectionResponse, ReturnToSelectionResponseEncoder>();
-        services.AddGameNotiMessageEncoder<GameInitialConnectionNotice, GameInitialConnectionNoticeEncoder>();
-        services.AddGameCmdMessageEncoder<GameLoginResponse, GameLoginResponseEncoder>();
-        services.AddGameNotiMessageEncoder<AccountCharacterRosterResponse, AccountCharacterRosterResponseEncoder>();
-        services.AddGameNotiMessageEncoder<
-            OtherCharacterDetailResponse,
-            OtherCharacterDetailResponseEncoder>();
-        services.AddGameNotiMessageEncoder<HonorLevelInfoNotice, HonorLevelInfoNoticeEncoder>();
-        services.AddGameNotiMessageEncoder<AuctionServiceStateNotice, AuctionServiceStateNoticeEncoder>();
-        services.AddGameNotiMessageEncoder<InformNoticeNotice, InformNoticeNoticeEncoder>();
-        services.AddGameNotiMessageEncoder<PartyInviteRequestMessage, PartyInviteRequestEncoder>();
-        services.AddGameNotiMessageEncoder<PartyInviteAcceptedMessage, PartyInviteAcceptedEncoder>();
-        services.AddGameNotiMessageEncoder<PartyRealtimeMessage, PartyRealtimeEncoder>();
-        services.AddGameNotiMessageEncoder<PartyEndpointsMessage, PartyEndpointsEncoder>();
-        services.AddGameNotiMessageEncoder<PartyRosterMessage, PartyRosterEncoder>();
-        services.AddGameNotiMessageEncoder<PartySettingsMessage, PartySettingsEncoder>();
-        services.AddGameCmdMessageEncoder<
-            RemovePartyMemberRefusal,
-            RemovePartyMemberRefusalEncoder>();
-        services.AddGameCmdMessageEncoder<CheckCharacterNameResponse, CheckCharacterNameResponseEncoder>();
-        services.AddGameCmdMessageEncoder<CreateCharacterResponse, CreateCharacterResponseEncoder>();
-        services.AddGameCmdMessageEncoder<DeleteCharacterResponse, DeleteCharacterResponseEncoder>();
-        services.AddGameCmdMessageEncoder<MercenaryInfoResponse, MercenaryInfoResponseEncoder>();
-        services.AddGameCmdMessageEncoder<ContentsPlayInfoResponse, ContentsPlayInfoResponseEncoder>();
-        services.AddGameCmdMessageEncoder<ConnectionCheckResponse, ConnectionCheckResponseEncoder>();
-        services.AddGameNotiMessageEncoder<UserAreaNotification, UserAreaEncoder>();
-        services.AddGameNotiMessageEncoder<AreaUsersNotification, AreaUsersEncoder>();
-        services.AddGameNotiMessageEncoder<UserPositionNotification, UserPositionEncoder>();
-        services.AddGameNotiMessageEncoder<ForcedTownPositionNotification, ForcedTownPositionEncoder>();
-        services.AddGameNotiMessageEncoder<UserStateNotification, UserStateEncoder>();
-        services.AddGameNotiMessageEncoder<UdpHostNotification, UdpHostEncoder>();
-        services.AddGameCmdMessageEncoder<SecurityStatusAcknowledgement, SecurityStatusAcknowledgementEncoder>();
-
-        services.AddGameCmdMessageEncoder<EnterSelectDungeonAcknowledgement, EnterSelectDungeonAcknowledgementEncoder>();
-
-        services.AddGameNotiMessageEncoder<EnterSelectDungeonNotification, EnterSelectDungeonEncoder>();
-        services.AddGameNotiMessageEncoder<DungeonInfoNotification, DungeonInfoEncoder>();
-        services.AddGameNotiMessageEncoder<StartMapNotification, StartMapEncoder>();
-        services.AddGameNotiMessageEncoder<SupportTagNotification, SupportTagEncoder>();
-        services.AddGameCmdMessageEncoder<FinishLoadingResponse, FinishLoadingResponseEncoder>();
-        services.AddGameCmdMessageEncoder<MoveItemSpaceResponse, MoveItemSpaceResponseEncoder>();
-        services.AddGameCmdMessageEncoder<UseStackableResponse, UseStackableResponseEncoder>();
-        services.AddGameCmdMessageEncoder<RenameCreatureResponse, RenameCreatureResponseEncoder>();
-        services.AddGameCmdMessageEncoder<HatchCreatureResponse, HatchCreatureResponseEncoder>();
-        services.AddGameCmdMessageEncoder<TeleportResponse, TeleportEncoder>();
-        services.AddGameNotiMessageEncoder<TeleportCooldownNotification, TeleportCooldownEncoder>();
-        services.AddGameCmdMessageEncoder<QuestClearCouponResponse, QuestClearCouponEncoder>();
-        services.AddGameCmdMessageEncoder<LevelUpTicketResponse, LevelUpTicketEncoder>();
-        services.AddGameCmdMessageEncoder<BuyItemResponse, BuyItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<CeraShopPurchaseResponse, CeraShopPurchaseResponseEncoder>();
-        services.AddGameCmdMessageEncoder<MagicBoxBatchOpeningResponse, MagicBoxBatchOpeningEncoder>();
-        services.AddGameCmdMessageEncoder<MagicBoxSingleOpeningResponse, MagicBoxSingleOpeningEncoder>();
-        services.AddGameCmdMessageEncoder<VendingMachineResponse, VendingMachineEncoder>();
-        services.AddGameCmdMessageEncoder<LotteryOpeningResponse, LotteryOpeningEncoder>();
-        services.AddGameCmdMessageEncoder<CompoundItemResponse, CompoundItemEncoder>();
-        services.AddGameCmdMessageEncoder<EpicCraftResponse, EpicCraftEncoder>();
-        services.AddGameCmdMessageEncoder<ItemSocketResponse, ItemSocketEncoder>();
-        services.AddGameCmdMessageEncoder<ResetItemQualityResponse, ResetItemQualityEncoder>();
-        services.AddGameCmdMessageEncoder<ResetRandomOptionResponse, ResetRandomOptionEncoder>();
-        services.AddGameCmdMessageEncoder<AvatarCompoundResponse, AvatarCompoundEncoder>();
-        services.AddGameCmdMessageEncoder<PackageOpeningResponse, PackageOpeningEncoder>();
-        services.AddGameCmdMessageEncoder<AvatarPackageOpeningResponse, AvatarPackageOpeningEncoder>();
-        services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();
-        services.AddGameCmdMessageEncoder<GenCeraTicketUnavailable, GenCeraTicketResponseEncoder>();
-        services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
-        GameInstanceDelivery.AddEncoders(services);
-        services.AddGameCmdMessageEncoder<SellItemResponse, SellItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<RepairItemResponse, RepairItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<DisjointItemResponse, DisjointItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<ReinforceItemResponse, ReinforceItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<EnchantByBeadResponse, EnchantByBeadEncoder>();
-        services.AddGameCmdMessageEncoder<ChangeRandomOptionResponse, ChangeRandomOptionEncoder>();
-        services.AddGameCmdMessageEncoder<PurifyItemResponse, PurifyItemEncoder>();
-        services.AddGameCmdMessageEncoder<InvestAmplifyOptionResponse, InvestAmplifyOptionEncoder>();
-        services.AddGameCmdMessageEncoder<ForgingResponse, ForgingEncoder>();
-        services.AddGameCmdMessageEncoder<SortLockResponse, SortLockResponseEncoder>();
-        services.AddGameCmdMessageEncoder<WarehouseResponse, WarehouseResponseEncoder>();
-        services.AddGameCmdMessageEncoder<SortItemResponse, SortItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<DecreaseDurabilityResponse, DecreaseDurabilityResponseEncoder>();
-        services.AddGameCmdMessageEncoder<CrystalContractResponse, CrystalContractEncoder>();
-        services.AddGameCmdMessageEncoder<DeleteItemResponse, DeleteItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<LearnSkillResponse, LearnSkillResponseEncoder>();
-        services.AddGameCmdMessageEncoder<ShopPurchaseCountResponse, ShopPurchaseCountEncoder>();
-        services.AddGameCmdMessageEncoder<GetItemResponse, GetItemResponseEncoder>();
-        services.AddGameCmdMessageEncoder<TutorialLevelUpResponse, TutorialLevelUpResponseEncoder>();
-        services.AddGameCmdMessageEncoder<
-            ScoreScrollStateResponse, ScoreScrollStateResponseEncoder>();
-        services.AddGameCmdMessageEncoder<
-            CardSelectRightStateResponse, CardSelectRightStateResponseEncoder>();
-        services.AddGameCmdMessageEncoder<SelectCardResponse, SelectCardResponseEncoder>();
-        services.AddGameCmdMessageEncoder<EplpCommandResponse, EplpCommandResponseEncoder>();
-        services.AddGameCmdMessageEncoder<GiveUpGameResponse, GiveUpGameResponseEncoder>();
-        services.AddGameCmdMessageEncoder<SelectDungeonRefusal, SelectDungeonRefusalEncoder>();
-        services.AddGameNotiMessageEncoder<HellPartyMonsterInfoNotification, HellPartyMonsterInfoEncoder>();
-        services.AddGameCmdMessageEncoder<BackToVillageResponse, BackToVillageResponseEncoder>();
-        services.AddGameNotiMessageEncoder<LoadingCompleteNotification, LoadingCompleteEncoder>();
-        services.AddGameCmdMessageEncoder<HiddenCharacterInfoResponse, HiddenCharacterInfoResponseEncoder>();
-        services.AddGameCmdMessageEncoder<RosterFollowUpResponse, RosterFollowUpResponseEncoder>();
     }
 }

@@ -121,8 +121,8 @@ Game 经 `IGameCommandOutbox` 登记，Channel 经 `ICommandMessageOutbox` 登�
 - 目录名不得与任何被引用类型同名——C# 名称查找里外层命名空间优先于
   using 导入的类型，同名会得到 CS0118。`AccountRoster` 之所以不叫
   `AccountCharacterRoster` 就是因为这个。
-- 新协议只改一处接线：`ProtocolModule`。`ApplicationModule` 不承载任何
-  单个协议的注册。
+- 新协议的注册写在切片自己的 `<切片>Registration.cs`（`Add<切片>Slice()`），`ProtocolModule` 只加一行调用。
+  `ApplicationModule` 不承载任何单个协议的注册。
 
 Game `0x01` 是 CMD、`0x00` 是 NOTI；每个出站消息必须且只能实现 `IGameCmdMessage` 或
 `IGameNotiMessage` 之一，编码器继承固定类别基类。CMD 用 `IGameCommandOutbox.RegisterCmdAsync`／
@@ -188,7 +188,7 @@ PVP、任务、宠物和同步投影，保留每段独立事务及当前性检�
    CMD 需要的领域能力先找到真实 owner，不能直接拿规则／存储或再包装一个旧命令。
 3. 明确原业务拒绝、事务点、保护参与者、足迹及投影顺序，再用显式工作单元落地；
    不因“整协议一个 CMD”就把所有动作合成一个事务。
-4. 在 ProtocolModule 或它唯一调用的具名扩展注册 decoder／encoder：入站声明线级键与可产出的目录成员，
+4. 在切片的 `Add<切片>Slice()` 里注册 decoder／encoder：入站声明线级键与可产出的目录成员，
    出站声明消息 CLR 类型与允许端点。使用
    `AddProtocolCommandHandler<TCommand,TResult,THandler>` 精确绑定消息目录及 CLR，并用
    `RegisterProtocolMessageHandler<THandler,TMessage,TCommand>` 配对薄 handler。没有 ExecutionKind。
