@@ -13,11 +13,10 @@ public sealed record SouthernDaleDefinition(DungeonDefinition Dungeon, int Party
     IReadOnlyList<ItemDeliveryGrant> ClearRewards);
 public interface ISouthernDaleContentSource
 { ValueTask<SouthernDaleDefinition> ReadAsync(CancellationToken ct); }
-public interface ISouthernDaleRuleService
+public interface ISouthernDaleRuleService : IOnlineRefilledTicketRule
 {
     bool Supports(int dungeonId);
     int EventId { get; }
-    int TicketItemId { get; }
     EventConfiguration InitialActivity { get; }
     string ActivityLink { get; }
     ValueTask<SouthernDaleDefinition> DefinitionAsync(CancellationToken ct);
@@ -34,11 +33,10 @@ public interface ISouthernDaleQuestDomainService
     ValueTask<bool> CanAcceptAsync(CharacterId character, CancellationToken ct);
     ValueTask<bool> TryCompleteAsync(CharacterId character, CancellationToken ct);
 }
-public interface ISouthernDaleDomainService : IDungeonBossClearHook
+public interface ISouthernDaleDomainService : IDungeonBossClearHook, IOnlineTicketRefillDomainService
 {
     bool Supports(int dungeonId);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);
-    ValueTask<bool> RefillOnlineTicketAsync(SelectedSessionIdentity session, CancellationToken ct);
 }
 public sealed record SouthernDaleInventoryChanged(CharacterId CharacterId,
     ImmutableArray<BusinessSlot> Slots) : IDomainEvent;

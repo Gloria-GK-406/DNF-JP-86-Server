@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Events;
 
@@ -16,11 +17,10 @@ public interface IBossTowerContentSource
 {
     ValueTask<BossTowerDefinition> GetAsync(CancellationToken ct);
 }
-public interface IBossTowerRuleService
+public interface IBossTowerRuleService : IOnlineRefilledTicketRule
 {
     bool Supports(int dungeonId);
     int EventId { get; }
-    int TicketItemId { get; }
     int PartyLimit { get; }
     TimeSpan LoadingTimeout { get; }
     TimeSpan ResultTimeout { get; }

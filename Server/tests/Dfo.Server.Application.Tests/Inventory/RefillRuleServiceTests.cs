@@ -21,7 +21,7 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class RefillRuleServiceTests
 {
     private static readonly IDailyRefillRuleService Refill =
-        new DailyRefillRuleService(new Scheduling.OnlineExpiredItemScheduleTests.SixOClock());
+        new DailyRefillRuleService(new Scheduling.OnlineExpiredItemScheduleTests.SixOClock(), []);
 
     private static readonly IItemArrivalRuleService Arrival = new ItemArrivalRuleService();
 
