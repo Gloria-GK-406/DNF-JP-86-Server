@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Tests.Inventory;
