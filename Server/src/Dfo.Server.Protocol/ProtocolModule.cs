@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Execution;
 using Dfo.Server.Protocol.Game.DarkElfRuins;
 using Dfo.Server.Protocol.Game.ItemSockets;
@@ -300,12 +301,8 @@ public sealed class ProtocolModule : IServerModule
         var revivalFlag = configuration.GetValue<byte>("Dungeon:RevivalAckFlag", 1);
         if (revivalFlag > 1) throw new InvalidOperationException("RevivalAckFlag must be 0 or 1.");
         services.TryAddSingleton(new RevivalOptions(revivalFlag));
-        services.TryAddSingleton<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>();
-        services.TryAddSingleton<IAltarSchedulerWakeSignal>(p => p.GetRequiredService<Dfo.Server.Protocol.Game.Altar.AltarWakeSignal>());
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.Altar.AltarScheduler>();
-        services.TryAddSingleton<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarWakeSignal>();
-        services.TryAddSingleton<IGuardianAltarSchedulerWakeSignal>(sp => sp.GetRequiredService<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarWakeSignal>());
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarScheduler>();
+        services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.Altar.AltarDeadlineSource>();
+        services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarDeadlineSource>();
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarOpen);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarBuy);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarHandler, Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarRequest, Dfo.Server.Protocol.Game.GuardianAltar.GameGuardianAltarCommand>(ClientMessageType.GameGuardianAltarSetSlot);
@@ -527,7 +524,7 @@ public sealed class ProtocolModule : IServerModule
             Dfo.Server.Protocol.Game.RoomMechanisms.ElevatorStateEncoder>();
         services.AddNotificationHandler<DungeonRoomMechanismsNotification,
             Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismNotificationHandler>();
-        services.AddTypedGameplayTimer<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismMaintenanceService>();
+        services.AddDungeonDeadlineSource<Dfo.Server.Protocol.Game.RoomMechanisms.RoomMechanismDeadlineSource>();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         services.AddNotificationHandler<NpcShopPurchaseCompleted, NpcShopPurchaseCompletedHandler>();
         services.AddNotificationHandler<WarehouseChanged, WarehouseChangedHandler>();

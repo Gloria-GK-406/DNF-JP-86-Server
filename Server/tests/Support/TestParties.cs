@@ -41,7 +41,7 @@ internal static class TestParties
         IDungeonLifecycleDomainService? lifecycle = null,
         TimeProvider? clock = null,
         IDungeonRoomMechanismRuleService? mechanismRules = null,
-        IDungeonRoomMechanismWakeSignal? mechanismWake = null,
+        IDungeonDeadlineWake? deadlines = null,
         ISealedTreasureRuleService? sealedTreasureRules = null,
         IDungeonParticipationDomainService? participation = null,
         IGiantDragonRuleService? giantDragons = null)
@@ -49,7 +49,7 @@ internal static class TestParties
         parties ??= Create();
         var runs = new DungeonRunDomainService(
             transactions!, parties, new LostLandFeverRuleService(), weakness, creatures, lifecycle, clock,
-            mechanismRules, mechanismWake, sealedTreasureRules, participation, giantDragons: giantDragons);
+            mechanismRules, deadlines, sealedTreasureRules, participation, giantDragons: giantDragons);
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;
     }

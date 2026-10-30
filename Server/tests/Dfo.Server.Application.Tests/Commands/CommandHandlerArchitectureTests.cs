@@ -35,8 +35,6 @@ public sealed class CommandHandlerArchitectureTests
     private static readonly IReadOnlyDictionary<Type, string> Exempt =
         new Dictionary<Type, string>
         {
-            [typeof(Dfo.Server.Abstractions.World.IGuardianAltarSchedulerWakeSignal)] = "仅唤醒守护者祭坛调度器的具名纯信号；不提供等待、排程、世界读取或队列权限。",
-            [typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal)] = "仅唤醒原祭坛调度器的具名纯信号；不提供等待、排程、世界读取或队列权限。",
             [typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl)] = "仅原翻牌生产者的固定两阶段与精确取消，不提供world或任意调度能力。",
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
@@ -150,7 +148,8 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(IPretendCardPresentationControl))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.CardReward.DungeonCardPresentationCoordinator))]
     [InlineData(typeof(IPretendAltarSchedulerWakeSignal))]
-    [InlineData(typeof(Dfo.Server.Protocol.Game.Altar.AltarWakeSignal))]
+    [InlineData(typeof(Dfo.Server.Abstractions.World.IDungeonDeadlineWake))]
+    [InlineData(typeof(Dfo.Server.Application.World.DungeonDeadlineScheduler))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
@@ -172,7 +171,6 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions))]
     [InlineData(typeof(ICommandHttpFailureAudit))]
     [InlineData(typeof(ICommandWorkUnits))]
-    [InlineData(typeof(Dfo.Server.Abstractions.World.IAltarSchedulerWakeSignal))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandMessageOutbox))]
     [InlineData(typeof(Dfo.Server.Abstractions.Networking.ICommandConnectionClosures))]
     [InlineData(typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections))]

@@ -9,9 +9,10 @@ namespace Dfo.Server.Application.World;
 internal sealed record GuardianAltarRuntime(SelectedSessionIdentity Session, bool Selecting, GuardianAltarRunState? Run);
 
 /// <summary>Exact selection ownership and transaction-local read-your-writes for this activity only.</summary>
-internal sealed class GuardianAltarRuntimeStore(IDomainTransactionAccessor transactions)
+internal sealed class GuardianAltarRuntimeStore(IDomainTransactionAccessor transactions, IDungeonDeadlineWake deadlines)
 {
     private readonly Lock gate = new();
+    private readonly IDungeonDeadlineWake wake = deadlines;
     private readonly Dictionary<CharacterId, GuardianAltarRuntime> states = [];
     private Changes? Current => transactions.Current is { } tx ? tx.Enlist(this, () => new Changes(this)) : null;
     public GuardianAltarRuntime? Find(CharacterId character)
@@ -53,6 +54,7 @@ internal sealed class GuardianAltarRuntimeStore(IDomainTransactionAccessor trans
         {
             lock (owner.gate) foreach (var (id, value) in after)
                 if (value is null) owner.states.Remove(id); else owner.states[id] = value;
+            if (after.Count > 0) owner.wake.Wake(DungeonDeadlineKind.GuardianAltar);
             return ValueTask.CompletedTask;
         }
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;

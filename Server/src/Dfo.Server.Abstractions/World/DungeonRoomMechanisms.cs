@@ -35,9 +35,3 @@ public interface IDungeonRoomMechanismRuleService
     bool AllowsExit(DungeonRoomMechanismState state, MazeCell from, MazeCell to);
 }
 
-/// <summary>Coalesced wakeups for one asynchronous deadline worker, not a per-room thread.</summary>
-public interface IDungeonRoomMechanismWakeSignal
-{
-    void Wake();
-    ValueTask WaitAsync(DateTimeOffset? deadline, CancellationToken cancellationToken);
-}

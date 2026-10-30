@@ -64,6 +64,23 @@
 - **入场路由**：`IDungeonEntryRoutingDomainService` 持有特殊入场的先后顺序。专属玩法认得的副本不会落到镜像、循环或地狱／普通判断；
   两塔在此之前由 Protocol 按引擎分流。新增玩法时在这里登记顺序，Protocol 的 `GameSelectDungeonCommandHandler` 不感知具体玩法。
 
+## 一局之内的到点推进
+
+一局之内到点要发生的事（祭坛的波次与阶段、守护者祭坛的推进与回城、房间机关倒计时）由唯一的
+`DungeonDeadlineScheduler`（`Application/World`）调度，每种是一个 `DungeonDeadlineSource`，在 `DungeonDeadlineKind` 里有一个成员。
+它不是系统计划任务（`ScheduledTaskHostedService`）：截止时间随局出现和消失，不重试、不补跑，过期的靠代号与房间版本丢弃，
+玩家操作随时会改变它，这些诉求与系统计划任务相反，不要合并。
+
+- **拉取，不存副本。** 截止时间只在玩法自己的领域状态里。每轮调度器向来源要截止时间：来源提交扫描命令、逐项提交推进命令，
+  返回最近的下一个截止时间。来源只组织类型化内部命令，不在执行器外读写状态。
+- **由状态所有者唤醒。** 截止时间所在的状态提交时，所有者调用 `IDungeonDeadlineWake.Wake(kind)`：祭坛与守护者祭坛在各自运行态存储的提交里，
+  房间机关和“击杀改变了存活怪物”在 `DungeonRunDomainService` 里。在事务内唤醒是安全的，重扫是执行器上之后的作业。
+  CMD handler 不注入唤醒，`CommandHandlerArchitectureTests` 拒绝这个依赖。
+- 唤醒按种类合并，只重扫被唤醒或已到期的来源。没有截止时间时等待唤醒；来源可声明空闲轮询（守护者祭坛 30 秒，借扫描清理离线的选择状态）。
+  等待下限 50ms；扫描失败的来源 1 秒后重扫。
+
+新增一种局内限时：在 `DungeonDeadlineKind` 加成员，实现来源并用 `AddDungeonDeadlineSource<T>()` 登记，在状态所有者的提交处唤醒。
+
 ## 是否在副本中
 
 “这个角色是否在任何副本里”只问 `IDungeonParticipationDomainService.Find`。普通副本与两座塔开局时都会在这里登记占用。

@@ -7,8 +7,6 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Abstractions.World;
 
 public sealed record GuardianAltarPurchase(GuardianAltarShopKind Kind, int Id, int Tier);
-/// <summary>Coalesces a wake of the guardian timer; provides no queue or gameplay state access.</summary>
-public interface IGuardianAltarSchedulerWakeSignal { void Wake(); }
 public sealed record GuardianAltarSlot(byte Index, GuardianAltarShopKind Kind, int Id);
 public sealed record GuardianAltarPurchaseView(GuardianAltarShopKind Kind, int Id, int Level, int InvestedStars);
 public sealed record GuardianAltarAchievementView(int Id, bool Claimed);

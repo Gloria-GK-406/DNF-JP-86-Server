@@ -145,7 +145,10 @@ internal sealed partial class DungeonRunDomainService
             if (cell.IsCleared)
                 cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state,
                     claim.OccurredAt ?? this.clock.GetUtcNow())).ToArray();
-            this.mechanismWake?.Wake();
+            this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
+            // Altar rounds and guardian waves read the living actors when their deadline is evaluated.
+            if (aggregate.Layout.Mode is DungeonRunMode.Altar) this.deadlines?.Wake(DungeonDeadlineKind.Altar);
+            else if (aggregate.Layout.Mode is DungeonRunMode.Guardian) this.deadlines?.Wake(DungeonDeadlineKind.GuardianAltar);
             aggregate.RuntimeRevision++;
             var run = aggregate.ViewFor(claim.CharacterId);
             return new DungeonActorDeathChange(

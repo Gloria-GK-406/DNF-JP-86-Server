@@ -22,7 +22,6 @@ internal sealed partial class TowerReturnCommandHandler
     private readonly IAltarDungeonDomainService wipeAltars;
     private readonly ITournamentDungeonDomainService wipeTournaments;
     private readonly IInventorySlotProjectionDomainService wipeSlots;
-    private readonly IAltarSchedulerWakeSignal wipeWake;
     public ValueTask<ImmutableArray<ReturnDungeonRunCommand>> HandleAsync(CommandExecutionContext context, MaintainDungeonReturnsCommand command, CancellationToken token)
     {
         var now = clock.GetUtcNow();
@@ -95,7 +94,7 @@ internal sealed partial class TowerReturnCommandHandler
         var action = ((CommandWriteResult<Altar.AltarCommandResult>.Returned)write).Value.Action;
         if (action is not null)
             await AltarTransitionProjection.ProjectAsync(projections, action,
-                AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId), clock, wipeWake, logger, token).ConfigureAwait(false);
+                AltarTransitionProjection.Participants(wipeRuns, sessions, wipeRegistry, runId), clock, logger, token).ConfigureAwait(false);
         return [];
     }
 

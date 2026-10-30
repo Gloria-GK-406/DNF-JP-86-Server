@@ -130,15 +130,15 @@ public sealed class TimerSourceJobFailureTests
         }
     }
 
-    /// <summary>Fires every manual timer and wakes both wake-up loops until <paramref name="done"/>.</summary>
+    /// <summary>Fires every manual timer and wakes every dungeon deadline source until <paramref name="done"/>.</summary>
     private static async Task DriveAsync(IServiceProvider services, SchedulerClock clock, Func<bool> done)
     {
         using var timeout = new CancellationTokenSource(Patience);
         while (!done())
         {
             clock.Advance(TimeSpan.FromDays(1));
-            services.GetService<AltarWakeSignal>()?.Wake();
-            services.GetService<IDungeonRoomMechanismWakeSignal>()?.Wake();
+            if (services.GetService<IDungeonDeadlineWake>() is { } deadlines)
+                foreach (var kind in Enum.GetValues<DungeonDeadlineKind>()) deadlines.Wake(kind);
             await Task.Delay(20, timeout.Token);
         }
     }

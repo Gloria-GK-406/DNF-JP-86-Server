@@ -346,7 +346,7 @@ public sealed class ApplicationModule : IServerModule
         // the monster-or-ally boundary, and which of the declared pieces are still on the floor.
         services.TryAddSingleton<IDungeonRoomRuleService, DungeonRoomRuleService>();
         services.TryAddSingleton<IDungeonRoomMechanismRuleService, DungeonRoomMechanismRuleService>();
-        services.TryAddSingleton<IDungeonRoomMechanismWakeSignal, DungeonRoomMechanismWakeSignal>();
+        services.AddDungeonDeadlineScheduler();
         services.AddRuntimeEventSubscriber<DungeonRoomMechanismsChanged, DungeonRoomMechanismNotificationSubscriber>();
         services.TryAddSingleton<IDungeonParticipationDomainService, DungeonParticipationDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService, Dfo.Server.Application.World.BossTower.BossTowerRewardRuleService>();

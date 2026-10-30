@@ -55,7 +55,7 @@ public sealed class DungeonRoomMechanismTests
         {
             var clock = new ManualClock();
             var signal = new WakeCounter();
-            var service = TestParties.Runs(clock: clock, mechanismRules: rules, mechanismWake: signal);
+            var service = TestParties.Runs(clock: clock, mechanismRules: rules, deadlines: signal);
             DungeonRunParticipant[] members = [new(new(1), new(1), 0, true), new(new(2), new(2), 1, false)];
             var start = new MazeCell(1, 0);
             var right = new MazeCell(2, 0);
@@ -102,21 +102,8 @@ public sealed class DungeonRoomMechanismTests
             service.End(new(1)); service.End(new(2));
             Assert.Empty(service.AdvanceRoomMechanisms(clock.Now));
             Assert.True(signal.Count > 0);
+            Assert.Equal([DungeonDeadlineKind.RoomMechanism], signal.Kinds);
         });
-    }
-
-    [Fact]
-    public async Task Wake_signal_coalesces_and_cancellation_unblocks_an_idle_worker()
-    {
-        var signal = new DungeonRoomMechanismWakeSignal(TimeProvider.System);
-        signal.Wake(); signal.Wake();
-        await signal.WaitAsync(null, default);
-        using var stop = new CancellationTokenSource();
-        var pending = signal.WaitAsync(null, stop.Token).AsTask();
-        Assert.False(pending.IsCompleted);
-        stop.Cancel();
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-        await signal.WaitAsync(DateTimeOffset.MinValue, default);
     }
 
     private sealed class ManualClock : TimeProvider
@@ -124,10 +111,10 @@ public sealed class DungeonRoomMechanismTests
         public DateTimeOffset Now { get; set; } = Start;
         public override DateTimeOffset GetUtcNow() => Now;
     }
-    private sealed class WakeCounter : IDungeonRoomMechanismWakeSignal
+    private sealed class WakeCounter : IDungeonDeadlineWake
     {
         public int Count { get; private set; }
-        public void Wake() => Count++;
-        public ValueTask WaitAsync(DateTimeOffset? deadline, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+        public HashSet<DungeonDeadlineKind> Kinds { get; } = [];
+        public void Wake(DungeonDeadlineKind kind) { Count++; Kinds.Add(kind); }
     }
 }

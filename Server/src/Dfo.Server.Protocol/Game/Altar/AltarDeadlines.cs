@@ -1,30 +1,13 @@
-using System.Threading.Channels;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
-using Microsoft.Extensions.Hosting;
+using Dfo.Server.Application.World;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.Altar;
 
-public sealed class AltarWakeSignal(TimeProvider clock) : IAltarSchedulerWakeSignal
-{
-    private readonly Channel<bool> wake = System.Threading.Channels.Channel.CreateBounded<bool>(new BoundedChannelOptions(1)
-    { SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite });
-    public void Wake() => wake.Writer.TryWrite(true);
-    public async ValueTask WaitAsync(DateTimeOffset? deadline, CancellationToken ct)
-    {
-        if (deadline is null) { _ = await wake.Reader.ReadAsync(ct).ConfigureAwait(false); return; }
-        var delay = deadline.Value - clock.GetUtcNow();
-        if (delay < TimeSpan.FromMilliseconds(50)) delay = TimeSpan.FromMilliseconds(50);
-        using var timer = new CancellationTokenSource(delay, clock);
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timer.Token);
-        try { _ = await wake.Reader.ReadAsync(linked.Token).ConfigureAwait(false); }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested && timer.IsCancellationRequested) { }
-    }
-}
 public sealed record MaintainAltarCommand : ICommand<AltarNextDeadline>;
 public sealed record AdvanceAltarDeadlineCommand(AltarDeadline Deadline) : ICommand<bool>;
 public sealed record AltarNextDeadline(DateTimeOffset? At)
@@ -36,7 +19,7 @@ public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, 
     Dfo.Server.Abstractions.Networking.IDungeonRunProjectionDomainService registry,
     Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService users,
     ICommandWorkUnits units, Dfo.Server.Abstractions.DomainEvents.ICommandProjections projections,
-    IAltarSchedulerWakeSignal wake, TimeProvider clock, ILogger<AltarTimerCommandHandler> logger)
+    TimeProvider clock, ILogger<AltarTimerCommandHandler> logger)
     : ICommandHandler<MaintainAltarCommand, AltarNextDeadline>, ICommandHandler<AdvanceAltarDeadlineCommand, bool>
 {
     public ValueTask<AltarNextDeadline> HandleAsync(CommandExecutionContext context, MaintainAltarCommand command, CancellationToken token)
@@ -68,36 +51,18 @@ public sealed class AltarTimerCommandHandler(IAltarDungeonDomainService altars, 
         var result = ((CommandWriteResult<AltarCommandResult>.Returned)write).Value;
         if (result.Action is {} action)
             await AltarTransitionProjection.ProjectAsync(projections, action, AltarTransitionProjection.Participants(runs, sessions, registry, action.State.RunId),
-                clock, wake, logger, token).ConfigureAwait(false);
+                clock, logger, token).ConfigureAwait(false);
     }
 
 }
-public sealed class AltarScheduler(ICommandBus commands, AltarWakeSignal wake, ILogger<AltarScheduler> logger, TimeProvider clock)
-    : TypedGameplayTimerSource(commands, logger)
+internal sealed class AltarDeadlineSource : DungeonDeadlineSource
 {
-    private DateTimeOffset? next;
-    protected override string SourceName => "timer:AltarScheduler";
-    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
+    public override DungeonDeadlineKind Kind => DungeonDeadlineKind.Altar;
+    public override async ValueTask<DateTimeOffset?> RunAsync(DungeonDeadlineRound round, CancellationToken token)
     {
-        var scan = await SubmitAsync(new MaintainAltarCommand(), root, SourceName, token).ConfigureAwait(false);
+        var scan = await round.SubmitAsync(new MaintainAltarCommand(), token).ConfigureAwait(false);
         foreach (var due in scan.Due)
-            await ItemAsync(new AdvanceAltarDeadlineCommand(due), root, SourceName + "/deadline", token).ConfigureAwait(false);
-        next = (await SubmitAsync(new MaintainAltarCommand(), root, SourceName, token).ConfigureAwait(false)).At;
-    }
-    internal async ValueTask AdvanceAsync(AltarDeadline due, CancellationToken token) =>
-        _ = await SubmitAsync(new AdvanceAltarDeadlineCommand(due), GameplayCallChain.NewRoot(GameplayCallSource.Timer), SourceName, token).ConfigureAwait(false);
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        try
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                // A failed scan or item cleanup must not turn a live scheduler into an infinite wait.
-                next = clock.GetUtcNow().AddSeconds(1);
-                await HostedAsync(stoppingToken).ConfigureAwait(false);
-                await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+            await round.ItemAsync(new AdvanceAltarDeadlineCommand(due), "deadline", token).ConfigureAwait(false);
+        return (await round.SubmitAsync(new MaintainAltarCommand(), token).ConfigureAwait(false)).At;
     }
 }

@@ -38,7 +38,7 @@ internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars,
     ISelectedSessionDomainService sessions, IDungeonRunProjectionDomainService registry,
     IMonsterDeathDomainService deaths, IOnlineUserQueryDomainService onlineUsers,
     ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandProjections projections,
-    TimeProvider clock, IAltarSchedulerWakeSignal wake, ILogger<GameAltarCommandHandler> logger)
+    TimeProvider clock, ILogger<GameAltarCommandHandler> logger)
     : ICommandHandler<GameAltarPrepareCommand, bool>, ICommandHandler<GameAltarDeathBatchCommand, bool>,
         ICommandHandler<GameAltarDifficultyCommand, bool>
 {
@@ -78,7 +78,6 @@ internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars,
                     targets.FirstOrDefault(x => x.ConnectionId == reporter.ConnectionId)?.OrderedMessages ?? [],
                     targets.Where(x => x.ConnectionId != reporter.ConnectionId).ToArray()), ct).ConfigureAwait(false);
             }
-            wake.Wake();
             return;
         }
         var run = runs.Find(reporter.CharacterId); var state = altars.Find(expected.RunId);
@@ -103,7 +102,7 @@ internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars,
         if (action is not null)
             await AltarTransitionProjection.ProjectAsync(projections, action,
                 AltarTransitionProjection.Participants(runs, sessions, registry, action.State.RunId),
-                clock, wake, logger, ct).ConfigureAwait(false);
+                clock, logger, ct).ConfigureAwait(false);
         if (operation == AltarOperation.Ready)
             foreach (var member in cohort)
                 _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions([member]),

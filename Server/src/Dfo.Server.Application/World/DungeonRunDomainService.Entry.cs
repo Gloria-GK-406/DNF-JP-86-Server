@@ -118,7 +118,7 @@ internal sealed partial class DungeonRunDomainService
                 cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Start(state, this.clock.GetUtcNow())).ToArray();
                 if (cell.IsCleared)
                     cell.Mechanisms = cell.Mechanisms.Select(state => this.mechanismRules.Complete(state, this.clock.GetUtcNow())).ToArray();
-                this.mechanismWake?.Wake();
+                this.deadlines?.Wake(DungeonDeadlineKind.RoomMechanism);
             }
             return aggregate.EntryChange(DungeonEntryChangeKind.ParticipantReady, characterId);
         }

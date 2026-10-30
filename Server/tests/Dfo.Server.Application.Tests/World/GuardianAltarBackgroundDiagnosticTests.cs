@@ -36,14 +36,12 @@ public sealed class GuardianAltarBackgroundDiagnosticTests(ITestOutputHelper out
         Assert.Equal(GuardianAltarStatus.Fighting, initial.Status);
         Assert.NotEmpty(initial.PlannedSpawns);
         output.WriteLine($"Initial generation={initial.Generation} planned={initial.PlannedSpawns.Length} firstSpawnMs={initial.PlannedSpawns[0].OffsetMilliseconds}");
-        var schedulerType = typeof(AdvanceGuardianAltarCommand).Assembly.GetType(
-            "Dfo.Server.Protocol.Game.GuardianAltar.GuardianAltarScheduler", throwOnError: true)!;
-        var scheduler = (IHostedService)f.Services.GetRequiredService(schedulerType);
+        var scheduler = f.Services.GetRequiredService<Dfo.Server.Application.World.DungeonDeadlineScheduler>();
         await scheduler.StartAsync(default);
         try
         {
             f.Clock.Advance(TimeSpan.FromMilliseconds(initial.PlannedSpawns[0].OffsetMilliseconds + 1000));
-            f.Services.GetRequiredService<IGuardianAltarSchedulerWakeSignal>().Wake();
+            scheduler.Wake(DungeonDeadlineKind.GuardianAltar);
             var until = DateTime.UtcNow.AddSeconds(5);
             // A committed generation precedes its outbox projection; wait for the observable notice.
             while (DateTime.UtcNow < until && !f.Sender.Outbound.Frames.Any(x => BinaryPrimitives.ReadUInt16LittleEndian(x.AsSpan(1)) == 0x35D))

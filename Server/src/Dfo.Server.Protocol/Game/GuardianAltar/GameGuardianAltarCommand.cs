@@ -27,7 +27,7 @@ internal sealed record GuardianAltarMutation(GuardianAltarProgress? Progress = n
 
 internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainService altar, ISelectedSessionDomainService sessions,
     IDungeonRunQueryDomainService runs, ICommandWorkUnits units, IGameCommandOutbox outbox,
-    IInventorySlotProjectionDomainService slots, ICharacterDomainService characters, IGuardianAltarSchedulerWakeSignal wake, TimeProvider clock)
+    IInventorySlotProjectionDomainService slots, ICharacterDomainService characters, TimeProvider clock)
     : ICommandHandler<GameGuardianAltarCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameGuardianAltarCommand command, CancellationToken ct)
@@ -55,7 +55,7 @@ internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainServic
         frames.AddRange(GuardianAltarProjection.InventoryFrames(result.Delivery, slots, clock));
         await outbox.RegisterExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
         if (result.Action is { } action) await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, slots, clock, ct).ConfigureAwait(false);
-        wake.Wake(); return true;
+        return true;
     }
     private async ValueTask<GuardianAltarMutation> MutateAsync(SelectedSessionIdentity session, GuardianAltarRequest r, CancellationToken ct)
     {

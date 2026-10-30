@@ -10,9 +10,9 @@ internal interface IAltarModeDomainService : IAltarDungeonDomainService
     void Remove(DungeonRunId runId);
 }
 
-internal sealed class EndlessAltarDomainService(AltarDungeonEngine engine) : IAltarModeDomainService
+internal sealed class EndlessAltarDomainService(AltarDungeonEngine engine, IDungeonDeadlineWake deadlines) : IAltarModeDomainService
 {
-    private readonly AltarStateStore state = new();
+    private readonly AltarStateStore state = new(deadlines);
     public bool Supports(int dungeonId) => dungeonId == 11006;
     public AltarDungeonState? Find(DungeonRunId runId) => engine.Find(state, runId);
     public IReadOnlyList<AltarDeadline> Pending() => engine.Pending(state);
@@ -28,9 +28,9 @@ internal sealed class EndlessAltarDomainService(AltarDungeonEngine engine) : IAl
     public void Remove(DungeonRunId runId) => state.Remove(runId);
 }
 
-internal sealed class UltimateAltarDomainService(AltarDungeonEngine engine) : IAltarModeDomainService
+internal sealed class UltimateAltarDomainService(AltarDungeonEngine engine, IDungeonDeadlineWake deadlines) : IAltarModeDomainService
 {
-    private readonly AltarStateStore state = new();
+    private readonly AltarStateStore state = new(deadlines);
     public bool Supports(int dungeonId) => dungeonId == 11007;
     public AltarDungeonState? Find(DungeonRunId runId) => engine.Find(state, runId);
     public IReadOnlyList<AltarDeadline> Pending() => engine.Pending(state);

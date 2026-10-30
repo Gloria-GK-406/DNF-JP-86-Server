@@ -9,7 +9,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
-using Microsoft.Extensions.Hosting;
+using Dfo.Server.Application.World;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.RoomMechanisms;
@@ -68,35 +68,21 @@ internal sealed class MaintainRoomMechanismsCommandHandler(IRoomMechanismMainten
         return true;
     }
 }
-internal sealed class RoomMechanismMaintenanceService(ICommandBus commands, IDungeonRoomMechanismWakeSignal wake,
-    ILogger<RoomMechanismMaintenanceService> logger, TimeProvider clock) : TypedGameplayTimerSource(commands, logger)
+internal sealed class RoomMechanismDeadlineSource(TimeProvider clock) : DungeonDeadlineSource
 {
-    private DateTimeOffset? next;
-    protected override string SourceName => "timer:RoomMechanismMaintenanceService";
-    protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
+    public override DungeonDeadlineKind Kind => DungeonDeadlineKind.RoomMechanism;
+    public override async ValueTask<DateTimeOffset?> RunAsync(DungeonDeadlineRound round, CancellationToken token)
     {
-        var scan = await SubmitAsync(new MaintainRoomMechanismsCommand(), root, SourceName, token).ConfigureAwait(false);
+        var scan = await round.SubmitAsync(new MaintainRoomMechanismsCommand(), token).ConfigureAwait(false);
         foreach (var view in scan.Views)
-            await ItemAsync(new ProjectRoomMechanismCommand(view), root, SourceName + "/room", token).ConfigureAwait(false);
-        var remaining = await SubmitAsync(new MaintainRoomMechanismsCommand(), root, SourceName, token).ConfigureAwait(false);
-        next = remaining.At;
+            await round.ItemAsync(new ProjectRoomMechanismCommand(view), "room", token).ConfigureAwait(false);
+        var remaining = await round.SubmitAsync(new MaintainRoomMechanismsCommand(), token).ConfigureAwait(false);
+        var next = remaining.At;
         if (remaining.Views.Count > 0)
         {
             var retry = clock.GetUtcNow().AddSeconds(1);
             if (next is null || retry < next) next = retry;
         }
-    }
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        try
-        {
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                next = clock.GetUtcNow().AddSeconds(1);
-                await HostedAsync(stoppingToken).ConfigureAwait(false);
-                await wake.WaitAsync(next, stoppingToken).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }
+        return next;
     }
 }

@@ -27,7 +27,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
     private readonly object gate = new();
     private readonly IDungeonRoomMechanismRuleService mechanismRules = new DungeonRoomMechanismRuleService();
     private readonly ISealedTreasureRuleService sealedTreasureRules = new SealedTreasureRuleService();
-    private readonly IDungeonRoomMechanismWakeSignal? mechanismWake;
+    private readonly IDungeonDeadlineWake? deadlines;
     private readonly IGiantDragonRuleService? giantDragons;
     private readonly ILostLandFeverRuleService lostLandFever;
     private readonly Dictionary<DungeonRunId, DateTimeOffset> wipeDeadlines = [];
@@ -53,7 +53,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         IWeaknessDomainService? weakness = null,
         ICreatureRuntimeDomainService? creatures = null,
         IDungeonLifecycleDomainService? lifecycle = null, TimeProvider? clock = null,
-        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonRoomMechanismWakeSignal? mechanismWake = null,
+        IDungeonRoomMechanismRuleService? mechanismRules = null, IDungeonDeadlineWake? deadlines = null,
         ISealedTreasureRuleService? sealedTreasureRules = null, IDungeonParticipationDomainService? participation = null,
         ILogger<DungeonRunDomainService>? logger = null, IDungeonSettlementRuleService? settlementRules = null,
         IGiantDragonRuleService? giantDragons = null)
@@ -68,7 +68,7 @@ internal sealed partial class DungeonRunDomainService : IDungeonRunDomainService
         this.lifecycle = lifecycle;
         this.clock = clock ?? TimeProvider.System;
         this.mechanismRules = mechanismRules ?? new DungeonRoomMechanismRuleService();
-        this.mechanismWake = mechanismWake;
+        this.deadlines = deadlines;
         this.sealedTreasureRules = sealedTreasureRules ?? new SealedTreasureRuleService();
         this.giantDragons = giantDragons;
         this.lostLandFever = lostLandFever;
