@@ -1,3 +1,4 @@
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Parties;
@@ -41,7 +42,7 @@ internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,ICha
     IDungeonRunDomainService? runs=null,IDespairTowerDomainService? despair=null,Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService? luckyStars=null)
     : ICommandHandler<ClearExperienceAlgorithmInput, ClearExperienceResult>
 {
-    private readonly GameSetPlayResultCommandHandler command = ProtocolAlgorithmFixture.Create<GameSetPlayResultCommandHandler>(
+    private readonly DungeonClearSettlementDomainService settlements = ProtocolAlgorithmFixture.Create<DungeonClearSettlementDomainService>(
         grant, award, runs, difficulties, clock, attendance, quests, despair, luckyStars);
     public ValueTask<ClearExperienceResult> HandleAsync(CommandExecutionContext c,ClearExperienceAlgorithmInput q,CancellationToken ct)
     {
@@ -51,7 +52,7 @@ internal class ClearExperienceAlgorithmDriver(ICharacterDomainService grant,ICha
         async ValueTask<ClearExperienceResult> Run()
         {
             using var fallback=new DomainCommandFixture.FootprintLease(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(q.AccountId,q.CharacterId,q.Session));
-            return await command.GrantBodyAsync(q.AccountId,q.CharacterId,q.DungeonId,q.Clear,q.Session,q.RunId,q.SettlementLevel,q.SettledAt,q.Footprint ?? fallback,ct);
+            return await settlements.GrantAsync(q.AccountId,q.CharacterId,q.DungeonId,q.Clear,q.Session,q.RunId,q.SettlementLevel,q.SettledAt,q.Footprint ?? fallback,ct);
         }
     }
 }

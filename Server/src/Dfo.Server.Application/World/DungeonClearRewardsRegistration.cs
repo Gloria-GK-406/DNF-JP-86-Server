@@ -62,6 +62,7 @@ internal static class DungeonClearRewardsRegistration
         // is a question about the world -- which the rules are not allowed to ask.
         services.TryAddSingleton<ICardRewardDomainService, CardRewardDomainService>();
         services.TryAddSingleton<ICardFlipCostDomainService, CardFlipCostDomainService>();
+        services.TryAddSingleton<IDungeonClearSettlementDomainService, DungeonClearSettlementDomainService>();
         // Runtime kill interpretation reads only the published Cell snapshot.
         services.TryAddSingleton<IMonsterKillDomainService, MonsterKillDomainService>();
         services.TryAddSingleton<ICardFlipDomainService, CardFlipDomainService>();

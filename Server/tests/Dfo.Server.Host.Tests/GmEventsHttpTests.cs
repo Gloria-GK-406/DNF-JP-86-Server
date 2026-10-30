@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Inventory;
 using System.Net;

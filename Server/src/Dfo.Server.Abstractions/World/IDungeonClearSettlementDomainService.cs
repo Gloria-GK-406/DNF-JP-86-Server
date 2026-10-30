@@ -1,13 +1,10 @@
-using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Abstractions.Quests;
-using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Application.Commands;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
-namespace Dfo.Server.Protocol.Game.DungeonClear;
+namespace Dfo.Server.Abstractions.World;
 
 /// <summary>What came of paying for a finished run.</summary>
 /// <param name="Award">
@@ -22,4 +19,13 @@ public sealed record ClearExperienceResult(
     CharacterDungeonDifficulty? DifficultyUnlocked = null)
 {
     public DespairTowerSettlement? Despair { get; init; }
+}
+
+/// <summary>Settles a finished run for one character.</summary>
+public interface IDungeonClearSettlementDomainService
+{
+    /// <summary>Pays for the clear inside the caller's work unit.</summary>
+    ValueTask<ClearExperienceResult> GrantAsync(AccountId accountId, CharacterId characterId, int dungeonId,
+        ClearCircumstances clear, SelectedSessionIdentity? session, Guid runId, int settlementLevel,
+        DateTimeOffset? settledAt, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
