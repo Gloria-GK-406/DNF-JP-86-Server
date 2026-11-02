@@ -49,6 +49,15 @@ public sealed class DropRandom
         return Mix(seed ^ ((ulong)(uint)actorSequence * MixA));
     }
 
+    /// <summary>The seed of one repetition of a draw unit.</summary>
+    /// <remarks>
+    /// Round zero keeps the seed, so a multiplier of one reproduces every existing result. Later
+    /// rounds are salted by their entry, so changing one entry's multiplier moves no other entry.
+    /// </remarks>
+    public static ulong ForRound(ulong seed, DropDrawRound draw) => draw.Round == 0
+        ? seed
+        : Mix(seed ^ Mix(((ulong)(uint)draw.Entry << 32 | (uint)draw.Round) * GoldenGamma));
+
     /// <summary>The next roll, from one up to that bound, both included.</summary>
     /// <remarks>
     /// One-based because the archive's ladders are: a rarity group's first band covers rolls up to

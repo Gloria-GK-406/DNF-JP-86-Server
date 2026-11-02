@@ -58,6 +58,24 @@ public sealed class IndependentDropRuleServiceTests
     }
 
     [Fact]
+    public void Each_round_keeps_the_row_success_cap_and_round_zero_is_unchanged()
+    {
+        // Row() declares one trial for one member with a certain hit at difficulty 1 and a cap of four.
+        var row = Row();
+        var table = new IndependentDropTable([row],
+            new[] { 100 }.ToImmutableDictionary(id => id,
+                id => (RolledDrop?)new RolledDrop(id, 1, DropRarity.Unique, DropItemKind.Equipment)));
+        var service = new IndependentDropRuleService(new FixedTable(table),
+            NullLogger<IndependentDropRuleService>.Instance, new IndependentDropOptions());
+        var request = Request() with { Context = Request().Context with { Difficulty = (DungeonDifficulty)1 } };
+        var first = service.Draw(request, 20, 0);
+        Assert.Equal(first, service.Draw(request with { Draw = new(DropDrawEntry.IndependentMonster, 0) }, 20, 0));
+        var later = service.Draw(request with { Draw = new(DropDrawEntry.IndependentMonster, 1) }, 20, 0);
+        Assert.Equal(first.Count, later.Count);
+        Assert.InRange(first.Count, 1, row.Fields[12]);
+    }
+
+    [Fact]
     public void Production_registration_prewarms_without_resolving_character_runtime()
     {
         var services = new ServiceCollection();

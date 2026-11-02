@@ -24,24 +24,29 @@ internal sealed partial class MonsterDropDomainService(
     IExtraDropRuleService extraDrops,
     IIndependentDropRuleService independentDrops,
     IPremiumServiceDomainService premiums, ICharacterDomainService characters,
-    IDimensionDungeonRuleService dimensions) : IMonsterDropDomainService
+    IDimensionDungeonRuleService dimensions,
+    IDropDrawMultiplierDomainService drawMultipliers) : IMonsterDropDomainService
 {
+    /// <summary>What one 0x0026 can carry; its record count is a single byte.</summary>
+    private const int MaxDropsPerFrame = byte.MaxValue;
+
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
     {
         Validate(context, cancellationToken);
         var request = new MonsterDropRequest(monsterId, context);
         var result = new List<RolledDrop>();
+        var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
         if (context.SourceType == IndependentDropSourceType.APC)
-            return await IndependentAsync(request, 0, cancellationToken).ConfigureAwait(false);
-        result.AddRange(this.GenerateRandomDrops(request));
-        result.AddRange(GenerateMonsterDeclared(request));
+            return await IndependentAsync(request, 0, multipliers, cancellationToken).ConfigureAwait(false);
+        result.AddRange(this.GenerateRandomDrops(request, multipliers));
+        result.AddRange(GenerateMonsterDeclared(request, multipliers));
         var growthBonus = context.MonsterRank == 3
             ? await premiums.GetBossEquipmentDropBonusPercentAsync(
                 context.Participants.Select(p => p.AccountId).ToArray(), cancellationToken).ConfigureAwait(false)
             : 0;
-        result.AddRange(await IndependentAsync(request, growthBonus, cancellationToken).ConfigureAwait(false));
-        result.AddRange(worldDrops.Draw(request));
+        result.AddRange(await IndependentAsync(request, growthBonus, multipliers, cancellationToken).ConfigureAwait(false));
+        result.AddRange(Rounds(request, DropDrawEntry.World, multipliers, worldDrops.Draw));
         result.AddRange(GenerateSpecialMode(request));
         return result;
     }
@@ -60,17 +65,28 @@ internal sealed partial class MonsterDropDomainService(
         {
             var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence)
                 ^ unchecked((ulong)characterId.Value * 0x9E3779B97F4A7C15UL) ^ 0x44494D454E53494FUL;
-            result.AddRange(dimensions.DrawMonster(new(monsterId, context), seed)
+            var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
+            var request = new MonsterDropRequest(monsterId, context);
+            IReadOnlyList<RolledDrop> Draw(MonsterDropRequest round) => dimensions.DrawMonster(round, seed);
+            // Round zero draws equipment and material together, as a multiplier of one always has.
+            result.AddRange(Rounds(request, DropDrawEntry.DimensionEquipment, multipliers, Draw)
+                .Concat(Rounds(request, DropDrawEntry.DimensionMaterial, multipliers, Draw, first: 1))
                 .Select(item => item with { OwnerCharacterId = characterId }));
         }
         return result;
     }
 
-    public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
+    public async ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
         int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken cancellationToken)
     {
         Validate(context, cancellationToken);
-        return IndependentAsync(new(monsterId, context), growthBonusPercent, cancellationToken);
+        var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        var drops = await IndependentAsync(new(monsterId, context), growthBonusPercent, multipliers, cancellationToken)
+            .ConfigureAwait(false);
+        if (drops.Count <= MaxDropsPerFrame) return drops;
+        logger.LogWarning("Independent drops of monster {MonsterId} truncated: generated={Generated} kept={Kept}",
+            monsterId, drops.Count, MaxDropsPerFrame);
+        return drops.Take(MaxDropsPerFrame).ToArray();
     }
 
     /// <remarks>
@@ -78,13 +94,16 @@ internal sealed partial class MonsterDropDomainService(
     /// monster's, and it is read only when the table declares a row for this source.
     /// </remarks>
     private async ValueTask<IReadOnlyList<RolledDrop>> IndependentAsync(
-        MonsterDropRequest request, int growthBonusPercent, CancellationToken cancellationToken)
+        MonsterDropRequest request, int growthBonusPercent, DropDrawMultipliers multipliers, CancellationToken cancellationToken)
     {
         if (!independentDrops.Covers(request)) return [];
         var progress = await characters.Get(request.CharacterId).ProgressAsync(cancellationToken)
             .ConfigureAwait(false) ?? throw new InvalidOperationException(
                 $"Independent drops: missing character {request.CharacterId}.");
-        return independentDrops.Draw(request, progress.Level, growthBonusPercent);
+        var entry = request.Context.SourceType == IndependentDropSourceType.APC
+            ? DropDrawEntry.IndependentApc : DropDrawEntry.IndependentMonster;
+        return Rounds(request, entry, multipliers,
+            round => independentDrops.Draw(round, progress.Level, growthBonusPercent)).ToArray();
     }
 
     private static void Validate(MonsterDropContext context, CancellationToken cancellationToken)

@@ -16,7 +16,15 @@ public static class Migrator
         new Dictionary<long, Action<SqliteConnection>>
         {
             [0] = LegacyUpgrade.Apply,
+            [1] = AddDropDrawMultiplier,
         };
+
+    private static void AddDropDrawMultiplier(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));";
+        command.ExecuteNonQuery();
+    }
 
     /// <summary>The outcome of one run, for the caller to report.</summary>
     public sealed record Result(long From, long To, string? Backup);

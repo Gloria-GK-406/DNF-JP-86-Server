@@ -40,9 +40,9 @@ internal sealed class IndependentDropRuleService(
             var row = prepared.Row;
             if ((row.MinimumLevel > 0 && playerLevel < row.MinimumLevel)
                 || (row.MaximumLevel > 0 && playerLevel > row.MaximumLevel)) continue;
-            var random = new DropRandom(DropRandom.SeedFor(request.Context.Seed, request.Context.MapId,
+            var random = new DropRandom(DropRandom.ForRound(DropRandom.SeedFor(request.Context.Seed, request.Context.MapId,
                 request.Context.Cell.X, request.Context.Cell.Y, request.ActorSequence)
-                ^ 0x494E444550445250UL ^ ((ulong)(uint)row.Ordinal * 0x9E3779B97F4A7C15UL));
+                ^ 0x494E444550445250UL ^ ((ulong)(uint)row.Ordinal * 0x9E3779B97F4A7C15UL), request.Draw));
             var probability = row.Fields[3 + (int)request.Context.Difficulty];
             if (prepared.BossEquipment && request.Context.SourceType == IndependentDropSourceType.Monster
                 && cache.Value.Table.GrowthBonusDungeonIds.Contains(request.Context.DungeonId)

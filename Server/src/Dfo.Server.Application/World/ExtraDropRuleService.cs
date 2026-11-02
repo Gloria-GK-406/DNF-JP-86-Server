@@ -27,9 +27,9 @@ internal sealed class ExtraDropRuleService(
             request.Context.Difficulty, request.PartyMemberCount, options.RateBasis);
         // Extra has no gold path; do not consume an ordinary RNG stream.
         rates = rates with { Slots = rates.Slots.Where(s => s.Slot != DropRateSlot.Gold).ToArray() };
-        var random = new DropRandom(DropRandom.SeedFor(request.Context.Seed, request.Context.MapId,
+        var random = new DropRandom(DropRandom.ForRound(DropRandom.SeedFor(request.Context.Seed, request.Context.MapId,
             request.Context.Cell.X, request.Context.Cell.Y, request.ActorSequence)
-            ^ 0x455854524144524FUL ^ ((ulong)(uint)attempt * 0x9E3779B97F4A7C15UL));
+            ^ 0x455854524144524FUL ^ ((ulong)(uint)attempt * 0x9E3779B97F4A7C15UL), request.Draw));
         var result = new List<RolledDrop>();
         foreach (var slot in DropRules.Gate(rates, random))
         {

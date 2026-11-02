@@ -36,6 +36,22 @@ public sealed class ObjectDropRuleServiceTests
     }
 
     [Fact]
+    public void Specific_rounds_multiply_attempts_and_redraw_while_round_zero_is_unchanged()
+    {
+        var service = new ObjectDropRuleService(null!, null!, null!, new());
+        ObjectDropDefinition[] definitions = [new(4, 49014, 0, -1, 3, 0,
+            [new(10, 5000, 25), new(20, 5001, 30)])];
+        var plain = service.Draw(definitions, Context(1));
+        var multiplied = service.Draw(definitions, Context(1) with
+        {
+            DrawMultipliers = new(new Dictionary<DropDrawEntry, int> { [DropDrawEntry.ObjectSpecific] = 20 }),
+        });
+        Assert.Equal(60, multiplied.Count);
+        Assert.Equal(plain, multiplied.Take(3));
+        Assert.True(multiplied.Select(d => d.ItemId).Distinct().Count() > 1);
+    }
+
+    [Fact]
     public void Zero_attempts_and_empty_candidates_do_not_create_rewards()
     {
         var service = new ObjectDropRuleService(null!, null!, null!, new());

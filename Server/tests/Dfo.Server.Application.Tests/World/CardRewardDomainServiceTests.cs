@@ -265,6 +265,38 @@ public sealed class CardRewardDomainServiceTests
     }
 
     [Fact]
+    public async Task A_death_lands_at_most_one_frame_of_drops()
+    {
+        await TestGameplay.RunAsync(() =>
+        {
+            const ushort sequence = 41;
+            var runs = TestParties.Runs();
+            _ = runs.PreparePartyEntry(
+                [new DungeonRunParticipant(new AccountId(1), Character, Slot: 0, IsLeader: true)],
+                Tutorial,
+                (DungeonDifficulty)Difficulty,
+                new DungeonCellSeed(
+                    Tutorial.StartCell,
+                    Tutorial.StartRoomMapId,
+                    sequence,
+                    [new DungeonCellActorState(
+                        sequence,
+                        new DungeonRoomActor(61670, 5, (byte)MonsterRank.Champion),
+                        IsAiCharacter: false,
+                        IsDead: false,
+                        PendingLoot: Enumerable.Repeat(
+                            new RolledDrop(RolledDrop.GoldItemId, 1, DropRarity.Common, DropItemKind.Gold), 300).ToArray(),
+                        IsMonster: true)],
+                    GroundItems: []),
+                DungeonRunId.New(),
+                DateTimeOffset.UtcNow);
+            var change = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Character, sequence)!);
+            Assert.Equal(byte.MaxValue, change!.AddedGroundItems.Count);
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
     public async Task A_clear_hands_the_runs_committed_kills_to_both_reward_faces()
     {
         await TestGameplay.RunAsync(async () =>

@@ -53,7 +53,7 @@ public sealed class SchemaVersionTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(2)]
+    [InlineData(3)]
     public void The_server_refuses_a_database_in_another_version(int version)
     {
         var path = Unversioned.NewPath("refused");

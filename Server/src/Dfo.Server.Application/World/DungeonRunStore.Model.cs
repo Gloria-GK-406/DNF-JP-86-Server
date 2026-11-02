@@ -63,14 +63,13 @@ internal sealed partial class DungeonRunStore
         public DungeonCellAggregate CreateCell(DungeonCellSeed seed) =>
             new(seed, this.AllocateGroundItemNumbers);
 
-        private int AllocateGroundItemNumbers(int count)
+        // Numbers are u16 on the wire. An exhausted run stops materializing rather than failing a kill.
+        private (int First, int Granted) AllocateGroundItemNumbers(int count)
         {
-            if (count > ushort.MaxValue - this.nextGroundItemNumber + 1)
-                throw new InvalidOperationException(
-                    "The dungeon run exhausted its stable ground-item number space.");
+            var granted = Math.Min(count, ushort.MaxValue - this.nextGroundItemNumber + 1);
             var first = this.nextGroundItemNumber;
-            this.nextGroundItemNumber += count;
-            return first;
+            this.nextGroundItemNumber += granted;
+            return (first, granted);
         }
 
         public DungeonRunId RunId { get; }
@@ -262,9 +261,9 @@ internal sealed partial class DungeonRunStore
         private readonly Dictionary<ushort, DungeonCellActorState> actors;
         private readonly Dictionary<int, DungeonCellHellGroupState> hellGroups;
         private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
-        private readonly Func<int, int> allocateGroundItemNumbers;
+        private readonly Func<int, (int First, int Granted)> allocateGroundItemNumbers;
 
-        public DungeonCellAggregate(DungeonCellSeed seed, Func<int, int> allocateGroundItemNumbers)
+        public DungeonCellAggregate(DungeonCellSeed seed, Func<int, (int First, int Granted)> allocateGroundItemNumbers)
         {
             this.MechanismBlocksClear = seed.MechanismBlocksClear;
             this.Mechanisms = seed.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray();
@@ -287,7 +286,11 @@ internal sealed partial class DungeonRunStore
                 || !this.hellGroups.TryGetValue(id, out var group) || !group.ActorSequences.Contains(actor.Sequence))))
                 throw new InvalidDataException("Hell cell actor has no reward group.");
             this.allocateGroundItemNumbers = allocateGroundItemNumbers;
-            var first = allocateGroundItemNumbers(seed.GroundItems.Count);
+            var (first, granted) = allocateGroundItemNumbers(seed.GroundItems.Count);
+            // A room is published whole or not at all; only a death may land part of its drops.
+            if (granted < seed.GroundItems.Count)
+                throw new InvalidOperationException(
+                    "The dungeon run exhausted its stable ground-item number space.");
             this.groundItems = seed.GroundItems
                 .Select((item, index) => item with { Number = checked((ushort)(first + index)) })
                 .ToDictionary(item => item.Number);
@@ -361,6 +364,8 @@ internal sealed partial class DungeonRunStore
             var added = this.AppendGroundItems(rewards
                 .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)
                 .Where(mayMaterialize)
+                // 0x0026 counts its records in one byte; the excess was logged when it was frozen.
+                .Take(byte.MaxValue)
                 .Select(rolled =>
                     new DungeonGroundItemDraft(
                         rolled.ItemId,
@@ -399,10 +404,10 @@ internal sealed partial class DungeonRunStore
         {
             if (items.Any(draft => draft.Count <= 0))
                 throw new ArgumentOutOfRangeException(nameof(items), "Ground item count must be positive.");
-            var first = this.allocateGroundItemNumbers(items.Count);
+            var (first, granted) = this.allocateGroundItemNumbers(items.Count);
 
-            var added = new List<DungeonGroundItem>(items.Count);
-            for (var index = 0; index < items.Count; index++)
+            var added = new List<DungeonGroundItem>(granted);
+            for (var index = 0; index < granted; index++)
             {
                 var draft = items[index];
                 added.Add(new DungeonGroundItem(

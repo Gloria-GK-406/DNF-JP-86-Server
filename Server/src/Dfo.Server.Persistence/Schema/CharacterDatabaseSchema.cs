@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 1;
+    public const int Version = 2;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -325,6 +325,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS gm_mail_drafts (administrator_id INTEGER PRIMARY KEY,document TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
+        CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));
         CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_joust_schedule(id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_joust_round(round_id TEXT PRIMARY KEY,starts_at INTEGER NOT NULL,ends_at INTEGER NOT NULL,settled INTEGER NOT NULL,input TEXT NOT NULL);

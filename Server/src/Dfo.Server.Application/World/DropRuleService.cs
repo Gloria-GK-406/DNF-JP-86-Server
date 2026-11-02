@@ -57,12 +57,12 @@ internal sealed class DropRuleService(
         ArgumentNullException.ThrowIfNull(rates);
 
         var table = rateTables.Load(DropRateTables.Monster);
-        var random = new DropRandom(DropRandom.SeedFor(
+        var random = new DropRandom(DropRandom.ForRound(DropRandom.SeedFor(
             kill.Context.Seed,
             kill.Context.MapId,
             kill.Context.Cell.X,
             kill.Context.Cell.Y,
-            kill.ActorSequence) ^ ((ulong)(uint)attempt * 0x9E3779B97F4A7C15UL));
+            kill.ActorSequence) ^ ((ulong)(uint)attempt * 0x9E3779B97F4A7C15UL), kill.Draw));
 
         var rolled = new List<RolledDrop>();
         foreach (var slot in DropRules.Gate(rates, random))

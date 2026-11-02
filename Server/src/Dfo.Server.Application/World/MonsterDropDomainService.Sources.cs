@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Microsoft.Extensions.Logging;
 
@@ -5,7 +7,14 @@ namespace Dfo.Server.Application.World;
 
 internal sealed partial class MonsterDropDomainService
 {
-    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request)
+    private static readonly ImmutableArray<(DropDrawEntry Entry, ImmutableArray<DropRateSlot> Slots)> OrdinaryEntries =
+    [
+        (DropDrawEntry.MonsterGold, [DropRateSlot.Gold]),
+        (DropDrawEntry.MonsterStackable, [DropRateSlot.ItemType1, DropRateSlot.ItemType3]),
+        (DropDrawEntry.MonsterEquipment, [DropRateSlot.ItemType2]),
+    ];
+
+    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request, DropDrawMultipliers multipliers)
     {
         if (request.MonsterRank is < 0 or > 3 || request.Context.RandomDropCount == 0)
             return [];
@@ -16,6 +25,42 @@ internal sealed partial class MonsterDropDomainService
         var includeOrdinaryItems = result.Count == 0;
         for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
             result.AddRange(this.GenerateOrdinary(request, includeOrdinaryItems, attempt));
+        result.AddRange(this.GenerateExtraRounds(request, multipliers));
+        return result;
+    }
+
+    /// <remarks>
+    /// Each later round repeats the whole K-attempt unit: the Extra flag suppresses ordinary items in
+    /// its own round only. Slots gate independently, so drawing them per entry keeps their odds
+    /// while letting gold and equipment carry different multipliers.
+    /// </remarks>
+    private List<RolledDrop> GenerateExtraRounds(MonsterDropRequest request, DropDrawMultipliers multipliers)
+    {
+        var result = new List<RolledDrop>();
+        var rounds = Math.Max(multipliers.For(DropDrawEntry.MonsterExtra),
+            OrdinaryEntries.Max(entry => multipliers.For(entry.Entry)));
+        if (rounds <= 1) return result;
+        var rates = dropRules.RatesFor(request) is { } found ? adjuster.Adjust(request.CharacterId, found) : null;
+        for (var round = 1; round < rounds; round++)
+        {
+            var extraHit = false;
+            if (round < multipliers.For(DropDrawEntry.MonsterExtra))
+                for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
+                {
+                    var drawn = extraDrops.Draw(request with { Draw = new(DropDrawEntry.MonsterExtra, round) }, attempt);
+                    extraHit |= drawn.Count > 0;
+                    result.AddRange(drawn);
+                }
+            if (rates is null) continue;
+            foreach (var (entry, slots) in OrdinaryEntries)
+            {
+                if (round >= multipliers.For(entry)) continue;
+                var entryRates = rates with { Slots = rates.Slots.Where(slot => slots.Contains(slot.Slot)).ToArray() };
+                for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
+                    result.AddRange(dropRules.DrawFor(
+                        request with { Draw = new(entry, round) }, entryRates, !extraHit, attempt));
+            }
+        }
         return result;
     }
 
@@ -34,8 +79,18 @@ internal sealed partial class MonsterDropDomainService
         return dropRules.DrawFor(kill, adjuster.Adjust(kill.CharacterId, rates), includeItems, attempt);
     }
 
+    /// <summary>Repeats one draw unit for each round of its entry, from <paramref name="first"/> on.</summary>
+    private static IEnumerable<RolledDrop> Rounds(MonsterDropRequest request, DropDrawEntry entry,
+        DropDrawMultipliers multipliers, Func<MonsterDropRequest, IReadOnlyList<RolledDrop>> draw, int first = 0)
+    {
+        for (var round = first; round < multipliers.For(entry); round++)
+            foreach (var drop in draw(request with { Draw = new(entry, round) }))
+                yield return drop;
+    }
+
     // One fixed-basis draw per monster, independent of party size.
-    private IReadOnlyList<RolledDrop> GenerateMonsterDeclared(MonsterDropRequest request) => declaredDrops.Draw(request);
+    private IReadOnlyList<RolledDrop> GenerateMonsterDeclared(MonsterDropRequest request, DropDrawMultipliers multipliers) =>
+        Rounds(request, DropDrawEntry.MonsterDeclared, multipliers, declaredDrops.Draw).ToArray();
 
     // Hell/event rewards need their own trigger and replacement rules, not one payout per actor.
     private static IReadOnlyList<RolledDrop> GenerateSpecialMode(MonsterDropRequest request) => [];
