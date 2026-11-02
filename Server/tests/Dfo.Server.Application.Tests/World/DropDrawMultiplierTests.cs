@@ -8,9 +8,6 @@ internal sealed class FixedDrawMultipliers(params (DropDrawEntry Entry, int Mult
 {
     public ValueTask<DropDrawMultipliers> CurrentAsync(CancellationToken cancellationToken) =>
         ValueTask.FromResult(new DropDrawMultipliers(values.ToDictionary(value => value.Entry, value => value.Multiplier)));
-
-    public ValueTask SetAsync(DropDrawEntry entry, int multiplier, CancellationToken cancellationToken) =>
-        throw new NotSupportedException();
 }
 
 [Trait("Category", "Unit")]

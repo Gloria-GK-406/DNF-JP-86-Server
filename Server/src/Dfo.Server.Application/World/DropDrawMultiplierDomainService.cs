@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.World;
 /// </remarks>
 internal sealed class DropDrawMultiplierDomainService(
     IDropDrawMultiplierPersistence store,
-    ILogger<DropDrawMultiplierDomainService> logger) : IDropDrawMultiplierDomainService
+    ILogger<DropDrawMultiplierDomainService> logger) : IDropDrawMultiplierDomainService, IDropDrawMultiplierControlDomainService
 {
     public async ValueTask<DropDrawMultipliers> CurrentAsync(CancellationToken cancellationToken)
     {

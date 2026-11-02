@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { App, Button, Drawer, Dropdown, Input, Popconfirm, Table, Typography } from 'antd';
+import { App, Button, Drawer, Dropdown, Input, InputNumber, Popconfirm, Table, Typography } from 'antd';
 import { EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
 import { api, ApiError } from './api';
 import { activityView } from './events/activityViews';
+import { dropEntryGroups, dropEntryKeys, type DrawMultipliers } from './events/dropRateEntries';
 import { bjTime } from './format';
 import { useNotiBar } from './NotiBar';
 import { Field, LockBanner, MoreToggle, PageHead, Panel, Pill, useExpanded, type PillKind } from './ui';
@@ -12,10 +13,10 @@ export type EventEntry = { eventId: number; type: string; revision: number; seas
   status: 'active' | 'disabled' | 'scheduled' | 'expired' | 'unavailable'; title: string; shortName: string;
   description: string; startNotice: string; endNotice: string; startsAt: string | null; endsAt: string | null;
   available: boolean; unavailableReason: string | null; updatedAt: string | null; updatedBy: string | null;
-  appliedActive?: boolean | null; appliedRevision?: number | null; appliedAt?: string | null };
+  appliedActive?: boolean | null; appliedRevision?: number | null; appliedAt?: string | null; drawMultipliers?: DrawMultipliers | null };
 export type EventList = { entries: EventEntry[] };
 type Access = { onExpired: () => void; onDenied: () => void };
-type Configuration = Pick<EventEntry, 'title' | 'shortName' | 'description' | 'startNotice' | 'endNotice'> & { startsAt: string; endsAt: string };
+type Configuration = Pick<EventEntry, 'title' | 'shortName' | 'description' | 'startNotice' | 'endNotice'> & { startsAt: string; endsAt: string; drawMultipliers?: DrawMultipliers };
 type Action = 'configure' | 'enable' | 'disable' | 'new-season';
 const statuses: Record<EventEntry['status'], [string, PillKind]> = { active: ['生效中', 'ok'], disabled: ['已停用', 'attn'], scheduled: ['未开始', 'idle'], expired: ['已结束', 'idle'], unavailable: ['规则不可用', 'crit'] };
 const successes = { configure: '活动配置已保存，当前期次进度保留。', enable: '活动已启用，按配置时间生效。',
@@ -78,7 +79,9 @@ export function EventsView(access: Access) {
     if (saving.current || current.busy) return;
     setEditor(undefined); setSettings(undefined); reloading.current = true; current.refresh();
   }
-  const toggleText = (entry: EventEntry) => entry.type === 'unlimited-fatigue'
+  const toggleText = (entry: EventEntry) => entry.type === 'drop-rate'
+    ? (entry.enabled ? '停用后，配置的入口恢复 1 倍；已生成的房间和掉落不变。' : '有效期内按配置的倍率增加地面掉落的抽取次数，结束后恢复 1 倍。')
+    : entry.type === 'unlimited-fatigue'
     ? (entry.enabled ? '停用后，后续进图、换房及竞技地下城每轮恢复扣除疲劳，现有余额保留。'
       : '有效期内暂停扣除疲劳，零疲劳角色也可进入地下城；不会补满余额。')
     : entry.type === 'joust'
@@ -97,11 +100,13 @@ export function EventsView(access: Access) {
       <Table<EventEntry> className="ledger" size="small" rowKey="eventId" dataSource={entries} loading={current.busy} pagination={false} scroll={{ x: 980 }}
         locale={{ emptyText: current.error ? '读取失败' : '没有已注册的活动' }} columns={[
           { title: '活动', key: 't', render: (_, e) => <span><span className="strong">{e.title}</span> <span className="faint small">{e.shortName}</span> <span className="id">#{e.eventId}</span></span> },
-          { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{e.type === 'unlimited-fatigue' ? '无限疲劳' : activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
+          { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{e.type === 'unlimited-fatigue' ? '无限疲劳' : e.type === 'drop-rate' ? '爆率提升' : activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
             <span className="faint small"> v{e.revision}</span></span> },
           { title: '状态', key: 's', width: 120, render: (_, e) => <span><Pill kind={statuses[e.status][1]}>{statuses[e.status][0]}</Pill>
             {e.type === 'unlimited-fatigue' && <div className="faint small">{e.appliedRevision !== e.revision || e.appliedActive !== (e.status === 'active')
               ? '效果待同步' : e.appliedActive ? '已暂停扣除疲劳' : '正常扣除疲劳'}</div>}
+            {e.type === 'drop-rate' && <div className="faint small">{e.appliedRevision !== e.revision || e.appliedActive !== (e.status === 'active')
+              ? '效果待同步' : e.appliedActive ? '倍率已应用' : '倍率为 1'}</div>}
             {!e.available && <div className="faint small">{e.unavailableReason ?? '活动规则暂不可用'}</div>}</span> },
           { title: '有效期（北京时间）', key: 'p', render: (_, e) => e.startsAt ? <span className="mono small">{bjTime(e.startsAt)} → {bjTime(e.endsAt)}</span> : <span className="faint small">配置有效期后才能启用</span> },
           { title: '', key: 'op', align: 'end', width: 270, fixed: 'right', render: (_, e) => <span style={{ display: 'inline-flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -110,7 +115,7 @@ export function EventsView(access: Access) {
             <Popconfirm title={`${e.enabled ? '停用' : '启用'}「${e.title}」？`} description={toggleText(e)} okText={e.enabled ? '确认停用' : '确认启用'} cancelText="取消"
               onConfirm={() => change(e, e.enabled ? 'disable' : 'enable')} disabled={locked || (!e.enabled && (!e.available || !e.startsAt || !e.endsAt))}>
               <Button size="small" type="text" danger={e.enabled} disabled={locked || (!e.enabled && (!e.available || !e.startsAt || !e.endsAt))}>{e.enabled ? '停用' : '启用'}</Button></Popconfirm>
-            {e.type !== 'unlimited-fatigue' && <Dropdown trigger={['click']} disabled={locked} menu={{ items: [{ key: 'new-season', label: '新建期次' }], onClick: () => setEditor({ entry: structuredClone(e), action: 'new-season' }) }}>
+            {e.type !== 'unlimited-fatigue' && e.type !== 'drop-rate' && <Dropdown trigger={['click']} disabled={locked} menu={{ items: [{ key: 'new-season', label: '新建期次' }], onClick: () => setEditor({ entry: structuredClone(e), action: 'new-season' }) }}>
               <Button size="small" type="text" aria-label="更多" icon={<EllipsisOutlined />} /></Dropdown>}
           </span> },
         ]} />
@@ -128,6 +133,8 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
   const { modal } = App.useApp(); const noti = useNotiBar();
   const [form, setForm] = useState(() => ({ title: entry.title, shortName: entry.shortName, description: entry.description, startNotice: entry.startNotice,
     endNotice: entry.endNotice, startsAt: inputTime(entry.startsAt), endsAt: inputTime(entry.endsAt) }));
+  const [multipliers, setMultipliers] = useState<DrawMultipliers>(() => Object.fromEntries(dropEntryKeys.map(key => [key, entry.drawMultipliers?.[key] ?? 1])));
+  const [allAt, setAllAt] = useState<number | null>(2);
   const [dirty, setDirty] = useState(false); const [touched, setTouched] = useState(false); const confirming = useRef(false);
   const set = (patch: Partial<typeof form>) => { setForm(old => ({ ...old, ...patch })); setDirty(true); };
   function close() {
@@ -150,6 +157,7 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
     if (!valid(startsAt) || !valid(endsAt) || endsAt <= startsAt) { noti.error('请填写有效的起止时间，结束时间须晚于开始时间。'); return; }
     const configuration: Configuration = { title: form.title.trim(), shortName: form.shortName.trim(), description: form.description.trim(),
       startNotice: form.startNotice.trim(), endNotice: form.endNotice.trim(), startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() };
+    if (entry.type === 'drop-rate') configuration.drawMultipliers = multipliers;
     if (action === 'configure') { await onSave(configuration); return; }
     confirming.current = true;
     modal.confirm({ title: '确认新建活动期次？', content: '旧期次的进度、领取记录和已发邮件保留。新期次的玩家进度从头开始，创建后默认停用，需要另行启用。',
@@ -181,6 +189,15 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
         <Field label="结束时间（北京时间 UTC+8）" htmlFor="event-ends" err={touched ? errors.endsAt || undefined : undefined}><Input id="event-ends" type="datetime-local" step="1" disabled={disabled}
           value={form.endsAt} onChange={x => set({ endsAt: x.target.value })} /></Field>
       </div>
+      {entry.type === 'drop-rate' && <>
+        <span className="faint small">倍率增加的是抽取次数（1—100 倍，1 倍为原样），不改变单次概率，也不保证产出严格增长。只影响地面掉落；进行中的副本从新建的房间开始生效；单次击杀超过 255 条的部分会被丢弃，100 倍未经实机验证。</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><InputNumber aria-label="统一倍率" size="small" min={1} max={100} precision={0} disabled={disabled} value={allAt} onChange={value => setAllAt(value)} />
+          <Button size="small" disabled={disabled || allAt === null} onClick={() => { setMultipliers(Object.fromEntries(dropEntryKeys.map(key => [key, allAt!]))); setDirty(true); }}>全部设为此倍率</Button></div>
+        {dropEntryGroups.map(group => <div key={group.title}><div className="strong small">{group.title}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>{group.entries.map(item => <label key={item.key} className="small" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>{item.label}
+            <InputNumber aria-label={`${group.title}${item.label}倍率`} size="small" min={1} max={100} precision={0} disabled={disabled} value={multipliers[item.key]}
+              onChange={value => { if (value !== null) { setMultipliers(old => ({ ...old, [item.key]: value })); setDirty(true); } }} /></label>)}</div></div>)}
+      </>}
     </div>
   </Drawer>;
 }
