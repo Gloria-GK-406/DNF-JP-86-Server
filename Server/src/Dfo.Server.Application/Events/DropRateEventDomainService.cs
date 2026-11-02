@@ -16,16 +16,18 @@ internal sealed class DropRateEventDomainService(IEventPersistence store) : Entr
     protected override EventInfo[] Project(EventConfiguration configuration)
     {
         var info = Detailed(configuration, "");
-        return [info with { Description = Rate(configuration.DrawMultipliers) + info.Description }];
+        if (Rate(configuration.DrawMultipliers) is not { } rate) return [info];
+        return [info with { Title = $"{rate}爆率活动", ShortName = $"{rate}爆率", Description = $"爆率{rate}。{info.Description}" }];
     }
 
-    private static string Rate(IReadOnlyDictionary<string, int>? configured)
+    /// <summary>How the multipliers read to players; null when nothing is raised.</summary>
+    private static string? Rate(IReadOnlyDictionary<string, int>? configured)
     {
         var values = DropDrawEntries.All.Select(entry =>
             configured?.GetValueOrDefault(DropDrawEntries.KeyOf(entry), DropDrawMultipliers.Minimum) ?? DropDrawMultipliers.Minimum).ToArray();
         var highest = values.Max();
-        if (highest == DropDrawMultipliers.Minimum) return "";
-        return values.All(value => value == highest) ? $"爆率 {highest} 倍。" : $"爆率最高 {highest} 倍。";
+        if (highest == DropDrawMultipliers.Minimum) return null;
+        return values.All(value => value == highest) ? $"{highest}倍" : $"最高{highest}倍";
     }
 
     protected override EventConfiguration Configure(EventConfiguration c, EventChange change)
