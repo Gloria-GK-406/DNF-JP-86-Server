@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Microsoft.Extensions.Logging;
 
@@ -7,12 +6,8 @@ namespace Dfo.Server.Application.World;
 
 internal sealed partial class MonsterDropDomainService
 {
-    private static readonly ImmutableArray<(DropDrawEntry Entry, ImmutableArray<DropRateSlot> Slots)> OrdinaryEntries =
-    [
-        (DropDrawEntry.MonsterGold, [DropRateSlot.Gold]),
-        (DropDrawEntry.MonsterStackable, [DropRateSlot.ItemType1, DropRateSlot.ItemType3]),
-        (DropDrawEntry.MonsterEquipment, [DropRateSlot.ItemType2]),
-    ];
+    private static readonly ImmutableArray<DropDrawEntry> OrdinaryEntries =
+        [DropDrawEntry.MonsterGold, DropDrawEntry.MonsterStackable, DropDrawEntry.MonsterEquipment];
 
     private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request, DropDrawMultipliers multipliers)
     {
@@ -38,7 +33,7 @@ internal sealed partial class MonsterDropDomainService
     {
         var result = new List<RolledDrop>();
         var rounds = Math.Max(multipliers.For(DropDrawEntry.MonsterExtra),
-            OrdinaryEntries.Max(entry => multipliers.For(entry.Entry)));
+            OrdinaryEntries.Max(multipliers.For));
         if (rounds <= 1) return result;
         var rates = dropRules.RatesFor(request) is { } found ? adjuster.Adjust(request.CharacterId, found) : null;
         for (var round = 1; round < rounds; round++)
@@ -52,13 +47,12 @@ internal sealed partial class MonsterDropDomainService
                     result.AddRange(drawn);
                 }
             if (rates is null) continue;
-            foreach (var (entry, slots) in OrdinaryEntries)
+            foreach (var entry in OrdinaryEntries)
             {
                 if (round >= multipliers.For(entry)) continue;
-                var entryRates = rates with { Slots = rates.Slots.Where(slot => slots.Contains(slot.Slot)).ToArray() };
                 for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
                     result.AddRange(dropRules.DrawFor(
-                        request with { Draw = new(entry, round) }, entryRates, !extraHit, attempt));
+                        request with { Draw = new(entry, round) }, rates, !extraHit, attempt));
             }
         }
         return result;

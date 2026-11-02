@@ -56,6 +56,10 @@ internal sealed class DropRuleService(
         ArgumentNullException.ThrowIfNull(kill);
         ArgumentNullException.ThrowIfNull(rates);
 
+        // A later round repeats only the slots of its own entry; slots gate independently, so odds hold.
+        if (kill.Draw.Round > 0)
+            rates = rates with { Slots = rates.Slots.Where(slot => EntryOf(DropRules.KindOf(slot.Slot)) == kill.Draw.Entry).ToArray() };
+
         var table = rateTables.Load(DropRateTables.Monster);
         var random = new DropRandom(DropRandom.ForRound(DropRandom.SeedFor(
             kill.Context.Seed,
@@ -74,6 +78,14 @@ internal sealed class DropRuleService(
 
         return rolled;
     }
+
+    private static DropDrawEntry? EntryOf(DropItemKind kind) => kind switch
+    {
+        DropItemKind.Gold => DropDrawEntry.MonsterGold,
+        DropItemKind.Stackable => DropDrawEntry.MonsterStackable,
+        DropItemKind.Equipment => DropDrawEntry.MonsterEquipment,
+        _ => null,
+    };
 
     /// <summary>
     /// What one slot that hit yields, or nothing when its pool has nothing to give.
