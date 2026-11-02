@@ -18,6 +18,9 @@ internal abstract class EntranceEventDomainService(IEventPersistence store) : IM
     protected abstract EventConfiguration Initial { get; }
     /// <summary>The EVENT_INFO entries while the activity is open; the configured period is complete then.</summary>
     protected abstract EventInfo[] Project(EventConfiguration c);
+    /// <summary>Takes the activity's own parameters from a configure change; an entrance has none.</summary>
+    protected virtual EventConfiguration Configure(EventConfiguration c, EventChange change) =>
+        change.DrawMultipliers is null ? c : throw new ArgumentException("该活动不支持掉落倍率。");
 
     /// <summary>The ordinary detailed entry with this entrance's detail link.</summary>
     protected EventInfo Detailed(EventConfiguration c, string link) => new(EventId, c.Title, c.ShortName, c.Description,
@@ -32,7 +35,8 @@ internal abstract class EntranceEventDomainService(IEventPersistence store) : IM
         var c = await Configuration(ct);
         var status = !c.Enabled ? "disabled" : c.StartsAt > now ? "scheduled" : c.EndsAt <= now ? "expired" : "active";
         return new(EventId, Key, c.Revision, c.SeasonId, c.Enabled, status, c.Title, c.ShortName,
-            c.Description, c.StartNotice, c.EndNotice, c.StartsAt, c.EndsAt, true, null, c.UpdatedAt, c.UpdatedBy);
+            c.Description, c.StartNotice, c.EndNotice, c.StartsAt, c.EndsAt, true, null, c.UpdatedAt, c.UpdatedBy)
+        { DrawMultipliers = c.DrawMultipliers };
     }
 
     public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
@@ -52,14 +56,15 @@ internal abstract class EntranceEventDomainService(IEventPersistence store) : IM
             if (change.StartsAt is not { } start || change.EndsAt is not { } end || start >= end
                 || start.ToUnixTimeSeconds() < 0 || end.ToUnixTimeSeconds() > uint.MaxValue)
                 throw new ArgumentException("活动有效期必须为完整且递增的时间范围。");
-            c = c with { Title = Text(change.Title, 1, 80), ShortName = Text(change.ShortName, 1, 40),
+            c = Configure(c, change) with { Title = Text(change.Title, 1, 80), ShortName = Text(change.ShortName, 1, 40),
                 Description = Text(change.Description, 0, 1000), StartNotice = Text(change.StartNotice, 0, 200),
                 EndNotice = Text(change.EndNotice, 0, 200), StartsAt = start, EndsAt = end };
         }
         else if (change.Action is "enable" or "disable")
         {
             if (change.Title is not null || change.ShortName is not null || change.Description is not null
-                || change.StartNotice is not null || change.EndNotice is not null || change.StartsAt is not null || change.EndsAt is not null)
+                || change.StartNotice is not null || change.EndNotice is not null || change.StartsAt is not null || change.EndsAt is not null
+                || change.DrawMultipliers is not null)
                 throw new ArgumentException("启停操作不能携带配置字段。");
             if (change.Action == "enable" && (c.StartsAt is null || c.EndsAt is null))
                 throw new ArgumentException("请先配置活动有效期。");

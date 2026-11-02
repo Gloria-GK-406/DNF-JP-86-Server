@@ -88,11 +88,15 @@ public sealed class DropDrawMultipliers
     public int For(DropDrawEntry entry) => this.values.GetValueOrDefault(entry, Minimum);
 }
 
-/// <summary>Reads and sets the extra-draw multiplier of each ground-drop entry.</summary>
+/// <summary>Reads the extra-draw multiplier of each ground-drop entry.</summary>
 public interface IDropDrawMultiplierDomainService
 {
     ValueTask<DropDrawMultipliers> CurrentAsync(CancellationToken cancellationToken);
+}
 
+/// <summary>Sets the multipliers; the drop rate activity is its only production consumer.</summary>
+public interface IDropDrawMultiplierControlDomainService
+{
     /// <summary>Sets one entry; a value outside 1..100 is rejected.</summary>
     ValueTask SetAsync(DropDrawEntry entry, int multiplier, CancellationToken cancellationToken);
 }

@@ -23,6 +23,30 @@ namespace Dfo.Server.Host.Tests;
 public sealed class GmEventsHttpTests
 {
     [Fact]
+    public async Task Drop_rate_multipliers_round_trip_over_http_and_apply_through_the_activity()
+    {
+        await using var host = await GmTestHost.StartAsync(configureServices: s => Content(s));
+        var csrf = await GmCeraHttpTests.Login(host);
+        var now = DateTimeOffset.UtcNow;
+        using (var refused = await host.PostAsync(Url, csrf, new EventChange(7, 0, "configure", "爆率", "爆率", "", "", "",
+            now.AddHours(-1), now.AddHours(1), new Dictionary<string, int> { ["world"] = 101 }))) Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        using (var configured = await host.PostAsync(Url, csrf, new EventChange(7, 0, "configure", "爆率", "爆率", "", "", "",
+            now.AddHours(-1), now.AddHours(1), new Dictionary<string, int> { ["world"] = 20 }))) Assert.Equal(HttpStatusCode.OK, configured.StatusCode);
+        using (var enabled = await host.PostAsync(Url, csrf, new EventChange(7, 1, "enable")))
+        {
+            Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
+            var entry = Assert.Single((await enabled.Content.ReadFromJsonAsync<ManagedEventList>())!.Entries, e => e.EventId == 7);
+            Assert.Equal(20, entry.DrawMultipliers!["world"]);
+            Assert.True(entry.AppliedActive);
+        }
+        var current = host.Services.GetRequiredService<Dfo.Server.Abstractions.World.IDropDrawMultiplierDomainService>();
+        Assert.Equal(20, (await current.CurrentAsync(default)).For(Dfo.Server.Abstractions.World.DropDrawEntry.World));
+        using (var disabled = await host.PostAsync(Url, csrf, new EventChange(7, 2, "disable")))
+            Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
+        Assert.Equal(1, (await current.CurrentAsync(default)).For(Dfo.Server.Abstractions.World.DropDrawEntry.World));
+    }
+
+    [Fact]
     public async Task Unlimited_fatigue_uses_the_managed_activity_http_transaction_and_revision_conflicts_preserve_its_effect()
     {
         await using var host = await GmTestHost.StartAsync(configureServices: s => Content(s));

@@ -60,6 +60,22 @@ it('无限疲劳仅通过活动启停，并展示已应用效果及同步缺口'
   expect(writes()).toHaveLength(0);
 });
 
+it('爆率活动在配置中提交全部入口倍率', async () => {
+  data.entries[0] = { ...data.entries[0], eventId: 7, type: 'drop-rate', title: '爆率提升', shortName: '爆率', drawMultipliers: { world: 5 },
+    startsAt: '2030-01-01T00:00:00+00:00', endsAt: '2030-01-02T00:00:00+00:00' };
+  open();
+  expect(await screen.findByText('效果待同步')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: '更多' })).toBeNull();
+  fireEvent.click(await screen.findByRole('button', { name: '通用配置' }));
+  expect((await screen.findByLabelText('独立与世界世界倍率') as HTMLInputElement).value).toBe('5');
+  fireEvent.click(screen.getByRole('button', { name: '全部设为此倍率' }));
+  fireEvent.click(screen.getByRole('button', { name: /保存配置/ }));
+  await waitFor(() => expect(writes()).toHaveLength(1));
+  const body = writes()[0][1] as { drawMultipliers: Record<string, number> };
+  expect(Object.keys(body.drawMultipliers)).toHaveLength(17);
+  expect(body.drawMultipliers.world).toBe(2);
+});
+
 it('活动列表和通用配置仅展示公共信息，不读取或展示专属规则', async () => {
   open(); expect(await screen.findByRole('button', { name: /活动管理/ })).toBeTruthy();
   expect(await screen.findByText('season-one')).toBeTruthy(); expect(screen.getByText('已停用')).toBeTruthy();

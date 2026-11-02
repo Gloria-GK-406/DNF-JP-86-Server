@@ -7,7 +7,8 @@ public sealed record WeeklyAttendanceDefinition(string SourcePath, int RequiredC
     AttendanceReward[] WeeklyRewards, AttendanceReward[] CumulativeRewards);
 public sealed record EventConfiguration(long Revision, string SeasonId, bool Enabled, string Title, string ShortName,
     string Description, string StartNotice, string EndNotice, DateTimeOffset? StartsAt, DateTimeOffset? EndsAt,
-    DateTimeOffset? UpdatedAt = null, string? UpdatedBy = null, string? RuleDefinition = null);
+    DateTimeOffset? UpdatedAt = null, string? UpdatedBy = null, string? RuleDefinition = null,
+    IReadOnlyDictionary<string, int>? DrawMultipliers = null);
 public sealed record ManagedEventEntry(int EventId, string Type, long Revision, string SeasonId, bool Enabled, string Status,
     string Title, string ShortName, string Description, string StartNotice, string EndNotice,
     DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, bool Available, string? UnavailableReason,
@@ -16,6 +17,7 @@ public sealed record ManagedEventEntry(int EventId, string Type, long Revision, 
     public bool? AppliedActive { get; init; }
     public long? AppliedRevision { get; init; }
     public DateTimeOffset? AppliedAt { get; init; }
+    public IReadOnlyDictionary<string, int>? DrawMultipliers { get; init; }
 }
 public sealed record ManagedEventList(ManagedEventEntry[] Entries);
 public sealed record WeeklyAttendanceSettings(int EventId, long Revision, string SeasonId, string SourcePath,
@@ -23,7 +25,8 @@ public sealed record WeeklyAttendanceSettings(int EventId, long Revision, string
     AttendanceRewardView[] WeeklyRewards, AttendanceRewardView[] CumulativeRewards);
 public sealed record EventChange([property: JsonRequired] int EventId, [property: JsonRequired] long ExpectedRevision,
     [property: JsonRequired] string Action, string? Title = null, string? ShortName = null, string? Description = null,
-    string? StartNotice = null, string? EndNotice = null, DateTimeOffset? StartsAt = null, DateTimeOffset? EndsAt = null);
+    string? StartNotice = null, string? EndNotice = null, DateTimeOffset? StartsAt = null, DateTimeOffset? EndsAt = null,
+    IReadOnlyDictionary<string, int>? DrawMultipliers = null);
 public sealed record EventInfo(int EventId, string Title, string ShortName, string Description, string StartNotice,
     string EndNotice, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string LinkKey)
 {
