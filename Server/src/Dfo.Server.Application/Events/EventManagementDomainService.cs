@@ -3,7 +3,8 @@ using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.Events;
 
-internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDomainService> registered) : IEventManagementDomainService
+internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDomainService> registered,
+    IManagedEventLifecycleDomainService lifecycle) : IEventManagementDomainService
 {
     private readonly IManagedEventDomainService[] events = Registered(registered);
     private static IManagedEventDomainService[] Registered(IEnumerable<IManagedEventDomainService> all)
@@ -15,7 +16,13 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     public async ValueTask<ManagedEventList> ListAsync(DateTimeOffset now,CancellationToken ct)
     {
         var entries = new List<ManagedEventEntry>();
-        foreach (var e in events) entries.Add(await e.DescribeAsync(now,ct));
+        foreach (var e in events)
+        {
+            var description = await e.DescribeAsync(now, ct);
+            var applied = await lifecycle.AppliedAsync(e.EventId, ct);
+            entries.Add(description with { AppliedActive = applied?.Active, AppliedRevision = applied?.ConfigurationRevision,
+                AppliedAt = applied?.AppliedAt });
+        }
         return new([..entries]);
     }
     public async ValueTask<bool> IsOpenAsync(int eventId, DateTimeOffset now, CancellationToken ct) =>
@@ -40,6 +47,8 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     {
         var e = events.SingleOrDefault(e => e.EventId==change.EventId) ?? throw new ArgumentException("活动未注册。");
         await e.ChangeAsync(change,actor,now,ct);
+        // GM already records ManagedEventConfigurationChanged in this transaction.
+        await lifecycle.ReconcileAsync(e.EventId, now, ct, notifyClients: false);
         return await ListAsync(now,ct);
     }
 }

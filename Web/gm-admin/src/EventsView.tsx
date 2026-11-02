@@ -11,7 +11,8 @@ import { useGmRead } from './useGmRead';
 export type EventEntry = { eventId: number; type: string; revision: number; seasonId: string; enabled: boolean;
   status: 'active' | 'disabled' | 'scheduled' | 'expired' | 'unavailable'; title: string; shortName: string;
   description: string; startNotice: string; endNotice: string; startsAt: string | null; endsAt: string | null;
-  available: boolean; unavailableReason: string | null; updatedAt: string | null; updatedBy: string | null };
+  available: boolean; unavailableReason: string | null; updatedAt: string | null; updatedBy: string | null;
+  appliedActive?: boolean | null; appliedRevision?: number | null; appliedAt?: string | null };
 export type EventList = { entries: EventEntry[] };
 type Access = { onExpired: () => void; onDenied: () => void };
 type Configuration = Pick<EventEntry, 'title' | 'shortName' | 'description' | 'startNotice' | 'endNotice'> & { startsAt: string; endsAt: string };
@@ -77,7 +78,10 @@ export function EventsView(access: Access) {
     if (saving.current || current.busy) return;
     setEditor(undefined); setSettings(undefined); reloading.current = true; current.refresh();
   }
-  const toggleText = (entry: EventEntry) => entry.type === 'joust'
+  const toggleText = (entry: EventEntry) => entry.type === 'unlimited-fatigue'
+    ? (entry.enabled ? '停用后，后续进图、换房及竞技地下城每轮恢复扣除疲劳，现有余额保留。'
+      : '有效期内暂停扣除疲劳，零疲劳角色也可进入地下城；不会补满余额。')
+    : entry.type === 'joust'
     ? (entry.enabled ? '停用后禁止新下注；已有投注的轮次仍会继续结算并发放奖励。' : '活动仅在配置的有效期内允许下注；已有投注和奖励记录保留，不会重复发奖。')
     : entry.enabled ? '停用后玩家不能继续参与活动或领取活动奖励；本期进度和已领取记录保留。' : '活动仅在配置的有效期内生效；本期进度和已领取记录保留，不会重复发奖。';
   const locked = busy || uncertain || current.busy || !current.data;
@@ -93,9 +97,11 @@ export function EventsView(access: Access) {
       <Table<EventEntry> className="ledger" size="small" rowKey="eventId" dataSource={entries} loading={current.busy} pagination={false} scroll={{ x: 980 }}
         locale={{ emptyText: current.error ? '读取失败' : '没有已注册的活动' }} columns={[
           { title: '活动', key: 't', render: (_, e) => <span><span className="strong">{e.title}</span> <span className="faint small">{e.shortName}</span> <span className="id">#{e.eventId}</span></span> },
-          { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
+          { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{e.type === 'unlimited-fatigue' ? '无限疲劳' : activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
             <span className="faint small"> v{e.revision}</span></span> },
           { title: '状态', key: 's', width: 120, render: (_, e) => <span><Pill kind={statuses[e.status][1]}>{statuses[e.status][0]}</Pill>
+            {e.type === 'unlimited-fatigue' && <div className="faint small">{e.appliedRevision !== e.revision || e.appliedActive !== (e.status === 'active')
+              ? '效果待同步' : e.appliedActive ? '已暂停扣除疲劳' : '正常扣除疲劳'}</div>}
             {!e.available && <div className="faint small">{e.unavailableReason ?? '活动规则暂不可用'}</div>}</span> },
           { title: '有效期（北京时间）', key: 'p', render: (_, e) => e.startsAt ? <span className="mono small">{bjTime(e.startsAt)} → {bjTime(e.endsAt)}</span> : <span className="faint small">配置有效期后才能启用</span> },
           { title: '', key: 'op', align: 'end', width: 270, fixed: 'right', render: (_, e) => <span style={{ display: 'inline-flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -104,8 +110,8 @@ export function EventsView(access: Access) {
             <Popconfirm title={`${e.enabled ? '停用' : '启用'}「${e.title}」？`} description={toggleText(e)} okText={e.enabled ? '确认停用' : '确认启用'} cancelText="取消"
               onConfirm={() => change(e, e.enabled ? 'disable' : 'enable')} disabled={locked || (!e.enabled && (!e.available || !e.startsAt || !e.endsAt))}>
               <Button size="small" type="text" danger={e.enabled} disabled={locked || (!e.enabled && (!e.available || !e.startsAt || !e.endsAt))}>{e.enabled ? '停用' : '启用'}</Button></Popconfirm>
-            <Dropdown trigger={['click']} disabled={locked} menu={{ items: [{ key: 'new-season', label: '新建期次' }], onClick: () => setEditor({ entry: structuredClone(e), action: 'new-season' }) }}>
-              <Button size="small" type="text" aria-label="更多" icon={<EllipsisOutlined />} /></Dropdown>
+            {e.type !== 'unlimited-fatigue' && <Dropdown trigger={['click']} disabled={locked} menu={{ items: [{ key: 'new-season', label: '新建期次' }], onClick: () => setEditor({ entry: structuredClone(e), action: 'new-season' }) }}>
+              <Button size="small" type="text" aria-label="更多" icon={<EllipsisOutlined />} /></Dropdown>}
           </span> },
         ]} />
     </Panel>

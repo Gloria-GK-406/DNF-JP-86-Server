@@ -11,7 +11,12 @@ public sealed record EventConfiguration(long Revision, string SeasonId, bool Ena
 public sealed record ManagedEventEntry(int EventId, string Type, long Revision, string SeasonId, bool Enabled, string Status,
     string Title, string ShortName, string Description, string StartNotice, string EndNotice,
     DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, bool Available, string? UnavailableReason,
-    DateTimeOffset? UpdatedAt, string? UpdatedBy);
+    DateTimeOffset? UpdatedAt, string? UpdatedBy)
+{
+    public bool? AppliedActive { get; init; }
+    public long? AppliedRevision { get; init; }
+    public DateTimeOffset? AppliedAt { get; init; }
+}
 public sealed record ManagedEventList(ManagedEventEntry[] Entries);
 public sealed record WeeklyAttendanceSettings(int EventId, long Revision, string SeasonId, string SourcePath,
     bool Available, string? UnavailableReason, int? RequiredClears, int? TotalWeeks,

@@ -17,6 +17,7 @@ public static class Migrator
         {
             [0] = LegacyUpgrade.Apply,
             [1] = AddDropDrawMultiplier,
+            [2] = ManagedEventActivationUpgrade.Apply,
         };
 
     private static void AddDropDrawMultiplier(SqliteConnection connection)

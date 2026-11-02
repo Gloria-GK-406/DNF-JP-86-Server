@@ -92,7 +92,7 @@ internal sealed class DungeonAdmissionDomainService(ICharacterDungeonDifficultyD
         foreach (var (member, selected) in eligible)
         {
             if ((options.ConsumesFatigue ?? definition?.ConsumesFatigue ?? true)
-                && (await fatigue.BalanceOfAsync(member.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
+                && !await fatigue.CanEnterDungeonAsync(member.CharacterId, ct).ConfigureAwait(false))
                 return Refuse(DungeonEntryFailure.InsufficientFatigue, member.Slot);
             var requirements = (options.RequiredItemsOverride ?? definition?.RequiredItems ?? []).ToImmutableArray();
             // Each group is AND. Event materials replace the entire regular group when available.
@@ -156,7 +156,7 @@ internal sealed class DungeonAdmissionDomainService(ICharacterDungeonDifficultyD
         foreach (var raw in owned.Permits)
         {
             var permit = (Permit)raw;
-            if (owned.Options.ConsumesFatigue == true && (await fatigue.BalanceOfAsync(permit.Participant.CharacterId, ct).ConfigureAwait(false)).Remaining == 0)
+            if (owned.Options.ConsumesFatigue == true && !await fatigue.CanEnterDungeonAsync(permit.Participant.CharacterId, ct).ConfigureAwait(false))
                 return new(null, new(null, DungeonEntryFailure.InsufficientFatigue, permit.Participant.Slot));
             if (permit.Selected is { } selected && !sessions.IsInWorld(selected))
                 return new(null, new(null, DungeonEntryFailure.MissingPrerequisite, permit.Participant.Slot));
