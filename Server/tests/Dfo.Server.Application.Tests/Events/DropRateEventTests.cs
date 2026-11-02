@@ -157,6 +157,13 @@ public sealed class DropRateEventTests
             var listed = Assert.Single(await owner.GetEventInfoEntriesAsync(new(1), now.AddMinutes(90), default));
             Assert.Equal(ActivityId, listed.EventId);
             Assert.True(listed.HasDetail);
+            Assert.Equal("爆率最高 20 倍。测试", listed.Description);
+
+            await Configure(f, 2, now, now.AddHours(-1), now.AddHours(1), DropDrawEntries.All.ToDictionary(DropDrawEntries.KeyOf, _ => 3));
+            Assert.Equal("爆率 3 倍。测试", Assert.Single(await owner.GetEventInfoEntriesAsync(new(1), now, default)).Description);
+
+            await Configure(f, 3, now, now.AddHours(-1), now.AddHours(1), new Dictionary<string, int>());
+            Assert.Equal("测试", Assert.Single(await owner.GetEventInfoEntriesAsync(new(1), now, default)).Description);
         });
 
     private static async Task Configure(LearningFixture f, long revision, DateTimeOffset now, DateTimeOffset start, DateTimeOffset end,

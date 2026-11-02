@@ -13,7 +13,20 @@ internal sealed class DropRateEventDomainService(IEventPersistence store) : Entr
     protected override string Key => "drop-rate";
     protected override EventConfiguration Initial => new(0, "initial", false, "爆率提升", "爆率提升",
         "活动期间地面掉落的抽取次数增加。", "", "", null, null);
-    protected override EventInfo[] Project(EventConfiguration configuration) => [Detailed(configuration, "")];
+    protected override EventInfo[] Project(EventConfiguration configuration)
+    {
+        var info = Detailed(configuration, "");
+        return [info with { Description = Rate(configuration.DrawMultipliers) + info.Description }];
+    }
+
+    private static string Rate(IReadOnlyDictionary<string, int>? configured)
+    {
+        var values = DropDrawEntries.All.Select(entry =>
+            configured?.GetValueOrDefault(DropDrawEntries.KeyOf(entry), DropDrawMultipliers.Minimum) ?? DropDrawMultipliers.Minimum).ToArray();
+        var highest = values.Max();
+        if (highest == DropDrawMultipliers.Minimum) return "";
+        return values.All(value => value == highest) ? $"爆率 {highest} 倍。" : $"爆率最高 {highest} 倍。";
+    }
 
     protected override EventConfiguration Configure(EventConfiguration c, EventChange change)
     {
