@@ -41,9 +41,9 @@ public sealed class TournamentDungeonTests
             await using (var tx = f.Scope.Begin())
             {
                 await fatigue.SpendAsync(new(71), exhausted ? ushort.MaxValue : (ushort)7, default);
-                await events.ChangeAsync(new(1_000_230, 0, "configure", "无限疲劳", "免疲劳", "竞技验收", "", "",
+                await events.ChangeAsync(new(1, 0, "configure", "无限疲劳", "免疲劳", "竞技验收", "", "",
                     now.AddHours(-1), now.AddHours(1)), "test", now, default);
-                await events.ChangeAsync(new(1_000_230, 1, "enable"), "test", now, default);
+                await events.ChangeAsync(new(1, 1, "enable"), "test", now, default);
                 await tx.CommitAsync(default);
             }
             var before = await fatigue.BalanceOfAsync(new(71), default);

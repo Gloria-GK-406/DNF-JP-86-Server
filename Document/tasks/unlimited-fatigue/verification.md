@@ -37,7 +37,7 @@ dotnet test Server/tests/Dfo.Server.Application.Tests/Dfo.Server.Application.Tes
 
 覆盖：零余额与组队准入、最终消费重查、普通及竞技免扣、真实账本不写、配置修订重新应用、时间窗边界、
 重复对账、同步订阅失败整体回滚、真实定时 CMD 逐活动隔离及下一轮重试、重开数据库与启动命令恢复、
-停机跨过整个活动期不补发、无未取证 EVENT_INFO、控制写入方限定，以及 GM HTTP 乐观锁冲突保持原效果。
+停机跨过整个活动期不补发、活动期内才发 EVENT_INFO、控制写入方限定，以及 GM HTTP 乐观锁冲突保持原效果。
 
 ## 完整 Application 回归与基线对照
 

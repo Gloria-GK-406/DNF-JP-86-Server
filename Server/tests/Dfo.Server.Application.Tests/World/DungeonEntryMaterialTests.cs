@@ -31,12 +31,12 @@ public sealed class DungeonEntryMaterialTests
             foreach (var member in Party) await Fatigue(f).SpendAsync(member.CharacterId, ushort.MaxValue, default);
             Assert.Equal(DungeonEntryFailure.InsufficientFatigue,
                 (await admission.PrepareAsync(Context(Party), new(), default)).Refusal!.Failure);
-            await events.ChangeAsync(new(1_000_230, 0, "configure", "无限疲劳", "免疲劳", "组队验收", "", "",
+            await events.ChangeAsync(new(1, 0, "configure", "无限疲劳", "免疲劳", "组队验收", "", "",
                 now.AddHours(-1), now.AddHours(1)), "test", now, default);
-            await events.ChangeAsync(new(1_000_230, 1, "enable"), "test", now, default);
+            await events.ChangeAsync(new(1, 1, "enable"), "test", now, default);
             var prepared = await admission.PrepareAsync(Context(Party), new(), default);
             Assert.NotNull(prepared.Batch);
-            if (disableBeforeConsume) await events.ChangeAsync(new(1_000_230, 2, "disable"), "test", now, default);
+            if (disableBeforeConsume) await events.ChangeAsync(new(1, 2, "disable"), "test", now, default);
             var consumed = await admission.ConsumeAsync(prepared.Batch, default);
             if (disableBeforeConsume) Assert.Equal(DungeonEntryFailure.InsufficientFatigue, consumed.Refusal!.Failure);
             else Assert.NotNull(consumed.Receipt);

@@ -17,7 +17,7 @@ namespace Dfo.Server.Application.Tests.Events;
 
 public sealed class UnlimitedFatigueEventTests
 {
-    private const int ActivityId = 1_000_230;
+    private const int ActivityId = 1;
 
     [Fact]
     public async Task Scheduled_failure_rolls_back_one_activity_continues_the_scan_and_retries_on_the_next_run()
@@ -218,7 +218,10 @@ public sealed class UnlimitedFatigueEventTests
             Assert.False(await Reconcile(f, now.AddHours(3)));
             Assert.Empty(observed.Changes);
             var owner = Assert.Single(f.Services.GetServices<IManagedEventDomainService>(), e => e.EventId == ActivityId);
-            Assert.Empty(await owner.GetEventInfoEntriesAsync(new(1), now.AddMinutes(90), default));
+            var listed = Assert.Single(await owner.GetEventInfoEntriesAsync(new(1), now.AddMinutes(90), default));
+            Assert.Equal(1, listed.EventId);
+            Assert.True(listed.HasDetail);
+            Assert.Empty(await owner.GetEventInfoEntriesAsync(new(1), now.AddHours(3), default));
         });
     }
 

@@ -28,21 +28,21 @@ public sealed class GmEventsHttpTests
         await using var host = await GmTestHost.StartAsync(configureServices: s => Content(s));
         var csrf = await GmCeraHttpTests.Login(host);
         var now = DateTimeOffset.UtcNow;
-        using (var configured = await host.PostAsync(Url, csrf, new EventChange(1_000_230, 0, "configure", "无限疲劳", "免疲劳", "测试", "", "",
+        using (var configured = await host.PostAsync(Url, csrf, new EventChange(1, 0, "configure", "无限疲劳", "免疲劳", "测试", "", "",
             now.AddHours(-1), now.AddHours(1)))) Assert.Equal(HttpStatusCode.OK, configured.StatusCode);
-        using (var enabled = await host.PostAsync(Url, csrf, new EventChange(1_000_230, 1, "enable")))
+        using (var enabled = await host.PostAsync(Url, csrf, new EventChange(1, 1, "enable")))
         {
             Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
-            var entry = Assert.Single((await enabled.Content.ReadFromJsonAsync<ManagedEventList>())!.Entries, e => e.EventId == 1_000_230);
+            var entry = Assert.Single((await enabled.Content.ReadFromJsonAsync<ManagedEventList>())!.Entries, e => e.EventId == 1);
             Assert.True(entry.AppliedActive);
             Assert.Equal(entry.Revision, entry.AppliedRevision);
         }
         var effect = host.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.IFatigueConsumptionControlDomainService>();
         Assert.True(await effect.IsSuspendedAsync(default));
-        using (var stale = await host.PostAsync(Url, csrf, new EventChange(1_000_230, 1, "disable")))
+        using (var stale = await host.PostAsync(Url, csrf, new EventChange(1, 1, "disable")))
             Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         Assert.True(await effect.IsSuspendedAsync(default));
-        using (var disabled = await host.PostAsync(Url, csrf, new EventChange(1_000_230, 2, "disable")))
+        using (var disabled = await host.PostAsync(Url, csrf, new EventChange(1, 2, "disable")))
             Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
         Assert.False(await effect.IsSuspendedAsync(default));
     }

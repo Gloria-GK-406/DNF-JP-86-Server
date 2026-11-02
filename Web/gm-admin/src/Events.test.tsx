@@ -48,7 +48,7 @@ beforeEach(() => {
 });
 
 it('无限疲劳仅通过活动启停，并展示已应用效果及同步缺口', async () => {
-  data.entries[0] = { ...data.entries[0], eventId: 1000230, type: 'unlimited-fatigue', title: '无限疲劳值', shortName: '免疲劳',
+  data.entries[0] = { ...data.entries[0], eventId: 1, type: 'unlimited-fatigue', title: '无限疲劳值', shortName: '免疲劳',
     enabled: true, status: 'active', appliedActive: false, appliedRevision: 7 };
   open();
   expect(await screen.findByText('效果待同步')).toBeTruthy();

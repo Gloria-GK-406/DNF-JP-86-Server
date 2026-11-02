@@ -8,7 +8,7 @@
 交付边界：用户随后明确本轮只完成实现，暂不准备实机环境；不迁移玩家库、不切换服务、不创建功能 PR。
 基线为 `origin/main@1bc7d38b7`；分支 `task/230-unlimited-fatigue-20261030`。功能分支不修改产品版本号。
 
-无限疲劳活动使用服务端身份 `1000230`，类型 `unlimited-fatigue`，不投影为客户端 EVENT_INFO。
+无限疲劳活动身份为 `1`（70 `CEventManager` 槽位 1 是 `CUnlimitFatigueEvent`，70Reference），类型 `unlimited-fatigue`，以带详情的 EVENT_INFO 显示在客户端活动页。A21 上编号 1 的其他含义未取证，以实机显示为准。
 活动开启时，普通地下城入场、首次换房及竞技地下城每轮均不扣疲劳；零余额可通过疲劳准入。
 活动结束不补满、不追扣；其他准入条件、材料、金币、次数和奖励保持原有规则。
 疲劳药、退款、黑钻及业务日重置仍按真实账本执行。免扣不会增加当日累计消耗。
@@ -45,7 +45,7 @@ GM 修改通过 `EventManagementDomainService.ChangeAsync` 同事务对账；关
 | ClientStatic / ClientVerified | [FATIGUE 协议页](../../../protocol/game/server-to-client/NOTI-0x0024.md) | 已有疲劳字段与有限的显示零疲劳入场样本；不等于本活动实机通过 |
 | 70Reference | [既有疲劳研究](../../outputs/fatigue-system-20260929/implementation.md#70reference与证据边界) | 已用与累计消耗分离、退款不倒扣累计；沿用既有取证，本任务未重新反汇编 |
 | 上游参考 | `E:/Project/DNF/ServerS4A21@04e04b4` 的疲劳持久化与竞技入口 | 版本对照；上游规则不能证明 A21 无限疲劳活动行为 |
-| Unknown | A21 疲劳免扣专用 EVENT_INFO 身份、真实零余额下所有选图/重挑战分支 | 不发送猜测编号、不伪造余额，按用户验收结果决定是否需后续客户端处理 |
+| Unknown | 编号 1 在 A21 上除活动页列表外的含义、真实零余额下所有选图/重挑战分支 | 不伪造余额，按用户验收结果决定是否需后续客户端处理 |
 
 本功能没有新增已验证协议结论，不提升 catalog 的实机证据等级。客户端验收结果写入对应协议人工区。
 
