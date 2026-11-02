@@ -27,6 +27,7 @@ internal static class DungeonDropsRegistration
     internal static IServiceCollection AddDungeonDrops(this IServiceCollection services, IConfiguration configuration)
     {
         services.TryAddSingleton<IObjectDropRuleService, ObjectDropRuleService>();
+        services.TryAddSingleton<IDropDrawMultiplierDomainService, DropDrawMultiplierDomainService>();
 
         // The compensation seam and its first-phase implementation, which never compensates. It is
         // registered rather than left out so that everything upstream is written against the real

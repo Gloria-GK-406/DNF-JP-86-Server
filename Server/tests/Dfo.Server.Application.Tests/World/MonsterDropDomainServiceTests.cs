@@ -31,7 +31,7 @@ public sealed class MonsterDropDomainServiceTests
         var independent = new RecordingIndependent();
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), independent, premiums, CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
+            new NoExtraDrops(), independent, premiums, CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), drawMultipliers: new FixedDrawMultipliers());
         await service.GenerateGroundAsync(17, Kill(Run(), rank:3), default);
         Assert.Equal(27, independent.Bonus);
         await service.GenerateGroundAsync(17, Kill(Run(), rank:0), default);
@@ -51,7 +51,7 @@ public sealed class MonsterDropDomainServiceTests
         var independent = new LevelRecordingIndependent();
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), independent, new NoGrowthPremiums(), CurrentCharacterStub.Domain(character), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
+            new NoExtraDrops(), independent, new NoGrowthPremiums(), CurrentCharacterStub.Domain(character), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), drawMultipliers: new FixedDrawMultipliers());
         await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
         Assert.Equal((1, 20), (reads, independent.Level));
         await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
@@ -94,7 +94,7 @@ public sealed class MonsterDropDomainServiceTests
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
             new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(),
-            new DimensionDungeonRuleService(new DimensionSource()));
+            new DimensionDungeonRuleService(new DimensionSource()), new FixedDrawMultipliers());
         for (var seed = 0; seed < 128; seed++)
         {
             var context = Kill(Run(), rank: 3, partyMemberCount: 4) with { DungeonId = 7100, Seed = seed };
@@ -166,7 +166,7 @@ public sealed class MonsterDropDomainServiceTests
     private static MonsterDropDomainService Build(
         DropRateTable table, IQuestEnemyDropDomainService? quests = null,
         IWorldDropRuleService? world = null, IExtraDropRuleService? extra = null,
-        IIndependentDropRuleService? independent = null) => new(
+        IIndependentDropRuleService? independent = null, IDropDrawMultiplierDomainService? multipliers = null) => new(
         new DropRuleService(
             new StubRateTables(table),
             new StubGoldTables(Gold),
@@ -174,7 +174,7 @@ public sealed class MonsterDropDomainServiceTests
             new DropRateOptions { RateBasis = Basis }),
         new NoDropRateAdjustment(),
         quests ?? new NoQuestDrops(),
-        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops(), independent ?? new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
+        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops(), independent ?? new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), drawMultipliers: multipliers ?? new FixedDrawMultipliers());
 
     private static DungeonCellCreationContext Run() => new(
         DungeonRunId.New(),
@@ -205,7 +205,7 @@ public sealed class MonsterDropDomainServiceTests
             rules,
             new NoDropRateAdjustment(),
             new NoQuestDrops(),
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), drawMultipliers: new FixedDrawMultipliers());
 
         await service.GenerateGroundAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
@@ -367,7 +367,7 @@ public sealed class MonsterDropDomainServiceTests
     {
         var rules = new RecordingDropRules();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(),
-            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
+            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), drawMultipliers: new FixedDrawMultipliers());
         var context = Kill(Run());
         MonsterDropParticipant participant = new(new AccountId(1), Character);
         foreach (var invalid in new[]
@@ -396,7 +396,7 @@ public sealed class MonsterDropDomainServiceTests
         var rules = new RecordingDropRules();
         var quests = new RecordingQuestDrops();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(), quests,
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>());
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), drawMultipliers: new FixedDrawMultipliers());
         await service.GeneratePersonalAsync(65601, new CharacterId(2),
             Kill(Run(), partyMemberCount: 2), CancellationToken.None);
         Assert.Null(rules.Asked);
@@ -499,6 +499,74 @@ public sealed class MonsterDropDomainServiceTests
             Kill(Run()) with { RandomDropCount = 3 }, CancellationToken.None);
         Assert.Equal(3, drops.Count(d => d.IsGold));
         Assert.Equal(3, drops.Count(d => d.ItemId == 114000088));
+    }
+    [Fact]
+    public async Task A_multiplier_of_one_reproduces_the_unmultiplied_result()
+    {
+        var context = Kill(Run()) with { RandomDropCount = 3 };
+        var plain = await Build(GoldAndEquipment()).GenerateGroundAsync(65601, context, default);
+        var ones = await Build(GoldAndEquipment(), multipliers: new FixedDrawMultipliers(
+            (DropDrawEntry.MonsterGold, 1), (DropDrawEntry.MonsterEquipment, 1), (DropDrawEntry.MonsterExtra, 1)))
+            .GenerateGroundAsync(65601, context, default);
+        Assert.Equal(plain, ones);
+    }
+    [Fact]
+    public async Task Each_entry_draws_k_times_n_and_leaves_the_others_alone()
+    {
+        var drops = await Build(GoldAndEquipment(), multipliers: new FixedDrawMultipliers((DropDrawEntry.MonsterEquipment, 4)))
+            .GenerateGroundAsync(65601, Kill(Run()) with { RandomDropCount = 3 }, default);
+        Assert.Equal(3, drops.Count(d => d.IsGold));
+        Assert.Equal(12, drops.Count(d => d.ItemId == 114000088));
+    }
+    [Fact]
+    public async Task Zero_random_count_stays_zero_at_any_multiplier()
+    {
+        var drops = await Build(GoldAndEquipment(), multipliers: new FixedDrawMultipliers((DropDrawEntry.MonsterGold, 100)))
+            .GenerateGroundAsync(65601, Kill(Run()) with { RandomDropCount = 0 }, default);
+        Assert.Empty(drops);
+    }
+    [Fact]
+    public async Task Extra_rounds_redraw_instead_of_copying_the_first()
+    {
+        var drops = await Build(GoldAndEquipment(), multipliers: new FixedDrawMultipliers((DropDrawEntry.MonsterGold, 20)))
+            .GenerateGroundAsync(65601, Kill(Run()), default);
+        Assert.True(drops.Where(d => d.IsGold).Select(d => d.Count).Distinct().Count() > 1);
+    }
+    [Fact]
+    public async Task An_extra_hit_suppresses_ordinary_items_only_in_its_own_round()
+    {
+        // LateExtra hits on attempt 2 of every round it runs in; Extra runs in round zero only.
+        var drops = await Build(GoldAndEquipment(), extra: new LateExtra(),
+            multipliers: new FixedDrawMultipliers((DropDrawEntry.MonsterEquipment, 2), (DropDrawEntry.MonsterGold, 2)))
+            .GenerateGroundAsync(65601, Kill(Run()) with { RandomDropCount = 3 }, default);
+        Assert.Single(drops, d => d.ItemId == 7001);
+        Assert.Equal(6, drops.Count(d => d.IsGold));
+        Assert.Equal(3, drops.Count(d => d.ItemId == 114000088));
+    }
+    [Fact]
+    public async Task An_extra_round_of_extra_also_suppresses_ordinary_items()
+    {
+        var drops = await Build(GoldAndEquipment(), extra: new LateExtra(),
+            multipliers: new FixedDrawMultipliers((DropDrawEntry.MonsterExtra, 2), (DropDrawEntry.MonsterEquipment, 2)))
+            .GenerateGroundAsync(65601, Kill(Run()) with { RandomDropCount = 3 }, default);
+        Assert.Equal(2, drops.Count(d => d.ItemId == 7001));
+        Assert.DoesNotContain(drops, d => d.ItemId == 114000088);
+    }
+    [Fact]
+    public async Task World_rounds_multiply_only_under_their_own_entry()
+    {
+        var drops = await Build(Never(), world: new CertainWorldDrop(),
+            multipliers: new FixedDrawMultipliers((DropDrawEntry.World, 5), (DropDrawEntry.MonsterGold, 9)))
+            .GenerateGroundAsync(65601, Kill(Run()), default);
+        Assert.Equal(5, drops.Count(d => d.ItemId == 3030));
+    }
+    [Fact]
+    public async Task A_full_multiplier_draws_every_round_without_failing()
+    {
+        var drops = await Build(GoldAndEquipment(), multipliers: new FixedDrawMultipliers(
+            (DropDrawEntry.MonsterGold, 100), (DropDrawEntry.MonsterEquipment, 100)))
+            .GenerateGroundAsync(65601, Kill(Run()) with { RandomDropCount = 127 }, default);
+        Assert.Equal(2 * 127 * 100, drops.Count);
     }
     [Fact]
     public async Task Zero_random_count_disables_both_channels_but_not_world()

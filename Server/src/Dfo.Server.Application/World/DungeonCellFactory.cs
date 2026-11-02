@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.World;
 
@@ -13,8 +14,12 @@ internal sealed class DungeonCellFactory(
     IExperienceRuleService experienceRules,
     IQuestEnemyDropDomainService questLoot,
     IQuestHelperGroundBonusDomainService questBonus,
-    IHellRewardDomainService hellRewards, ILostLandDropRuleService lostLandDrops) : IDungeonCellFactory
+    IHellRewardDomainService hellRewards, ILostLandDropRuleService lostLandDrops,
+    IDropDrawMultiplierDomainService drawMultipliers, ILogger<DungeonCellFactory> logger) : IDungeonCellFactory
 {
+    /// <summary>What 0x001D and 0x0026 can carry; both count their drop records in one byte.</summary>
+    private const int MaxDropsPerFrame = byte.MaxValue;
+
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
         CancellationToken cancellationToken)
@@ -22,6 +27,10 @@ internal sealed class DungeonCellFactory(
         ArgumentNullException.ThrowIfNull(context);
         if (context.Layout.Mode is DungeonRunMode.Altar)
             return DungeonCellSeed.CompleteEmpty(context.Cell, context.MapId) with { MechanismBlocksClear = true };
+        context = context with
+        {
+            DrawMultipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false),
+        };
         var leader = context.Participants.Single(participant => participant.IsLeader);
         var participants = context.Participants
             .Select(participant => new MonsterDropParticipant(participant.AccountId, participant.CharacterId))
@@ -37,8 +46,11 @@ internal sealed class DungeonCellFactory(
                     { Code = guardian.Towers[actor.Actor.Code].ResourceId, Level = checked((byte)guardian.Towers[actor.Actor.Code].Level), IsHostile = false }, actor.IsAiCharacter,
                     false, [], IsMonster: false)).ToArray(), []) { MechanismBlocksClear = true };
 
-        var groundItems = new List<DungeonGroundItem>(contents.GroundDrops.Count);
-        foreach (var ground in contents.GroundDrops)
+        if (contents.GroundDrops.Count > MaxDropsPerFrame)
+            logger.LogWarning("Object drops of map {MapId} truncated: generated={Generated} kept={Kept}",
+                context.MapId, contents.GroundDrops.Count, MaxDropsPerFrame);
+        var groundItems = new List<DungeonGroundItem>(Math.Min(contents.GroundDrops.Count, MaxDropsPerFrame));
+        foreach (var ground in contents.GroundDrops.Take(MaxDropsPerFrame))
         {
             groundItems.Add(new DungeonGroundItem(
                 ground.Number,
@@ -102,6 +114,10 @@ internal sealed class DungeonCellFactory(
                     lostLandBonus = lostLand.Bonus;
                     pending = generated;
                 }
+                var landing = pending.Count(drop => drop.Delivery == RolledDropDelivery.Ground);
+                if (landing > MaxDropsPerFrame)
+                    logger.LogWarning("Drops of actor {Sequence} code {Code} exceed one frame and will be truncated at death: generated={Generated} kept={Kept}",
+                        sequence, described.Actor.Code, landing, MaxDropsPerFrame);
             }
 
             actors.Add(new DungeonCellActorState(
@@ -124,7 +140,8 @@ internal sealed class DungeonCellFactory(
                 context.Cell, context.MapId, context.Difficulty, group.First().Sequence,
                 context.Layout.BasisLevel, 0, leader.CharacterId, participants);
             var pending = group.Any(x => x.EligibleForHellGroupReward)
-                ? await hellRewards.FreezeGroupAsync(new(drop, hell.Difficulty, group.Key, context.Layout.BasisLevel), cancellationToken).ConfigureAwait(false)
+                ? await hellRewards.FreezeGroupAsync(new(drop, hell.Difficulty, group.Key, context.Layout.BasisLevel)
+                    { DrawMultipliers = context.DrawMultipliers }, cancellationToken).ConfigureAwait(false)
                 : [];
             hellGroups.Add(new(group.Key, group.Select(x => x.Sequence).ToArray(), pending.ToArray()));
         }

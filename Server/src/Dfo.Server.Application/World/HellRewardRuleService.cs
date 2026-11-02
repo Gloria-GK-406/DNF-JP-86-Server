@@ -23,27 +23,40 @@ internal sealed class HellRewardRuleService(IHellRewardDefinitionSource source,
         if (attempts < 0 || attempts > 255 || context.HellDifficulty > definition.RarityThresholds.Count)
             throw new InvalidDataException("Unsupported hell reward difficulty.");
         var pool = pools.Load(DropItemFamily.Equipment);
-        var random = new DropRandom(DropRandom.SeedFor(context.Drop.Seed, context.Drop.MapId,
-            context.Drop.Cell.X, context.Drop.Cell.Y, context.GroupIndex) ^ 0x48454C4C52455744UL);
+        var seed = DropRandom.SeedFor(context.Drop.Seed, context.Drop.MapId,
+            context.Drop.Cell.X, context.Drop.Cell.Y, context.GroupIndex) ^ 0x48454C4C52455744UL;
+        var random = new DropRandom(seed);
         var drops = new List<RolledDrop>();
         var rate = (int)Math.Min(1000, (long)band.Rates[(int)context.Drop.Difficulty] * options.EquipmentRatePercent / 100);
-        for (var attempt = 0; attempt < attempts; attempt++)
+        void DrawEquipment(DropRandom stream)
         {
-            // 70 uses 0..1000 inclusive; keep zero disabled rather than a spurious 1/1001 hit.
-            if (rate <= 0 || random.Next(1001) - 1 > rate) continue;
-            var rarityRoll = random.Next(1000001) - 1;
-            var ladder = definition.RarityThresholds[context.HellDifficulty - 1];
-            if (HellRewardRules.RarityFor(rarityRoll, ladder) is not { } rarity) continue;
-            if (DropRules.Pick(pool, grades, rarity, random) is { } item)
-                drops.Add(new(item.ItemId, 1, rarity, DropItemKind.Equipment, item.Durability));
+            for (var attempt = 0; attempt < attempts; attempt++)
+            {
+                // 70 uses 0..1000 inclusive; keep zero disabled rather than a spurious 1/1001 hit.
+                if (rate <= 0 || stream.Next(1001) - 1 > rate) continue;
+                var rarityRoll = stream.Next(1000001) - 1;
+                var ladder = definition.RarityThresholds[context.HellDifficulty - 1];
+                if (HellRewardRules.RarityFor(rarityRoll, ladder) is not { } rarity) continue;
+                if (DropRules.Pick(pool, grades, rarity, stream) is { } item)
+                    drops.Add(new(item.ItemId, 1, rarity, DropItemKind.Equipment, item.Durability));
+            }
         }
+        DrawEquipment(random);
         var epicCandidates = pool.Band(grades, DropRarity.Epic).Where(x => definition.EpicPieces.ContainsKey(x.ItemId)).ToArray();
         var piecePool = new DropItemPool(DropItemFamily.Equipment,
             new Dictionary<(int, int), IReadOnlyList<DropPoolEntry>> { [(0, (int)DropRarity.Epic)] = epicCandidates });
         var pieceAttempts = options.EpicPieceAttempts[(int)context.Drop.Difficulty] + (context.HellDifficulty == 1 ? 1 : 0);
-        for (var attempt = 0; attempt < pieceAttempts; attempt++)
-            if (DropRules.Pick(piecePool, new(0, 0), DropRarity.Epic, random) is { } item)
-                drops.Add(new(definition.EpicPieces[item.ItemId], 1, DropRarity.Epic, DropItemKind.Stackable));
+        void DrawPieces(DropRandom stream)
+        {
+            for (var attempt = 0; attempt < pieceAttempts; attempt++)
+                if (DropRules.Pick(piecePool, new(0, 0), DropRarity.Epic, stream) is { } item)
+                    drops.Add(new(definition.EpicPieces[item.ItemId], 1, DropRarity.Epic, DropItemKind.Stackable));
+        }
+        DrawPieces(random);
+        for (var round = 1; round < context.DrawMultipliers.For(DropDrawEntry.HellEquipment); round++)
+            DrawEquipment(new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.HellEquipment, round))));
+        for (var round = 1; round < context.DrawMultipliers.For(DropDrawEntry.HellEpicPiece); round++)
+            DrawPieces(new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.HellEpicPiece, round))));
         return drops.ToArray();
     }
 }

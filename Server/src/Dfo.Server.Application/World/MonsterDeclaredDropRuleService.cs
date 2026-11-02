@@ -26,8 +26,8 @@ internal sealed class MonsterDeclaredDropRuleService(IMonsterDeclaredDropTableSo
         var snapshot = Volatile.Read(ref tables) ?? throw new InvalidOperationException("Monster declared drops have not been initialized.");
         if (!snapshot.TryGetValue(request.MonsterCode, out var table)) return [];
         var context = request.Context;
-        var random = new DropRandom(DropRandom.SeedFor(context.Seed, context.MapId,
-            context.Cell.X, context.Cell.Y, request.ActorSequence) ^ 0x4D4F_4249_5445_4D53UL);
+        var random = new DropRandom(DropRandom.ForRound(DropRandom.SeedFor(context.Seed, context.MapId,
+            context.Cell.X, context.Cell.Y, request.ActorSequence) ^ 0x4D4F_4249_5445_4D53UL, request.Draw));
         var item = Select(table, random.Next(Basis(table)) - 1);
         return item is null ? [] : [item.Value];
     }

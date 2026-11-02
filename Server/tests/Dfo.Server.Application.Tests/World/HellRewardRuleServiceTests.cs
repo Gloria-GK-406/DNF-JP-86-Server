@@ -39,6 +39,24 @@ public sealed class HellRewardRuleServiceTests
     }
 
     [Fact]
+    public async Task Equipment_and_piece_rounds_multiply_apart_and_keep_round_zero()
+    {
+        var rules = new HellRewardRuleService(new Content(1000), new Parties(), new Pool(), new());
+        var plain = await rules.DrawGroupAsync(Context(1), default);
+        var multiplied = await rules.DrawGroupAsync(Context(1) with
+        {
+            DrawMultipliers = new(new Dictionary<DropDrawEntry, int>
+            {
+                [DropDrawEntry.HellEquipment] = 3,
+                [DropDrawEntry.HellEpicPiece] = 2,
+            }),
+        }, default);
+        Assert.Equal(plain, multiplied.Take(plain.Count));
+        Assert.Equal(24, multiplied.Count(x => x.Kind == DropItemKind.Equipment));
+        Assert.Equal(12, multiplied.Count(x => x.Kind == DropItemKind.Stackable));
+    }
+
+    [Fact]
     public async Task Missing_grade_or_empty_candidate_pool_never_falls_back_to_another_rarity()
     {
         var rules = new HellRewardRuleService(new Content(1000), new Parties(), new EmptyPool(), new());

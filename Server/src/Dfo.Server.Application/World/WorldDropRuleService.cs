@@ -29,8 +29,8 @@ internal sealed class WorldDropRuleService(IWorldDropTableSource source, WorldDr
             ?? throw new InvalidOperationException("World drop cache has not been initialized.");
         if (!snapshot.TryGetValue(request.MonsterLevel, out var distribution)) return [];
         var context = request.Context;
-        var random = new DropRandom(DropRandom.SeedFor(context.Seed, context.MapId,
-            context.Cell.X, context.Cell.Y, request.ActorSequence) ^ 0x574F_524C_4444_524FUL);
+        var random = new DropRandom(DropRandom.ForRound(DropRandom.SeedFor(context.Seed, context.MapId,
+            context.Cell.X, context.Cell.Y, request.ActorSequence) ^ 0x574F_524C_4444_524FUL, request.Draw));
         var entry = distribution.Select(random.Next(options.ProbabilityBasis) - 1);
         if (entry is not null)
             return [new RolledDrop(entry.ItemId, 1, entry.Rarity, entry.Kind, entry.Durability)];

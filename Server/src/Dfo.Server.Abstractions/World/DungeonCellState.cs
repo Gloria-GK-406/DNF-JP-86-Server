@@ -179,7 +179,11 @@ public sealed record DungeonCellCreationContext(
     int MapId,
     DungeonDifficulty Difficulty,
     DateTimeOffset StartedAt,
-    IReadOnlyList<DungeonRunParticipant> Participants);
+    IReadOnlyList<DungeonRunParticipant> Participants)
+{
+    /// <summary>The multipliers this cell freezes its drops under.</summary>
+    public DropDrawMultipliers DrawMultipliers { get; init; } = DropDrawMultipliers.Default;
+}
 
 /// <summary>Builds a complete cell seed. Runtime Cell behavior never calls this service.</summary>
 public interface IDungeonCellFactory

@@ -33,16 +33,20 @@ internal sealed class DimensionDungeonRuleService(IDimensionDungeonContentSource
         var boss = request.MonsterRank == 3;
         if (!boss && request.MonsterRank is not (1 or 2) && !Elites.Contains(request.MonsterCode)) return [];
         var policy = Policies[(int)request.Context.Difficulty];
-        var random = new DropRandom(seed);
+        var random = new DropRandom(DropRandom.ForRound(seed, request.Draw));
         var result = new List<RolledDrop>();
-        // Called once per recipient: never multiply these trials by party size again.
-        var count = boss ? 1 : 0;
-        count += IndependentDropRules.SuccessfulAttempts(1, 1,
-            boss ? policy.BossExtraChance : policy.EliteChance, 1000000, random);
-        for (var i = 0; i < count; i++)
-            if (Pick(cache.Value.Pool, policy.SetWeight, random) is { } item) result.Add(item);
+        if (request.Draw.Round == 0 || request.Draw.Entry == DropDrawEntry.DimensionEquipment)
+        {
+            // Called once per recipient: never multiply these trials by party size again.
+            var count = boss ? 1 : 0;
+            count += IndependentDropRules.SuccessfulAttempts(1, 1,
+                boss ? policy.BossExtraChance : policy.EliteChance, 1000000, random);
+            for (var i = 0; i < count; i++)
+                if (Pick(cache.Value.Pool, policy.SetWeight, random) is { } item) result.Add(item);
+        }
         // Materials are a separate source and do not depend on the equipment chance.
-        result.Add(cache.Value.Content.Fragment with { Count = boss ? 2 : 1 });
+        if (request.Draw.Round == 0 || request.Draw.Entry == DropDrawEntry.DimensionMaterial)
+            result.Add(cache.Value.Content.Fragment with { Count = boss ? 2 : 1 });
         return result;
     }
     public ClearRewardCardFace? DrawCard(int dungeonId, ClearRewardCardFace ordinary, ulong seed)

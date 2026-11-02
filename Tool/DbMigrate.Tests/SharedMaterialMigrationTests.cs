@@ -94,7 +94,7 @@ public sealed class SharedMaterialMigrationTests
         db.Ensure();
         Assert.Equal(2, db.Scalar("SELECT COUNT(*) FROM item_slots"));
         Assert.Equal(2, db.Scalar("SELECT COUNT(*) FROM items"));
-        Assert.Equal(1, db.Scalar("PRAGMA user_version"));
+        Assert.Equal(Dfo.Server.Persistence.Schema.CharacterDatabaseSchema.Version, db.Scalar("PRAGMA user_version"));
     }
 
     [Theory]

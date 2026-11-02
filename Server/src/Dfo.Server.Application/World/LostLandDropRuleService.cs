@@ -31,15 +31,30 @@ internal sealed class LostLandDropRuleService(ILostLandDropContentSource source)
             throw new InvalidDataException($"Unbound LostLand drop map {context.MapId}.");
         if (LostLandEnemyRules.IsForestTribe(actor) && crystal != 10092845)
             return LostLandDropPlan.Empty;
-        var random = new DropRandom(DropRandom.SeedFor(context.Layout.Seed, context.MapId,
-            context.Cell.X, context.Cell.Y, sequence) ^ 0x4C4F53544C4F4F54UL);
+        var seed = DropRandom.SeedFor(context.Layout.Seed, context.MapId,
+            context.Cell.X, context.Cell.Y, sequence) ^ 0x4C4F53544C4F4F54UL;
+        var plan = Draw(table, actor.Code, actor.ActorType, described.IsNamedMonster, crystal, new DropRandom(seed));
+        var regular = plan.Regular.ToBuilder();
+        for (var round = 1; round < context.DrawMultipliers.For(DropDrawEntry.LostLandRegular); round++)
+            regular.AddRange(Draw(table, actor.Code, actor.ActorType, described.IsNamedMonster, crystal,
+                new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.LostLandRegular, round)))).Regular);
+        if (plan.Bonus is not { } bonus) return new(regular.ToImmutable());
+        var rewards = bonus.Items.ToBuilder();
+        for (var round = 1; round < context.DrawMultipliers.For(DropDrawEntry.LostLandBoss); round++)
+            rewards.AddRange(Draw(table, actor.Code, actor.ActorType, described.IsNamedMonster, crystal,
+                new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.LostLandBoss, round)))).Bonus!.Items);
+        return new(regular.ToImmutable(), bonus with { Items = rewards.ToImmutable() });
+    }
+
+    private static LostLandDropPlan Draw(LostLandDropContent table, int code, int actorType, bool isNamed, int crystal, DropRandom random)
+    {
         RolledDrop Item(int id, int count) => table.Items[id] with { Count = count };
         int Amount(int low, int high) => low + random.Next(high - low + 1) - 1;
         var regular = ImmutableArray.CreateBuilder<RolledDrop>();
         var bonus = ImmutableArray.CreateBuilder<RolledDrop>();
         var family = -1;
         for (var i = 0; i < BossFamilies.Length; i++)
-            if (BossFamilies[i].Contains(actor.Code)) { family = i; break; }
+            if (BossFamilies[i].Contains(code)) { family = i; break; }
         if (family == 5 && crystal == 0)
         {
             bonus.Add(Item(10092849, Amount(40, 60)));
@@ -54,19 +69,19 @@ internal sealed class LostLandDropRuleService(ILostLandDropContentSource source)
         }
         else
         {
-            if (actor.Code == 59822)
+            if (code == 59822)
             {
                 regular.Add(Item(10092849, Amount(3, 5)));
                 if (random.Hits(50, 100)) regular.Add(Item(10092856, 1));
             }
             else if (crystal != 0)
             {
-                if (actor.ActorType >= 2 || described.IsNamedMonster)
+                if (actorType >= 2 || isNamed)
                 {
                     regular.Add(Item(crystal, Amount(6, 8)));
                     if (random.Hits(25, 100)) regular.Add(Item(10092849, Amount(1, 2)));
                 }
-                else if (actor.ActorType == 1)
+                else if (actorType == 1)
                 {
                     regular.Add(Item(crystal, Amount(3, 5)));
                     if (random.Hits(10, 100)) regular.Add(Item(10092849, 1));

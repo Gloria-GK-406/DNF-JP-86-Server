@@ -87,6 +87,8 @@ public sealed record MonsterDropContext(
 /// <summary>Input shared by drop sources behind the generation boundary.</summary>
 public sealed record MonsterDropRequest(int MonsterCode, MonsterDropContext Context)
 {
+    /// <summary>Which repetition this request draws; rules derive their random stream from it.</summary>
+    public DropDrawRound Draw { get; init; }
     public CharacterId CharacterId => this.Context.CharacterId;
     public ushort ActorSequence => this.Context.ActorSequence;
     public int MonsterLevel => this.Context.MonsterLevel;
