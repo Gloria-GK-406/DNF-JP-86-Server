@@ -1,4 +1,5 @@
 using System.Globalization;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -17,7 +18,7 @@ namespace Dfo.Server.Application.Inventory;
 /// character's <c>equipment_growth_day</c> daily counter.
 /// </remarks>
 internal sealed class EquipmentGrowthDomainService(IEquipmentDomainService equipments,
-    IEquipmentGrowthRuleService rules, ICharacterFatigueTable fatigue, ICharacterDailyCounterTable counters,
+    IEquipmentGrowthRuleService rules, ICharacterFatigueDomainService fatigue, ICharacterDailyCounterTable counters,
     IDailyResetRuleService days) : IEquipmentGrowthDomainService
 {
     internal const string SettledDayKey = "equipment_growth_day";
@@ -60,8 +61,7 @@ internal sealed class EquipmentGrowthDomainService(IEquipmentDomainService equip
         if (recorded is not null && DateOnly.TryParseExact(recorded, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                 DateTimeStyles.None, out var last) && last < today)
         {
-            var row = await fatigue.ReadAsync(character, ct).ConfigureAwait(false);
-            var lastDayMaintained = row is not null && days.PeriodDay(row.UpdatedAt) == last ? row.ConsumedToday : 0;
+            var lastDayMaintained = await fatigue.ConsumedOnAsync(character, last, ct).ConfigureAwait(false);
             experience = rules.ExperienceAfterDays(rule, experience, lastDayMaintained, today.DayNumber - last.DayNumber);
         }
         var maintained = await MaintainedTodayAsync(character, rule, at, ct).ConfigureAwait(false);
@@ -82,7 +82,7 @@ internal sealed class EquipmentGrowthDomainService(IEquipmentDomainService equip
 
     private async ValueTask<byte> MaintainedTodayAsync(CharacterId character, EquipmentGrowthRule rule, DateTimeOffset at, CancellationToken ct)
     {
-        var row = await fatigue.ReadAsync(character, ct).ConfigureAwait(false);
-        return rules.MaintainedFatigue(rule, row is not null && days.IsCurrentPeriod(row.UpdatedAt, at) ? row.ConsumedToday : 0);
+        var balance = await fatigue.BalanceAtAsync(character, at, ct).ConfigureAwait(false);
+        return rules.MaintainedFatigue(rule, balance.ConsumedToday);
     }
 }

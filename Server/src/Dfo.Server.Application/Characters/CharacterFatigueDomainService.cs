@@ -37,6 +37,9 @@ internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
         var row = Current(await table.ReadAsync(id, token).ConfigureAwait(false), at);
         return new(total, checked((ushort)Math.Min(total, row.Used))) { ConsumedToday = row.ConsumedToday };
     }
+    public async ValueTask<int> ConsumedOnAsync(CharacterId id, DateOnly day, CancellationToken token) =>
+        await table.ReadAsync(id, token).ConfigureAwait(false) is { } row && days.PeriodDay(row.UpdatedAt) == day
+            ? row.ConsumedToday : 0;
     public ValueTask SpendAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, false, token);
     public ValueTask RefundAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, true, token);
     private async ValueTask ChangeAsync(CharacterId id, ushort points, bool restore, CancellationToken token)
