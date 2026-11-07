@@ -168,8 +168,41 @@ public sealed class EquipmentGrowthTests
             return result;
         });
 
+    [Fact]
+    public async Task Breath_scrolls_only_take_a_full_scroll_star_and_keep_or_clear_upgrades_by_kind()
+    {
+        var policy = new DragonLeapEmancipatePolicy(new EquipmentGrowthRuleService(new Emancipation(), new GrowthTable()));
+        EmancipateTicketDefinition elementary = new(DragonLeapEmancipatePolicy.Elementary), advanced = new(DragonLeapEmancipatePolicy.Advanced);
+        Assert.Equal(new EquipmentGrowthPosition(1, 3), policy.Select(advanced,
+            [new(7, null, [], [new(1, 1)]), .. await new Emancipation().GetEquipmentAsync(3002, default)])!.Growth);
+        Assert.Null(policy.Select(advanced, [new(7, null, [], [new(1, 1)])]));
+
+        static ItemSnapshot Piece(int template, ushort experience) => new()
+        {
+            ItemId = template, LegacyKind = 1, Type = ItemTraits.Equipment, Count = 1, GrowthExperience = experience,
+            Attribute = 0x2C, AmplifyType = 2, AmplifyValue = 9, GenuineUpgrade = 3, EnchantCardId = 567, EnchantUpgradeCount = 1,
+            GrowthMaintainedFatigue = 12,
+        };
+        Assert.Equal(EquipmentEmancipateRejection.None, await policy.CheckAsync(advanced, Piece(3002, 30), default));
+        Assert.Equal(EquipmentEmancipateRejection.GrowthIncomplete, await policy.CheckAsync(advanced, Piece(3002, 29), default));
+        Assert.Equal(EquipmentEmancipateRejection.GrowthIncomplete, await policy.CheckAsync(advanced, Piece(3001, 20), default));
+        Assert.Equal(EquipmentEmancipateRejection.GrowthIncomplete, await policy.CheckAsync(advanced, Piece(3003, 0), default));
+
+        var before = Piece(3002, 30);
+        var transformed = before with { ItemId = 3003 };
+        Assert.Equal(transformed with { GrowthExperience = 0 }, policy.Retain(advanced, before, transformed));
+        Assert.Equal(transformed with
+        {
+            GrowthExperience = 0, Attribute = 0x20, AmplifyType = 0, AmplifyValue = 0, GenuineUpgrade = 0,
+            EnchantCardId = 0, EnchantUpgradeCount = 0,
+        }, policy.Retain(elementary, before, transformed));
+    }
+
     private sealed class Emancipation : IEquipmentEmancipateDefinitionSource
     {
+        public ValueTask<EmancipateTicketDefinition?> GetTicketAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EmancipateTicketDefinition?>(null);
+
         public ValueTask<IReadOnlyList<EquipmentEmancipateDefinition>> GetEquipmentAsync(int itemId, CancellationToken ct) =>
             ValueTask.FromResult<IReadOnlyList<EquipmentEmancipateDefinition>>(itemId is >= 3000 and <= 3003
                 ? [new(null, new(1, itemId - 2999), [new(10000224, 1)], itemId < 3003 ? [new(itemId + 1, 1)] : [])]

@@ -36,7 +36,7 @@ internal sealed class EquipmentEmancipateRuleService(IEquipmentEmancipateDefinit
         if (current.MaxDurability is { } maximum && target.Durability < maximum)
             return new(EquipmentEmancipateRejection.Durability);
         if (EquipmentAmplification.IsUnpurified(target)) return new(EquipmentEmancipateRejection.Unpurified);
-        var admitted = policy.Check(ticket, target);
+        var admitted = await policy.CheckAsync(ticket, target, ct).ConfigureAwait(false);
         if (admitted != EquipmentEmancipateRejection.None) return new(admitted);
         return new(EquipmentEmancipateRejection.None, new(output.ItemId, block.Inputs, transformed =>
         {
