@@ -105,6 +105,14 @@ public sealed class EquipmentGrowthTests
         services.AddSingleton<IEquipmentEmancipateDefinitionSource>(new Emancipation());
         services.AddSingleton<IEquipmentGrowthDefinitionSource>(new GrowthTable());
         services.AddSingleton<IEquipmentSlotDefinitionSource>(new WeaponSlot());
+        services.AddSingleton<IItemPlacementDefinitionSource>(new Placement(new NpcShopTestContent()));
+    }
+
+    private sealed class Placement(NpcShopTestContent inner) : IItemPlacementDefinitionSource
+    {
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) => itemId is >= 3000 and <= 3003
+            ? ValueTask.FromResult<ItemPlacement?>(new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 1)) { WorldClass = ItemWorldClass.Equipment })
+            : inner.GetAsync(itemId, ct);
     }
 
     private sealed class WeaponSlot : IEquipmentSlotDefinitionSource
