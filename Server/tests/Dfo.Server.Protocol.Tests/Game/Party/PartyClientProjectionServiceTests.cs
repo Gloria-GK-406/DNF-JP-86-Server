@@ -73,6 +73,58 @@ public sealed class PartyClientProjectionServiceTests
         });
     }
 
+    [Fact]
+    public void Disbanded_and_rekeyed_parties_give_their_wire_numbers_back()
+    {
+        TestGameplay.Run(() =>
+        {
+            var inner = new PartyService(
+                new FixedStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
+            var service = new PartyClientProjectionService(inner, new PartyClientIdRegistry());
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var leader = new PartyCharacterSnapshot(new AccountId(1), new CharacterId(1), 1, scope);
+            var member = new PartyCharacterSnapshot(new AccountId(2), new CharacterId(2), 2, scope);
+            var settings = new PartyModeRuleService().DefaultSettings;
+
+            // More parties than A21 has wire numbers; each is disbanded or rekeyed before the next.
+            for (var round = 0; round < ushort.MaxValue + 10; round++)
+            {
+                if (round % 2 == 0)
+                {
+                    Assert.True(service.CreateOrUpdateSettings(leader, settings, PartyTitle.Empty).Succeeded);
+                    Assert.True(service.LeaveParty(leader.CharacterId).Succeeded);
+                    continue;
+                }
+                Assert.True(service.RequestInvite(leader, member, new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+                Assert.True(service.AcceptInvite(member, leader).Succeeded);
+                Assert.True(service.LeaveParty(leader.CharacterId).Succeeded);
+                Assert.True(service.LeaveParty(member.CharacterId).Succeeded);
+            }
+        });
+    }
+
+    [Fact]
+    public void A_retired_wire_number_is_not_handed_straight_to_the_next_party()
+    {
+        TestGameplay.Run(() =>
+        {
+            var inner = new PartyService(
+                new FixedStatus(), new PartyModeRuleService(), TimeProvider.System,
+                new NoEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
+            var service = new PartyClientProjectionService(inner, new PartyClientIdRegistry());
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var leader = new PartyCharacterSnapshot(new AccountId(1), new CharacterId(1), 1, scope);
+            var settings = new PartyModeRuleService().DefaultSettings;
+
+            var first = service.CreateOrUpdateSettings(leader, settings, PartyTitle.Empty).Notifications.Snapshot!.PartyId;
+            Assert.Equal(first, service.LeaveParty(leader.CharacterId).Notifications.ClearPartyId);
+            var second = service.CreateOrUpdateSettings(leader, settings, PartyTitle.Empty).Notifications.Snapshot!.PartyId;
+
+            Assert.NotEqual(first, second);
+        });
+    }
+
     private sealed class NoEndpoints : IPartyMemberSessionEndpointSource
     {
         public SessionEndpoint? FindThroughCurrentSession(CharacterId characterId) => null;

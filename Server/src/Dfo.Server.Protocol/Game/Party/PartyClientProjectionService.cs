@@ -7,10 +7,17 @@ using Dfo.Server.Data.Parties;
 namespace Dfo.Server.Protocol.Game.Party;
 
 /// <summary>Allocates A21's short-lived wire numbers independently of the party aggregate.</summary>
+/// <remarks>
+/// A number is retired when its party is disbanded or rekeyed by a departing leader, as 70 returns a
+/// disbanded party to its pool (CParty::destroy → PutParty). The cursor only moves forward, so a
+/// retired number comes back only after every other free number has been handed out: a client still
+/// holding the old number cannot meet it on a new party soon after.
+/// </remarks>
 public sealed class PartyClientIdRegistry
 {
     private readonly object gate = new();
     private readonly Dictionary<(PartyKey Key, long Version), ushort> numbers = [];
+    private readonly HashSet<ushort> inUse = [];
     private ushort next = 1;
 
     public ushort For(PartyKey key, long version)
@@ -28,7 +35,7 @@ public sealed class PartyClientIdRegistry
                 if (next is 0 or ushort.MaxValue)
                     next = 1;
                 if (candidate is not 0 and not ushort.MaxValue
-                    && !numbers.Values.Contains(candidate))
+                    && inUse.Add(candidate))
                 {
                     numbers.Add((key, version), candidate);
                     return candidate;
@@ -49,7 +56,7 @@ public sealed class PartyClientIdRegistry
     public PartyNotificationPlan Project(PartyNotificationPlan plan)
     {
         GameplayWriteAssertion.Writing(nameof(PartyClientIdRegistry) + "." + nameof(Project));
-        return plan with
+        var projected = plan with
         {
             Snapshot = plan.Snapshot is { } snapshot ? Project(snapshot) : null,
             LeadershipTransfer = plan.LeadershipTransfer is { } transfer ? Project(transfer) : null,
@@ -58,6 +65,24 @@ public sealed class PartyClientIdRegistry
                     ? For(key, version)
                     : plan.ClearPartyId,
         };
+        // The cleared number is final once no surviving snapshot carries it: the party is gone, or
+        // a departing leader's successor took the party under a new version.
+        if (plan.ClearPartyKey is { } clearedKey
+            && plan.ClearLeadershipVersion is { } clearedVersion
+            && (plan.Snapshot is null || plan.Snapshot.LeadershipVersion != clearedVersion))
+        {
+            Retire(clearedKey, clearedVersion);
+        }
+        return projected;
+    }
+
+    private void Retire(PartyKey key, long version)
+    {
+        lock (gate)
+        {
+            if (numbers.Remove((key, version), out var number))
+                inUse.Remove(number);
+        }
     }
 }
 
