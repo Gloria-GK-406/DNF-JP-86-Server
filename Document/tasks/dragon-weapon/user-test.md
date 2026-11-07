@@ -5,7 +5,7 @@
 | 项 | 值 |
 |---|---|
 | 分支／提交 | `feature/dragon-weapon-281`（含镇魂 #282 的 0x010F 开光） |
-| 产物 | `E:\Project\DNF\.task-evidence\281-dragon-weapon\server`（Release publish），启动脚本同目录 `start-test-server.ps1` |
+| 产物 | `E:\Project\DNF\.task-evidence\281-dragon-weapon\server`（Release publish），启动脚本同目录 `start-default-ports.ps1` |
 | 数据库 | `server\Data\dfo-server.db`：主干玩家库 `DNF-JP-86-Server\Server\src\Dfo.Server.Host\bin\Release\net10.0\Data\dfo-server.db` 的 SQLite backup 副本，经 DbMigrate 0→3。原库未改；备份 `backup\main-dfo-server-20261107.db` |
 | 副本预置 | 1123（character_id 2）装备栏放了 5 把「龙跃之短剑 - 剑神」：1 星成长值 1790/1794、2 星 3170/3174、3 星 4830/4830 两把、3 星 4000/4830 一把（直接写入副本，用于免去几百次击杀） |
 | PVF | `E:\Project\DNF\DNFClient-A21-protocol\Script.pvf` |
