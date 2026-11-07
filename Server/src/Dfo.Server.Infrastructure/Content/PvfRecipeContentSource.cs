@@ -21,6 +21,9 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
         internal static readonly PvfField<IReadOnlyList<PvfToken>> FailItemField = PvfField.Tokens("[fail item]", optional: true);
     }
 
+    internal const string FailOutputField = "[fail output]";
+    internal const string MaintainAbilityField = "[maintain ability]";
+
     private readonly Lock gate = new();
     private readonly Dictionary<int, RecipePlan?> cache = [];
     private IReadOnlyDictionary<int, string>? paths;
@@ -61,15 +64,26 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
         var type = sections.SingleOrDefault(s => s.Name == Fields.StackableTypeField.Name);
         if (type is null || type.Values.Count != 2 || !type.Values[0].IsString
             || archive.ResolveString(type.Values[0].Value) != "[recipe]"
-            || type.Values[1].Kind != PvfTokenKind.Int32 || type.Values[1].Value != 0) return null;
-        // Professional, conditional and probabilistic recipes require their own semantics; never silently grant success.
-        if (sections.Any(s => (s.Name == Fields.IntDataField.Name || s.Name == Fields.SuccessRateField.Name || s.Name == Fields.FailureItemField.Name || s.Name == Fields.FailItemField.Name)
+            || type.Values[1].Kind != PvfTokenKind.Int32 || type.Values[1].Value is not (0 or 1)) return null;
+        // Professional and conditional recipes require their own semantics; never silently grant success.
+        if (sections.Any(s => (s.Name == Fields.IntDataField.Name || s.Name == Fields.FailureItemField.Name || s.Name == Fields.FailItemField.Name)
             || s.Name == Fields.NeedSkillField.Name && s.Values.Count != 0)) return null;
-        var input = Rows(Fields.InputItemField); var output = Rows(Fields.OutputItemField);
-        return input.IsDefaultOrEmpty || output.IsDefaultOrEmpty ? null : new(input, output);
-        ImmutableArray<RecipeAmount> Rows(PvfField<IReadOnlyList<int>> tag)
+        var input = Rows(Fields.InputItemField.Name); var output = Rows(Fields.OutputItemField.Name);
+        if (input.IsDefaultOrEmpty || output.IsDefaultOrEmpty) return null;
+        var rate = sections.Where(s => s.Name == Fields.SuccessRateField.Name).ToArray();
+        // [recipe] 1 is only understood in its probabilistic requiem shape: [success rate], [fail output] and
+        // [maintain ability] normal together. Any other [recipe] 1 drawing keeps being refused.
+        if (type.Values[1].Value == 0) return rate.Length == 0 ? new(input, output) : null;
+        var fail = Rows(FailOutputField);
+        var maintain = sections.Where(s => s.Name == MaintainAbilityField).ToArray();
+        if (rate is not [{ Values: [{ Kind: PvfTokenKind.Int32 } chance] }] || chance.Value is < 0 or > 10000
+            || fail.IsDefaultOrEmpty
+            || maintain is not [{ Values: [{ IsString: true } mode] }] || archive.ResolveString(mode.Value) != "normal")
+            return null;
+        return new(input, output) { Chance = new(chance.Value, fail, MaintainAbility: true) };
+        ImmutableArray<RecipeAmount> Rows(string tag)
         {
-            var rows = sections.Where(s => s.Name == tag.Name).ToArray();
+            var rows = sections.Where(s => s.Name == tag).ToArray();
             if (rows.Length != 1 || rows[0].Values.Count is 0 or > 128 || rows[0].Values.Count % 2 != 0
                 || rows[0].Values.Any(t => t.Kind != PvfTokenKind.Int32 || t.Value <= 0)) return [];
             return rows[0].Values.Chunk(2).Select(pair => new RecipeAmount(pair[0].Value, pair[1].Value)).ToImmutableArray();

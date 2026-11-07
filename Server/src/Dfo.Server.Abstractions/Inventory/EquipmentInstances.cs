@@ -29,4 +29,13 @@ public interface IEquipmentInstance : IItemSocketInstance
     ValueTask<ItemReference> SetDurabilityAsync(ushort value, CancellationToken cancellationToken);
     ValueTask<ItemReference> DecreaseDurabilityAsync(ushort amount, CancellationToken cancellationToken);
     ValueTask<ItemReference> DestroyAsync(CancellationToken cancellationToken);
+    /// <summary>Writes the growth weapon state carried in the item (experience and today's maintained fatigue).</summary>
+    ValueTask<ItemReference> SetGrowthAsync(ushort experience, byte maintainedFatigue, CancellationToken cancellationToken);
+    /// <summary>
+    /// Turns this piece into another equipment template in place: same UID, same slot. The caller
+    /// decides, through <paramref name="retain"/>, what the new template keeps from the old piece;
+    /// it receives the current item with only the template already replaced.
+    /// </summary>
+    ValueTask<ItemReference> TransformAsync(int templateId, Func<ItemSnapshot, ItemSnapshot> retain,
+        CancellationToken cancellationToken);
 }

@@ -50,13 +50,20 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
         foreach (var reward in receipt.Inventory.Rewards)
         {
             var core = receipt.Inventory.Updates.Single(x => x.Slot == reward.Slot).Core.ToCore();
+            // An upgraded piece keeps its reinforcement and amplification, but upstream saw A21 freeze when a product
+            // row carried them. The row only feeds the result window; NOTI 0x000E installs the real piece.
+            if (reward.Slot == receipt.Upgraded) core = core with
+            {
+                Attribute = 0, SealFlag = 0, AmplifyValue = 0, AmplifyType = 0, GenuineUpgrade = 0,
+                EmancipateEquipmentLevel = 0, TradeRestriction = 0,
+            };
             w.Write(core.ItemKind == 1 ? (byte)1 : (byte)0);
             w.Write(checked((ushort)OpeningWireSlots.RewardIndex(reward.Slot))); w.Write(reward.ItemId);
             w.Write(core.ItemKind == 1 ? core.Value : reward.Count);
             w.Write(core.Attribute); w.Write(core.Durability); w.Write(core.SealFlag);
             w.Write(core.AmplifyValue); w.Write(core.AmplifyType); w.Write(core.Marker16 == -1 ? 0 : core.Marker16);
             w.Write(core.GenuineUpgrade); w.Write(core.EmancipateEquipmentLevel); w.Write(core.TradeRestriction);
-            w.Write(core.TailUnknown0); w.Write(core.TailUnknown1); w.Write(core.TailUnknown2);
+            w.Write(core.GrowthExperience); w.Write(core.GrowthMaintainedFatigue); w.Write(core.TailUnknown2);
             w.Write(core.TailUnknown3); w.Write(core.RemainUseCount); w.Write(core.SortLockFlag);
             // A21 handler D36DB7/D36DD1 initializes two opaque values (4/8 bytes), then reads the final byte.
             // Keep these fields on each reward row, including multi-output recipes, rather than once at packet end.

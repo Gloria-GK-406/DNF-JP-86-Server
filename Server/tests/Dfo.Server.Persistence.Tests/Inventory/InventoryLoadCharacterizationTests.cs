@@ -166,8 +166,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[0].Core.GenuineUpgrade = 201
         CharacterItems[0].Core.EmancipateEquipmentLevel = 202
         CharacterItems[0].Core.TradeRestriction = 203
-        CharacterItems[0].Core.TailUnknown0 = 52684
-        CharacterItems[0].Core.TailUnknown1 = 206
+        CharacterItems[0].Core.GrowthExperience = 52684
+        CharacterItems[0].Core.GrowthMaintainedFatigue = 206
         CharacterItems[0].Core.TailUnknown2 = 207
         CharacterItems[0].Core.TailUnknown3 = 208
         CharacterItems[0].Core.RemainUseCount = 209
@@ -232,8 +232,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[1].Core.GenuineUpgrade = 231
         CharacterItems[1].Core.EmancipateEquipmentLevel = 232
         CharacterItems[1].Core.TradeRestriction = 233
-        CharacterItems[1].Core.TailUnknown0 = 60394
-        CharacterItems[1].Core.TailUnknown1 = 236
+        CharacterItems[1].Core.GrowthExperience = 60394
+        CharacterItems[1].Core.GrowthMaintainedFatigue = 236
         CharacterItems[1].Core.TailUnknown2 = 237
         CharacterItems[1].Core.TailUnknown3 = 238
         CharacterItems[1].Core.RemainUseCount = 239
@@ -298,8 +298,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[2].Core.GenuineUpgrade = 171
         CharacterItems[2].Core.EmancipateEquipmentLevel = 172
         CharacterItems[2].Core.TradeRestriction = 173
-        CharacterItems[2].Core.TailUnknown0 = 44974
-        CharacterItems[2].Core.TailUnknown1 = 176
+        CharacterItems[2].Core.GrowthExperience = 44974
+        CharacterItems[2].Core.GrowthMaintainedFatigue = 176
         CharacterItems[2].Core.TailUnknown2 = 177
         CharacterItems[2].Core.TailUnknown3 = 178
         CharacterItems[2].Core.RemainUseCount = 179
@@ -364,8 +364,8 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterItems[3].Core.GenuineUpgrade = 111
         CharacterItems[3].Core.EmancipateEquipmentLevel = 112
         CharacterItems[3].Core.TradeRestriction = 113
-        CharacterItems[3].Core.TailUnknown0 = 29554
-        CharacterItems[3].Core.TailUnknown1 = 116
+        CharacterItems[3].Core.GrowthExperience = 29554
+        CharacterItems[3].Core.GrowthMaintainedFatigue = 116
         CharacterItems[3].Core.TailUnknown2 = 117
         CharacterItems[3].Core.TailUnknown3 = 118
         CharacterItems[3].Core.RemainUseCount = 119
@@ -486,8 +486,8 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[0].Core.GenuineUpgrade = 151
         AccountCargoItems[0].Core.EmancipateEquipmentLevel = 152
         AccountCargoItems[0].Core.TradeRestriction = 153
-        AccountCargoItems[0].Core.TailUnknown0 = 39834
-        AccountCargoItems[0].Core.TailUnknown1 = 156
+        AccountCargoItems[0].Core.GrowthExperience = 39834
+        AccountCargoItems[0].Core.GrowthMaintainedFatigue = 156
         AccountCargoItems[0].Core.TailUnknown2 = 157
         AccountCargoItems[0].Core.TailUnknown3 = 158
         AccountCargoItems[0].Core.RemainUseCount = 159
@@ -552,8 +552,8 @@ public sealed class InventoryLoadCharacterizationTests
         AccountCargoItems[1].Core.GenuineUpgrade = 131
         AccountCargoItems[1].Core.EmancipateEquipmentLevel = 132
         AccountCargoItems[1].Core.TradeRestriction = 133
-        AccountCargoItems[1].Core.TailUnknown0 = 34694
-        AccountCargoItems[1].Core.TailUnknown1 = 136
+        AccountCargoItems[1].Core.GrowthExperience = 34694
+        AccountCargoItems[1].Core.GrowthMaintainedFatigue = 136
         AccountCargoItems[1].Core.TailUnknown2 = 137
         AccountCargoItems[1].Core.TailUnknown3 = 138
         AccountCargoItems[1].Core.RemainUseCount = 139

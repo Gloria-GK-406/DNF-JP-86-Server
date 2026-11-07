@@ -144,6 +144,23 @@ internal sealed class EquipmentInstance(IBusinessItemContainer container, ItemRe
             core => core with { Durability = (ushort)Math.Max(0, core.Durability - amount) }, ct).ConfigureAwait(false);
     }
 
+    public ValueTask<ItemReference> SetGrowthAsync(ushort experience, byte maintainedFatigue, CancellationToken ct) =>
+        ChangeAsync(core => core with { GrowthExperience = experience, GrowthMaintainedFatigue = maintainedFatigue }, ct);
+
+    public ValueTask<ItemReference> TransformAsync(int templateId, Func<ItemSnapshot, ItemSnapshot> retain, CancellationToken ct)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(templateId);
+        ArgumentNullException.ThrowIfNull(retain);
+        return ChangeAsync(core =>
+        {
+            if (core.ItemId == templateId) throw new InvalidOperationException("A transformation must change the template.");
+            var next = retain(core with { ItemId = templateId });
+            if (next.ItemId != templateId || next.ItemUid != core.ItemUid)
+                throw new InvalidOperationException("A transformation keeps the piece's identity and the requested template.");
+            return next;
+        }, ct);
+    }
+
     public async ValueTask<ItemReference> DestroyAsync(CancellationToken ct)
     {
         var before = await ReadAsync(ct).ConfigureAwait(false);

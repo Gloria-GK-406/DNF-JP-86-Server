@@ -42,8 +42,8 @@ internal static class InventoryItemCore
         core[66] = value.RandomOptionChangedIndex; core[67] = value.RandomOptionChangeState;
         WriteRandom(core.AsSpan(68), value.RandomOptionChange);
         core[71] = value.GenuineUpgrade; core[72] = value.EmancipateEquipmentLevel;
-        core[73] = value.TradeRestriction; BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(74), value.TailUnknown0);
-        core[76] = value.TailUnknown1; core[77] = value.TailUnknown2; core[78] = value.TailUnknown3;
+        core[73] = value.TradeRestriction; BinaryPrimitives.WriteUInt16LittleEndian(core.AsSpan(74), value.GrowthExperience);
+        core[76] = value.GrowthMaintainedFatigue; core[77] = value.TailUnknown2; core[78] = value.TailUnknown3;
         core[79] = value.RemainUseCount; core[80] = value.SortLockFlag; core[81] = value.EquipmentLockId;
         return core;
     }

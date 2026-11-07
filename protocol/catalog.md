@@ -1516,3 +1516,16 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 C5／C6／170事务保存接线完成，C0补选角生命周期保护；AD／1C7／187在登录／选角恢复。
 1C7从旧二进制槽表改为当前A21文本。当前为ServerImplemented、ClientStatic，未新增ClientVerified。
 详见[设置族](patterns/game-settings.md)及[静态证据](patterns/data/traces/a21-settings-text-static-20261013.md)。
+
+## 2026-11-07 券开光 0x010F（镇魂释魂，待实机）
+
+[UPGRADE_CHRONICLE 0x010F](game/client-to-server/0x010F.md) 从"布局已闭合、未实现"变为已实现：19B 请求按主背包槽读券和目标，
+券 19（释魂之真灵转换书 10150749）把镇魂武器按 `[emancipate]` 块原位转换为 `[output]` 模板，UID 不变，同事务扣券 1 与 `[input]` 材料。
+[CMD 结果](game/server-to-client/CMD-0x010F.md)只含扣减行，新模板以 NOTI 0x000E 先清后填下发。ClientStatic + ContentStatic + 70Reference + CurrentImplementation；
+自动测试覆盖成功、拒绝不扣资源、写库失败回滚与重放。尚无实帧，未 ClientVerified。其余券值未启用（龙跃 2/3 由 #281 接入）。
+方案与证据见 [镇魂任务资料](../Document/tasks/requiem-weapon/design.md)。
+
+2026-11-07 同日补充：转换书开光经用户在默认端口测试服实测"符合预期"，该流程记为有限范围 ClientVerified，仍无归档实帧。
+[COMPOUND_ITEM 0x0019](game/client-to-server/0x0019.md) 接入 31 张释魂设计图：成功率按万分比（用户决定），
+成功原位换模板并封装、失败留武器发浓缩的灵魂；0x0019 失败码改按客户端表（满包 0x04、异界 0x13、未修理 0xD9）。
+CurrentImplementation + 自动测试，待实机。

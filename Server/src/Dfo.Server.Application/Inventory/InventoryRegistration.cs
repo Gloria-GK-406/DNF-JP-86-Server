@@ -80,6 +80,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<ICeraShopPurchaseRestrictionDomainService, CeraShopPurchaseRestrictionDomainService>();
         services.TryAddSingleton<ICeraShopDomainService, CeraShopDomainService>();
         services.TryAddSingleton<IRecipeCraftRuleService, RecipeCraftRuleService>();
+        services.TryAddSingleton<IRecipeChanceRollSource, RecipeChanceRollSource>();
         services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
         services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
         services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();
@@ -112,6 +113,9 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
         services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
         services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
+        services.TryAddSingleton<IEquipmentEmancipateRuleService, EquipmentEmancipateRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEquipmentEmancipatePolicy, RequiemEmancipatePolicy>());
+        services.TryAddSingleton<IEquipmentEmancipateDomainService, EquipmentEmancipateDomainService>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
         services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
