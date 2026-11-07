@@ -68,7 +68,8 @@ public sealed partial class PartyCommandHandlerTests
     }
 
     [Fact]
-    public async Task Removing_a_member_in_a_run_detaches_only_the_removed_character()
+    /// <remarks>Removal is a town operation (#241): a request from a party in a run changes neither.</remarks>
+    public async Task Removing_a_member_in_a_run_is_refused_and_leaves_party_and_run_whole()
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -95,14 +96,18 @@ public sealed partial class PartyCommandHandlerTests
             var context = DomainCommandFixture.Context(
                 Guid.NewGuid(), typeof(object), typeof(object), FixtureUnitKind.Direct);
 
+            var sender = new RecordingSender();
             var result = await PartyMutationTestDriver.Bus(PartyMutationTestDriver.Handler(
-                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events, runs: runs, deliveries: deliveries))
+                new SessionDirectory(Inviter, Invitee), parties, Presence, Notifications.Events,
+                sender: sender, runs: runs, deliveries: deliveries))
                 .SendAsync(new GameRemovePartyMemberCommand(Dispatch(Inviter), new(GameMessageMetadata.Empty, 1)));
 
-            Assert.True(result);
+            Assert.False(result);
             Assert.Equal(run.RunId, runs.Find(Inviter.CharacterId)!.RunId);
-            Assert.Null(runs.Find(Invitee.CharacterId));
-            Assert.Equal([Inviter], deliveries.Find(run.RunId));
+            Assert.Equal(run.RunId, runs.Find(Invitee.CharacterId)!.RunId);
+            Assert.Equal([Inviter, Invitee], deliveries.Find(run.RunId));
+            Assert.Equal(2, parties.FindParty(leader).Members.Length);
+            Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(sender.Sent));
         });
     }
 

@@ -366,20 +366,39 @@ internal sealed partial class GamePartyTransitionCommandHandler
         if (caller is null) return false;
 
         var (candidates, place) = LocatePartyOf(caller, targetSlot);
+        if (change == PartyChange.Remove && PartyStandsInADungeon(candidates.Candidates, place))
+        {
+            // Removal is a town operation (#241). A21 offers no removal once the party has entered a
+            // dungeon, and 70's handler never judges the place, leaving that edge to the client
+            // (DisPatcher_WalkoutParty 0x81caf98). A request that reaches us anyway is illegal:
+            // it is refused with the native refusal and changes neither the party nor any run.
+            var refused = PartyOperationResult.Reject(PartyFailureReason.NotStandingInTown);
+            await outbox.RegisterExplicitAsync(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
+            LogPartyMutation(change, caller, candidates.Target, targetSlot, refused);
+            return false;
+        }
+
+        TowerPartyAttempt attempt;
         switch (place)
         {
             case DungeonPartyPlace.PartyInBossTower boss:
-                return (await CoordinateTowerPartyAsync(execution, change, caller, candidates, bossKind, boss.Runs, false, null, token).ConfigureAwait(false)).Result.Succeeded;
+                attempt = await CoordinateTowerPartyAsync(execution, change, caller, candidates, bossKind, boss.Runs, false, null, token).ConfigureAwait(false);
+                break;
             case DungeonPartyPlace.PartyInIllusionTower illusion:
-                var attempt = await CoordinateTowerPartyAsync(execution, change, caller, candidates, illusionKind, illusion.Runs, false, null, token).ConfigureAwait(false);
-                if (change == PartyChange.Remove && !attempt.Result.Succeeded)
-                    await outbox.RegisterExplicitAsync(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
-                LogPartyMutation(change, caller, attempt.Target, targetSlot, attempt.Result);
-                return attempt.Result.Succeeded;
+                attempt = await CoordinateTowerPartyAsync(execution, change, caller, candidates, illusionKind, illusion.Runs, false, null, token).ConfigureAwait(false);
+                break;
             default:
                 return await MutatePartyOrdinaryAsync(execution, dispatch, change, caller, targetSlot, token).ConfigureAwait(false);
         }
+
+        LogPartyMutation(change, caller, attempt.Target, targetSlot, attempt.Result);
+        return attempt.Result.Succeeded;
     }
+
+    /// <summary>Whether any located candidate (caller, target, online member) is in a tower or an ordinary run.</summary>
+    private bool PartyStandsInADungeon(IReadOnlyList<SelectedSessionIdentity> candidates, DungeonPartyPlace place) =>
+        place is not DungeonPartyPlace.PartyOrdinaryOrNone
+        || candidates.Any(candidate => runs.Find(candidate.CharacterId) is not null);
 
     private async ValueTask<bool> MutatePartyOrdinaryAsync(CommandExecutionContext execution, NetworkDispatchContext dispatch,
         PartyChange change, SelectedSessionIdentity caller, byte? targetSlot, CancellationToken token)
@@ -397,11 +416,9 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 return false;
             }
         }
-        var departing = change == PartyChange.Leave ? caller : change == PartyChange.Remove ? target : null;
+        // Removal never reaches here from a dungeon (refused above), so only a leaver can depart a run.
+        var departing = change == PartyChange.Leave ? caller : null;
         var departingRun = departing is null ? null : runs.Find(departing.CharacterId);
-        var runtime = change == PartyChange.Remove && departingRun is not null
-            ? await currentViews.TryLoadAsync(target!, token).ConfigureAwait(false) : null;
-        var position = change == PartyChange.Remove && departingRun is not null ? onlineCharacters.PositionOf(target!) : null;
         var result = !sessions.IsInWorld(caller) || target is not null && !sessions.IsInWorld(target)
             ? PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent)
             : departingRun is null
@@ -420,8 +437,6 @@ internal sealed partial class GamePartyTransitionCommandHandler
             if (departingRun is not null && runs.Find(departing!.CharacterId) is null)
                 registry.ParticipantDeparted(departingRun.RunId, departing!.CharacterId);
             await ProjectPartyAsync(result.Notifications, recipients, token).ConfigureAwait(false);
-            if (change == PartyChange.Remove && departingRun is not null && runtime is not null && position is not null && sessions.IsInWorld(target!))
-                await ReturnTownAsync([new TownAreaEntry(target!, runtime, position)], token).ConfigureAwait(false);
         }
         LogPartyMutation(change, caller, target, targetSlot, result);
         return result.Succeeded;

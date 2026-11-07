@@ -181,6 +181,14 @@ public sealed partial class BossTowerDomainServiceTests
         {
             var departing = remove ? peer : f.Session;
             var survivor = remove ? f.Session : peer;
+            if (remove && !legacy)
+            {
+                // Removal is a town operation (#241): a request from inside the tower changes nothing.
+                Assert.Equal(2, Tower(f).Find(survivor)!.Members.Length);
+                Assert.Equal(2, f.Services.GetRequiredService<IPartyService>()
+                    .FindParty(new(survivor.AccountId, survivor.CharacterId, survivor.WireUserId, null)).Members.Length);
+                return;
+            }
             Assert.Null(Tower(f).Find(departing));
             Assert.Equal(survivor, Assert.Single(Tower(f).Find(survivor)!.Members).Session);
             var parties = f.Services.GetRequiredService<IPartyService>();
@@ -356,6 +364,14 @@ public sealed partial class IllusionTowerDomainServiceTests
         {
             var departing = remove ? peer : f.Session;
             var survivor = remove ? f.Session : peer;
+            if (remove && !legacy)
+            {
+                // Removal is a town operation (#241): a request from inside the tower changes nothing.
+                Assert.Equal(2, Tower(f).Find(survivor)!.Members.Length);
+                Assert.Equal(2, f.Services.GetRequiredService<IPartyService>()
+                    .FindParty(new(survivor.AccountId, survivor.CharacterId, survivor.WireUserId, null)).Members.Length);
+                return;
+            }
             Assert.Null(Tower(f).Find(departing));
             Assert.Equal(survivor, Assert.Single(Tower(f).Find(survivor)!.Members).Session);
             var parties = f.Services.GetRequiredService<IPartyService>();

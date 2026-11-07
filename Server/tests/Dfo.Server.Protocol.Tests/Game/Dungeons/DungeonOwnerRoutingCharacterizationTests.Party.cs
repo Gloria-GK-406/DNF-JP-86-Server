@@ -72,11 +72,11 @@ public sealed partial class DungeonOwnerRoutingCharacterizationTests
         });
     }
 
-    // The tower answers the departure "unchanged" here, so a tower owner refuses the removal. The
-    // Illusion owner tells the leader with the native refusal; the Boss owner stays silent.
+    // Removal is a town operation (#241): with the member seated in a tower it is refused before any
+    // tower work, and the leader gets the native refusal.
     [Theory]
     [MemberData(nameof(PartyPlaces))]
-    public async Task Removing_a_seated_member_from_town_is_owned_by_that_members_tower(RoutingPlace memberPlace)
+    public async Task Removing_a_member_seated_in_a_tower_is_refused_before_any_tower_work(RoutingPlace memberPlace)
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -86,34 +86,22 @@ public sealed partial class DungeonOwnerRoutingCharacterizationTests
             await world.SendAsync(leader, new RemovePartyMemberRequest(GameMessageMetadata.Empty, 1));
 
             var members = world.PartyOf(leader).Members.Select(value => value.CharacterId).ToArray();
-            switch (memberPlace)
+            if (memberPlace == RoutingPlace.Town)
             {
-                case RoutingPlace.Boss:
-                    AssertOnly(world.Boss.Actions, "LeaveAsync", member.ConnectionId);
-                    Assert.Empty(world.Illusion.Actions);
-                    Assert.Equal(["party-leave-boss-tower"], world.Units.Names);
-                    Assert.Contains(member.CharacterId, members);
-                    Assert.Empty(world.Outbox.Frames);
-                    break;
-                case RoutingPlace.Illusion:
-                    AssertOnly(world.Illusion.Actions, "LeaveAsync", member.ConnectionId);
-                    Assert.Empty(world.Boss.Actions);
-                    Assert.Equal(["party-leave-illusion-tower"], world.Units.Names);
-                    Assert.Contains(member.CharacterId, members);
-                    Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(world.Outbox.To(leader)));
-                    Assert.Single(world.Outbox.Frames);
-                    break;
-                default:
-                    AssertNoTower(world);
-                    Assert.DoesNotContain(member.CharacterId, members);
-                    Assert.Empty(world.Outbox.Frames);
-                    break;
+                AssertNoTower(world);
+                Assert.DoesNotContain(member.CharacterId, members);
+                Assert.Empty(world.Outbox.Frames);
+                return;
             }
+            AssertNoTower(world);
+            Assert.Empty(world.Units.Names);
+            Assert.Contains(member.CharacterId, members);
+            Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(world.Outbox.To(leader)));
+            Assert.Single(world.Outbox.Frames);
         });
     }
 
-    // A refusal the owner predicts before any write: the Boss owner sends nothing, the Illusion
-    // owner and the ordinary flow both send the native refusal.
+    // A removal from inside a tower is refused like any other; the ordinary flow refuses a non-leader.
     [Theory]
     [MemberData(nameof(PartyPlaces))]
     public async Task A_non_leaders_removal_is_refused_by_the_owner_of_the_whole_partys_place(RoutingPlace place)
@@ -128,11 +116,9 @@ public sealed partial class DungeonOwnerRoutingCharacterizationTests
             Assert.Equal(2, world.PartyOf(leader).Members.Length);
             AssertNoTower(world);
             Assert.Empty(world.Units.Names);
-            if (place == RoutingPlace.Boss)
-                Assert.Empty(world.Outbox.Frames);
-            else
-                Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(world.Outbox.To(member)));
-            Assert.Equal(place == RoutingPlace.Boss ? 0 : 1, world.Outbox.Frames.Count);
+            // Every place answers the refused caller alike (#241).
+            Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(world.Outbox.To(member)));
+            Assert.Single(world.Outbox.Frames);
         });
     }
 
