@@ -23,6 +23,73 @@ namespace Dfo.Server.Application.Tests.Parties;
 [Trait("Category", "Unit")]
 public sealed class PartyServiceTests
 {
+    private static PartyService NewService(TimeProvider? clock = null) =>
+        new(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
+            clock ?? TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance,
+            new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
+
+    [Fact]
+    public void A_later_invite_does_not_void_an_earlier_one_the_recipient_accepts()
+    {
+        TestGameplay.Run(() =>
+        {
+            var service = NewService();
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var first = Character(1, scope); var second = Character(2, scope); var target = Character(3, scope);
+            Assert.True(service.RequestInvite(first, target, Profile(1)).Succeeded);
+            Assert.True(service.RequestInvite(second, target, Profile(1)).Succeeded);
+
+            Assert.True(service.AcceptInvite(target, first).Succeeded);
+
+            Assert.Equal(service.FindParty(first).Key, service.FindParty(target).Key);
+            // Having joined, the target can no longer take up the other invite.
+            Assert.Equal(PartyFailureReason.InviteNotFoundOrStale, service.AcceptInvite(target, second).Failure);
+        });
+    }
+
+    [Fact]
+    public void A_leader_can_approve_each_of_several_pending_applicants()
+    {
+        TestGameplay.Run(() =>
+        {
+            var service = NewService();
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var leader = Character(1, scope); var member = Character(2, scope);
+            var firstApplicant = Character(8, scope); var secondApplicant = Character(9, scope);
+            Assert.True(service.RequestInvite(leader, member, Profile(1)).Succeeded);
+            Assert.True(service.AcceptInvite(member, leader).Succeeded);
+            Assert.True(service.RequestInvite(firstApplicant, leader, Profile(1)).Succeeded);
+            Assert.True(service.RequestInvite(secondApplicant, leader, Profile(1)).Succeeded);
+
+            Assert.True(service.AcceptInvite(leader, firstApplicant).Succeeded);
+            Assert.True(service.AcceptInvite(leader, secondApplicant).Succeeded);
+
+            Assert.Equal(4, service.FindParty(leader).Members.Length);
+            Assert.Equal(PartyFailureReason.InviteNotFoundOrStale, service.AcceptInvite(leader, firstApplicant).Failure);
+        });
+    }
+
+    [Fact]
+    public void A_request_just_past_expiry_still_reports_expired_after_newer_requests()
+    {
+        TestGameplay.Run(() =>
+        {
+            var clock = new AdvanceablePartyClock(DateTimeOffset.UtcNow);
+            var service = NewService(clock);
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var inviter = Character(1, scope); var other = Character(2, scope); var target = Character(3, scope);
+            Assert.True(service.RequestInvite(inviter, target, Profile(1)).Succeeded);
+            clock.Advance(PartyService.InvitationLifetime + TimeSpan.FromTicks(1));
+            Assert.True(service.RequestInvite(other, Character(4, scope), Profile(1)).Succeeded);
+
+            Assert.Equal(PartyFailureReason.InviteExpired, service.AcceptInvite(target, inviter).Failure);
+
+            clock.Advance(PartyService.InvitationLifetime);
+            Assert.True(service.RequestInvite(other, Character(5, scope), Profile(1)).Succeeded);
+            Assert.Equal(PartyFailureReason.InviteNotFoundOrStale, service.AcceptInvite(target, inviter).Failure);
+        });
+    }
+
     [Fact]
     public void Applicant_can_join_the_surviving_leader_only_after_that_leader_approves()
     {

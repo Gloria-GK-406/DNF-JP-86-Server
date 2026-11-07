@@ -28,7 +28,11 @@ public sealed class PartyService(
     private readonly object sync = new();
     private readonly Dictionary<PartyKey, PartyInstance> parties = [];
     private readonly Dictionary<CharacterId, PartyInstance> membership = [];
-    private readonly Dictionary<CharacterId, PendingInvite> invitations = [];
+    // One pending request per recipient and sender. 70 keeps only a type byte on the recipient and
+    // takes the sender from the answer (DisPatcher_ResPeer 0x81f088e), so any request the recipient
+    // still sees can be accepted; keying by recipient alone let a later request silently void an
+    // earlier one that the recipient then answered.
+    private readonly Dictionary<(CharacterId Recipient, CharacterId Sender), PendingInvite> invitations = [];
     private long nextGeneration;
 
     public IReadOnlyList<PartySnapshot> Query(PartyDirectoryQuery query)
@@ -138,7 +142,8 @@ public sealed class PartyService(
                 var admission = modeRules.ValidateAdmission(targetParty.Settings, targetParty.MemberCount);
                 if (admission != PartyModeRuleFailure.None)
                     return PartyOperationResult.Reject(MapAdmission(admission));
-                invitations[target.CharacterId] = new PendingInvite(inviter.CharacterId, target.CharacterId,
+                ForgetLongExpiredLocked();
+                invitations[(target.CharacterId, inviter.CharacterId)] = new PendingInvite(inviter.CharacterId, target.CharacterId,
                     null, clock.GetUtcNow() + InvitationLifetime, targetParty.Generation, targetParty.LeadershipVersion);
                 return PartyOperationResult.Success(new PartyNotificationPlan([], Invitation:
                     new PartyInviteNotification(target.CharacterId, inviter.WireUserId, display)));
@@ -165,7 +170,8 @@ public sealed class PartyService(
                     return PartyOperationResult.Reject(MapAdmission(admission));
             }
 
-            invitations[target.CharacterId] = new PendingInvite(
+            ForgetLongExpiredLocked();
+            invitations[(target.CharacterId, inviter.CharacterId)] = new PendingInvite(
                 inviter.CharacterId, target.CharacterId, inviterPartyGeneration,
                 clock.GetUtcNow() + InvitationLifetime);
             return PartyOperationResult.Success(new PartyNotificationPlan(
@@ -185,7 +191,7 @@ public sealed class PartyService(
 
         lock (sync)
         {
-            if (!invitations.TryGetValue(invitee.CharacterId, out var invitation)
+            if (!invitations.TryGetValue((invitee.CharacterId, inviter.CharacterId), out var invitation)
                 || invitation.InviteeCharacterId != invitee.CharacterId
                 || invitation.InviterCharacterId != inviter.CharacterId)
             {
@@ -248,7 +254,8 @@ public sealed class PartyService(
                 party.RefreshCharacter(inviter);
             }
 
-            invitations.Remove(invitee.CharacterId);
+            ForgetRequestsTo(invitee.CharacterId);
+            ForgetRequestsTo(inviter.CharacterId, onlyFrom: invitee.CharacterId);
             membership.Add(invitee.CharacterId, party);
             var snapshot = Snapshot(party);
             return PartyOperationResult.Success(new PartyNotificationPlan(
@@ -290,7 +297,9 @@ public sealed class PartyService(
         party.RefreshCharacter(leader);
         party.Add(applicant);
         membership.Add(applicant.CharacterId, party);
-        invitations.Remove(leader.CharacterId);
+        // The leader may still approve other applicants; the joined applicant answers nothing more.
+        ForgetRequestsTo(leader.CharacterId, onlyFrom: applicant.CharacterId);
+        ForgetRequestsTo(applicant.CharacterId);
         var snapshot = Snapshot(party);
         return PartyOperationResult.Success(new PartyNotificationPlan([applicant.CharacterId], snapshot,
             Acceptance: new PartyAcceptanceNotification(applicant.CharacterId, leader.CharacterId,
@@ -372,13 +381,11 @@ public sealed class PartyService(
         GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(CleanupCharacter));
         lock (sync)
         {
-            foreach (var targetCharacterId in invitations
-                         .Where(pair => pair.Value.InviterCharacterId == characterId
-                             || pair.Value.InviteeCharacterId == characterId)
-                         .Select(pair => pair.Key)
+            foreach (var key in invitations.Keys
+                         .Where(key => key.Sender == characterId || key.Recipient == characterId)
                          .ToArray())
             {
-                invitations.Remove(targetCharacterId);
+                invitations.Remove(key);
             }
 
             return membership.ContainsKey(characterId)
@@ -482,6 +489,29 @@ public sealed class PartyService(
             ClearPartyGeneration: party.Generation,
             ClearPartyRevision: party.Revision,
             DirectoryChange: new PartyDirectoryChange(previous, DirectoryScopeOf(party))));
+    }
+
+    private void ForgetRequestsTo(CharacterId recipient, CharacterId? onlyFrom = null)
+    {
+        foreach (var key in invitations.Keys
+                     .Where(key => key.Recipient == recipient && (onlyFrom is null || key.Sender == onlyFrom))
+                     .ToArray())
+        {
+            invitations.Remove(key);
+        }
+    }
+
+    /// <summary>Drops requests a full lifetime past expiry, so an answer just after expiry is still told it expired.</summary>
+    private void ForgetLongExpiredLocked()
+    {
+        var horizon = clock.GetUtcNow() - InvitationLifetime;
+        foreach (var key in invitations
+                     .Where(pair => pair.Value.ExpiresAt <= horizon)
+                     .Select(pair => pair.Key)
+                     .ToArray())
+        {
+            invitations.Remove(key);
+        }
     }
 
     private static PartyFailureReason ValidateTownPair(
