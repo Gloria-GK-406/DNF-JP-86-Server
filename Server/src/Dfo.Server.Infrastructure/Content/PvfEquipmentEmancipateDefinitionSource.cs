@@ -21,6 +21,8 @@ internal sealed class PvfEquipmentEmancipateDefinitionSource(PvfArchiveProvider 
     private const string Close = "[/emancipate]";
     private readonly Lock gate = new();
     private IReadOnlyDictionary<int, string>? paths;
+    private IReadOnlyDictionary<int, string>? stackablePaths;
+    private readonly Dictionary<int, EmancipateTicketDefinition?> tickets = [];
     private readonly Dictionary<int, IReadOnlyList<EquipmentEmancipateDefinition>> cache = [];
 
     public string Name => "equipment-emancipate-index";
@@ -46,6 +48,24 @@ internal sealed class PvfEquipmentEmancipateDefinitionSource(PvfArchiveProvider 
             return ValueTask.FromResult(blocks);
         }
     }
+
+    public ValueTask<EmancipateTicketDefinition?> GetTicketAsync(int itemId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (tickets.TryGetValue(itemId, out var known)) return ValueTask.FromResult(known);
+            stackablePaths ??= PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", prefix: "stackable/");
+            EmancipateTicketDefinition? ticket = null;
+            if (stackablePaths.TryGetValue(itemId, out var path)
+                && PvfDocument.Open(provider.Archive, path).TryRead(PvfField.Int32(TicketField, optional: true, minimum: 0), out var value))
+                ticket = new(value);
+            tickets.Add(itemId, ticket);
+            return ValueTask.FromResult(ticket);
+        }
+    }
+
+    internal const string TicketField = "[emancipate ticket]";
 
     private IReadOnlyDictionary<int, string> Paths() =>
         paths ??= PvfListFile.Paths(provider.Archive, "equipment/equipment.lst", prefix: "equipment/");

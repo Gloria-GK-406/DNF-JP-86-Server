@@ -112,6 +112,9 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IEquipmentOutworldDomainService, EquipmentOutworldDomainService>();
         services.TryAddSingleton<IEquipmentForgingRollSource, EquipmentForgingRollSource>();
         services.TryAddSingleton<IEquipmentForgingDomainService, EquipmentForgingDomainService>();
+        services.TryAddSingleton<IEquipmentEmancipateRuleService, EquipmentEmancipateRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEquipmentEmancipatePolicy, RequiemEmancipatePolicy>());
+        services.TryAddSingleton<IEquipmentEmancipateDomainService, EquipmentEmancipateDomainService>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
         services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
