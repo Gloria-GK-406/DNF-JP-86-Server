@@ -53,5 +53,24 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## 布局与语义（龙跃武器成长值）
+
+ClientStatic / Confirmed（布局）、High（语义）。dump `DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144`，
+handler VA `0x01188130`（= 上表 RVA `0x00D88130` + 0x400000），读取原语 u8 `0x027C5230`、u16 `0x027C52A0`。
+
+```text
+BodyLength = 8
++0 u8  container   物品所在列表（龙跃武器穿戴时为 3 = Equipment）
++1 u16 slot        该列表内的线上槽号（武器 12）
++3 u16 gained      本次增加的成长值；>0 时播放 grow_expup00.ani
++5 u16 experience  当前成长值，客户端夹到该星 maxExp（equipment_grow.etc 的 [exp base]）
++7 u8  maintained  当日维持疲劳（tooltip 字符串 0x6A40「維持疲労度 %d/%d」的分子）
+```
+
+机器区把 offset 0 记成 `[ebp-0x811]`，实际是 `[ebp-0x812]`；offset 7 才是 `[ebp-0x811]`。
+写入点：成长值经 0x027BB9B0 写物品 +0x88，维持疲劳经 0x027BB900 写 +0x90，与 0x000E 条目的
+ItemCore[74]/[76] 是同一对字段。
+
+CurrentImplementation：`Dfo.Server.Protocol/Game/EquipmentGrowth/EquipmentGrowthSlice.cs` 的
+`GrowthItemRenewNotice`，随怪物死亡帧下发（同模板加成长值时）。成长值由服务端计算，见
+[龙跃武器方案](../../../Document/tasks/dragon-weapon/research-and-design.md)。未取得 WireCaptured，未 ClientVerified。

@@ -21,7 +21,8 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
     IItemPlacementRuleService placementRules,
     IItemSlotRuleService slotRules,
     ICharacterEntryPreparationRuleService preparationRules, IInventoryCapacityDomainService capacities,
-    ITransientItemDomainStoreFactory transientStores) : ISelectCharacterEntryInventoryDomainService
+    ITransientItemDomainStoreFactory transientStores,
+    IEquipmentGrowthDomainService growth) : ISelectCharacterEntryInventoryDomainService
 {
     public async ValueTask<SelectCharacterResult> PrepareLeaseAsync(
         SelectedSessionIdentity session, SelectCharacterResult result, CancellationToken cancellationToken)
@@ -110,7 +111,11 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
         var committed = await mutations.ApplyDailyRefillAsync(
                 session.AccountId, session.CharacterId, rules, result.World.PreparedAt, cancellationToken)
             .ConfigureAwait(false);
-        if (committed.Grants.Count == 0)
+        // The worn growth weapon pays for the days that ended while the character was away before
+        // anything about it is shown; the reload below then carries the settled state into entry.
+        var settled = await growth.SettleDaysAsync(session.CharacterId, result.World.PreparedAt, cancellationToken)
+            .ConfigureAwait(false);
+        if (committed.Grants.Count == 0 && settled is null)
             return new EntryInventoryPreparation(result, []);
 
         var reloaded = await inventories.LoadAsync(
@@ -118,8 +123,11 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
         reloaded = await SupportCreatureMarkerProjection.CompleteAsync(
             reloaded, preparationRules, result.World.PreparedAt, cancellationToken).ConfigureAwait(false);
         var updated = result with { CharacterInventory = reloaded };
-        var updates = committed.Grants
-            .Select(value => A21InventoryLayout.ToGameSlot(value.Slot))
+        // A settled weapon rides the same item-list delta as the refill: the entry batch has
+        // already gone out, and the A21 0x000E reader copies the growth fields into the item.
+        var updates = committed.Grants.Select(value => value.Slot)
+            .Concat(settled is null ? [] : [settled.Slot])
+            .Select(value => A21InventoryLayout.ToGameSlot(value))
             .GroupBy(value => value.Space)
             .OrderBy(group => (byte)group.Key)
             .Select(group => new CommittedInventoryUpdateState(

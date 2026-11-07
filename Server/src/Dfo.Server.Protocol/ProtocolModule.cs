@@ -53,6 +53,7 @@ using Dfo.Server.Protocol.Channel.ScriptVersion;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.AccountRoster;
 using Dfo.Server.Protocol.Game.AuctionService;
+using Dfo.Server.Protocol.Game.EquipmentGrowth;
 using Dfo.Server.Protocol.Game.CharacterName;
 using Dfo.Server.Protocol.Game.InformNotice;
 using Dfo.Server.Protocol.Game.ClientHardwareDetail;
@@ -302,6 +303,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddInitialConnectionSlice();
         services.AddHonorLevelSlice();
         services.AddAuctionServiceSlice();
+        services.AddEquipmentGrowthSlice();
         services.AddGameCmdMessageEncoder<OpeningRewardPopup, OpeningRewardPopupEncoder>();
         services.AddGameNotiMessageEncoder<GameServerNoticeMessage, GameServerNoticeEncoder>();
         GameInstanceDelivery.AddEncoders(services);

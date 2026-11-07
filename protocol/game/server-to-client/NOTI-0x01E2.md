@@ -55,5 +55,24 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## 布局与语义（龙跃武器换星 / 重置）
+
+ClientStatic / Confirmed（布局）、High（语义）。handler VA `0x0116B800`（= RVA `0x00D6B800` + 0x400000）。
+
+```text
++0 u8 changeType   1 = 升星（按 newItemId 经 0x01A85220 重建物品），2 = reset（只改成长值与维持疲劳）
++1 u8 count
+count × {
+  u8  container
+  u16 slot
+  u32 newItemId
+  u16 experience
+  u8  maintained
+}
+```
+
+GM 显示开启时，type 1 打印 `장비 성장[%s -> %s]`，type 2 打印 `성장 장비 reset[%s]`，除此之外 type 2 没有其他表现。
+
+CurrentImplementation：`GrowthItemChangeNotice`。type 1 用于 1→2、2→3 星满值自动升星（击杀帧内下发）；
+type 2 用于跨游戏日的成长值衰减在击杀时结算。入场时的跨日结算改走 0x000E 物品增量（入场批次已发出）。
+未取得 WireCaptured，未 ClientVerified。

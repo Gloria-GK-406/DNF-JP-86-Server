@@ -14,6 +14,8 @@ public sealed record MonsterKillEffects(ExperienceAward? Award, QuestProgressSna
     CommittedInventoryUpdateState? QuestItems, IReadOnlyList<InventoryRuntimeValueState> AccountMaterials)
 {
     public IReadOnlyList<QuestProgressChange> QuestChanges { get; init; } = [];
+    /// <summary>What the kill did to the worn growth weapon; null when nothing.</summary>
+    public Dfo.Server.Abstractions.Inventory.EquipmentGrowthChange? EquipmentGrowth { get; init; }
 }
 
 public sealed record MonsterDeathParticipantResult(SelectedSessionIdentity Session,
@@ -60,7 +62,7 @@ public interface IMonsterKillRewardsDomainService
 {
     ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session,
         Dfo.Server.Data.Accounts.AccountId accountId, CharacterId characterId, IdentifiedKill kill,
-        int dungeonId, DungeonDifficulty difficulty, double weight, int partyMemberCount,
+        int dungeonId, DungeonRunKind runKind, DungeonDifficulty difficulty, double weight, int partyMemberCount,
         Dfo.Server.Data.Parties.PartyKey partyKey, bool finalBoss, DungeonRunId? runId, RoomActorId? actor,
         int? worldMapId, IReadOnlyList<RolledDrop>? loot, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
