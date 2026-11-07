@@ -66,11 +66,6 @@ public sealed record ChangePartyLeaderRequest(
     public ClientMessageType MessageType => ClientMessageType.GameChangePartyLeader;
 }
 
-public sealed record RemovePartyMemberRefusal : IGameCmdMessage
-{
-    public ServerMessageType MessageType => ServerMessageType.GameRemovePartyMemberRefusal;
-}
-
 public sealed record CallPartyMemberRealtimeInfoRequest(GameMessageMetadata Metadata)
     : IClientNetworkMessage
 {
@@ -185,16 +180,6 @@ internal sealed class ChangePartyLeaderDecoder : IGameMessageDecoder
         PartyCommandBody.RequireLength("CHANGE_HOST", body, 1);
         return new ChangePartyLeaderRequest(metadata, body[0]);
     }
-}
-
-internal sealed class RemovePartyMemberRefusalEncoder
-    : GameCmdMessageEncoder<RemovePartyMemberRefusal>
-{
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
-        RemovePartyMemberRefusal message) =>
-        OnePayload(message, EncodeBody());
-
-    internal static byte[] EncodeBody() => [0x00, 0x13];
 }
 
 internal sealed class CallPartyMemberRealtimeInfoDecoder : IGameMessageDecoder

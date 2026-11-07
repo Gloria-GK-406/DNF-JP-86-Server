@@ -121,7 +121,7 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
 internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties, IPartyMemberStatusDomainService memberStatus,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunQueryDomainService runs, ILogger<GameRequestPeerCommandHandler> logger)
+    IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, ILogger<GameRequestPeerCommandHandler> logger)
     :
       ICommandHandler<GameRequestPeerCommand, bool>
 {
@@ -154,21 +154,25 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
             logger.LogInformation(
                 "REQUEST_PEER target={Target} is not a current selected session",
                 message.TargetWireUserId);
+            await RefuseAsync(PartyFailureReason.TargetNotFound).ConfigureAwait(false);
             return false;
         }
 
-        var result = await ( sessions.IsInWorld(inviter)
-                && sessions.IsInWorld(target)
-                && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
-                && PartyCharacterProjection.TryCapture(target, townAreas, out var targetCharacter)
+        var result = await (!sessions.IsInWorld(inviter) || !sessions.IsInWorld(target)
+                ? ValueTask.FromResult(PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent))
+                : PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
+                    && PartyCharacterProjection.TryCapture(target, townAreas, out var targetCharacter)
                     ? InviteAsync(inviterCharacter, targetCharacter)
+                    // A side outside the town areas is in a dungeon or between places.
                     : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
+                        PartyFailureReason.NotStandingInTown))).ConfigureAwait(false);
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
         if (result.Succeeded)
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                     result.Notifications, recipients, cancellationToken)
                 .ConfigureAwait(false);
+        else
+            await RefuseAsync(result.Failure).ConfigureAwait(false);
         logger.LogInformation(
             "REQUEST_PEER inviter={Inviter} target={Target} clientReportedReviveCoins={ReviveCoins} accepted={Accepted} failure={Failure}",
             inviter.WireUserId, message.TargetWireUserId, message.PeerValue,
@@ -183,13 +187,19 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
                 ?? parties.RequestInvite(inviter, target, display);
         }
 
+        ValueTask RefuseAsync(PartyFailureReason failure) => outbox.RegisterExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery(
+                [new RequestPeerRefusal(PartyRefusalCode.ForInvite(failure), message.RequestType)], []),
+            cancellationToken);
+
     }
 }
 
 internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunQueryDomainService runs, ILogger<GameResponsePeerCommandHandler> logger)
+    IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, ILogger<GameResponsePeerCommandHandler> logger)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -222,26 +232,35 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
             logger.LogInformation(
                 "RESPONSE_PEER inviter={Inviter} is not a current selected session",
                 message.InviterWireUserId);
+            await RefuseAsync(PartyFailureReason.TargetNotFound).ConfigureAwait(false);
             return false;
         }
 
-        var result = await ( sessions.IsInWorld(invitee)
-                && sessions.IsInWorld(inviter)
-                && PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
-                && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
+        var result = await (!sessions.IsInWorld(invitee) || !sessions.IsInWorld(inviter)
+                ? ValueTask.FromResult(PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent))
+                : PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
+                    && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
                     ? ValueTask.FromResult(PartyRunAdmission.Refusal(runs, inviteeCharacter, inviterCharacter)
                         ?? parties.AcceptInvite(inviteeCharacter, inviterCharacter))
                     : ValueTask.FromResult(PartyOperationResult.Reject(
-                        PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
+                        PartyFailureReason.NotStandingInTown))).ConfigureAwait(false);
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
         if (result.Succeeded)
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                     result.Notifications, recipients, cancellationToken)
                 .ConfigureAwait(false);
+        else
+            await RefuseAsync(result.Failure).ConfigureAwait(false);
         logger.LogInformation(
             "RESPONSE_PEER invitee={Invitee} inviter={Inviter} accepted={Accepted} failure={Failure}",
             invitee.WireUserId, message.InviterWireUserId, result.Succeeded, result.Failure);
         return result.Succeeded;
+
+        ValueTask RefuseAsync(PartyFailureReason failure) => outbox.RegisterExplicitAsync(
+            context.Connection.ConnectionId,
+            new GameExplicitMessageDelivery(
+                [new ResponsePeerRefusal(PartyRefusalCode.ForAcceptance(failure), message.RequestType)], []),
+            cancellationToken);
     }
 }
 
@@ -266,7 +285,7 @@ internal static class PartyRunAdmission
 internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    ILogger<GameSetPartyInfoCommandHandler> logger)
+    IGameCommandOutbox outbox, ILogger<GameSetPartyInfoCommandHandler> logger)
     :
       ICommandHandler<GameSetPartyInfoCommand, bool>
 {
@@ -298,6 +317,13 @@ internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDom
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                     result.Notifications, recipients, cancellationToken)
                 .ConfigureAwait(false);
+        }
+        else
+        {
+            await outbox.RegisterExplicitAsync(context.Connection.ConnectionId,
+                new GameExplicitMessageDelivery(
+                    [new SetPartyInfoRefusal(PartyRefusalCode.ForSettings(result.Failure))], []),
+                cancellationToken).ConfigureAwait(false);
         }
         logger.LogInformation(
             "SET_PARTY_INFO character={CharacterId} accepted={Accepted} failure={Failure}",

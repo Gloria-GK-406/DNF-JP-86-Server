@@ -51,7 +51,9 @@ public sealed class PartyMutationProtocolCommandFlowTests
         var formerSlot = TestGameplay.Run(services, () => parties.FindParty(first).Members.Single(x => x.CharacterId == first.CharacterId).Slot);
         await Transfer(w, w.F.Session, formerSlot);
         TestGameplay.Run(services, () => Assert.Equal(second.CharacterId, parties.FindParty(first).LeaderMember.CharacterId));
-        Assert.Empty(outbound.Messages); Assert.DoesNotContain(outbound.Entries, e => e.IsClose);
+        // The refused former leader is answered with CHANGE_HOST 00 13 and nothing else moves.
+        Assert.IsType<ChangePartyLeaderRefusal>(Assert.Single(outbound.MessagesFor(w.F.Session.ConnectionId)));
+        Assert.Single(outbound.Messages); Assert.DoesNotContain(outbound.Entries, e => e.IsClose);
     }
     private static PartyCharacterSnapshot Character(SelectedSessionIdentity session) =>
         new(session.AccountId, session.CharacterId, session.WireUserId, new(1, 2, 1));

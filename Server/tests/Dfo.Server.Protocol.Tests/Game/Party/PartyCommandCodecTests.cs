@@ -295,6 +295,39 @@ public sealed class PartyCommandCodecTests
         Assert.Equal([0x00, 0x13], RemovePartyMemberRefusalEncoder.EncodeBody());
     }
 
+    /// <remarks>
+    /// A21's REQUEST_PEER and RESPONSE_PEER handlers read the request type after the reason
+    /// (RVA 0xD20C5E, 0xD2173E), so those two refusals carry three bytes; the rest carry two.
+    /// </remarks>
+    [Fact]
+    public void Party_refusals_encode_the_body_each_a21_handler_reads()
+    {
+        AssertCmd(new RequestPeerRefusalEncoder(), new RequestPeerRefusal(0x04, 0), 0x000A, "000400");
+        AssertCmd(new ResponsePeerRefusalEncoder(), new ResponsePeerRefusal(0x12, 0), 0x000B, "001200");
+        AssertCmd(new SetPartyInfoRefusalEncoder(), new SetPartyInfoRefusal(0x08), 0x000C, "0008");
+        AssertCmd(new LeavePartyRefusalEncoder(), new LeavePartyRefusal(0x12), 0x000D, "0012");
+        AssertCmd(new RemovePartyMemberRefusalEncoder(), new RemovePartyMemberRefusal(0x04), 0x000E, "0004");
+        AssertCmd(new ChangePartyLeaderRefusalEncoder(), new ChangePartyLeaderRefusal(), 0x0079, "0013");
+
+        static void AssertCmd(IServerMessageEncoder encoder, IServerNetworkMessage message, ushort type, string bodyHex)
+        {
+            var frame = Assert.Single(encoder.Encode(message));
+            Assert.Equal((byte)1, frame[0]);
+            Assert.Equal(type, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+            Assert.Equal(Hex(bodyHex), frame[15..]);
+        }
+    }
+
+    [Theory]
+    [InlineData(PartyFailureReason.TargetNotFound, 0x03)]
+    [InlineData(PartyFailureReason.PartyFull, 0x04)]
+    [InlineData(PartyFailureReason.TargetAlreadyInParty, 0x12)]
+    [InlineData(PartyFailureReason.NotStandingInTown, 0x08)]
+    [InlineData(PartyFailureReason.NotInSameTownArea, 0x08)]
+    [InlineData(PartyFailureReason.SelfInvite, 0x13)]
+    public void Invite_refusals_map_to_the_reason_a21_explains(PartyFailureReason failure, byte reason) =>
+        Assert.Equal(reason, PartyRefusalCode.ForInvite(failure));
+
     [Fact]
     public void Party_realtime_query_requires_an_empty_body()
     {

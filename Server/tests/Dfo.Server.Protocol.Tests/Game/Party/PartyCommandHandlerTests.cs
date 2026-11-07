@@ -661,15 +661,15 @@ public sealed partial class PartyCommandHandlerTests
 
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
-        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),new RecordingCommandOutbox(),NullLogger<GameRequestPeerCommandHandler>.Instance), commands));
 
     private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
-        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
+        new(new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(),new RecordingCommandOutbox(),NullLogger<GameResponsePeerCommandHandler>.Instance), commands));
 
     private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>
-        new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
+        new(new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions,            town,commands.Domain,new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),new RecordingCommandOutbox(),NullLogger<GameSetPartyInfoCommandHandler>.Instance), commands));
 
     private static CallPartyMemberRealtimeInfoHandler DriveCallPartyMemberRealtimeInfo(ISelectedSessionDomainService sessions,
         RecordingCommandBus commands, TestProjection projection, ILogger<CallPartyMemberRealtimeInfoHandler> _) =>
