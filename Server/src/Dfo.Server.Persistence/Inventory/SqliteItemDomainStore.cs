@@ -180,7 +180,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         if (next.IsMirror != row.Snapshot.IsMirror || next.MirrorSourceUid != row.Snapshot.MirrorSourceUid
             || next.ItemUid != row.Snapshot.ItemUid || next.IsPile != row.Snapshot.IsPile || next.Type != row.Snapshot.Type
             || next.LegacyKind != row.Snapshot.LegacyKind
-            || (next.ItemId != row.Snapshot.ItemId && (next.IsPile || next.Type != ItemTraits.Creature || next.LegacyKind != 5))
+            || (next.ItemId != row.Snapshot.ItemId && !ItemTemplateTransition.Allowed(next))
             || (!next.IsPile && next.Type is ItemTraits.Avatar or ItemTraits.Creature && next.InstanceValue != row.Snapshot.InstanceValue))
             throw new InvalidOperationException("An update cannot replace item identity or its identity shape.");
         return await Mutate(async () =>

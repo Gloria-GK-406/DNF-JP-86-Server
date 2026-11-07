@@ -36,6 +36,7 @@ public sealed partial class ContentWarmupTests
         "item-socket-index", "item-usage-index", "item-use-index", "mail-item-index", "npc-shop-index", "recipe-index",
         "stackable-action-index", "teleport-consumable-index", "tutorial-rewards", "lucky-star-rental",
         "equipment-slot-index", "hell-dungeons", "lost-land-drops", "lost-land-consumable-index",
+        "equipment-growth", "equipment-emancipate-index",
     ];
 
     /// <summary>
@@ -86,6 +87,8 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfCreatureRuleSource")] = Warmed<Abstractions.Creatures.ICreatureRuleSource>(),
         [Infra("PvfCycleDungeonDefinitionSource")] = Warmed<Abstractions.World.ICycleDungeonDefinitionSource>(),
         [Infra("PvfEquipmentDisjointDefinitionSource")] = Warmed<IEquipmentDisjointDefinitionSource>(),
+        [Infra("PvfEquipmentGrowthDefinitionSource")] = Warmed<IEquipmentGrowthDefinitionSource>(),
+        [Infra("PvfEquipmentEmancipateDefinitionSource")] = Warmed<IEquipmentEmancipateDefinitionSource>(),
         [Infra("PvfEquipmentEnchantContentSource")] = Warmed<IEquipmentEnchantContentSource>(),
         [Infra("PvfEquipmentMagicSealContentSource")] = Warmed<IEquipmentMagicSealContentSource>(),
         [Infra("PvfEquipmentMagicSealGradeDefinitionSource")] = Warmed<IEquipmentMagicSealGradeDefinitionSource>(),

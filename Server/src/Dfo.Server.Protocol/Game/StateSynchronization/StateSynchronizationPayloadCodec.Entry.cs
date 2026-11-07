@@ -214,8 +214,8 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.GenuineUpgrade);
         writer.Write(core.EmancipateEquipmentLevel);
         writer.Write(core.TradeRestriction);
-        writer.Write(core.TailUnknown0);
-        writer.Write(core.TailUnknown1);
+        writer.Write(core.GrowthExperience);
+        writer.Write(core.GrowthMaintainedFatigue);
         writer.Write(core.TailUnknown2);
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
@@ -624,8 +624,8 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(hasItem ? core!.GenuineUpgrade : (byte)0);
         writer.Write(hasItem ? core!.EmancipateEquipmentLevel : (byte)0);
         writer.Write(hasItem ? core!.TradeRestriction : (byte)0);
-        writer.Write(hasItem ? core!.TailUnknown0 : (ushort)0);
-        writer.Write(hasItem ? core!.TailUnknown1 : (byte)0);
+        writer.Write(hasItem ? core!.GrowthExperience : (ushort)0);
+        writer.Write(hasItem ? core!.GrowthMaintainedFatigue : (byte)0);
         writer.Write(hasItem ? core!.TailUnknown2 : (byte)0);
         writer.Write(hasItem ? core!.TailUnknown3 : (byte)0);
         writer.Write(hasItem ? core!.RemainUseCount : (byte)0);

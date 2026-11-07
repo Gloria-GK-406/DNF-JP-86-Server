@@ -162,6 +162,8 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IItemSaleDefinitionSource, PvfItemSaleDefinitionSource>();
         services.TryAddSingleton<IEquipmentRepairDefinitionSource, PvfEquipmentRepairDefinitionSource>();
         services.TryAddSingleton<IEquipmentDefinitionSource, PvfEquipmentDefinitionSource>();
+        services.TryAddSingleton<IEquipmentEmancipateDefinitionSource, PvfEquipmentEmancipateDefinitionSource>();
+        services.TryAddSingleton<IEquipmentGrowthDefinitionSource, PvfEquipmentGrowthDefinitionSource>();
         services.TryAddSingleton<IItemSocketDefinitionSource, PvfItemSocketDefinitionSource>();
         services.TryAddSingleton<IEquipmentQualityDefinitionSource, PvfEquipmentQualityDefinitionSource>();
         services.TryAddSingleton<IEquipmentResealContentSource, PvfEquipmentResealContentSource>();
@@ -186,6 +188,8 @@ public sealed class InfrastructureModule : IServerModule
 
     /// <summary>Content sources that load on first use and are warmed at startup (spec appendix B "启动预热").</summary>
     private static void AddContentWarmups(IServiceCollection services) => services
+        .AddContentWarmup<IEquipmentGrowthDefinitionSource>()
+        .AddContentWarmup<IEquipmentEmancipateDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>()
         .AddContentWarmup<IGoldCarryLimitSource>()

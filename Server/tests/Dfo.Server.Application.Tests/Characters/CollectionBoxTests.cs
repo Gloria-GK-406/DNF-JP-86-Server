@@ -184,7 +184,7 @@ public sealed class CollectionBoxTests
             var p = (await Services.GetRequiredService<IItemPlacementRuleService>().PlacementForAsync(itemId, default))!;
             var source = new BusinessSlot(p.Destination.Space,p.Destination.FirstIndex);
             var snapshot = (await Services.GetRequiredService<IItemDeliveryRuleService>().TemplateAsync(itemId, default)) with
-            { Count = count, SealFlag = 1, EnchantCardId = 321, TradeRestriction = 2, TailUnknown1 = 9,
+            { Count = count, SealFlag = 1, EnchantCardId = 321, TradeRestriction = 2, GrowthMaintainedFatigue = 9,
                 ExpireTime = invalid == 1 ? 1 : 0, SortLockFlag = invalid == 2 ? (byte)1 : (byte)0, EquipmentLockId = invalid == 3 ? (byte)1 : (byte)0 };
             await Write(async () => { await Items.PutAsync(ContainerId.ForCharacter(Character, InventoryContainerType.Main),
                 A21InventoryLayout.ToGameSlot(source).Index, await Items.CreateAsync(snapshot, default), default); });

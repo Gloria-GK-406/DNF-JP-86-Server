@@ -446,7 +446,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
         Assert.Equal(1700000000, core.ExpireTime);
         Assert.Equal(new RandomOptionState(11, 12, 13), core.RandomOption0);
         Assert.Equal(new RandomOptionState(20, 21, 22), core.RandomOptionChange);
-        Assert.Equal((ushort)0x6677, core.TailUnknown0);
+        Assert.Equal((ushort)0x6677, core.GrowthExperience);
         Assert.Equal((byte)31, core.EquipmentLockId);
     }
 

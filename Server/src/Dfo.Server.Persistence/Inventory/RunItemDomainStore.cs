@@ -123,7 +123,7 @@ internal sealed class RunItemDomainStore : IItemDomainStore
             ValidatePosition(reference.ContainerId, reference.StorageSlotIndex, next);
             if (next.IsMirror != old.IsMirror || next.MirrorSourceUid != old.MirrorSourceUid
                 || next.ItemUid != old.ItemUid || next.IsPile != old.IsPile || next.Type != old.Type || next.LegacyKind != old.LegacyKind
-                || (next.ItemId != old.ItemId && (next.IsPile || next.Type != ItemTraits.Creature || next.LegacyKind != 5))
+                || (next.ItemId != old.ItemId && !ItemTemplateTransition.Allowed(next))
                 || (!next.IsPile && next.Type is ItemTraits.Avatar or ItemTraits.Creature && next.InstanceValue != old.InstanceValue)) throw new InvalidOperationException("Update changed identity shape.");
             working[(reference.ContainerId, reference.StorageSlotIndex)] = next; changed = true;
             var result = Reference(reference.ContainerId, reference.StorageSlotIndex);

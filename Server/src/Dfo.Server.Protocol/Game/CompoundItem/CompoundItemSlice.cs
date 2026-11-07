@@ -56,7 +56,7 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
             w.Write(core.Attribute); w.Write(core.Durability); w.Write(core.SealFlag);
             w.Write(core.AmplifyValue); w.Write(core.AmplifyType); w.Write(core.Marker16 == -1 ? 0 : core.Marker16);
             w.Write(core.GenuineUpgrade); w.Write(core.EmancipateEquipmentLevel); w.Write(core.TradeRestriction);
-            w.Write(core.TailUnknown0); w.Write(core.TailUnknown1); w.Write(core.TailUnknown2);
+            w.Write(core.GrowthExperience); w.Write(core.GrowthMaintainedFatigue); w.Write(core.TailUnknown2);
             w.Write(core.TailUnknown3); w.Write(core.RemainUseCount); w.Write(core.SortLockFlag);
             // A21 handler D36DB7/D36DD1 initializes two opaque values (4/8 bytes), then reads the final byte.
             // Keep these fields on each reward row, including multi-output recipes, rather than once at packet end.
