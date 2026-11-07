@@ -133,18 +133,18 @@ public sealed class PartyService(
                 return PartyOperationResult.Reject(domainFailure);
             if (membership.TryGetValue(target.CharacterId, out var targetParty))
             {
-                // The same native peer request also lets an unattached character apply to
-                // an existing leader. Keep request sender/recipient separate from party owner.
+                // The same native peer request also lets an unattached character ask any member of
+                // an existing party; that member's acceptance brings the sender into the party. Any
+                // member, not only the leader: 70 joins the sender to the answering member's party
+                // (DisPatcher_ResPeer 0x81f088e), and A21 offers the request without a leader check.
                 if (membership.ContainsKey(inviter.CharacterId))
                     return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
-                if (!targetParty.IsLeader(target.CharacterId))
-                    return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
                 var admission = modeRules.ValidateAdmission(targetParty.Settings, targetParty.MemberCount);
                 if (admission != PartyModeRuleFailure.None)
                     return PartyOperationResult.Reject(MapAdmission(admission));
                 ForgetLongExpiredLocked();
                 invitations[(target.CharacterId, inviter.CharacterId)] = new PendingInvite(inviter.CharacterId, target.CharacterId,
-                    null, clock.GetUtcNow() + InvitationLifetime, targetParty.Generation, targetParty.LeadershipVersion);
+                    null, clock.GetUtcNow() + InvitationLifetime, targetParty.Generation);
                 return PartyOperationResult.Success(new PartyNotificationPlan([], Invitation:
                     new PartyInviteNotification(target.CharacterId, inviter.WireUserId, display)));
             }
@@ -152,10 +152,10 @@ public sealed class PartyService(
             long? inviterPartyGeneration = null;
             if (membership.TryGetValue(inviter.CharacterId, out var inviterParty))
             {
-                var member = inviterParty.Find(inviter.CharacterId)
+                // Any member may invite (70 DisPatcher_ReqPeer 0x81eed08 has no leader check, and A21
+                // offers the invite to a member who does not lead, RVA 0x219A5E2 / 0x15E7CA0).
+                _ = inviterParty.Find(inviter.CharacterId)
                     ?? throw new InvalidOperationException("Party membership index is inconsistent.");
-                if (!inviterParty.IsLeader(inviter.CharacterId))
-                    return PartyOperationResult.Reject(PartyFailureReason.InviterNotLeader);
                 var admission = modeRules.ValidateAdmission(
                     inviterParty.Settings, inviterParty.MemberCount);
                 if (admission != PartyModeRuleFailure.None)
@@ -218,10 +218,8 @@ public sealed class PartyService(
                 {
                     return PartyOperationResult.Reject(PartyFailureReason.PartyGenerationChanged);
                 }
-                var inviterMember = party.Find(inviter.CharacterId)
+                _ = party.Find(inviter.CharacterId)
                     ?? throw new InvalidOperationException("Party membership index is inconsistent.");
-                if (!party.IsLeader(inviter.CharacterId))
-                    return PartyOperationResult.Reject(PartyFailureReason.InviterNotLeader);
                 var admission = modeRules.ValidateAdmission(party.Settings, party.MemberCount);
                 if (admission != PartyModeRuleFailure.None)
                     return PartyOperationResult.Reject(MapAdmission(admission));
@@ -279,17 +277,15 @@ public sealed class PartyService(
             return LeaveLocked(characterId);
     }
 
+    /// <param name="leader">The member who received the request and accepts it; not necessarily the party's leader.</param>
     private PartyOperationResult AcceptJoinLocked(PartyCharacterSnapshot leader,
         PartyCharacterSnapshot applicant, PendingInvite invitation)
     {
         if (membership.ContainsKey(applicant.CharacterId))
             return PartyOperationResult.Reject(PartyFailureReason.TargetAlreadyInParty);
         if (!membership.TryGetValue(leader.CharacterId, out var party)
-            || party.Generation != invitation.JoinPartyGeneration
-            || party.LeadershipVersion != invitation.JoinLeadershipVersion)
+            || party.Generation != invitation.JoinPartyGeneration)
             return PartyOperationResult.Reject(PartyFailureReason.PartyGenerationChanged);
-        if (!party.IsLeader(leader.CharacterId))
-            return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
         var admission = modeRules.ValidateAdmission(party.Settings, party.MemberCount);
         if (admission != PartyModeRuleFailure.None)
             return PartyOperationResult.Reject(MapAdmission(admission));
@@ -691,6 +687,5 @@ public sealed class PartyService(
         CharacterId InviteeCharacterId,
         long? InviterPartyGeneration,
         DateTimeOffset ExpiresAt,
-        long? JoinPartyGeneration = null,
-        long? JoinLeadershipVersion = null);
+        long? JoinPartyGeneration = null);
 }

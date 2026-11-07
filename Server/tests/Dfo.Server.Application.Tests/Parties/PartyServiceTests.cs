@@ -129,7 +129,6 @@ public sealed class PartyServiceTests
     }
 
     [Theory]
-    [InlineData(0, PartyFailureReason.NotPartyLeader)]
     [InlineData(1, PartyFailureReason.PartyGenerationChanged)]
     [InlineData(2, PartyFailureReason.TargetAlreadyInParty)]
     [InlineData(3, PartyFailureReason.InviteExpired)]
@@ -155,7 +154,6 @@ public sealed class PartyServiceTests
             Assert.True(service.RequestInvite(applicant, leader, Profile(1)).Succeeded);
             switch (change)
             {
-                case 0: Assert.True(service.TransferLeadership(leader.CharacterId, member.CharacterId).Succeeded); break;
                 case 1:
                     Assert.True(service.LeaveParty(leader.CharacterId).Succeeded);
                     Assert.True(service.LeaveParty(member.CharacterId).Succeeded);
@@ -178,23 +176,52 @@ public sealed class PartyServiceTests
     }
 
     [Fact]
-    public void Join_application_targets_only_a_leader_and_checks_admission_before_notifying()
+    /// <remarks>Any member may take an application, as in 70 (DisPatcher_ResPeer) and A21's request menu.</remarks>
+    public void Join_application_to_any_member_joins_their_party_and_checks_admission_before_notifying()
     {
         TestGameplay.Run(() =>
         {
-            var service = new PartyService(new StubPartyMemberStatusDomainService(), new PartyModeRuleService(),
-                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
+            var service = NewService();
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var leader = Character(1, scope); var member = Character(2, scope);
+            var applicant = Character(8, scope); var late = Character(9, scope);
+            Assert.True(service.RequestInvite(leader, member, Profile(1)).Succeeded);
+            Assert.True(service.AcceptInvite(member, leader).Succeeded);
+
+            var request = service.RequestInvite(applicant, member, Profile(1));
+            Assert.True(request.Succeeded, request.Failure.ToString());
+            Assert.Equal(member.CharacterId, request.Notifications.Invitation!.TargetCharacterId);
+            Assert.True(service.AcceptInvite(member, applicant).Succeeded);
+            var joined = service.FindParty(applicant);
+            Assert.Equal(service.FindParty(leader).Key, joined.Key);
+            Assert.Equal(leader.WireUserId, joined.LeaderWireUserId);
+            Assert.Equal(3, joined.Members.Length);
+
+            var settings = new PartyModeRuleService().DefaultSettings.ToWireBytes(); settings[2] = 3;
+            Assert.True(service.CreateOrUpdateSettings(leader, new(settings), PartyTitle.Empty).Succeeded);
+            var refusal = service.RequestInvite(late, member, Profile(1));
+            Assert.Equal(PartyFailureReason.PartyFull, refusal.Failure); Assert.Null(refusal.Notifications.Invitation);
+            Assert.True(service.FindParty(late).IsVirtual);
+        });
+    }
+
+    [Fact]
+    public void A_former_leader_still_in_the_party_can_approve_an_application_made_before_the_transfer()
+    {
+        TestGameplay.Run(() =>
+        {
+            var service = NewService();
             var scope = new PartyDirectoryScope(11, 1, 1);
             var leader = Character(1, scope); var member = Character(2, scope); var applicant = Character(8, scope);
             Assert.True(service.RequestInvite(leader, member, Profile(1)).Succeeded);
             Assert.True(service.AcceptInvite(member, leader).Succeeded);
-            var refusal = service.RequestInvite(applicant, member, Profile(1));
-            Assert.Equal(PartyFailureReason.NotPartyLeader, refusal.Failure); Assert.Null(refusal.Notifications.Invitation);
-            var settings = new PartyModeRuleService().DefaultSettings.ToWireBytes(); settings[2] = 2;
-            Assert.True(service.CreateOrUpdateSettings(leader, new(settings), PartyTitle.Empty).Succeeded);
-            refusal = service.RequestInvite(applicant, leader, Profile(1));
-            Assert.Equal(PartyFailureReason.PartyFull, refusal.Failure); Assert.Null(refusal.Notifications.Invitation);
-            Assert.True(service.FindParty(applicant).IsVirtual);
+            Assert.True(service.RequestInvite(applicant, leader, Profile(1)).Succeeded);
+            Assert.True(service.TransferLeadership(leader.CharacterId, member.CharacterId).Succeeded);
+
+            Assert.True(service.AcceptInvite(leader, applicant).Succeeded);
+
+            Assert.Equal(member.WireUserId, service.FindParty(applicant).LeaderWireUserId);
+            Assert.Equal(3, service.FindParty(applicant).Members.Length);
         });
     }
 
@@ -1054,7 +1081,8 @@ public sealed class PartyServiceTests
     }
 
     [Fact]
-    public void OnlyTheLeaderOfANonFullPartyCanInviteAnUnattachedTarget()
+    /// <remarks>Any member may invite, as in 70 (DisPatcher_ReqPeer) and A21's invite menu.</remarks>
+    public void AnyMemberOfANonFullPartyCanInviteAnUnattachedTarget()
     {
         TestGameplay.Run(() =>
         {
@@ -1066,15 +1094,16 @@ public sealed class PartyServiceTests
             var fifth = fixture.Admit(5, 505);
             fixture.Form(leader, member);
 
-            Assert.Equal(
-                PartyFailureReason.InviterNotLeader,
-                fixture.Parties.RequestInvite(member, fifth.WireUserId, Profile(1)).Failure);
+            Assert.True(fixture.Parties.RequestInvite(member, third.WireUserId, Profile(1)).Succeeded);
+            Assert.True(fixture.Parties.AcceptInvite(third, member.WireUserId).Succeeded);
+            var party = Assert.IsType<PartySnapshot>(fixture.Parties.FindParty(leader));
+            Assert.Equal(leader.WireUserId, party.LeaderWireUserId);
+            Assert.Contains(party.Members, value => value.CharacterId == third.CharacterId);
 
-            fixture.Form(leader, third);
             fixture.Form(leader, fourth);
             Assert.Equal(
                 PartyFailureReason.PartyFull,
-                fixture.Parties.RequestInvite(leader, fifth.WireUserId, Profile(1)).Failure);
+                fixture.Parties.RequestInvite(member, fifth.WireUserId, Profile(1)).Failure);
 
             var otherLeader = fixture.Admit(6, 606);
             var attachedTarget = fixture.Admit(7, 707);
