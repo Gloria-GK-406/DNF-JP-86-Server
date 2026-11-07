@@ -80,6 +80,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<ICeraShopPurchaseRestrictionDomainService, CeraShopPurchaseRestrictionDomainService>();
         services.TryAddSingleton<ICeraShopDomainService, CeraShopDomainService>();
         services.TryAddSingleton<IRecipeCraftRuleService, RecipeCraftRuleService>();
+        services.TryAddSingleton<IRecipeChanceRollSource, RecipeChanceRollSource>();
         services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
         services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
         services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();

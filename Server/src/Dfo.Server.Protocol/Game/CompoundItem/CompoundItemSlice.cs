@@ -50,6 +50,13 @@ internal sealed class CompoundItemEncoder : GameCmdMessageEncoder<CompoundItemRe
         foreach (var reward in receipt.Inventory.Rewards)
         {
             var core = receipt.Inventory.Updates.Single(x => x.Slot == reward.Slot).Core.ToCore();
+            // An upgraded piece keeps its reinforcement and amplification, but upstream saw A21 freeze when a product
+            // row carried them. The row only feeds the result window; NOTI 0x000E installs the real piece.
+            if (reward.Slot == receipt.Upgraded) core = core with
+            {
+                Attribute = 0, SealFlag = 0, AmplifyValue = 0, AmplifyType = 0, GenuineUpgrade = 0,
+                EmancipateEquipmentLevel = 0, TradeRestriction = 0,
+            };
             w.Write(core.ItemKind == 1 ? (byte)1 : (byte)0);
             w.Write(checked((ushort)OpeningWireSlots.RewardIndex(reward.Slot))); w.Write(reward.ItemId);
             w.Write(core.ItemKind == 1 ? core.Value : reward.Count);
