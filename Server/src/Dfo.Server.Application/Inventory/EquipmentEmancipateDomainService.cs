@@ -28,7 +28,7 @@ internal sealed class EquipmentEmancipateRuleService(IEquipmentEmancipateDefinit
         // A21 refuses an unrepaired piece locally (0x8A28) and has a server code for it (0x07).
         if (current.MaxDurability is { } maximum && target.Durability < maximum)
             return new(EquipmentEmancipateRejection.Durability);
-        var admitted = policy.Check(ticket, target);
+        var admitted = await policy.CheckAsync(ticket, target, ct).ConfigureAwait(false);
         if (admitted != EquipmentEmancipateRejection.None) return new(admitted);
         return new(EquipmentEmancipateRejection.None, new(output.ItemId, block.Inputs, transformed =>
         {
