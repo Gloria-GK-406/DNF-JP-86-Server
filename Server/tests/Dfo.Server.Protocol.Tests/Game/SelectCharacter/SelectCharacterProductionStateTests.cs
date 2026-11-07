@@ -224,7 +224,7 @@ public sealed class SelectCharacterProductionStateTests
             new CharacterContainerDomainService(TestRequired.TransactionScope()), null!,
             TestRequired.TransactionScope(), null!, null!,
             new CharacterEntryPreparationRuleService(sources, sources, sources, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-            transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory(), capacities: null!);
+            transientStores: new Dfo.Server.Persistence.Inventory.TransientItemDomainStoreFactory(), capacities: null!, growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
         var session = SelectedSessionIdentity.Create(
             seed.Account.AccountId, seed.Character.Identity.CharacterId,
             new Dfo.Server.Data.Networking.NetworkConnectionId("creature-entry"), 1, 10011);

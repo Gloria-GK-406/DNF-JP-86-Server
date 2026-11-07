@@ -1,5 +1,17 @@
 # 协议清单
 
+## 龙跃武器成长与升星（#281）
+
+CurrentImplementation：NOTI [01E1](game/server-to-client/NOTI-0x01E1.md) 成长值刷新、[01E2](game/server-to-client/NOTI-0x01E2.md) 换星／重置；
+卷轴升星复用 #282 的 CMD 0x010F（龙跃券 2/3 的策略）。成长值存 ItemCore[74]、维持疲劳存 [76]（0x000E 读取路径 ClientStatic / Confirmed）。
+有限 ClientVerified：用户 2026-11-07 实测击杀加成长值、1→3 星自动升星、3→4 星高级／初级卷轴及拒绝场景、重登一致；
+每日衰减、4→7 星、组队未实测，无 WireCaptured。规则与证据见 [方案](../Document/tasks/dragon-weapon/research-and-design.md)、[实测](../Document/tasks/dragon-weapon/user-test.md)。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x00` NOTI | `0x01E1` | `GrowthItemRenewNotice` | 有限实机；自动编码验证 | [NOTI-0x01E1](game/server-to-client/NOTI-0x01E1.md) |
+| `0x00` NOTI | `0x01E2` | `GrowthItemChangeNotice` | 升星有限实机；reset 仅自动测试 | [NOTI-0x01E2](game/server-to-client/NOTI-0x01E2.md) |
+
 ## 2026-10-27 疯狂马戏团与天幕剧场取证
 
 Content / ClientStatic：核定4103入口候选、4114关联声明，以及033F的4103调度状态控制气球20057可见；仅登记活动2226不足。

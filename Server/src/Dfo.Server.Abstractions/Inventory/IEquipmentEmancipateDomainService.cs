@@ -24,6 +24,8 @@ public enum EquipmentEmancipateRejection
     /// <summary>Unpurified other-world equipment (amplify type 0x80).</summary>
     Unpurified,
     MaterialUnavailable,
+    /// <summary>A growth weapon whose current star is not full, grows by experience, or is the last.</summary>
+    GrowthIncomplete,
 }
 
 /// <summary>What one ticket kind does to a matching piece: block selection, extra checks and what the new template keeps.</summary>
@@ -39,7 +41,8 @@ public interface IEquipmentEmancipatePolicy
     EquipmentEmancipateDefinition? Select(EmancipateTicketDefinition ticket, IReadOnlyList<EquipmentEmancipateDefinition> blocks);
 
     /// <summary>Kind-specific admission on the current piece, after the common checks passed.</summary>
-    EquipmentEmancipateRejection Check(EmancipateTicketDefinition ticket, ItemSnapshot target) => EquipmentEmancipateRejection.None;
+    ValueTask<EquipmentEmancipateRejection> CheckAsync(EmancipateTicketDefinition ticket, ItemSnapshot target,
+        CancellationToken cancellationToken) => ValueTask.FromResult(EquipmentEmancipateRejection.None);
 
     /// <summary>
     /// The final piece: <paramref name="transformed"/> is the current piece with only its template replaced;

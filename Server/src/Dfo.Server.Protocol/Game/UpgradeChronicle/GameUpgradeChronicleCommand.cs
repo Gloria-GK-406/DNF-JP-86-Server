@@ -108,7 +108,9 @@ public sealed class GameUpgradeChronicleCommandHandler(
         EquipmentEmancipateRejection.Expired or EquipmentEmancipateRejection.NotInTown => 0x1B,
         EquipmentEmancipateRejection.Unpurified => 0xAF,
         EquipmentEmancipateRejection.Locked => 0xD6,
-        EquipmentEmancipateRejection.NotApplicable => 0x11,
+        // A21 has no growth-specific code; its client refuses these locally (0x6A41/0x6A43) and
+        // 0x11 "cannot be used on this item" is the closest server answer.
+        EquipmentEmancipateRejection.NotApplicable or EquipmentEmancipateRejection.GrowthIncomplete => 0x11,
         _ => SystemFailureCode,
     };
 

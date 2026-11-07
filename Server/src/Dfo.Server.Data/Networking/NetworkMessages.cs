@@ -372,6 +372,8 @@ public enum ServerMessageType
     GameHiddenCharacterInfo = 0x0001_0286,
     GameHonorLevelInfo = 0x0000_0289,
     GameAuctionServiceState = 0x0000_00B7,
+    GameGrowthItemRenewData = 0x0000_01E1,
+    GameGrowthItemChangeData = 0x0000_01E2,
     GameInformNotice = 0x0000_01A1,
     GameRosterFollowUp = 0x0001_02A8,
     GameContentsPlayInfo = 0x0001_02C1,

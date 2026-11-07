@@ -18,12 +18,13 @@ namespace Dfo.Server.Application.World;
 /// <summary>All durable effects of a participant's verified kill, inside the caller's transaction.</summary>
 public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDomainService experience,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService quests,
-    IPartyService parties, TimeProvider clock, ICharacterGameplayFactDomainService gameplay)
+    IPartyService parties, TimeProvider clock, ICharacterGameplayFactDomainService gameplay,
+    IEquipmentGrowthDomainService growth)
     : IMonsterKillRewardsDomainService
 {
     public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session,
         AccountId accountId, CharacterId characterId, IdentifiedKill kill,
-        int dungeonId, DungeonDifficulty difficulty, double weight, int partyMemberCount,
+        int dungeonId, DungeonRunKind runKind, DungeonDifficulty difficulty, double weight, int partyMemberCount,
         PartyKey partyKey, bool finalBoss, DungeonRunId? runId, RoomActorId? actor,
         int? worldMapId, IReadOnlyList<RolledDrop>? loot, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -42,8 +43,11 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
         if (grants.QuestItems is not null || grants.AccountMaterials.Count > 0) facts.Add(new QuestHoldingsChanged());
         footprint.DemandEffects(new(accountId, characterId, session));
         var report = await quests.ReportAsync(accountId, characterId, facts, ct).ConfigureAwait(false);
+        EquipmentGrowthChange? grown = null;
         if (kill.IsMonster)
         {
+            footprint.DemandEffects(new(accountId, characterId, session));
+            grown = await growth.GainFromKillAsync(characterId, kill.Rank, difficulty, runKind, clock.GetUtcNow(), ct).ConfigureAwait(false);
             footprint.DemandEffects(new(accountId, characterId, session));
             await gameplay.RecordMonsterDefeatedAsync(new(characterId, kill.Code, (int)kill.Rank, dungeonId, (int)difficulty), ct).ConfigureAwait(false);
             if (finalBoss && kill.Rank == MonsterRank.Boss)
@@ -52,7 +56,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
                 await gameplay.RecordDungeonCompletedAsync(new(characterId, dungeonId, (int)difficulty), ct).ConfigureAwait(false);
             }
         }
-        return grants with { Award = award, QuestProgress = report.NotificationSnapshot, QuestChanges = report.Changes };
+        return grants with { Award = award, QuestProgress = report.NotificationSnapshot, QuestChanges = report.Changes, EquipmentGrowth = grown };
     }
 
     private async ValueTask<MonsterKillEffects> GrantQuestItemsAsync(SelectedSessionIdentity? session, AccountId account, CharacterId character,
