@@ -75,4 +75,4 @@ GM 显示开启时，type 1 打印 `장비 성장[%s -> %s]`，type 2 打印 `�
 
 CurrentImplementation：`GrowthItemChangeNotice`。type 1 用于 1→2、2→3 星满值自动升星（击杀帧内下发）；
 type 2 用于跨游戏日的成长值衰减在击杀时结算。入场时的跨日结算改走 0x000E 物品增量（入场批次已发出）。
-未取得 WireCaptured，未 ClientVerified。
+未取得 WireCaptured。有限 ClientVerified：用户 2026-11-07 实测龙跃武器击杀成长与升星显示正常，见 [实测](../../../Document/tasks/dragon-weapon/user-test.md)。

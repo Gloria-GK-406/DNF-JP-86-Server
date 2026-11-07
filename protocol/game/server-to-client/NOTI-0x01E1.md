@@ -73,4 +73,4 @@ ItemCore[74]/[76] 是同一对字段。
 
 CurrentImplementation：`Dfo.Server.Protocol/Game/EquipmentGrowth/EquipmentGrowthSlice.cs` 的
 `GrowthItemRenewNotice`，随怪物死亡帧下发（同模板加成长值时）。成长值由服务端计算，见
-[龙跃武器方案](../../../Document/tasks/dragon-weapon/research-and-design.md)。未取得 WireCaptured，未 ClientVerified。
+[龙跃武器方案](../../../Document/tasks/dragon-weapon/research-and-design.md)。未取得 WireCaptured。有限 ClientVerified：用户 2026-11-07 实测龙跃武器击杀成长与升星显示正常，见 [实测](../../../Document/tasks/dragon-weapon/user-test.md)。
