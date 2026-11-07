@@ -11,7 +11,7 @@ class FormalBaselineGateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'formal'
             result = subprocess.run([sys.executable, str(Path(__file__).with_name('run.py')),
-                                     '--out', str(output)], capture_output=True, text=True)
+                                     '--out', str(output), '--dataset', str(Path(directory) / 'no-samples')], capture_output=True, text=True)
             self.assertEqual(1, result.returncode, result.stderr)
             report = json.loads((output / 'results.json').read_text(encoding='utf-8'))
             self.assertTrue(report['formalE2E'])

@@ -4,9 +4,10 @@
 # modified — destroying the property the scaffold depends on: that it can be rebuilt at any
 # time and produce no diff.
 #
-# Scoped to protocol/ deliberately. It is the only tree with machine-generated content, and
-# a repository-wide rule would churn files that no tool rewrites.
+# Keep the rule scoped; a repository-wide rule would churn unrelated files.
 protocol/** text eol=lf
+# Reviewed expectations are hashed as file bytes on Windows and Linux.
+TestAssets/E2E/**/*.json text eol=lf
 
 # Fixed E2E binary materials
 TestAssets/E2E/**/*.pvf binary

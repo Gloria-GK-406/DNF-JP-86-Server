@@ -95,7 +95,7 @@ class GameClient(Conn):
 
 
 class Host:
-    def __init__(self, host, pvf, out):
+    def __init__(self, host, pvf, out, include_pvp=True):
         self.host = Path(host).resolve()
         self.pvf = Path(pvf).resolve()
         self.out = Path(out).resolve()
@@ -109,6 +109,7 @@ class Host:
         self.client = None
         self.credentials = None
         self.endpoint = None
+        self.include_pvp = include_pvp
         self.capture = (self.out / 'frames.jsonl').open('w', encoding='utf-8')
 
     def request(self, action, data=None, expected=200):
@@ -132,7 +133,7 @@ class Host:
         env.update(PVF_ARCHIVE_PATH=str(self.pvf), DOTNET_ENVIRONMENT='Production')
         options = {
             'Database:Path': str(database), 'Pvf:ArchivePath': str(self.pvf),
-            'Channel:UseScriptCatalog': 'true', 'Channel:IncludePvpChannels': 'true',
+            'Channel:UseScriptCatalog': 'true', 'Channel:IncludePvpChannels': str(self.include_pvp).lower(),
             'Channel:PublicServerIp': '127.0.0.1', 'Game:EndpointHost': '127.0.0.1',
             'Networking:Enabled': 'true', 'Networking:UdpDiscoveryEnabled': 'false',
             'Networking:ChannelPort': self.channel_port, 'LauncherAuth:Enabled': 'true',
@@ -142,7 +143,8 @@ class Host:
         command = ['dotnet', str(self.host), *[f'--{k}={v}' for k, v in options.items()]]
         self.process = subprocess.Popen(command, cwd=self.out, env=env, stdout=self.log,
                                         stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                        start_new_session=os.name != 'nt')
+                                        start_new_session=os.name != 'nt',
+                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
         deadline = time.monotonic() + 180
         while time.monotonic() < deadline:
             require(self.process.poll() is None, f'Host exited: see host-{self.starts}.log')
@@ -160,8 +162,10 @@ class Host:
         if self.process:
             process, self.process = self.process, None
             try:
+                terminated = False
                 if process.poll() is None:
                     process.terminate()
+                    terminated = True
                     try:
                         process.wait(timeout=30)
                     except subprocess.TimeoutExpired:
@@ -171,7 +175,10 @@ class Host:
                             os.killpg(process.pid, signal.SIGKILL)
                         process.wait(timeout=10)
                         raise RuntimeError('Host required forced termination')
-                require(process.returncode == 0, f'Host shutdown exit code: {process.returncode}')
+                # Popen.terminate uses TerminateProcess(..., 1) on Windows. Only
+                # our intentional stop accepts that code; an earlier crash still fails.
+                require(process.returncode == 0 or (os.name == 'nt' and terminated and process.returncode == 1),
+                        f'Host shutdown exit code: {process.returncode}')
             finally:
                 self.log.close()
 

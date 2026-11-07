@@ -102,5 +102,16 @@
     10019,
     10100,
     10200
+  ],
+  "nativeBaselines": [
+    {
+      "file": "native-login-create-20261107.json",
+      "sha256": "c9f2175665cc771c61780cb7c48add4a18b48e17f01aa5b445cc209b8ce622b9",
+      "caseIds": [
+        "AUTH-001",
+        "ROLE-001"
+      ],
+      "captureSha256": "c744e89a5a98990ce084dece824af317229b46451ed2312c92c35861b085ceed"
+    }
   ]
 }
