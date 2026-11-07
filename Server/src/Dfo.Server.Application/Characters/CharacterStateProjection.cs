@@ -18,6 +18,16 @@ namespace Dfo.Server.Application.Characters;
 /// <summary>Shared projections of character facts, without login placement or recovery.</summary>
 internal static class CharacterStateProjection
 {
+    internal static CharacterEntryState CompleteRuntimeIdentityProjection(CharacterEntryState entry, bool inDungeon)
+    {
+        // Full USERINFO refreshes must preserve the live dungeon state without
+        // persisting that temporary state back into the entry profile.
+        if (!inDungeon) return entry;
+        var identity = entry.Public.Identity
+            ?? throw new InvalidDataException("The selected character has no public identity.");
+        return entry with { Public = entry.Public with { Identity = identity with { UserState = 1 } } };
+    }
+
     internal static CharacterEntryState CompleteAppearanceProjection(ICharacterAppearanceRuleService appearance,
         ActiveCharacterState character, CharacterEntryState entry, CharacterInventoryEntryState inventory)
     {

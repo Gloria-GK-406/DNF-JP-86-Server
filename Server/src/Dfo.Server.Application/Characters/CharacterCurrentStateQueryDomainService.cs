@@ -37,7 +37,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService titles,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService achievements, ICollectionBoxDomainService collections,
     ISouthernDaleQuestDomainService southern,
-    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService crystalExchange) : ICharacterCurrentStateQueryDomainService
+    Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService crystalExchange,
+    IDungeonParticipationDomainService dungeonParticipation) : ICharacterCurrentStateQueryDomainService
 {
     public async ValueTask<SelectCharacterResult> ReadAsync(
         SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -62,6 +63,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
         var characterEntry = await entries.LoadAsync(
             session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
+        characterEntry = CharacterStateProjection.CompleteRuntimeIdentityProjection(
+            characterEntry, dungeonParticipation.Find(session.CharacterId) is not null);
         var accountEntry = await accounts.LoadAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
         var readAt = timeProvider.GetUtcNow();
         characterInventory = await SupportCreatureMarkerProjection.CompleteAsync(

@@ -1541,3 +1541,10 @@ C5／C6／170事务保存接线完成，C0补选角生命周期保护；AD／1C7
 [COMPOUND_ITEM 0x0019](game/client-to-server/0x0019.md) 接入 31 张释魂设计图：成功率按万分比（用户决定），
 成功原位换模板并封装、失败留武器发浓缩的灵魂；0x0019 失败码改按客户端表（满包 0x04、异界 0x13、未修理 0xD9）。
 CurrentImplementation + 自动测试，待实机。
+
+
+## 完整人物刷新与换房状态（#285，单人普通副本有限验收）
+
+[NOTI0002](game/server-to-client/NOTI-0x0002.md#完整刷新中的实时-userstate285) 的实时身份投影覆盖当前视图与重试快照；[CMD002D](game/client-to-server/0x002D.md#完整刷新与本地换房前置条件285) 保留本地状态0提前返回的静态结论。普通/幻影/Boss参与模式编码、资料不变与重试内外状态有自动化回归；#212 训练已有有限实机证据，不能替代 #285 dungeon93、本次训练及多人验收。#285 现场只有日志与只读运行时证据，无覆盖瞬间的完整双向录包。见[验收入口](../Document/tasks/285-runtime-userstate/acceptance.md)。
+
+本轮 dungeon86/Cycle/quest15259 中换装后状态1及连续002D/START_MAP已录得，用户确认换房成功；回城后刷新为0。后续dungeon93/Cycle/quest14834与dungeon86/Cycle/quest15253的重进换装及换房也有原始帧和用户确认，记为这些路径有限 ClientVerified；本轮job1训练穿护肩后的状态1、后续换房与同连接重新选角直接入城也已取得证据；完整客户端新连接重登亦已确认直接入城，用户认可本轮验收通过；旧quest14836/原武器组合和多人不自动算通过。[本轮证据](../Document/tasks/285-runtime-userstate/实机记录-20261107.md)。

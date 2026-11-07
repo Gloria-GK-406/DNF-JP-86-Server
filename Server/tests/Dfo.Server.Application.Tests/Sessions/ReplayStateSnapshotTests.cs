@@ -71,8 +71,10 @@ public sealed class ReplayStateSnapshotTests
         });
     }
 
-    [SkippableFact]
-    public async Task Appearance_only_refresh_completes_equipped_creature_marker_and_encodes_two_current_frames_without_entry_maintenance()
+    [SkippableTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Appearance_only_refresh_completes_equipped_creature_marker_and_encodes_two_current_frames_without_entry_maintenance(bool inDungeon)
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is unavailable.");
         await using var fixture = new LearningFixture(configure: services =>
@@ -80,6 +82,12 @@ public sealed class ReplayStateSnapshotTests
             new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
             RecordedOutbound.AddTo(services);
             services.AddSingleton<INetworkMessageSender, ReplayBatchSender>();
+            services.AddSingleton<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(
+                TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>((method, _) =>
+                    method.Name == "Find" && inDungeon
+                        ? new Dfo.Server.Abstractions.World.DungeonParticipationOwner(
+                            Dfo.Server.Abstractions.World.DungeonParticipationMode.Ordinary, Guid.NewGuid())
+                        : null));
         });
         await fixture.SeedAsync();
         fixture.Sql("""
@@ -107,6 +115,7 @@ public sealed class ReplayStateSnapshotTests
         var snapshot = await new ReplayFixture(fixture.Services).ReadAsync(fixture.Session,
             new(ReplayProjectionNeeds.CharacterAppearance, []), null);
         var pet = snapshot.Inventory!.Character().Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items.Single();
+        Assert.Equal(inDungeon ? 1 : 0, snapshot.Appearance!.Public().Identity!.UserState);
         Assert.NotNull(pet.Noti2CreatureMarker);
         await TestGameplay.RunAsync(fixture.Services, async () =>
         {
@@ -117,6 +126,12 @@ public sealed class ReplayStateSnapshotTests
         var sender = (ReplayBatchSender)fixture.Services.GetRequiredService<INetworkMessageSender>();
         var frames = Assert.Single(sender.Batches); Assert.Equal(2, frames.Length);
         Assert.All(frames, frame => { Assert.Equal(0, frame[0]); Assert.Equal(2, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1))); });
+        using var reader = new BinaryReader(new MemoryStream(frames[0]));
+        reader.BaseStream.Position = 15 + 43; // S2C header, then basic USERINFO name length
+        var nameLength = reader.ReadInt32();
+        reader.BaseStream.Position += nameLength + 5;
+        Assert.Equal(inDungeon ? 1 : 0, reader.ReadByte());
+        Assert.Equal(0, fixture.Scalar("SELECT user_state FROM characters WHERE character_id=71"));
         Assert.Equal(before, fixture.Scalar("SELECT id FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=25"));
         Assert.Equal(0, fixture.Scalar("SELECT COUNT(*) FROM item_slots WHERE owner_id=71 AND list_type=3 AND slot_index=24"));
     }

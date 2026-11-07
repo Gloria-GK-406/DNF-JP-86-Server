@@ -32,5 +32,10 @@
 
 在线查询只读运行期位置，不能因城镇缺登录到达门而中断选图。
 
+完整人物刷新及人物外观重试快照还须从 `IDungeonParticipationDomainService` 读取当前副本参与关系，
+由 `CharacterStateProjection.CompleteRuntimeIdentityProjection` 将公开身份的 `UserState` 投影为1。
+无参与关系时保留资料值；投影不修改资料或持久化临时副本身份。换装、称号、到期装备、
+转职任务和升级券等当前视图消费者复用此入口；城镇在场和选角各自保持原有边界。
+
 自动构建、回归与实际 PVF 测试不替代 A21 实机验收；客户端选图、进图、组队及回城
 表现需要在部署后分别验证。
