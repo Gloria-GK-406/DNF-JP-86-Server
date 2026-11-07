@@ -86,6 +86,7 @@ using Dfo.Server.Protocol.Game.EnchantByBead;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.CompoundItem;
+using Dfo.Server.Protocol.Game.UpgradeChronicle;
 using Dfo.Server.Protocol.Game.EpicCraft;
 using Dfo.Server.Protocol.Game.ResetItemQuality;
 using Dfo.Server.Protocol.Game.ResetRandomOption;
@@ -286,6 +287,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddVendingMachineSlice();
         services.AddLotteryOpeningSlice();
         services.AddCompoundItemSlice();
+        services.AddUpgradeChronicleSlice();
         services.AddPackageOpeningSlice();
         services.AddReviveCoinSlice();
         services.AddAvatarPackageOpeningSlice();

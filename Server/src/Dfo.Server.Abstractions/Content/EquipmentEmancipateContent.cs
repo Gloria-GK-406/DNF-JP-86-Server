@@ -23,8 +23,15 @@ public sealed record EquipmentEmancipateDefinition(
     IReadOnlyList<EmancipateItemCount> Inputs,
     IReadOnlyList<EmancipateItemCount> Outputs);
 
+/// <summary>A stackable's <c>[emancipate ticket]</c>: the ticket kind that selects which conversion it performs.</summary>
+/// <param name="TicketType">The declared ticket value; 19 is the requiem conversion book (10150749).</param>
+public sealed record EmancipateTicketDefinition(int TicketType);
+
 public interface IEquipmentEmancipateDefinitionSource
 {
+    /// <summary>The stackable's <c>[emancipate ticket]</c>, or null when it declares none or is not a stackable.</summary>
+    ValueTask<EmancipateTicketDefinition?> GetTicketAsync(int itemId, CancellationToken cancellationToken);
+
     /// <summary>
     /// The template's <c>[emancipate]</c> blocks in declaration order; empty when the item is not
     /// equipment or declares none. Some A21 accessories declare several.
