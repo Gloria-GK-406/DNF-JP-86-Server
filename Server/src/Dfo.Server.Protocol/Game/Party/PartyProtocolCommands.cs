@@ -81,10 +81,11 @@ internal sealed record GameCallPartyMemberRealtimeInfoCommand(NetworkDispatchCon
 }
 
 internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainService onlineUsers, IGameSessionEndpointDomainService endpoints,
+    ISelectedSessionDomainService sessions, IPartyService parties, ICommandProjections projections,
     ILogger<GameSetUdpIpPortCommandHandler> logger)
     : ICommandHandler<GameSetUdpIpPortCommand, bool>
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext commandContext,
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext commandContext,
         GameSetUdpIpPortCommand command, CancellationToken cancellationToken)
     {
         var context = command.Dispatch;
@@ -97,14 +98,16 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
         {
             logger.LogInformation("SET_UDP_IP_PORT ignored for unauthenticated connection {ConnectionId}",
                 context.Connection.ConnectionId);
-            return ValueTask.FromResult(false);
+            return false;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var accepted = endpoints.TryObserve(
-            session.SessionIdentity,
-            SessionEndpointObservation.FromConnection(
-                message.Endpoint, context.Connection.RemoteAddress));
+        var previous = endpoints.Find(session.SessionIdentity);
+        var observed = SessionEndpointObservation.FromConnection(
+            message.Endpoint, context.Connection.RemoteAddress);
+        var accepted = endpoints.TryObserve(session.SessionIdentity, observed);
+        if (accepted && previous != observed)
+            await RepublishPartyEndpointsAsync().ConfigureAwait(false);
         logger.LogInformation(
             "SET_UDP_IP_PORT session={SessionId} accepted={Accepted} "
                 + "reported={ReportedInner}/{ReportedOuter}:{Port} observed={ObservedAddress}",
@@ -114,7 +117,28 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
             message.Endpoint.OuterAddress,
             message.Endpoint.Port,
             context.Connection.RemoteAddress);
-        return ValueTask.FromResult(accepted);
+        return accepted;
+
+        // A member whose endpoint arrives or changes after joining would otherwise stay at the
+        // placeholder its party mates were sent. A21's 0x000B handler only refreshes each peer's
+        // record and the P2P peers read it when they are set up (RVA 0x011896E0), so a repeat
+        // is safe and reaches them before a dungeon is entered. 70 does not resend here.
+        async ValueTask RepublishPartyEndpointsAsync()
+        {
+            var selected = sessions.FindByConnection(context.Connection.ConnectionId);
+            if (selected is null || !sessions.IsInWorld(selected))
+                return;
+            var party = parties.FindParty(new PartyCharacterSnapshot(
+                selected.AccountId, selected.CharacterId, selected.WireUserId, null));
+            if (party.IsVirtual)
+                return;
+            var audience = party.Members
+                .Select(member => sessions.FindByCharacter(member.CharacterId))
+                .OfType<SelectedSessionIdentity>()
+                .ToArray();
+            await PartyExactNotificationDelivery.PublishWithRetryAsync(
+                projections, audience, new PartyEndpointsChanged(party), cancellationToken).ConfigureAwait(false);
+        }
     }
 }
 

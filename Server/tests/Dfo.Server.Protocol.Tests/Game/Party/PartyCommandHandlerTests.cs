@@ -293,6 +293,44 @@ public sealed partial class PartyCommandHandlerTests
         });
     }
 
+    /// <remarks>
+    /// A member whose endpoint arrives after joining must not leave its mates on the placeholder;
+    /// A21's 0x000B handler only refreshes the peer record, so a repeat is safe. An unchanged
+    /// report sends nothing again.
+    /// </remarks>
+    [Fact]
+    public async Task Set_udp_from_a_party_member_resends_the_party_endpoints_when_they_change()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var parties = new PartyClientProjectionService(new PartyService(
+                new FixedPartyMemberStatus(), new PartyModeRuleService(),
+                TimeProvider.System, new NoPartyEndpoints(), new Dfo.Server.Application.World.OnlineCharacterLocationDomainService()), new PartyClientIdRegistry());
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            Assert.True(parties.RequestInvite(Character(Inviter) with { DirectoryScope = scope },
+                Character(Invitee) with { DirectoryScope = scope }, new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.True(parties.AcceptInvite(Character(Invitee) with { DirectoryScope = scope },
+                Character(Inviter) with { DirectoryScope = scope }).Succeeded);
+            var connection = new NetworkConnectionContext(
+                Inviter.ConnectionId, NetworkEndpointKind.Game, Inviter.ListenerPort, System.Net.IPAddress.Loopback);
+            var online = AuthenticatedSession(connection);
+            var endpoints = new RecordingSessionEndpoints();
+            var projections = new ProjectionSpy();
+            var handler = DriveSetUdpIpPort(new FixedOnlineUsers(online), endpoints,
+                NullLogger<SetUdpIpPortHandler>.Instance, new SessionDirectory(Inviter, Invitee), parties, projections);
+
+            await handler.HandleAsync(new NetworkDispatchContext(connection),
+                new SetUdpIpPortRequest(GameMessageMetadata.Empty, Endpoint(), []), CancellationToken.None);
+            await handler.HandleAsync(new NetworkDispatchContext(connection),
+                new SetUdpIpPortRequest(GameMessageMetadata.Empty, Endpoint(), []), CancellationToken.None);
+
+            var (_, notification) = Assert.Single(projections.Projected);
+            var changed = Assert.IsType<PartyEndpointsChanged>(notification);
+            Assert.Equal([Inviter.CharacterId, Invitee.CharacterId],
+                changed.Snapshot.Members.Select(member => member.CharacterId).OrderBy(id => id.Value));
+        });
+    }
+
     [Fact]
     public async Task Set_udp_advertises_the_observed_tcp_address_instead_of_a_reported_adapter()
     {
@@ -656,8 +694,25 @@ public sealed partial class PartyCommandHandlerTests
             projection.Events, projection.Streams, sender), commands.Commands.Add));
 
     private static SetUdpIpPortHandler DriveSetUdpIpPort(IOnlineUserQueryDomainService online,
-        IGameSessionEndpointDomainService endpoints, ILogger<SetUdpIpPortHandler> _) =>
-        new(new DirectBus<GameSetUdpIpPortCommand>(new GameSetUdpIpPortCommandHandler(online,endpoints,NullLogger<GameSetUdpIpPortCommandHandler>.Instance)));
+        IGameSessionEndpointDomainService endpoints, ILogger<SetUdpIpPortHandler> _,
+        ISelectedSessionDomainService? sessions = null, IPartyService? parties = null,
+        ICommandProjections? projections = null) =>
+        new(new DirectBus<GameSetUdpIpPortCommand>(new GameSetUdpIpPortCommandHandler(online, endpoints,
+            sessions ?? new SessionDirectory(), parties ?? new RecordingCommandBus().Domain,
+            projections ?? new ProjectionSpy(), NullLogger<GameSetUdpIpPortCommandHandler>.Instance)));
+
+    private sealed class ProjectionSpy : ICommandProjections
+    {
+        public List<(NotificationAudience Audience, object Notification)> Projected { get; } = [];
+
+        public ValueTask<NotificationDelivery> ProjectAsync<TNotification>(NotificationAudience audience,
+            TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : class, INotification<TNotification>
+        {
+            Projected.Add((audience, notification));
+            return ValueTask.FromResult(new NotificationDelivery([]));
+        }
+    }
 
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
