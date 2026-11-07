@@ -119,11 +119,24 @@ public sealed class StorageLifecycleTests
         var first = (await s.GetAsync(Main, 57, Ct))!.WithBusinessSlot(new(BusinessInventorySpace.CarriedEquipment, 0));
         var second = (await s.GetAsync(Main, 57, Ct))!;
         await s.UpdateAsync(first, x => x with { Durability = 11 }, Ct);
-        var updated = await s.UpdateAsync(second, x => x with { TailUnknown1 = 55 }, Ct);
-        Assert.Equal(11, updated.Snapshot.Durability); Assert.Equal(55, updated.Snapshot.TailUnknown1);
+        var updated = await s.UpdateAsync(second, x => x with { GrowthMaintainedFatigue = 55 }, Ct);
+        Assert.Equal(11, updated.Snapshot.Durability); Assert.Equal(55, updated.Snapshot.GrowthMaintainedFatigue);
         Assert.Equal(0, first.SlotIndex); Assert.Equal(57, first.StorageSlotIndex);
         var moved = await s.TakeAsync(first, null, Ct); await s.PutAsync(Main, 58, moved, Ct);
         await Assert.ThrowsAsync<InvalidOperationException>(() => s.TakeAsync(first, null, Ct).AsTask());
+        await tx.CommitAsync(Ct);
+    }
+    [Fact]
+    public async Task EquipmentChangesTemplateInPlaceButPilesDoNot()
+    {
+        using var db = new Database(); await Seed(db, Sword(), 57); await Seed(db, Pile(3), 66);
+        var tx = new DomainTransaction(); var s = db.Store.SessionIn(tx);
+        var sword = (await s.GetAsync(Main, 57, Ct))!;
+        var grown = await s.UpdateAsync(sword, x => x with { ItemId = 124, GrowthExperience = 0 }, Ct);
+        Assert.Equal(124, grown.Snapshot.ItemId); Assert.Equal(sword.ItemUid, grown.ItemUid);
+        var pile = (await s.GetAsync(Main, 66, Ct))!;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => s.UpdateAsync(pile, x => x with { ItemId = 8475 }, Ct).AsTask());
+        Assert.Equal(124, (await s.GetAsync(Main, 57, Ct))!.ItemId);
         await tx.CommitAsync(Ct);
     }
     [Fact]
@@ -137,7 +150,7 @@ public sealed class StorageLifecycleTests
             Type = ItemTraits.Avatar,
             InstanceValue = 12345,
             AvatarDetail = new(17, 18, new byte[30], 19, 20, 21),
-            TailUnknown0 = 431
+            GrowthExperience = 431
         };
         await Seed(db, original);
         var tx = new DomainTransaction(); var s = db.Store.SessionIn(tx); var reference = (await s.GetAsync(Main, 10, Ct))!;

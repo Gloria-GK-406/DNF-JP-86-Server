@@ -43,8 +43,10 @@ public sealed record ItemSnapshot
     public byte GenuineUpgrade { get; init; }
     public byte EmancipateEquipmentLevel { get; init; }
     public byte TradeRestriction { get; init; }
-    public ushort TailUnknown0 { get; init; }
-    public byte TailUnknown1 { get; init; }
+    /// <summary>Growth weapon experience (core[74]); the A21 entry reader copies it into the item's growth state.</summary>
+    public ushort GrowthExperience { get; init; }
+    /// <summary>Fatigue maintained today for a growth weapon (core[76]); the tooltip shows it against the star's daily threshold.</summary>
+    public byte GrowthMaintainedFatigue { get; init; }
     public byte TailUnknown2 { get; init; }
     public byte TailUnknown3 { get; init; }
     public byte RemainUseCount { get; init; }
@@ -69,7 +71,7 @@ public sealed record ItemSnapshot
 
     public InventoryItemCoreState ToCore() => new(
         LegacyKind, ItemId, IsPile ? Count : InstanceValue,
-        Attribute, Durability, SealFlag, EnchantCardId, EnchantUpgradeCount, AmplifyType, AmplifyValue, Marker16, ChronicleOption0, ChronicleOption1, ExpireTime, EmblemSocketCount, EmblemId1, EmblemId2, Rune, RandomOption0, RandomOption1, RandomOption2, RandomOptionState, RandomOptionChangedIndex, RandomOptionChangeState, RandomOptionChange, GenuineUpgrade, EmancipateEquipmentLevel, TradeRestriction, TailUnknown0, TailUnknown1, TailUnknown2, TailUnknown3, RemainUseCount, SortLockFlag, EquipmentLockId) { AppearanceItemId = AppearanceItemId };
+        Attribute, Durability, SealFlag, EnchantCardId, EnchantUpgradeCount, AmplifyType, AmplifyValue, Marker16, ChronicleOption0, ChronicleOption1, ExpireTime, EmblemSocketCount, EmblemId1, EmblemId2, Rune, RandomOption0, RandomOption1, RandomOption2, RandomOptionState, RandomOptionChangedIndex, RandomOptionChangeState, RandomOptionChange, GenuineUpgrade, EmancipateEquipmentLevel, TradeRestriction, GrowthExperience, GrowthMaintainedFatigue, TailUnknown2, TailUnknown3, RemainUseCount, SortLockFlag, EquipmentLockId) { AppearanceItemId = AppearanceItemId };
 
     public static ItemSnapshot FromCore(InventoryItemCoreState core, bool isPile,
         ItemIdentity? itemUid = null, InventoryAvatarDetailState? avatar = null,
@@ -104,8 +106,8 @@ public sealed record ItemSnapshot
         GenuineUpgrade = core.GenuineUpgrade,
         EmancipateEquipmentLevel = core.EmancipateEquipmentLevel,
         TradeRestriction = core.TradeRestriction,
-        TailUnknown0 = core.TailUnknown0,
-        TailUnknown1 = core.TailUnknown1,
+        GrowthExperience = core.GrowthExperience,
+        GrowthMaintainedFatigue = core.GrowthMaintainedFatigue,
         TailUnknown2 = core.TailUnknown2,
         TailUnknown3 = core.TailUnknown3,
         RemainUseCount = core.RemainUseCount,

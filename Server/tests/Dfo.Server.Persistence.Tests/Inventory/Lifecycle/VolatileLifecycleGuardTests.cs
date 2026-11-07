@@ -12,14 +12,16 @@ public sealed class VolatileLifecycleGuardTests
     private static ItemSnapshot Sword => new() { ItemId = 123, LegacyKind = 1, Type = ItemTraits.Equipment, Count = 1 };
 
     [Fact]
-    public async Task TypeAndTemplateCannotBeReboundButEquipmentInstanceValueCanChange()
+    public async Task TypeCannotBeReboundButEquipmentTemplateAndInstanceValueCanChange()
     {
         var tx = new DomainTransaction();
         var store = new VolatileItemDomainStore().SessionIn(tx);
         await Assert.ThrowsAsync<InvalidDataException>(() => store.CreateAsync(Sword with { Type = ItemTraits.Material }, default).AsTask());
         var reference = await store.PutAsync(Main, 9, await store.CreateAsync(Sword, default), default);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => store.UpdateAsync(reference, x => x with { ItemId = 124 }, default).AsTask());
-        var changed = await store.UpdateAsync(reference, x => x with { InstanceValue = 123456 }, default);
+        // Growth weapons turn into their next star in place (ItemTemplateTransition).
+        var grown = await store.UpdateAsync(reference, x => x with { ItemId = 124 }, default);
+        Assert.Equal(124, grown.Snapshot.ItemId);
+        var changed = await store.UpdateAsync(grown, x => x with { InstanceValue = 123456 }, default);
         Assert.Equal(reference.ItemUid, changed.ItemUid);
         Assert.Equal(123456, changed.Snapshot.InstanceValue);
         await tx.CommitAsync(default);

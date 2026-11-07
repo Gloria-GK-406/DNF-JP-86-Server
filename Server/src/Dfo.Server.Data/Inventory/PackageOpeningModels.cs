@@ -15,7 +15,11 @@ public sealed record BusinessMagicBoxOpeningInput(byte ListType, BusinessSlot So
     BusinessSlot? MaterialSlot, int ExpectedMaterialId, int Count);
 public sealed record BusinessPackageOpeningInput(BusinessSlot SourceSlot, ImmutableArray<int> SelectedItems);
 public sealed record BusinessAvatarPackageOpeningInput(BusinessSlot SourceSlot, ImmutableArray<AvatarPackageChoice> Choices);
-public enum OpeningRejection { None, NoSession, InvalidRequest, WrongItem, MissingMaterial, UnsupportedContent, InvalidChoice, NoRoom, StateChanged, StorageFailure, ItemUnusable, PremiumUnavailable }
+public enum OpeningRejection { None, NoSession, InvalidRequest, WrongItem, MissingMaterial, UnsupportedContent, InvalidChoice, NoRoom, StateChanged, StorageFailure, ItemUnusable, PremiumUnavailable,
+    /// <summary>An equipment input still carries unpurified other-world amplification (type 0x80).</summary>
+    EquipmentUnpurified,
+    /// <summary>An equipment input is not fully repaired.</summary>
+    EquipmentUnrepaired }
 public sealed record OpeningReward(int ItemId, int Count, byte Ability = 0, int PeriodDays = 0)
 {
     public byte TradeRestriction { get; init; }

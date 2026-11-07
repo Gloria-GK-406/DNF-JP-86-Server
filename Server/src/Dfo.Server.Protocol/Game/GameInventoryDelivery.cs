@@ -126,8 +126,8 @@ internal static class GameInventoryItemEntry
         writer.Write(core.GenuineUpgrade);
         writer.Write(core.EmancipateEquipmentLevel);
         writer.Write(core.TradeRestriction);
-        writer.Write(core.TailUnknown0);
-        writer.Write(core.TailUnknown1);
+        writer.Write(core.GrowthExperience);
+        writer.Write(core.GrowthMaintainedFatigue);
         writer.Write(core.TailUnknown2);
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
@@ -404,8 +404,8 @@ internal static class GameInventoryDelivery
             GenuineUpgrade: 0,
             EmancipateEquipmentLevel: 0,
             TradeRestriction: 0,
-            TailUnknown0: 0,
-            TailUnknown1: 0,
+            GrowthExperience: 0,
+            GrowthMaintainedFatigue: 0,
             TailUnknown2: 0,
             TailUnknown3: 0,
             RemainUseCount: 0,

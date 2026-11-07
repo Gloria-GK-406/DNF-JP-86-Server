@@ -75,7 +75,7 @@ public sealed class GameCompoundItemCommandHandler(ISelectedSessionDomainService
             if (failure is OpeningRejectedException rejected)
             {
                 logger.LogInformation("Compound rejected: {Reason} {Detail}", rejected.Reason, rejected.Message);
-                error = OpeningPayloads.Error(rejected.Reason);
+                error = ErrorCode(rejected.Reason);
             }
             else logger.LogError(failure, "Compound transaction failed for {Character}", session.CharacterId);
         }
@@ -88,4 +88,14 @@ public sealed class GameCompoundItemCommandHandler(ISelectedSessionDomainService
         return result is not null;
     }
     private sealed record ActionOutcome(RecipeCraftReceipt? Result, Exception? Failure);
+
+    /// <summary>A21 0x0019 failure table (handler D36A30): 0x04 bag full, 0x13 unpurified, 0xD9 unrepaired.</summary>
+    /// <remarks>The shared opening code maps a full bag to 0x7E, which this handler shows as the anti-addiction text.</remarks>
+    internal static byte ErrorCode(OpeningRejection reason) => reason switch
+    {
+        OpeningRejection.NoRoom => 0x04,
+        OpeningRejection.EquipmentUnpurified => 0x13,
+        OpeningRejection.EquipmentUnrepaired => 0xD9,
+        _ => OpeningPayloads.Error(reason),
+    };
 }
