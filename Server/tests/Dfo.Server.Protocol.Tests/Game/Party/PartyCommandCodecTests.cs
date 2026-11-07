@@ -17,16 +17,19 @@ namespace Dfo.Server.Protocol.Tests.Game.Party;
 public sealed class PartyCommandCodecTests
 {
     [Fact]
-    public void Native_normal_edit_with_a_retained_selector_target_becomes_a_normal_party()
+    public void Native_normal_edit_with_a_retained_selector_target_decodes_as_sent_and_normalizes_to_a_normal_party()
     {
         var request = Assert.IsType<SetPartyInfoRequest>(
-            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(GameMessageMetadata.Empty,
+            new SetPartyInfoDecoder().Decode(GameMessageMetadata.Empty,
                 Hex("01000C000000E697A0E9989FE4BC8DE5908D04000000000500020100")));
 
         Assert.Equal(PartyCategory.Normal, request.Settings.Category);
-        Assert.Equal((ushort)0, request.Settings.ModeTargetRaw);
+        Assert.Equal((ushort)1, request.Settings.ModeTargetRaw);
         Assert.Equal((byte)4, request.Settings.Capacity);
         Assert.Equal(Hex("E697A0E9989FE4BC8DE5908D"), request.Title.ToBytes());
+        var normalized = new PartyModeRuleService().Normalize(request.Settings);
+        Assert.Equal((ushort)0, normalized.ModeTargetRaw);
+        Assert.False(normalized.IsReturnUserParty);
     }
 
     [Theory]
@@ -35,14 +38,14 @@ public sealed class PartyCommandCodecTests
     [InlineData(
         "01000C000000E697A0E9989FE4BC8DE5908D04000000000500020000",
         "E697A0E9989FE4BC8DE5908D",
-        "000004000000000500020000")]
+        "000104000000000500020000")]
     public void Current_a21_set_party_info_shapes_project_to_canonical_s2c_order(
         string bodyHex,
         string titleHex,
         string settingsHex)
     {
         var request = Assert.IsType<SetPartyInfoRequest>(
-            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+            new SetPartyInfoDecoder().Decode(
                 GameMessageMetadata.Empty,
                 Hex(bodyHex)));
 
@@ -58,14 +61,14 @@ public sealed class PartyCommandCodecTests
     [InlineData(17)]
     public void Set_party_info_rejects_unknown_or_trailing_lengths(int length) =>
         Assert.Throws<InvalidDataException>(() =>
-            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+            new SetPartyInfoDecoder().Decode(
                 GameMessageMetadata.Empty,
                 new byte[length]));
 
     [Fact]
     public void Set_party_info_rejects_negative_overflowing_truncated_and_invalid_utf8_titles()
     {
-        var decoder = new SetPartyInfoDecoder(new PartyModeRuleService());
+        var decoder = new SetPartyInfoDecoder();
 
         Assert.Throws<InvalidDataException>(() => decoder.Decode(
             GameMessageMetadata.Empty,
@@ -93,7 +96,7 @@ public sealed class PartyCommandCodecTests
         Assert.Equal(256, title.Length);
 
         var request = Assert.IsType<SetPartyInfoRequest>(
-            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+            new SetPartyInfoDecoder().Decode(
                 GameMessageMetadata.Empty,
                 TitledEdit(title.Length, title)));
 
@@ -113,7 +116,7 @@ public sealed class PartyCommandCodecTests
         var body = TitledEdit(declared, Enumerable.Repeat((byte)'A', carried).ToArray());
 
         var refusal = Assert.Throws<InvalidDataException>(() =>
-            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(GameMessageMetadata.Empty, body));
+            new SetPartyInfoDecoder().Decode(GameMessageMetadata.Empty, body));
 
         Assert.Contains("256", refusal.Message);
     }
@@ -125,15 +128,33 @@ public sealed class PartyCommandCodecTests
     [Theory]
     [InlineData("03000000000004000000000500020000")]
     [InlineData("01010000000004000000000500020000")]
-    [InlineData("000302000000000500030000")]
-    [InlineData("000300000000000500020000")]
-    [InlineData("000305000000000500020000")]
-    public void Set_party_info_rejects_invalid_edit_gates_or_rule_values(string bodyHex)
+    public void Set_party_info_rejects_invalid_edit_gates(string bodyHex)
     {
         Assert.Throws<InvalidDataException>(() =>
-            new SetPartyInfoDecoder(new PartyModeRuleService()).Decode(
+            new SetPartyInfoDecoder().Decode(
                 GameMessageMetadata.Empty,
                 Hex(bodyHex)));
+    }
+
+    /// <remarks>
+    /// An unknown category or an out-of-range capacity is a party rule, not a malformed frame: the
+    /// decoder hands it on as sent and the party service refuses it, so the connection stays (#275).
+    /// </remarks>
+    [Theory]
+    [InlineData("000302000000000500030000", (byte)2, (byte)3)]
+    [InlineData("000300000000000500020000", (byte)0, (byte)2)]
+    [InlineData("000305000000000500020000", (byte)5, (byte)2)]
+    public void Set_party_info_hands_rule_violations_to_the_party_service(
+        string bodyHex, byte capacity, byte category)
+    {
+        var request = Assert.IsType<SetPartyInfoRequest>(
+            new SetPartyInfoDecoder().Decode(GameMessageMetadata.Empty, Hex(bodyHex)));
+
+        Assert.Equal(capacity, request.Settings.Capacity);
+        Assert.Equal((PartyCategory)category, request.Settings.Category);
+        Assert.NotEqual(
+            PartyModeRuleFailure.None,
+            new PartyModeRuleService().Validate(request.Settings, memberCount: 1));
     }
 
     [Theory]

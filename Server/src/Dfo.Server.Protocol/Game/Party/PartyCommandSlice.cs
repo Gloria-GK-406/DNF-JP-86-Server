@@ -206,7 +206,13 @@ internal sealed class CallPartyMemberRealtimeInfoDecoder : IGameMessageDecoder
     }
 }
 
-internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMessageDecoder
+/// <remarks>
+/// Only the byte shape is judged here. Whether the settings are allowed is the party service's
+/// business ruling: 70's SET_PARTY_INFO answers a refused change and keeps the connection
+/// (DisPatcher_SetPartyInfo::process 0x81c4562), so a rule failure must never close it as a
+/// malformed frame (#275).
+/// </remarks>
+internal sealed class SetPartyInfoDecoder : IGameMessageDecoder
 {
     /// <remarks>
     /// A server policy, not a measured client limit: only 1 B and 12 B titles have been observed
@@ -272,14 +278,7 @@ internal sealed class SetPartyInfoDecoder(IPartyModeRuleService rules) : IGameMe
             title = new PartyTitle(titleBytes);
         }
 
-        var settings = rules.Normalize(new PartySettings(canonical));
-        var validation = rules.Validate(settings, memberCount: 0);
-        if (validation != PartyModeRuleFailure.None)
-        {
-            throw new InvalidDataException(
-                $"SET_PARTY_INFO settings failed shared validation: {validation}.");
-        }
-        return new SetPartyInfoRequest(metadata, settings, title);
+        return new SetPartyInfoRequest(metadata, new PartySettings(canonical), title);
     }
 }
 
