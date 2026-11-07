@@ -131,7 +131,7 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
             _ when AccountMaterialCatalog.TryGetSlotIndex(itemId, out var material) => new(AccountMaterialCatalog.Definitions[material].ItemKind, 1000, new(BusinessInventorySpace.Material, 0, 55)),
             1000 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
             >= 3257 and <= 3260 => new(3, 1000, new(BusinessInventorySpace.Material, 0, 1)),
-            3000 or 3001 or 3002 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 1))
+            3000 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 1))
                 { WorldClass = ItemWorldClass.Equipment },
             100310669 => new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 47))
                 { WorldClass = ItemWorldClass.Equipment },
