@@ -35,6 +35,12 @@ internal sealed class RecipeCraftRuleService(IRecipeContentSource content, IEqui
             chance.SuccessPerTenThousand, chance.FailOutputs.Where(x => x.ItemId != source.ItemId).ToImmutableArray());
     }
 
+    /// <remarks>A21 refuses both locally before sending (compound pre-check); the server codes are 0x13 and 0xD9.</remarks>
+    public OpeningRejection AdmitUpgradeInput(RecipeEquipmentUpgrade upgrade, ItemSnapshot piece) =>
+        EquipmentAmplification.IsUnpurified(piece) ? OpeningRejection.EquipmentUnpurified
+        : upgrade.SourceMaxDurability is { } full && piece.Durability < full ? OpeningRejection.EquipmentUnrepaired
+        : OpeningRejection.None;
+
     private static OpeningRejectedException Unsupported(string detail) => new(OpeningRejection.UnsupportedContent, detail);
 }
 
@@ -132,10 +138,9 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
         if (piece.Snapshot.IsMirror || piece.Snapshot.EquipmentLockId != 0 || piece.Snapshot.SortLockFlag != 0
             || piece.Snapshot.Lifetime.IsExpired(now))
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "The equipment input is locked or expired.");
-        if (piece.Snapshot.AmplifyType == 0x80)
-            throw new OpeningRejectedException(OpeningRejection.EquipmentUnpurified, "The equipment input is unpurified.");
-        if (upgrade.SourceMaxDurability is { } full && piece.Snapshot.Durability < full)
-            throw new OpeningRejectedException(OpeningRejection.EquipmentUnrepaired, "The equipment input is not repaired.");
+        var admission = rules.AdmitUpgradeInput(upgrade, piece.Snapshot);
+        if (admission != OpeningRejection.None)
+            throw new OpeningRejectedException(admission, "The equipment input is not admitted.");
 
         var standing = new List<OpeningHeldItem> { new(drawing, source) };
         foreach (var space in new[] { BusinessInventorySpace.QuickSlot, BusinessInventorySpace.Consumable,

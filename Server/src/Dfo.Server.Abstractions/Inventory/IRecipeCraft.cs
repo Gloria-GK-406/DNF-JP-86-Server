@@ -39,6 +39,8 @@ public interface IRecipeCraftRuleService
     ValueTask<RecipePlan> GetResultAsync(int drawingId, CancellationToken cancellationToken);
     /// <summary>The equipment-upgrade reading of a probabilistic plan; throws when the plan is not one this server supports.</summary>
     ValueTask<RecipeEquipmentUpgrade> EquipmentUpgradeAsync(RecipePlan plan, CancellationToken cancellationToken);
+    /// <summary>Whether this piece may be the equipment input; <see cref="OpeningRejection.None"/> when it may.</summary>
+    OpeningRejection AdmitUpgradeInput(RecipeEquipmentUpgrade upgrade, ItemSnapshot piece);
 }
 public sealed record RecipeCraftReceipt(OpeningInventoryReceipt Inventory,
     ImmutableArray<OpeningSlotConsumption> Consumed)

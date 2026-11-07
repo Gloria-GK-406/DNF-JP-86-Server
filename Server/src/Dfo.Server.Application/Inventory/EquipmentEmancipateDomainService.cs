@@ -9,6 +9,13 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
+/// <summary>Other-world equipment that has not been purified carries amplify type 0x80 (see the outworld rules).</summary>
+internal static class EquipmentAmplification
+{
+    public const byte UnpurifiedType = 0x80;
+    public static bool IsUnpurified(ItemSnapshot item) => item.AmplifyType == UnpurifiedType;
+}
+
 internal sealed class EquipmentEmancipateRuleService(IEquipmentEmancipateDefinitionSource content,
     IEquipmentDefinitionSource equipment, IEnumerable<IEquipmentEmancipatePolicy> policies) : IEquipmentEmancipateRuleService
 {
@@ -28,6 +35,7 @@ internal sealed class EquipmentEmancipateRuleService(IEquipmentEmancipateDefinit
         // A21 refuses an unrepaired piece locally (0x8A28) and has a server code for it (0x07).
         if (current.MaxDurability is { } maximum && target.Durability < maximum)
             return new(EquipmentEmancipateRejection.Durability);
+        if (EquipmentAmplification.IsUnpurified(target)) return new(EquipmentEmancipateRejection.Unpurified);
         var admitted = policy.Check(ticket, target);
         if (admitted != EquipmentEmancipateRejection.None) return new(admitted);
         return new(EquipmentEmancipateRejection.None, new(output.ItemId, block.Inputs, transformed =>
@@ -109,7 +117,6 @@ internal sealed class EquipmentEmancipateDomainService(
             return new(EquipmentEmancipateRejection.ItemUnavailable);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0) return new(EquipmentEmancipateRejection.Locked);
         if (target.Snapshot.Lifetime.IsExpired(at)) return new(EquipmentEmancipateRejection.Expired);
-        if (target.Snapshot.AmplifyType == 0x80) return new(EquipmentEmancipateRejection.Unpurified);
 
         var decision = await rules.DecideAsync(ticket.ItemId, target.Snapshot, ct).ConfigureAwait(false);
         if (decision.Plan is not { } plan) return new(decision.Rejection);
