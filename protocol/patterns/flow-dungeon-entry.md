@@ -56,7 +56,7 @@ C→S  CMD  0x0252  SECURITY_STATUS        8B
 S→C  NOTI 0x0017  USER_AREA              area 改写为 0xFF
 S→C  NOTI 0x0002  subtype 1              属性块，再发一遍
 S→C  NOTI 0x0003  USER_STATE             UserState = 0x01
-S→C  NOTI 0x001A  UDP 主机               不可用
+S→C  NOTI 0x001A  UDP 主机               host 槽位（队长槽）
 S→C  NOTI 0x001B  ENTER_SELECT_DUNGEON   选图界面状态（含绝望之塔层数）
                   ▲ 五帧都已实机投递，客户端收下了
      ✗ 我们不回 CMD 0x000F；不回也能继续（实测）
@@ -220,7 +220,7 @@ job=0、growType=0，名字四字节 `00a1`），其中 4 次等级字节为 1�
 | `0x0017` | town / x / y / dir / areaState | 沿用会话里已发布的出生点，不现编 | `DungeonSelectionSlice.cs:227` 取 `result.World.Channel.Spawn` |
 | `0x0002` | subtype | 1（属性块），与进城批次里那一份**逐字节相同** | 抓包会话 10 与 11 各有两份 144 字节 body，两两比对完全相等；我们从已准备好的入场状态重建而不是重查库 |
 | `0x0003` | UserState | **`0x01`** | 实测 body `01020001`；我们 :267；上游 `DungeonEntryHandler.cs:61` |
-| `0x001A` | UDP 主机 | 单字节 `0x00` = 不可用 | 实测；我们 `EncodeUdpHostUnavailable` |
+| `0x001A` | UDP 主机 | 单字节 host 槽位（队长所在槽，单人为 `0x00`）；不是"不可用"标记，见 [NOTI-0x001A](../game/server-to-client/NOTI-0x001A.md) | 实测；A21 handler `0x01165640` 与 70 `send_host_info` 静态 |
 | `0x001B` | 绝望之塔层数 | **固定 1**（我们没有塔进度） | 我们 `DefaultTowerOfDespairFloor`（:97）；上游读 `TowerOfDespairProgress`，取不到时回落 1（`DungeonEntryHandler.cs:105-116`） |
 
 `0x0002` 必须再发一遍：少了它角色进城后属性全为零。这一条的因果记在
