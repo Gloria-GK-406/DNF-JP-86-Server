@@ -105,7 +105,7 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             var character = characters.Get(session.CharacterId);
             var points = pointLedgers[session.CharacterId];
             var applied = await rewards.ApplyAsync(session, session.AccountId, session.CharacterId, kill,
-                run.Layout.DungeonId, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
+                run.Layout.DungeonId, run.Layout.Mode.Kind, run.Difficulty, run.Layout.ExperienceWeight, run.PartyMemberCount,
                 run.PartyKey, run.Layout.Mode.Capabilities.EndsOnBossClear && run.IsBossRoom && kill.IsMonster && kill.Rank == MonsterRank.Boss,
                 run.RunId, death.Actor, (run.Layout.Mode as DungeonRunMode.Mirror)?.Plan.WorldMapId, death.ActorState?.PendingLoot, footprint, ct).ConfigureAwait(false);
             footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));

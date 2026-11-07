@@ -229,6 +229,8 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         frames.AddRange(autoKilled.Select(MonsterDeathNotification.Empty));
         if (feverPercent is { } percent) frames.Add(new DungeonFeverGaugeMessage(percent));
         frames.AddRange(MonsterQuestFrames.Of(participant.Effects));
+        if (participant.Effects.EquipmentGrowth is { } growth)
+            frames.Add(Dfo.Server.Protocol.Game.EquipmentGrowth.EquipmentGrowthFrames.Of(growth));
         if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));
         if (tournament is not null)
             frames.AddRange(TournamentFrames(tournament));

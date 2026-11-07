@@ -58,7 +58,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
                 new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(TestRequired.TransactionScope()),
                     new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService(TestRequired.TransactionScope()))),
-                Progress(log), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>());
+                Progress(log), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>(), growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account,
@@ -90,7 +90,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
                 new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(TestRequired.TransactionScope()),
                     new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService(TestRequired.TransactionScope()))),
-                Progress(log, definition), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>());
+                Progress(log, definition), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>(), growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account, Character, new MonsterRewardIdentity(3001, 5, MonsterRank.Boss),
@@ -110,7 +110,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new ExperienceMustNotBeAwarded(),
                 new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(TestRequired.TransactionScope()),
                     new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService(TestRequired.TransactionScope()))),
-                Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>());
+                Progress(log, Quest1776(HuntEnemyTargetTypes.AiCharacter)), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>(), growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account,
@@ -136,7 +136,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new PricingOnlyExperience(new Dfo.Server.Application.World.ExperienceCalculationDomainService(valuation, new UnusedBonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>())),
                 new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), new CharacterContainerDomainService(TestRequired.TransactionScope()),
                     new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), new CharacterContainerDomainService(TestRequired.TransactionScope()))),
-                Progress(log), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>());
+                Progress(log), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>(), growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
 
             await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account,
@@ -164,7 +164,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             var handler = new Dfo.Server.Application.World.MonsterKillRewardsDomainService(new NoExperienceAward(),
                 new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), containers,
                     new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)),
-                Progress(log, seeking: seeking), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>());
+                Progress(log, seeking: seeking), clock: TimeProvider.System, parties: TestRequired.Absent<Dfo.Server.Abstractions.Parties.IPartyService>(), gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>(), growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account, Character,
@@ -400,7 +400,7 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
                 new Dfo.Server.Application.World.QuestItemDropDomainService(new OneCharacterLog(log), containers,
                     new Dfo.Server.Persistence.Tests.Support.BagRewardDelivery(new Dfo.Server.Protocol.Tests.Support.OrdinaryItemGrantDomainService(), containers)),
                 Progress(log),
-                new VirtualOnlyPartyService(), clock: TimeProvider.System, gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>());
+                new VirtualOnlyPartyService(), clock: TimeProvider.System, gameplay: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ICharacterGameplayFactDomainService>(), growth: TestRequired.Unanswered<Dfo.Server.Abstractions.Inventory.IEquipmentGrowthDomainService>());
 
             var result = await TestEffectFootprints.Run(new Dfo.Server.Abstractions.Effects.EffectFootprintOwner(Account, Character, null), cap => MonsterRewardDomainDriver.ApplyAsync(handler, new MonsterRewardFacts(
                     Account, Character, new MonsterRewardIdentity(13098, 5, MonsterRank.Ordinary),

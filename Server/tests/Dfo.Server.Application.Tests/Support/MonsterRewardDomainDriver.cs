@@ -27,7 +27,7 @@ internal static class MonsterRewardDomainDriver
         {
             var result=await rewards.ApplyAsync(input.Session,input.AccountId,input.CharacterId,
                 new(input.Monster.Code,input.Monster.Level,input.Monster.Rank,input.EnemyType==HuntEnemyTargetTypes.Monster,input.Monster.IsNamedMonster),
-                input.DungeonId,input.Difficulty,input.DungeonWeight,input.PartyMemberCount,input.PartyKey,input.IsFinalBossDeath,
+                input.DungeonId,Dfo.Server.Abstractions.World.DungeonRunKind.Ordinary,input.Difficulty,input.DungeonWeight,input.PartyMemberCount,input.PartyKey,input.IsFinalBossDeath,
                 input.RunId,input.Actor,input.WorldMapId,input.PendingLoot,cap,ct);
             return new MonsterRewardResult(result.Award,result.QuestChanges.Select(x=>new QuestAdvanceFact(x.QuestId,x.Before,x.After)).ToArray(),
                 result.QuestItems,result.QuestProgress,result.AccountMaterials);

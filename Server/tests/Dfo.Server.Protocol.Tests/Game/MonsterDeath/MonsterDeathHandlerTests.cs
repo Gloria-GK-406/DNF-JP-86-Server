@@ -206,7 +206,7 @@ public sealed class MonsterDeathHandlerTests
     private sealed class RewardAdapter(ICommandBus bus) : IMonsterKillRewardsDomainService
     {
         public async ValueTask<MonsterKillEffects> ApplyAsync(SelectedSessionIdentity? session, AccountId account,
-            CharacterId character, IdentifiedKill kill, int dungeon, DungeonDifficulty difficulty, double weight,
+            CharacterId character, IdentifiedKill kill, int dungeon, Dfo.Server.Abstractions.World.DungeonRunKind runKind, DungeonDifficulty difficulty, double weight,
             int count, PartyKey party, bool boss, DungeonRunId? run, RoomActorId? actor, int? world,
             IReadOnlyList<RolledDrop>? loot, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {

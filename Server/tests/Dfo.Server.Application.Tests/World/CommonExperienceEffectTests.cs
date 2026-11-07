@@ -316,7 +316,7 @@ public sealed class CommonExperienceEffectTests
             safety.DemandCurrent(command.Session);admission.Entered.TrySetResult();
             var session=command.Session;using var footprint=new TestEffectFootprints.Lease(session);
             var result=await rewards.ApplyAsync(session,session.AccountId,session.CharacterId,
-                new(13099,5,MonsterRank.Ordinary,true,false),144,0,1,1,default,false,null,null,null,null,
+                new(13099,5,MonsterRank.Ordinary,true,false),144,Dfo.Server.Abstractions.World.DungeonRunKind.Ordinary,0,1,1,default,false,null,null,null,null,
                 footprint,ct);
             return new(result.Award);
         }
