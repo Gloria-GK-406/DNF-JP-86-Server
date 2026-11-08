@@ -16,8 +16,9 @@ namespace Dfo.Server.Protocol.Game.Party;
 public sealed class PartyClientIdRegistry
 {
     private readonly object gate = new();
+    // The only record of which numbers are taken: retirement keeps it to the live parties, so a
+    // scan of its values stays small.
     private readonly Dictionary<(PartyKey Key, long Version), ushort> numbers = [];
-    private readonly HashSet<ushort> inUse = [];
     private ushort next = 1;
 
     public ushort For(PartyKey key, long version)
@@ -35,7 +36,7 @@ public sealed class PartyClientIdRegistry
                 if (next is 0 or ushort.MaxValue)
                     next = 1;
                 if (candidate is not 0 and not ushort.MaxValue
-                    && inUse.Add(candidate))
+                    && !numbers.ContainsValue(candidate))
                 {
                     numbers.Add((key, version), candidate);
                     return candidate;
@@ -80,8 +81,7 @@ public sealed class PartyClientIdRegistry
     {
         lock (gate)
         {
-            if (numbers.Remove((key, version), out var number))
-                inUse.Remove(number);
+            numbers.Remove((key, version));
         }
     }
 }
