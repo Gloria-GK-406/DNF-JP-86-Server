@@ -57,6 +57,11 @@ internal static class PartyRegistration
         services.AddGameCmdMessageEncoder<
             RemovePartyMemberRefusal,
             RemovePartyMemberRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<RequestPeerRefusal, RequestPeerRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<ResponsePeerRefusal, ResponsePeerRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<SetPartyInfoRefusal, SetPartyInfoRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<LeavePartyRefusal, LeavePartyRefusalEncoder>();
+        services.AddGameCmdMessageEncoder<ChangePartyLeaderRefusal, ChangePartyLeaderRefusalEncoder>();
         // Turning a card over now hands the piece behind it to the character's bag, which is the
         // moment the note left here foresaw: a claim on a run alone is memory, and a row in a bag
         // is not. Transactional from that change onwards, on the same reading the ground pick-up

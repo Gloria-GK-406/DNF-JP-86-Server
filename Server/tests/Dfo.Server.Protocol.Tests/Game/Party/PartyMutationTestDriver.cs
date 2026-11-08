@@ -59,6 +59,26 @@ internal static class PartyMutationTestDriver
     }
 }
 
+/// <summary>Records the CMD responses a party handler registers, in order.</summary>
+internal sealed class RecordingCommandOutbox : IGameCommandOutbox
+{
+    public List<(NetworkConnectionId Connection, IGameServerMessage Message)> Sent { get; } = [];
+
+    public ValueTask RegisterCmdAsync(NetworkConnectionId connection, IGameCmdMessage message, CancellationToken token) => Record(connection, [message]);
+    public ValueTask RegisterNotiAsync(NetworkConnectionId connection, IGameNotiMessage message, CancellationToken token) => Record(connection, [message]);
+    public ValueTask RegisterBatchAsync(NetworkConnectionContext connection, IReadOnlyList<IGameServerMessage> messages, CancellationToken token) =>
+        Record(connection.ConnectionId, messages);
+    public ValueTask RegisterExplicitAsync(NetworkConnectionId connection, GameExplicitMessageDelivery delivery, CancellationToken token) =>
+        Record(connection, delivery.RequiredDirectMessages);
+
+    private ValueTask Record(NetworkConnectionId connection, IReadOnlyList<IGameServerMessage> messages)
+    {
+        foreach (var message in messages)
+            Sent.Add((connection, message));
+        return ValueTask.CompletedTask;
+    }
+}
+
 internal sealed class PartyMutationProbe(IPartyService inner, Action<string, CharacterId, CharacterId?>? observe = null,
     bool throwAfterLeave = false) : IPartyService
 {

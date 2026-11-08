@@ -373,7 +373,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             // (DisPatcher_WalkoutParty 0x81caf98). A request that reaches us anyway is illegal:
             // it is refused with the native refusal and changes neither the party nor any run.
             var refused = PartyOperationResult.Reject(PartyFailureReason.NotStandingInTown);
-            await outbox.RegisterExplicitAsync(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
+            await RefuseAsync(dispatch, change, refused.Failure, token).ConfigureAwait(false);
             LogPartyMutation(change, caller, candidates.Target, targetSlot, refused);
             return false;
         }
@@ -391,8 +391,24 @@ internal sealed partial class GamePartyTransitionCommandHandler
                 return await MutatePartyOrdinaryAsync(execution, dispatch, change, caller, targetSlot, token).ConfigureAwait(false);
         }
 
+        if (!attempt.Result.Succeeded)
+            await RefuseAsync(dispatch, change, attempt.Result.Failure, token).ConfigureAwait(false);
         LogPartyMutation(change, caller, attempt.Target, targetSlot, attempt.Result);
         return attempt.Result.Succeeded;
+    }
+
+    /// <summary>Answers a refused party command to its caller, as 70 and A21's CMD handlers expect.</summary>
+    private ValueTask RefuseAsync(NetworkDispatchContext dispatch, PartyChange change,
+        PartyFailureReason failure, CancellationToken token)
+    {
+        IGameServerMessage refusal = change switch
+        {
+            PartyChange.Leave => new LeavePartyRefusal(PartyRefusalCode.ForLeave(failure)),
+            PartyChange.Remove => new RemovePartyMemberRefusal(PartyRefusalCode.ForRemoval(failure)),
+            _ => new ChangePartyLeaderRefusal(),
+        };
+        return outbox.RegisterExplicitAsync(dispatch.Connection.ConnectionId,
+            new GameExplicitMessageDelivery([refusal], []), token);
     }
 
     /// <summary>Whether any candidate (caller, target, online member) occupies any dungeon.</summary>
@@ -414,8 +430,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
             target = member is not null && sessions.TryGetInWorld(member.CharacterId, out var inWorld) ? inWorld : null;
             if (target is null)
             {
-                if (change == PartyChange.Remove)
-                    await outbox.RegisterExplicitAsync(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
+                await RefuseAsync(dispatch, change, PartyFailureReason.TargetNotFound, token).ConfigureAwait(false);
                 return false;
             }
         }
@@ -432,8 +447,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
         if (!result.Succeeded)
         {
-            if (change == PartyChange.Remove)
-                await outbox.RegisterExplicitAsync(dispatch.Connection.ConnectionId, new GameExplicitMessageDelivery([new RemovePartyMemberRefusal()], []), token).ConfigureAwait(false);
+            await RefuseAsync(dispatch, change, result.Failure, token).ConfigureAwait(false);
         }
         else
         {

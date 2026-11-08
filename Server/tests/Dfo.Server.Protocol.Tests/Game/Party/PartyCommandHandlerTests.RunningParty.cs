@@ -162,10 +162,12 @@ public sealed partial class PartyCommandHandlerTests
         public DungeonRunState EnterSoloRun(SelectedSessionIdentity session) =>
             Enter(new DungeonRunParticipant(session.AccountId, session.CharacterId, 0, true));
 
+        public RecordingCommandOutbox Refusals { get; } = new();
+
         public async Task<bool> RequestPeerAsync(SelectedSessionIdentity from, SelectedSessionIdentity to) =>
             await new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions, town, Parties,
                     new FixedPartyMemberStatus(), new TestCommandProjections(projection.Events), projection.Streams,
-                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs,
+                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, Refusals,
                     NullLogger<GameRequestPeerCommandHandler>.Instance))
                 .SendAsync(new GameRequestPeerCommand(Dispatch(from),
                     new RequestPeerRequest(GameMessageMetadata.Empty, to.WireUserId, 0, 64, [])));
@@ -173,7 +175,7 @@ public sealed partial class PartyCommandHandlerTests
         public async Task<bool> ResponsePeerAsync(SelectedSessionIdentity from, SelectedSessionIdentity inviter) =>
             await new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions, town, Parties,
                     new TestCommandProjections(projection.Events), projection.Streams,
-                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs,
+                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, Refusals,
                     NullLogger<GameResponsePeerCommandHandler>.Instance))
                 .SendAsync(new GameResponsePeerCommand(Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, 0, 0, [])));
