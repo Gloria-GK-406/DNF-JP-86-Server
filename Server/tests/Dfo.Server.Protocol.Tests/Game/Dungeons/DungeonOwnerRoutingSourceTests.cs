@@ -118,6 +118,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
         new(Rule.TowerLookup, "Game/QuestCompletion/GameFinishQuestCommand.cs", "HandleAsync", 2,
             "quest completion appearance: shown to the peers still seated in the located Boss or illusion run"),
         // Commands refused inside any dungeon ask the occupancy registry, which covers both towers.
+        new(Rule.ParticipationLookup, PartyStages, "PartyStandsInADungeon", 1,
+            "party removal is a town operation: any member occupying a dungeon refuses it (#241)"),
         new(Rule.ParticipationLookup, "Game/InventorySort/GameSortItemCommand.cs", "HandleAsync", 1,
             "cargo sorting is refused inside any dungeon"),
         new(Rule.ParticipationLookup, "Game/RecoverStamina/RecoverStaminaSlice.cs", "RecoverAsync", 1,

@@ -79,20 +79,22 @@ public sealed class DungeonDepartureProtocolCharacterizationTests
     }
 
     [Fact]
-    public async Task Removing_the_member_in_a_run_detaches_them_then_returns_them_to_town()
+    /// <remarks>Removal is a town operation (#241): inside a run it is refused and nothing moves.</remarks>
+    public async Task Removing_the_member_in_a_run_is_refused_and_keeps_both_in_party_and_run()
     {
         using var run = await TwoMemberRun.EnterAsync();
 
         await run.WireAsync(Side.Leader, RemovePartyMember, [1]);
 
-        Assert.Equal(
-            [
-                (Side.Member, PartyRoster),
-                .. PartyUpdate(Side.Leader, hostChanged: false),
-                (Side.Member, UserState), (Side.Member, UserArea), (Side.Member, AreaUsers), (Side.Member, Weakness),
-            ],
-            run.Sequence());
-        run.AssertDetached(Side.Member, Side.Leader);
+        Assert.Equal([(Side.Leader, RemovePartyMember)], run.Sequence());
+        TestGameplay.Run(run.F.Services, () =>
+        {
+            var runs = run.F.Services.DungeonRuns();
+            foreach (var side in new[] { Side.Leader, Side.Member })
+                Assert.Equal(run.RunId, Assert.IsType<DungeonRunState>(runs.Find(run.Session(side).CharacterId)).RunId);
+            Assert.Equal([run.Leader, run.Member], run.Deliveries.Find(run.RunId));
+            run.AssertParty(leader: run.Leader, run.Leader, run.Member);
+        });
     }
 
     [Fact]
