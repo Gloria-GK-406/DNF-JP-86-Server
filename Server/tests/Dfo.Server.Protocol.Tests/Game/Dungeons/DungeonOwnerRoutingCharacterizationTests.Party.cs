@@ -225,15 +225,19 @@ public sealed partial class DungeonOwnerRoutingCharacterizationTests
 
             AssertNoTower(world);
             Assert.Empty(world.Units.Names);
+            if (type == 0x000E)
+            {
+                // Removal asks only the occupancy registry (#241), which still names the seated
+                // character: it is refused and the party stays whole.
+                Assert.IsType<RemovePartyMemberRefusal>(Assert.Single(world.Outbox.To(leader)));
+                Assert.Equal(2, world.PartyOf(leader).Members.Length);
+                return;
+            }
             Assert.Empty(world.Outbox.Frames);
             switch (type)
             {
                 case 0x000D:
                     Assert.DoesNotContain(world.PartyOf(member).Members, value => value.CharacterId == leader.CharacterId);
-                    Assert.NotEmpty(world.Projections.Projected);
-                    break;
-                case 0x000E:
-                    Assert.DoesNotContain(world.PartyOf(leader).Members, value => value.CharacterId == member.CharacterId);
                     Assert.NotEmpty(world.Projections.Projected);
                     break;
                 case 0x0079:

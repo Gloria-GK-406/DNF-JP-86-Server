@@ -366,7 +366,7 @@ internal sealed partial class GamePartyTransitionCommandHandler
         if (caller is null) return false;
 
         var (candidates, place) = LocatePartyOf(caller, targetSlot);
-        if (change == PartyChange.Remove && PartyStandsInADungeon(candidates.Candidates, place))
+        if (change == PartyChange.Remove && PartyStandsInADungeon(candidates.Candidates))
         {
             // Removal is a town operation (#241). A21 offers no removal once the party has entered a
             // dungeon, and 70's handler never judges the place, leaving that edge to the client
@@ -395,10 +395,13 @@ internal sealed partial class GamePartyTransitionCommandHandler
         return attempt.Result.Succeeded;
     }
 
-    /// <summary>Whether any located candidate (caller, target, online member) is in a tower or an ordinary run.</summary>
-    private bool PartyStandsInADungeon(IReadOnlyList<SelectedSessionIdentity> candidates, DungeonPartyPlace place) =>
-        place is not DungeonPartyPlace.PartyOrdinaryOrNone
-        || candidates.Any(candidate => runs.Find(candidate.CharacterId) is not null);
+    /// <summary>Whether any candidate (caller, target, online member) occupies any dungeon.</summary>
+    /// <remarks>
+    /// The occupancy registry is the one answer to "is this character in a dungeon"
+    /// (Document/DungeonRunKinds.md); the locator only says which tower owns a request.
+    /// </remarks>
+    private bool PartyStandsInADungeon(IReadOnlyList<SelectedSessionIdentity> candidates) =>
+        candidates.Any(candidate => participation.Find(candidate.CharacterId) is not null);
 
     private async ValueTask<bool> MutatePartyOrdinaryAsync(CommandExecutionContext execution, NetworkDispatchContext dispatch,
         PartyChange change, SelectedSessionIdentity caller, byte? targetSlot, CancellationToken token)
