@@ -16,7 +16,7 @@ class MigrationPackageTests(unittest.TestCase):
             (root / "Document").mkdir()
             for name in ("server-ci-release.md", "host-component-composition.md", "DatabaseSchemaMigration.md",
                          "gm-web-admin.md", "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md",
-                         "login-session-lifecycle.md"):
+                         "login-session-lifecycle.md", "GateApi.md"):
                 (root / "Document" / name).write_text("Test documentation\n", encoding="utf-8")
             published = []
             order = []

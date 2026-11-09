@@ -16,7 +16,7 @@ class GmPackageTests(unittest.TestCase):
             root = Path(temporary)
             (root / "Document").mkdir()
             for name in ("server-ci-release.md", "host-component-composition.md", "gm-web-admin.md",
-                         "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md"):
+                         "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md", "GateApi.md"):
                 (root / "Document" / name).write_text("Test documentation\n", encoding="utf-8")
             (root / "Web/gm-admin").mkdir(parents=True)
 

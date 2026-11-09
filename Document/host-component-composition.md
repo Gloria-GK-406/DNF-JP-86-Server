@@ -6,7 +6,7 @@
 
 ```text
 Host
-├── HttpApi（Kestrel、HTTP 中间件、启动器路由）
+├── HttpApi（Kestrel、HTTP 中间件、gate 路由）
 ├── GmWeb（独立管理员、查询、官方邮件、账号点券）
 ├── GameServer（游戏装配、内容预热）
 │   ├── Networking（Channel/Game TCP、可选 UDP）
@@ -20,7 +20,7 @@ GameServer 装配已有网络/协议模块，不复制其源码，也不注册�
 
 ## 配置与开关
 
-兼容现有 `LauncherAuth:*`、`Networking:*` 和公开地址配置键，HTTP 路径不变。内容根仍为可执行程序目录，工作目录不影响资源查找。
+兼容现有 `LauncherAuth:*`、`Networking:*` 和公开地址配置键。LauncherAuth 监听面只提供 gate 接口，需配置 `LauncherAuth:GateToken`，端点、认证与配置见 [gate 接口](GateApi.md)。内容根仍为可执行程序目录，工作目录不影响资源查找。
 
 组合根在选择可选组件前加载统一配置：appsettings.json → appsettings.{Environment}.json → 环境变量 → 命令行 → experience.json（保留原来的独立平衡文件最后覆盖顺序）。环境选择为命令行 environment、DOTNET_ENVIRONMENT、ASPNETCORE_ENVIRONMENT、Production 的优先顺序。监听开关/地址在启动时决定，修改后需重启。
 
@@ -28,7 +28,7 @@ GameServer 装配已有网络/协议模块，不复制其源码，也不注册�
 |---|---|---|
 | 关 | 关 | 不开放 HTTP/TCP/UDP，仍可检查公共服务和静态内容 |
 | 关 | 开 | 原 Channel/Game 与可选 UDP；没有隐藏 Kestrel 默认端口 |
-| 开 | 关 | bootstrap/注册可用，登录返回 503 service_unavailable，不签发游戏票据 |
+| 开 | 关 | gate 注册可用，status 与登录返回 503 service_unavailable，不签发游戏票据 |
 | 开 | 开 | HTTP 与游戏共享服务图，原完整登录流程 |
 
 `Networking:UdpDiscoveryEnabled` 只在游戏网络启用时生效。HTTP 仅在启用时装配 WebHost，它由同一个 Generic Host 管理。HTTP 本身 ready 与游戏会话入口 ready 分开，后者经 Abstractions 中 `IGameServerReadiness` 提供。
