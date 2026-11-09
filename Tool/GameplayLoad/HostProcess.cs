@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -39,7 +41,7 @@ internal sealed partial class HostProcess : IAsyncDisposable
     private long executorUnparsed;
     private long executorNumberFailures;
 
-    private HostProcess(Process process, StreamWriter log, string directory, int gamePort, int httpPort, long started)
+    private HostProcess(Process process, StreamWriter log, string directory, int gamePort, int httpPort, long started, string gateToken)
     {
         this.process = process;
         this.log = log;
@@ -47,6 +49,7 @@ internal sealed partial class HostProcess : IAsyncDisposable
         GamePort = gamePort;
         StartedTimestamp = started;
         http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}"), Timeout = TimeSpan.FromSeconds(60) };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", gateToken);
     }
 
     public string Directory { get; }
@@ -90,6 +93,9 @@ internal sealed partial class HostProcess : IAsyncDisposable
             UseShellExecute = false,
         };
         startInfo.ArgumentList.Add(hostDll);
+        // A fresh gate token per Host: it reaches the child only through its environment and this tool's
+        // Authorization header, never the command line or the log.
+        var gateToken = Base64Url(RandomNumberGenerator.GetBytes(32));
         var environment = new Dictionary<string, string>
         {
             ["Pvf__ArchivePath"] = pvf,
@@ -113,6 +119,7 @@ internal sealed partial class HostProcess : IAsyncDisposable
             ["LauncherAuth__ListenUrl"] = $"http://127.0.0.1:{httpPort}",
             ["LauncherAuth__PublicChannel__Host"] = "127.0.0.1",
             ["LauncherAuth__PublicChannel__Port"] = channelPort.ToString(CultureInfo.InvariantCulture),
+            ["LauncherAuth__GateToken"] = gateToken,
             ["GmWeb__Enabled"] = "false",
             ["Logging__Console__FormatterOptions__SingleLine"] = "true",
         };
@@ -125,14 +132,14 @@ internal sealed partial class HostProcess : IAsyncDisposable
         var started = Stopwatch.GetTimestamp();
         var process = Process.Start(startInfo) ?? throw new InvalidOperationException("The Host process could not be started.");
         // The channel the load plays on is #ch.11 (appsettings Channels[1]), as WireSmoke does.
-        var host = new HostProcess(process, writer, directory, gamePortB, httpPort, started) { ExecutorDebug = executorDebug };
+        var host = new HostProcess(process, writer, directory, gamePortB, httpPort, started, gateToken) { ExecutorDebug = executorDebug };
         process.OutputDataReceived += (_, line) => host.OnLine(line.Data);
         process.ErrorDataReceived += (_, line) => host.OnLine(line.Data);
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
         try
         {
-            await host.WaitForBootstrapAsync(cancellationToken);
+            await host.WaitForGateAsync(cancellationToken);
             return host;
         }
         catch
@@ -204,7 +211,7 @@ internal sealed partial class HostProcess : IAsyncDisposable
     [GeneratedRegex(@"Command (?<command>\S+) (?<verb>handled by|failed in handler) (?<handler>\S+) as (?<kind>\S+) with execution \S+ (?:in|after) (?<ms>[0-9.]+) ms")]
     private static partial Regex CommandLine();
 
-    private async Task WaitForBootstrapAsync(CancellationToken cancellationToken)
+    private async Task WaitForGateAsync(CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(120));
@@ -213,8 +220,11 @@ internal sealed partial class HostProcess : IAsyncDisposable
             if (process.HasExited) throw new InvalidOperationException($"Host exited with code {process.ExitCode}; see the host log.");
             try
             {
-                using var response = await http.GetAsync("/api/launcher/v1/bootstrap", timeout.Token);
+                using var response = await http.GetAsync("/api/gate/v1/status", timeout.Token);
                 if (response.StatusCode == HttpStatusCode.OK) break;
+                // 503 means the Host is still starting; 401/404 mean the token or route is wrong and waiting cannot help.
+                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.NotFound)
+                    throw new InvalidOperationException($"gate status: {(int)response.StatusCode}");
             }
             catch (HttpRequestException)
             {
@@ -224,7 +234,7 @@ internal sealed partial class HostProcess : IAsyncDisposable
             await Task.Delay(10, timeout.Token);
         }
 
-        // The launcher endpoint and the game listener start in the same host; also wait for the game port.
+        // The gate endpoint and the game listener start in the same host; also wait for the game port.
         while (true)
         {
             try
@@ -249,15 +259,15 @@ internal sealed partial class HostProcess : IAsyncDisposable
     {
         var credentials = new { loginId, password = "gameplay load password" };
         var start = Stopwatch.GetTimestamp();
-        using (var registration = await http.PostAsJsonAsync("/api/launcher/v1/register", credentials, cancellationToken))
+        using (var registration = await http.PostAsJsonAsync("/api/gate/v1/register", credentials, cancellationToken))
         {
             if (registration.StatusCode != HttpStatusCode.Created)
                 throw new InvalidOperationException($"register {loginId}: {(int)registration.StatusCode}");
         }
 
         var registered = Stopwatch.GetTimestamp();
-        using var login = await http.PostAsJsonAsync("/api/launcher/v1/login", credentials, cancellationToken);
-        if (login.StatusCode != HttpStatusCode.OK) throw new InvalidOperationException($"launcher login {loginId}: {(int)login.StatusCode}");
+        using var login = await http.PostAsJsonAsync("/api/gate/v1/login", credentials, cancellationToken);
+        if (login.StatusCode != HttpStatusCode.OK) throw new InvalidOperationException($"gate login {loginId}: {(int)login.StatusCode}");
         using var json = JsonDocument.Parse(await login.Content.ReadAsStreamAsync(cancellationToken));
         var done = Stopwatch.GetTimestamp();
         return (json.RootElement.GetProperty("mId").GetString()!,
@@ -270,8 +280,8 @@ internal sealed partial class HostProcess : IAsyncDisposable
     public async Task<(string MId, string Ticket)> LoginAsync(string loginId, CancellationToken cancellationToken)
     {
         var credentials = new { loginId, password = "gameplay load password" };
-        using var login = await http.PostAsJsonAsync("/api/launcher/v1/login", credentials, cancellationToken);
-        if (login.StatusCode != HttpStatusCode.OK) throw new InvalidOperationException($"launcher login {loginId}: {(int)login.StatusCode}");
+        using var login = await http.PostAsJsonAsync("/api/gate/v1/login", credentials, cancellationToken);
+        if (login.StatusCode != HttpStatusCode.OK) throw new InvalidOperationException($"gate login {loginId}: {(int)login.StatusCode}");
         using var json = JsonDocument.Parse(await login.Content.ReadAsStreamAsync(cancellationToken));
         return (json.RootElement.GetProperty("mId").GetString()!, json.RootElement.GetProperty("ticket").GetString()!);
     }
@@ -302,6 +312,9 @@ internal sealed partial class HostProcess : IAsyncDisposable
         {
         }
     }
+
+    private static string Base64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     private static int[] AvailablePorts(int count)
     {

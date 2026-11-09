@@ -1,4 +1,4 @@
-"""Capture entry and quest acceptance with isolated databases and launcher-issued tickets."""
+"""Capture entry and quest acceptance with isolated databases and gate-issued tickets."""
 import argparse
 import json
 import os
@@ -29,10 +29,11 @@ def free_ports(count):
             sock.close()
 
 
-def request(base, action, credentials=None):
+def request(base, token, action, credentials=None):
     data = None if credentials is None else json.dumps(credentials).encode()
-    req = urllib.request.Request(base + '/api/launcher/v1/' + action, data=data,
-                                 headers={'Content-Type': 'application/json'})
+    req = urllib.request.Request(base + '/api/gate/v1/' + action, data=data,
+                                 headers={'Content-Type': 'application/json',
+                                          'Authorization': 'Bearer ' + token})
     with urllib.request.urlopen(req, timeout=5) as response:
         return json.load(response)
 
@@ -44,16 +45,19 @@ def run_tool(script, arguments, output, env):
 
 
 def capture(args, run, root, out):
-    channel, game_a, game_b, http = free_ports(4)
+    channel, game_a, game_b, game_c, http = free_ports(5)
     database = root / f'{run}.db'
     base = f'http://127.0.0.1:{http}'
     options = {
         'Channel:UseScriptCatalog': 'false', 'Logging:EventLog:LogLevel:Default': 'None',
         'Database:Path': database, 'Networking:Enabled': 'true',
         'Networking:UdpDiscoveryEnabled': 'false', 'Networking:ChannelPort': channel,
-        'Networking:GamePorts:0': game_a, 'Networking:GamePorts:1': game_b,
-        'Channel:Channels:0:Port': game_a, 'Channel:Channels:1:Port': game_b,
+        # appsettings.json lists three game listeners; all three move to free ports, or a busy default
+        # port (10100) stops every game listener from binding.
+        'Networking:GamePorts:0': game_a, 'Networking:GamePorts:1': game_b, 'Networking:GamePorts:2': game_c,
+        'Channel:Channels:0:Port': game_a, 'Channel:Channels:1:Port': game_b, 'Channel:Channels:2:Port': game_c,
         'Channel:Channels:0:Host': '127.0.0.1', 'Channel:Channels:1:Host': '127.0.0.1',
+        'Channel:Channels:2:Host': '127.0.0.1',
         'Channel:PublicServerIp': '127.0.0.1', 'Pvf:ArchivePath': args.pvf,
         'LauncherAuth:Enabled': 'true', 'LauncherAuth:ListenUrl': base,
         'LauncherAuth:PublicChannel:Host': '127.0.0.1',
@@ -62,10 +66,14 @@ def capture(args, run, root, out):
     # Command-line values override settings without editing the built host's files.
     command = ['dotnet', str(args.host), *[f'--{key}={value}' for key, value in options.items()]]
     env = dict(os.environ, PVF_ARCHIVE_PATH=str(args.pvf), PYTHONDONTWRITEBYTECODE='1')
+    # A fresh gate token per host, passed only through the host's environment: options become command-line
+    # arguments, which would expose the token and, coming later in the configuration pipeline, override it.
+    token = secrets.token_urlsafe(32)
+    host_env = dict(env, LauncherAuth__GateToken=token)
     flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
     log_path = out / f'host-{run}-{args.label}.log'
     with log_path.open('w', encoding='utf-8') as log:
-        host = subprocess.Popen(command, cwd=root, env=env, stdin=subprocess.DEVNULL,
+        host = subprocess.Popen(command, cwd=root, env=host_env, stdin=subprocess.DEVNULL,
                                 stdout=log, stderr=subprocess.STDOUT, creationflags=flags)
         try:
             deadline = time.monotonic() + 90
@@ -73,17 +81,24 @@ def capture(args, run, root, out):
                 if host.poll() is not None:
                     raise RuntimeError(f'host exited; see {log_path}')
                 try:
-                    request(base, 'bootstrap')
+                    request(base, token, 'status')
                     break
+                except urllib.error.HTTPError as error:
+                    # 503 while the host is still starting; 401/404 mean a wrong token or route.
+                    if error.code != 503:
+                        raise RuntimeError(f'gate status returned {error.code}; see {log_path}') from None
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError(f'host startup timed out; see {log_path}')
+                    time.sleep(0.5)
                 except (urllib.error.URLError, TimeoutError):
                     if time.monotonic() >= deadline:
                         raise RuntimeError(f'host startup timed out; see {log_path}')
                     time.sleep(0.5)
             credentials = {'loginId': 'wire-smoke', 'password': secrets.token_urlsafe(24)}
-            request(base, 'register', credentials)
+            request(base, token, 'register', credentials)
 
             def ticket_env():
-                login = request(base, 'login', credentials)
+                login = request(base, token, 'login', credentials)
                 return dict(env, SMOKE_MID=login['mId'], SMOKE_TICKET=login['ticket'])
 
             run_tool('wireclient.py', ['--port', game_b, '--name', args.name, '--job', args.job],
@@ -138,7 +153,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='dfo-wiresmoke-') as directory:
         for run in ('entry', 'accept'):
-            print(f'{run}: isolated host, database and launcher session', flush=True)
+            print(f'{run}: isolated host, database and gate session', flush=True)
             capture(args, run, Path(directory), out)
     print(f'Captured under {out}. Reference comparison: {"passed" if args.reference else "not requested"}.')
 

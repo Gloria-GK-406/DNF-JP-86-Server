@@ -16,11 +16,14 @@
 `--host` 可指定其他构建的 `Dfo.Server.Host.dll`；`--name`、`--job` 指定测试角色。
 需要 Python 3 和可运行该构建的 .NET Runtime，不需要第三方 Python 包。
 
-每次启动独立临时数据库，并选择四个空闲端口供 Channel、两个 Game listener 和启动器 HTTP 使用。
+每次启动独立临时数据库，并选择五个空闲端口供 Channel、三个 Game listener 和 HTTP 使用。
 工具不删除或修改构建目录里的数据库，不停止已有服务；端口若在启动前被抢占，本次运行失败。
 UDP discovery 与 GM Web 在测试宿主中关闭。宿主进程在正常结束或异常时退出，临时目录随后清理。
 
-每轮通过 `/api/launcher/v1/register` 注册临时账号，每条 Game 连接前重新调用 `/api/launcher/v1/login`。
+每轮通过 `/api/gate/v1/status` 等待宿主就绪，再经 `/api/gate/v1/register` 注册临时账号，
+每条 Game 连接前重新调用 `/api/gate/v1/login`。
+gate token 由脚本为每个宿主随机生成，只经宿主进程环境变量 `LauncherAuth__GateToken` 传入，
+并作为请求的 `Authorization: Bearer` 头发送；无需配置，也不写入命令行或日志。
 Game 登录使用响应中的六位 `mId` 与 32 位大写十六进制票据；不再使用旧 MD5 登录。
 凭据通过子进程环境传递，登录请求体不写入帧归档。
 
