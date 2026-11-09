@@ -22,6 +22,7 @@ public sealed class HttpApiModule : IServerModule
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(GateOptions.FromConfiguration(configuration));
         services.TryAddSingleton<GateAuthFailureLimiter>();
+        services.TryAddSingleton(provider => new HostStartTime(provider.GetRequiredService<TimeProvider>().GetUtcNow()));
         if (!options.Enabled) return;
         services.TryAddSingleton<HttpApiReadiness>();
         services.TryAddEnumerable(

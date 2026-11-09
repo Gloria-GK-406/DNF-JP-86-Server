@@ -43,13 +43,11 @@ public static class HttpApiApplicationExtensions
     internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints, HttpListenerScope? listener)
     {
         if (listener is not null) endpoints = endpoints.MapGroup("").WithMetadata(listener);
+        MapGateEndpoints(endpoints);
         endpoints.MapGet(BootstrapPath, (HttpApiReadiness readiness) =>
             readiness.IsReady
                 ? Results.Json(new BootstrapResponse("1", "ready", true))
-                : ApiResponses.Error(
-                    StatusCodes.Status503ServiceUnavailable,
-                    "service_unavailable",
-                    "服务暂不可用，请稍后重试。"))
+                : Unavailable())
             .WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：就绪标志"));
         // Hashing runs off the executor first (RQ-007), so these two enqueue their CMD themselves.
         endpoints.MapPost(RegisterPath, RegisterAsync)
@@ -58,19 +56,35 @@ public static class HttpApiApplicationExtensions
             .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Login));
     }
 
+    /// <summary>
+    /// The gate group: every route behind the token (<see cref="GateAuthenticationMiddleware"/>), so the
+    /// credential routes need no transport rule of their own. Register and login are the launcher's.
+    /// </summary>
+    private static void MapGateEndpoints(IEndpointRouteBuilder endpoints)
+    {
+        var gate = endpoints.MapGroup(GateRoutes.Prefix).WithMetadata(GateEndpointMetadata.Instance);
+        gate.MapGet(GateRoutes.Status, GateEndpoints.StatusAsync)
+            .WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：配置、档案摘要与就绪标志"));
+        gate.MapPost(GateRoutes.Register, RegisterAsync)
+            .WithMetadata(new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Register));
+        gate.MapPost(GateRoutes.Login, LoginAsync)
+            .WithMetadata(new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Login));
+    }
+
+    internal static IResult Unavailable() => ApiResponses.Error(
+        StatusCodes.Status503ServiceUnavailable,
+        "service_unavailable",
+        "服务暂不可用，请稍后重试。");
+
     private static async Task<IResult> RegisterAsync(
         HttpContext context,
         HttpApiReadiness readiness,
         ICommandBus commands,
-        ILauncherCredentialReader credentials)
+        ILauncherCredentialReader credentials,
+        ILoggerFactory loggers)
     {
-        if (!readiness.IsReady)
-        {
-            return ApiResponses.Error(
-                StatusCodes.Status503ServiceUnavailable,
-                "service_unavailable",
-                "服务暂不可用，请稍后重试。");
-        }
+        GateEndpoints.LogCaller(context, loggers, "register");
+        if (!readiness.IsReady) return Unavailable();
 
         var request = await ReadCredentialsAsync(context).ConfigureAwait(false);
         if (request is null)
@@ -121,15 +135,11 @@ public static class HttpApiApplicationExtensions
         ICommandBus commands,
         ILauncherCredentialReader credentials,
         IPublicEndpointSource endpoints,
-        IGameServerReadiness game)
+        IGameServerReadiness game,
+        ILoggerFactory loggers)
     {
-        if (!readiness.IsReady || !game.IsReady)
-        {
-            return ApiResponses.Error(
-                StatusCodes.Status503ServiceUnavailable,
-                "service_unavailable",
-                "服务暂不可用，请稍后重试。");
-        }
+        GateEndpoints.LogCaller(context, loggers, "login");
+        if (!readiness.IsReady || !game.IsReady) return Unavailable();
 
         var request = await ReadCredentialsAsync(context).ConfigureAwait(false);
         if (request is null)

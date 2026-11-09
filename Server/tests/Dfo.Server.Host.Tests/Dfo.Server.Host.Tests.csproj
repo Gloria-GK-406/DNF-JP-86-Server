@@ -34,4 +34,5 @@
   <ItemGroup><Compile Include="../Support/ProtocolAlgorithmFixture.cs" Link="Support/ProtocolAlgorithmFixture.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Support/DerivedDungeonParticipation.cs" Link="Support/DerivedDungeonParticipation.cs" /><Compile Include="../Support/DungeonRunTestComposition.cs" Link="Support/DungeonRunTestComposition.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Support/TestRequired.cs" Link="Support/TestRequired.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Support/GateTestToken.cs" Link="Support/GateTestToken.cs" /></ItemGroup>
 </Project>

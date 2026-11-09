@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -11,7 +12,7 @@ public sealed class GateOptionsTests
     [InlineData("   \t ")]
     public void MissingOrBlankTokenLeavesTheGateUnconfigured(string? raw)
     {
-        var options = GateTestToken.Options(raw);
+        var options = GateTestOptions.Create(raw);
 
         Assert.False(options.TokenConfigured);
         Assert.False(options.Matches(""));
@@ -22,7 +23,7 @@ public sealed class GateOptionsTests
     public void ConfiguredTokenMatchesOnlyItsExactValue()
     {
         var token = GateTestToken.New();
-        var options = GateTestToken.Options(token);
+        var options = GateTestOptions.Create(token);
 
         Assert.True(options.TokenConfigured);
         Assert.True(options.Matches(token));
@@ -36,7 +37,7 @@ public sealed class GateOptionsTests
     public void SurroundingWhitespaceIsTrimmedFromTheConfiguredTokenButNotFromThePresentedOne()
     {
         var token = GateTestToken.New();
-        var options = GateTestToken.Options("  " + token + " \t");
+        var options = GateTestOptions.Create("  " + token + " \t");
 
         Assert.True(options.Matches(token));
         Assert.False(options.Matches(" " + token));
@@ -48,7 +49,7 @@ public sealed class GateOptionsTests
     {
         var token = GateTestToken.New()[..32];
 
-        Assert.True(GateTestToken.Options(token).Matches(token));
+        Assert.True(GateTestOptions.Create(token).Matches(token));
     }
 
     public static TheoryData<string, string> InvalidTokens()
@@ -69,7 +70,7 @@ public sealed class GateOptionsTests
     [MemberData(nameof(InvalidTokens))]
     public void InvalidTokenFailsStartupNamingTheKeyButNotTheValue(string token, string reason)
     {
-        var error = Assert.Throws<InvalidOperationException>(() => GateTestToken.Options(token));
+        var error = Assert.Throws<InvalidOperationException>(() => GateTestOptions.Create(token));
 
         Assert.Contains("LauncherAuth:GateToken", error.Message, StringComparison.Ordinal);
         Assert.Contains(reason, error.Message, StringComparison.Ordinal);
@@ -80,7 +81,7 @@ public sealed class GateOptionsTests
     [Fact]
     public void DefaultsApplyWhenOnlyTheTokenIsConfigured()
     {
-        var options = GateTestToken.Options(GateTestToken.New());
+        var options = GateTestOptions.Create(GateTestToken.New());
 
         Assert.Equal(10, options.AuthFailureLimit);
         Assert.Equal(TimeSpan.FromSeconds(900), options.AuthFailureWindow);
@@ -91,7 +92,7 @@ public sealed class GateOptionsTests
     [Fact]
     public void ConfiguredLimitsLaunchAndAdminUrlAreRead()
     {
-        var options = GateTestToken.Options(GateTestToken.New(), new Dictionary<string, string?>
+        var options = GateTestOptions.Create(GateTestToken.New(), new Dictionary<string, string?>
         {
             [GateOptions.AuthFailureLimitKey] = " 3 ",
             [GateOptions.AuthFailureWindowKey] = "60",
@@ -110,7 +111,7 @@ public sealed class GateOptionsTests
     [InlineData(GateOptions.AdminUrlKey, "   ")]
     public void BlankLaunchAndAdminUrlFallBack(string key, string value)
     {
-        var options = GateTestToken.Options(null, new Dictionary<string, string?> { [key] = value });
+        var options = GateTestOptions.Create(null, new Dictionary<string, string?> { [key] = value });
 
         Assert.Equal("a21", options.Launch);
         Assert.Null(options.AdminUrl);
@@ -130,7 +131,7 @@ public sealed class GateOptionsTests
     public void InvalidLimiterOrAdminValuesFailStartupNamingTheKey(string key, string value)
     {
         var error = Assert.Throws<InvalidOperationException>(() =>
-            GateTestToken.Options(null, new Dictionary<string, string?> { [key] = value }));
+            GateTestOptions.Create(null, new Dictionary<string, string?> { [key] = value }));
 
         Assert.Contains(key, error.Message, StringComparison.Ordinal);
     }
@@ -141,7 +142,7 @@ public sealed class GateOptionsTests
         var token = GateTestToken.New();
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(token));
 
-        var text = GateTestToken.Options(token).ToString();
+        var text = GateTestOptions.Create(token).ToString();
 
         Assert.DoesNotContain(token, text, StringComparison.Ordinal);
         Assert.DoesNotContain(Convert.ToHexString(digest), text, StringComparison.OrdinalIgnoreCase);

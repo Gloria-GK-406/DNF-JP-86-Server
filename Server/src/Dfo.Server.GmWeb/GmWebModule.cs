@@ -18,6 +18,10 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
     public void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton(options);
+        // The gate status names the GM back office from this. A plain service rather than an
+        // IHttpApiFeature member: the feature contract is generic HTTP assembly with no notion of an admin
+        // page, and this runs only for an enabled GmWeb, so a Host without one contributes nothing.
+        services.AddSingleton(new GateAdminAddress(new Uri(options.ListenUrl!, "gm/").AbsoluteUri));
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
         services.AddAntiforgery(options => { options.HeaderName = "X-GM-CSRF"; options.Cookie.Name = "Dfo.Gm.Csrf"; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.HttpOnly = true; });
         services.AddSingleton<GmLoginLimiter>();

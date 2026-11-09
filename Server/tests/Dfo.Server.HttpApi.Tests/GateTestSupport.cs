@@ -1,19 +1,12 @@
-using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.HttpApi.Tests;
 
-/// <summary>Valid gate tokens are generated per run; only deliberately broken counterexamples are literals.</summary>
-internal static class GateTestToken
+/// <summary>Gate options read from an in-memory configuration only, never from the process environment.</summary>
+internal static class GateTestOptions
 {
-    public static string New() =>
-        Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
-            .TrimEnd('=')
-            .Replace('+', '-')
-            .Replace('/', '_');
-
-    public static GateOptions Options(string? token, IDictionary<string, string?>? extra = null)
+    public static GateOptions Create(string? token, IDictionary<string, string?>? extra = null)
     {
         var values = new Dictionary<string, string?> { [GateOptions.TokenKey] = token };
         if (extra is not null)

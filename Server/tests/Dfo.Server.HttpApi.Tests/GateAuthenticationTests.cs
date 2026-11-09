@@ -1,4 +1,5 @@
 using System.Net;
+using Dfo.Server.Testing;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -267,7 +268,7 @@ public sealed class GateAuthenticationTests
     public void LimiterKeysMappedAddressesAsTheirIPv4Form()
     {
         var clock = new ManualTimeProvider();
-        var limiter = new GateAuthFailureLimiter(clock, GateTestToken.Options(null, new Dictionary<string, string?>
+        var limiter = new GateAuthFailureLimiter(clock, GateTestOptions.Create(null, new Dictionary<string, string?>
         {
             [GateOptions.AuthFailureLimitKey] = "1",
         }));
@@ -283,7 +284,7 @@ public sealed class GateAuthenticationTests
     public void FullLimiterEvictsTheEarliestWindowInsteadOfRefusingANewSource()
     {
         var clock = new ManualTimeProvider();
-        var limiter = new GateAuthFailureLimiter(clock, GateTestToken.Options(null, new Dictionary<string, string?>
+        var limiter = new GateAuthFailureLimiter(clock, GateTestOptions.Create(null, new Dictionary<string, string?>
         {
             [GateOptions.AuthFailureLimitKey] = "1",
         }));
@@ -309,11 +310,49 @@ public sealed class GateAuthenticationTests
         Assert.True(limiter.IsLimited(newcomer));
     }
 
+    /// <summary>
+    /// The first key inserted is not the earliest window once it expired and restarted in place:
+    /// eviction follows window start, not insertion order.
+    /// </summary>
     [Fact]
-    public void FullLimiterPrefersDroppingExpiredWindows()
+    public void FullLimiterEvictsByWindowStartNotByInsertionOrder()
     {
         var clock = new ManualTimeProvider();
-        var limiter = new GateAuthFailureLimiter(clock, GateTestToken.Options(null, new Dictionary<string, string?>
+        var limiter = new GateAuthFailureLimiter(clock, GateTestOptions.Create(null, new Dictionary<string, string?>
+        {
+            [GateOptions.AuthFailureLimitKey] = "1",
+            [GateOptions.AuthFailureWindowKey] = "60",
+        }));
+        var restarted = IPAddress.Parse("192.0.2.1");
+        var earliest = IPAddress.Parse("192.0.2.2");
+        var newcomer = IPAddress.Parse("192.0.2.3");
+
+        limiter.RecordFailure(restarted);
+        clock.Advance(TimeSpan.FromSeconds(10));
+        limiter.RecordFailure(earliest);
+        clock.Advance(TimeSpan.FromSeconds(50));
+        limiter.RecordFailure(restarted);
+        clock.Advance(TimeSpan.FromSeconds(1));
+        for (var i = 2; i < GateAuthFailureLimiter.Capacity; i++)
+        {
+            limiter.RecordFailure(new IPAddress(0x0A000000u + (uint)i));
+        }
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.True(limiter.IsLimited(earliest));
+        limiter.RecordFailure(newcomer);
+
+        Assert.True(limiter.IsLimited(restarted));
+        Assert.False(limiter.IsLimited(earliest));
+        Assert.True(limiter.IsLimited(newcomer));
+    }
+
+    /// <summary>The earliest window here has also expired; it goes, and the live ones stay.</summary>
+    [Fact]
+    public void FullLimiterDropsAnExpiredEarliestWindowAndKeepsTheLiveOnes()
+    {
+        var clock = new ManualTimeProvider();
+        var limiter = new GateAuthFailureLimiter(clock, GateTestOptions.Create(null, new Dictionary<string, string?>
         {
             [GateOptions.AuthFailureLimitKey] = "1",
             [GateOptions.AuthFailureWindowKey] = "60",
