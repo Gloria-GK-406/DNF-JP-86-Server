@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Testing;
@@ -12,6 +14,7 @@ namespace Dfo.Server.Host.Tests;
 public sealed class GateHttpHostTests
 {
     private const string Status = "/api/gate/v1/status";
+    private const string Login = "/api/gate/v1/login";
     private const string Digest = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
     private const string UnconfiguredWarning = "'LauncherAuth:GateToken' is not set";
 
@@ -96,6 +99,52 @@ public sealed class GateHttpHostTests
             Assert.Equal(HttpStatusCode.OK, status.StatusCode);
     }
 
+    /// <summary>
+    /// Routing answers a method mismatch with 405 and <c>Allow</c> before the listener boundary or the gate
+    /// looks at the request, so a gate path with the wrong method is 405 on the GM listener too, while the
+    /// right method there is 404.
+    /// </summary>
+    [Fact]
+    public async Task On_the_gm_listener_a_gate_path_is_not_found_but_a_wrong_method_is_not_allowed()
+    {
+        var token = GateTestToken.New();
+        await using var gate = await GateHost.StartAsync(token, services => services.AddSingleton<IContentArchiveIdentity>(new FixedDigest(Digest)));
+
+        using (var wrongMethod = await gate.Host.Client.SendAsync(Get(Login, token)))
+        {
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, wrongMethod.StatusCode);
+            Assert.Contains(HttpMethod.Post.Method, wrongMethod.Content.Headers.Allow);
+        }
+
+        using (var rightMethod = await gate.Host.Client.SendAsync(PostCredentials(Login, token)))
+            Assert.Equal(HttpStatusCode.NotFound, rightMethod.StatusCode);
+    }
+
+    /// <summary>
+    /// Kestrel strips the surrounding whitespace of a header value before the gate sees it, so the right
+    /// token followed by spaces or a tab passes. Sent over a raw socket so no client library normalizes it.
+    /// </summary>
+    [Theory]
+    [InlineData("   ")]
+    [InlineData("\t")]
+    public async Task Kestrel_strips_trailing_whitespace_so_the_right_token_still_passes(string trailing)
+    {
+        var token = GateTestToken.New();
+        await using var gate = await GateHost.StartAsync(token, services => services.AddSingleton<IContentArchiveIdentity>(new FixedDigest(Digest)));
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var address = gate.Launcher.BaseAddress!;
+        using var client = new TcpClient();
+        await client.ConnectAsync(address.Host, address.Port, timeout.Token);
+        await using var stream = client.GetStream();
+        var request = $"GET {Status} HTTP/1.1\r\nHost: {address.Authority}\r\nAuthorization: Bearer {token}{trailing}\r\nConnection: close\r\n\r\n";
+        await stream.WriteAsync(Encoding.ASCII.GetBytes(request), timeout.Token);
+        using var reader = new StreamReader(stream, Encoding.ASCII);
+        var statusLine = await reader.ReadLineAsync(timeout.Token);
+
+        Assert.Equal("HTTP/1.1 200 OK", statusLine);
+    }
+
     /// <summary>RQ-002: without a token the gate is not there, and the Host says so once at startup.</summary>
     [Fact]
     public async Task Without_a_gate_token_the_gate_paths_are_not_found_and_the_host_warns()
@@ -119,6 +168,13 @@ public sealed class GateHttpHostTests
             }
         }
 
+        // The method check comes before the gate, so even without a token a wrong method is 405.
+        using (var wrongMethod = await gate.Launcher.SendAsync(Get(Login, null)))
+        {
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, wrongMethod.StatusCode);
+            Assert.Contains(HttpMethod.Post.Method, wrongMethod.Content.Headers.Allow);
+        }
+
         Assert.Single(gate.Host.Logs.Messages, message => message.Contains(UnconfiguredWarning, StringComparison.Ordinal));
     }
 
@@ -126,6 +182,16 @@ public sealed class GateHttpHostTests
     {
         var request = new HttpRequestMessage(HttpMethod.Get, path);
         if (bearer is not null) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+        return request;
+    }
+
+    private static HttpRequestMessage PostCredentials(string path, string bearer)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = JsonContent.Create(new { loginId = "gate-player", password = "gate password 1" }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
         return request;
     }
 

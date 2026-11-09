@@ -4,7 +4,9 @@
 
 ## 端点
 
-三个端点只挂在 LauncherAuth 监听面（`LauncherAuth:ListenUrl`），需要 `LauncherAuth:Enabled=true`。从 GmWeb 端口访问返回 404，不认证、不计数。
+三个端点只挂在 LauncherAuth 监听面（`LauncherAuth:ListenUrl`），需要 `LauncherAuth:Enabled=true`。从 GmWeb 端口用正确的方法访问返回 404，不认证、不计数。
+
+方法不匹配（如 `GET …/login`、`POST …/status`）时一律返回 405 并带 `Allow` 头，不认证、不计数。这一行为不受 token 配置和监听端口的影响：未配置 token 时、在 GmWeb 端口上，用错误的方法访问 gate 路径同样返回 405。
 
 | 端点 | 用途 | 就绪条件 |
 |---|---|---|
@@ -25,11 +27,11 @@ register/login 的请求体为 JSON `{loginId, password}`（不超过 8192 字�
 
 ## 认证
 
-请求头 `Authorization: Bearer <token>`。scheme 不区分大小写，scheme 与 token 之间可有一个或多个空格；token 部分原样比较，不去空白。
+请求头 `Authorization: Bearer <token>`。scheme 不区分大小写，scheme 与 token 之间可有一个或多个空格；token 部分原样比较；HTTP 服务器会去掉头值首尾的空白。
 
 | 情况 | 响应 |
 |---|---|
-| 服务端未配置 token | 三个端点都返回 404 `not_found`，不读请求体，不计数 |
+| 服务端未配置 token | 三个端点用正确的方法访问都返回 404 `not_found`，不读请求体，不计数 |
 | token 正确 | 进入端点；不受限流影响 |
 | token 缺失、错误或用了其他认证方式 | 401 `unauthorized`，带 `WWW-Authenticate: Bearer` |
 | 同上，且来源 IP 已被限流 | 429 `too_many_requests` |
@@ -47,11 +49,11 @@ login 的 401 有两种 `code`：`unauthorized` 表示 token 错误，`invalid_c
 | `LauncherAuth:AdminUrl` | 空 | status 的 `admin`，须为 http/https 绝对地址 |
 | `LauncherAuth:PublicChannel:Host`、`:Port` | 仓库 `appsettings.json` | status 与 login 响应的 `channel` |
 
-以上值在 Host 启动时读取一次，修改后需重启。限流、`AdminUrl` 的值不合法时 Host 启动失败。
+以上值在 Host 启动时读取一次，修改后需重启。限流、`AdminUrl` 的值不合法时 Host 启动失败。gate 配置无论 LauncherAuth 是否启用都会校验，所以 token 等值不合法时，只开 GmWeb 的 Host 也会启动失败。
 
 ### token
 
-- 配置管线顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量 → 命令行 → `experience.json`，后者覆盖前者。token 只放在部署机的 `appsettings*.json` 或环境变量里，环境变量优先；不要放进命令行或 `experience.json`，也不要提交到仓库。
+- 配置管线顺序：`appsettings.json` → `appsettings.{Environment}.json` → 环境变量 → 命令行 → `experience.json`，后者覆盖前者。token 只放在部署机的 `appsettings*.json` 或环境变量里，环境变量优先；不要放进命令行或 `experience.json`，也不要提交到仓库。发布脚本 `Tool/Release/release.py` 拒绝打包非空的 `LauncherAuth:GateToken`，发布冒烟不继承构建机上的同名环境变量。
 - 至少 32 个字符，只允许可打印 ASCII 且不含空白（0x21–0x7E）。不满足时 Host 启动失败，错误信息指出键名和违反的规则，不含 token 值。
 - 启用 LauncherAuth 但未配置 token 时，启动日志有一条 Warning，gate 端点全部 404。
 - 生成：
@@ -91,13 +93,33 @@ GmWeb 只监听本机地址时，推导出的 `admin` 对网关无用，需在 `
 
 以下任一情况返回 503 `service_unavailable`：HTTP 未就绪、游戏服务未就绪、PVF 摘要取不到（缺 PVF 或读取失败）。
 
+## 调用方如何解读 status 结果
+
+| 结果 | 含义 | 网关、单机启动器应如何提示 |
+|---|---|---|
+| 200 | 正常 | — |
+| 401 `unauthorized` | token 错误 | token 错误 |
+| 429 `too_many_requests` | token 错误次数过多，正被限流 | 按 token 错误处理 |
+| 404 | 未配置 gate token，或路径、端口不对 | — |
+| 503 `service_unavailable` | 服务端未就绪 | 暂不可用 |
+| 连接失败或超时 | — | — |
+
+401 与 429 都只表示 token 失败。按轮换步骤重新绑定之前，网关用旧 token 轮询会先得到 401，同一来源达到失败上限后在窗口剩余时间内得到 429，两者应给出同一种提示。每次重启加载 PVF 期间 status 返回 503，属于暂时状态。
+
 ## 客户端 IP
 
 token 正确的请求带可解析的 `X-Forwarded-For` 时，取最后一个逗号分隔项作为客户端 IP，否则取 TCP 对端地址。客户端 IP 目前只写入 register/login 日志。token 错误的请求中的 `X-Forwarded-For` 不写日志、不参与限流。
 
+## 端口暴露
+
+网关和单机启动器都直连 LauncherAuth 监听端口。只用网关时，可以只对网关开放这个端口；有单机启动器直连时，按单机启动器所在的网络开放。
+
 ## HTTPS
 
 服务端不按传输方式限制 register/login：token 正确的请求经明文 HTTP 访问也会处理。跨公网部署必须由运维在 LauncherAuth 监听端口上配置 HTTPS，否则口令和 token 以明文传输。
+
+- 启用 HTTPS：把 `LauncherAuth:ListenUrl` 写成 `https://` 地址，并配置 Kestrel 证书（ASP.NET Core 标准键 `Kestrel:Certificates:Default:Path`、`:Password`，与其他配置同一管线）；或者把服务端放在反向代理之后，由代理终止 TLS。
+- 放在反向代理之后时，限流按代理的 IP 计数；`X-Forwarded-For` 的最后一项是代理追加的地址，日志中的客户端 IP 因此是代理所见的上一跳。
 
 ## HTTP 接口分布
 

@@ -47,7 +47,12 @@ public sealed class GateAuthenticationTests
         SameLengthDifferentToken,
         EmptyToken,
         SchemeOnly,
-        TrailingSpace,
+        /// <summary>
+        /// The middleware's own parsing only: <c>DefaultHttpContext</c> hands it the raw value. In
+        /// production Kestrel strips the field value's surrounding whitespace before the middleware runs,
+        /// so the same request passes there (<c>GateHttpHostTests</c> covers that path).
+        /// </summary>
+        TrailingSpaceReachingTheMiddleware,
         TwoHeaderValues,
         TokenWithoutScheme,
     }
@@ -60,7 +65,7 @@ public sealed class GateAuthenticationTests
     [InlineData(Refusal.SameLengthDifferentToken)]
     [InlineData(Refusal.EmptyToken)]
     [InlineData(Refusal.SchemeOnly)]
-    [InlineData(Refusal.TrailingSpace)]
+    [InlineData(Refusal.TrailingSpaceReachingTheMiddleware)]
     [InlineData(Refusal.TwoHeaderValues)]
     [InlineData(Refusal.TokenWithoutScheme)]
     public async Task EveryOtherAuthorizationIsATokenFailure(Refusal refusal)
@@ -77,7 +82,7 @@ public sealed class GateAuthenticationTests
             Refusal.SameLengthDifferentToken => ["Bearer " + other],
             Refusal.EmptyToken => ["Bearer "],
             Refusal.SchemeOnly => ["Bearer"],
-            Refusal.TrailingSpace => ["Bearer " + token + " "],
+            Refusal.TrailingSpaceReachingTheMiddleware => ["Bearer " + token + " "],
             Refusal.TwoHeaderValues => ["Bearer " + token, "Bearer " + token],
             Refusal.TokenWithoutScheme => [token],
             _ => throw new ArgumentOutOfRangeException(nameof(refusal)),

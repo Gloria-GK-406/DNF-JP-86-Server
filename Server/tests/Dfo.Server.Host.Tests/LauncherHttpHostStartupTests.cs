@@ -408,10 +408,20 @@ public sealed class LauncherHttpHostStartupTests
     /// <c>appsettings.{environment}.json</c> for one child Host. The packaged Host reads its settings files
     /// from its own directory (<c>ServerConfiguration</c> uses <c>AppContext.BaseDirectory</c>, which
     /// <c>--contentRoot</c> does not move), so the file goes into this build output under an environment
-    /// name no other Host uses, and is deleted afterwards.
+    /// name no other Host uses, and is deleted afterwards. A run that was killed leaves its file behind,
+    /// so the first use in a test process deletes those leftovers.
     /// </summary>
     private sealed class EnvironmentSettingsFile : IDisposable
     {
+        private const string NamePrefix = "GateTokenTest";
+        private static readonly string OutputDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location)!;
+        private static readonly Lazy<bool> LeftoversRemoved = new(() =>
+        {
+            foreach (var leftover in Directory.EnumerateFiles(OutputDirectory, $"appsettings.{NamePrefix}*.json"))
+                File.Delete(leftover);
+            return true;
+        });
+
         private readonly string path;
 
         private EnvironmentSettingsFile(string name, string path)
@@ -424,8 +434,9 @@ public sealed class LauncherHttpHostStartupTests
 
         public static EnvironmentSettingsFile Write(string gateToken)
         {
-            var name = "GateTokenTest" + Guid.NewGuid().ToString("N");
-            var path = Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location)!, $"appsettings.{name}.json");
+            _ = LeftoversRemoved.Value;
+            var name = NamePrefix + Guid.NewGuid().ToString("N");
+            var path = Path.Combine(OutputDirectory, $"appsettings.{name}.json");
             File.WriteAllText(path, JsonSerializer.Serialize(new { LauncherAuth = new { GateToken = gateToken } }));
             return new(name, path);
         }
@@ -485,8 +496,13 @@ public sealed class LauncherHttpHostStartupTests
         startInfo.Environment["GameLogin__EndpointPortA"] = "17200";
         startInfo.Environment["GameLogin__EndpointPortB"] = "17201";
         startInfo.Environment["Database__Path"] = Path.Combine(workingDirectory, "host.db");
-        // The token travels in this child's environment only, never on its command line; set or
-        // removed explicitly, so a LauncherAuth__GateToken of the test process cannot leak in.
+        // The token travels in this child's environment only, never on its command line. Every inherited
+        // spelling of the key ('__' or ':', any case: configuration treats them as one) is removed first,
+        // so a token of the test process cannot leak in.
+        foreach (var key in startInfo.Environment.Keys
+                     .Where(key => string.Equals(key.Replace("__", ":", StringComparison.Ordinal), "LauncherAuth:GateToken", StringComparison.OrdinalIgnoreCase))
+                     .ToList())
+            startInfo.Environment.Remove(key);
         SetOrRemove(startInfo, "LauncherAuth__GateToken", gateToken);
         foreach (var (key, value) in environment ?? new Dictionary<string, string?>())
             SetOrRemove(startInfo, key, value);

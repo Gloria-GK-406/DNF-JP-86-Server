@@ -165,6 +165,10 @@ def verify_runtime_content(published):
             raise ValueError(f"Published {key} must be disabled by default")
     if configured.get("gmweb:bootstrap:loginname") or configured.get("gmweb:bootstrap:password"):
         raise ValueError("Administrator bootstrap credentials must not ship")
+    # appsettings.json is the only settings file allowed above; the gate token belongs to the deployment.
+    gate_token = configured.get("launcherauth:gatetoken")
+    if gate_token is not None and not (isinstance(gate_token, str) and not gate_token.strip()):
+        raise ValueError("LauncherAuth:GateToken must not ship")
 
 
 def smoke(published, rid):
@@ -191,7 +195,8 @@ def smoke(published, rid):
         isolated_keys = {normalize(key) for key in fixed}
         env = {key: value for key, value in os.environ.items()
                if normalize(key) not in isolated_keys
-               and not normalize(key).startswith("gmweb:bootstrap:")}
+               and not normalize(key).startswith("gmweb:bootstrap:")
+               and normalize(key) != "launcherauth:gatetoken"}
         env.update(fixed)
         opener = build_opener(ProxyHandler({}))
         assets = gm_assets(app)
