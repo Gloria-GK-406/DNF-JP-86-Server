@@ -40,6 +40,7 @@
     <Compile Include="..\Support\GameplayAssertionRecorder.cs" Link="Support\GameplayAssertionRecorder.cs" />
     <Compile Include="..\Support\GameplayAssertionRecorderControlTests.cs" Link="Support\GameplayAssertionRecorderControlTests.cs" />
     <Compile Include="..\Support\TestCredentials.cs" Link="Support\TestCredentials.cs" />
+    <Compile Include="..\Support\GateTestToken.cs" Link="Support\GateTestToken.cs" />
   </ItemGroup>
 
   <ItemGroup>

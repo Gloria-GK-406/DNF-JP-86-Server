@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Host.Tests;
@@ -31,12 +32,12 @@ public sealed class CredentialEntryHttpTests
                 stores.Decorate<IAuthenticationPersistence>(services);
                 stores.Decorate<IGmAdministrationPersistence>(services);
             });
-        using var http = new HttpClient { BaseAddress = launcher.Url };
+        using var http = launcher.Client();
         var credentials = new { loginId = "entry-player", password = "entry password 1" };
 
-        using (var registered = await http.PostAsJsonAsync("/api/launcher/v1/register", credentials))
+        using (var registered = await http.PostAsJsonAsync(GateProbe.Register, credentials))
             Assert.Equal(HttpStatusCode.Created, registered.StatusCode);
-        using (var login = await http.PostAsJsonAsync("/api/launcher/v1/login", credentials))
+        using (var login = await http.PostAsJsonAsync(GateProbe.Login, credentials))
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         using (var gm = await host.LoginAsync(await host.CsrfAsync()))
             Assert.Equal(HttpStatusCode.OK, gm.StatusCode);
@@ -47,10 +48,10 @@ public sealed class CredentialEntryHttpTests
         Assert.All(passwords.Calls, call => Assert.False(call.OnExecutor, $"{call.Method} ran on the executor as {call.CommandType}"));
 
         var created = Assert.Single(stores.Of(nameof(IAuthenticationPersistence.TryCreateAsync)));
-        AssertCmd(created, GameplayCallSource.Http, "http:POST /api/launcher/v1/register");
+        AssertCmd(created, GameplayCallSource.Http, "http:POST /api/gate/v1/register");
         var issued = Assert.Single(stores.Calls, call => call.Service == nameof(IAuthenticationPersistence)
             && call.Method == nameof(IAuthenticationPersistence.AcquireWriteIntentAsync));
-        AssertCmd(issued, GameplayCallSource.Http, "http:POST /api/launcher/v1/login");
+        AssertCmd(issued, GameplayCallSource.Http, "http:POST /api/gate/v1/login");
         var session = Assert.Single(stores.Of(nameof(IGmAdministrationPersistence.SaveSessionAsync)));
         AssertCmd(session, GameplayCallSource.Gm, "gm:POST /api/gm/v1/auth/login");
     }
@@ -94,10 +95,10 @@ public sealed class CredentialEntryHttpTests
         var settings = new Dictionary<string, string?>(launcher.Settings) { ["GameLogin:Environment"] = "1" };
         await using var host = await GmTestHost.StartAsync(directory: launcher.Directory, configuration: settings,
             configureServices: services => services.AddSingleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler>(teardowns));
-        using var http = new HttpClient { BaseAddress = launcher.Url };
+        using var http = launcher.Client();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var credentials = new { loginId = "superseded-player", password = "superseded password 1" };
-        using (var registered = await http.PostAsJsonAsync("/api/launcher/v1/register", credentials, timeout.Token))
+        using (var registered = await http.PostAsJsonAsync(GateProbe.Register, credentials, timeout.Token))
             Assert.Equal(HttpStatusCode.Created, registered.StatusCode);
         var (mId, ticket) = await LoginAsync(http, credentials, timeout.Token);
 
@@ -121,12 +122,12 @@ public sealed class CredentialEntryHttpTests
         Assert.Equal("lifecycle:disconnected", chain.CommandType);
         Assert.Equal(1, chain.Depth);
         Assert.Null(chain.SourceConnection);
-        Assert.Equal(new GameplayCallHop(GameplayCallSource.Http, "http:POST /api/launcher/v1/login"), Assert.Single(chain.Ancestors));
+        Assert.Equal(new GameplayCallHop(GameplayCallSource.Http, "http:POST /api/gate/v1/login"), Assert.Single(chain.Ancestors));
     }
 
     private static async Task<(string MId, string Ticket)> LoginAsync(HttpClient http, object credentials, CancellationToken ct)
     {
-        using var login = await http.PostAsJsonAsync("/api/launcher/v1/login", credentials, ct);
+        using var login = await http.PostAsJsonAsync(GateProbe.Login, credentials, ct);
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         using var json = JsonDocument.Parse(await login.Content.ReadAsStreamAsync(ct));
         return (json.RootElement.GetProperty("mId").GetString()!, json.RootElement.GetProperty("ticket").GetString()!);
@@ -194,9 +195,15 @@ public sealed class CredentialEntryHttpTests
     }
 }
 
-/// <summary>A GM test host that also serves the launcher routes and the game ports, so a launcher login is served.</summary>
-internal sealed record LauncherHost(string Directory, Uri Url, Dictionary<string, string?> Settings)
+/// <summary>
+/// A GM test host that also serves the gate and the game ports, so a launcher login is served. The gate
+/// token is generated per host and passed through configuration only.
+/// </summary>
+internal sealed record LauncherHost(string Directory, Uri Url, Dictionary<string, string?> Settings, string Token)
 {
+    /// <summary>A launcher client presenting this host's gate token.</summary>
+    internal HttpClient Client() => GateProbe.Client(Url, Token);
+
     internal static LauncherHost Create()
     {
         var directory = GmTestHost.NewDirectory();
@@ -204,6 +211,7 @@ internal sealed record LauncherHost(string Directory, Uri Url, Dictionary<string
         File.WriteAllBytes(script, [1]);
         var (channel, game, http) = (FreePort(), FreePort(), FreePort());
         var url = new Uri($"http://127.0.0.1:{http}");
+        var token = GateTestToken.New();
         return new(directory, url, new()
         {
             ["Networking:Enabled"] = "true",
@@ -220,7 +228,8 @@ internal sealed record LauncherHost(string Directory, Uri Url, Dictionary<string
             ["LauncherAuth:ListenUrl"] = url.AbsoluteUri,
             ["LauncherAuth:PublicChannel:Host"] = "127.0.0.1",
             ["LauncherAuth:PublicChannel:Port"] = channel.ToString(),
-        });
+            ["LauncherAuth:GateToken"] = token,
+        }, token);
     }
 
     private static int FreePort()

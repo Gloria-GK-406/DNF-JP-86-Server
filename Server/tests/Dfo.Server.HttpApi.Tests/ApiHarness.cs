@@ -318,7 +318,10 @@ internal sealed class CaptureLoggerProvider : ILoggerProvider
             Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            lock (messages) messages.Add($"{logLevel}: {formatter(state, exception)}");
+            // The exception is kept too, as a console sink would print it, so "never logged" covers it.
+            var text = $"{logLevel}: {formatter(state, exception)}";
+            if (exception is not null) text += Environment.NewLine + exception;
+            lock (messages) messages.Add(text);
         }
     }
 }

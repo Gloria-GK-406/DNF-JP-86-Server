@@ -12,7 +12,7 @@ namespace Dfo.Server.HttpApi.Tests;
 
 /// <summary>
 /// The three gate endpoints through the production pipeline: status fields and readiness, and
-/// register/login answering exactly as the launcher v1 routes do once the token passed.
+/// register/login answering alike over every transport once the token passed.
 /// </summary>
 public sealed class GateEndpointTests
 {
@@ -126,8 +126,12 @@ public sealed class GateEndpointTests
         Assert.Equal("service_unavailable", status.Json.RootElement.GetProperty("code").GetString());
         Assert.Equal(login.Body, status.Body);
         if (unready == Unready.DigestFails)
+        {
             Assert.Contains(logs.Messages, message => message.StartsWith("Warning:", StringComparison.Ordinal)
                 && message.Contains(nameof(IOException), StringComparison.Ordinal));
+            // The type name only: the message may carry a deployment path.
+            Assert.All(logs.Messages, message => Assert.DoesNotContain("archive sentinel failure", message, StringComparison.Ordinal));
+        }
     }
 
     public sealed record Exchange(string Path, string Body, Func<ICommand, object>? Execute, int Status, bool GameReady = true, bool HttpReady = true)
@@ -154,27 +158,30 @@ public sealed class GateEndpointTests
     };
 
     /// <summary>
-    /// RQ-009: the same request answers byte for byte as on the v1 route, the gate one sent as remote
-    /// plain HTTP (AC-005's gate half: no <c>secure_transport_required</c>).
+    /// RQ-005 and RQ-009 (AC-005): the same request answers byte for byte, with the same CMDs, whether it
+    /// arrives as loopback HTTPS (the one transport the retired v1 routes accepted from anywhere) or as
+    /// remote plain HTTP; no <c>secure_transport_required</c> remains.
     /// </summary>
     [Theory]
     [MemberData(nameof(Exchanges))]
-    public async Task GateCredentialRoutesAnswerAsTheV1RoutesDo(Exchange exchange)
+    public async Task GateCredentialRoutesAnswerAlikeOverEveryTransport(Exchange exchange)
     {
         var token = GateTestToken.New();
         await using var harness = ApiHarness.Create(exchange.Execute, gateToken: token);
         harness.Readiness.SetReady(exchange.HttpReady);
         harness.Game.SetReady(exchange.GameReady);
 
-        using var v1 = await harness.SendAsync("POST", "/api/launcher/v1/" + exchange.Path, exchange.Body, remoteAddress: IPAddress.Loopback);
-        var v1Commands = harness.Commands.CallCount;
-        using var gate = await harness.SendAsync("POST", "/api/gate/v1/" + exchange.Path, exchange.Body,
+        using var local = await harness.SendAsync("POST", "/api/gate/v1/" + exchange.Path, exchange.Body,
+            remoteAddress: IPAddress.Loopback, bearer: token);
+        var localCommands = harness.Commands.CallCount;
+        using var remote = await harness.SendAsync("POST", "/api/gate/v1/" + exchange.Path, exchange.Body,
             scheme: "http", remoteAddress: Remote, bearer: token);
 
-        Assert.Equal(exchange.Status, v1.StatusCode);
-        Assert.Equal(v1.StatusCode, gate.StatusCode);
-        Assert.Equal(v1.Body, gate.Body);
-        Assert.Equal(v1Commands * 2, harness.Commands.CallCount);
+        Assert.Equal(exchange.Status, local.StatusCode);
+        Assert.Equal(local.StatusCode, remote.StatusCode);
+        Assert.Equal(local.Body, remote.Body);
+        Assert.DoesNotContain("secure_transport_required", remote.Body, StringComparison.Ordinal);
+        Assert.Equal(localCommands * 2, harness.Commands.CallCount);
     }
 
     [Fact]

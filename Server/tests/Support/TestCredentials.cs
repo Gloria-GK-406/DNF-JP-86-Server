@@ -76,7 +76,7 @@ internal static class TestCredentials
     internal static ValueTask<HttpRouteReply> SendAsync(ICommandBus commands, HttpOperationCommand command, CancellationToken ct = default) =>
         commands.SendInternalAsync(command, new(GameplayCallSource.Http,
             GameplayCallChain.NewRoot(GameplayCallSource.Http), command is RegisterAccountCommand
-                ? "http:POST /api/launcher/v1/register" : "http:POST /api/launcher/v1/login", InternalCommandCancellation.BodyOnly), ct);
+                ? "http:POST /api/gate/v1/register" : "http:POST /api/gate/v1/login", InternalCommandCancellation.BodyOnly), ct);
     internal static T Result<T>(HttpRouteReply reply)
     {
         if (reply.Error is { } error) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(error);

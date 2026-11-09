@@ -34,6 +34,23 @@ public sealed class GateHttpHostTests
         Assert.DoesNotContain(gate.Host.Logs.Messages, message => message.Contains(UnconfiguredWarning, StringComparison.Ordinal));
     }
 
+    /// <summary>RQ-007: startedAt is fixed when the Host starts, not when status is first asked.</summary>
+    [Fact]
+    public async Task Status_started_at_is_when_the_host_started_not_when_status_was_first_asked()
+    {
+        var token = GateTestToken.New();
+        var beforeStart = DateTimeOffset.UtcNow;
+        await using var gate = await GateHost.StartAsync(token, services => services.AddSingleton<IContentArchiveIdentity>(new FixedDigest(Digest)));
+        var afterStart = DateTimeOffset.UtcNow;
+        await Task.Delay(TimeSpan.FromMilliseconds(200));
+        var asked = DateTimeOffset.UtcNow;
+
+        var startedAt = (await gate.StatusAsync(token)).GetProperty("startedAt").GetDateTimeOffset();
+
+        Assert.InRange(startedAt, beforeStart, afterStart);
+        Assert.True(startedAt < asked, $"startedAt {startedAt:O} is not before the first status request at {asked:O}");
+    }
+
     [PvfFact]
     public async Task Status_reports_the_real_archive_digest_that_server_info_reports()
     {

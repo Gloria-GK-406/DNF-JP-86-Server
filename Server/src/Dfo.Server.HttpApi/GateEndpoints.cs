@@ -69,7 +69,7 @@ internal static class GateEndpoints
             Registration: true));
     }
 
-    /// <summary>Names the client of an authenticated gate request; a launcher v1 request carries none and logs nothing.</summary>
+    /// <summary>Names the client the authentication middleware settled for this gate request.</summary>
     internal static void LogCaller(HttpContext context, ILoggerFactory loggers, string operation)
     {
         if (context.Features.Get<GateClientAddress>() is not { } client) return;

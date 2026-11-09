@@ -1,46 +1,52 @@
-using Dfo.Server.Data.Networking;
 using System.Net;
 using System.Text;
-using System.Text.Json;
-using Dfo.Server.Abstractions.Authentication;
-using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.HttpOperations;
-using Dfo.Server.Application.Execution;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Authentication;
-using Dfo.Server.Data.Configuration;
-using Dfo.Server.Data.OnlineUsers;
-using Microsoft.AspNetCore.Builder;
+using Dfo.Server.Testing;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.HttpApi.Tests;
 
+/// <summary>
+/// The launcher's credential routes, now the gate's register and login, through the production pipeline.
+/// Every harness here holds this run's gate token and every request presents it unless a case says otherwise.
+/// </summary>
 public sealed class HttpApiPipelineTests
 {
-    [Theory]
-    [InlineData(true, StatusCodes.Status200OK, "ready")]
-    [InlineData(false, StatusCodes.Status503ServiceUnavailable, "service_unavailable")]
-    public async Task BootstrapUsesStableV1ReadinessJson(bool ready, int status, string marker)
+    private const string Register = "/api/gate/v1/register";
+    private const string Login = "/api/gate/v1/login";
+    private const string Credentials = "{\"loginId\":\"player\",\"password\":\"password-1\"}";
+    private static readonly string Token = GateTestToken.New();
+
+    /// <summary>
+    /// The retired launcher v1 prefix, assembled from its segments so that a search for the old path
+    /// finds callers only; this is the one place that still names it, to prove it is gone (AC-010).
+    /// </summary>
+    private static readonly string RetiredPrefix = string.Join('/', "", "api", "launcher", "v1");
+
+    /// <summary>RQ-011: the launcher v1 routes are gone, with or without the gate token, and nothing behind them runs.</summary>
+    [Fact]
+    public async Task RetiredLauncherV1RoutesAreNotFound()
     {
-        await using var harness = ApiHarness.Create();
-        harness.Readiness.SetReady(ready);
+        await using var harness = Harness(_ => throw new InvalidOperationException("Unexpected command."));
 
-        var response = await harness.SendAsync("GET", "/api/launcher/v1/bootstrap");
-
-        Assert.Equal(status, response.StatusCode);
-        Assert.Equal(marker, response.Json.RootElement.GetProperty(
-            ready ? "status" : "code").GetString());
-        if (ready)
+        foreach (var bearer in new[] { null, Token })
         {
-            Assert.Equal("1", response.Json.RootElement.GetProperty("apiVersion").GetString());
-            Assert.True(response.Json.RootElement.GetProperty("registrationEnabled").GetBoolean());
+            foreach (var (method, path) in new[] { ("GET", "/bootstrap"), ("POST", "/register"), ("POST", "/login") })
+            {
+                var body = new ReadTrackingStream(Encoding.UTF8.GetBytes(Credentials));
+                using var response = await harness.SendAsync(method, RetiredPrefix + path, Credentials,
+                    scheme: "http", remoteAddress: IPAddress.Loopback, requestBody: body, bearer: bearer);
+                Assert.Equal(StatusCodes.Status404NotFound, response.StatusCode);
+                Assert.Equal(0, body.ReadCount);
+            }
         }
+
+        Assert.Equal(0, harness.Commands.CallCount);
+        Assert.Equal(0, harness.Credentials.Registrations);
+        Assert.Equal(0, harness.Credentials.LoginChecks);
     }
 
     [Theory]
@@ -55,7 +61,7 @@ public sealed class HttpApiPipelineTests
         var fieldErrors = commandStatus == AuthenticationStatus.InvalidRequest
             ? new Dictionary<string, string> { ["loginId"] = "bad login" }
             : null;
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             RegisterAccountCommand => new RegistrationResult(
                 commandStatus,
@@ -66,8 +72,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/register",
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            Register,
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         if (expectedCode is null)
@@ -98,7 +105,7 @@ public sealed class HttpApiPipelineTests
         int expectedStatus,
         string expectedCode)
     {
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand => new AuthenticationResult(
                 commandStatus,
@@ -110,8 +117,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"unknown\",\"password\":\"secret-sentinel\"}");
+            Login,
+            "{\"loginId\":\"unknown\",\"password\":\"secret-sentinel\"}",
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(expectedCode, response.Json.RootElement.GetProperty("code").GetString());
@@ -123,7 +131,7 @@ public sealed class HttpApiPipelineTests
     public async Task LoginSuccessProjectsTicketExpiryAndTheConfiguredChannelBootstrap()
     {
         var expiry = new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero);
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand { Login.LoginId: "player" } =>
                 new AuthenticationResult(
@@ -136,8 +144,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            Login,
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         Assert.Equal("123456", response.Json.RootElement.GetProperty("mId").GetString());
@@ -149,49 +158,65 @@ public sealed class HttpApiPipelineTests
         Assert.Equal(7001, channel.GetProperty("port").GetInt32());
     }
 
+    /// <summary>
+    /// RQ-005: remote plain HTTP is no longer refused for its transport. Without the token the request is
+    /// refused before its body is read or anything is dispatched; with it, the same request is served.
+    /// </summary>
     [Theory]
-    [InlineData("/api/launcher/v1/register", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/register", "{")]
-    [InlineData("/api/launcher/v1/register/", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/register/", "{")]
-    [InlineData("/api/launcher/v1/login", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/login", "{")]
-    [InlineData("/api/launcher/v1/login/", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/login/", "{")]
-    public async Task RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(
+    [InlineData(Register, "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status201Created, 1)]
+    [InlineData(Register, "{", StatusCodes.Status400BadRequest, 0)]
+    [InlineData(Register + "/", "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status201Created, 1)]
+    [InlineData(Register + "/", "{", StatusCodes.Status400BadRequest, 0)]
+    [InlineData(Login, "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status200OK, 1)]
+    [InlineData(Login, "{", StatusCodes.Status400BadRequest, 0)]
+    [InlineData(Login + "/", "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status200OK, 1)]
+    [InlineData(Login + "/", "{", StatusCodes.Status400BadRequest, 0)]
+    public async Task RemotePlaintextCredentialRequestsAreServedWithTheTokenAndRefusedBeforeAnyBodyReadWithoutIt(
         string path,
-        string body)
+        string body,
+        int expectedWithToken,
+        int expectedCommands)
     {
-        await using var harness = ApiHarness.Create();
-        var trackingBody = new ReadTrackingStream(Encoding.UTF8.GetBytes(body));
+        await using var harness = Harness(command => command switch
+        {
+            RegisterAccountCommand => new RegistrationResult(AuthenticationStatus.Success, "player"),
+            AuthenticateAccountCommand => new AuthenticationResult(
+                AuthenticationStatus.Success,
+                "player",
+                "ticket_safe-123",
+                new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero)),
+            _ => throw new InvalidOperationException("Unexpected command."),
+        });
+        var remote = IPAddress.Parse("198.51.100.20");
 
-        var response = await harness.SendAsync(
-            "POST",
-            path,
-            body,
-            scheme: "http",
-            remoteAddress: IPAddress.Parse("198.51.100.20"),
-            requestBody: trackingBody);
+        var refusedBody = new ReadTrackingStream(Encoding.UTF8.GetBytes(body));
+        var refused = await harness.SendAsync("POST", path, body, scheme: "http", remoteAddress: remote, requestBody: refusedBody);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
-        Assert.Equal(
-            "secure_transport_required",
-            response.Json.RootElement.GetProperty("code").GetString());
-        Assert.Equal(0, trackingBody.ReadCount);
+        Assert.Equal(StatusCodes.Status401Unauthorized, refused.StatusCode);
+        Assert.Equal("unauthorized", refused.Json.RootElement.GetProperty("code").GetString());
+        Assert.Equal(0, refusedBody.ReadCount);
         Assert.Equal(0, harness.Commands.CallCount);
+
+        var served = await harness.SendAsync("POST", path, body, scheme: "http", remoteAddress: remote, bearer: Token);
+
+        Assert.Equal(expectedWithToken, served.StatusCode);
+        Assert.DoesNotContain("secure_transport_required", served.Body, StringComparison.Ordinal);
+        if (expectedWithToken == StatusCodes.Status400BadRequest)
+            Assert.Equal("invalid_request", served.Json.RootElement.GetProperty("code").GetString());
+        Assert.Equal(expectedCommands, harness.Commands.CallCount);
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register", null)]
-    [InlineData("/api/launcher/v1/register", "text/plain")]
-    [InlineData("/api/launcher/v1/login", null)]
-    [InlineData("/api/launcher/v1/login", "text/plain")]
+    [InlineData(Register, null)]
+    [InlineData(Register, "text/plain")]
+    [InlineData(Login, null)]
+    [InlineData(Login, "text/plain")]
     public async Task MissingOrUnsupportedCredentialContentTypeUsesStableInvalidRequest(
         string path,
         string? contentType)
     {
         const string secret = "content-type-secret-sentinel";
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
         var body = $"{{\"loginId\":\"player\",\"password\":\"{secret}\"}}";
         var trackingBody = new ReadTrackingStream(Encoding.UTF8.GetBytes(body));
 
@@ -200,7 +225,8 @@ public sealed class HttpApiPipelineTests
             path,
             body,
             requestBody: trackingBody,
-            contentType: contentType);
+            contentType: contentType,
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -210,17 +236,17 @@ public sealed class HttpApiPipelineTests
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register", "application/json")]
-    [InlineData("/api/launcher/v1/register", "application/problem+json")]
-    [InlineData("/api/launcher/v1/login", "application/json")]
-    [InlineData("/api/launcher/v1/login", "application/problem+json")]
+    [InlineData(Register, "application/json")]
+    [InlineData(Register, "application/problem+json")]
+    [InlineData(Login, "application/json")]
+    [InlineData(Login, "application/problem+json")]
     public async Task SupportedJsonContentTypesStillMapMalformedBodyToInvalidRequest(
         string path,
         string contentType)
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
 
-        var response = await harness.SendAsync("POST", path, "{", contentType: contentType);
+        var response = await harness.SendAsync("POST", path, "{", contentType: contentType, bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -228,17 +254,19 @@ public sealed class HttpApiPipelineTests
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register/", "http", "127.0.0.1", StatusCodes.Status201Created)]
-    [InlineData("/api/launcher/v1/register/", "https", "198.51.100.20", StatusCodes.Status201Created)]
-    [InlineData("/api/launcher/v1/login/", "http", "127.0.0.1", StatusCodes.Status200OK)]
-    [InlineData("/api/launcher/v1/login/", "https", "198.51.100.20", StatusCodes.Status200OK)]
-    public async Task RoutedCredentialEndpointsRemainAvailableOverAllowedTransports(
+    [InlineData(Register + "/", "http", "127.0.0.1", StatusCodes.Status201Created)]
+    [InlineData(Register + "/", "http", "198.51.100.20", StatusCodes.Status201Created)]
+    [InlineData(Register + "/", "https", "198.51.100.20", StatusCodes.Status201Created)]
+    [InlineData(Login + "/", "http", "127.0.0.1", StatusCodes.Status200OK)]
+    [InlineData(Login + "/", "http", "198.51.100.20", StatusCodes.Status200OK)]
+    [InlineData(Login + "/", "https", "198.51.100.20", StatusCodes.Status200OK)]
+    public async Task RoutedCredentialEndpointsAreAvailableOverEveryTransportWithTheToken(
         string path,
         string scheme,
         string remoteAddress,
         int expectedStatus)
     {
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             RegisterAccountCommand => new RegistrationResult(
                 AuthenticationStatus.Success,
@@ -256,26 +284,27 @@ public sealed class HttpApiPipelineTests
             path,
             "{\"loginId\":\"player\",\"password\":\"password-1\"}",
             scheme: scheme,
-            remoteAddress: IPAddress.Parse(remoteAddress));
+            remoteAddress: IPAddress.Parse(remoteAddress),
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(1, harness.Commands.CallCount);
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register", "null")]
-    [InlineData("/api/launcher/v1/register", "{}")]
-    [InlineData("/api/launcher/v1/register", "{")]
-    [InlineData("/api/launcher/v1/login", "null")]
-    [InlineData("/api/launcher/v1/login", "{}")]
-    [InlineData("/api/launcher/v1/login", "{")]
+    [InlineData(Register, "null")]
+    [InlineData(Register, "{}")]
+    [InlineData(Register, "{")]
+    [InlineData(Login, "null")]
+    [InlineData(Login, "{}")]
+    [InlineData(Login, "{")]
     public async Task NullMissingAndMalformedCredentialJsonUsesTheSameStableError(
         string path,
         string body)
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
 
-        var response = await harness.SendAsync("POST", path, body);
+        var response = await harness.SendAsync("POST", path, body, bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -284,17 +313,18 @@ public sealed class HttpApiPipelineTests
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register")]
-    [InlineData("/api/launcher/v1/login")]
+    [InlineData(Register)]
+    [InlineData(Login)]
     public async Task CredentialEndpointsDoNotReadOrDispatchWhileServiceIsUnavailable(string path)
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
         harness.Readiness.SetReady(false);
 
         var response = await harness.SendAsync(
             "POST",
             path,
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, response.StatusCode);
         Assert.Equal("service_unavailable", response.Json.RootElement.GetProperty("code").GetString());
@@ -304,7 +334,7 @@ public sealed class HttpApiPipelineTests
     [Fact]
     public async Task MissingAccountAndWrongPasswordHaveByteIdenticalExternalSemantics()
     {
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand =>
                 new AuthenticationResult(AuthenticationStatus.InvalidCredentials),
@@ -313,12 +343,14 @@ public sealed class HttpApiPipelineTests
 
         var wrong = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"known\",\"password\":\"wrong-password\"}");
+            Login,
+            "{\"loginId\":\"known\",\"password\":\"wrong-password\"}",
+            bearer: Token);
         var missing = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"missing\",\"password\":\"wrong-password\"}");
+            Login,
+            "{\"loginId\":\"missing\",\"password\":\"wrong-password\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, wrong.StatusCode);
         Assert.Equal(wrong.Body, missing.Body);
@@ -327,14 +359,15 @@ public sealed class HttpApiPipelineTests
     [Fact]
     public async Task LoopbackPlaintextReachesBindingAndMalformedJsonGetsStableError()
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/register",
+            Register,
             "{",
             scheme: "http",
-            remoteAddress: IPAddress.Loopback);
+            remoteAddress: IPAddress.Loopback,
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -345,14 +378,15 @@ public sealed class HttpApiPipelineTests
     public async Task UnexpectedCommandFailureReturnsSafeInternalError()
     {
         var logs = new CaptureLoggerProvider();
-        await using var harness = ApiHarness.Create(
+        await using var harness = Harness(
             _ => throw new InvalidOperationException("SQL stack secret-sentinel"),
             logs);
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"player\",\"password\":\"secret-sentinel\"}");
+            Login,
+            "{\"loginId\":\"player\",\"password\":\"secret-sentinel\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status500InternalServerError, response.StatusCode);
         Assert.Equal("internal_error", response.Json.RootElement.GetProperty("code").GetString());
@@ -372,7 +406,7 @@ public sealed class HttpApiPipelineTests
     public async Task LoginChecksTheCredentialAgainOnceWhenItChangedBeforeTheCommand(int changes, int expectedStatus)
     {
         var sent = 0;
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand => ++sent <= changes
                 ? new AuthenticationResult(AuthenticationStatus.CredentialChanged)
@@ -386,8 +420,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            Login,
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(2, harness.Credentials.LoginChecks);
@@ -395,4 +430,7 @@ public sealed class HttpApiPipelineTests
         if (expectedStatus == StatusCodes.Status401Unauthorized)
             Assert.Equal("invalid_credentials", response.Json.RootElement.GetProperty("code").GetString());
     }
+
+    private static ApiHarness Harness(Func<ICommand, object>? execute = null, ILoggerProvider? logs = null) =>
+        ApiHarness.Create(execute, logs, gateToken: Token);
 }
