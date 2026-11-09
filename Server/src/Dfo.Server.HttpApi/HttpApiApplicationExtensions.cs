@@ -34,6 +34,7 @@ public static class HttpApiApplicationExtensions
         application.UseMiddleware<HttpApiExceptionMiddleware>();
         application.UseRouting();
         application.UseMiddleware<HttpListenerBoundaryMiddleware>();
+        application.UseMiddleware<GateAuthenticationMiddleware>();
         application.UseMiddleware<CredentialTransportGateMiddleware>();
     }
 
