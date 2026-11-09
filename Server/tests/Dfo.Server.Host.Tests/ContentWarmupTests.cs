@@ -21,7 +21,7 @@ public sealed partial class ContentWarmupTests
     [
         "achievement-catalog", "title-book-catalog", "character-skill-rules", "gold-carry-limits",
         "premium-service-rules", "quest-helper-puppets", "experience-rules", "drop-rules",
-        "gold-silver-horn", "hell-reward", "sao-tower", "marriage-ceremony", "marriage-proposal",
+        "gold-silver-horn", "hell-reward", "sao-tower", "dark-elf-ruins", "marriage-ceremony", "marriage-proposal",
         "marriage-capsule", "marriage-housing", "altar-dungeons", "guardian-altar", "joust", "tournament-dungeons",
         "initial-equipment", "initial-skills", "item-placement-index", "despair-tower", "towns",
         "daily-activities", "collection-boxes", "quests", "dungeon-index", "dungeon-map-index",
