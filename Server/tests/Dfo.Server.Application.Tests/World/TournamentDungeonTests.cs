@@ -389,7 +389,7 @@ public sealed class TournamentDungeonTests
             {
                 Assert.NotNull((await Enter(f, Entry() with { DungeonId = 122 })).Entry);
                 var run = Runs(f).Find(new CharacterId(71))!;
-                await Runs(f).EndAsync(new(71), run.RunId);
+                await TestUseCase.RunAsync(f.Services, () => Runs(f).EndAsync(new(71), run.RunId));
                 Assert.Equal(8 - i, (await Quota()).Remaining);
             }
             Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await Enter(f, Entry() with { DungeonId = 122 })).Failure);

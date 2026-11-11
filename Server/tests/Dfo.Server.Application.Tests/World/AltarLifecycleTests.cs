@@ -51,7 +51,7 @@ public sealed class AltarLifecycleTests
                     if (state.Status == AltarStatus.AwaitingRoom)
                     {
                         var target = new MazeCell(checked((byte)(run.CurrentCell.X + 1)), run.CurrentCell.Y);
-                        var moved = await f.Services.GetRequiredService<IDungeonVisitDomainService>().TryMoveAsync(
+                        var moved = await UseCaseDungeons.Visits(f.Services).TryMoveAsync(
                             new(71), run, target, default);
                         Assert.NotNull(moved.Visit);
                         run = runs.Find(runId)!;
@@ -125,7 +125,7 @@ public sealed class AltarLifecycleTests
                     Assert.NotNull((await altars.EnterAsync(Entry(dungeonId), default)).Entry);
                     await tx.CommitAsync(default);
                 }
-                Assert.True(await runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId));
+                Assert.True(await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId)));
                 var state = await entries.LoadAsync(new(1), new(71), default);
                 Assert.Equal(3 - used, Assert.Single(state.Public.Extras.Dimensions, x => x.Key == dungeonId).Value2);
                 Assert.Equal(dungeonId == 11006 ? 7 : 8, Assert.Single(state.Public.Extras.Dimensions, x => x.Key == dungeonId).Value1);
@@ -202,7 +202,7 @@ public sealed class AltarLifecycleTests
                     Assert.NotNull(await altars.SettleBeforeExitAsync(run.RunId, default));
                     await tx.CommitAsync(default);
                 }
-                await runs.EndAsync(new(71), run.RunId);
+                await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), run.RunId));
                 await using (var tx = f.Scope.Begin())
                     Assert.Null(await altars.AdvanceAsync(run.RunId, run.RoomVersion, 0, clock.At.AddDays(1), default));
             }
@@ -309,7 +309,7 @@ public sealed class AltarLifecycleTests
                 }
             var former = await f.Services.GetRequiredService<ICharacterDomainService>().Get(new(72)).ProgressAsync(default);
             Assert.True(parties.LeaveParty(new(72)).Succeeded);
-            await runs.EndAsync(new(72), run.RunId);
+            await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(72), run.RunId));
             Assert.Single(runs.Find(run.RunId)!.Participants);
             await using (var tx = f.Scope.Begin()) Assert.Null(await altars.SettleBeforeExitAsync(run.RunId, default, new(72)));
             await ReachRound(2);
@@ -374,7 +374,7 @@ public sealed class AltarLifecycleTests
             var after = await character.ProgressAsync(default);
             Assert.NotEqual(before, after);
             await using (var tx = f.Scope.Begin()) Assert.Null(await altars.SettleBeforeExitAsync(run.RunId, default, new(71)));
-            await runs.EndAsync(new(71), run.RunId);
+            await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), run.RunId));
             await using (var tx = f.Scope.Begin()) Assert.Null(await altars.AdvanceAsync(run.RunId, run.RoomVersion, 0, clock.At.AddDays(1), default));
             Assert.Equal(after, await character.ProgressAsync(default));
         });

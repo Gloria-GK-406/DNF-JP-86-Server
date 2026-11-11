@@ -101,7 +101,7 @@ public sealed class DespairTowerTests
             Assert.Equal(11008, first.Entry.Layout.DungeonId); // forged floor 100 is routed to floor 1
             Assert.Equal(0, (await f.Services.GetRequiredService<ICharacterFatigueDomainService>().BalanceOfAsync(new(71), default)).Used);
             var runs = f.Services.DungeonRuns();
-            await runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId);
+            await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId));
             Assert.Equal(DungeonEntryFailure.MissingRequiredItem, (await Enter(f)).Failure);
             await Tickets(f, 2);
             var retry = await Enter(f, commit: false);
@@ -144,7 +144,7 @@ public sealed class DespairTowerTests
                 Assert.NotEmpty(reward.Rewards);
                 Assert.Null(await Clear(f));
                 Assert.Equal(floor, (await store.ReadAsync(new(71), default)).HighestClearedFloor);
-                await runs.EndAsync(new(71), run.RunId);
+                await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), run.RunId));
             }
             Assert.Equal(3, TicketCount(f)); // free first entry then 2 paid entries
             Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await Enter(f)).Failure);
@@ -175,7 +175,7 @@ public sealed class DespairTowerTests
             Assert.NotNull(await Clear(f));
             var cleared = await tower.ReadStatusAsync(new(71), default);
             Assert.Equal((2, (byte)0), (cleared.NextFloor, cleared.FreeEntriesRemaining));
-            await f.Services.DungeonRuns().EndAsync(new(71), first.Visits[new(71)].Run.RunId);
+            await TestUseCase.RunAsync(f.Services, () => f.Services.DungeonRuns().EndAsync(new(71), first.Visits[new(71)].Run.RunId));
             Assert.Equal(DungeonEntryFailure.MissingRequiredItem, (await Enter(f)).Failure);
             clock.Now = clock.Now.AddDays(1);
             var reset = await tower.ReadStatusAsync(new(71), default);
@@ -220,7 +220,7 @@ public sealed class DespairTowerTests
             Assert.Equal(100, (await store.ReadAsync(new(71), default)).HighestClearedFloor);
             var status = await tower.ReadStatusAsync(new(71), default);
             Assert.Equal((1, (byte)0), (status.NextFloor, status.FreeEntriesRemaining));
-            await runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId);
+            await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), runs.Find(new CharacterId(71))!.RunId));
             Assert.Equal(DungeonEntryFailure.DailyEntryLimitReached, (await Enter(f)).Failure);
             clock.Now = clock.Now.AddSeconds(1);
             status = await tower.ReadStatusAsync(new(71), default);
