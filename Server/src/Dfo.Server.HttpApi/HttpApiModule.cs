@@ -17,6 +17,12 @@ public sealed class HttpApiModule : IServerModule
 
         var options = HttpApiOptions.FromConfiguration(configuration);
         services.TryAddSingleton(options);
+        // The gate middleware runs on every HTTP pipeline, GmWeb-only hosts included, so its
+        // dependencies cannot wait for LauncherAuth to be enabled.
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(GateOptions.FromConfiguration(configuration));
+        services.TryAddSingleton<GateAuthFailureLimiter>();
+        services.TryAddSingleton(provider => new HostStartTime(provider.GetRequiredService<TimeProvider>().GetUtcNow()));
         if (!options.Enabled) return;
         services.TryAddSingleton<HttpApiReadiness>();
         services.TryAddEnumerable(

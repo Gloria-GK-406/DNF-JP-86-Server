@@ -1,46 +1,52 @@
-using Dfo.Server.Data.Networking;
 using System.Net;
 using System.Text;
-using System.Text.Json;
-using Dfo.Server.Abstractions.Authentication;
-using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Application.HttpOperations;
-using Dfo.Server.Application.Execution;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Authentication;
-using Dfo.Server.Data.Configuration;
-using Dfo.Server.Data.OnlineUsers;
-using Microsoft.AspNetCore.Builder;
+using Dfo.Server.Testing;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.HttpApi.Tests;
 
+/// <summary>
+/// The launcher's credential routes, now the gate's register and login, through the production pipeline.
+/// Every harness here holds this run's gate token and every request presents it unless a case says otherwise.
+/// </summary>
 public sealed class HttpApiPipelineTests
 {
-    [Theory]
-    [InlineData(true, StatusCodes.Status200OK, "ready")]
-    [InlineData(false, StatusCodes.Status503ServiceUnavailable, "service_unavailable")]
-    public async Task BootstrapUsesStableV1ReadinessJson(bool ready, int status, string marker)
+    private const string Register = "/api/gate/v1/register";
+    private const string Login = "/api/gate/v1/login";
+    private const string Credentials = "{\"loginId\":\"player\",\"password\":\"password-1\"}";
+    private static readonly string Token = GateTestToken.New();
+
+    /// <summary>
+    /// The retired launcher v1 prefix, assembled from its segments so that a search for the old path
+    /// finds callers only; this is the one place that still names it, to prove it is gone (AC-010).
+    /// </summary>
+    private static readonly string RetiredPrefix = string.Join('/', "", "api", "launcher", "v1");
+
+    /// <summary>RQ-011: the launcher v1 routes are gone, with or without the gate token, and nothing behind them runs.</summary>
+    [Fact]
+    public async Task RetiredLauncherV1RoutesAreNotFound()
     {
-        await using var harness = ApiHarness.Create();
-        harness.Readiness.SetReady(ready);
+        await using var harness = Harness(_ => throw new InvalidOperationException("Unexpected command."));
 
-        var response = await harness.SendAsync("GET", "/api/launcher/v1/bootstrap");
-
-        Assert.Equal(status, response.StatusCode);
-        Assert.Equal(marker, response.Json.RootElement.GetProperty(
-            ready ? "status" : "code").GetString());
-        if (ready)
+        foreach (var bearer in new[] { null, Token })
         {
-            Assert.Equal("1", response.Json.RootElement.GetProperty("apiVersion").GetString());
-            Assert.True(response.Json.RootElement.GetProperty("registrationEnabled").GetBoolean());
+            foreach (var (method, path) in new[] { ("GET", "/bootstrap"), ("POST", "/register"), ("POST", "/login") })
+            {
+                var body = new ReadTrackingStream(Encoding.UTF8.GetBytes(Credentials));
+                using var response = await harness.SendAsync(method, RetiredPrefix + path, Credentials,
+                    scheme: "http", remoteAddress: IPAddress.Loopback, requestBody: body, bearer: bearer);
+                Assert.Equal(StatusCodes.Status404NotFound, response.StatusCode);
+                Assert.Equal(0, body.ReadCount);
+            }
         }
+
+        Assert.Equal(0, harness.Commands.CallCount);
+        Assert.Equal(0, harness.Credentials.Registrations);
+        Assert.Equal(0, harness.Credentials.LoginChecks);
     }
 
     [Theory]
@@ -55,7 +61,7 @@ public sealed class HttpApiPipelineTests
         var fieldErrors = commandStatus == AuthenticationStatus.InvalidRequest
             ? new Dictionary<string, string> { ["loginId"] = "bad login" }
             : null;
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             RegisterAccountCommand => new RegistrationResult(
                 commandStatus,
@@ -66,8 +72,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/register",
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            Register,
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         if (expectedCode is null)
@@ -98,7 +105,7 @@ public sealed class HttpApiPipelineTests
         int expectedStatus,
         string expectedCode)
     {
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand => new AuthenticationResult(
                 commandStatus,
@@ -110,8 +117,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"unknown\",\"password\":\"secret-sentinel\"}");
+            Login,
+            "{\"loginId\":\"unknown\",\"password\":\"secret-sentinel\"}",
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(expectedCode, response.Json.RootElement.GetProperty("code").GetString());
@@ -123,7 +131,7 @@ public sealed class HttpApiPipelineTests
     public async Task LoginSuccessProjectsTicketExpiryAndTheConfiguredChannelBootstrap()
     {
         var expiry = new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero);
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand { Login.LoginId: "player" } =>
                 new AuthenticationResult(
@@ -136,8 +144,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            Login,
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
         Assert.Equal("123456", response.Json.RootElement.GetProperty("mId").GetString());
@@ -149,49 +158,65 @@ public sealed class HttpApiPipelineTests
         Assert.Equal(7001, channel.GetProperty("port").GetInt32());
     }
 
+    /// <summary>
+    /// RQ-005: remote plain HTTP is no longer refused for its transport. Without the token the request is
+    /// refused before its body is read or anything is dispatched; with it, the same request is served.
+    /// </summary>
     [Theory]
-    [InlineData("/api/launcher/v1/register", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/register", "{")]
-    [InlineData("/api/launcher/v1/register/", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/register/", "{")]
-    [InlineData("/api/launcher/v1/login", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/login", "{")]
-    [InlineData("/api/launcher/v1/login/", "{\"loginId\":\"player\",\"password\":\"password-1\"}")]
-    [InlineData("/api/launcher/v1/login/", "{")]
-    public async Task RemotePlaintextCredentialRequestsAreRejectedBeforeAnyBodyRead(
+    [InlineData(Register, "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status201Created, 1)]
+    [InlineData(Register, "{", StatusCodes.Status400BadRequest, 0)]
+    [InlineData(Register + "/", "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status201Created, 1)]
+    [InlineData(Register + "/", "{", StatusCodes.Status400BadRequest, 0)]
+    [InlineData(Login, "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status200OK, 1)]
+    [InlineData(Login, "{", StatusCodes.Status400BadRequest, 0)]
+    [InlineData(Login + "/", "{\"loginId\":\"player\",\"password\":\"password-1\"}", StatusCodes.Status200OK, 1)]
+    [InlineData(Login + "/", "{", StatusCodes.Status400BadRequest, 0)]
+    public async Task RemotePlaintextCredentialRequestsAreServedWithTheTokenAndRefusedBeforeAnyBodyReadWithoutIt(
         string path,
-        string body)
+        string body,
+        int expectedWithToken,
+        int expectedCommands)
     {
-        await using var harness = ApiHarness.Create();
-        var trackingBody = new ReadTrackingStream(Encoding.UTF8.GetBytes(body));
+        await using var harness = Harness(command => command switch
+        {
+            RegisterAccountCommand => new RegistrationResult(AuthenticationStatus.Success, "player"),
+            AuthenticateAccountCommand => new AuthenticationResult(
+                AuthenticationStatus.Success,
+                "player",
+                "ticket_safe-123",
+                new DateTimeOffset(2026, 9, 10, 12, 34, 56, TimeSpan.Zero)),
+            _ => throw new InvalidOperationException("Unexpected command."),
+        });
+        var remote = IPAddress.Parse("198.51.100.20");
 
-        var response = await harness.SendAsync(
-            "POST",
-            path,
-            body,
-            scheme: "http",
-            remoteAddress: IPAddress.Parse("198.51.100.20"),
-            requestBody: trackingBody);
+        var refusedBody = new ReadTrackingStream(Encoding.UTF8.GetBytes(body));
+        var refused = await harness.SendAsync("POST", path, body, scheme: "http", remoteAddress: remote, requestBody: refusedBody);
 
-        Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
-        Assert.Equal(
-            "secure_transport_required",
-            response.Json.RootElement.GetProperty("code").GetString());
-        Assert.Equal(0, trackingBody.ReadCount);
+        Assert.Equal(StatusCodes.Status401Unauthorized, refused.StatusCode);
+        Assert.Equal("unauthorized", refused.Json.RootElement.GetProperty("code").GetString());
+        Assert.Equal(0, refusedBody.ReadCount);
         Assert.Equal(0, harness.Commands.CallCount);
+
+        var served = await harness.SendAsync("POST", path, body, scheme: "http", remoteAddress: remote, bearer: Token);
+
+        Assert.Equal(expectedWithToken, served.StatusCode);
+        Assert.DoesNotContain("secure_transport_required", served.Body, StringComparison.Ordinal);
+        if (expectedWithToken == StatusCodes.Status400BadRequest)
+            Assert.Equal("invalid_request", served.Json.RootElement.GetProperty("code").GetString());
+        Assert.Equal(expectedCommands, harness.Commands.CallCount);
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register", null)]
-    [InlineData("/api/launcher/v1/register", "text/plain")]
-    [InlineData("/api/launcher/v1/login", null)]
-    [InlineData("/api/launcher/v1/login", "text/plain")]
+    [InlineData(Register, null)]
+    [InlineData(Register, "text/plain")]
+    [InlineData(Login, null)]
+    [InlineData(Login, "text/plain")]
     public async Task MissingOrUnsupportedCredentialContentTypeUsesStableInvalidRequest(
         string path,
         string? contentType)
     {
         const string secret = "content-type-secret-sentinel";
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
         var body = $"{{\"loginId\":\"player\",\"password\":\"{secret}\"}}";
         var trackingBody = new ReadTrackingStream(Encoding.UTF8.GetBytes(body));
 
@@ -200,7 +225,8 @@ public sealed class HttpApiPipelineTests
             path,
             body,
             requestBody: trackingBody,
-            contentType: contentType);
+            contentType: contentType,
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -210,17 +236,17 @@ public sealed class HttpApiPipelineTests
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register", "application/json")]
-    [InlineData("/api/launcher/v1/register", "application/problem+json")]
-    [InlineData("/api/launcher/v1/login", "application/json")]
-    [InlineData("/api/launcher/v1/login", "application/problem+json")]
+    [InlineData(Register, "application/json")]
+    [InlineData(Register, "application/problem+json")]
+    [InlineData(Login, "application/json")]
+    [InlineData(Login, "application/problem+json")]
     public async Task SupportedJsonContentTypesStillMapMalformedBodyToInvalidRequest(
         string path,
         string contentType)
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
 
-        var response = await harness.SendAsync("POST", path, "{", contentType: contentType);
+        var response = await harness.SendAsync("POST", path, "{", contentType: contentType, bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -228,17 +254,19 @@ public sealed class HttpApiPipelineTests
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register/", "http", "127.0.0.1", StatusCodes.Status201Created)]
-    [InlineData("/api/launcher/v1/register/", "https", "198.51.100.20", StatusCodes.Status201Created)]
-    [InlineData("/api/launcher/v1/login/", "http", "127.0.0.1", StatusCodes.Status200OK)]
-    [InlineData("/api/launcher/v1/login/", "https", "198.51.100.20", StatusCodes.Status200OK)]
-    public async Task RoutedCredentialEndpointsRemainAvailableOverAllowedTransports(
+    [InlineData(Register + "/", "http", "127.0.0.1", StatusCodes.Status201Created)]
+    [InlineData(Register + "/", "http", "198.51.100.20", StatusCodes.Status201Created)]
+    [InlineData(Register + "/", "https", "198.51.100.20", StatusCodes.Status201Created)]
+    [InlineData(Login + "/", "http", "127.0.0.1", StatusCodes.Status200OK)]
+    [InlineData(Login + "/", "http", "198.51.100.20", StatusCodes.Status200OK)]
+    [InlineData(Login + "/", "https", "198.51.100.20", StatusCodes.Status200OK)]
+    public async Task RoutedCredentialEndpointsAreAvailableOverEveryTransportWithTheToken(
         string path,
         string scheme,
         string remoteAddress,
         int expectedStatus)
     {
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             RegisterAccountCommand => new RegistrationResult(
                 AuthenticationStatus.Success,
@@ -256,26 +284,27 @@ public sealed class HttpApiPipelineTests
             path,
             "{\"loginId\":\"player\",\"password\":\"password-1\"}",
             scheme: scheme,
-            remoteAddress: IPAddress.Parse(remoteAddress));
+            remoteAddress: IPAddress.Parse(remoteAddress),
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(1, harness.Commands.CallCount);
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register", "null")]
-    [InlineData("/api/launcher/v1/register", "{}")]
-    [InlineData("/api/launcher/v1/register", "{")]
-    [InlineData("/api/launcher/v1/login", "null")]
-    [InlineData("/api/launcher/v1/login", "{}")]
-    [InlineData("/api/launcher/v1/login", "{")]
+    [InlineData(Register, "null")]
+    [InlineData(Register, "{}")]
+    [InlineData(Register, "{")]
+    [InlineData(Login, "null")]
+    [InlineData(Login, "{}")]
+    [InlineData(Login, "{")]
     public async Task NullMissingAndMalformedCredentialJsonUsesTheSameStableError(
         string path,
         string body)
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
 
-        var response = await harness.SendAsync("POST", path, body);
+        var response = await harness.SendAsync("POST", path, body, bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -284,17 +313,18 @@ public sealed class HttpApiPipelineTests
     }
 
     [Theory]
-    [InlineData("/api/launcher/v1/register")]
-    [InlineData("/api/launcher/v1/login")]
+    [InlineData(Register)]
+    [InlineData(Login)]
     public async Task CredentialEndpointsDoNotReadOrDispatchWhileServiceIsUnavailable(string path)
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
         harness.Readiness.SetReady(false);
 
         var response = await harness.SendAsync(
             "POST",
             path,
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, response.StatusCode);
         Assert.Equal("service_unavailable", response.Json.RootElement.GetProperty("code").GetString());
@@ -304,7 +334,7 @@ public sealed class HttpApiPipelineTests
     [Fact]
     public async Task MissingAccountAndWrongPasswordHaveByteIdenticalExternalSemantics()
     {
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand =>
                 new AuthenticationResult(AuthenticationStatus.InvalidCredentials),
@@ -313,12 +343,14 @@ public sealed class HttpApiPipelineTests
 
         var wrong = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"known\",\"password\":\"wrong-password\"}");
+            Login,
+            "{\"loginId\":\"known\",\"password\":\"wrong-password\"}",
+            bearer: Token);
         var missing = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"missing\",\"password\":\"wrong-password\"}");
+            Login,
+            "{\"loginId\":\"missing\",\"password\":\"wrong-password\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, wrong.StatusCode);
         Assert.Equal(wrong.Body, missing.Body);
@@ -327,14 +359,15 @@ public sealed class HttpApiPipelineTests
     [Fact]
     public async Task LoopbackPlaintextReachesBindingAndMalformedJsonGetsStableError()
     {
-        await using var harness = ApiHarness.Create();
+        await using var harness = Harness();
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/register",
+            Register,
             "{",
             scheme: "http",
-            remoteAddress: IPAddress.Loopback);
+            remoteAddress: IPAddress.Loopback,
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.Equal("invalid_request", response.Json.RootElement.GetProperty("code").GetString());
@@ -345,14 +378,15 @@ public sealed class HttpApiPipelineTests
     public async Task UnexpectedCommandFailureReturnsSafeInternalError()
     {
         var logs = new CaptureLoggerProvider();
-        await using var harness = ApiHarness.Create(
+        await using var harness = Harness(
             _ => throw new InvalidOperationException("SQL stack secret-sentinel"),
             logs);
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"player\",\"password\":\"secret-sentinel\"}");
+            Login,
+            "{\"loginId\":\"player\",\"password\":\"secret-sentinel\"}",
+            bearer: Token);
 
         Assert.Equal(StatusCodes.Status500InternalServerError, response.StatusCode);
         Assert.Equal("internal_error", response.Json.RootElement.GetProperty("code").GetString());
@@ -372,7 +406,7 @@ public sealed class HttpApiPipelineTests
     public async Task LoginChecksTheCredentialAgainOnceWhenItChangedBeforeTheCommand(int changes, int expectedStatus)
     {
         var sent = 0;
-        await using var harness = ApiHarness.Create(command => command switch
+        await using var harness = Harness(command => command switch
         {
             AuthenticateAccountCommand => ++sent <= changes
                 ? new AuthenticationResult(AuthenticationStatus.CredentialChanged)
@@ -386,8 +420,9 @@ public sealed class HttpApiPipelineTests
 
         var response = await harness.SendAsync(
             "POST",
-            "/api/launcher/v1/login",
-            "{\"loginId\":\"player\",\"password\":\"password-1\"}");
+            Login,
+            "{\"loginId\":\"player\",\"password\":\"password-1\"}",
+            bearer: Token);
 
         Assert.Equal(expectedStatus, response.StatusCode);
         Assert.Equal(2, harness.Credentials.LoginChecks);
@@ -396,242 +431,6 @@ public sealed class HttpApiPipelineTests
             Assert.Equal("invalid_credentials", response.Json.RootElement.GetProperty("code").GetString());
     }
 
-    private sealed class ApiHarness : IAsyncDisposable
-    {
-        private readonly WebApplication application;
-        private readonly RequestDelegate pipeline;
-
-        private ApiHarness(
-            WebApplication application,
-            RequestDelegate pipeline,
-            StubCommandBus commands,
-            StubCredentialReader credentials,
-            HttpApiReadiness readiness)
-        {
-            this.application = application;
-            this.pipeline = pipeline;
-            Commands = commands;
-            Credentials = credentials;
-            Readiness = readiness;
-        }
-
-        public StubCommandBus Commands { get; }
-        public StubCredentialReader Credentials { get; }
-        public HttpApiReadiness Readiness { get; }
-
-        public static ApiHarness Create(
-            Func<ICommand, object>? execute = null,
-            ILoggerProvider? loggerProvider = null)
-        {
-            var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-            {
-                Args = ["--hostBuilder:reloadConfigOnChange=false"],
-                EnvironmentName = "Development",
-            });
-            builder.Logging.ClearProviders();
-            if (loggerProvider is not null)
-            {
-                builder.Logging.AddProvider(loggerProvider);
-            }
-            builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["LauncherAuth:Enabled"] = "true",
-                ["LauncherAuth:ListenUrl"] = "http://127.0.0.1:18080",
-                ["Networking:Enabled"] = "true",
-            });
-            var commands = new StubCommandBus(execute);
-            var credentials = new StubCredentialReader();
-            builder.Services.AddSingleton<ICommandBus>(commands);
-            builder.Services.AddSingleton<ILauncherCredentialReader>(credentials);
-            builder.Services.AddGameplayExecution();
-            builder.Services.AddSingleton<IAuthenticationDomainService, StubAuthenticationService>();
-            builder.Services.AddSingleton<IPublicEndpointSource>(new StubEndpointSource());
-            builder.Services.AddSingleton<Dfo.Server.Abstractions.Hosting.IGameServerReadiness>(new ReadyGame());
-            new HttpApiModule().ConfigureServices(builder.Services, builder.Configuration);
-            var app = builder.Build();
-            app.MapHttpApi();
-            var readiness = app.Services.GetRequiredService<HttpApiReadiness>();
-            readiness.SetReady(true);
-            var pipelineBuilder = new ApplicationBuilder(app.Services);
-            HttpApiApplicationExtensions.UseHttpApiMiddleware(pipelineBuilder);
-            pipelineBuilder.UseEndpoints(HttpApiApplicationExtensions.MapHttpApiEndpoints);
-            var pipeline = pipelineBuilder.Build();
-            return new ApiHarness(app, pipeline, commands, credentials, readiness);
-        }
-
-        public async Task<ApiResponse> SendAsync(
-            string method,
-            string path,
-            string? body = null,
-            string scheme = "https",
-            IPAddress? remoteAddress = null,
-            Stream? requestBody = null,
-            string? contentType = "application/json")
-        {
-            var context = new DefaultHttpContext { RequestServices = application.Services };
-            context.Request.Method = method;
-            context.Request.Path = path;
-            context.Request.Scheme = scheme;
-            context.Connection.RemoteIpAddress = remoteAddress ?? IPAddress.Parse("198.51.100.20");
-            context.Response.Body = new MemoryStream();
-            if (body is not null)
-            {
-                context.Request.ContentType = contentType;
-                context.Request.ContentLength = Encoding.UTF8.GetByteCount(body);
-                context.Request.Body = requestBody ?? new MemoryStream(Encoding.UTF8.GetBytes(body));
-            }
-
-            await pipeline(context);
-            context.Response.Body.Position = 0;
-            var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
-            return new ApiResponse(
-                context.Response.StatusCode,
-                responseBody,
-                JsonDocument.Parse(responseBody));
-        }
-
-        public async ValueTask DisposeAsync() => await application.DisposeAsync();
-    }
-
-    private sealed class StubCommandBus(Func<ICommand, object>? execute) : ICommandBus
-    {
-        public int CallCount { get; private set; }
-
-        public ValueTask<TResult> SendInternalAsync<TResult>(ICommand<TResult> command, InternalCommandOrigin origin, CancellationToken cancellationToken = default) where TResult : notnull
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            var result = execute?.Invoke(command) ?? throw new InvalidOperationException("No result arranged.");
-            return ValueTask.FromResult((TResult)(object)new HttpRouteReply(result));
-        }
-
-        public ValueTask<TResult> SendAsync<TResult>(
-            ICommand<TResult> command,
-            CancellationToken cancellationToken = default)
-            where TResult : notnull
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            var result = execute?.Invoke(command) ?? throw new InvalidOperationException("No result arranged.");
-            return ValueTask.FromResult((TResult)result);
-        }
-    }
-
-    /// <summary>Stands in for the hashing half of the two-phase credential routes; accepts every well-formed request.</summary>
-    private sealed class StubCredentialReader : ILauncherCredentialReader
-    {
-        private int loginChecks;
-
-        public int LoginChecks => Volatile.Read(ref loginChecks);
-
-        public ValueTask<RegistrationPreparation> PrepareRegistrationAsync(
-            string loginId,
-            string password,
-            CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new RegistrationPreparation(new PreparedRegistration(loginId, "stub-record")));
-
-        public ValueTask<LoginVerification> VerifyLoginAsync(
-            string loginId,
-            string password,
-            CancellationToken cancellationToken)
-        {
-            Interlocked.Increment(ref loginChecks);
-            return ValueTask.FromResult(new LoginVerification(
-                AuthenticationStatus.Success,
-                new VerifiedLogin(loginId, new AccountId(1), "stub-record", null)));
-        }
-    }
-
-    private sealed class StubEndpointSource : IPublicEndpointSource
-    {
-        public PublicEndpointSnapshot Snapshot { get; } = new(
-            new PublicNetworkEndpoint("203.0.113.10", 7001),
-            [new PublicNetworkEndpoint("198.51.100.11", 10011)],
-            new PublicGameLoginEndpoints("192.0.2.20", 10128, 17200, 17201));
-    }
-
-    private sealed class ReadyGame : Dfo.Server.Abstractions.Hosting.IGameServerReadiness
-    {
-        public bool NetworkEnabled => true;
-        public bool IsReady => true;
-    }
-
-    private sealed class StubAuthenticationService : IAuthenticationDomainService
-    {
-        public ValueTask<RegistrationResult> RegisterAsync(
-            PreparedRegistration registration,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public ValueTask<AuthenticationResult> AuthenticateAndIssueTicketAsync(
-            VerifiedLogin login,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-
-        public ValueTask<AccountId?> BindSessionAsync(
-            NetworkConnectionId connectionId,
-            string loginId,
-            string ticket,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
-    }
-
-    private sealed class ReadTrackingStream(byte[] content) : MemoryStream(content)
-    {
-        public int ReadCount { get; private set; }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            ReadCount++;
-            return base.Read(buffer, offset, count);
-        }
-
-        public override int Read(Span<byte> buffer)
-        {
-            ReadCount++;
-            return base.Read(buffer);
-        }
-
-        public override ValueTask<int> ReadAsync(
-            Memory<byte> buffer,
-            CancellationToken cancellationToken = default)
-        {
-            ReadCount++;
-            return base.ReadAsync(buffer, cancellationToken);
-        }
-    }
-
-    private sealed class CaptureLoggerProvider : ILoggerProvider
-    {
-        private readonly List<string> messages = [];
-
-        public IReadOnlyList<string> Messages
-        {
-            get
-            {
-                lock (messages) return messages.ToArray();
-            }
-        }
-
-        public ILogger CreateLogger(string categoryName) => new CaptureLogger(messages);
-        public void Dispose() { }
-
-        private sealed class CaptureLogger(List<string> messages) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-            public bool IsEnabled(LogLevel logLevel) => true;
-
-            public void Log<TState>(
-                LogLevel logLevel,
-                EventId eventId,
-                TState state,
-                Exception? exception,
-                Func<TState, Exception?, string> formatter)
-            {
-                lock (messages) messages.Add(formatter(state, exception));
-            }
-        }
-    }
-
-    private sealed record ApiResponse(int StatusCode, string Body, JsonDocument Json) : IDisposable
-    {
-        public void Dispose() => Json.Dispose();
-    }
+    private static ApiHarness Harness(Func<ICommand, object>? execute = null, ILoggerProvider? logs = null) =>
+        ApiHarness.Create(execute, logs, gateToken: Token);
 }

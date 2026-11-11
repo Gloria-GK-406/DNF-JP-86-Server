@@ -160,7 +160,7 @@ public sealed class LifecycleExecutorWireTests(ITestOutputHelper output)
         Assert.True(await DrainsToFinAsync(client, server.Timeout));
         await WaitUntilAsync(() => server.Recorder.First("disconnect-exit", id) is not null, server.Timeout);
         AssertLifecycleChild(server.Recorder.First("disconnect-enter", id)!, id, rootConnection: null,
-            new(GameplayCallSource.Http, "http:POST /api/launcher/v1/login"));
+            new(GameplayCallSource.Http, "http:POST /api/gate/v1/login"));
     }
 
     /// <summary>

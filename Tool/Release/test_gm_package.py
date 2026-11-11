@@ -16,7 +16,7 @@ class GmPackageTests(unittest.TestCase):
             root = Path(temporary)
             (root / "Document").mkdir()
             for name in ("server-ci-release.md", "host-component-composition.md", "gm-web-admin.md",
-                         "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md"):
+                         "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md", "GateApi.md"):
                 (root / "Document" / name).write_text("Test documentation\n", encoding="utf-8")
             (root / "Web/gm-admin").mkdir(parents=True)
 
@@ -77,6 +77,7 @@ class GmPackageTests(unittest.TestCase):
             "Pvf__ArchivePath": "external.pvf", "pvf:archivepath": "another.pvf",
             "PVF_ARCHIVE_PATH": "external.pvf", "gmweb:bootstrap:password": "test-only",
             "GmWeb__Bootstrap__LoginName": "test-only", "DOTNET_ENVIRONMENT": "Staging",
+            "LauncherAuth__GateToken": "test-only", "launcherauth:gatetoken": "test-only",
             "ASPNETCORE_ENVIRONMENT": "Staging", "PATH": "preserve-runtime-path",
         }
         with tempfile.TemporaryDirectory() as temporary:
@@ -103,6 +104,7 @@ class GmPackageTests(unittest.TestCase):
             self.assertEqual([""], normalized["pvf:archivepath"])
             self.assertEqual([""], normalized["pvf_archive_path"])
             self.assertFalse(any(key.startswith("gmweb:bootstrap:") for key in normalized))
+            self.assertNotIn("launcherauth:gatetoken", normalized)
             self.assertEqual(["Production"], normalized["dotnet_environment"])
             self.assertEqual(["Production"], normalized["aspnetcore_environment"])
             self.assertEqual(["preserve-runtime-path"], normalized["path"])
@@ -138,6 +140,30 @@ class GmPackageTests(unittest.TestCase):
                 self.runtime(root, settings)
                 with self.assertRaises(ValueError):
                     release.verify_runtime_content(root)
+
+    def test_gate_token_must_not_ship(self):
+        for token, ships in (("", False), ("   ", False), (None, False),
+                             ("test-only-gate-token", True), (12345, True)):
+            for spelling in ("nested", "flat", "lowercase"):
+                with self.subTest(token=token, spelling=spelling), tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    settings = {key: {"Enabled": False} for key in ("Networking", "GmWeb")}
+                    if spelling == "nested":
+                        settings["LauncherAuth"] = {"Enabled": False, "GateToken": token}
+                    elif spelling == "flat":
+                        settings["LauncherAuth"] = {"Enabled": False}
+                        settings["LauncherAuth:GateToken"] = token
+                    else:
+                        settings["LauncherAuth"] = {"Enabled": False}
+                        settings["launcherauth"] = {"gatetoken": token}
+                    if token is None:
+                        settings = {key: {"Enabled": False} for key in ("Networking", "LauncherAuth", "GmWeb")}
+                    self.runtime(root, settings)
+                    if ships:
+                        with self.assertRaisesRegex(ValueError, "GateToken"):
+                            release.verify_runtime_content(root)
+                    else:
+                        release.verify_runtime_content(root)
 
 
 if __name__ == "__main__":

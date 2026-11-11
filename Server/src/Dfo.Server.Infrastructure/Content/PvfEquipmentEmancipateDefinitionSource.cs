@@ -30,7 +30,7 @@ internal sealed class PvfEquipmentEmancipateDefinitionSource(PvfArchiveProvider 
     public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        lock (gate) return ValueTask.FromResult(Paths().Count);
+        lock (gate) return ValueTask.FromResult(Paths().Count + StackablePaths().Count);
     }
 
     public ValueTask<IReadOnlyList<EquipmentEmancipateDefinition>> GetEquipmentAsync(int itemId, CancellationToken cancellationToken)
@@ -55,9 +55,8 @@ internal sealed class PvfEquipmentEmancipateDefinitionSource(PvfArchiveProvider 
         lock (gate)
         {
             if (tickets.TryGetValue(itemId, out var known)) return ValueTask.FromResult(known);
-            stackablePaths ??= PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", prefix: "stackable/");
             EmancipateTicketDefinition? ticket = null;
-            if (stackablePaths.TryGetValue(itemId, out var path)
+            if (StackablePaths().TryGetValue(itemId, out var path)
                 && PvfDocument.Open(provider.Archive, path).TryRead(PvfField.Int32(TicketField, optional: true, minimum: 0), out var value))
                 ticket = new(value);
             tickets.Add(itemId, ticket);
@@ -69,6 +68,9 @@ internal sealed class PvfEquipmentEmancipateDefinitionSource(PvfArchiveProvider 
 
     private IReadOnlyDictionary<int, string> Paths() =>
         paths ??= PvfListFile.Paths(provider.Archive, "equipment/equipment.lst", prefix: "equipment/");
+
+    private IReadOnlyDictionary<int, string> StackablePaths() =>
+        stackablePaths ??= PvfListFile.Paths(provider.Archive, "stackable/stackable.lst", prefix: "stackable/");
 
     internal static IReadOnlyList<EquipmentEmancipateDefinition> Read(PvfArchive archive, IReadOnlyList<PvfSection> sections, string path)
     {

@@ -3,11 +3,18 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
 public sealed class LauncherHttpHostStartupTests
 {
+    /// <summary>
+    /// The retired launcher v1 prefix, assembled from its segments so that a search for the old path
+    /// finds callers only (AC-010).
+    /// </summary>
+    private static readonly string RetiredPrefix = string.Join('/', "", "api", "launcher", "v1");
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -22,7 +29,8 @@ public sealed class LauncherHttpHostStartupTests
         var channelPort = GetAvailablePortExcept(httpPort, gmPort);
         var gamePort = GetAvailablePortExcept(httpPort, gmPort, channelPort);
         var output = new StringBuilder();
-        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, launcher,
+        var token = GateTestToken.New();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, token, launcher,
             new Dictionary<string, string>
             {
                 ["GmWeb:Enabled"] = "true",
@@ -43,14 +51,16 @@ public sealed class LauncherHttpHostStartupTests
                 catch (HttpRequestException) { await Task.Delay(100, timeout.Token); }
             }
             using (health) Assert.Equal(HttpStatusCode.OK, health.StatusCode);
-            using var wrong = await gm.GetAsync("/api/launcher/v1/bootstrap", timeout.Token);
+            // Even with the valid token, the gate is not on the GM listener.
+            using var gateAtGm = GateProbe.Client(gm.BaseAddress, token);
+            using var wrong = await gateAtGm.GetAsync(GateProbe.Status, timeout.Token);
             Assert.Equal(HttpStatusCode.NotFound, wrong.StatusCode);
             Assert.Equal(game, await CanConnectAsync(channelPort));
             if (launcher)
             {
-                using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
-                using var bootstrap = await client.GetAsync("/api/launcher/v1/bootstrap", timeout.Token);
-                Assert.Equal(HttpStatusCode.OK, bootstrap.StatusCode);
+                using var client = GateProbe.Client(new Uri($"http://127.0.0.1:{httpPort}"), token);
+                await GateProbe.WaitUntilServedAsync(client, game ? GateProbe.Login : GateProbe.Register,
+                    Exited(process, output), timeout.Token);
                 using var gmAtLauncher = await client.GetAsync("/api/gm/v1/health", timeout.Token);
                 Assert.Equal(HttpStatusCode.NotFound, gmAtLauncher.StatusCode);
                 using var mailAtLauncher = await client.GetAsync("/api/gm/v1/mail/draft", timeout.Token);
@@ -64,7 +74,7 @@ public sealed class LauncherHttpHostStartupTests
     }
 
     [Fact]
-    public async Task HttpWithoutGame_AllowsBootstrapAndRegistrationButDoesNotIssueGameTickets()
+    public async Task HttpWithoutGame_AllowsRegistrationButDoesNotIssueGameTickets()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-http-only-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -72,17 +82,17 @@ public sealed class LauncherHttpHostStartupTests
         var channelPort = GetAvailablePortExcept(httpPort);
         var gamePort = GetAvailablePortExcept(httpPort, channelPort);
         var output = new StringBuilder();
-        using var process = StartHost(directory, httpPort, channelPort, gamePort, output,
+        var token = GateTestToken.New();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, token,
             commandLineOverrides: new Dictionary<string, string> { ["Networking:Enabled"] = "false" });
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
-            using var bootstrap = await WaitForBootstrapAsync(process, client, output, timeout.Token);
-            Assert.Equal(HttpStatusCode.OK, bootstrap.StatusCode);
+            using var client = GateProbe.Client(new Uri($"http://127.0.0.1:{httpPort}"), token);
+            await GateProbe.WaitUntilServedAsync(client, GateProbe.Register, Exited(process, output), timeout.Token);
             using var content = new StringContent(
                 "{\"loginId\":\"http-only-player\",\"password\":\"password-1\"}", Encoding.UTF8, "application/json");
-            using var registration = await client.PostAsync("/api/launcher/v1/register", content, timeout.Token);
+            using var registration = await client.PostAsync(GateProbe.Register, content, timeout.Token);
             Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
             using var login = await PostCredentialsAsync(client, "http-only-player", "password-1", timeout.Token);
             Assert.Equal(HttpStatusCode.ServiceUnavailable, login.StatusCode);
@@ -97,8 +107,12 @@ public sealed class LauncherHttpHostStartupTests
         }
     }
 
+    /// <summary>
+    /// The configured listener serves the gate once HTTP and the game are ready, and the retired
+    /// launcher v1 routes are not there (RQ-011), not even with the valid token.
+    /// </summary>
     [Fact]
-    public async Task EnabledHttpApi_ListensOnlyOnTheConfiguredUrlAndReturnsReadyBootstrap()
+    public async Task EnabledHttpApi_ListensOnTheConfiguredUrlAndServesTheGateButNotTheRetiredV1Routes()
     {
         var directory = Path.Combine(Path.GetTempPath(), $"dfo-launcher-host-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
@@ -106,19 +120,22 @@ public sealed class LauncherHttpHostStartupTests
         var channelPort = GetAvailablePortExcept(httpPort);
         var gamePort = GetAvailablePortExcept(httpPort, channelPort);
         var output = new StringBuilder();
-        using var process = StartHost(directory, httpPort, channelPort, gamePort, output);
+        var token = GateTestToken.New();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, token);
 
         try
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
-            var response = await WaitForBootstrapAsync(process, client, output, timeout.Token);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var client = GateProbe.Client(new Uri($"http://127.0.0.1:{httpPort}"), token);
+            await GateProbe.WaitUntilServedAsync(client, GateProbe.Login, Exited(process, output), timeout.Token);
 
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            using var json = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(timeout.Token));
-            Assert.Equal("1", json.RootElement.GetProperty("apiVersion").GetString());
-            Assert.Equal("ready", json.RootElement.GetProperty("status").GetString());
-            Assert.True(json.RootElement.GetProperty("registrationEnabled").GetBoolean());
+            using (var bootstrap = await client.GetAsync(RetiredPrefix + "/bootstrap", timeout.Token))
+                Assert.Equal(HttpStatusCode.NotFound, bootstrap.StatusCode);
+            foreach (var path in new[] { "/register", "/login" })
+            {
+                using var retired = await GateProbe.PostEmptyAsync(client, RetiredPrefix + path, timeout.Token);
+                Assert.Equal(HttpStatusCode.NotFound, retired.StatusCode);
+            }
         }
         finally
         {
@@ -141,21 +158,21 @@ public sealed class LauncherHttpHostStartupTests
         var channelPort = GetAvailablePortExcept(httpPort);
         var gamePort = GetAvailablePortExcept(httpPort, channelPort);
         var output = new StringBuilder();
-        using var process = StartHost(directory, httpPort, channelPort, gamePort, output);
+        var token = GateTestToken.New();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, token);
 
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            using var client = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
-            using var bootstrap = await WaitForBootstrapAsync(process, client, output, timeout.Token);
-            Assert.Equal(HttpStatusCode.OK, bootstrap.StatusCode);
+            using var client = GateProbe.Client(new Uri($"http://127.0.0.1:{httpPort}"), token);
+            await GateProbe.WaitUntilServedAsync(client, GateProbe.Login, Exited(process, output), timeout.Token);
 
             const string registration = "{\"loginId\":\"race-player\",\"password\":\"password-1\"}";
             var registrations = await Task.WhenAll(Enumerable.Range(0, 8).Select(async _ =>
             {
                 using var content = new StringContent(registration, Encoding.UTF8, "application/json");
                 using var response = await client.PostAsync(
-                    "/api/launcher/v1/register",
+                    GateProbe.Register,
                     content,
                     timeout.Token);
                 return (response.StatusCode, Body: await response.Content.ReadAsStringAsync(timeout.Token));
@@ -220,6 +237,7 @@ public sealed class LauncherHttpHostStartupTests
             firstChannel,
             firstGame,
             firstOutput,
+            GateTestToken.New(),
             launcherEnabled: false);
         using var second = StartHost(
             secondDirectory,
@@ -227,6 +245,7 @@ public sealed class LauncherHttpHostStartupTests
             secondChannel,
             secondGame,
             secondOutput,
+            GateTestToken.New(),
             launcherEnabled: false);
 
         try
@@ -276,6 +295,7 @@ public sealed class LauncherHttpHostStartupTests
             channelPort,
             gamePort,
             output,
+            GateTestToken.New(),
             commandLineOverrides: new Dictionary<string, string> { [key] = value });
 
         try
@@ -294,14 +314,146 @@ public sealed class LauncherHttpHostStartupTests
         }
     }
 
+    public enum TokenSource { SettingsFileAndEnvironment, SettingsFileOnly, SettingsFileWithSurroundingWhitespace }
+
+    /// <summary>
+    /// AC-001 through the production configuration pipeline of a child Host: the environment variable
+    /// overrides <c>appsettings.{environment}.json</c>, a token in the file alone is used, and surrounding
+    /// whitespace is trimmed. Only the child's environment is set; the test process's is never touched.
+    /// </summary>
+    [Theory]
+    [InlineData(TokenSource.SettingsFileAndEnvironment)]
+    [InlineData(TokenSource.SettingsFileOnly)]
+    [InlineData(TokenSource.SettingsFileWithSurroundingWhitespace)]
+    public async Task The_gate_token_comes_from_the_environment_before_the_settings_file(TokenSource source)
+    {
+        var fileToken = GateTestToken.New();
+        var environmentToken = GateTestToken.New();
+        using var settings = EnvironmentSettingsFile.Write(
+            source == TokenSource.SettingsFileWithSurroundingWhitespace ? $" \t{fileToken} \t" : fileToken);
+        var (valid, refused) = source == TokenSource.SettingsFileAndEnvironment
+            ? (environmentToken, fileToken)
+            : (fileToken, environmentToken);
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-gate-token-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var httpPort = GetAvailablePort();
+        var channelPort = GetAvailablePortExcept(httpPort);
+        var gamePort = GetAvailablePortExcept(httpPort, channelPort);
+        var output = new StringBuilder();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output,
+            source == TokenSource.SettingsFileAndEnvironment ? environmentToken : null,
+            commandLineOverrides: new Dictionary<string, string> { ["Networking:Enabled"] = "false" },
+            environment: new Dictionary<string, string?> { ["DOTNET_ENVIRONMENT"] = settings.Name });
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var address = new Uri($"http://127.0.0.1:{httpPort}");
+            // 400 for an empty body proves the token passed: a refused token is 401, an unset one 404.
+            using var accepted = GateProbe.Client(address, valid);
+            await GateProbe.WaitUntilServedAsync(accepted, GateProbe.Register, Exited(process, output), timeout.Token);
+            using var other = GateProbe.Client(address, refused);
+            using var response = await GateProbe.PostEmptyAsync(other, GateProbe.Register, timeout.Token);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal("unauthorized", JsonCode(await response.Content.ReadAsStringAsync(timeout.Token)));
+        }
+        finally
+        {
+            await StopAsync(process);
+            await TestDirectory.DeleteAsync(directory);
+        }
+    }
+
+    public enum InvalidToken { TooShort, InnerSpace, NonAscii }
+
+    /// <summary>AC-001: an invalid token stops the Host before any listener; the output names the key and never the value.</summary>
+    [Theory]
+    [InlineData(InvalidToken.TooShort)]
+    [InlineData(InvalidToken.InnerSpace)]
+    [InlineData(InvalidToken.NonAscii)]
+    public async Task An_invalid_gate_token_stops_the_host_naming_the_key_but_never_the_value(InvalidToken kind)
+    {
+        var generated = GateTestToken.New();
+        var (token, parts) = kind switch
+        {
+            InvalidToken.TooShort => (generated[..31], new[] { generated[..31] }),
+            InvalidToken.InnerSpace => (generated[..21] + " " + generated[21..], new[] { generated[..21], generated[21..] }),
+            _ => (generated + "\u00e9", new[] { generated }),
+        };
+        var directory = Path.Combine(Path.GetTempPath(), $"dfo-bad-gate-token-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        var httpPort = GetAvailablePort();
+        var channelPort = GetAvailablePortExcept(httpPort);
+        var gamePort = GetAvailablePortExcept(httpPort, channelPort);
+        var output = new StringBuilder();
+        using var process = StartHost(directory, httpPort, channelPort, gamePort, output, token);
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await process.WaitForExitAsync(timeout.Token);
+            process.WaitForExit(); // The asynchronous output readers finish once the process has exited.
+            Assert.NotEqual(0, process.ExitCode);
+            var text = Snapshot(output);
+            Assert.Contains("LauncherAuth:GateToken", text, StringComparison.Ordinal);
+            Assert.All(parts, part => Assert.DoesNotContain(part, text, StringComparison.Ordinal));
+            Assert.False(await CanConnectAsync(httpPort));
+        }
+        finally
+        {
+            await StopAsync(process);
+            await TestDirectory.DeleteAsync(directory);
+        }
+    }
+
+    /// <summary>
+    /// <c>appsettings.{environment}.json</c> for one child Host. The packaged Host reads its settings files
+    /// from its own directory (<c>ServerConfiguration</c> uses <c>AppContext.BaseDirectory</c>, which
+    /// <c>--contentRoot</c> does not move), so the file goes into this build output under an environment
+    /// name no other Host uses, and is deleted afterwards. A run that was killed leaves its file behind,
+    /// so the first use in a test process deletes those leftovers.
+    /// </summary>
+    private sealed class EnvironmentSettingsFile : IDisposable
+    {
+        private const string NamePrefix = "GateTokenTest";
+        private static readonly string OutputDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location)!;
+        private static readonly Lazy<bool> LeftoversRemoved = new(() =>
+        {
+            foreach (var leftover in Directory.EnumerateFiles(OutputDirectory, $"appsettings.{NamePrefix}*.json"))
+                File.Delete(leftover);
+            return true;
+        });
+
+        private readonly string path;
+
+        private EnvironmentSettingsFile(string name, string path)
+        {
+            Name = name;
+            this.path = path;
+        }
+
+        public string Name { get; }
+
+        public static EnvironmentSettingsFile Write(string gateToken)
+        {
+            _ = LeftoversRemoved.Value;
+            var name = NamePrefix + Guid.NewGuid().ToString("N");
+            var path = Path.Combine(OutputDirectory, $"appsettings.{name}.json");
+            File.WriteAllText(path, JsonSerializer.Serialize(new { LauncherAuth = new { GateToken = gateToken } }));
+            return new(name, path);
+        }
+
+        public void Dispose() => File.Delete(path);
+    }
+
     private static Process StartHost(
         string workingDirectory,
         int httpPort,
         int channelPort,
         int gamePort,
         StringBuilder output,
+        string? gateToken,
         bool launcherEnabled = true,
-        IReadOnlyDictionary<string, string>? commandLineOverrides = null)
+        IReadOnlyDictionary<string, string>? commandLineOverrides = null,
+        IReadOnlyDictionary<string, string?>? environment = null)
     {
         var assembly = typeof(Program).Assembly.Location;
         var startInfo = new ProcessStartInfo("dotnet")
@@ -344,6 +496,16 @@ public sealed class LauncherHttpHostStartupTests
         startInfo.Environment["GameLogin__EndpointPortA"] = "17200";
         startInfo.Environment["GameLogin__EndpointPortB"] = "17201";
         startInfo.Environment["Database__Path"] = Path.Combine(workingDirectory, "host.db");
+        // The token travels in this child's environment only, never on its command line. Every inherited
+        // spelling of the key ('__' or ':', any case: configuration treats them as one) is removed first,
+        // so a token of the test process cannot leak in.
+        foreach (var key in startInfo.Environment.Keys
+                     .Where(key => string.Equals(key.Replace("__", ":", StringComparison.Ordinal), "LauncherAuth:GateToken", StringComparison.OrdinalIgnoreCase))
+                     .ToList())
+            startInfo.Environment.Remove(key);
+        SetOrRemove(startInfo, "LauncherAuth__GateToken", gateToken);
+        foreach (var (key, value) in environment ?? new Dictionary<string, string?>())
+            SetOrRemove(startInfo, key, value);
 
         var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("The Host process could not be started.");
@@ -353,6 +515,16 @@ public sealed class LauncherHttpHostStartupTests
         process.BeginErrorReadLine();
         return process;
     }
+
+    private static void SetOrRemove(ProcessStartInfo startInfo, string key, string? value)
+    {
+        if (value is null) startInfo.Environment.Remove(key);
+        else startInfo.Environment[key] = value;
+    }
+
+    private static Func<string?> Exited(Process process, StringBuilder output) => () => process.HasExited
+        ? $"Host exited with code {process.ExitCode}.{Environment.NewLine}{Snapshot(output)}"
+        : null;
 
     private static async Task<HttpResponseMessage> PostCredentialsAsync(
         HttpClient client,
@@ -364,38 +536,13 @@ public sealed class LauncherHttpHostStartupTests
             JsonSerializer.Serialize(new { loginId, password }),
             Encoding.UTF8,
             "application/json");
-        return await client.PostAsync("/api/launcher/v1/login", content, cancellationToken);
+        return await client.PostAsync(GateProbe.Login, content, cancellationToken);
     }
 
     private static string? JsonCode(string body)
     {
         using var json = JsonDocument.Parse(body);
         return json.RootElement.GetProperty("code").GetString();
-    }
-
-    private static async Task<HttpResponseMessage> WaitForBootstrapAsync(
-        Process process,
-        HttpClient client,
-        StringBuilder output,
-        CancellationToken cancellationToken)
-    {
-        while (true)
-        {
-            if (process.HasExited)
-            {
-                throw new Xunit.Sdk.XunitException(
-                    $"Host exited with code {process.ExitCode}.{Environment.NewLine}{Snapshot(output)}");
-            }
-
-            try
-            {
-                return await client.GetAsync("/api/launcher/v1/bootstrap", cancellationToken);
-            }
-            catch (HttpRequestException)
-            {
-                await Task.Delay(25, cancellationToken);
-            }
-        }
     }
 
     private static async Task WaitForTcpListenerAsync(

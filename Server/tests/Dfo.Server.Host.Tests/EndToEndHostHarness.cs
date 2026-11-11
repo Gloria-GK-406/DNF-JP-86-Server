@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Dfo.Server.Testing;
 
 namespace Dfo.Server.Host.Tests;
 
@@ -59,6 +60,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         var secondGameListenerPort = ports[3];
         var saintHornListenerPort = ports[4];
         var output = new StringBuilder();
+        var token = GateTestToken.New();
         var process = StartHost(
             directory,
             httpPort,
@@ -66,8 +68,9 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
             gameListenerPort,
             secondGameListenerPort,
             saintHornListenerPort,
+            token,
             output);
-        var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
+        var http = GateProbe.Client(new Uri($"http://127.0.0.1:{httpPort}"), token);
         var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
         var routes = new Dictionary<AdvertisedEndpoint, IPEndPoint>
         {
@@ -89,7 +92,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
             timeout);
         try
         {
-            await harness.WaitForBootstrapAsync();
+            await harness.WaitForGateAsync();
             return harness;
         }
         catch
@@ -104,13 +107,13 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         const string loginId = "whole-route-player";
         const string password = "whole route password";
         using var registration = await this.http.PostAsJsonAsync(
-            "/api/launcher/v1/register",
+            GateProbe.Register,
             new { loginId, password },
             this.timeout.Token);
         Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
 
         using var login = await this.http.PostAsJsonAsync(
-            "/api/launcher/v1/login",
+            GateProbe.Login,
             new { loginId, password },
             this.timeout.Token);
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
@@ -219,7 +222,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         using var reconnected = await LoginGameAsync(advertisedGame, mId!, ticket!);
 
         using var replacement = await this.http.PostAsJsonAsync(
-            "/api/launcher/v1/login", new { loginId, password }, this.timeout.Token);
+            GateProbe.Login, new { loginId, password }, this.timeout.Token);
         Assert.Equal(HttpStatusCode.OK, replacement.StatusCode);
         using var replacementJson = JsonDocument.Parse(await replacement.Content.ReadAsStreamAsync(this.timeout.Token));
         await Assert.ThrowsAsync<EndOfStreamException>(async () =>
@@ -339,34 +342,14 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         }
     }
 
-    private async Task WaitForBootstrapAsync()
-    {
-        while (true)
-        {
-            if (this.process.HasExited)
-            {
-                throw new Xunit.Sdk.XunitException(
-                    $"Host exited with code {this.process.ExitCode}.{Environment.NewLine}{Snapshot(this.output)}");
-            }
-
-            try
-            {
-                using var response = await this.http.GetAsync(
-                    "/api/launcher/v1/bootstrap",
-                    this.timeout.Token);
-                if (response.StatusCode == HttpStatusCode.OK)
-                {
-                    return;
-                }
-            }
-            catch (HttpRequestException)
-            {
-                // Cold-start: the listener is not ready yet.
-            }
-
-            await Task.Delay(25, this.timeout.Token);
-        }
-    }
+    /// <summary>The whole route starts with a launcher login, so the gate is ready once login is (HTTP and game).</summary>
+    private Task WaitForGateAsync() => GateProbe.WaitUntilServedAsync(
+        this.http,
+        GateProbe.Login,
+        () => this.process.HasExited
+            ? $"Host exited with code {this.process.ExitCode}.{Environment.NewLine}{Snapshot(this.output)}"
+            : null,
+        this.timeout.Token);
 
     private static Process StartHost(
         string directory,
@@ -375,6 +358,7 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         int gameListenerPort,
         int secondGameListenerPort,
         int saintHornListenerPort,
+        string gateToken,
         StringBuilder output)
     {
         var startInfo = new ProcessStartInfo("dotnet")
@@ -408,6 +392,8 @@ internal sealed class EndToEndHostHarness : IAsyncDisposable
         startInfo.Environment["GameLogin__EndpointPortA"] = FollowUpPortA.ToString();
         startInfo.Environment["GameLogin__EndpointPortB"] = FollowUpPortB.ToString();
         startInfo.Environment["Database__Path"] = Path.Combine(directory, "whole-route.db");
+        // Set explicitly, never on the command line, so the test process's own variable cannot leak in.
+        startInfo.Environment["LauncherAuth__GateToken"] = gateToken;
 
         var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("The Host process could not be started.");

@@ -27,7 +27,8 @@ public sealed class ComponentLifecycleTests
     {
         var directory = NewDirectory();
         var ports = AvailablePorts();
-        using var config = Configuration(directory, ports, http, game);
+        var token = Dfo.Server.Testing.GateTestToken.New();
+        using var config = Configuration(directory, ports, http, game, token);
         using var host = Builder(config).Build();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var stopped = false;
@@ -41,10 +42,12 @@ public sealed class ComponentLifecycleTests
             Assert.Equal(game, host.Services.GetRequiredService<IGameServerReadiness>().IsReady);
             if (http)
             {
-                using var client = new HttpClient();
-                using var response = await client.GetAsync(
-                    $"http://127.0.0.1:{ports[0]}/api/launcher/v1/bootstrap", timeout.Token);
-                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                // Started means ready: the gate answers an empty credential body with 400 at once. Login
+                // also waits for the game service, so an HTTP-only host is asked through register.
+                using var client = GateProbe.Client(new Uri($"http://127.0.0.1:{ports[0]}"), token);
+                using var response = await GateProbe.PostEmptyAsync(client, game ? GateProbe.Login : GateProbe.Register, timeout.Token);
+                Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+                Assert.Equal("invalid_request", GateProbe.Code(await response.Content.ReadAsStringAsync(timeout.Token)));
             }
             await host.StopAsync(timeout.Token);
             stopped = true;
@@ -70,7 +73,7 @@ public sealed class ComponentLifecycleTests
         var archive = Path.Combine(directory, "invalid.pvf");
         await File.WriteAllTextAsync(archive, "not a PVF");
         var ports = AvailablePorts();
-        using var config = Configuration(directory, ports, true, true);
+        using var config = Configuration(directory, ports, true, true, Dfo.Server.Testing.GateTestToken.New());
         using var preparation = new FailingPreparation();
         using var host = Builder(config).ConfigureServices(services =>
         {
@@ -110,7 +113,7 @@ public sealed class ComponentLifecycleTests
             .ConfigureGameServer()
             .ConfigureHttpApi(configuration);
 
-    private static ConfigurationManager Configuration(string directory, int[] ports, bool http, bool game)
+    private static ConfigurationManager Configuration(string directory, int[] ports, bool http, bool game, string gateToken)
     {
         var config = new ConfigurationManager();
         config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -122,6 +125,7 @@ public sealed class ComponentLifecycleTests
             ["LauncherAuth:ListenUrl"] = $"http://127.0.0.1:{ports[0]}",
             ["LauncherAuth:PublicChannel:Host"] = "127.0.0.1",
             ["LauncherAuth:PublicChannel:Port"] = ports[1].ToString(),
+            ["LauncherAuth:GateToken"] = gateToken,
             ["Networking:Enabled"] = game.ToString(),
             ["Networking:ChannelPort"] = ports[1].ToString(),
             ["Networking:GamePorts:0"] = ports[2].ToString(),

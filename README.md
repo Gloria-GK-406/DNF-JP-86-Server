@@ -37,7 +37,7 @@ Host → GameServer, HttpApi, GmWeb, Application, Infrastructure, Persistence
 | `Dfo.Server.Persistence` | SQLite 落库 |
 | `Dfo.Server.Networking` | Socket 与 TouchSocket 边界 |
 | `Dfo.Server.Protocol` | 按 `<Endpoint>/<Protocol>/` 切片的协议实现 |
-| `Dfo.Server.HttpApi` | 启动器注册、认证与 HTTP 边界 |
+| `Dfo.Server.HttpApi` | gate 接口（网关与单机启动器的状态、注册、登录）、token 认证与 HTTP 边界 |
 | `Dfo.Server.GmWeb` | GM 管理 HTTP 功能 |
 | `Dfo.Server.GameServer` | Game 服务组合与启动编排 |
 | `Dfo.Server.Host` | Generic Host 组合根 |

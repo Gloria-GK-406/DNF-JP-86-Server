@@ -165,6 +165,10 @@ def verify_runtime_content(published):
             raise ValueError(f"Published {key} must be disabled by default")
     if configured.get("gmweb:bootstrap:loginname") or configured.get("gmweb:bootstrap:password"):
         raise ValueError("Administrator bootstrap credentials must not ship")
+    # appsettings.json is the only settings file allowed above; the gate token belongs to the deployment.
+    gate_token = configured.get("launcherauth:gatetoken")
+    if gate_token is not None and not (isinstance(gate_token, str) and not gate_token.strip()):
+        raise ValueError("LauncherAuth:GateToken must not ship")
 
 
 def smoke(published, rid):
@@ -191,7 +195,8 @@ def smoke(published, rid):
         isolated_keys = {normalize(key) for key in fixed}
         env = {key: value for key, value in os.environ.items()
                if normalize(key) not in isolated_keys
-               and not normalize(key).startswith("gmweb:bootstrap:")}
+               and not normalize(key).startswith("gmweb:bootstrap:")
+               and normalize(key) != "launcherauth:gatetoken"}
         env.update(fixed)
         opener = build_opener(ProxyHandler({}))
         assets = gm_assets(app)
@@ -304,7 +309,7 @@ def package():
         (published / "release.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         (published / "README.md").write_text(
             "# DNF JP 86 Server\n\n"
-            "运行与配置见 [server-ci-release.md](server-ci-release.md)。\n\n"
+            "运行与配置见 [server-ci-release.md](server-ci-release.md)；网关与单机启动器使用的 gate 接口及 token 配置见 [GateApi.md](GateApi.md)。\n\n"
             "升级已有数据库：停服后运行 `tools/DbMigrate/DbMigrate <数据库路径>`（会先备份），"
             "见 [DatabaseSchemaMigration.md](DatabaseSchemaMigration.md)。\n\n"
             "GM 后台说明见 [gm-web-admin.md](gm-web-admin.md)，"
@@ -312,7 +317,7 @@ def package():
         shutil.copyfile(ROOT / "Document/server-ci-release.md", published / "server-ci-release.md")
         shutil.copyfile(ROOT / "Document/host-component-composition.md", published / "host-component-composition.md")
         shutil.copyfile(ROOT / "Document/DatabaseSchemaMigration.md", published / "DatabaseSchemaMigration.md")
-        for document in ("gm-web-admin.md", "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md"):
+        for document in ("gm-web-admin.md", "gm-official-mail.md", "gm-cera-grants.md", "gm-acceptance-list.md", "login-session-lifecycle.md", "GateApi.md"):
             shutil.copyfile(ROOT / "Document" / document, published / document)
         smoke_migrator(published, rid)
         smoke(published, rid)

@@ -16,10 +16,6 @@ namespace Dfo.Server.HttpApi;
 
 public static class HttpApiApplicationExtensions
 {
-    private const string BootstrapPath = "/api/launcher/v1/bootstrap";
-    internal const string RegisterPath = "/api/launcher/v1/register";
-    internal const string LoginPath = "/api/launcher/v1/login";
-
     public static WebApplication MapHttpApi(this WebApplication application)
     {
         ArgumentNullException.ThrowIfNull(application);
@@ -34,7 +30,7 @@ public static class HttpApiApplicationExtensions
         application.UseMiddleware<HttpApiExceptionMiddleware>();
         application.UseRouting();
         application.UseMiddleware<HttpListenerBoundaryMiddleware>();
-        application.UseMiddleware<CredentialTransportGateMiddleware>();
+        application.UseMiddleware<GateAuthenticationMiddleware>();
     }
 
     internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints) => MapHttpApiEndpoints(endpoints, null);
@@ -42,34 +38,40 @@ public static class HttpApiApplicationExtensions
     internal static void MapHttpApiEndpoints(IEndpointRouteBuilder endpoints, HttpListenerScope? listener)
     {
         if (listener is not null) endpoints = endpoints.MapGroup("").WithMetadata(listener);
-        endpoints.MapGet(BootstrapPath, (HttpApiReadiness readiness) =>
-            readiness.IsReady
-                ? Results.Json(new BootstrapResponse("1", "ready", true))
-                : ApiResponses.Error(
-                    StatusCodes.Status503ServiceUnavailable,
-                    "service_unavailable",
-                    "服务暂不可用，请稍后重试。"))
-            .WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：就绪标志"));
-        // Hashing runs off the executor first (RQ-007), so these two enqueue their CMD themselves.
-        endpoints.MapPost(RegisterPath, RegisterAsync)
-            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Register));
-        endpoints.MapPost(LoginPath, LoginAsync)
-            .WithMetadata(CredentialEndpointMetadata.Instance, new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Login));
+        MapGateEndpoints(endpoints);
     }
+
+    /// <summary>
+    /// The gate group: every route behind the token (<see cref="GateAuthenticationMiddleware"/>), so the
+    /// credential routes need no transport rule of their own; HTTPS across networks is the operator's
+    /// listener configuration.
+    /// </summary>
+    private static void MapGateEndpoints(IEndpointRouteBuilder endpoints)
+    {
+        var gate = endpoints.MapGroup(GateRoutes.Prefix).WithMetadata(GateEndpointMetadata.Instance);
+        gate.MapGet(GateRoutes.Status, GateEndpoints.StatusAsync)
+            .WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：配置、档案摘要与就绪标志"));
+        // Hashing runs off the executor first (RQ-007), so these two enqueue their CMD themselves.
+        gate.MapPost(GateRoutes.Register, RegisterAsync)
+            .WithMetadata(new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Register));
+        gate.MapPost(GateRoutes.Login, LoginAsync)
+            .WithMetadata(new EnqueuesItself(GameplayCallSource.Http, HttpRouteOperation.Login));
+    }
+
+    internal static IResult Unavailable() => ApiResponses.Error(
+        StatusCodes.Status503ServiceUnavailable,
+        "service_unavailable",
+        "服务暂不可用，请稍后重试。");
 
     private static async Task<IResult> RegisterAsync(
         HttpContext context,
         HttpApiReadiness readiness,
         ICommandBus commands,
-        ILauncherCredentialReader credentials)
+        ILauncherCredentialReader credentials,
+        ILoggerFactory loggers)
     {
-        if (!readiness.IsReady)
-        {
-            return ApiResponses.Error(
-                StatusCodes.Status503ServiceUnavailable,
-                "service_unavailable",
-                "服务暂不可用，请稍后重试。");
-        }
+        GateEndpoints.LogCaller(context, loggers, "register");
+        if (!readiness.IsReady) return Unavailable();
 
         var request = await ReadCredentialsAsync(context).ConfigureAwait(false);
         if (request is null)
@@ -120,15 +122,11 @@ public static class HttpApiApplicationExtensions
         ICommandBus commands,
         ILauncherCredentialReader credentials,
         IPublicEndpointSource endpoints,
-        IGameServerReadiness game)
+        IGameServerReadiness game,
+        ILoggerFactory loggers)
     {
-        if (!readiness.IsReady || !game.IsReady)
-        {
-            return ApiResponses.Error(
-                StatusCodes.Status503ServiceUnavailable,
-                "service_unavailable",
-                "服务暂不可用，请稍后重试。");
-        }
+        GateEndpoints.LogCaller(context, loggers, "login");
+        if (!readiness.IsReady || !game.IsReady) return Unavailable();
 
         var request = await ReadCredentialsAsync(context).ConfigureAwait(false);
         if (request is null)
@@ -210,34 +208,6 @@ public static class HttpApiApplicationExtensions
     }
 }
 
-internal sealed class CredentialTransportGateMiddleware(RequestDelegate next)
-{
-    public async Task InvokeAsync(HttpContext context)
-    {
-        if (context.GetEndpoint()?.Metadata.GetMetadata<CredentialEndpointMetadata>() is not null
-            && !context.Request.IsHttps
-            && (context.Connection.RemoteIpAddress is null
-                || !System.Net.IPAddress.IsLoopback(context.Connection.RemoteIpAddress)))
-        {
-            await ApiResponses.WriteErrorAsync(
-                context,
-                StatusCodes.Status400BadRequest,
-                "secure_transport_required",
-                "远程登录必须使用 HTTPS。").ConfigureAwait(false);
-            return;
-        }
-
-        await next(context).ConfigureAwait(false);
-    }
-}
-
-internal sealed class CredentialEndpointMetadata
-{
-    public static CredentialEndpointMetadata Instance { get; } = new();
-
-    private CredentialEndpointMetadata() { }
-}
-
 internal sealed class HttpApiExceptionMiddleware(
     RequestDelegate next,
     ILogger<HttpApiExceptionMiddleware> logger)
@@ -297,7 +267,6 @@ internal static class ApiResponses
 }
 
 internal sealed record LauncherCredentialsRequest(string? LoginId, string? Password);
-internal sealed record BootstrapResponse(string ApiVersion, string Status, bool RegistrationEnabled);
 internal sealed record RegistrationResponse(string LoginId);
 internal sealed record LoginResponse(
     string MId,

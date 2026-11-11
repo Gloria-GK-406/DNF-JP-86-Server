@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -8,6 +9,7 @@ using Dfo.Server.HttpApi;
 using Dfo.Server.Infrastructure;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Persistence;
+using Dfo.Server.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +26,7 @@ namespace Dfo.Server.Networking.Tests.Characterization;
 /// <remarks>
 /// Characterization tests must keep passing while handlers, commands, gates and delivery are
 /// rebuilt underneath them, so nothing here reaches into those. State is prepared on the wire.
-/// Accounts and tickets come from the launcher HTTP endpoints because the game protocol cannot
+/// Accounts and tickets come from the gate HTTP endpoints because the game protocol cannot
 /// register an account or issue a ticket. The only other permitted seams are a decorator on an
 /// Abstractions <c>*DomainService</c> (see <see cref="CharacterizationOptions.Decorate"/>), the seed
 /// pins of <see cref="DeterministicLayouts"/> and <see cref="DeterministicTowers"/>, and a
@@ -42,12 +44,13 @@ internal sealed class CharacterizationHost : IAsyncDisposable
     private readonly string directory;
     private readonly HttpClient http;
 
-    private CharacterizationHost(IHost host, string directory, int gamePort, int httpPort)
+    private CharacterizationHost(IHost host, string directory, int gamePort, int httpPort, string gateToken)
     {
         this.host = host;
         this.directory = directory;
         GamePort = gamePort;
         http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{httpPort}") };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", gateToken);
     }
 
     internal IServiceProvider Services => host.Services;
@@ -69,6 +72,7 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         await File.WriteAllBytesAsync(script, [1], cancellationToken);
         var ports = AvailablePorts(3);
         var (channelPort, gamePort, httpPort) = (ports[0], ports[1], ports[2]);
+        var gateToken = GateTestToken.New();
         var settings = new Dictionary<string, string?>
         {
             ["Pvf:ArchivePath"] = archive,
@@ -94,6 +98,7 @@ internal sealed class CharacterizationHost : IAsyncDisposable
             ["LauncherAuth:ListenUrl"] = $"http://127.0.0.1:{httpPort}",
             ["LauncherAuth:PublicChannel:Host"] = "127.0.0.1",
             ["LauncherAuth:PublicChannel:Port"] = channelPort.ToString(),
+            ["LauncherAuth:GateToken"] = gateToken,
             ["GmWeb:Enabled"] = "false",
         };
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
@@ -130,7 +135,7 @@ internal sealed class CharacterizationHost : IAsyncDisposable
                 .Build();
             await built.StartAsync(cancellationToken);
             TestTcpStartup.AssertReady(built.Services, startupLogs, gamePort, httpPort);
-            started = new CharacterizationHost(built, directory, gamePort, httpPort);
+            started = new CharacterizationHost(built, directory, gamePort, httpPort, gateToken);
             await started.WaitForLauncherAsync(cancellationToken);
             return started;
         }
@@ -143,15 +148,15 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         }
     }
 
-    /// <summary>Registers an account and redeems a fresh launcher ticket, as WireSmoke does.</summary>
+    /// <summary>Registers an account and redeems a fresh launcher ticket through the gate, as WireSmoke does.</summary>
     public async Task<(string MId, string Ticket)> RegisterAndIssueTicketAsync(
         string loginId,
         CancellationToken cancellationToken)
     {
         var credentials = new { loginId, password = "characterization password" };
-        using (var registration = await http.PostAsJsonAsync("/api/launcher/v1/register", credentials, cancellationToken))
+        using (var registration = await http.PostAsJsonAsync("/api/gate/v1/register", credentials, cancellationToken))
             Assert.Equal(HttpStatusCode.Created, registration.StatusCode);
-        using var login = await http.PostAsJsonAsync("/api/launcher/v1/login", credentials, cancellationToken);
+        using var login = await http.PostAsJsonAsync("/api/gate/v1/login", credentials, cancellationToken);
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         using var json = JsonDocument.Parse(await login.Content.ReadAsStreamAsync(cancellationToken));
         return (json.RootElement.GetProperty("mId").GetString()!, json.RootElement.GetProperty("ticket").GetString()!);
@@ -209,14 +214,23 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// This host always has the real archive, so gate status is the readiness probe: 503 until HTTP,
+    /// the game and the archive digest are ready, then 200. Any other answer fails at once.
+    /// </summary>
     private async Task WaitForLauncherAsync(CancellationToken cancellationToken)
     {
         while (true)
         {
             try
             {
-                using var response = await http.GetAsync("/api/launcher/v1/bootstrap", cancellationToken);
+                using var response = await http.GetAsync("/api/gate/v1/status", cancellationToken);
                 if (response.StatusCode == HttpStatusCode.OK) return;
+                if (response.StatusCode != HttpStatusCode.ServiceUnavailable)
+                {
+                    throw new InvalidOperationException(
+                        $"Gate status answered {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(cancellationToken)}");
+                }
             }
             catch (HttpRequestException)
             {
