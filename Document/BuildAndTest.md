@@ -97,13 +97,14 @@ PVF 中缺 `[minimum level]` 的装备，导致结算抛错，这仍是生产健
 3. 用 `Tool/PvfProbe` 的 `dump dungeon/Impossible/dimension.dgn` 读所用档案，`[map specification]` 从
    `map 1 0 53070` 开始（未打补丁）；打过补丁的是 `map 0 0 53070`。
 
-三样都对上，就是档案没有这处布局修复，代码与用例无需改动；换带修复的服务端 PVF 复跑应通过。
-2026-11-11 核对：工作区各客户端目录的 `Script.pvf` 都没有这处修复；10-27 起承载巨龙任务恢复的
-`Script-giant-dragon-active.pvf`（即 `DNFClient-A21-protocol/Script.pvf`，SHA-256 前缀 `01F1BE68`）
-派生自客户端 PVF，同样没有。反过来，带修复的服务端 PVF（如 SHA-256 前缀 `C5CCE534`）早于巨龙恢复，
-会让 `GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy` 报
-`Giant dragon dungeon or native entrance is missing/incompatible`。目前本地没有一份 PVF 能让带 PVF 的
-Application.Tests 全绿；在重建出两者兼备的服务端 PVF 之前，用客户端 PVF 跑时只应剩上述两条。
+三样都对上，就是档案没有这处布局修复，代码与用例无需改动；换带修复的 PVF 复跑应通过。
+`Tool/PvfMirrorLayoutPatch`（Odesa.dgn）同属此类，但现有用例覆盖不到它改的那个迷宫。
+
+10-27 的巨龙恢复版（SHA-256 前缀 `01F1BE68`）派生自客户端 PVF，两处布局修复都没有；10-19 的服务端 PVF
+（前缀 `C5CCE534`）有布局修复但早于巨龙恢复，会让 `GiantDragonDungeonTests` 报
+`Giant dragon dungeon or native entrance is missing/incompatible`。2026-11-11 在巨龙恢复版上重放了两处布局修复，
+得到合并档案（前缀 `A443F87B`），并替换了各 A21 自建服客户端目录的 `Script.pvf`（`DNFClient-A21-upstream`
+与 `DNFClient-OneKey` 未动）。带它运行 Protocol.Tests 与 Application.Tests 均 0 失败、0 跳过。
 
 ### 进程与 socket 超时
 
