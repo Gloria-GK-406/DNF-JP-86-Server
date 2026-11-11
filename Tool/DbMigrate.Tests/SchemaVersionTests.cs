@@ -34,6 +34,36 @@ public sealed class SchemaVersionTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
+    [Fact]
+    public void Version_three_upgrade_opens_the_slots_of_characters_that_finished_649_or_650()
+    {
+        var path = Unversioned.NewPath("slot-expansion-v3");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                PRAGMA user_version=3;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,ex_equip_slot_stat) VALUES
+                    (71,7,'none',0,0,70,0,0),(72,7,'support',0,0,70,0,0),(73,7,'stone',0,0,70,0,0),
+                    (74,7,'both',0,0,70,0,0),(75,7,'kept',0,0,70,0,2),(76,7,'carried',0,0,70,0,0);
+                INSERT INTO character_invisible_flags(character_id,slot_index,flag_value) VALUES
+                    (71,674,1),(72,649,1),(73,650,1),(74,649,1),(74,650,1),(75,649,1),(76,649,0);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal(3L, migrated.From);
+            Assert.Equal(CharacterDatabaseSchema.Version, migrated.To);
+            Assert.Equal(0, Scalar(path, "SELECT ex_equip_slot_stat FROM characters WHERE character_id=71"));
+            Assert.Equal(1, Scalar(path, "SELECT ex_equip_slot_stat FROM characters WHERE character_id=72"));
+            Assert.Equal(2, Scalar(path, "SELECT ex_equip_slot_stat FROM characters WHERE character_id=73"));
+            Assert.Equal(3, Scalar(path, "SELECT ex_equip_slot_stat FROM characters WHERE character_id=74"));
+            Assert.Equal(3, Scalar(path, "SELECT ex_equip_slot_stat FROM characters WHERE character_id=75"));
+            Assert.Equal(0, Scalar(path, "SELECT ex_equip_slot_stat FROM characters WHERE character_id=76"));
+            Assert.Equal(7, Scalar(path, "SELECT COUNT(*) FROM character_invisible_flags"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
     /// <summary>
     /// An unversioned database with what the old server left in it comes out of the tool in
     /// exactly the shape the server builds a new one in.
@@ -82,7 +112,7 @@ public sealed class SchemaVersionTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(4)]
+    [InlineData(CharacterDatabaseSchema.Version + 1)]
     public void The_server_refuses_a_database_in_another_version(int version)
     {
         var path = Unversioned.NewPath("refused");

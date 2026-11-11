@@ -965,8 +965,9 @@ internal static partial class StateSynchronizationPayloadCodec
     /// What A21 carries where the older client carried the current HP/MP percentage.
     /// </summary>
     /// <remarks>
-    /// The older client took one byte here. A21 takes a 32-bit hundred followed by a zero byte,
-    /// and the character's actual percentage is not in this frame at all on this client. Writing
+    /// The older client took one byte here. A21 takes a 32-bit hundred followed by two zero bytes,
+    /// which close the 88-byte block, and the character's actual percentage is not in this frame
+    /// at all on this client. Writing
     /// the stored percentage into the first byte of a four-byte field would put a plausible number
     /// in the wrong place and shift everything after it.
     /// </remarks>
@@ -1106,8 +1107,10 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((short)stats.MagicalAttack)); writer.Write(checked((short)stats.MagicalDefense)); writer.Write(checked((short)stats.FireResistance)); writer.Write(checked((short)stats.WaterResistance)); writer.Write(checked((short)stats.DarkResistance)); writer.Write(checked((short)stats.LightResistance));
         writer.Write(new byte[32]); writer.Write(UnnamedStatBeforeInventoryLimit); writer.Write(checked((uint)stats.InventoryLimit)); writer.Write(checked((ushort)stats.HpRegenSpeed)); writer.Write(checked((ushort)stats.MpRegenSpeed)); writer.Write(checked((uint)stats.MoveSpeed));
         writer.Write(checked((ushort)stats.AttackSpeed)); writer.Write(checked((ushort)stats.CastSpeed)); writer.Write(checked((ushort)stats.HitRecovery)); writer.Write(checked((ushort)stats.JumpPower)); writer.Write(checked((uint)stats.Weight));
-        writer.Write(FullHpMpPercentOnTheWire); writer.Write((byte)0);
-        writer.Write(checked((byte)extras.ExtraEquipmentSlotState)); writer.Write((byte)0);
+        writer.Write(FullHpMpPercentOnTheWire); writer.Write((byte)0); writer.Write((byte)0);
+        // A21 VA 013E6370 reads the 88-byte block (013E1CB0), then this u8 on its own (013E6532,
+        // stored at +0x19C), then the equipment (01182850). Inside the block it would be ignored.
+        writer.Write(checked((byte)extras.ExtraEquipmentSlotState));
         if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
         foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2EquippedItem(writer, item, preparedAt);
         writer.Write(publicState.CloneTitleItemId); writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));

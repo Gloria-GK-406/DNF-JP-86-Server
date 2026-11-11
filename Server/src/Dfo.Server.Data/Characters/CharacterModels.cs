@@ -331,6 +331,20 @@ public sealed record CharacterGuildStandingStorageRecord(int Level, long PowerWa
 /// the widths they were stored in: what the wire gives each of them is decided where the bytes are
 /// written.
 /// </remarks>
+/// <summary>The extra equipment slots a character has opened, stored in <c>ex_equip_slot_stat</c>.</summary>
+/// <remarks>
+/// PVF <c>[slot expansion]</c> rewards name the slot by index (quest 649 says 0, quest 650 says 1),
+/// and the stored byte keeps one bit per index. A21 reads the byte from USERINFO subtype 1 and
+/// locks the support and magic-stone slots itself; the server does not gate equipping on it.
+/// </remarks>
+[Flags]
+public enum ExtraEquipmentSlots : byte
+{
+    None = 0,
+    Support = 1 << 0,
+    MagicStone = 1 << 1,
+}
+
 public sealed record CharacterEntryExtrasState(
     int SkillTreeIndex,
     long NameTagItemId,

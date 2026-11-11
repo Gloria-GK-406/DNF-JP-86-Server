@@ -14,6 +14,9 @@ public sealed record QuestCompletionRewardPlan(
     IReadOnlyList<SeekingItemRequirement>? ConsumedItems = null)
 {
     public byte? Awakening { get; init; }
+
+    /// <summary>The extra equipment slot a <c>[slot expansion]</c> reward opens.</summary>
+    public Dfo.Server.Data.Characters.ExtraEquipmentSlots ExtraEquipmentSlot { get; init; }
 }
 
 public enum QuestRewardRejection
@@ -25,6 +28,7 @@ public enum QuestRewardRejection
     RewardSelectionForbidden,
     RewardSelectionRequired,
     RewardSelectionOutOfRange,
+    InvalidSlotExpansionReward,
 }
 
 public sealed record QuestRewardResolution(

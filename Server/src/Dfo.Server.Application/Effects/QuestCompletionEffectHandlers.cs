@@ -62,6 +62,22 @@ internal sealed class SetCharacterGrowTypeEffectHandler(ICharacterTable characte
         return new CharacterGrowTypeChange(effect.Value);
     }
 }
+internal sealed class OpenExtraEquipmentSlotEffectHandler(ICharacterTable characters) : EffectHandler<OpenExtraEquipmentSlotEffect>
+{
+    public override ValueTask ValidateAsync(EffectExecutionContext context, OpenExtraEquipmentSlotEffect effect, CancellationToken ct)
+    {
+        if (effect.Slot is not (ExtraEquipmentSlots.Support or ExtraEquipmentSlots.MagicStone))
+            throw new ArgumentException("Invalid extra equipment slot.");
+        return ValueTask.CompletedTask;
+    }
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, OpenExtraEquipmentSlotEffect effect, CancellationToken ct)
+    {
+        context.Footprint.DemandEffects(context.Owner);
+        if (await characters.OpenExtraEquipmentSlotsAsync(context.CharacterId, effect.Slot, ct).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("Extra equipment slot target refused the write.");
+        return new ExtraEquipmentSlotChange(effect.Slot);
+    }
+}
 internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable characters) : EffectHandler<SetCharacterAwakeningEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)

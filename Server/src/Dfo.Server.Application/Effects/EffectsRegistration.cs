@@ -40,6 +40,7 @@ internal static class EffectsRegistration
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, CharacterExperienceEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterGrowTypeEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetCharacterAwakeningEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, OpenExtraEquipmentSlotEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, MaterializeSkillBuildsEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentUpgradeEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetEquipmentEnchantmentEffectHandler>());

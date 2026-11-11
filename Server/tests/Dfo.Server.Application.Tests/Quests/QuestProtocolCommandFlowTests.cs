@@ -174,10 +174,29 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
         Assert.Contains(frames,x=>Type(x)==0x0D);Assert.Equal(DomainTransactionCompletion.Committed,Assert.Single(trace.Domain.Attempts).Transaction.Completion);
     }
 
-    private static async Task<ShopFixture> Create(int protocol,Trace trace,RemainingOpeningProtocolCommandFlowTests.SenderProbe? delivery=null,bool growth=false)
+    [Theory]
+    [InlineData(0,0,1)]
+    [InlineData(1,1,3)]
+    public async Task Slot_expansion_opens_the_slot_in_the_same_commit_and_resends_subtype_one(int index,int before,int expected)
+    {
+        // #308: PVF 649/650 declare [slot expansion] 0/1; the opened bit rides in USERINFO subtype 1.
+        var trace=new Trace();using var f=await Create(3,trace,slotIndex:index);
+        f.Sql($"UPDATE characters SET ex_equip_slot_stat={before} WHERE character_id=1");
+        await Send(f,3);
+        Assert.Equal(expected,f.Scalar("SELECT ex_equip_slot_stat FROM characters WHERE character_id=1"));
+        Assert.Equal(1,f.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=2001"));
+        var frames=f.Sender.Outbound.Frames;output.WriteLine("slot frames="+string.Join(',',frames.Select(Type)));
+        Assert.Equal(new ushort[]{0x22,0x25,2,0x15},frames.Select(Type));
+        var body=frames[2].AsSpan(15);
+        Assert.Equal(1,body[0]);
+        Assert.Equal(expected,body[28+88]);
+    }
+
+    private static async Task<ShopFixture> Create(int protocol,Trace trace,RemainingOpeningProtocolCommandFlowTests.SenderProbe? delivery=null,bool growth=false,int? slotIndex=null)
     {
         var rules=new OrdinaryQuestEffectTests.Rules();rules.Quest=rules.Quest with {InitialTrigger=protocol==2?1u:0u,EventItems=protocol==0?[new(2000,2)]:[]};
         if(growth)rules.Quest=rules.Quest with {Rewards=[new(QuestRewardKind.GrowType,[1])]};
+        if(slotIndex is {} slot)rules.Quest=rules.Quest with {Rewards=[new(QuestRewardKind.SlotExpansion,[slot])]};
         var learning=new LearningContent();if(growth)learning.Grants.Add(new(7,3,1,0));
         var f=new ShopFixture(s=>{
             var creature=s.Last(x=>x.ServiceType==typeof(Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService));

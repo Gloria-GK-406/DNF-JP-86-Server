@@ -280,6 +280,14 @@ public sealed class GameFinishQuestCommandHandler(
                     result.AccountInventory.VirtualResources, result.AccountInventory.Cargo.SelectionKey,
                     result.AccountInventory.Cargo.Value32, clock.GetUtcNow()));
         }
+        else if (outcome.ExtraEquipmentSlotOpened)
+        {
+            // Only subtype 1 carries the opened-slot byte; others never see it, so nothing is broadcast.
+            var equipment = result.CharacterInventory.Containers
+                .SingleOrDefault(container => container.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
+            frames.Add(new ExtendedUserStateMessage(result.Character, result.CharacterEntry.Public,
+                result.CharacterEntry.Skills, equipment, clock.GetUtcNow()));
+        }
 
         frames.Add(new AvailableQuestListMessage(
             outcome.NewLevel, result.World.Content.AvailableQuests));
@@ -376,7 +384,8 @@ public sealed class GameFinishQuestCommandHandler(
             }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
                 result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType)
-            { MirrorCompletion = isMirror, Awakening = result.Awakening, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates };
+            { MirrorCompletion = isMirror, Awakening = result.Awakening, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates,
+              ExtraEquipmentSlotOpened = result.Applied.Applied.Any(x => x.Change is Dfo.Server.Abstractions.Effects.ExtraEquipmentSlotChange) };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))
         {
