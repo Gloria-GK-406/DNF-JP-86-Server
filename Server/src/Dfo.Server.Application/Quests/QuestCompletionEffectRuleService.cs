@@ -180,6 +180,8 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
                 }
             }
         }
+        if (reward.ExtraEquipmentSlot != ExtraEquipmentSlots.None)
+            effects.Add(new OpenExtraEquipmentSlotEffect(reward.ExtraEquipmentSlot));
         var remaining = facts.Quests with
         {
             Carried = [.. facts.Quests.Carried.Where(x => x.Slot != target.Slot)],

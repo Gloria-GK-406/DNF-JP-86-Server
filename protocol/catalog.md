@@ -1,5 +1,12 @@
 # 协议清单
 
+## 2026-11-11 辅助装备／魔法石开槽任务（#308，ClientVerified）
+
+任务 649/650 的 `[slot expansion]` 奖励此前只解析不消费，`ex_equip_slot_stat` 无写入；且
+[USERINFO subtype 1](game/server-to-client/NOTI-0x0002.md) 把该字节写在 88B 属性块内，A21 读的是块后字节
+（ClientStatic，VA `013E6370`）。现完成同事务开槽、提交后补发 subtype 1，并修正字节位置；
+[FINISH_QUEST](game/client-to-server/0x0022.md) 保持 chain=0。老角色由 DbMigrate 3→4 补位。
+
 ## 龙跃武器成长与升星（#281）
 
 CurrentImplementation：NOTI [01E1](game/server-to-client/NOTI-0x01E1.md) 成长值刷新、[01E2](game/server-to-client/NOTI-0x01E2.md) 换星／重置；

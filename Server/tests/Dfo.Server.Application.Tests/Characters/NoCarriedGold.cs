@@ -148,6 +148,9 @@ internal sealed class CharacterRow : ICharacterTable
     public ValueTask<int> SetGrowTypeAsync(CharacterId characterId, int expectedGrowType, int growType,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
+    public ValueTask<int> OpenExtraEquipmentSlotsAsync(CharacterId characterId, ExtraEquipmentSlots slots,
+        CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken) =>
         throw Unneeded();

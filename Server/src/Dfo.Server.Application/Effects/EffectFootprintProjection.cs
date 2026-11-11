@@ -65,6 +65,8 @@ internal class EffectFootprintProjection(ReplayProjectionNeeds minimum)
                 case (SetCharacterAwakeningEffect, CharacterGrowTypeChange):
                 case (MaterializeSkillBuildsEffect, SkillBuildsMaterializedChange):
                     Needs |= ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills; break;
+                // The opened-slot byte travels in USERINFO subtype 1, which the appearance projection composes.
+                case (OpenExtraEquipmentSlotEffect, ExtraEquipmentSlotChange): Needs |= ReplayProjectionNeeds.CharacterAppearance; break;
                 case (SetOpeningPremiumEffect, OpeningPremiumChange):
                 case (SetDoublePotUsageEffect, DoublePotUsageChange): Needs |= ReplayProjectionNeeds.Premium; break;
                 // These runtime changes have no safe absolute wire representation in the current protocol.

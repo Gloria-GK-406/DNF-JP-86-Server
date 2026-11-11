@@ -45,6 +45,8 @@ public sealed record QuestFinishOutcome(
     public byte? Awakening { get; init; }
     public uint NotificationExperience { get; init; } = NewExperience;
     public IReadOnlyList<CommittedInventoryUpdateState> ConsumedItemUpdates { get; init; } = [];
+    /// <summary>The completion opened an extra equipment slot, so subtype 1 must be resent.</summary>
+    public bool ExtraEquipmentSlotOpened { get; init; }
 
     public static QuestFinishOutcome Refuse(
         ushort questId, QuestProgressSnapshot? questProgress = null) =>

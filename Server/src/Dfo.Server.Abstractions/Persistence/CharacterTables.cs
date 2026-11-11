@@ -149,6 +149,13 @@ public interface ICharacterTable
     ValueTask<int> SetGrowTypeAsync(
         CharacterId characterId, int expectedGrowType, int growType, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// ORs <paramref name="slots"/> into the character's opened extra equipment slots. Says how
+    /// many rows that touched; a deleted or missing character touches none.
+    /// </summary>
+    ValueTask<int> OpenExtraEquipmentSlotsAsync(
+        CharacterId characterId, ExtraEquipmentSlots slots, CancellationToken cancellationToken);
+
     ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken);
 

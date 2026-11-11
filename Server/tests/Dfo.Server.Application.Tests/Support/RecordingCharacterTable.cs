@@ -34,6 +34,9 @@ internal sealed class RecordingCharacterTable(int level, uint experience) : ICha
     public ValueTask<int> SetGrowTypeAsync(CharacterId characterId, int expectedGrowType, int growType,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
+    public ValueTask<int> OpenExtraEquipmentSlotsAsync(CharacterId characterId, ExtraEquipmentSlots slots,
+        CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int newLevel, long newExperience, CancellationToken cancellationToken)
     {

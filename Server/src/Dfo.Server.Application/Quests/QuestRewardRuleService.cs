@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Quests;
 
@@ -33,6 +34,11 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService cycles) : 
                 || (candidate.GrowType & 0xF) == 0 && candidate.Job is not (9 or 10)))
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidCareerReward);
         byte? awakening = awakeningRewards.Length == 0 ? null : checked((byte)awakeningRewards[0].Values[0]);
+        // PVF 649/650 declare [reward int data] 0 (support) and 1 (magic stone): an index, not a mask.
+        var slotRewards = definition.Rewards.Where(reward => reward.Kind == QuestRewardKind.SlotExpansion).ToArray();
+        if (slotRewards.Length > 1 || slotRewards.Any(reward => reward.Values.Count != 1 || reward.Values[0] is not (0 or 1)))
+            return QuestRewardResolution.Refused(QuestRewardRejection.InvalidSlotExpansionReward);
+        var extraSlot = slotRewards.Length == 0 ? ExtraEquipmentSlots.None : (ExtraEquipmentSlots)(1 << slotRewards[0].Values[0]);
         var declaration = definition.ItemRewards;
         var eligibleSelection = declaration.Selectable
             .Where(rule => Matches(rule, candidate))
@@ -100,7 +106,7 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService cycles) : 
         var consumes = definition.ObjectiveTypeCode.Trim().Trim('[', ']').ToLowerInvariant()
             is "seeking" or "seek n meet npc" ? definition.SeekingItems : null;
         return QuestRewardResolution.Valid(new QuestCompletionRewardPlan(experience, gold, items, growType, consumes)
-            { Awakening = awakening });
+            { Awakening = awakening, ExtraEquipmentSlot = extraSlot });
     }
 
     private static bool Matches(QuestItemRewardRule rule, QuestRewardCandidate candidate)

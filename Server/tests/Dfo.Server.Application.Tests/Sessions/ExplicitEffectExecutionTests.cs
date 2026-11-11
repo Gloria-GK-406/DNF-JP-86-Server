@@ -322,6 +322,7 @@ public sealed class ExplicitEffectExecutionTests
             (new SetCharacterGrowTypeEffect(0, 0, 1), new CharacterGrowTypeChange(1), ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills, []),
             (new SetCharacterAwakeningEffect(0, 1, 17), new CharacterGrowTypeChange(17), ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills, []),
             (new MaterializeSkillBuildsEffect(default, []), new SkillBuildsMaterializedChange(), ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills, []),
+            (new OpenExtraEquipmentSlotEffect(Dfo.Server.Data.Characters.ExtraEquipmentSlots.Support), new ExtraEquipmentSlotChange(Dfo.Server.Data.Characters.ExtraEquipmentSlots.Support), ReplayProjectionNeeds.CharacterAppearance, []),
             (new SetOpeningPremiumEffect(default, 1, 2, new(1, 1)), new OpeningPremiumChange(null!, null!), ReplayProjectionNeeds.Premium, []),
             (new SetDoublePotUsageEffect(null!), new DoublePotUsageChange(null!), ReplayProjectionNeeds.Premium, []),
             (new StartItemCooldownEffect(default, TimeSpan.FromSeconds(1)), new ItemCooldownChange(default, TimeSpan.FromSeconds(1)), ReplayProjectionNeeds.None, []),

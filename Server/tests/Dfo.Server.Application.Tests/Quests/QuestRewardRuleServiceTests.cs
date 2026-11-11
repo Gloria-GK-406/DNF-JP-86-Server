@@ -2,6 +2,7 @@ using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Quests;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Tests.Quests;
 
@@ -114,6 +115,43 @@ public sealed class QuestRewardRuleServiceTests
             { Rewards = [new(QuestRewardKind.AwakeningType,[1]),new(QuestRewardKind.GrowType,[1])] };
         Assert.False(Resolve(quest, growType: 1).IsValid);
         Assert.False(Resolve(quest with { Rewards = [new(QuestRewardKind.AwakeningType,[1,2])] }, growType: 1).IsValid);
+    }
+
+    [Theory]
+    [InlineData(0, ExtraEquipmentSlots.Support)]
+    [InlineData(1, ExtraEquipmentSlots.MagicStone)]
+    public void Slot_expansion_index_names_one_extra_equipment_slot(int index, ExtraEquipmentSlots expected)
+    {
+        // PVF 649 declares [reward int data] 0, 650 declares 1.
+        var quest = Quest(QuestItemRewardDefinition.Empty) with
+            { Rewards = [new(QuestRewardKind.SlotExpansion, [index])] };
+        var reward = Resolve(quest);
+        Assert.True(reward.IsValid);
+        Assert.Equal(expected, reward.Plan!.ExtraEquipmentSlot);
+    }
+
+    [Fact]
+    public void A_quest_without_slot_expansion_opens_nothing() =>
+        Assert.Equal(ExtraEquipmentSlots.None, Resolve(Quest(QuestItemRewardDefinition.Empty)).Plan!.ExtraEquipmentSlot);
+
+    [Theory]
+    [InlineData(new[] { 2 })]
+    [InlineData(new[] { -1 })]
+    [InlineData(new int[0])]
+    [InlineData(new[] { 0, 1 })]
+    public void Malformed_slot_expansion_is_refused(int[] values)
+    {
+        var quest = Quest(QuestItemRewardDefinition.Empty) with
+            { Rewards = [new(QuestRewardKind.SlotExpansion, values)] };
+        Assert.Equal(QuestRewardRejection.InvalidSlotExpansionReward, Resolve(quest).Rejection);
+    }
+
+    [Fact]
+    public void Two_slot_expansion_rewards_are_refused()
+    {
+        var quest = Quest(QuestItemRewardDefinition.Empty) with
+            { Rewards = [new(QuestRewardKind.SlotExpansion, [0]), new(QuestRewardKind.SlotExpansion, [1])] };
+        Assert.Equal(QuestRewardRejection.InvalidSlotExpansionReward, Resolve(quest).Rejection);
     }
 
     private static QuestRewardResolution Resolve(

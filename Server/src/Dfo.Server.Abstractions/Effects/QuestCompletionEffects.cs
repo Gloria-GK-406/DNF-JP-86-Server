@@ -20,6 +20,9 @@ public sealed record QuestRewardGoldChange(int Before, int After) : EffectChange
 public sealed record SetCharacterGrowTypeEffect(byte Job, byte Expected, byte Value) : DomainEffect;
 public sealed record CharacterGrowTypeChange(byte GrowType) : EffectChange;
 public sealed record SetCharacterAwakeningEffect(byte Job, byte Expected, byte Value) : DomainEffect;
+/// <summary>Opens one extra equipment slot; already-open slots stay open.</summary>
+public sealed record OpenExtraEquipmentSlotEffect(ExtraEquipmentSlots Slot) : DomainEffect;
+public sealed record ExtraEquipmentSlotChange(ExtraEquipmentSlots Slot) : EffectChange;
 public sealed record MaterializeSkillBuildsEffect(SkillBuildId Active, ImmutableArray<CharacterSkillBuild> Expected) : DomainEffect;
 public sealed record SkillBuildsMaterializedChange : EffectChange;
 public sealed record GrantBasicCharacterItemEffect(int ItemId, int Count, ItemPlacement Placement) : InventoryEffect;

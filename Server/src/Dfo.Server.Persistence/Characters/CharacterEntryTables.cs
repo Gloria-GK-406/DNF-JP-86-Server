@@ -249,6 +249,16 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 parameters.AddWithValue("@grow", growType);
             }, cancellationToken);
 
+    public ValueTask<int> OpenExtraEquipmentSlotsAsync(
+        CharacterId characterId, ExtraEquipmentSlots slots, CancellationToken cancellationToken) =>
+        database.ExecuteAsync(
+            "UPDATE characters SET ex_equip_slot_stat=(ex_equip_slot_stat | @slots) WHERE character_id=@cid AND delete_flag=0",
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@slots", (int)slots);
+            }, cancellationToken);
+
     public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken) =>
         database.ExecuteAsync(
