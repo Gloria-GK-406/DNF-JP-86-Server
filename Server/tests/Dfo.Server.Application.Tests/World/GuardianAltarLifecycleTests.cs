@@ -122,7 +122,7 @@ public sealed class GuardianAltarLifecycleTests
             Assert.Equal(clock.At.AddSeconds(50), altar.Find(run.RunId)!.Deadline);
             Assert.Equal(3, (await altar.ReadProgressAsync(new(71), default)).FreeTickets);
             Assert.Equal(0, f.Scalar("SELECT count(*) FROM guardian_altar_settlements"));
-            Assert.True(await runs.EndAsync(new(71), run.RunId));
+            Assert.True(await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), run.RunId)));
             await using (var tx = f.Scope.Begin()) { altar.PruneStaleSessions(); await tx.CommitAsync(default); }
             Assert.Empty(altar.Pending()); Assert.Null(altar.Find(run.RunId));
         });
@@ -164,7 +164,7 @@ public sealed class GuardianAltarLifecycleTests
                     Assert.Equal(Enumerable.Range(0, actors.Count).Select(x => (ushort)x), actors.Select(x => x.Sequence));
                 }
                 Assert.Equal(GuardianAltarStatus.Won, altar.Find(run.RunId)!.Status);
-                Assert.True(await runs.EndAsync(new(71), run.RunId));
+                Assert.True(await TestUseCase.RunAsync(f.Services, () => runs.EndAsync(new(71), run.RunId)));
             }
             var result = await altar.ReadProgressAsync(new(71), default);
             Assert.Equal(72, result.GameStars); Assert.Equal(67, result.ExtraTickets + result.FreeTickets);

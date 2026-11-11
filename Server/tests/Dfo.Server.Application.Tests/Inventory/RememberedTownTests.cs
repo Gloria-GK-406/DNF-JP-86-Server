@@ -20,8 +20,8 @@ public sealed class RememberedTownTests
         {
             using var shop = new ShopFixture(useArchive: true);
             var saved = new CharacterPositionState(town, 2, 123, 456, 3);
-            await shop.Services.GetRequiredService<ISelectedSessionPositionPersistence>()
-                .PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, saved, default);
+            await TestUseCase.RunAsync(shop.Services, () => shop.Services.GetRequiredService<ISelectedSessionPositionPersistence>()
+                .PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, saved, default));
             // Reads through the actual repository, not the in-memory selected-session position.
             var loaded = await shop.Services.GetRequiredService<ICharacterRosterDomainService>()
                 .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default);
@@ -52,9 +52,9 @@ public sealed class RememberedTownTests
             var placement = shop.Services.GetRequiredService<IEntryPlacementRuleService>();
             Assert.True(await placement.CanRememberInnAsync(11, default));
             Assert.False(await placement.CanRememberInnAsync(12, default));
-            await persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, new(11, 0, 100, 200, 5), default);
+            await TestUseCase.RunAsync(shop.Services, () => persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, new(11, 0, 100, 200, 5), default));
             var timeGate = new CharacterPositionState(12, 0, 562, 183, 5);
-            await persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, timeGate, default);
+            await TestUseCase.RunAsync(shop.Services, () => persistence.PersistAsync(shop.Session.AccountId, shop.Session.CharacterId, timeGate, default));
             var loaded = await shop.Services.GetRequiredService<ICharacterRosterDomainService>()
                 .LoadByRosterPositionAsync(shop.Session.AccountId, 0, default);
             Assert.Equal(timeGate, loaded.Position);

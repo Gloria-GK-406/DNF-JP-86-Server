@@ -155,8 +155,10 @@ public sealed class AvatarCompoundTests
         if (reason == "category") input = input with { Category = 2 };
         if (reason == "part") content.Part2 = "coat avatar";
         if (reason == "grade") content.Grade1 = 3;
+        // An avatar keeps its deadline in the avatar detail, not the core expire time (#200).
         if (reason is "lock" or "expire") await f.SeedCore(0, StackableItemCore.Create(8, 39086, 12345) with
-            { EquipmentLockId = reason == "lock" ? (byte)1 : (byte)0, ExpireTime = reason == "expire" ? 123 : 0 }, InventoryContainerType.Avatar);
+            { EquipmentLockId = reason == "lock" ? (byte)1 : (byte)0 }, InventoryContainerType.Avatar,
+            avatarExpireDate: reason == "expire" ? 123 : 0);
         var before = f.StoredCore(0, InventoryContainerType.Avatar);
         var result = await Roll(f, input); Assert.Null(result.Receipt); Assert.NotEqual(AvatarCompoundRejection.None, result.Rejection);
         Assert.Equal(before, f.StoredCore(0, InventoryContainerType.Avatar)); Assert.Equal(1, f.Count(39087));

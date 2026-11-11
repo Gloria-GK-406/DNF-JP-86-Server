@@ -382,13 +382,18 @@ public sealed class WorldContentArchiveTests
         Assert.Equal(234, result.Spawn.Y);
     }
 
-    private static WorldContentEntryRuleService CreateService(IServiceProvider provider) =>
-        new(new QuestContentRuleService(
-                provider.GetRequiredService<IQuestDefinitionSource>(),
-                provider.GetRequiredService<IQuestParameterSource>()),
+    // The offered quests are what these tests read, so availability is the real rule over the archive.
+    private static WorldContentEntryRuleService CreateService(IServiceProvider provider)
+    {
+        var quests = new QuestContentRuleService(
+            provider.GetRequiredService<IQuestDefinitionSource>(),
+            provider.GetRequiredService<IQuestParameterSource>());
+        var creatures = provider.GetRequiredService<ICreatureDefinitionSource>();
+        return new(quests,
             provider.GetRequiredService<IDailyActivityDefinitionSource>(),
             provider.GetRequiredService<ICollectionBoxDefinitionSource>(),
-            provider.GetRequiredService<ICreatureDefinitionSource>(), questAvailability: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestAvailabilityRuleService>());
+            creatures, questAvailability: new Dfo.Server.Application.Quests.QuestAvailabilityRuleService(quests, creatures));
+    }
 
     private static WorldContentSubject Subject(
         int level = 1,

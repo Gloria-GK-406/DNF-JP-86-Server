@@ -23,7 +23,7 @@ internal static class MoveItemProtocolTestDriver
         Execution execution,IGameMessageSender sender,ILogger<GameMoveItemSpaceCommandHandler> logger,
         ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
         TimeProvider time,IMarriageHousingQueryDomainService? housing=null) =>
-        new(new Bus(new(sessions,views,execution.Domain,new Units(execution.Fixture),
+        new(new Bus(new(sessions,views,execution.Domain,new Units(execution.Fixture,sessions),
             new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
@@ -37,11 +37,14 @@ internal static class MoveItemProtocolTestDriver
                 typeof(GameMoveItemSpaceCommandHandler),FixtureUnitKind.Direct),move,ct);
         }
     }
-    private sealed class Units(MoveItemFixture fixture):ICommandWorkUnits
+    private sealed class Units(MoveItemFixture fixture,ISelectedSessionDomainService sessions):ICommandWorkUnits
     {
         public ValueTask<T> WriteAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,
             Func<CommandWorkUnit,CancellationToken,ValueTask<T>> action,CancellationToken ct=default)where T:notnull
-        {Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);Assert.Empty(d.Participants);return fixture.RunAsync(()=>action(null!,ct));}
+        {Assert.Equal(CommandWorkUnitKind.Ordinary,d.Kind);Assert.Equal(CommandFootprintMode.None,d.Footprint);AssertTheActor(d.Participants);return fixture.RunAsync(()=>action(null!,ct));}
+        // The move declares its in-world actor as the unit's one protected participant (#224).
+        private void AssertTheActor(IReadOnlyList<SelectedSessionRecipient> participants)
+        {var actor=Assert.Single(participants).Session;Assert.True(sessions.TryGetInWorld(actor.ConnectionId,out var current));Assert.Equal(current,actor);}
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c,CommandWorkUnitDeclaration d,Func<CancellationToken,ValueTask<T>> a,CancellationToken ct=default)where T:notnull=>throw new NotSupportedException();
     }

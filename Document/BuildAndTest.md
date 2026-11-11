@@ -85,6 +85,27 @@ dotnet test Server/86JP.Server.slnx --logger 'console;verbosity=detailed' > /tmp
 PVF 中缺 `[minimum level]` 的装备，导致结算抛错，这仍是生产健壮性缺口。
 同一内容异常栈出现在其他用例时，可能是另一处内容缺陷，不能套用上述归因。
 
+### 用错 PVF：融合异界 7100 布局
+
+服务端 PVF 与客户端 PVF 不是同一份：`Tool/PvfDimensionLayoutPatch` 只改服务端资源里
+`dungeon/Impossible/dimension.dgn` 的 `[map specification]`，客户端资源保持原样。
+**身份三样一起看：**
+
+1. 用例 `DimensionDungeonTests.Fusion_real_content_builds_six_reachable_rooms_and_the_actual_boss_resource`
+   或 `DimensionDungeonTests.All_six_real_cells_materialize_with_the_boss_and_personal_chronicle_loot`；
+2. 异常 `InvalidDataException`，消息 `Dungeon '7100' maze '0': cell (1,0) has no compatible map for entrance 'Left'`；
+3. 用 `Tool/PvfProbe` 的 `dump dungeon/Impossible/dimension.dgn` 读所用档案，`[map specification]` 从
+   `map 1 0 53070` 开始（未打补丁）；打过补丁的是 `map 0 0 53070`。
+
+三样都对上，就是档案没有这处布局修复，代码与用例无需改动；换带修复的 PVF 复跑应通过。
+`Tool/PvfMirrorLayoutPatch`（Odesa.dgn）同属此类，但现有用例覆盖不到它改的那个迷宫。
+
+10-27 的巨龙恢复版（SHA-256 前缀 `01F1BE68`）派生自客户端 PVF，两处布局修复都没有；10-19 的服务端 PVF
+（前缀 `C5CCE534`）有布局修复但早于巨龙恢复，会让 `GiantDragonDungeonTests` 报
+`Giant dragon dungeon or native entrance is missing/incompatible`。2026-11-11 在巨龙恢复版上重放了两处布局修复，
+得到合并档案（前缀 `A443F87B`），并替换了各 A21 自建服客户端目录的 `Script.pvf`（`DNFClient-A21-upstream`
+与 `DNFClient-OneKey` 未动）。带它运行 Protocol.Tests 与 Application.Tests 均 0 失败、0 跳过。
+
 ### 进程与 socket 超时
 
 Host.Tests 和 Networking 集成测试在满载全量运行时可能因进程退出／连接就绪预算耗尽而报

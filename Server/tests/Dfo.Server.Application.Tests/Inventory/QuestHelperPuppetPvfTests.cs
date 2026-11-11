@@ -27,7 +27,7 @@ public sealed class QuestHelperPuppetPvfTests
                 Assert.True(await puppets.EnsureDailyAsync(f.Session.AccountId, f.Session.CharacterId, default));
                 await tx.CommitAsync(default);
             }
-            var mailbox = f.Services.GetRequiredService<IMailboxDomainService>();
+            var mailbox = TestUseCase.Mailbox(f.Services);
             var mail = Assert.Single(await mailbox.InboxAsync(f.Session.CharacterId));
             var expected = new DateTimeOffset(2026, 10, 21, 6, 0, 0, TimeSpan.FromHours(8));
             Assert.Equal(expected, mail.ExpiresAt);

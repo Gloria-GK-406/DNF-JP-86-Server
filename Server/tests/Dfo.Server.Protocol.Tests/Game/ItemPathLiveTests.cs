@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application;
@@ -115,6 +116,10 @@ public sealed class ItemPathLiveTests
             var session = Assert.IsAssignableFrom<TouchSocketSessionClient>(
                 gameService.GetClients().Single());
             var connectionId = new NetworkConnectionId($"Game:{session.Id}");
+            // The host registers the connection's online user on its own schedule; the selection
+            // below belongs to that user, so it waits for the registration rather than racing it.
+            var onlineUsers = host.Services.GetRequiredService<IOnlineUserQueryDomainService>();
+            await WaitUntilAsync(() => onlineUsers.TryGetByConnection(connectionId, out _), timeout.Token);
 
             Bind(host.Services, connectionId);
 
@@ -173,9 +178,17 @@ public sealed class ItemPathLiveTests
                     services.GetRequiredService<IDomainTransactionAccessor>(),
                     services.GetRequiredService<IItemPlacementRuleService>(),
                     services.GetRequiredService<IItemSlotRuleService>()));
-            services.GetRequiredService<ISelectedSessionDomainService>().Select(
-                new SelectedSessionIdentity(
-                    new AccountId(6), character, connectionId, 0, WireUserId: 60, ListenerPort: 0));
+            // A move needs a character in the world on the connection that sent it, so the
+            // connection the host registered is authenticated and its selection enters the world.
+            var registry = services.GetRequiredService<Dfo.Server.Application.Users.OnlineStateRegistry>();
+            Assert.True(registry.TryGetByConnection(connectionId, out var user));
+            registry.Authenticate(user!.OnlineUserId, new AccountId(6));
+            var session = new SelectedSessionIdentity(
+                new AccountId(6), character, connectionId, registry.GetRequiredUser(user.OnlineUserId).Generation,
+                WireUserId: 60, ListenerPort: 0);
+            var sessions = services.GetRequiredService<ISelectedSessionDomainService>();
+            sessions.Select(session);
+            sessions.EnterWorld(session);
         });
     }
 

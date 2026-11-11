@@ -24,7 +24,7 @@ public sealed class MarriageCapsuleItemUseTests
         async ValueTask<Dfo.Server.Protocol.Game.GroundPickup.GroundPickupResult> PickUp(ushort drop) => await Dfo.Server.Testing.TestGameplay.RunAsync(f.Services,async()=>
         {
             await using var scope=((Dfo.Server.Application.Transactions.DomainTransactionScope)f.Services.GetRequiredService<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>()).Begin();
-            var result=await ActivatorUtilities.CreateInstance<Dfo.Server.Application.Tests.Support.GroundPickupAlgorithmDriver>(f.Services).PickUpAsync(new(f.Session.AccountId,f.Session.CharacterId,drop,run.RunId,run.RoomVersion),default);
+            var result=await ActivatorUtilities.CreateInstance<Dfo.Server.Application.Tests.Support.GroundPickupAlgorithmDriver>(f.Services,runs).PickUpAsync(new(f.Session.AccountId,f.Session.CharacterId,drop,run.RunId,run.RoomVersion),default);
             await scope.CommitAsync(default);return result;
         });
         var number=Assert.Single(run.CurrentCellState.GroundItems).Number;
