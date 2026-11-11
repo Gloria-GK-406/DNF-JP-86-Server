@@ -8,7 +8,6 @@ namespace Dfo.Server.Protocol.Game.InitialConnection;
 
 public static class GameInitialConnectionPayloadCodec
 {
-    private const int ServerIndex = 1;
     /// <summary>The sizes of the client's two dispatch tables, which it checks against its own.</summary>
     /// <remarks>
     /// These are the A21 client's table sizes, read off a known-good session rather than counted
@@ -54,7 +53,7 @@ public static class GameInitialConnectionPayloadCodec
         WriteDString(body, $"ch.{notice.ChannelId}");
         WriteInt32(body, 0);
         WriteInt32(body, 0);
-        body.WriteByte(ServerIndex);
+        body.WriteByte(GameProtocol.ServerIndex);
         body.WriteByte((byte)notice.ChannelId);
         body.WriteByte(0x00);
         WriteInt32(body, checked((int)notice.PreparedAt.ToUnixTimeSeconds()));
