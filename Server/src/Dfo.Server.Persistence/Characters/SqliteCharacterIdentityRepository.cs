@@ -7,8 +7,8 @@ namespace Dfo.Server.Persistence.Characters;
 
 /// <summary>Live characters' public identity, by exact name or by a set of identifiers.</summary>
 /// <remarks>
-/// The name match is the mailbox recipient lookup's: the stored bytes, falling back to the legacy
-/// text column cast to bytes, compared exactly. A name is only unique among live characters, so the
+/// The one name lookup on the server -- mail, whispers, 1:1 conversations, friends and blacklists all
+/// resolve through it: the stored bytes, falling back to the legacy text column cast to bytes, compared exactly. A name is only unique among live characters, so the
 /// deleted ones are excluded in the statement rather than after it.
 /// </remarks>
 internal sealed class SqliteCharacterIdentityRepository(SqliteDatabase database) : ICharacterIdentityRepository
