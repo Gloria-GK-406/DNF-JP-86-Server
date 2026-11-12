@@ -3,7 +3,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game;
 
 // Shared by the chat slices (SendChat, OneToOneChat): the string every chat frame carries and the
-// one check a line or a conversation request passes before anything is delivered.
+// speaker checks a line or a conversation request passes before anything is delivered.
 
 /// <summary>The <c>i32</c>-counted byte string every chat frame uses, written as the bytes arrived.</summary>
 internal static class ChatDString
@@ -30,9 +30,14 @@ internal static class ChatDString
 }
 
 /// <summary>
-/// The single check a line -- or a request to open a conversation -- passes before anything is
-/// delivered. Everything passes today; muting, block lists and rate limits belong here, and nowhere else.
+/// The speaker checks a line -- or a request to open a conversation -- passes before anything is
+/// delivered: only those that do not depend on who receives it, such as muting and rate limits.
+/// Everything passes today.
 /// </summary>
+/// <remarks>
+/// A blacklist is not one of them. It is decided per recipient, so it is applied where the line is
+/// delivered (the recipient filter in the chat command) and where a conversation is opened.
+/// </remarks>
 internal static class ChatPreSendChecks
 {
     public static bool Passes(SelectedSessionIdentity speaker) => true;

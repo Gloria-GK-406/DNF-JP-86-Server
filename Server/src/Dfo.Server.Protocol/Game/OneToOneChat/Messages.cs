@@ -39,3 +39,13 @@ public sealed record ConversationOpenedMessage(ChatConversationId Conversation, 
 
     public ServerMessageType MessageType => ServerMessageType.GameConversationOpened;
 }
+
+/// <summary>NOTI <c>0x016A</c> with the blacklist result: no conversation, and the requester's client shows text 4763.</summary>
+/// <remarks>
+/// Sent only to the requester's own connection. The client reads the result byte alone for 77 and
+/// opens no window, so the other side, which never asked, is told nothing.
+/// </remarks>
+public sealed record ConversationRefusedMessage : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameConversationOpened;
+}

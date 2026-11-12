@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Relations;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Chat;
@@ -23,16 +24,23 @@ public sealed record GameOpenConversationCommand(NetworkDispatchContext Dispatch
 /// <remarks>
 /// Whatever does not open one -- no such character, one not in the world, oneself, a conversation
 /// already going on -- is answered with nothing. The client shows nothing for a refusal other than
-/// the block-list one either, and answering a conversation already open would put a second window
+/// the blacklist one either, and answering a conversation already open would put a second window
 /// up on both sides.
+/// <para>
+/// The blacklist one is the exception: when either side has blacklisted the other, only the
+/// requester is answered, with result 77, and no conversation is opened. It is checked before the
+/// open conversation is, so a blacklist added while a window is up still answers a new request.
+/// </para>
 /// </remarks>
 internal sealed class GameOpenConversationCommandHandler(
     ISelectedSessionDomainService sessions,
     ICharacterDomainService characters,
     IMailboxQueryDomainService directory,
     IChatConversationDomainService conversations,
+    ICharacterRelationQueryDomainService relations,
     ICommandWorkUnits units,
     ICommandProjections projections,
+    IGameCommandOutbox outbox,
     ILogger<GameOpenConversationCommandHandler> logger) : ICommandHandler<GameOpenConversationCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameOpenConversationCommand command, CancellationToken ct)
@@ -46,6 +54,11 @@ internal sealed class GameOpenConversationCommandHandler(
         var recipient = new SelectedSessionRecipient(requester, connection, command.Input.Metadata);
         var members = await units.ReadOnlyAsync(execution, new("ConversationMembers", [recipient]),
             token => ReadMembersAsync(requester, command.Input.TargetName, token), ct).ConfigureAwait(false);
+        if (members.Blacklisted)
+        {
+            await outbox.RegisterNotiAsync(requester.ConnectionId, new ConversationRefusedMessage(), ct).ConfigureAwait(false);
+            return Unopened(requester, "Blacklisted");
+        }
         if (members is not { Own: { } own, Peer: { } peer })
             return Unopened(requester, "NoSuchTarget");
         if (conversations.Open(own, peer) is not { } conversation)
@@ -65,6 +78,10 @@ internal sealed class GameOpenConversationCommandHandler(
             || target.CharacterId == requester.CharacterId
             || !sessions.TryGetInWorld(target.CharacterId, out var targetSession))
             return OpeningMembers.None;
+        // Either direction refuses: the owner's side would drop every line of the other, which is no conversation.
+        if (await relations.ExistsAsync(requester.CharacterId, target.CharacterId, CharacterRelationKind.Blacklist, ct).ConfigureAwait(false)
+            || await relations.ExistsAsync(target.CharacterId, requester.CharacterId, CharacterRelationKind.Blacklist, ct).ConfigureAwait(false))
+            return OpeningMembers.Refused;
         var ownName = await NameOfAsync(requester, ct).ConfigureAwait(false);
         var peerName = await NameOfAsync(targetSession, ct).ConfigureAwait(false);
         return ownName is null || peerName is null ? OpeningMembers.None : new(new(requester, ownName), new(targetSession, peerName));
@@ -76,9 +93,10 @@ internal sealed class GameOpenConversationCommandHandler(
             ? name
             : null;
 
-    private sealed record OpeningMembers(ChatConversationMember? Own, ChatConversationMember? Peer)
+    private sealed record OpeningMembers(ChatConversationMember? Own, ChatConversationMember? Peer, bool Blacklisted = false)
     {
         public static OpeningMembers None { get; } = new(null, null);
+        public static OpeningMembers Refused { get; } = new(null, null, true);
     }
 
     private bool Unopened(SelectedSessionIdentity requester, string reason)

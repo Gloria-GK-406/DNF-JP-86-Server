@@ -101,7 +101,8 @@ n ×  dstr name          # 0 < len < 128 字节
 
 ### 本仓实现（CurrentImplementation）
 
-`ConversationOpenedMessage` / `ConversationOpenedEncoder`；`ChatConversationOpenedHandler` 为两名成员各组一条。
+成功形态 `ConversationOpenedMessage` / `ConversationOpenedEncoder`，`ChatConversationOpenedHandler` 为两名成员各组一条；
+黑名单形态 `ConversationRefusedMessage` / `ConversationRefusedEncoder`，命令直投发起方。
 代码：[`OneToOneChat/`](../../../Server/src/Dfo.Server.Protocol/Game/OneToOneChat/)。
 
 | 字段 | 取值 |
@@ -111,13 +112,16 @@ n ×  dstr name          # 0 < len < 128 字节
 | n | 2 |
 | names | [对方, 接收方自己]，各为开会话时读取的存储角色名 |
 
-- 只在 0x01A3 成功开会话时发，每个会话对每方只发一次；会话已开时不重发；不发 77／100／101（原因见 0x01A3）。
+- 只在 0x01A3 成功开会话时发，每个会话对每方只发一次；会话已开时不重发；不发 100／101（原因见 0x01A3）。
+- **结果码 77**：0x01A3 发起时任一方把另一方加入了黑名单，只给发起方的连接发 body `4D`（1 字节，result = 77，
+  其后无字段），客户端弹 4763、不建窗；对方不收任何帧，不建会话。解除拉黑后同一请求按成功形态发。
 - 名字须为 1..127 字节：命令遇到不合规的名字就不开会话，编码器对超限名字直接抛异常。
 - **最大 body 268 字节** = 1 + 4 + 1 + 2 × (4 + 127)。
 
 自动测试：
-[`ConversationCodecTests`](../../../Server/tests/Dfo.Server.Protocol.Tests/Game/OneToOneChat/ConversationCodecTests.cs)（`Opened_frame_is_success_id_two_names_other_first`、`Every_frame_stays_inside_what_the_client_reads_and_its_stated_maximum`）、
+[`ConversationCodecTests`](../../../Server/tests/Dfo.Server.Protocol.Tests/Game/OneToOneChat/ConversationCodecTests.cs)（`Opened_frame_is_success_id_two_names_other_first`、`Blacklist_refusal_is_result_77_alone`、`Every_frame_stays_inside_what_the_client_reads_and_its_stated_maximum`）、
 [`SendChatCommandTests.Conversation`](../../../Server/tests/Dfo.Server.Application.Tests/Chat/SendChatCommandTests.Conversation.cs)、
+[`SendChatCommandTests.Blacklist`](../../../Server/tests/Dfo.Server.Application.Tests/Chat/SendChatCommandTests.Blacklist.cs)（双向拉黑各发起一次：发起方只收 `4D`、对方无帧；解除后正常建立）、
 [`ChatWireTests`](../../../Server/tests/Dfo.Server.Networking.Tests/Integration/ChatWireTests.cs)（真实 TCP：双方 body 逐字节）。
 
 ### 未解问题
@@ -126,3 +130,4 @@ n ×  dstr name          # 0 < len < 128 字节
 |---|---|
 | 双方窗口、标题、发起方抢焦点与被邀方闪烁 | 两个客户端实机发起一次 1:1 对话 |
 | 名字按字节原样下发时客户端显示是否正确 | 同上，用含非 ASCII 字符的角色名 |
+| 结果码 77 的弹框（4763）实机显示 | 一方拉黑另一方后发起 1:1 对话 |
