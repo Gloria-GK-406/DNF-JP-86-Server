@@ -4,6 +4,14 @@ namespace Dfo.Server.Protocol.Game;
 
 internal static class GameProtocol
 {
+    /// <summary>The server number the connection notice NOTI <c>0x0001</c> gives the client.</summary>
+    /// <remarks>
+    /// Shared because a megaphone line (NOTI <c>0x0076</c>, A21 handler VA <c>01166B60</c>) names its
+    /// server too. Which value that handler compares the byte with is not read out yet (Hypothesis:
+    /// this one); a mismatch only moves the line to the cross-channel branch.
+    /// </remarks>
+    public const byte ServerIndex = 1;
+
     public const ushort WeddingInfoType = 0x03D0;
     public const ushort WeddingChurchEntryType = 0x03F7;
     public const ushort WeddingCeremonyPreparationType = 0x03D4;

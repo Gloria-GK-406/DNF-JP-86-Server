@@ -366,7 +366,7 @@ public sealed class SessionGenerationOwnershipTests
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),
-            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
+            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService());
     }
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>

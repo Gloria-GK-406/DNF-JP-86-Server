@@ -100,17 +100,6 @@ NOTI	0x0017	8	朝向 Direction	High	上游 Network/Builders/Town/TownAreaNotific
 NOTI	0x0017	9	区域内状态 State	High	上游 Network/Builders/Town/TownAreaNotificationBuilder.cs:33 WriteByte(snapshot.State)
 NOTI	0x01F7	0	公告显示模式 mode；上游各调用点均取默认值 0	Confirmed	上游 Network/Builders/ServerNoticeMessageBuilder.cs:5,8 WriteByte(mode) 为 body 首字节，:9 其后为 UTF-8 dstr 正文
 CMD	0x0004	0	角色槽位索引 slot（按账号角色列表下标，越界回落 0）	Confirmed	上游 Network/Handlers/CharacterSessionLifecycleCoordinator.cs:513-514 BitConverter.ToUInt16(body, 0)，:523-525 用作 ListByAccount 结果下标
-NOTI	0x000C	0	聊天模式 mode（决定投递范围：私聊/组队/区域等）	High	上游 Network/Handlers/ChatHandler.cs:526 WriteByte(mode) 为 body 首字节；:117-165 按同一 mode 值选择收件人
-NOTI	0x000C	1	发送者 UserId	High	上游 Network/Handlers/ChatHandler.cs:527 WriteUInt16(senderUniqueId)，:89 实参为 session.Player.UserId
-NOTI	0x000C	3	服务器组 serverGroup；上游调用点恒传 0	High	上游 Network/Handlers/ChatHandler.cs:528 WriteByte(serverGroup)，:90 实参 serverGroup: 0
-NOTI	0x000C	4	消息正文 dstr（i32 长度 + 原始字节）	High	上游 Network/Handlers/ChatHandler.cs:529 WriteDstr(messageBytes)
-NOTI	0x016A	0	结果码；上游成功路径恒写 0	High	上游 Network/Handlers/ChatHandler.cs:296 WriteByte(0) 并注为 success
-NOTI	0x016A	1	会话（一对一聊天组）id，由服务端分配	High	上游 Network/Handlers/ChatHandler.cs:248 AllocateConversationIdLocked()，:297 WriteUInt32(conversationId)
-NOTI	0x016A	5	成员名数量；上游恒写 2 并紧接写出 2 个名字 dstr	High	上游 Network/Handlers/ChatHandler.cs:298 WriteByte(2)，:299-300 随后两次 WriteDstr
-NOTI	0x016A	g1:0	成员角色名 dstr（第 1 个为接收方本人，第 2 个为对端）	High	上游 Network/Handlers/ChatHandler.cs:299-300 WriteDstr(recipientName) 后 WriteDstr(peerName)
-NOTI	0x016F	0	会话（一对一聊天组）id	High	上游 Network/Handlers/ChatHandler.cs:539 WriteUInt32(conversationId) 为 body 首字段
-NOTI	0x016F	4	发送者角色名 dstr（i32 长度 + 原始字节）	High	上游 Network/Handlers/ChatHandler.cs:540 WriteDstr(senderNameBytes)
-NOTI	0x016F	132	消息正文 dstr（i32 长度 + 原始字节）	High	上游 Network/Handlers/ChatHandler.cs:541 WriteDstr(messageBytes)
 CMD	0x0012	0	背包列表类型 listType（InventoryListType）	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:41 (InventoryListType)body[0]
 CMD	0x0012	1	条目数量 arrayCount；服务端要求 1..100 才走扩展多条目分支	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:39,42 body[1] 取值检查与赋值
 CMD	0x0012	2	条目 1 的操作类型 opType	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:46 注明条目结构 opType(u16)+slotIndex(u16)+itemId(i32)+deleteCount(i32)，:49 BitConverter.ToInt16(body, 2)

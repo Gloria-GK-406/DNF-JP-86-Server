@@ -7,6 +7,7 @@ using Dfo.Server.Application.Initialization;
 using Dfo.Server.Application.Scheduling;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Application.Mail;
+using Dfo.Server.Application.Chat;
 using Dfo.Server.Application.Configuration;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Authentication;
@@ -76,6 +77,7 @@ public sealed class ApplicationModule : IServerModule
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddMail();
+        services.AddChat();
         services.AddEvents(configuration);
         services.TryAddSingleton(new ChannelListenerOptions(
             configuration.GetSection("Networking:GamePorts")

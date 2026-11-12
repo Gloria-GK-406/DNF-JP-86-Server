@@ -30,7 +30,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 会话（一对一聊天组）id | High | 上游 Network/Handlers/ChatHandler.cs:539 WriteUInt32(conversationId) 为 body 首字段，取自 `[ebp - 0x934]` |
+| 0 | 4 | `u32` | 会话 id（u32），按它找窗口，找不到则丢弃整条；其后为发送者名字 dstr（< 128 字节）与正文 dstr（< 1024 字节） | Confirmed | 客户端 1F8244D3… handler VA 024EA700，取自 `[ebp - 0x934]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -49,5 +49,58 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21
+
+地址均为 VA（RVA = VA − `0x400000`，见 [game-frame](../../patterns/game-frame.md)），客户端 SHA-256
+`1F8244D3…`（全值见 [evidence.md](../../evidence.md)）。来源标签：ClientStatic = 该客户端静态反汇编；
+70Reference = 70 版服务端 `df_game_r` 对照；CurrentImplementation = 本仓实现。**无实机抓包或实机确认。**
+
+1:1 对话窗口里对方说的一句话。
+
+### 布局（ClientStatic，Confirmed）
+
+handler VA `024EA700`：
+
+```text
+u32  conversationId
+dstr sender          # < 128 字节
+dstr text            # < 1024 字节
+```
+
+### 客户端行为
+
+- 按 id 找窗口，找不到则静默丢弃（Confirmed）。
+- **sender 等于接收方自己的名字时丢弃**（Confirmed）：发言方客户端在发出 [CMD 0x0011](../client-to-server/0x0011.md)
+  mode 43 时已把自己的话写进窗口（High），所以本帧只需要发给对方。
+- 另有一处疑似屏蔽名单检查（Hypothesis）。
+
+机器区只读出首个 `u32`；其后两个 dstr 的偏移随名字长度变化。
+
+### 本仓实现（CurrentImplementation）
+
+`ConversationMessage` / `ConversationMessageEncoder`，由 [CMD 0x0011](../client-to-server/0x0011.md#会话窗口内发言)
+mode 43 触发。代码：[`OneToOneChat/`](../../../Server/src/Dfo.Server.Protocol/Game/OneToOneChat/)、
+[`SendChat/`](../../../Server/src/Dfo.Server.Protocol/Game/SendChat/)。
+
+| 字段 | 取值 |
+|---|---|
+| conversationId | 请求的 aux |
+| sender | 发言者的存储角色名（发言时读取，不取请求尾部的名字） |
+| text | 请求正文原样 |
+
+- 只发给会话中的另一方，且对方须仍在开窗时那个选中会话里；发言者本人不收。
+- 正文 1..1023 字节、发言者名字 1..127 字节；不满足时这句话被静默丢弃（见 0x0011），编码器对超限字段直接抛异常。
+- **最大 body 1162 字节** = 4 + 4 + 127 + 4 + 1023。
+
+自动测试：
+[`ConversationCodecTests`](../../../Server/tests/Dfo.Server.Protocol.Tests/Game/OneToOneChat/ConversationCodecTests.cs)（`Message_frame_is_id_sender_and_text`）、
+[`SendChatCommandTests.Conversation`](../../../Server/tests/Dfo.Server.Application.Tests/Chat/SendChatCommandTests.Conversation.cs)（`A_conversation_line_reaches_only_the_other_member_and_is_never_answered`）、
+[`ChatScopeDomainServiceTests`](../../../Server/tests/Dfo.Server.Application.Tests/Chat/ChatScopeDomainServiceTests.cs)（`Conversation_reaches_its_members_only_from_the_sessions_they_opened_it_on`）、
+[`ChatWireTests`](../../../Server/tests/Dfo.Server.Networking.Tests/Integration/ChatWireTests.cs)（真实 TCP：对方收到的 body 逐字节）。
+
+### 未解问题
+
+| 问题 | 最便宜的证据 |
+|---|---|
+| 对方窗口的显示、发言方自己那一行是否只出现一次 | 两个客户端实机在窗口里互发 |
+| 疑似屏蔽名单检查的条件 | 实现屏蔽名单后实机对照 |

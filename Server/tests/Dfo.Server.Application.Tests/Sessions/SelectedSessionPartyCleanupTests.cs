@@ -154,6 +154,34 @@ public sealed class SelectedSessionPartyCleanupTests
         });
     }
 
+    [Fact]
+    public async Task Cleanup_ends_every_conversation_of_the_session_and_announces_it_only_to_members_still_on_their_window()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var leaver = fixture.Admit(1);
+            var stays = fixture.Admit(2);
+            var gone = fixture.Admit(3);
+            var bystander = fixture.Admit(4);
+            var withStays = fixture.Conversations.Open(new(leaver, [0x61]), new(stays, [0x62]))!;
+            var withGone = fixture.Conversations.Open(new(gone, [0x63]), new(leaver, [0x61]))!;
+            var unrelated = fixture.Conversations.Open(new(stays, [0x62]), new(bystander, [0x64]))!;
+            fixture.Release(gone);
+
+            var plan = await TestEffectFootprints.Run(leaver, cap => fixture.Cleanup.CleanupAsync(
+                leaver, includeOwner: false, cap, CancellationToken.None));
+
+            var departure = Assert.Single(plan.ConversationDepartures);
+            Assert.Equal(withStays.Id, departure.Conversation);
+            Assert.Equal(leaver, departure.Leaver.Session);
+            Assert.Equal(stays, departure.Remaining.Session);
+            Assert.Null(fixture.Conversations.Find(withStays.Id));
+            Assert.Null(fixture.Conversations.Find(withGone.Id));
+            Assert.Same(unrelated, fixture.Conversations.Find(unrelated.Id));
+        });
+    }
+
     private sealed class Fixture
     {
         private readonly SelectedSessionDomainService sessions;
@@ -182,10 +210,14 @@ public sealed class SelectedSessionPartyCleanupTests
                 new StubChannelEntryPolicy(),
                 Parties.Service,
                 TestParties.Runs(),
-                [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
+                [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations);
         }
 
         public PartyServiceTestAdapter Parties { get; }
+
+        public Dfo.Server.Application.Chat.ChatConversationDomainService Conversations { get; } = new();
+
+        public void Release(SelectedSessionIdentity session) => Assert.True(sessions.ReleaseExact(session));
 
         public SelectedSessionCleanupService Cleanup { get; }
 

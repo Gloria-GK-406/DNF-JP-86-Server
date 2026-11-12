@@ -30,9 +30,9 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 1 | `u8` | 聊天模式 mode（决定投递范围：私聊/组队/区域等） | High | 上游 Network/Handlers/ChatHandler.cs:526 WriteByte(mode) 为 body 首字节；:117-165 按同一 mode 值选择收件人，取自 `[ebp - 0x205]` |
-| 1 | 2 | `u16` | 发送者 UserId | High | 上游 Network/Handlers/ChatHandler.cs:527 WriteUInt16(senderUniqueId)，:89 实参为 session.Player.UserId，取自 `[ebp - 0x20c]` |
-| 3 | 1 | `u8` | 服务器组 serverGroup；上游调用点恒传 0 | High | 上游 Network/Handlers/ChatHandler.cs:528 WriteByte(serverGroup)，:90 实参 serverGroup: 0，取自 `[ebp - 0x206]` |
+| 0 | 1 | `u8` | 聊天模式 mode；≥0x3B 丢弃，0x2D/0x2E 改写为 3 | Confirmed | 客户端 1F8244D3… handler VA 01189860；分派 VA 01A644C0，取自 `[ebp - 0x205]` |
+| 1 | 2 | `u16` | 发送者 uid（u16） | Confirmed | 客户端 1F8244D3… handler VA 01189860，取自 `[ebp - 0x20c]` |
+| 3 | 1 | `u8` | serverGroup；≥0xFA 丢弃，写 0 时客户端自行补 | Confirmed | 客户端 1F8244D3… handler VA 01189860，取自 `[ebp - 0x206]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -51,5 +51,48 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21
+
+地址为 VA，客户端 SHA-256 `1F8244D3…`；**无实机抓包或实机确认**。
+
+### 布局（ClientStatic，Confirmed）
+
+handler VA `01189860`：
+
+```text
+u8   mode           # ≥ 0x3B 丢弃整帧；0x2D / 0x2E 改写为 3
+u16  senderUid
+u8   serverGroup    # ≥ 0xFA 丢弃整帧；写 0 时客户端自行补
+dstr text           # i32 长度 + 字节，长度 1..255
+```
+
+之后无字段。mode 分派 VA `01A644C0`（表 VA `01A647E4` / `01A647FC`），通用路径 VA `01A600C0`，
+颜色表 VA `01A54C60`：私聊 `ABFFA9`、队伍 `EDD568`、普通白、公会 `F54CFF`、喇叭 `00F0FF`、
+GM 喇叭 `1EFF96`、系统 `9BC8E6`。
+
+**发言者自己的那一行**：[CMD 0x0011](../client-to-server/0x0011.md) 的主发送函数（VA `01A62E20`）写包后没有
+加行调用，客户端发言后不在本地显示（ClientStatic，Confirmed），发言者看到自己的话只能靠服务端回推。
+
+70Reference：`make_packet_chat_msg`（`086c954c`）同布局。
+
+### 本仓实现（CurrentImplementation）
+
+用于区域与队伍聊天，收件人**含发言者本人**：
+
+| 字段 | 取值 |
+|---|---|
+| mode | 请求 mode 原值 |
+| senderUid | 发言者 `WireUserId` |
+| serverGroup | 0 |
+| text | 请求正文原样 |
+
+**最大 body 263 字节** = 1 + 2 + 1 + 4 + 255。依据：正文超过 255 字节的请求被命令拒绝，编码器对空或超限
+正文直接抛异常，不会构造出超限帧。代码：
+[`SendChat/`](../../../Server/src/Dfo.Server.Protocol/Game/SendChat/)；自动测试：
+[`SendChatCodecTests`](../../../Server/tests/Dfo.Server.Protocol.Tests/Game/SendChat/SendChatCodecTests.cs)（布局字节、上限长度、超限不编码）、
+[`SendChatCommandTests`](../../../Server/tests/Dfo.Server.Application.Tests/Chat/SendChatCommandTests.cs)、
+[`ChatWireTests`](../../../Server/tests/Dfo.Server.Networking.Tests/Integration/ChatWireTests.cs)。
+
+| 问题 | 最便宜的证据 |
+|---|---|
+| 发言者是否恰好看到一次、颜色与发送者名是否正确 | 实机区域、队伍各发一条 |

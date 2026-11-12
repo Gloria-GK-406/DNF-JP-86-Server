@@ -128,6 +128,17 @@ public enum ClientMessageType
     GameSaveQuickChat = 0x0001_0170,
     GameContentsPlayInfo = 0x0001_02C1,
 
+    // Every chat line the A21 client sends, whatever its channel, and the item-link variant.
+    // See Game/SendChat.
+    GameSendChat = 0x0001_0011,
+    GameItemLinkChat = 0x0001_01A9,
+
+    // The 1:1 conversation window: opening it, closing it, and its member-state report.
+    // See Game/ChatConversation.
+    GameOpenConversation = 0x0001_01A3,
+    GameLeaveConversation = 0x0001_01A5,
+    GameConversationUserState = 0x0001_01A6,
+
     // The client's own periodic liveness probe on the Game endpoint. It arrives with no body
     // and keeps coming for the life of the connection whether or not it is answered.
     // See Game/ConnectionCheck.
@@ -368,6 +379,14 @@ public enum ServerMessageType
     GameRequestPeerRefusal = 0x0001_000A,
     GameResponsePeerRefusal = 0x0001_000B,
     GameSetPartyInfoRefusal = 0x0001_000C,
+    GameSendChatRefusal = 0x0001_0011,
+    GameItemLinkChatRefusal = 0x0001_01A9,
+    GameChatMessage = 0x0000_000C,
+    GameWhisperMessage = 0x0000_0041,
+    GameMegaphoneMessage = 0x0000_0076,
+    GameConversationOpened = 0x0000_016A,
+    GameConversationLeft = 0x0000_016E,
+    GameConversationMessage = 0x0000_016F,
     GameLeavePartyRefusal = 0x0001_000D,
     GameChangePartyLeaderRefusal = 0x0001_0079,
     GameCheckCharacterName = 0x0001_02B5,
