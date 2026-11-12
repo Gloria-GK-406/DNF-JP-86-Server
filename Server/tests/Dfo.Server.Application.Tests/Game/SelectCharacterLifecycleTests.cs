@@ -617,6 +617,37 @@ public sealed partial class SelectCharacterLifecycleTests
     }
 
     [Fact]
+    public async Task A_selection_that_replaces_an_older_session_tells_the_members_left_in_its_conversations()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = await Fixture.CreateAsync();
+            Assert.True(fixture.Users.TryGetByConnection(fixture.ConnectionId, out var before));
+            var old = SelectedSessionIdentity.Create(
+                fixture.AccountId, new CharacterId(500), fixture.ConnectionId,
+                before!.Generation, StubChannelEntryPolicy.GeneralChannel.ListenerPort);
+            fixture.Directory.Select(old);
+            fixture.Active.EnterWorld(old);
+            var remaining = SelectedSessionIdentity.Create(
+                new AccountId(777), new CharacterId(4243), new NetworkConnectionId("Game:peer"), 1, 10011);
+            var departure = new Dfo.Server.Data.Chat.ChatConversationDeparture(new(9),
+                new(old, "old"u8.ToArray()), new(remaining, "peer"u8.ToArray()));
+            fixture.Cleanup.Plan = session => new SelectedSessionCleanupNotificationPlan(session.ConnectionId, [], [], [])
+            {
+                ConversationDepartures = [departure],
+            };
+
+            await fixture.Handler.HandleAsync(
+                fixture.Context, fixture.Command, CancellationToken.None);
+
+            var (audience, notification) = Assert.Single(fixture.Notifications.Published,
+                entry => entry.Notification is Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft);
+            Assert.Equal([remaining], Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions);
+            Assert.Same(departure, ((Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft)notification).Departure);
+        });
+    }
+
+    [Fact]
     public async Task SameConnectionSwitch_RefreshesGenerationAfterNormalCleanup()
     {
         await TestGameplay.RunAsync(async () =>
