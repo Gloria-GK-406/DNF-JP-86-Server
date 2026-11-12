@@ -1,7 +1,7 @@
 # Routing Decision
 
 - TaskContract: `.rks-agent/tasks/chat-routing-first-batch/TaskContract.md`
-- Contract revision: `3`（revision 3 复审 approved；改动只换私聊投递协议并补假设，结构选择与档位不变）
+- Contract revision: `6`（revision 6 复审 approved。revision 4–6 在用户实机反馈后加入 1:1 对话窗口：同一入口、同一范围模型下多一个范围与一个会话 owner，仍需一起验收、一起回滚，结构选择、档位与 Profile 不变；Spec 与 Plan 以修订形式承接）
 
 ## SDD Readiness
 

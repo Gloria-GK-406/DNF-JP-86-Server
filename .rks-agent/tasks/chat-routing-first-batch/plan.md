@@ -81,3 +81,38 @@ state: ready
 ## Assumptions
 
 - 背包变化 `0x000E` 携带的是槽位的绝对状态。若实现时发现它是增量，改为只依赖客户端本地扣减并在重登时校正，并把这一点写进测试步骤。
+
+## Amendment for TaskContract revision 5: 1:1 对话窗口
+
+覆盖 Spec RQ-040～RQ-046 与 RQ-002／RQ-003／RQ-020／RQ-031 的修订。仍为 direct：会话 owner、协议切片、清理接入三块顺序依赖，一份 Plan 可以直接指导。
+
+### 归属与已定选择
+
+| 层 | 内容 | 位置 |
+|---|---|---|
+| Data | `ChatConversationId(uint)`；`ChatConversationMember(CharacterId, SelectedSessionIdentity Session, byte[] Name)`；`ChatConversation(Id, First, Second)`；`ChatConversationDeparture(SelectedSessionIdentity Recipient, ChatConversationId Conversation, byte[] LeaverName)`；目录成员 `ClientMessageType.GameOpenConversation = 0x0001_01A3`、`GameLeaveConversation = 0x0001_01A5`、`GameConversationUserState = 0x0001_01A6`，`ServerMessageType.GameConversationOpened = 0x0000_016A`、`GameConversationLeft = 0x0000_016E`、`GameConversationMessage = 0x0000_016F` | `Dfo.Server.Data/Chat/ChatConversationModels.cs`、`NetworkMessages.cs` |
+| Abstractions | `ChatScope.Conversation(ChatConversationId Id)`；`IChatConversationDomainService`：`Open(requester, target) → ChatConversation?`（进行中已有则 null）、`Find(id)`、`IsMember(id, session)`、`Leave(id, session) → ChatConversationDeparture?`、`EndAllOf(session) → IReadOnlyList<ChatConversationDeparture>` | `Dfo.Server.Abstractions/Chat/` |
+| Application | `ChatConversationDomainService`：单例，内存字典加锁；按两人角色 id 的无序对索引；id 计数器跳过 0、`0xFFFFFFFF` 与在用 id。`Open` 发现同对会话但其绑定会话已不是双方当前会话时替换。`ChatScopeDomainService` 增加 `Conversation` 分支：取会话两名成员中绑定会话仍是当前在世界内会话的 | `Dfo.Server.Application/Chat/` |
+| Application 清理 | `SelectedSessionCleanupService` 注入 `IChatConversationDomainService`，在 `runtime.EndExact` 之前 `Run(() => EndAllOf(session))`；departures 里只保留对方仍在世界内且是绑定会话的项。`SelectedSessionCleanupNotificationPlan` 加 init 属性 `ConversationDepartures`（默认空），不改既有构造器 | `Sessions/SelectCharacterLifecycleServices.cs`、`Data/World/SessionEntryModels.cs` |
+| Protocol | 新切片 `Game/ChatConversation/`：`0x01A3`／`0x01A5`／`0x01A6` 消息与解码器、三个命令与薄 handler、`0x016A`／`0x016E`／`0x016F` 编码器、通知 `ChatConversationOpened`（处理器按收件人组 [对方, 自己]）与 `ChatConversationLeft`（处理器原样返回）、注册 | `Dfo.Server.Protocol/Game/ChatConversation/` |
+| Protocol 发言 | `ChatWireModes` 加 `43 => Conversation`；`SendChat` 命令对 Conversation 种类所有失败走静默而不是 `RefuseAsync`，范围为 `Conversation(new(aux))` 且先要求 `IsMember`；收件人去掉发言者；行为 `ConversationMessage`（NOTI `0x016F`） | `Game/SendChat/` |
+| Protocol 清理投递 | `CleanupNotificationDelivery` 在组队投影之后，对每个 departure 用 `NotificationAudience.TheseSessions([recipient])` 投影 `ChatConversationLeft` | `Game/StateSynchronization/SupplementalSynchronizationMessages.cs` |
+
+- 名字：建会话与发言都用服务端保存的角色名（`ICharacterDomainService.Get(id).IdentityAsync`），目标按 `IMailboxQueryDomainService.FindRecipientAsync(名字字节)` 查，与私聊一致。会话成员保存建立时读到的名字，离开通知用它，不再读库。
+- 上限（RQ-046）：名字 `< 128` 字节，`0x016F` 正文 `< 1024` 字节；解码 `0x01A3` 名字长度 `1..64`，否则 `InvalidDataException`（同私聊名字上限）。`0x01A5` body 必须恰为 4 字节。`0x01A6` body 不解析。
+- 最大编码长度：`0x016A` = 1+4+1+2×(4+127)；`0x016E` = 4+4+127；`0x016F` = 4+4+127+4+1023。
+- 发送前检查：`0x01A3` 复用与发言同一个检查点（放行）。黑名单结果码 77 不实现。
+- 建会话的读取（两人名字、目标查找）走 `units.ReadOnlyAsync`；会话 owner 是内存状态，不进写事务。
+- `0x01A6` 命令只记 Debug 日志并返回 true。
+
+### Work
+
+| ID | Work | Covers | Depends |
+|---|---|---|---|
+| T-010 | Data 模型与目录成员；Abstractions 接口与 `ChatScope.Conversation`。先写 `ChatConversationDomainServiceTests`（建立、重复请求为 null、过期会话被替换、id 跳过保留值、离开与 EndAllOf 的 departures、非成员离开为 null），再实现 Application 会话 owner 与范围分支（补 `ChatScopeDomainServiceTests`） | RQ-040, RQ-043, RQ-044, RQ-002, RQ-003 | — |
+| T-011 | 协议切片 `ChatConversation`：编解码字节测试先行（三个 NOTI 布局与上限、`0x01A3`／`0x01A5` 截断与越界），再实现消息、解码器、编码器、通知与处理器、命令、注册、`ProtocolModule` 接线 | RQ-040, RQ-043, RQ-045, RQ-046 | T-010 |
+| T-012 | `SendChat` 接 mode 43：命令测试先行（只给对方 `0x016F`、发言者无帧、各静默路径无 `0x0011`、mode 33 被拒、拒绝集合穷举更新） | RQ-041, RQ-042, RQ-020 | T-010, T-011 |
+| T-013 | 清理接入：Application 清理测试（departures 进入计划、对方不在时不进）与 Protocol 投递测试（`0x016E` 发给对方）；实现 | RQ-044 | T-010, T-011 |
+| T-014 | 真实 TCP 集成测试：两个客户端进入世界，A 发 `0x01A3` 双方收到 `0x016A`，A 发 mode 43 只有 B 收到 `0x016F`，A 发 `0x01A5` B 收到 `0x016E` | AC-040, AC-041, AC-043 | T-011, T-012 |
+| T-015 | 构建与全部相关测试（含架构测试） | RQ-032 | T-012～T-014 |
+| T-016 | 协议记录与 catalog（`0x01A3`、`0x01A5`、`0x01A6`、NOTI `0x016A`／`0x016E`／`0x016F`，`0x0011` mode 43 与 aux 含义），测试流程增加 1:1 步骤，重启测试服 | RQ-031, RQ-033 | T-015 |
