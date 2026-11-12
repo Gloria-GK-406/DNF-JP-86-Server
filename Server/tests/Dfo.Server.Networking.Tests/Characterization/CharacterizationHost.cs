@@ -162,6 +162,18 @@ internal sealed class CharacterizationHost : IAsyncDisposable
         return (json.RootElement.GetProperty("mId").GetString()!, json.RootElement.GetProperty("ticket").GetString()!);
     }
 
+    /// <summary>Logs an already registered account in again, for a second connection to the same account.</summary>
+    public async Task<(string MId, string Ticket)> IssueTicketAsync(
+        string loginId,
+        CancellationToken cancellationToken)
+    {
+        var credentials = new { loginId, password = "characterization password" };
+        using var login = await http.PostAsJsonAsync("/api/gate/v1/login", credentials, cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        using var json = JsonDocument.Parse(await login.Content.ReadAsStreamAsync(cancellationToken));
+        return (json.RootElement.GetProperty("mId").GetString()!, json.RootElement.GetProperty("ticket").GetString()!);
+    }
+
     public async Task<WireClient> ConnectAsync(string label, CancellationToken cancellationToken)
     {
         var client = new TcpClient { NoDelay = true };

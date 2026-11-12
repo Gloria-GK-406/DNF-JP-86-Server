@@ -82,7 +82,8 @@ dstr name            # 离开者；< 128 字节
 | name | 离开者在开会话时读取的存储角色名 |
 
 - 两个来源：成员关窗（[CMD 0x01A5](../client-to-server/0x01A5.md)），或成员的选中会话结束（下线、回选人、换频道；
-  由 `SelectedSessionCleanupService` 结束其全部会话，`CleanupNotificationDelivery` 在其余清理通知之后发出）。
+  由 `SelectedSessionCleanupService` 结束其全部会话；断线、回选人、选角顶替旧会话三个投递点都经
+  `ConversationDepartureNotices` 在其余清理通知之后发出）。
 - 只发给仍在开窗时那个选中会话里的留守方；留守方已离线或换了选中会话则不发。
 - 本帧发出时会话已在服务端结束。留守方之后在该窗口发的 mode 43 被服务端静默丢弃；双方再次发起 0x01A3 会开新会话、
   各收一条 NOTI 0x016A，即各多一个新窗口，旧窗口留在原处。
@@ -93,7 +94,7 @@ dstr name            # 离开者；< 128 字节
 [`SendChatCommandTests.Conversation`](../../../Server/tests/Dfo.Server.Application.Tests/Chat/SendChatCommandTests.Conversation.cs)（`Only_the_member_left_behind_is_told_who_left`、`Closing_the_window_ends_the_conversation_and_tells_the_other_member`）、
 [`SelectedSessionPartyCleanupTests`](../../../Server/tests/Dfo.Server.Application.Tests/Sessions/SelectedSessionPartyCleanupTests.cs)、
 [`CleanupNotificationDeliveryTests`](../../../Server/tests/Dfo.Server.Protocol.Tests/Game/CleanupNotificationDeliveryTests.cs)、
-[`ChatWireTests`](../../../Server/tests/Dfo.Server.Networking.Tests/Integration/ChatWireTests.cs)（真实 TCP）。
+[`ChatWireTests`](../../../Server/tests/Dfo.Server.Networking.Tests/Integration/ChatWireTests.cs)（真实 TCP：关窗、回选人、同账号另一连接重新登录）。
 
 ### 未解问题
 

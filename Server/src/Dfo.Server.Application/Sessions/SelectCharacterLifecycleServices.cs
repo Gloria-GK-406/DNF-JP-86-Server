@@ -200,8 +200,6 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => expertStores.CloseExact(session));
         Run(() => { housing.CloseExact(session); return true; });
         Run(() => pvp.ClearReadyExact(session));
-        // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
-        // and only if this session still owns them: a successor that has already begun keeps its own.
         // Every conversation window this session had open closes with it. Whom to tell is asked now,
         // while the sessions the other members opened their windows on can still be compared.
         Run(() =>
@@ -211,6 +209,8 @@ internal sealed class SelectedSessionCleanupService(
                 && remaining == departure.Remaining.Session)];
             return true;
         });
+        // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
+        // and only if this session still owns them: a successor that has already begun keeps its own.
         Run(() => runtime.EndExact(session));
         Run(() => sessions.ReleaseExact(session));
 

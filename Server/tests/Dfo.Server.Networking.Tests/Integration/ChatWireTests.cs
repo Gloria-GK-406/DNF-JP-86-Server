@@ -58,6 +58,47 @@ public sealed class ChatWireTests
         Assert.DoesNotContain(a.Frames, frame => frame.Is(0x00, 0x016F) || frame.Is(0x01, 0x0011));
     }
 
+    [PvfFact]
+    public async Task Returning_to_selection_tells_the_other_member_of_the_conversation()
+    {
+        using var timeout = new CancellationTokenSource(CharacterizationCollection.Budget);
+        await using var server = await CharacterizationHost.StartAsync(null, timeout.Token);
+        using var a = await server.EnterWorldAsync("a", "conversation-return-a", "ReturnA", timeout.Token);
+        using var b = await server.EnterWorldAsync("b", "conversation-return-b", "ReturnB", timeout.Token);
+        var id = await OpenAsync(a, b, "ReturnB"u8.ToArray(), timeout.Token);
+
+        await a.SendAsync(0x0007, [], timeout.Token);
+
+        var left = await b.ReadUntilAsync(frame => frame.Is(0x00, 0x016E), timeout.Token);
+        Assert.Equal([.. id, .. Counted("ReturnA"u8)], left.Body.ToArray());
+    }
+
+    [PvfFact]
+    public async Task Logging_in_again_on_another_connection_tells_the_other_member_of_the_conversation()
+    {
+        using var timeout = new CancellationTokenSource(CharacterizationCollection.Budget);
+        await using var server = await CharacterizationHost.StartAsync(null, timeout.Token);
+        using var a = await server.EnterWorldAsync("a", "conversation-again-a", "AgainA", timeout.Token);
+        using var b = await server.EnterWorldAsync("b", "conversation-again-b", "AgainB", timeout.Token);
+        var id = await OpenAsync(a, b, "AgainB"u8.ToArray(), timeout.Token);
+
+        var (mId, ticket) = await server.IssueTicketAsync("conversation-again-a", timeout.Token);
+        using var again = await server.ConnectAsync("a-again", timeout.Token);
+        await again.LoginAsync(mId, ticket, timeout.Token);
+        await again.SelectCharacterAsync(timeout.Token);
+
+        var left = await b.ReadUntilAsync(frame => frame.Is(0x00, 0x016E), timeout.Token);
+        Assert.Equal([.. id, .. Counted("AgainA"u8)], left.Body.ToArray());
+    }
+
+    private static async Task<byte[]> OpenAsync(WireClient from, WireClient to, byte[] toName, CancellationToken cancellationToken)
+    {
+        await from.SendAsync(0x01A3, Counted(toName), cancellationToken);
+        var opened = await from.ReadUntilAsync(frame => frame.Is(0x00, 0x016A), cancellationToken);
+        _ = await to.ReadUntilAsync(frame => frame.Is(0x00, 0x016A), cancellationToken);
+        return opened.Body.Slice(1, 4).ToArray();
+    }
+
     private static byte[] Counted(ReadOnlySpan<byte> bytes) => [.. BitConverter.GetBytes(bytes.Length), .. bytes];
 
     private static byte[] Line(byte mode, ReadOnlySpan<byte> text, uint aux = 0)

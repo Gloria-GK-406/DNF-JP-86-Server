@@ -129,5 +129,7 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
         if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
             await projections.ProjectAsync(new NotificationAudience.TheseSessions(plan.PeerAudience), new SessionCleanupAnnounced(plan.PeerNotices), ct).ConfigureAwait(false);
         await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering, plan.PartyNotifications, plan.PartyRecipients, ct).ConfigureAwait(false);
+        foreach (var (audience, left) in Dfo.Server.Protocol.Game.OneToOneChat.ConversationDepartureNotices.For(plan))
+            await projections.ProjectAsync(audience, left, ct).ConfigureAwait(false);
     }
 }

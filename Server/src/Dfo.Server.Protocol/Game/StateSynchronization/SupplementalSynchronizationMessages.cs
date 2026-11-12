@@ -220,12 +220,14 @@ internal static class CleanupNoticeMessages
         };
 }
 
-/// <summary>Delivers both halves of a cleanup plan, in the order they have to go out in.</summary>
+/// <summary>Delivers a disconnect's cleanup plan, in the order its parts have to go out in.</summary>
 /// <remarks>
 /// A service rather than the mapping function it replaces, and that is the whole point. The plan
 /// leaves by four routes -- the owner's notices down the connection this code already holds, town
 /// peers through their notification, the independently addressed party projection, and last the
-/// members left behind in the 1:1 conversations the departure ended. There are
+/// members left behind in the 1:1 conversations the departure ended. Return to selection and a
+/// selection that replaces an older session deliver their plans with their own copies of this
+/// sequence, inside their commands; a part added to the plan has to be added there as well. There are
 /// six places that deliver one. Left as separate calls at each of those places, the order would be
 /// six hand-written sequences, and four of the six are inside a catch. Here it is one.
 /// </remarks>
@@ -276,12 +278,7 @@ internal sealed class CleanupNotificationDelivery(
             plan.PartyRecipients,
             cancellationToken).ConfigureAwait(false);
 
-        foreach (var departure in plan.ConversationDepartures)
-        {
-            await notifications.ProjectAsync(
-                new NotificationAudience.TheseSessions([departure.Remaining.Session]),
-                new Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft(departure),
-                cancellationToken).ConfigureAwait(false);
-        }
+        foreach (var (audience, left) in Dfo.Server.Protocol.Game.OneToOneChat.ConversationDepartureNotices.For(plan))
+            await notifications.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);
     }
 }
