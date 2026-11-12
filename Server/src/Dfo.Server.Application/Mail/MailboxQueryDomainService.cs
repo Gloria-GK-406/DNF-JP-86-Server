@@ -6,9 +6,15 @@ using Dfo.Server.Data.Mail;
 
 namespace Dfo.Server.Application.Mail;
 
-internal sealed class MailboxQueryDomainService(IMailboxRepository repository, TimeProvider time, IMailboxMessageTable mailboxMessages, IMailboxAttachmentTable mailboxAttachments) : IMailboxQueryDomainService
+internal sealed class MailboxQueryDomainService(IMailboxRepository repository, TimeProvider time, IMailboxMessageTable mailboxMessages, IMailboxAttachmentTable mailboxAttachments,
+    ICharacterIdentityQueryDomainService identities) : IMailboxQueryDomainService
 {
-    public ValueTask<MailRecipient?> FindRecipientAsync(byte[] name, CancellationToken cancellationToken = default) => repository.FindRecipientAsync(name, cancellationToken);
+    // A recipient is a live character found by its exact name; the character domain owns that lookup,
+    // so mail, whispers, 1:1 conversations, friends and blacklists all resolve a name the same way.
+    public async ValueTask<MailRecipient?> FindRecipientAsync(byte[] name, CancellationToken cancellationToken = default) =>
+        await identities.FindByNameAsync(name, cancellationToken).ConfigureAwait(false) is { } found
+            ? new MailRecipient(found.Character, found.Name, found.Level, found.Job, found.GrowType)
+            : null;
 
     public async ValueTask<CharacterMailboxStorageRecord> ReadStorageAsync(
         CharacterId characterId, CancellationToken cancellationToken)

@@ -271,6 +271,30 @@ public sealed class FriendCommandTests
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
+    /// <summary>
+    /// Mail, whispers and 1:1 conversations resolve a name through the mailbox query, friends and
+    /// blacklists through the character domain; the first delegates to the second, so all of them
+    /// find the same live character and none finds a deleted one.
+    /// </summary>
+    [Fact]
+    public async Task Every_name_lookup_resolves_the_same_live_character()
+    {
+        using var w = new FriendWorld();
+        w.AddCharacter(201, "target");
+        w.AddCharacter(202, "gone", deleted: true);
+        var mail = w.Fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Mail.IMailboxQueryDomainService>();
+        var characters = w.Fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterIdentityQueryDomainService>();
+
+        var byMail = await mail.FindRecipientAsync(Encoding.UTF8.GetBytes("target"));
+        var byCharacter = await characters.FindByNameAsync(Encoding.UTF8.GetBytes("target"), CancellationToken.None);
+
+        Assert.Equal(new CharacterId(201), byMail?.CharacterId);
+        Assert.Equal(byCharacter?.Character, byMail?.CharacterId);
+        Assert.Equal(byCharacter?.Name, byMail?.Name);
+        Assert.Null(await mail.FindRecipientAsync(Encoding.UTF8.GetBytes("gone")));
+        Assert.Null(await characters.FindByNameAsync(Encoding.UTF8.GetBytes("gone"), CancellationToken.None));
+    }
+
     private sealed class FriendWorld : IDisposable
     {
         private ushort sequence;
