@@ -182,6 +182,89 @@ public sealed class SelectedSessionPartyCleanupTests
         });
     }
 
+    /// <summary>RQ-051: the leaver's name and its friends still in the world are taken before the session goes.</summary>
+    [Fact]
+    public async Task Cleanup_records_the_friends_in_the_world_to_tell_that_the_character_left()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var leaver = fixture.Admit(1);
+            _ = fixture.Admit(2);
+            var released = fixture.Admit(3);
+            _ = fixture.Admit(4);
+            fixture.Friends.Named(1, "leaver").Friend(owner: 2, target: 1).Friend(owner: 3, target: 1).Friend(owner: 5, target: 1)
+                .Friend(owner: 1, target: 4);
+            fixture.Release(released);
+
+            var plan = await TestEffectFootprints.Run(leaver, cap => fixture.Cleanup.CleanupAsync(
+                leaver, includeOwner: false, cap, CancellationToken.None));
+
+            var departure = Assert.IsType<SelectedSessionFriendDeparture>(plan.FriendDeparture);
+            Assert.Equal(new CharacterId(1), departure.Character);
+            Assert.Equal("leaver"u8.ToArray(), departure.Name);
+            Assert.Equal([new CharacterId(2)], departure.Observers);
+        });
+    }
+
+    [Fact]
+    public async Task Cleanup_with_no_friend_in_the_world_records_no_friend_departure()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var leaver = fixture.Admit(1);
+            fixture.Friends.Named(1, "leaver").Friend(owner: 5, target: 1);
+
+            var plan = await TestEffectFootprints.Run(leaver, cap => fixture.Cleanup.CleanupAsync(
+                leaver, includeOwner: false, cap, CancellationToken.None));
+
+            Assert.Null(plan.FriendDeparture);
+        });
+    }
+
+    /// <summary>
+    /// A failed read costs the friend notice only. It is not a cleanup failure: return to selection
+    /// would close the connection over it and a replacing selection would roll back the steps before it.
+    /// </summary>
+    [Fact]
+    public async Task A_failed_friend_read_drops_only_the_friend_notice()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var leaver = fixture.Admit(1);
+            var stays = fixture.Admit(2);
+            var conversation = fixture.Conversations.Open(new(leaver, [0x61]), new(stays, [0x62]))!;
+            fixture.Friends.Failure = new IOException("relation read failed");
+
+            var plan = await TestEffectFootprints.Run(leaver, cap =>
+                fixture.Cleanup.CleanupAsync(leaver, includeOwner: false, cap, CancellationToken.None));
+
+            Assert.Null(plan.FriendDeparture);
+            Assert.Equal(conversation.Id, Assert.Single(plan.ConversationDepartures).Conversation);
+            Assert.False(fixture.IsSelected(leaver));
+        });
+    }
+
+    /// <summary>A session that never entered the world was never announced online, so its end is not announced either.</summary>
+    [Fact]
+    public async Task A_session_that_never_entered_the_world_records_no_friend_departure()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            _ = fixture.Admit(2);
+            var selected = fixture.SelectOnly(1);
+            fixture.Friends.Named(1, "leaver").Friend(owner: 2, target: 1);
+
+            var plan = await TestEffectFootprints.Run(selected, cap => fixture.Cleanup.CleanupAsync(
+                selected, includeOwner: true, cap, CancellationToken.None));
+
+            Assert.Null(plan.FriendDeparture);
+        });
+    }
+
     private sealed class Fixture
     {
         private readonly SelectedSessionDomainService sessions;
@@ -210,12 +293,28 @@ public sealed class SelectedSessionPartyCleanupTests
                 new StubChannelEntryPolicy(),
                 Parties.Service,
                 TestParties.Runs(),
-                [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations);
+                [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations, relations: Friends, identities: Friends, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance);
         }
 
         public PartyServiceTestAdapter Parties { get; }
 
         public Dfo.Server.Application.Chat.ChatConversationDomainService Conversations { get; } = new();
+
+        public TestCharacterRelations Friends { get; } = new();
+
+        public bool IsSelected(SelectedSessionIdentity session) => sessions.StandingOf(session) is not null;
+
+        /// <summary>Selected and not yet in the world, as a selection is before publication.</summary>
+        public SelectedSessionIdentity SelectOnly(int value)
+        {
+            var online = state.RegisterConnection(new NetworkConnectionContext(
+                new NetworkConnectionId($"party-{value}"), NetworkEndpointKind.Game, 10011));
+            state.Authenticate(online.OnlineUserId, new AccountId(value));
+            var session = SelectedSessionIdentity.Create(new AccountId(value), new CharacterId(value),
+                online.Connection.ConnectionId, state.GetRequiredUser(online.OnlineUserId).Generation, 10011);
+            Assert.Null(sessions.Select(session));
+            return session;
+        }
 
         public void Release(SelectedSessionIdentity session) => Assert.True(sessions.ReleaseExact(session));
 

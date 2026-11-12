@@ -1,4 +1,6 @@
+using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -44,7 +46,11 @@ internal sealed class SetQuestRewardGoldEffectHandler(ICharacterCarriedGoldTable
         return new QuestRewardGoldChange(effect.Expected, effect.Value);
     }
 }
-internal sealed class SetCharacterGrowTypeEffectHandler(ICharacterTable characters) : EffectHandler<SetCharacterGrowTypeEffect>
+/// <remarks>
+/// Each grow-type write records <see cref="CharacterGrowTypeChanged"/> in the same transaction, so the
+/// fact exists exactly when the change committed; the friend list refresh subscribes to it (RQ-052).
+/// </remarks>
+internal sealed class SetCharacterGrowTypeEffectHandler(ICharacterTable characters, IEventService events) : EffectHandler<SetCharacterGrowTypeEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, SetCharacterGrowTypeEffect effect, CancellationToken ct)
     {
@@ -59,6 +65,7 @@ internal sealed class SetCharacterGrowTypeEffectHandler(ICharacterTable characte
         if (row is null || row.Job != effect.Job || row.GrowType != effect.Expected
             || await characters.SetGrowTypeAsync(context.CharacterId, effect.Expected, effect.Value, ct).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Decided career target changed.");
+        await events.EnqueueAsync(new CharacterGrowTypeChanged(context.CharacterId, effect.Value), ct).ConfigureAwait(false);
         return new CharacterGrowTypeChange(effect.Value);
     }
 }
@@ -78,7 +85,7 @@ internal sealed class OpenExtraEquipmentSlotEffectHandler(ICharacterTable charac
         return new ExtraEquipmentSlotChange(effect.Slot);
     }
 }
-internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable characters) : EffectHandler<SetCharacterAwakeningEffect>
+internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable characters, IEventService events) : EffectHandler<SetCharacterAwakeningEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)
     {
@@ -95,6 +102,7 @@ internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable charact
         if (row is null || row.Job != effect.Job || row.GrowType != effect.Expected
             || await characters.SetGrowTypeAsync(context.CharacterId, effect.Expected, effect.Value, ct).ConfigureAwait(false) != 1)
             throw new InvalidOperationException("Decided awakening target changed.");
+        await events.EnqueueAsync(new CharacterGrowTypeChanged(context.CharacterId, effect.Value), ct).ConfigureAwait(false);
         return new CharacterGrowTypeChange(effect.Value);
     }
 }

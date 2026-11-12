@@ -1043,9 +1043,16 @@ public sealed partial class SelectCharacterLifecycleTests
                 FixtureMethod<IBossTowerTicketDomainService>(nameof(IBossTowerTicketDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false)),
                 FixtureMethod<IClientSettingsDomainService>(nameof(IClientSettingsDomainService.ActivateHotkeyProfile), true),
                 FixtureMethod<IItemUsageDomainService>(nameof(IItemUsageDomainService.GetSnapshotAtAsync), ValueTask.FromResult<IReadOnlyList<ItemUsageState>>([])),
-                FixtureMethod<Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService>(
-                    nameof(Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService.ListAsync),
-                    ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Relations.CharacterRelation>>([])),
+                // Nobody keeps the selected character, and it keeps nobody, unless a case supplies relations.
+                ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService>(),
+                    (method, args) => method.Name switch
+                    {
+                        nameof(Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService.ListAsync) =>
+                            (true, (object)ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Relations.CharacterRelation>>([])),
+                        nameof(Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService.ObserversOfAsync) =>
+                            (true, (object)ValueTask.FromResult<IReadOnlyList<CharacterId>>([])),
+                        _ => (false, null),
+                    }),
                 SelectCharacterDeliveryOptions.Everything,
             });
             if (relations is not null) dependencies.Add(relations);
@@ -1090,7 +1097,7 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
             Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
         {
-            Assert.Contains(declaration.Name, (string[])["ReadItemUsageSnapshot", "ReadSelectedCharacterRelations"]);
+            Assert.Contains(declaration.Name, (string[])["ReadItemUsageSnapshot", "ReadSelectedCharacterRelations", "ReadFriendObservers"]);
             return actual.ReadOnlyAsync(context, declaration, action, ct);
         }
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,

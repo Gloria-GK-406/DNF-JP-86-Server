@@ -107,6 +107,9 @@ public sealed record QuestCompleted(CharacterId CharacterId, int QuestId) : IDom
 public sealed record ItemUsed(CharacterId CharacterId, int ItemId, int Count) : IDomainEvent;
 public sealed record MaterialConsumed(CharacterId CharacterId, int ItemId, int Count) : IDomainEvent;
 public sealed record CharacterLevelChanged(CharacterId CharacterId, int Before, int After) : IDomainEvent;
+/// <summary>A character's grow type changed: an advancement or an awakening was applied.</summary>
+/// <param name="GrowType">The stored value after the change: advancement in the low nibble, awakening stage above it.</param>
+public sealed record CharacterGrowTypeChanged(CharacterId CharacterId, int GrowType) : IDomainEvent;
 public interface ICharacterGameplayFactDomainService
 {
     ValueTask RecordMonsterDefeatedAsync(MonsterDefeated fact, CancellationToken ct);

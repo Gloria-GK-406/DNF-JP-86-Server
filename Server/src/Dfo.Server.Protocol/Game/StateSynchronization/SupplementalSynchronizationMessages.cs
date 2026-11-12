@@ -222,12 +222,13 @@ internal static class CleanupNoticeMessages
 
 /// <summary>Delivers a disconnect's cleanup plan, in the order its parts have to go out in.</summary>
 /// <remarks>
-/// The plan leaves by four routes -- the owner's notices down the connection this code already
-/// holds, town peers through their notification, the independently addressed party projection, and
-/// last the members left behind in the 1:1 conversations the departure ended. This service is the
-/// disconnect's sequence. Return to selection and a selection that replaces an older session deliver
-/// their plans with their own copies of it, inside their commands, so a part added to the plan has
-/// to be added to all three; the conversation part is shared through ConversationDepartureNotices.
+/// The plan leaves by five routes -- the owner's notices down the connection this code already
+/// holds, town peers through their notification, the independently addressed party projection, the
+/// members left behind in the 1:1 conversations the departure ended, and last the characters keeping
+/// the leaver as a friend. This service is the disconnect's sequence. Return to selection and a
+/// selection that replaces an older session deliver their plans with their own copies of it, inside
+/// their commands, so a part added to the plan has to be added to all three; the conversation and
+/// friend parts are shared through ConversationDepartureNotices and FriendDepartureNotices.
 /// </remarks>
 public interface ICleanupNotificationDelivery
 {
@@ -278,5 +279,8 @@ internal sealed class CleanupNotificationDelivery(
 
         foreach (var (audience, left) in Dfo.Server.Protocol.Game.ConversationDepartureNotices.For(plan))
             await notifications.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);
+
+        foreach (var (audience, offline) in Dfo.Server.Protocol.Game.FriendDepartureNotices.For(plan))
+            await notifications.ProjectAsync(audience, offline, cancellationToken).ConfigureAwait(false);
     }
 }

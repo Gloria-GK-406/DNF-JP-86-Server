@@ -386,6 +386,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
                 session, town, cancellationToken).ConfigureAwait(false);
         }
         EnsureCurrent(session);
+        await AnnounceToFriendsAsync(execution, session, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && publication.PvpLobby is { } pvp)
         {
             await outbox.RegisterExplicitAsync(
@@ -777,6 +779,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering, plan.PartyNotifications, plan.PartyRecipients, ct).ConfigureAwait(false);
         foreach (var (audience, left) in Dfo.Server.Protocol.Game.ConversationDepartureNotices.For(plan))
             await projections.ProjectAsync(audience, left, ct).ConfigureAwait(false);
+        foreach (var (audience, offline) in Dfo.Server.Protocol.Game.FriendDepartureNotices.For(plan))
+            await projections.ProjectAsync(audience, offline, ct).ConfigureAwait(false);
     }
     private async ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity session, TownParticipantPublicationPlan publication, CancellationToken ct)
     {
@@ -822,6 +826,19 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             logger.LogWarning("Blacklist entry left out of entry character={CharacterId} target={Target}: its {NameBytes}-byte name does not fit CMD 0x0078",
                 session.CharacterId.Value, skipped.Character.Value, skipped.Name.Length);
         return refresh;
+    }
+    // RQ-050: the characters keeping this one as a friend are told it came online, with its channel.
+    // After publication, so the session the handler reads the channel from is in the world; after
+    // any older session's cleanup was delivered, so its friends hear the departure first. Not tied
+    // to the post-marker frames: those are the newcomer's own, and this goes to other people.
+    private async ValueTask AnnounceToFriendsAsync(CommandExecutionContext execution, SelectedSessionIdentity session,
+        CancellationToken ct)
+    {
+        var observers = await units.ReadOnlyAsync(execution, new("ReadFriendObservers", []),
+            token => FriendObservers.InWorldAsync(session.CharacterId, relations, selectedSessions, token), ct).ConfigureAwait(false);
+        if (observers.Count == 0 || !selectedSessions.IsInWorld(session)) return;
+        _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters(observers),
+            new FriendCameOnline(session.CharacterId), ct).ConfigureAwait(false);
     }
     private ValueTask<NotificationDelivery> ProjectQuotaAsync(SelectedSessionIdentity session, UsageQuotaFamily family, CancellationToken ct) =>
         projections.ProjectAsync(new NotificationAudience.TheseSessions([session]), new UsageQuotaViewChanged(session.CharacterId, family), ct);
