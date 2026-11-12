@@ -14,7 +14,7 @@ public sealed class WeeklyAttendanceProtocolTests
     {
         var snapshot = new EventPlayerSnapshot([],WeeklyAttendanceState.Empty)
         { ScheduledDungeons = [new(100,open)], ScheduledQuests = [new(20549,open)] };
-        var messages = SelectedCharacterStateMessageFactory.Create(SelectCharacterPayloadTestData.CreateComplete() with { Events = snapshot });
+        var messages = SelectedCharacterStateMessageFactory.Create(SelectCharacterPayloadTestData.CreateComplete() with { Events = snapshot }, Dfo.Server.Protocol.Game.FriendListRefresh.None);
         var schedule = messages.Where(x => x.Type == 0x033F).ToArray();
         Assert.Equal(2,schedule.Length);
         Assert.Equal(new byte[] { 0,0,0,0,state,0,0,0,100,0,0,0,0,0,0,0 },schedule[0].EncodeBody());
@@ -27,7 +27,7 @@ public sealed class WeeklyAttendanceProtocolTests
     {
         var snapshot = new EventPlayerSnapshot([],WeeklyAttendanceState.Empty) { ScheduledDungeons = [new(3700,open)] };
         var result = SelectCharacterPayloadTestData.CreateComplete() with { Events = snapshot };
-        var messages = SelectedCharacterStateMessageFactory.Create(result);
+        var messages = SelectedCharacterStateMessageFactory.Create(result, Dfo.Server.Protocol.Game.FriendListRefresh.None);
         var schedule = Assert.Single(messages,x => x.Type == 0x033F);
         // Four u32: category=0 (dungeon), state, content ID=3700, remaining field=0.
         Assert.Equal(new byte[] { 0,0,0,0, state,0,0,0, 0x74,0x0E,0,0, 0,0,0,0 },schedule.EncodeBody());
@@ -87,7 +87,7 @@ public sealed class WeeklyAttendanceProtocolTests
         Assert.Equal(info.Title,Text());Assert.Equal(info.ShortName,Text());Assert.Equal("",Text());Assert.Equal(1700000000u,reader.ReadUInt32());Assert.Equal(1800000000u,reader.ReadUInt32());
         Assert.Equal(info.LinkKey,Text());Assert.Equal(info.Description,Text());Assert.Equal(1,reader.ReadByte());Assert.Equal(0,reader.ReadByte());Assert.Equal(reader.BaseStream.Length,reader.BaseStream.Position);
         var result=SelectCharacterPayloadTestData.CreateComplete() with { Events=new([info],new(true,0,0,1,false,[])) };
-        var messages=SelectedCharacterStateMessageFactory.Create(result).ToList();var calendar=messages.FindIndex(m=>m is EventInformationMessage);
+        var messages=SelectedCharacterStateMessageFactory.Create(result, Dfo.Server.Protocol.Game.FriendListRefresh.None).ToList();var calendar=messages.FindIndex(m=>m is EventInformationMessage);
         Assert.True(calendar>0);Assert.IsType<WeeklyAttendanceStateMessage>(messages[calendar+1]);
     }
 }

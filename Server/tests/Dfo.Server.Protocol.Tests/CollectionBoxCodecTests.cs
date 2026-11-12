@@ -70,7 +70,7 @@ public sealed class CollectionBoxCodecTests
     {
         var result = Dfo.Server.Protocol.Tests.Game.SelectCharacter.SelectCharacterPayloadTestData.CreateComplete() with
         { CollectionBoxes = new(4,[new(1,[100]),new(2,[]),new(4,[200])],[]) };
-        var messages = Dfo.Server.Protocol.Game.SelectCharacter.SelectedCharacterStateMessageFactory.Create(result);
+        var messages = Dfo.Server.Protocol.Game.SelectCharacter.SelectedCharacterStateMessageFactory.Create(result, Dfo.Server.Protocol.Game.FriendListRefresh.None);
         var boxes = messages.OfType<CollectionBoxContentsMessage>().ToArray();
         Assert.Equal(new byte[]{1,2,4,4},boxes.Select(x=>x.Box.BoxId));
         Assert.True(boxes[^1].Selected);

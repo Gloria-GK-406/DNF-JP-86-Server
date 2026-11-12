@@ -118,6 +118,8 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         "6188D9275785550EDC0AAABFC5B86DB7381EC42731E32525A9C9B357BF9DA46A",
         "1BDFA4559D736FD501F8D0F1E0F55CB5A002C65521A0F8C9CFF6C66FAE81DFA2",
         "EEAD9EED6EDB5F5F459383BC790338E0A68580FF9A5912B44B17884EB9BAFC0A",
+        // CMD 0x0078, the entry blacklist after the friend list: an empty list, 01 00 (RQ-038).
+        "F0E742ACDE956D2316A6C4E766B444EE4F416259F05761D107FA410D40C26442",
         "F9A45174905BAB69C5A069044A6563D0C29F186088EE933AA2197D3ED7BD00E6",
         "F3BDDC10EE2DD1DEE773A611FBF41C7D22E4F1C6274F35A93260438218A4990B",
     ];
@@ -136,6 +138,10 @@ public sealed class SelectCharacterAcceptedTranscriptTests
     //     in its 458 frames, and its one 0x000E is the daily refill's own delta, sent from the
     //     handler rather than composed here.
     // 62 - 2 + 2 = 62.
+    //
+    // Then one more: CMD 0x0078, the blacklist, right after 0x0111. The 0x0111 there is now the
+    // character's real friend list, which clears the client's blacklist; the reference sends an
+    // empty list and had nothing to restore (friend-relations-first-batch, RQ-036 / RQ-038). 63.
     private static readonly (byte Selector, ushort Type)[] AcceptedStaticIdentities =
     [
         (1, 0x0004), (0, 0x0002), (0, 0x0166), (0, 0x0166),
@@ -153,7 +159,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         (0, 0x0158), (0, 0x02D5), (0, 0x02D5), (0, 0x02D5),
         (0, 0x01A8), (0, 0x0009), (0, 0x0344), (0, 0x007C),
         (0, 0x0002), (1, 0x01BA), (0, 0x0035), (0, 0x0111),
-        (0, 0x0016), (0, 0x0077),
+        (1, 0x0078), (0, 0x0016), (0, 0x0077),
     ];
 
     [Fact]
@@ -170,7 +176,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
 
         var identities = Identities(CaptureCurrentTranscript(allRowsApplicable));
 
-        Assert.Equal(62, identities.Length);
+        Assert.Equal(63, identities.Length);
         Assert.Equal(((byte)1, (ushort)0x0004), identities[0]);
         Assert.Equal(AcceptedStaticIdentities, identities);
     }
@@ -300,7 +306,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         var main = source.CharacterInventory.Containers.Single(
             value => value.ContainerType == InventoryContainerType.Main);
         var snapshot = Assert.IsType<InventorySnapshotMessage>(
-            SelectedCharacterStateMessageFactory.Create(source)
+            SelectedCharacterStateMessageFactory.Create(source, Dfo.Server.Protocol.Game.FriendListRefresh.None)
                 .First(value => value is InventorySnapshotMessage));
         var delta = new InventoryDeltaMessage(
             InventoryContainerType.Main,
@@ -354,7 +360,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
             },
         };
         var expected = AcceptedStaticIdentities
-            .Where((_, index) => index + 1 is not (11 or 62))
+            .Where((_, index) => index + 1 is not (11 or 63))
             .ToArray();
 
         Assert.Equal(expected, Identities(CaptureCurrentTranscript(nullWelcome)));
@@ -451,7 +457,7 @@ public sealed class SelectCharacterAcceptedTranscriptTests
 
     private static IReadOnlyList<byte[]> CaptureCurrentTranscript(
         Dfo.Server.Data.Game.SelectCharacterResult result) =>
-        EncodeThroughRegisteredEncoders(SelectedCharacterStateMessageFactory.Create(result));
+        EncodeThroughRegisteredEncoders(SelectedCharacterStateMessageFactory.Create(result, Dfo.Server.Protocol.Game.FriendListRefresh.None));
 
     private static IReadOnlyList<byte[]> EncodeThroughRegisteredEncoders(
         IReadOnlyList<IGameServerMessage> messages)

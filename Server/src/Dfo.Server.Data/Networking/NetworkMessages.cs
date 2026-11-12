@@ -144,6 +144,10 @@ public enum ClientMessageType
     GameDeleteBlacklist = 0x0001_0077,
     GameRequestBlacklist = 0x0001_0078,
 
+    // Adding and removing a friend by name. See Game/UnitedFriend.
+    GameAddFriend = 0x0001_0122,
+    GameDeleteFriend = 0x0001_0123,
+
     // The client's own periodic liveness probe on the Game endpoint. It arrives with no body
     // and keeps coming for the life of the connection whether or not it is answered.
     // See Game/ConnectionCheck.
@@ -396,6 +400,12 @@ public enum ServerMessageType
     GameRegisterBlacklist = 0x0001_0076,
     GameDeleteBlacklist = 0x0001_0077,
     GameRequestBlacklist = 0x0001_0078,
+    GameAddFriend = 0x0001_0122,
+    GameDeleteFriend = 0x0001_0123,
+    // The friend list in full or a removal from it (one type, told apart by its subcmd), and a
+    // friend coming online or leaving. See Game/FriendFrames.cs.
+    GameFriendInfo = 0x0000_0111,
+    GameFriendPresence = 0x0000_0112,
     GameCheckCharacterName = 0x0001_02B5,
     GameCreateCharacter = 0x0001_0005,
     GameDeleteCharacter = 0x0001_0006,

@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game.SaveHotkeys;
 using Dfo.Server.Protocol.Game.SaveQuickChat;
 using Dfo.Server.Protocol.Game.OneToOneChat;
 using Dfo.Server.Protocol.Game.Blacklist;
+using Dfo.Server.Protocol.Game.UnitedFriend;
 using Dfo.Server.Protocol.Game.SendChat;
 using Dfo.Server.Protocol.Game.MirrorDungeonEntry;
 using Dfo.Server.Application.Execution;
@@ -320,6 +321,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSendChatSlice();
         services.AddOneToOneChatSlice();
         services.AddBlacklistSlice();
+        services.AddUnitedFriendSlice();
         services.AddMirrorDungeonEntrySlice();
         services.AddCycleDungeonEntrySlice();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();

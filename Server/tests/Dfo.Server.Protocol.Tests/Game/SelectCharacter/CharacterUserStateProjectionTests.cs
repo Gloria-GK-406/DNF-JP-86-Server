@@ -12,7 +12,7 @@ public sealed class CharacterUserStateProjectionTests
         source = source with { CharacterEntry = source.CharacterEntry with
         { Public = source.CharacterEntry.Public with { Extras = source.CharacterEntry.Public.Extras with
             { NameTagItemId = 100330501, NameTagExpireTime = 1795000000 } } } };
-        var entry = SelectedCharacterStateMessageFactory.Create(source)
+        var entry = SelectedCharacterStateMessageFactory.Create(source, Dfo.Server.Protocol.Game.FriendListRefresh.None)
             .Where(m => m is CurrentUserStateMessage or ExtendedUserStateMessage).ToArray();
         var refresh = CharacterUserStateProjection.Compose(source).Cast<GameStateSynchronizationMessage>().ToArray();
         Assert.Equal(2, refresh.Length);

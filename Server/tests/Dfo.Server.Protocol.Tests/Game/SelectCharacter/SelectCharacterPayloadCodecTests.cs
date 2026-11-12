@@ -816,7 +816,7 @@ public sealed class SelectCharacterPayloadCodecTests
         0x017B => new ClientEffectBaselineMessage().EncodeBody(),
         0x021F => new BossTowerBaselineMessage().EncodeBody(),
         0x007C => new EntryMarkerMessage().EncodeBody(),
-        0x0111 => new CrossServerFriendBaselineMessage().EncodeBody(),
+        0x0111 => new FriendListStateMessage(new([])).EncodeBody(),
         _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 
@@ -854,7 +854,7 @@ public sealed class SelectCharacterPayloadCodecTests
         }
         else
         {
-            var matches = SelectedCharacterStateMessageFactory.Create(result)
+            var matches = SelectedCharacterStateMessageFactory.Create(result, Dfo.Server.Protocol.Game.FriendListRefresh.None)
                 .Where(value => value is IGameNotiMessage && value.Type == type)
                 .ToArray();
             if (occurrence < 0 || occurrence >= matches.Length)

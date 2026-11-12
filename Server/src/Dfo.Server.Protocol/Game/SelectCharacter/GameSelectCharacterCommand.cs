@@ -37,6 +37,7 @@ using System.Runtime.ExceptionServices;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Relations;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
@@ -94,6 +95,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly IBossTowerTicketDomainService bossTickets;
     private readonly IOutboundOrdering ordering;
     private readonly IDarkElfRuinsDomainService ruins;
+    private readonly ICharacterRelationQueryDomainService relations;
+    private readonly ICharacterIdentityQueryDomainService identities;
     public GameSelectCharacterCommandHandler(IOnlineUserQueryDomainService users, IChannelEntryDomainService channels,
         ISelectedCharacterStateMessageFactory stateMessages, ISelectedSessionDomainService selectedSessions,
         IGameCommandOutbox outbox, ICommandProjections projections, ICommandConnectionClosures closures,
@@ -108,7 +111,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         IClientSettingsDomainService clientSettings,
         ISaoTowerDomainService sao, ITauKingdomDomainService tau,
         ISouthernDaleDomainService southern, IBossTowerTicketDomainService bossTickets,
-        IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins)
+        IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins,
+        ICharacterRelationQueryDomainService relations, ICharacterIdentityQueryDomainService identities)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -120,6 +124,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.clientSettings=clientSettings; this.sao=sao; this.tau=tau;
         this.southern=southern; this.bossTickets=bossTickets; this.ordering=ordering;
         this.ruins = ruins;
+        this.relations = relations; this.identities = identities;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -289,7 +294,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         SelectCharacterResult prepared,
         CancellationToken cancellationToken)
     {
-        var messages = stateMessages.CreateValidated(prepared);
+        var friends = await ReadRelationsAsync(execution, session, cancellationToken).ConfigureAwait(false);
+        var messages = stateMessages.CreateValidated(prepared, friends);
         ValidateSupplementalMessages(BuildPrePublicationMessages(session, prepared));
         ValidateSupplementalMessages(
             [new TrailingEquipmentLockSnapshotMessage(
@@ -799,6 +805,23 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             if (!selectedSessions.IsInWorld(session)) return;
             await outbox.RegisterNotiAsync(session.ConnectionId, message, ct).ConfigureAwait(false);
         }
+    }
+    // The entry batch carries the real friend list and the blacklist behind it (RQ-038). Read here,
+    // after preparation committed and before the batch is composed, in a read-only unit of its own:
+    // every friend's channel is where that friend is at this moment.
+    private async ValueTask<FriendListRefresh> ReadRelationsAsync(CommandExecutionContext execution,
+        SelectedSessionIdentity session, CancellationToken ct)
+    {
+        var refresh = await units.ReadOnlyAsync(execution, new("ReadSelectedCharacterRelations", []),
+            token => FriendListRefresh.BuildAsync(session.CharacterId, relations, identities, selectedSessions, channels,
+                clock.LocalTimeZone, token), ct).ConfigureAwait(false);
+        foreach (var skipped in refresh.SkippedFriends)
+            logger.LogWarning("Friend entry left out of entry character={CharacterId} target={Target}: NOTI 0x0111 cannot carry it ({NameBytes}-byte name, level {Level}, grow {Grow}, or a repeated name)",
+                session.CharacterId.Value, skipped.Character.Value, skipped.Name.Length, skipped.Level, skipped.GrowType);
+        foreach (var skipped in refresh.SkippedBlacklist)
+            logger.LogWarning("Blacklist entry left out of entry character={CharacterId} target={Target}: its {NameBytes}-byte name does not fit CMD 0x0078",
+                session.CharacterId.Value, skipped.Character.Value, skipped.Name.Length);
+        return refresh;
     }
     private ValueTask<NotificationDelivery> ProjectQuotaAsync(SelectedSessionIdentity session, UsageQuotaFamily family, CancellationToken ct) =>
         projections.ProjectAsync(new NotificationAudience.TheseSessions([session]), new UsageQuotaViewChanged(session.CharacterId, family), ct);

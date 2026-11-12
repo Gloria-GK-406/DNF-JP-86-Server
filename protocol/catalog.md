@@ -1,5 +1,27 @@
 # 协议清单
 
+## 2026-11-12 好友（#60，CurrentImplementation，待实机）
+
+CurrentImplementation：`Game/UnitedFriend/` 切片。CMD 0x0122 按名加好友（uid 不读），成功回 `[1]`（含已是好友，不产生第二条），
+已满 `[0][0x04]`、server≠1 `[0][0x07]`、不存在或已删除 `[0][0x15]`，加自己／畸形请求／不在世界中 `[0][0x01]`（客户端静默）；
+CMD 0x0123 按名删好友，成功回 `[1]`，其余一律 `[0][0x15]`（AM-1）。成功后同一作业依序给发起者：加——全量 NOTI 0x0111、CMD 0x0078；
+删——NOTI 0x0111 subcmd 2（目标名）、全量、CMD 0x0078；目标不收任何消息。列表在写入提交后的只读单元里构建。
+共享帧与构建在 Game 层 `FriendFrames.cs`：`FriendListMessage`（subcmd 0）、`FriendRemovedMessage`（subcmd 2）、
+`FriendPresenceMessage`（NOTI 0x0112，本期只提供编码，推送属下一单元）、`FriendListBuilder`、`FriendListRefresh`（全量后紧跟黑名单）。
+全量条目 ch：好友在线填其所在频道号（同频道也填，AM-2），离线 0；server 恒为 1，bl 写 0，tail 写 0；名字为空或超 255 字节、
+与前面条目重名、等级或转职超出一字节的条目跳过并记 Warning。选角进入批次中原空基线 0x0111 的位置改发真实全量，紧跟一帧 CMD 0x0078
+（入场批次多一帧，见 [进入世界](patterns/world-entry.md)）。布局与客户端行为为 ClientStatic；无 WireCaptured 应答、无 ClientVerified。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x0122` | `AddFriendDecoder` / `GameAddFriendCommandHandler` | 自动测试；待实机 | [0x0122](game/client-to-server/0x0122.md) |
+| `0x01` CMD | `0x0122` | `AddFriendResponse` | 最大 body 2；自动编码验证 | [0x0122](game/client-to-server/0x0122.md) |
+| `0x01` | `0x0123` | `DeleteFriendDecoder` / `GameDeleteFriendCommandHandler` | 自动测试；待实机 | [0x0123](game/client-to-server/0x0123.md) |
+| `0x01` CMD | `0x0123` | `DeleteFriendResponse` | 最大 body 2；自动编码验证 | [0x0123](game/client-to-server/0x0123.md) |
+| `0x00` NOTI | `0x0111` | `FriendListMessage`（subcmd 0）、`FriendRemovedMessage`（subcmd 2）、入场 `FriendListStateMessage` | 64 条时 subcmd 0 最大 body `8 + 64 × 273` = 17480；subcmd 2 单条最大 268；自动编码验证 | [NOTI-0x0111](game/server-to-client/NOTI-0x0111.md) |
+| `0x00` NOTI | `0x0112` | `FriendPresenceMessage` | 最大 body 263；自动编码验证；尚无发送方 | [NOTI-0x0112](game/server-to-client/NOTI-0x0112.md) |
+| `0x01` CMD | `0x0078` | 入场 `BlacklistListStateMessage`（与 `BlacklistListResponse` 同一编码） | 64 条时最大 body 2370；入场序列测试 | [0x0078](game/client-to-server/0x0078.md) |
+
 ## 2026-11-12 黑名单（#60，CurrentImplementation，待实机）
 
 CurrentImplementation：`Game/Blacklist/` 切片。CMD 0x0076 按名拉黑，成功回 `[1][目标当前名 dstr 1–255B]`，重复 74、
@@ -664,7 +686,8 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x00D0` | `USE_RANDOMBOX_ITEM` | Mutation / 有响应 | ClientVerified（单开成功；满包错误码已修未部署、提示待复验；原始逐帧未归档） | [0x00D0.md](game/client-to-server/0x00D0.md) |
 | `0x01` | `0x00FA` | `LODING_TIME_REPORT`（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | `LAG_STATISTICS`（多态信封） | Report / 当前 raw 消费且有意无响应 | 未知（接入不等于布局/语义闭合） | [0x0117.md](game/client-to-server/0x0117.md) |
-| `0x01` | `0x0122` | `ADD_UNITED_SERVER_FRIEND` | Query / 有响应 | 已观察，未实现（本次组队范围外） | [0x0122.md](game/client-to-server/0x0122.md) |
+| `0x01` | `0x0122` | `ADD_UNITED_SERVER_FRIEND` | Mutation / 有响应 | 实现服务端功能（好友，#60，待实机） | [0x0122.md](game/client-to-server/0x0122.md) |
+| `0x01` | `0x0123` | `DELETE_UNITED_SERVER_FRIEND` | Mutation / 有响应 | 实现服务端功能（好友，#60，待实机） | [0x0123.md](game/client-to-server/0x0123.md) |
 | `0x01` | `0x01A3` | `CREATE_GROUP` | Mutation / 无 CMD 应答，结果经 NOTI `0x016A` 推给双方 | 实现服务端功能（1:1 对话，#61，待实机） | [0x01A3.md](game/client-to-server/0x01A3.md) |
 | `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应；**另在入场批次主动发一帧** | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
 | `0x01` | `0x01DD` | `COMPATIBILITY_INDEX` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
@@ -1077,6 +1100,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0104` | `SwitchSkillBuildDecoder` | 仅证明 decoder 已注册 | [0x0104](game/client-to-server/0x0104.md) |
 | `0x01` | `0x0110` | `EnchantByBeadDecoder` | 仅证明 decoder 已注册 | [0x0110](game/client-to-server/0x0110.md) |
 | `0x01` | `0x0117` | `LagStatisticsDecoder` | 仅证明 decoder 已注册 | [0x0117](game/client-to-server/0x0117.md) |
+| `0x01` | `0x0122` | `AddFriendDecoder` | 仅证明 decoder 已注册 | [0x0122](game/client-to-server/0x0122.md) |
+| `0x01` | `0x0123` | `DeleteFriendDecoder` | 仅证明 decoder 已注册 | [0x0123](game/client-to-server/0x0123.md) |
 | `0x01` | `0x011B` | `PiDecoder` | 仅证明 decoder 已注册 | [0x011B](game/client-to-server/0x011B.md) |
 | `0x01` | `0x0131` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0131](game/client-to-server/0x0131.md) |
 | `0x01` | `0x0132` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0132](game/client-to-server/0x0132.md) |
@@ -1230,7 +1255,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0066` | `HatchCreatureResponse` | 仅证明 encoder 可产生该 identity | [0x0066](game/client-to-server/0x0066.md) |
 | `0x01` CMD | `0x0076` | `RegisterBlacklistResponse` | 仅证明 encoder 可产生该 identity | [0x0076](game/client-to-server/0x0076.md) |
 | `0x01` CMD | `0x0077` | `DeleteBlacklistResponse` | 仅证明 encoder 可产生该 identity | [0x0077](game/client-to-server/0x0077.md) |
-| `0x01` CMD | `0x0078` | `BlacklistListResponse` | 仅证明 encoder 可产生该 identity | [0x0078](game/client-to-server/0x0078.md) |
+| `0x01` CMD | `0x0078` | `BlacklistListResponse`、`BlacklistListStateMessage` | 仅证明 encoder 可产生该 identity | [0x0078](game/client-to-server/0x0078.md) |
 | `0x01` CMD | `0x0084` | `BackToVillageResponse` | 仅证明 encoder 可产生该 identity | [0x0084](game/client-to-server/0x0084.md) |
 | `0x01` CMD | `0x0086` | `MailboxActionResponse` | 仅证明 encoder 可产生该 identity | [0x0086](game/client-to-server/0x0086.md) |
 | `0x01` CMD | `0x008F` | `TutorialFlagAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x008F](game/client-to-server/0x008F.md) |
@@ -1246,6 +1271,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x00FB` | `SharedEffectAck` | 仅证明 encoder 可产生该 identity | [0x00FB](game/client-to-server/0x00FB.md) |
 | `0x01` CMD | `0x0104` | `SwitchSkillBuildResponse` | 仅证明 encoder 可产生该 identity | [0x0104](game/client-to-server/0x0104.md) |
 | `0x01` CMD | `0x0110` | `EnchantByBeadResponse` | 仅证明 encoder 可产生该 identity | [0x0110](game/client-to-server/0x0110.md) |
+| `0x01` CMD | `0x0122` | `AddFriendResponse` | 仅证明 encoder 可产生该 identity | [0x0122](game/client-to-server/0x0122.md) |
+| `0x01` CMD | `0x0123` | `DeleteFriendResponse` | 仅证明 encoder 可产生该 identity | [0x0123](game/client-to-server/0x0123.md) |
 | `0x01` CMD | `0x0131` | `WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0131](game/client-to-server/0x0131.md) |
 | `0x01` CMD | `0x0132` | `CargoCapacityUpgradeMessage`、`WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0132](game/client-to-server/0x0132.md) |
 | `0x01` CMD | `0x0133` | `WarehouseResponse` | 仅证明 encoder 可产生该 identity | [0x0133](game/client-to-server/0x0133.md) |
@@ -1399,7 +1426,8 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x00FB` | `EquipmentLockStateMessage`、`InventoryLocksMessage`、`TrailingEquipmentLockSnapshotMessage` | 仅证明 encoder 可产生该 identity | [0x00FB](game/server-to-client/NOTI-0x00FB.md) |
 | `0x00` NOTI | `0x00FE` | `ElevatorStateMessage` | 仅证明 encoder 可产生该 identity | [0x00FE](game/server-to-client/NOTI-0x00FE.md) |
 | `0x00` NOTI | `0x0105` | `EplpRechallengeNotification` | 仅证明 encoder 可产生该 identity | [0x0105](game/server-to-client/NOTI-0x0105.md) |
-| `0x00` NOTI | `0x0111` | `CrossServerFriendBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x0111](game/server-to-client/NOTI-0x0111.md) |
+| `0x00` NOTI | `0x0111` | `FriendListMessage`、`FriendRemovedMessage`、`FriendListStateMessage` | 仅证明 encoder 可产生该 identity | [0x0111](game/server-to-client/NOTI-0x0111.md) |
+| `0x00` NOTI | `0x0112` | `FriendPresenceMessage` | 仅证明 encoder 可产生该 identity | [0x0112](game/server-to-client/NOTI-0x0112.md) |
 | `0x00` NOTI | `0x0117` | `SecretShopNpcNotification` | 仅证明 encoder 可产生该 identity | [0x0117](game/server-to-client/NOTI-0x0117.md) |
 | `0x00` NOTI | `0x0129` | `AltarDifficultyPromptMessage`、`AltarDifficultyResolvedMessage` | 仅证明 encoder 可产生该 identity | [0x0129](game/server-to-client/NOTI-0x0129.md) |
 | `0x00` NOTI | `0x0158` | `PvpMissionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0158](game/server-to-client/NOTI-0x0158.md) |

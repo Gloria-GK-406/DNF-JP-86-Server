@@ -6,15 +6,16 @@ namespace Dfo.Server.Protocol.Game.SelectCharacter;
 
 public interface ISelectedCharacterStateMessageFactory
 {
-    IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result);
+    /// <param name="relations">The character's friend list and blacklist, read by the selecting command.</param>
+    IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result, FriendListRefresh relations);
 }
 
 internal sealed class SelectedCharacterStateMessageFactoryService
     : ISelectedCharacterStateMessageFactory
 {
-    public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result)
+    public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result, FriendListRefresh relations)
     {
-        var messages = SelectedCharacterStateMessageFactory.Create(result);
+        var messages = SelectedCharacterStateMessageFactory.Create(result, relations);
         foreach (var message in messages)
             _ = message.EncodeBody();
         return messages;
@@ -23,9 +24,10 @@ internal sealed class SelectedCharacterStateMessageFactoryService
 
 internal static class SelectedCharacterStateMessageFactory
 {
-    public static IReadOnlyList<GameStateSynchronizationMessage> Create(SelectCharacterResult result)
+    public static IReadOnlyList<GameStateSynchronizationMessage> Create(SelectCharacterResult result, FriendListRefresh relations)
     {
         ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(relations);
         var messages = new List<GameStateSynchronizationMessage>(59)
         {
             new CharacterEntryAcceptedMessage(
@@ -142,7 +144,10 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new TownReadyStateMessage(result.Character.Identity.CharacterId));
         messages.Add(new MercenarySupportStateMessage());
         messages.Add(new CeraBalanceStateMessage(result.Account.Wallet));
-        messages.Add(new CrossServerFriendBaselineMessage());
+        // The real list where the reference has its 0x0111, and the blacklist right behind it: the
+        // full list wipes the client's blacklist, and nothing else in entry restores it.
+        messages.Add(new FriendListStateMessage(relations.Friends));
+        messages.Add(new BlacklistListStateMessage(relations.Blacklist));
         messages.Add(new CharacterPositionStateMessage(
             result.Character.Identity.CharacterId, result.World.Channel.Spawn));
         // UPDATE_ITEM_LIST is not sent from here. The reference carries exactly one 0x000E in
