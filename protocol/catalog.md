@@ -1,5 +1,23 @@
 # 协议清单
 
+## 2026-11-12 聊天单入口路由第一批（#61，CurrentImplementation，待实机）
+
+CurrentImplementation：CMD 0x0011 一个入口按 mode 分流——区域 3/45/46、队伍 2/9 回推 NOTI 0x000C（含发言者，
+因客户端发言后不本地显示，ClientStatic / Confirmed），私聊 1/7 用 NOTI 0x0041 只投给对方，频道喇叭 13 与服务器喇叭
+11/12/57 扣物品后用 NOTI 0x0076，公会 6 静默；其余 mode 与 0x01A9 回 `[0, 0x11]`，成功不回应答。布局均为
+ClientStatic，0x0076 含义 High；已更正 0x0011 的 u32（喇叭槽位／会话 id）与 1:1 会话 mode（43）。
+无 WireCaptured、无 ClientVerified；reason 0x11 的显示、私聊发送方那一行、喇叭数量显示待实机。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x0011` | `SendChatDecoder` / `GameSendChatCommand` | 自动测试；待实机 | [0x0011](game/client-to-server/0x0011.md) |
+| `0x01` CMD | `0x0011` | `SendChatRefusal`（仅拒绝时） | 自动编码验证 | [0x0011](game/client-to-server/0x0011.md) |
+| `0x01` | `0x01A9` | `ItemLinkChatDecoder`（不读正文） | 一律拒绝；自动测试 | [0x01A9](game/client-to-server/0x01A9.md) |
+| `0x01` CMD | `0x01A9` | `ItemLinkChatRefusal` | 自动编码验证 | [0x01A9](game/client-to-server/0x01A9.md) |
+| `0x00` NOTI | `0x000C` | `ChatLineMessage` | 最大 body 263；自动编码验证 | [NOTI-0x000C](game/server-to-client/NOTI-0x000C.md) |
+| `0x00` NOTI | `0x0041` | `WhisperMessage` | 最大 body 296；自动编码验证 | [NOTI-0x0041](game/server-to-client/NOTI-0x0041.md) |
+| `0x00` NOTI | `0x0076` | `MegaphoneMessage` | 最大 body 554；自动编码验证 | [NOTI-0x0076](game/server-to-client/NOTI-0x0076.md) |
+
 ## 2026-11-11 辅助装备／魔法石开槽任务（#308，ClientVerified）
 
 任务 649/650 的 `[slot expansion]` 奖励此前只解析不消费，`ex_equip_slot_stat` 无写入；且

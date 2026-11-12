@@ -1,0 +1,16 @@
+family	type	offset	meaning	confidence	source
+CMD	0x0011	0	聊天模式 mode；客户端输入框频道到 mode 的取值表与 1:1 会话(43/48)见本页人工区	Confirmed	客户端 1F8244D3… 构包 VA 01A63C1F 写 u8；频道选择器 VA 01A68657 查表 VA 01A699F0
+CMD	0x0011	1	targetUid（u16）	Confirmed	客户端 1F8244D3… 构包 VA 01A63C1F 写 u16
+CMD	0x0011	3	u32 aux：喇叭 mode 写背包槽位索引（物品 id 由客户端表决定），1:1 会话 43/48 写会话 id，其余写 0；不是目标角色 id	High	客户端 1F8244D3… 构包 VA 01A63C1F；喇叭物品表 VA 01A6426C
+CMD	0x0011	7	正文 dstr（i32 长度 + 字节）；客户端发送前要求少于 255 宽字符并把 % 换成空格	Confirmed	客户端 1F8244D3… 主发送函数 VA 01A62E20、构包 VA 01A63C1F
+NOTI	0x000C	0	聊天模式 mode；≥0x3B 丢弃，0x2D/0x2E 改写为 3	Confirmed	客户端 1F8244D3… handler VA 01189860；分派 VA 01A644C0
+NOTI	0x000C	1	发送者 uid（u16）	Confirmed	客户端 1F8244D3… handler VA 01189860
+NOTI	0x000C	3	serverGroup；≥0xFA 丢弃，写 0 时客户端自行补	Confirmed	客户端 1F8244D3… handler VA 01189860
+NOTI	0x000C	4	正文 dstr，长度 1..255，之后无字段	Confirmed	客户端 1F8244D3… handler VA 01189860；读取原语 ReadDStrW VA 0274FCB0
+NOTI	0x0041	0	聊天模式 mode	Confirmed	客户端 1F8244D3… handler VA 01173D70
+NOTI	0x0041	1	状态：0 正常私聊；0x4D 黑名单；0x5A GM；其他非 0 显示文案 328（不在线或在不同频道）	Confirmed	客户端 1F8244D3… handler VA 01173D70
+NOTI	0x0076	0	聊天模式 mode（决定喇叭行颜色）	High	客户端 1F8244D3… handler VA 01166B60 读取 Confirmed
+NOTI	0x0076	1	serverId；与当前服务器对象虚函数 +0x98 比较	High	客户端 1F8244D3… handler VA 01166B60 读取 Confirmed
+NOTI	0x0076	2	serverGroup；仅写入行对象 +0x1C	High	客户端 1F8244D3… handler VA 01166B60 读取 Confirmed
+NOTI	0x0076	3	频道编号；与 NOTI 0x0001 下发、存于全局 VA 0x3A5AFE4 的频道编号比较	High	客户端 1F8244D3… handler VA 01166B60；全局写入点 VA 01169D62
+NOTI	0x0076	4	发送者 uid（u16）	High	客户端 1F8244D3… handler VA 01166B60 读取 Confirmed
