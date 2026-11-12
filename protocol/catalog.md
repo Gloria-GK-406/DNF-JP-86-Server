@@ -4,9 +4,16 @@
 
 CurrentImplementation：CMD 0x0011 一个入口按 mode 分流——区域 3/45/46、队伍 2/9 回推 NOTI 0x000C（含发言者，
 因客户端发言后不本地显示，ClientStatic / Confirmed），私聊 1/7 用 NOTI 0x0041 只投给对方，频道喇叭 13 与服务器喇叭
-11/12/57 扣物品后用 NOTI 0x0076，公会 6 静默；其余 mode 与 0x01A9 回 `[0, 0x11]`，成功不回应答。布局均为
-ClientStatic，0x0076 含义 High；已更正 0x0011 的 u32（喇叭槽位／会话 id）与 1:1 会话 mode（43）。
-无 WireCaptured、无 ClientVerified；reason 0x11 的显示、私聊发送方那一行、喇叭数量显示待实机。
+11/12/57 扣物品后用 NOTI 0x0076，公会 6 静默，1:1 会话 43 用 NOTI 0x016F 只投会话对方（见下段）；其余 mode（含本地窗口的
+33／37）与 0x01A9 回 `[0, 0x11]`，成功不回应答。布局均为 ClientStatic，0x0076 含义 High；已更正 0x0011 的 u32（喇叭槽位／
+会话 id）。无 WireCaptured、无 ClientVerified；reason 0x11 的显示、私聊发送方那一行、喇叭数量显示待实机。
+
+1:1 对话窗口（CurrentImplementation，待实机）：CMD 0x01A3 按名开会话，没有 CMD 应答，结果是推给双方的 NOTI 0x016A，名单
+[对方, 自己]；客户端每条 0x016A 都新建窗口，所以已开会话不重发，目标不存在／离线／自己等情况一律不回帧。窗口内发言为
+0x0011 mode 43（尾部 dstr 是发送者自己的名字，客户端本地回显），只投对方 NOTI 0x016F，任何失败静默、不回 0x0011。
+关窗 CMD 0x01A5 或成员选中会话结束都会结束会话并给留守方发 NOTI 0x016E；CMD 0x01A6 接收后忽略。布局与客户端行为为
+ClientStatic（Confirmed／High 分列各页）；70Reference 证实 70 未实现 1:1 对话。会话只在内存
+（`ChatConversationDomainService`）。双方窗口、标题、焦点与回显待实机。
 
 | 族 | Type | 实现 | 边界 | 文档 |
 |---|---|---|---|---|
@@ -17,6 +24,12 @@ ClientStatic，0x0076 含义 High；已更正 0x0011 的 u32（喇叭槽位／�
 | `0x00` NOTI | `0x000C` | `ChatLineMessage` | 最大 body 263；自动编码验证 | [NOTI-0x000C](game/server-to-client/NOTI-0x000C.md) |
 | `0x00` NOTI | `0x0041` | `WhisperMessage` | 最大 body 296；自动编码验证 | [NOTI-0x0041](game/server-to-client/NOTI-0x0041.md) |
 | `0x00` NOTI | `0x0076` | `MegaphoneMessage` | 最大 body 554；自动编码验证 | [NOTI-0x0076](game/server-to-client/NOTI-0x0076.md) |
+| `0x01` | `0x01A3` | `OpenConversationDecoder` / `GameOpenConversationCommandHandler` | 无 CMD 应答；失败不回帧；自动测试与真实 TCP；待实机 | [0x01A3](game/client-to-server/0x01A3.md) |
+| `0x01` | `0x01A5` | `LeaveConversationDecoder` / `GameLeaveConversationCommandHandler` | 无应答；自动测试与真实 TCP；待实机 | [0x01A5](game/client-to-server/0x01A5.md) |
+| `0x01` | `0x01A6` | `ConversationUserStateDecoder`（不读 body） | 接收后忽略；自动测试 | [0x01A6](game/client-to-server/0x01A6.md) |
+| `0x00` NOTI | `0x016A` | `ConversationOpenedMessage` | 最大 body 268；自动编码验证；真实 TCP | [NOTI-0x016A](game/server-to-client/NOTI-0x016A.md) |
+| `0x00` NOTI | `0x016E` | `ConversationLeftMessage` | 最大 body 135；自动编码验证；真实 TCP | [NOTI-0x016E](game/server-to-client/NOTI-0x016E.md) |
+| `0x00` NOTI | `0x016F` | `ConversationMessage` | 最大 body 1162；自动编码验证；真实 TCP | [NOTI-0x016F](game/server-to-client/NOTI-0x016F.md) |
 
 ## 2026-11-11 辅助装备／魔法石开槽任务（#308，ClientVerified）
 
@@ -631,7 +644,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x00FA` | `LODING_TIME_REPORT`（分段指标流） | Report / 无响应 | 双向验证结束 | [0x00FA.md](game/client-to-server/0x00FA.md) |
 | `0x01` | `0x0117` | `LAG_STATISTICS`（多态信封） | Report / 当前 raw 消费且有意无响应 | 未知（接入不等于布局/语义闭合） | [0x0117.md](game/client-to-server/0x0117.md) |
 | `0x01` | `0x0122` | `ADD_UNITED_SERVER_FRIEND` | Query / 有响应 | 已观察，未实现（本次组队范围外） | [0x0122.md](game/client-to-server/0x0122.md) |
-| `0x01` | `0x01A3` | `CREATE_GROUP` | Report / 静态无响应 handler | 已观察，未实现（本次组队范围外） | [0x01A3.md](game/client-to-server/0x01A3.md) |
+| `0x01` | `0x01A3` | `CREATE_GROUP` | Mutation / 无 CMD 应答，结果经 NOTI `0x016A` 推给双方 | 实现服务端功能（1:1 对话，#61，待实机） | [0x01A3.md](game/client-to-server/0x01A3.md) |
 | `0x01` | `0x01BA` | `MERCENARY_INFO` | Query / 有响应；**另在入场批次主动发一帧** | 实现服务端功能 | [0x01BA.md](game/client-to-server/0x01BA.md) |
 | `0x01` | `0x01DD` | `COMPATIBILITY_INDEX` | Report / 无响应 | 双向验证结束 | [0x01DD.md](game/client-to-server/0x01DD.md) |
 | `0x01` | `0x01F8` | `INFORM_NOTICE_2ND` | 已读记录 / 无 ACK | 持久化已实现，待实机 | [0x01F8.md](game/client-to-server/0x01F8.md) |

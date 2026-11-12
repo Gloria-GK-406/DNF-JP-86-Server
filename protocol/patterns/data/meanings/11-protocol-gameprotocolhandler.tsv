@@ -34,7 +34,6 @@ CMD	0x01A1	0	成就（称号任务）questId（int32）	Confirmed	上游 Network
 CMD	0x01A1	4	成就进度计数器 1 的完成增量 delta1（u16）；服务端从剩余数 P1 饱和减去	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:386 读 u16@4 作 delta1，Game/TitleBook/TitleBookMutationService.cs:204 执行 entry.P1 = SaturatingSubtract(entry.P1, delta1)
 CMD	0x01A1	6	成就进度计数器 2 的完成增量 delta2（u16）；服务端从剩余数 P2 饱和减去	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:387 读 u16@6 作 delta2，Game/TitleBook/TitleBookMutationService.cs:205 执行 entry.P2 = SaturatingSubtract(entry.P2, delta2)
 CMD	0x01A1	8	成就进度计数器 3 的完成增量 delta3（u16）；服务端从剩余数 P3 饱和减去	Confirmed	上游 Network/Handlers/InventoryHandler.Trade.cs:388 读 u16@8 作 delta3，Game/TitleBook/TitleBookMutationService.cs:206 执行 entry.P3 = SaturatingSubtract(entry.P3, delta3)
-CMD	0x01A3	0	目标角色名：int32 长度前缀（1..30）+ 该长度的名字字节，且 body 总长必须恰为 4+length、名字内不得含 0 字节	Confirmed	上游 Network/Handlers/ChatHandler.cs:398-404 读 int32@0 作 length 并从 body+4 拷贝 nameBytes，:223 用于按名查找在线会话
 CMD	0x01A8	0	被查看目标的 userId（u16，同频道在线唯一 ID）；0xFFFF 被当作空请求直接忽略	Confirmed	上游 Network/Handlers/CharacterSelectHandler.cs:601-610 读 u16@0 作 requestedUserId 并交给 FindInspectableOnlineByUserId
 CMD	0x01B3	0	目标城镇 ID townId（u8）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:39 读 body[0] 作 TownId
 CMD	0x01B3	1	目标区域 ID areaId（u8）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:40 读 body[1] 作 AreaId

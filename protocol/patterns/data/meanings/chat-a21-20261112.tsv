@@ -14,3 +14,10 @@ NOTI	0x0076	1	serverId；与当前服务器对象虚函数 +0x98 比较	High	客
 NOTI	0x0076	2	serverGroup；仅写入行对象 +0x1C	High	客户端 1F8244D3… handler VA 01166B60 读取 Confirmed
 NOTI	0x0076	3	频道编号；与 NOTI 0x0001 下发、存于全局 VA 0x3A5AFE4 的频道编号比较	High	客户端 1F8244D3… handler VA 01166B60；全局写入点 VA 01169D62
 NOTI	0x0076	4	发送者 uid（u16）	High	客户端 1F8244D3… handler VA 01166B60 读取 Confirmed
+CMD	0x01A3	0	目标角色名 dstr（i32 长度 + 字节），整个 body 只有这一项	Confirmed	客户端 1F8244D3… 构包 VA 024E7EB0；入口 VA 024EAB20
+CMD	0x01A5	0	会话 id（u32），取自窗口 +0x230，即 NOTI 0x016A 下发的 id	Confirmed	客户端 1F8244D3… 关窗 VA 024EEE70、构包 VA 024EEEFE；NOTI 0x016A handler VA 024EAFA0 写窗口 +0x230
+NOTI	0x016A	0	结果码：77 弹文案 4763（黑名单）并结束；100、101 静默结束；其余任何值（含 0）按成功继续读 id 与名单	Confirmed	客户端 1F8244D3… handler VA 024EAFA0
+NOTI	0x016A	1	会话 id（u32），仅结果为成功时存在；写入新建窗口 +0x230，客户端不按它查重	Confirmed	客户端 1F8244D3… handler VA 024EAFA0
+NOTI	0x016A	5	成员名数量 n（u8），其后 n 个名字 dstr（0 < len < 128 字节）；首个名字写入窗口 +0x184 作为对方；n = 0 不建窗	Confirmed	客户端 1F8244D3… handler VA 024EAFA0；读取原语 ReadDStrW VA 0274FCB0
+NOTI	0x016E	0	会话 id（u32），按它找窗口；其后为离开者名字 dstr（< 128 字节）	Confirmed	客户端 1F8244D3… handler VA 024EA5E0
+NOTI	0x016F	0	会话 id（u32），按它找窗口，找不到则丢弃整条；其后为发送者名字 dstr（< 128 字节）与正文 dstr（< 1024 字节）	Confirmed	客户端 1F8244D3… handler VA 024EA700
