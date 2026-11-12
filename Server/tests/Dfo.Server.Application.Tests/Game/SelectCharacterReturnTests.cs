@@ -64,7 +64,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 new StubChannelEntryPolicy(),
                 TestParties.Of(runs),
                 runs,
-                [departure], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: []);
+                [departure], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService());
             var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, cleanup);
 
             using var footprint = new TestEffectFootprints.Lease(selected);

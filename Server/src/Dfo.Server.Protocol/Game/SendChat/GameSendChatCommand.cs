@@ -9,10 +9,12 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Chat;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.OneToOneChat;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.SendChat;
@@ -28,10 +30,16 @@ public sealed record GameSendChatCommand(NetworkDispatchContext Dispatch, SendCh
 /// A line that went through, or that reached no one, is not answered: the A21 client does not wait
 /// for an answer to a chat line. Nor does it show its own line when sending, so every scope but a
 /// whisper includes the speaker. A whisper reaches only its target, as on the 70 server.
+/// <para>
+/// A line in a 1:1 conversation window is the exception on both counts: the client writes it into
+/// its own window as it sends it, so it goes only to the other member, and it is never refused --
+/// a refusal would raise an error box over a line the window already shows.
+/// </para>
 /// </remarks>
 internal sealed class GameSendChatCommandHandler(
     ISelectedSessionDomainService sessions,
     IChatScopeDomainService scopes,
+    IChatConversationDomainService conversations,
     ICharacterDomainService characters,
     IMailboxQueryDomainService directory,
     IChannelEntryDomainService channels,
@@ -52,16 +60,23 @@ internal sealed class GameSendChatCommandHandler(
             return await RefuseAsync(speaker, request, "UnsupportedMode", ct).ConfigureAwait(false);
         // Refused rather than cut: a cut line is not what the player wrote.
         if (request.Text.Length == 0 || request.Text.Length > route.TextLimit)
-            return await RefuseAsync(speaker, request, "TextLength", ct).ConfigureAwait(false);
-        if (!PassesPreSendChecks(speaker, route))
-            return await RefuseAsync(speaker, request, "PreSendCheck", ct).ConfigureAwait(false);
+            return await DeclineAsync(speaker, route, request, "TextLength", ct).ConfigureAwait(false);
+        if (!ChatPreSendChecks.Passes(speaker))
+            return await DeclineAsync(speaker, route, request, "PreSendCheck", ct).ConfigureAwait(false);
+        ChatConversationId? conversation = null;
+        if (route.Kind == ChatKind.Conversation)
+        {
+            conversation = new ChatConversationId(request.Aux);
+            if (conversations.Find(conversation.Value)?.MemberFor(speaker) is null)
+                return await DeclineAsync(speaker, route, request, "NotInConversation", ct).ConfigureAwait(false);
+        }
 
         var recipient = new SelectedSessionRecipient(speaker, connection, request.Metadata);
         var facts = route.NameLimit is null && route.Kind != ChatKind.Whisper ? new ChatFacts(null, null)
             : await units.ReadOnlyAsync(execution, new("ChatParticipants", [recipient]),
                 token => ReadFactsAsync(speaker, route, request, token), ct).ConfigureAwait(false);
         if (route.NameLimit is { } nameLimit && (facts.SpeakerName is not { Length: > 0 } name || name.Length > nameLimit))
-            return await RefuseAsync(speaker, request, "SpeakerName", ct).ConfigureAwait(false);
+            return await DeclineAsync(speaker, route, request, "SpeakerName", ct).ConfigureAwait(false);
 
         byte channelId = 0;
         if (route.MegaphoneItemId is not null)
@@ -84,12 +99,12 @@ internal sealed class GameSendChatCommandHandler(
             followUp = [SlotState(consumed.Debits.Single())];
         }
 
-        var members = Scope(speaker, route.Kind, facts.Target) is { } scope ? scopes.MembersOf(scope) : [];
-        if (route.Kind == ChatKind.Whisper)
+        var members = Scope(speaker, route.Kind, facts.Target, conversation) is { } scope ? scopes.MembersOf(scope) : [];
+        if (route.Kind is ChatKind.Whisper or ChatKind.Conversation)
             members = [.. members.Where(member => member != speaker.CharacterId)];
         if (members.Count != 0)
             await projections.ProjectAsync(new NotificationAudience.TheseCharacters(members),
-                new ChatMessagePosted(Line(speaker, route.Kind, request, facts.SpeakerName, channelId), speaker.CharacterId, followUp), ct)
+                new ChatMessagePosted(Line(speaker, route.Kind, request, facts.SpeakerName, channelId, conversation), speaker.CharacterId, followUp), ct)
                 .ConfigureAwait(false);
         else if (followUp.Count != 0)
             await outbox.RegisterExplicitAsync(connection.ConnectionId, new(followUp, []), ct).ConfigureAwait(false);
@@ -97,12 +112,6 @@ internal sealed class GameSendChatCommandHandler(
             speaker.CharacterId, request.Mode, route.Kind, members.Count);
         return true;
     }
-
-    /// <summary>
-    /// The single check a line passes before it is delivered. Every line passes today; muting,
-    /// block lists and rate limits belong here, and nowhere else.
-    /// </summary>
-    private static bool PassesPreSendChecks(SelectedSessionIdentity speaker, ChatRoute route) => true;
 
     private async ValueTask<ChatFacts> ReadFactsAsync(SelectedSessionIdentity speaker, ChatRoute route,
         SendChatRequest request, CancellationToken ct)
@@ -116,7 +125,8 @@ internal sealed class GameSendChatCommandHandler(
     }
 
     // A whisper to no one by that name, or to someone offline, is silent: the speaker is told nothing.
-    private static ChatScope? Scope(SelectedSessionIdentity speaker, ChatKind kind, CharacterId? target) => kind switch
+    private static ChatScope? Scope(SelectedSessionIdentity speaker, ChatKind kind, CharacterId? target,
+        ChatConversationId? conversation) => kind switch
     {
         ChatKind.Area => new ChatScope.AreaOf(speaker.CharacterId),
         ChatKind.Party => new ChatScope.PartyOf(speaker.CharacterId),
@@ -124,16 +134,18 @@ internal sealed class GameSendChatCommandHandler(
         ChatKind.ChannelMegaphone => new ChatScope.ChannelOf(speaker.CharacterId),
         ChatKind.ServerMegaphone => new ChatScope.Server(),
         ChatKind.Whisper => target is { } character ? new ChatScope.Character(character) : null,
+        ChatKind.Conversation => new ChatScope.Conversation(conversation!.Value),
         _ => throw new NotSupportedException($"Chat kind '{kind}' has no scope."),
     };
 
     private static IGameNotiMessage Line(SelectedSessionIdentity speaker, ChatKind kind, SendChatRequest request,
-        byte[]? name, byte channelId) => kind switch
+        byte[]? name, byte channelId, ChatConversationId? conversation) => kind switch
     {
         ChatKind.Area or ChatKind.Party or ChatKind.Guild => new ChatLineMessage(request.Mode, speaker.WireUserId, request.Text),
         ChatKind.Whisper => new WhisperMessage(request.Mode, name!, request.Text),
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => new MegaphoneMessage(request.Mode, GameProtocol.ServerIndex,
             channelId, speaker.WireUserId, name!, request.Text),
+        ChatKind.Conversation => new ConversationMessage(conversation!.Value, name!, request.Text),
         _ => throw new NotSupportedException($"Chat kind '{kind}' has no frame."),
     };
 
@@ -152,6 +164,17 @@ internal sealed class GameSendChatCommandHandler(
             ? GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(slot.Space,
                 [new InventoryItemState(null, slot.Index, remaining)], at))
             : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, at);
+    }
+
+    // A conversation line that cannot go is dropped without a word: see the class remarks.
+    private async ValueTask<bool> DeclineAsync(SelectedSessionIdentity speaker, ChatRoute route, SendChatRequest request,
+        string reason, CancellationToken ct)
+    {
+        if (route.Kind != ChatKind.Conversation)
+            return await RefuseAsync(speaker, request, reason, ct).ConfigureAwait(false);
+        logger.LogInformation("Conversation line dropped character={Character} conversation={Conversation} bytes={Bytes} reason={Reason}",
+            speaker.CharacterId, request.Aux, request.Text.Length, reason);
+        return false;
     }
 
     private async ValueTask<bool> RefuseAsync(SelectedSessionIdentity speaker, SendChatRequest request, string reason, CancellationToken ct)

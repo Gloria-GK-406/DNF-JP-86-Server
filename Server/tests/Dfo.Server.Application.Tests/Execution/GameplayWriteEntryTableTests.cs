@@ -85,6 +85,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(DungeonRunStore),
         typeof(CreatureRuntimeDomainService),
         typeof(PartyService),
+        typeof(Dfo.Server.Application.Chat.ChatConversationDomainService),
         typeof(OnlineCharacterLocationDomainService),
         typeof(DungeonParticipationDomainService),
         typeof(DungeonCardPresentationCoordinator),
@@ -271,6 +272,12 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyService.RemoveMember(CharacterId, CharacterId)"] = W,
         ["PartyService.RequestInvite(PartyCharacterSnapshot, PartyCharacterSnapshot, PartyInviteDisplayState)"] = W,
         ["PartyService.TransferLeadership(CharacterId, CharacterId)"] = W,
+
+        // ChatConversationDomainService
+        ["ChatConversationDomainService.EndAllOf(SelectedSessionIdentity)"] = W,
+        ["ChatConversationDomainService.Find(ChatConversationId)"] = R,
+        ["ChatConversationDomainService.Leave(ChatConversationId, SelectedSessionIdentity)"] = W,
+        ["ChatConversationDomainService.Open(ChatConversationMember, ChatConversationMember)"] = W,
 
         // OnlineCharacterLocationDomainService
         ["OnlineCharacterLocationDomainService.Arrive(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,

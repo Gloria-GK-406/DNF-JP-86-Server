@@ -223,8 +223,9 @@ internal static class CleanupNoticeMessages
 /// <summary>Delivers both halves of a cleanup plan, in the order they have to go out in.</summary>
 /// <remarks>
 /// A service rather than the mapping function it replaces, and that is the whole point. The plan
-/// leaves by three routes -- the owner's notices down the connection this code already holds, town
-/// peers through their notification, then the independently addressed party projection. There are
+/// leaves by four routes -- the owner's notices down the connection this code already holds, town
+/// peers through their notification, the independently addressed party projection, and last the
+/// members left behind in the 1:1 conversations the departure ended. There are
 /// six places that deliver one. Left as separate calls at each of those places, the order would be
 /// six hand-written sequences, and four of the six are inside a catch. Here it is one.
 /// </remarks>
@@ -274,5 +275,13 @@ internal sealed class CleanupNotificationDelivery(
             plan.PartyNotifications,
             plan.PartyRecipients,
             cancellationToken).ConfigureAwait(false);
+
+        foreach (var departure in plan.ConversationDepartures)
+        {
+            await notifications.ProjectAsync(
+                new NotificationAudience.TheseSessions([departure.Remaining.Session]),
+                new Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft(departure),
+                cancellationToken).ConfigureAwait(false);
+        }
     }
 }

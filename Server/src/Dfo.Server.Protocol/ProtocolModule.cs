@@ -12,6 +12,7 @@ using Dfo.Server.Protocol.Game.TauKingdom;
 using Dfo.Server.Protocol.Game.ReviveCoin;
 using Dfo.Server.Protocol.Game.SaveHotkeys;
 using Dfo.Server.Protocol.Game.SaveQuickChat;
+using Dfo.Server.Protocol.Game.OneToOneChat;
 using Dfo.Server.Protocol.Game.SendChat;
 using Dfo.Server.Protocol.Game.MirrorDungeonEntry;
 using Dfo.Server.Application.Execution;
@@ -316,6 +317,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSaveHotkeysSlice();
         services.AddSaveQuickChatSlice();
         services.AddSendChatSlice();
+        services.AddOneToOneChatSlice();
         services.AddMirrorDungeonEntrySlice();
         services.AddCycleDungeonEntrySlice();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();

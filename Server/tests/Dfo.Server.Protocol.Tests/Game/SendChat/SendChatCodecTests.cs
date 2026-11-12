@@ -124,6 +124,7 @@ public sealed class SendChatCodecTests
     [InlineData(11, ChatKind.ServerMegaphone, 36)]
     [InlineData(12, ChatKind.ServerMegaphone, 898)]
     [InlineData(57, ChatKind.ServerMegaphone, 10151255)]
+    [InlineData(43, ChatKind.Conversation, null)]
     internal void First_batch_modes_map_to_their_kind_and_megaphone_item(byte mode, ChatKind kind, int? item)
     {
         var route = ChatWireModes.Route(mode);
@@ -135,7 +136,7 @@ public sealed class SendChatCodecTests
     [Fact]
     public void Every_other_mode_is_unmapped()
     {
-        byte[] supported = [1, 2, 3, 6, 7, 9, 11, 12, 13, 45, 46, 57];
+        byte[] supported = [1, 2, 3, 6, 7, 9, 11, 12, 13, 43, 45, 46, 57];
         for (var mode = 0; mode <= byte.MaxValue; mode++)
             Assert.Equal(supported.Contains((byte)mode), ChatWireModes.Route((byte)mode) is not null);
     }

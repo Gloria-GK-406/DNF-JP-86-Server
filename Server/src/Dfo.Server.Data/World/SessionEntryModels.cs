@@ -170,6 +170,13 @@ public sealed record SelectedSessionCleanupNotificationPlan(
     PartyNotificationPlan PartyNotifications,
     PartyNotificationRecipientPlan PartyRecipients)
 {
+    /// <summary>
+    /// The 1:1 conversations the departure ended, each to be announced to the member left behind --
+    /// only those whose remaining member was still in the world, on the session its window is on,
+    /// when the cleanup ran.
+    /// </summary>
+    public IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> ConversationDepartures { get; init; } = [];
+
     public SelectedSessionCleanupNotificationPlan(
         NetworkConnectionId ownerConnectionId,
         IReadOnlyList<SelectedSessionCleanupNotice> requiredOwnerNotices,

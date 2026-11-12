@@ -47,7 +47,8 @@ internal sealed class SelectedSessionCleanupService(
     IEnumerable<IIllusionTowerDepartureSink> illusionTowerDepartures,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housing,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower,
-    IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink> bossTowerDepartures) : ISelectedSessionCleanupDomainService
+    IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink> bossTowerDepartures,
+    Dfo.Server.Abstractions.Chat.IChatConversationDomainService conversations) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {
@@ -68,6 +69,7 @@ internal sealed class SelectedSessionCleanupService(
         var required = new List<SelectedSessionCleanupNotice>();
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
+        IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> conversationDepartures = [];
         var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && currentMember.Session == session)
         {
@@ -200,6 +202,15 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => pvp.ClearReadyExact(session));
         // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
         // and only if this session still owns them: a successor that has already begun keeps its own.
+        // Every conversation window this session had open closes with it. Whom to tell is asked now,
+        // while the sessions the other members opened their windows on can still be compared.
+        Run(() =>
+        {
+            conversationDepartures = [.. conversations.EndAllOf(session).Where(departure =>
+                sessions.TryGetInWorld(departure.Remaining.CharacterId, out var remaining)
+                && remaining == departure.Remaining.Session)];
+            return true;
+        });
         Run(() => runtime.EndExact(session));
         Run(() => sessions.ReleaseExact(session));
 
@@ -217,7 +228,10 @@ internal sealed class SelectedSessionCleanupService(
             audience,
             peerNotices,
             partyNotifications,
-            partyRecipients);
+            partyRecipients)
+        {
+            ConversationDepartures = conversationDepartures,
+        };
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);
         return notificationPlan;

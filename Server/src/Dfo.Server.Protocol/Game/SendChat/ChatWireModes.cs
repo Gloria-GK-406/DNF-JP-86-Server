@@ -9,6 +9,7 @@ internal enum ChatKind
     Guild,
     ChannelMegaphone,
     ServerMegaphone,
+    Conversation,
 }
 
 /// <summary>What a supported wire mode means.</summary>
@@ -20,6 +21,7 @@ internal sealed record ChatRoute(ChatKind Kind, int? MegaphoneItemId = null)
     {
         ChatKind.Whisper => WhisperMessage.TextLimit,
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => MegaphoneMessage.TextLimit,
+        ChatKind.Conversation => OneToOneChat.ConversationMessage.TextLimit,
         _ => ChatLineMessage.TextLimit,
     };
 
@@ -28,6 +30,7 @@ internal sealed record ChatRoute(ChatKind Kind, int? MegaphoneItemId = null)
     {
         ChatKind.Whisper => WhisperMessage.NameLimit,
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => MegaphoneMessage.NameLimit,
+        ChatKind.Conversation => OneToOneChat.ConversationMessage.NameLimit,
         _ => null,
     };
 }
@@ -41,7 +44,8 @@ internal static class ChatWireModes
     /// </summary>
     /// <remarks>
     /// The megaphone items are written into the client's send function (item table at VA
-    /// <c>01A6426C</c>): mode 11 uses 36, 12 uses 898, 57 uses 10151255 and 13 uses 37.
+    /// <c>01A6426C</c>): mode 11 uses 36, 12 uses 898, 57 uses 10151255 and 13 uses 37. Mode 43 is a
+    /// line in a 1:1 conversation window (sender VA <c>024EF150</c>), whose <c>aux</c> is the conversation id.
     /// </remarks>
     public static ChatRoute? Route(byte mode) => mode switch
     {
@@ -53,6 +57,7 @@ internal static class ChatWireModes
         11 => new(ChatKind.ServerMegaphone, 36),
         12 => new(ChatKind.ServerMegaphone, 898),
         57 => new(ChatKind.ServerMegaphone, 10151255),
+        43 => new(ChatKind.Conversation),
         _ => null,
     };
 

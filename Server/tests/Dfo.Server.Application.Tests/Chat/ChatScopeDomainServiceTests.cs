@@ -105,6 +105,26 @@ public sealed class ChatScopeDomainServiceTests
         Assert.Empty(w.Chat.MembersOf(new ChatScope.GuildOf(a.CharacterId)));
     }
 
+    [Fact]
+    public void Conversation_reaches_its_members_only_from_the_sessions_they_opened_it_on()
+    {
+        var w = new World();
+        var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
+        var b = w.Enter(2, DuelChannel, area: new(3, 2, 1));
+        var c = w.Enter(3, FirstChannel, area: new(1, 2, 1));
+        var open = TestGameplay.Run(() => w.Conversations.Open(new(a, [0x41]), new(b, [0x42])))!;
+        var other = TestGameplay.Run(() => w.Conversations.Open(new(c, [0x43]), new(a, [0x41])))!;
+
+        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.Conversation(open.Id))));
+        w.Release(b);
+        Assert.Equal([a.CharacterId], w.Chat.MembersOf(new ChatScope.Conversation(open.Id)));
+        var later = w.Enter(2, FirstChannel, area: new(1, 2, 1));
+        Assert.NotEqual(later, b);
+        Assert.Equal([a.CharacterId], w.Chat.MembersOf(new ChatScope.Conversation(open.Id)));
+        Assert.Equal([a.CharacterId, c.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.Conversation(other.Id))));
+        Assert.Empty(w.Chat.MembersOf(new ChatScope.Conversation(new(999))));
+    }
+
     private static CharacterId[] Sorted(IReadOnlyList<CharacterId> members) =>
         [.. members.OrderBy(member => member.Value)];
 
@@ -119,10 +139,12 @@ public sealed class ChatScopeDomainServiceTests
         {
             sessions = TestSessions.Directory(out state);
             parties = TestParties.Create(areas);
-            Chat = new ChatScopeDomainService(sessions, sessions, areas, parties);
+            Chat = new ChatScopeDomainService(sessions, sessions, areas, parties, Conversations);
         }
 
         public IChatScopeDomainService Chat { get; }
+
+        public ChatConversationDomainService Conversations { get; } = new();
 
         public SelectedSessionIdentity Select(int character, int listenerPort) =>
             sessions.Selected(state, new(character), new(character), $"chat-scope-{character}", listenerPort);

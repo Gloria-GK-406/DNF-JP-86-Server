@@ -1,11 +1,12 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Chat;
 
 namespace Dfo.Server.Abstractions.Chat;
 
 /// <summary>Who a chat line is meant for, named by what the group is rather than by who is in it.</summary>
 /// <remarks>
 /// A scope holds no member list. The members of every scope are kept by that group's own owner --
-/// online sessions, town areas, parties -- and are asked of it at the moment a line is posted, so
+/// online sessions, town areas, parties, conversations -- and are asked of it at the moment a line is posted, so
 /// chat can never disagree with them.
 /// <para>
 /// The private constructor keeps the ordinary shapes inside this file, though it does not seal the
@@ -37,4 +38,7 @@ public abstract record ChatScope
 
     /// <summary>One character.</summary>
     public sealed record Character(CharacterId Target) : ChatScope;
+
+    /// <summary>The members of a 1:1 conversation that is going on.</summary>
+    public sealed record Conversation(ChatConversationId Id) : ChatScope;
 }

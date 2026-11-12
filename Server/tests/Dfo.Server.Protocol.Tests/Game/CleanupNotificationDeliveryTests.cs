@@ -174,6 +174,32 @@ public sealed class CleanupNotificationDeliveryTests
         Assert.Contains("99", error.Message, StringComparison.Ordinal);
     }
 
+    /// <summary>Each conversation the departure ended is announced last, to its remaining member only.</summary>
+    [Fact]
+    public async Task Ended_conversations_are_announced_to_the_member_left_behind_after_everything_else()
+    {
+        var peer = Peer(9);
+        var remaining = Peer(10);
+        await using var outbound = Outbound(peer, remaining);
+        var notifications = outbound.Projections;
+        var owner = SelectedSessionIdentity.Create(new AccountId(42), new CharacterId(42), Owner, 1, 10011);
+        var departure = new Dfo.Server.Data.Chat.ChatConversationDeparture(new(5),
+            new(owner, "a"u8.ToArray()), new(remaining, "b"u8.ToArray()));
+
+        await outbound.RunAsync(async () => await Delivery(outbound).DeliverAsync(
+            new SelectedSessionCleanupNotificationPlan(Owner, [StoreClosed], [peer], [Departed])
+            {
+                ConversationDepartures = [departure],
+            },
+            CancellationToken.None));
+
+        var published = notifications.Published.ToArray();
+        Assert.Equal(2, published.Length);
+        Assert.IsType<SessionCleanupAnnounced>(published[0].Notification);
+        Assert.Equal([remaining], Assert.IsType<NotificationAudience.TheseSessions>(published[1].Audience).Sessions);
+        Assert.Same(departure, Assert.IsType<Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft>(published[1].Notification).Departure);
+    }
+
     /// <summary>A half with nothing in it is not delivered at all.</summary>
     /// <remarks>
     /// Most cleanups have nothing to announce -- a stale session that lost its registration, an

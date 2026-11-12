@@ -9,6 +9,7 @@ internal static class ChatRegistration
 {
     internal static IServiceCollection AddChat(this IServiceCollection services)
     {
+        services.TryAddSingleton<IChatConversationDomainService, ChatConversationDomainService>();
         services.TryAddSingleton<IChatScopeDomainService, ChatScopeDomainService>();
         return services;
     }

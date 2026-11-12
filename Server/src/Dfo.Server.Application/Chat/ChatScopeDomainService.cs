@@ -17,7 +17,8 @@ internal sealed class ChatScopeDomainService(
     ISelectedSessionSnapshotQuery online,
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService townAreas,
-    IPartyService parties) : IChatScopeDomainService
+    IPartyService parties,
+    IChatConversationDomainService conversations) : IChatScopeDomainService
 {
     public IReadOnlyList<CharacterId> MembersOf(ChatScope scope)
     {
@@ -30,6 +31,7 @@ internal sealed class ChatScopeDomainService(
             ChatScope.GuildOf => [],
             ChatScope.Server => InWorld(_ => true),
             ChatScope.Character character => sessions.TryGetInWorld(character.Target, out _) ? [character.Target] : [],
+            ChatScope.Conversation conversation => ConversationOf(conversation.Id),
             _ => throw new NotSupportedException($"Chat scope '{scope.GetType().Name}' has no member rule."),
         };
     }
@@ -58,6 +60,13 @@ internal sealed class ChatScopeDomainService(
         sessions.TryGetInWorld(anchor, out var session)
             ? InWorld(other => other.ListenerPort == session.ListenerPort)
             : [];
+
+    // A member counts only from the session it opened the window on; a later one has no such window.
+    private CharacterId[] ConversationOf(Dfo.Server.Data.Chat.ChatConversationId id) =>
+        conversations.Find(id) is not { } conversation ? []
+            : [.. new[] { conversation.First, conversation.Second }
+                .Where(member => sessions.TryGetInWorld(member.CharacterId, out var session) && session == member.Session)
+                .Select(member => member.CharacterId)];
 
     private CharacterId[] InWorld(Func<Dfo.Server.Data.World.SelectedSessionIdentity, bool> belongs) =>
         [.. online.Snapshot().Where(session => belongs(session) && sessions.IsInWorld(session)).Select(session => session.CharacterId)];

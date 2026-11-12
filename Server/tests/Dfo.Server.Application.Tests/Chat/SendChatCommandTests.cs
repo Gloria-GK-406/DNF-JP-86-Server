@@ -21,7 +21,7 @@ namespace Dfo.Server.Application.Tests.Chat;
 /// Chat lines through the real decoder, dispatcher, command, projection and outbox, over a real
 /// SQLite character store. Character 1 ("shop1") is the speaker in every case.
 /// </summary>
-public sealed class SendChatCommandTests
+public sealed partial class SendChatCommandTests
 {
     private const int FirstChannel = 10011;
     private const int DuelChannel = 10100;
@@ -244,7 +244,7 @@ public sealed class SendChatCommandTests
 
     public static TheoryData<byte> RefusedModes()
     {
-        var modes = new TheoryData<byte> { 0, 4, 0x0A, 43, 48, 14, 15, 34, 50, 56, 36, 37, 38, 5, 8, 200, 255 };
+        var modes = new TheoryData<byte> { 0, 4, 0x0A, 33, 48, 14, 15, 34, 50, 56, 36, 37, 38, 5, 8, 200, 255 };
         for (byte mode = 0x10; mode <= 0x1E; mode++) modes.Add(mode);
         for (byte mode = 52; mode <= 55; mode++) modes.Add(mode);
         return modes;
