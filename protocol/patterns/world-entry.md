@@ -665,6 +665,7 @@ C->S 0x0010 SELECT_DUNGEON / 0x008F CHANGE_TUTORIAL_FLAG / 0x0252 SECURITY_STATU
 
 `0x001F ACCEPT_QUEST` 是这一趟唯一的新真缺口（参照是回的），未实现的原因是任务表只有读路径；
 `0x007B`/`0x0078`/`0x02BE` 归入有意不回，`0x011B` 归入但无参照。
+（2026-11-12 修正：`0x0078` 已随 #60 黑名单实现应答，见 [0x0078](../game/client-to-server/0x0078.md)；其余两条不变。）
 
 ### 选图与进入副本（同日第三次实机）
 

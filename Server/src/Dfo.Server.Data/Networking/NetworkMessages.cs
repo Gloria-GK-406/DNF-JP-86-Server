@@ -139,6 +139,11 @@ public enum ClientMessageType
     GameLeaveConversation = 0x0001_01A5,
     GameConversationUserState = 0x0001_01A6,
 
+    // Blacklisting a character by name, lifting it, and asking for the whole list. See Game/Blacklist.
+    GameRegisterBlacklist = 0x0001_0076,
+    GameDeleteBlacklist = 0x0001_0077,
+    GameRequestBlacklist = 0x0001_0078,
+
     // The client's own periodic liveness probe on the Game endpoint. It arrives with no body
     // and keeps coming for the life of the connection whether or not it is answered.
     // See Game/ConnectionCheck.
@@ -216,7 +221,6 @@ public enum ClientMessageType
     GameLogDomainConnect = 0x0001_04F1,
     GameLogConnectProcess = 0x0001_04D7,
     GameCharacterStatistic = 0x0001_007B,
-    GameRequestBlacklist = 0x0001_0078,
     GameFarmEventAction = 0x0001_02BE,
     GamePi = 0x0001_011B,
     GameRequestIgaVersion = 0x0001_039D,
@@ -389,6 +393,9 @@ public enum ServerMessageType
     GameConversationMessage = 0x0000_016F,
     GameLeavePartyRefusal = 0x0001_000D,
     GameChangePartyLeaderRefusal = 0x0001_0079,
+    GameRegisterBlacklist = 0x0001_0076,
+    GameDeleteBlacklist = 0x0001_0077,
+    GameRequestBlacklist = 0x0001_0078,
     GameCheckCharacterName = 0x0001_02B5,
     GameCreateCharacter = 0x0001_0005,
     GameDeleteCharacter = 0x0001_0006,

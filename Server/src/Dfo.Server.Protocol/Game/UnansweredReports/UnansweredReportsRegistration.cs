@@ -28,7 +28,6 @@ internal static class UnansweredReportsRegistration
     internal static IServiceCollection AddUnansweredReportsSlice(this IServiceCollection services)
     {
         services.AddGameCmdMessageDecoder<CharacterStatisticDecoder>(ClientMessageType.GameCharacterStatistic);
-        services.AddGameCmdMessageDecoder<RequestBlacklistDecoder>(ClientMessageType.GameRequestBlacklist);
         services.AddGameCmdMessageDecoder<FarmEventActionDecoder>(ClientMessageType.GameFarmEventAction);
         services.AddGameCmdMessageDecoder<PiDecoder>(ClientMessageType.GamePi);
         services.AddGameCmdMessageDecoder<RequestIgaVersionDecoder>(ClientMessageType.GameRequestIgaVersion);
@@ -49,7 +48,6 @@ internal static class UnansweredReportsRegistration
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogConnectProcess);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameCharacterStatistic);
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestBlacklist);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameFarmEventAction);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GamePi);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameRequestIgaVersion);

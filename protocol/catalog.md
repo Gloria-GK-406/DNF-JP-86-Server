@@ -1,5 +1,23 @@
 # 协议清单
 
+## 2026-11-12 黑名单（#60，CurrentImplementation，待实机）
+
+CurrentImplementation：`Game/Blacklist/` 切片。CMD 0x0076 按名拉黑，成功回 `[1][目标当前名 dstr 1–255B]`，重复 74、
+不存在或已删除 76、已满（64）78，拉黑自己／畸形请求／不在世界中回 0；CMD 0x0077 按名解除，成功回 `[1][名字 dstr 1–30B]`，
+其余一律 `[0][75]`；CMD 0x0078 回 `[1][count:u8]` 加每条 `[name dstr 1–30B][年-1900][月 0 起][日]`，日期按服务器本地时区
+换算加入时间，名字超 30 字节的条目跳过并记 Warning，不在世界中回空表。0x0078 不再是 UnansweredReports。列表应答
+`BlacklistListResponse` 与构建 `BlacklistListBuilder` 在 Game 层 `BlacklistFrames.cs`，供好友全量之后补发复用。
+布局与客户端行为为 ClientStatic（见各页「A21 客户端读取」）；无 WireCaptured、无 ClientVerified。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x0076` | `RegisterBlacklistDecoder` / `GameRegisterBlacklistCommandHandler` | 自动测试；待实机 | [0x0076](game/client-to-server/0x0076.md) |
+| `0x01` CMD | `0x0076` | `RegisterBlacklistResponse` | 最大 body 260；自动编码验证 | [0x0076](game/client-to-server/0x0076.md) |
+| `0x01` | `0x0077` | `DeleteBlacklistDecoder` / `GameDeleteBlacklistCommandHandler` | 自动测试；待实机 | [0x0077](game/client-to-server/0x0077.md) |
+| `0x01` CMD | `0x0077` | `DeleteBlacklistResponse` | 最大 body 35；自动编码验证 | [0x0077](game/client-to-server/0x0077.md) |
+| `0x01` | `0x0078` | `BlacklistListDecoder`（不读 body） / `GameBlacklistListCommandHandler` | 自动测试；待实机 | [0x0078](game/client-to-server/0x0078.md) |
+| `0x01` CMD | `0x0078` | `BlacklistListResponse` | 64 条时最大 body 2370；自动编码验证 | [0x0078](game/client-to-server/0x0078.md) |
+
 ## 2026-11-12 聊天单入口路由第一批（#61，CurrentImplementation，待实机）
 
 CurrentImplementation：CMD 0x0011 一个入口按 mode 分流——区域 3/45/46、队伍 2/9 回推 NOTI 0x000C（含发言者，
@@ -633,6 +651,9 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x0047` | `SELECT_CARD` | Mutation / 有响应（认领不到牌位时不答） | 实现服务端功能 | [0x0047.md](game/client-to-server/0x0047.md) |
 | `0x01` | `0x0048` | `EPLP_COMMAND` | Mutation / 退出、选图与建局提交互斥；普通再次挑战保留普通迷宫分区 | 单人开始下一个任务已确认；普通再次挑战修复版用户测试完成并授权PR，组队等未覆盖组合保留 | [0x0048.md](game/client-to-server/0x0048.md) |
 | `0x01` | `0x0075` | `BOSS_DIE_CHECK` | Report / 无 CMD 应答 | WireCaptured（A21 单次 39B 实帧；当前只核对，不以它触发通关） | [0x0075.md](game/client-to-server/0x0075.md) |
+| `0x01` | `0x0076` | `REGISITER_TO_BLACKLIST` | Mutation / 有响应 | 实现服务端功能（黑名单，#60，待实机） | [0x0076.md](game/client-to-server/0x0076.md) |
+| `0x01` | `0x0077` | `DELETE_TO_BLACKLIST` | Mutation / 有响应 | 实现服务端功能（黑名单，#60，待实机） | [0x0077.md](game/client-to-server/0x0077.md) |
+| `0x01` | `0x0078` | `REQUEST_BLACKLIST` | Query / 有响应 | 实现服务端功能（黑名单，#60，待实机） | [0x0078.md](game/client-to-server/0x0078.md) |
 | `0x01` | `0x0079` | `CHANGE_HOST` | Mutation / 按稳定槽位委任队长；成功无 CMD 回包 | ClientVerified（A21 城镇两人队 slot 1 接任且槽位不重排） | [0x0079.md](game/client-to-server/0x0079.md) |
 | `0x01` | `0x0084` | `BACK_2_VILLAGE` | Mutation / 关闭选图界面并恢复城镇投影 | 实现服务端功能（A21 空请求实帧；实现后的按钮行为待复验） | [0x0084.md](game/client-to-server/0x0084.md) |
 | `0x01` | `0x008F` | `CHANGE_TUTORIAL_FLAG` | Report / 无响应 | 双向验证结束 | [0x008F.md](game/client-to-server/0x008F.md) |
@@ -1023,7 +1044,9 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0065` | `CreatureResponseReportDecoder` | 仅证明 decoder 已注册 | [0x0065](game/client-to-server/0x0065.md) |
 | `0x01` | `0x0066` | `HatchCreatureMessageDecoder` | 仅证明 decoder 已注册 | [0x0066](game/client-to-server/0x0066.md) |
 | `0x01` | `0x0075` | `BossDieCheckDecoder` | 仅证明 decoder 已注册 | [0x0075](game/client-to-server/0x0075.md) |
-| `0x01` | `0x0078` | `RequestBlacklistDecoder` | 仅证明 decoder 已注册 | [0x0078](game/client-to-server/0x0078.md) |
+| `0x01` | `0x0076` | `RegisterBlacklistDecoder` | 仅证明 decoder 已注册 | [0x0076](game/client-to-server/0x0076.md) |
+| `0x01` | `0x0077` | `DeleteBlacklistDecoder` | 仅证明 decoder 已注册 | [0x0077](game/client-to-server/0x0077.md) |
+| `0x01` | `0x0078` | `BlacklistListDecoder` | 仅证明 decoder 已注册 | [0x0078](game/client-to-server/0x0078.md) |
 | `0x01` | `0x0079` | `ChangePartyLeaderDecoder` | 仅证明 decoder 已注册 | [0x0079](game/client-to-server/0x0079.md) |
 | `0x01` | `0x007A` | `CreatureScriptMessageReportDecoder` | 仅证明 decoder 已注册 | [0x007A](game/client-to-server/0x007A.md) |
 | `0x01` | `0x007B` | `CharacterStatisticDecoder` | 仅证明 decoder 已注册 | [0x007B](game/client-to-server/0x007B.md) |
@@ -1205,6 +1228,9 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0063` | `AvatarCompoundResponse` | 仅证明 encoder 可产生该 identity | [0x0063](game/client-to-server/0x0063.md) |
 | `0x01` CMD | `0x0064` | `RenameCreatureResponse` | 仅证明 encoder 可产生该 identity | [0x0064](game/client-to-server/0x0064.md) |
 | `0x01` CMD | `0x0066` | `HatchCreatureResponse` | 仅证明 encoder 可产生该 identity | [0x0066](game/client-to-server/0x0066.md) |
+| `0x01` CMD | `0x0076` | `RegisterBlacklistResponse` | 仅证明 encoder 可产生该 identity | [0x0076](game/client-to-server/0x0076.md) |
+| `0x01` CMD | `0x0077` | `DeleteBlacklistResponse` | 仅证明 encoder 可产生该 identity | [0x0077](game/client-to-server/0x0077.md) |
+| `0x01` CMD | `0x0078` | `BlacklistListResponse` | 仅证明 encoder 可产生该 identity | [0x0078](game/client-to-server/0x0078.md) |
 | `0x01` CMD | `0x0084` | `BackToVillageResponse` | 仅证明 encoder 可产生该 identity | [0x0084](game/client-to-server/0x0084.md) |
 | `0x01` CMD | `0x0086` | `MailboxActionResponse` | 仅证明 encoder 可产生该 identity | [0x0086](game/client-to-server/0x0086.md) |
 | `0x01` CMD | `0x008F` | `TutorialFlagAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x008F](game/client-to-server/0x008F.md) |
