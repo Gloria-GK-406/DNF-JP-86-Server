@@ -79,8 +79,8 @@ dstr text            # < 1024 字节
 ### 本仓实现（CurrentImplementation）
 
 `ConversationMessage` / `ConversationMessageEncoder`，由 [CMD 0x0011](../client-to-server/0x0011.md#会话窗口内发言)
-mode 43 触发。代码：[`OneToOneChat/`](../../../Server/src/Dfo.Server.Protocol/Game/OneToOneChat/)、
-[`SendChat/`](../../../Server/src/Dfo.Server.Protocol/Game/SendChat/)。
+mode 43 触发。代码：[`Game/ChatConversationFrames.cs`](../../../Server/src/Dfo.Server.Protocol/Game/ChatConversationFrames.cs)（帧与编码器），
+发送在 [`SendChat/`](../../../Server/src/Dfo.Server.Protocol/Game/SendChat/)。
 
 | 字段 | 取值 |
 |---|---|

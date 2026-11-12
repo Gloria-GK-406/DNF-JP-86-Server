@@ -74,7 +74,7 @@ dstr name            # 离开者；< 128 字节
 ### 本仓实现（CurrentImplementation）
 
 `ConversationLeftMessage` / `ConversationLeftEncoder`；`ChatConversationLeftHandler` 只给留守方组帧。
-代码：[`OneToOneChat/`](../../../Server/src/Dfo.Server.Protocol/Game/OneToOneChat/)。
+代码：[`Game/ChatConversationFrames.cs`](../../../Server/src/Dfo.Server.Protocol/Game/ChatConversationFrames.cs)（多个切片共用：关窗由 [`OneToOneChat/`](../../../Server/src/Dfo.Server.Protocol/Game/OneToOneChat/) 发出，断线、回选人、选角顶替经 `ConversationDepartureNotices` 发出）。
 
 | 字段 | 取值 |
 |---|---|
