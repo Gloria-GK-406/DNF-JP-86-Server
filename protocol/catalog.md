@@ -1100,9 +1100,9 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0104` | `SwitchSkillBuildDecoder` | 仅证明 decoder 已注册 | [0x0104](game/client-to-server/0x0104.md) |
 | `0x01` | `0x0110` | `EnchantByBeadDecoder` | 仅证明 decoder 已注册 | [0x0110](game/client-to-server/0x0110.md) |
 | `0x01` | `0x0117` | `LagStatisticsDecoder` | 仅证明 decoder 已注册 | [0x0117](game/client-to-server/0x0117.md) |
+| `0x01` | `0x011B` | `PiDecoder` | 仅证明 decoder 已注册 | [0x011B](game/client-to-server/0x011B.md) |
 | `0x01` | `0x0122` | `AddFriendDecoder` | 仅证明 decoder 已注册 | [0x0122](game/client-to-server/0x0122.md) |
 | `0x01` | `0x0123` | `DeleteFriendDecoder` | 仅证明 decoder 已注册 | [0x0123](game/client-to-server/0x0123.md) |
-| `0x01` | `0x011B` | `PiDecoder` | 仅证明 decoder 已注册 | [0x011B](game/client-to-server/0x011B.md) |
 | `0x01` | `0x0131` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0131](game/client-to-server/0x0131.md) |
 | `0x01` | `0x0132` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0132](game/client-to-server/0x0132.md) |
 | `0x01` | `0x0133` | `WarehouseDecoder` | 仅证明 decoder 已注册 | [0x0133](game/client-to-server/0x0133.md) |
