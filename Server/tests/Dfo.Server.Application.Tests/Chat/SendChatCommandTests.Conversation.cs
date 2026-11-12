@@ -1,6 +1,7 @@
 using System.Text;
 using Dfo.Server.Data.Chat;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.OneToOneChat;
 using Dfo.Server.Protocol.Game.SendChat;
 

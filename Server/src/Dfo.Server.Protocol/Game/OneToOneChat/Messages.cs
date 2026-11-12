@@ -35,31 +35,7 @@ public sealed record ConversationUserStateReport(GameMessageMetadata Metadata) :
 /// </remarks>
 public sealed record ConversationOpenedMessage(ChatConversationId Conversation, byte[] PeerName, byte[] OwnName) : IGameNotiMessage
 {
-    /// <summary>The client reads a name only when it is shorter than 128 bytes.</summary>
-    public const int NameLimit = 127;
+    public const int NameLimit = ConversationMessage.NameLimit;
 
     public ServerMessageType MessageType => ServerMessageType.GameConversationOpened;
-}
-
-/// <summary>NOTI <c>0x016E</c>: the named member left (A21 VA <c>024EA5E0</c>, <c>u32 id, dstr name</c>).</summary>
-/// <remarks>The recipient's window stays open and shows that the member has left.</remarks>
-public sealed record ConversationLeftMessage(ChatConversationId Conversation, byte[] LeaverName) : IGameNotiMessage
-{
-    public const int NameLimit = ConversationOpenedMessage.NameLimit;
-
-    public ServerMessageType MessageType => ServerMessageType.GameConversationLeft;
-}
-
-/// <summary>NOTI <c>0x016F</c>: a line said in a conversation window, as the other member receives it.</summary>
-/// <remarks>
-/// A21 handler VA <c>024EA700</c>: <c>u32 id, dstr sender, dstr text</c>, the sender shorter than 128
-/// bytes and the text shorter than 1024. It finds the window by id and drops the line when there is
-/// none, or when the sender is the recipient itself: the speaker's own window shows the line already.
-/// </remarks>
-public sealed record ConversationMessage(ChatConversationId Conversation, byte[] SenderName, byte[] Text) : IGameNotiMessage
-{
-    public const int NameLimit = ConversationOpenedMessage.NameLimit;
-    public const int TextLimit = 1023;
-
-    public ServerMessageType MessageType => ServerMessageType.GameConversationMessage;
 }

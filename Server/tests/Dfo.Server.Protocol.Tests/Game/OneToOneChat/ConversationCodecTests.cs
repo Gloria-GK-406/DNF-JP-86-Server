@@ -4,6 +4,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Chat;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.OneToOneChat;
 
 namespace Dfo.Server.Protocol.Tests.Game.OneToOneChat;

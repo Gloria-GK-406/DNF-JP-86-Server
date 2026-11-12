@@ -14,7 +14,6 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.OneToOneChat;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.SendChat;

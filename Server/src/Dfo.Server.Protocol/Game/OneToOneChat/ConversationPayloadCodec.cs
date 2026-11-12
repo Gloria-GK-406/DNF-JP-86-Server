@@ -1,14 +1,13 @@
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
-using Dfo.Server.Protocol.Game.SendChat;
 
 namespace Dfo.Server.Protocol.Game.OneToOneChat;
 
 internal sealed class OpenConversationDecoder : IGameMessageDecoder
 {
     /// <summary>The longest target name accepted, the same bound as a whisper's; character names are far shorter.</summary>
-    public const int DecodedNameLimit = SendChatDecoder.DecodedNameLimit;
+    public const int DecodedNameLimit = ChatDString.DecodedNameLimit;
 
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
@@ -59,48 +58,6 @@ internal sealed class ConversationOpenedEncoder : GameNotiMessageEncoder<Convers
         writer.Write((byte)2);
         ChatDString.Write(writer, message.PeerName);
         ChatDString.Write(writer, message.OwnName);
-        writer.Flush();
-        return stream.ToArray();
-    }
-}
-
-internal sealed class ConversationLeftEncoder : GameNotiMessageEncoder<ConversationLeftMessage>
-{
-    /// <summary>The longest body this frame can have: <c>4 + 4 + 127</c>.</summary>
-    public const int MaximumBodyLength = sizeof(uint) + sizeof(int) + ConversationLeftMessage.NameLimit;
-
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ConversationLeftMessage message) =>
-        OnePayload(message, EncodeBody(message));
-
-    internal static byte[] EncodeBody(ConversationLeftMessage message)
-    {
-        ChatDString.Require(message.LeaverName, 1, ConversationLeftMessage.NameLimit, "conversation leaver name");
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream);
-        writer.Write(message.Conversation.Value);
-        ChatDString.Write(writer, message.LeaverName);
-        writer.Flush();
-        return stream.ToArray();
-    }
-}
-
-internal sealed class ConversationMessageEncoder : GameNotiMessageEncoder<ConversationMessage>
-{
-    /// <summary>The longest body this frame can have: <c>4 + 4 + 127 + 4 + 1023</c>.</summary>
-    public const int MaximumBodyLength = sizeof(uint) + sizeof(int) + ConversationMessage.NameLimit + sizeof(int) + ConversationMessage.TextLimit;
-
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ConversationMessage message) =>
-        OnePayload(message, EncodeBody(message));
-
-    internal static byte[] EncodeBody(ConversationMessage message)
-    {
-        ChatDString.Require(message.SenderName, 1, ConversationMessage.NameLimit, "conversation sender name");
-        ChatDString.Require(message.Text, 1, ConversationMessage.TextLimit, "conversation text");
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream);
-        writer.Write(message.Conversation.Value);
-        ChatDString.Write(writer, message.SenderName);
-        ChatDString.Write(writer, message.Text);
         writer.Flush();
         return stream.ToArray();
     }

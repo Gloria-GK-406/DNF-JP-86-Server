@@ -641,9 +641,9 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None);
 
             var (audience, notification) = Assert.Single(fixture.Notifications.Published,
-                entry => entry.Notification is Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft);
+                entry => entry.Notification is Dfo.Server.Protocol.Game.ChatConversationLeft);
             Assert.Equal([remaining], Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions);
-            Assert.Same(departure, ((Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft)notification).Departure);
+            Assert.Same(departure, ((Dfo.Server.Protocol.Game.ChatConversationLeft)notification).Departure);
         });
     }
 

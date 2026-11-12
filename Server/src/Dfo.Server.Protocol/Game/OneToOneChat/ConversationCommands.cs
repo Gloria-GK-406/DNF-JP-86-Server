@@ -9,7 +9,6 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Chat;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.SendChat;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.OneToOneChat;

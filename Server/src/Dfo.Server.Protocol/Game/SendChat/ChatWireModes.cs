@@ -21,7 +21,7 @@ internal sealed record ChatRoute(ChatKind Kind, int? MegaphoneItemId = null)
     {
         ChatKind.Whisper => WhisperMessage.TextLimit,
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => MegaphoneMessage.TextLimit,
-        ChatKind.Conversation => OneToOneChat.ConversationMessage.TextLimit,
+        ChatKind.Conversation => ConversationMessage.TextLimit,
         _ => ChatLineMessage.TextLimit,
     };
 
@@ -30,7 +30,7 @@ internal sealed record ChatRoute(ChatKind Kind, int? MegaphoneItemId = null)
     {
         ChatKind.Whisper => WhisperMessage.NameLimit,
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => MegaphoneMessage.NameLimit,
-        ChatKind.Conversation => OneToOneChat.ConversationMessage.NameLimit,
+        ChatKind.Conversation => ConversationMessage.NameLimit,
         _ => null,
     };
 }

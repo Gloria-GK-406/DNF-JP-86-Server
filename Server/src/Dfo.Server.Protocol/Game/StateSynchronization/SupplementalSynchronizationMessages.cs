@@ -276,7 +276,7 @@ internal sealed class CleanupNotificationDelivery(
             plan.PartyRecipients,
             cancellationToken).ConfigureAwait(false);
 
-        foreach (var (audience, left) in Dfo.Server.Protocol.Game.OneToOneChat.ConversationDepartureNotices.For(plan))
+        foreach (var (audience, left) in Dfo.Server.Protocol.Game.ConversationDepartureNotices.For(plan))
             await notifications.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);
     }
 }

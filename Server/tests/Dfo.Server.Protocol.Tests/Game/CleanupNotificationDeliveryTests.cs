@@ -197,7 +197,7 @@ public sealed class CleanupNotificationDeliveryTests
         Assert.Equal(2, published.Length);
         Assert.IsType<SessionCleanupAnnounced>(published[0].Notification);
         Assert.Equal([remaining], Assert.IsType<NotificationAudience.TheseSessions>(published[1].Audience).Sessions);
-        Assert.Same(departure, Assert.IsType<Dfo.Server.Protocol.Game.OneToOneChat.ChatConversationLeft>(published[1].Notification).Departure);
+        Assert.Same(departure, Assert.IsType<Dfo.Server.Protocol.Game.ChatConversationLeft>(published[1].Notification).Departure);
     }
 
     /// <summary>A half with nothing in it is not delivered at all.</summary>

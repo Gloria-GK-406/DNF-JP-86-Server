@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Data.Chat;
 using Dfo.Server.Data.Networking;
 
-
 namespace Dfo.Server.Protocol.Game.OneToOneChat;
 
 /// <summary>A conversation was opened; each member is told of it with the other member named first.</summary>
@@ -24,21 +23,4 @@ public sealed class ChatConversationOpenedHandler : INotificationHandler<ChatCon
 
     private static ConversationOpenedMessage Opened(ChatConversation conversation, ChatConversationMember self) =>
         new(conversation.Id, conversation.Other(self).Name, self.Name);
-}
-
-/// <summary>A member left a conversation; the member left behind is told who.</summary>
-public sealed record ChatConversationLeft(ChatConversationDeparture Departure) : INotification<ChatConversationLeft>;
-
-/// <summary>Reads nothing: the leaver's name was taken when the conversation was opened.</summary>
-public sealed class ChatConversationLeftHandler : INotificationHandler<ChatConversationLeft>
-{
-    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
-        ChatConversationLeft notification, CancellationToken cancellationToken)
-    {
-        var departure = notification.Departure;
-        IReadOnlyList<IServerNetworkMessage> messages = recipient.CharacterId == departure.Remaining.CharacterId
-            ? [new ConversationLeftMessage(departure.Conversation, departure.Leaver.Name)]
-            : [];
-        return ValueTask.FromResult(messages);
-    }
 }

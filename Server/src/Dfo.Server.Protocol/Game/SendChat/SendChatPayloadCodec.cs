@@ -14,7 +14,7 @@ internal sealed class SendChatDecoder : IGameMessageDecoder
     public const int DecodedTextLimit = 1024;
 
     /// <summary>The largest target name accepted; character names are far shorter.</summary>
-    public const int DecodedNameLimit = 64;
+    public const int DecodedNameLimit = ChatDString.DecodedNameLimit;
 
     private const int FixedLength = 1 + 2 + 4;
 
@@ -145,26 +145,5 @@ internal sealed class MegaphoneEncoder : GameNotiMessageEncoder<MegaphoneMessage
         ChatDString.Write(writer, message.Text);
         writer.Flush();
         return stream.ToArray();
-    }
-}
-
-/// <summary>The <c>i32</c>-counted byte string every chat frame uses, written as the bytes arrived.</summary>
-internal static class ChatDString
-{
-    /// <summary>
-    /// The fan-out bound. A frame over the client's limit would be dropped by every recipient, and
-    /// an unbounded one could fill a third party's send queue, so it is refused before it is built.
-    /// </summary>
-    public static void Require(byte[] value, int minimum, int maximum, string field)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        if (value.Length < minimum || value.Length > maximum)
-            throw new InvalidDataException($"The {field} is {value.Length} bytes; the client takes {minimum} to {maximum}.");
-    }
-
-    public static void Write(BinaryWriter writer, byte[] value)
-    {
-        writer.Write(value.Length);
-        writer.Write(value);
     }
 }
