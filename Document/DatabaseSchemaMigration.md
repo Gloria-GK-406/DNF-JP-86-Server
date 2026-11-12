@@ -32,6 +32,7 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
 - 版本 1 → 2（`Migrator.AddDropDrawMultiplier`）：新增掉落点额外抽取倍率表 `drop_draw_multiplier`。
 - 版本 2 → 3（`ManagedEventActivationUpgrade.cs`）：新增活动已应用状态及全服疲劳免扣设置，原角色疲劳账本不变；缺省免扣关闭，启动时对账活动当前状态。
 - 版本 3 → 4（`ExtraEquipmentSlotBackfill.cs`）：只改数据、不改结构。为已完成任务 649 的角色打开辅助装备位（`ex_equip_slot_stat` bit0），为已完成任务 650 的角色打开魔法石位（bit1）；只做按位或，重复执行无变化。见 #308。
+- 版本 4 → 5（`CharacterRelationsUpgrade.cs`）：新增角色关系表 `character_relations`（好友、黑名单，按 `kind` 区分）及按目标反查的索引，既有数据不变。
 - 迁移工具不认识的表和列原样保留。
 
 ## 修改表结构时
