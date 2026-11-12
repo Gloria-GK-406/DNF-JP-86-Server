@@ -8,8 +8,10 @@ namespace Dfo.Server.Abstractions.Chat;
 /// online sessions, town areas, parties -- and are asked of it at the moment a line is posted, so
 /// chat can never disagree with them.
 /// <para>
-/// The private constructor keeps every shape inside this file; a scope that was not taught to
-/// <see cref="IChatScopeDomainService.MembersOf"/> fails there instead of reaching nobody.
+/// The private constructor keeps the ordinary shapes inside this file, though it does not seal the
+/// hierarchy: a record's generated copy constructor is protected, so a derived record elsewhere still
+/// compiles. What protects delivery is <see cref="IChatScopeDomainService.MembersOf"/>, which fails on
+/// a scope it was not taught instead of reaching nobody.
 /// </para>
 /// </remarks>
 public abstract record ChatScope
