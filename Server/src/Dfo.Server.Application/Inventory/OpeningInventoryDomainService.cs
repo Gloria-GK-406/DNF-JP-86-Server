@@ -43,6 +43,15 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         return item;
     }
 
+    public async ValueTask<int> EmptySlotCountAsync(SelectedSessionIdentity session, BusinessInventorySpace space, CancellationToken ct)
+    {
+        var bag = businessInventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
+        if (bag is null) return 0;
+        var size = Math.Min(LegacyInventoryStorageCoordinates.SlotCount(space), await bag.OpenSlotCountAsync(ct).ConfigureAwait(false));
+        var occupied = (await bag.GetAllAsync(ct).ConfigureAwait(false)).Count(x => x.SlotIndex >= 0 && x.SlotIndex < size);
+        return Math.Max(0, size - occupied);
+    }
+
     public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) =>
         premiums.For(session.AccountId).ReadAsync(ct);
 

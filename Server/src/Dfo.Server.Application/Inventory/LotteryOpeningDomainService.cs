@@ -71,6 +71,7 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
                 throw Reject("Pot is not eligible for double rewards.");
             quota = plans.DoublePot(await usage.DoublePotFactsAsync(session.AccountId, session.CharacterId, now, token).ConfigureAwait(false));
         }
+        await RequireRoomAsync(session, source.Count, token).ConfigureAwait(false);
         var reward = selector.Roll(source.ItemId);
         var goldReward = source.ItemId == 7615 && reward.ItemId == 0 && mode == 0 && reward.Count > 0;
         if (!goldReward && reward.Count != 1) throw Reject("Only one equipment result per pot is supported.");
@@ -99,5 +100,23 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
             throw Reject("Unexpected lottery receipt layout.");
         return new(receipt, slot, gold);
     }
+    // 70 CUser::lottery_item: with the quick bar full, the equipment, material and expert material
+    // tabs each need an empty slot, and the consumable tab too while more pots remain stacked.
+    // Equipment is the only physical result a pot supported here can give, so its tab is always
+    // checked: a gold pot must not be accepted or refused according to which of the two it draws.
+    private async ValueTask RequireRoomAsync(SelectedSessionIdentity session, int potCount, CancellationToken token)
+    {
+        var spaces = new List<BusinessInventorySpace> { BusinessInventorySpace.CarriedEquipment };
+        if (await inventory.EmptySlotCountAsync(session, BusinessInventorySpace.QuickSlot, token).ConfigureAwait(false) <= 0)
+        {
+            if (potCount > 1) spaces.Add(BusinessInventorySpace.Consumable);
+            spaces.Add(BusinessInventorySpace.Material);
+            spaces.Add(BusinessInventorySpace.ExpertMaterial);
+        }
+        foreach (var space in spaces)
+            if (await inventory.EmptySlotCountAsync(session, space, token).ConfigureAwait(false) < 1)
+                throw new OpeningRejectedException(OpeningRejection.NoRoom, $"Lottery needs an empty {space} slot before drawing.");
+    }
+
     private static OpeningRejectedException Reject(string message) => new(OpeningRejection.StateChanged, message);
 }

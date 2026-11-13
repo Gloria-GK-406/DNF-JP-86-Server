@@ -20,10 +20,11 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
         var useRule = await plans.SourceRuleAsync(source.ItemId, ct).ConfigureAwait(false);
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Package, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0) throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "This entry supplies no material.");
+        await PackageOpeningRoom.RequireAsync(inventory, session, definition, ct).ConfigureAwait(false);
         var rolled = rules.Roll(definition, input.SelectedItems, Random.Shared.Next());
         var grants = await rules.PrepareAsync(rolled, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
-            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now);
+            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, delivery: ItemDeliveryMode.InventoryThenMail);
         return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
     }
 }
@@ -42,6 +43,7 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.AvatarPackage, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0 || !definition.Pools.IsEmpty)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Avatar package has material or random declarations.");
+        await PackageOpeningRoom.RequireAsync(inventory, session, definition, ct).ConfigureAwait(false);
         var choices = input.Choices.ToDictionary(c => c.ItemId, c => c.Ability);
         var selected = definition.Kind == OpeningPackageKind.Selection
             ? rules.Roll(definition, input.Choices.Select(c => c.ItemId).ToArray(), Random.Shared.Next()) : definition.FixedRewards;
@@ -51,8 +53,22 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
         if (!avatarIds.SetEquals(choices.Keys))
             throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "Avatar choices must match all granted avatars.");
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
-            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now);
+            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, delivery: ItemDeliveryMode.InventoryThenMail);
         return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
+    }
+}
+
+// 70 Dispatcher_UseBoosterItem checks one empty creature slot, consumes the booster, then draws and
+// mails whatever does not fit; Dispatcher_CeraPackageOpen has fixed contents and no room check.
+// Neither can fail because of what was drawn.
+internal static class PackageOpeningRoom
+{
+    public static async ValueTask RequireAsync(IOpeningInventoryDomainService inventory, SelectedSessionIdentity session,
+        OpeningPackageDefinition definition, CancellationToken ct)
+    {
+        var booster = !definition.Pools.IsEmpty || definition.Kind == OpeningPackageKind.Selection;
+        if (booster && await inventory.EmptySlotCountAsync(session, BusinessInventorySpace.CreatureInventory, ct).ConfigureAwait(false) < 1)
+            throw new OpeningRejectedException(OpeningRejection.NoRoom, "Booster needs an empty creature slot before drawing.");
     }
 }
 
@@ -80,6 +96,7 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var before = definition.UsesSeriaLuck ? await accounts.FindSeriaLuckAsync(session.AccountId, ct).ConfigureAwait(false) : null;
         if (definition.UsesSeriaLuck && before is null) throw new OpeningRejectedException(OpeningRejection.NoSession, "Account luck is absent.");
         var luck = before ?? 0;
+        await RequireRoomAsync(session, definition, luck, input.Count, ct).ConfigureAwait(false);
         var primary = ImmutableArray.CreateBuilder<OpeningReward>();
         var bonus = ImmutableArray.CreateBuilder<OpeningReward>();
         for (var i = 0; i < input.Count; i++)
@@ -96,10 +113,36 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var rewards = primary.Concat(bonus.Select(r => r with { Count = checked(r.Count * 2) })).ToArray();
         var grants = await rules.PrepareAsync(rewards, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, consumed, grants,
-            await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, luckBefore: before, luckAfter: before is null ? null : luck);
+            await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, luckBefore: before, luckAfter: before is null ? null : luck,
+            delivery: ItemDeliveryMode.InventoryThenMail);
         var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
         ImmutableArray<OpeningRewardDisplay> Display(IEnumerable<OpeningReward> entries) => entries.GroupBy(r => r.ItemId).Select(g =>
             receipt.Rewards.First(r => r.ItemId == g.Key) with { Count = checked(g.Sum(r => r.Count)) }).ToImmutableArray();
         return new(OpeningRejection.None, receipt, Display(primary), Display(bonus), before, before is null ? null : luck);
     }
+
+    // 70 CUser::check_locked_multibox_error / check_multibox_error: before drawing, every carried
+    // tab a result may land in must hold N empty slots, N = 2, multiplied when the opening is a
+    // lucky one. 70 omits the avatar tab; it is included here so that whether an opening is
+    // accepted never depends on what is drawn. Results that still do not fit are mailed.
+    private async ValueTask RequireRoomAsync(SelectedSessionIdentity session, OpeningPackageDefinition definition,
+        int luck, int count, CancellationToken ct)
+    {
+        var lucky = false;
+        if (definition.UsesSeriaLuck)
+            for (var i = 0; i < count && !lucky; i++) { lucky = rules.LuckBonus(luck); luck = rules.AdvanceLuck(luck); }
+        var required = MagicBoxRoomPerOpening * (lucky ? MagicBoxLuckyCopies : 1);
+        foreach (var space in MagicBoxRoomSpaces)
+            if (await inventory.EmptySlotCountAsync(session, space, ct).ConfigureAwait(false) < required)
+                throw new OpeningRejectedException(OpeningRejection.NoRoom, $"Magic box needs {required} empty {space} slots before drawing.");
+    }
+
+    private const int MagicBoxRoomPerOpening = 2;
+    // A lucky opening awards the base and two extra copies.
+    private const int MagicBoxLuckyCopies = 3;
+    private static readonly ImmutableArray<BusinessInventorySpace> MagicBoxRoomSpaces =
+    [
+        BusinessInventorySpace.CarriedEquipment, BusinessInventorySpace.Consumable, BusinessInventorySpace.Material,
+        BusinessInventorySpace.ExpertMaterial, BusinessInventorySpace.CreatureInventory, BusinessInventorySpace.Avatar,
+    ];
 }
