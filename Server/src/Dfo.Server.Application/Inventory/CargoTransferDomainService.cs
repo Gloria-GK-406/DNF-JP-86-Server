@@ -14,7 +14,8 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class CargoTransferDomainService(ISelectedSessionDomainService sessions,
     IDungeonParticipationDomainService participation,
     IBusinessInventorySlotDomainService slots, ICargoItemRuleService rules,
-    IItemMovementDomainService movement, IItemPlacementRuleService placements, TimeProvider time) : ICargoTransferDomainService
+    IItemMovementDomainService movement, IItemPlacementRuleService placements, IItemArrivalRuleService arrivals,
+    TimeProvider time) : ICargoTransferDomainService
 {
     public async ValueTask<ItemMoveOutcome> MoveAsync(SelectedSessionIdentity session, BusinessSlot source,
         BusinessSlot destination, int count, CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
             // Shared materials keep one fixed slot per item, so they stay on the direct path.
             if (into.Slot.Space != BusinessInventorySpace.SharedMaterial && !first!.Snapshot.IsMirror
                 && second?.Snapshot.IsMirror != true)
-                return await PlaceAsync(from, into, first, second, count, cancellationToken).ConfigureAwait(false);
+                return await PlaceAsync(from, into, first, count, cancellationToken).ConfigureAwait(false);
             if (second is not null && Cargo(from.Slot.Space)
                 && !await rules.CanStoreAsync(from.Slot.Space, second, time.GetUtcNow(), cancellationToken).ConfigureAwait(false))
                 return new ItemMoveOutcome.Refused(ItemMoveRefusal.DisplacedCannotOccupySlot);
@@ -59,7 +60,7 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
     /// is empty, otherwise into the first empty slot. Nothing already in the destination moves.
     /// </summary>
     private async ValueTask<ItemMoveOutcome> PlaceAsync(BoundInventorySlot from, BoundInventorySlot nominated,
-        ItemReference moving, ItemReference? occupant, int count, CancellationToken cancellationToken)
+        ItemReference moving, int count, CancellationToken cancellationToken)
     {
         var placement = await placements.PlacementForAsync(moving.ItemId, nominated.Slot.Space, cancellationToken)
             .ConfigureAwait(false);
@@ -67,41 +68,32 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
         if (placement is null || nominated.Slot.Index < 0 || nominated.Slot.Index >= openSlots)
             return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
         var moveCount = count <= 0 || count > moving.Count ? moving.Count : count;
-        var limit = placement.StackLimit > 0 ? placement.StackLimit : int.MaxValue;
         var held = await nominated.Container.GetAllAsync(cancellationToken).ConfigureAwait(false);
-        var plan = new List<(int Slot, int Count)>();
-        var remaining = moveCount;
-        if (moving.IsPile && limit > 1)
+        var snapshot = moving.Snapshot;
+        var piles = moving.IsPile
+            ? held.Where(item => snapshot.CanStackWith(item.Snapshot))
+                .Select(item => new ItemPile(new BusinessSlot(nominated.Slot.Space, item.SlotIndex), item.Count)).ToArray()
+            : [];
+        var occupied = held.Select(item => new BusinessSlot(nominated.Slot.Space, item.SlotIndex)).ToHashSet();
+        var arrival = arrivals.ForTransfer(piles, moveCount, moving.IsPile ? placement.StackLimit : 1,
+            nominated.Slot, occupied, openSlots);
+        if (arrival is ItemTransferArrival.ExceedsStackLimit)
+            return new ItemMoveOutcome.Refused(ItemMoveRefusal.MergeExceedsStackLimit);
+        if (arrival is not ItemTransferArrival.Placed { Steps: var steps })
+            return new ItemMoveOutcome.Refused(ItemMoveRefusal.ContainerFull);
+        var plan = steps.Select(step => step switch
         {
-            var snapshot = moving.Snapshot;
-            foreach (var pile in held.Where(item => item.SlotIndex < openSlots && snapshot.CanStackWith(item.Snapshot))
-                         .OrderBy(item => item.SlotIndex))
-            {
-                var room = (long)limit - pile.Count;
-                if (room <= 0) continue;
-                var part = (int)Math.Min(room, remaining);
-                plan.Add((pile.SlotIndex, part));
-                remaining -= part;
-                if (remaining == 0) break;
-            }
-        }
-        if (remaining > 0)
-        {
-            if (moving.IsPile && remaining > limit)
-                return new ItemMoveOutcome.Refused(ItemMoveRefusal.MergeExceedsStackLimit);
-            var occupied = held.Select(item => item.SlotIndex).ToHashSet();
-            var empty = occupant is null ? nominated.Slot.Index
-                : Enumerable.Range(0, openSlots).FirstOrDefault(index => !occupied.Contains(index), -1);
-            if (empty < 0) return new ItemMoveOutcome.Refused(ItemMoveRefusal.ContainerFull);
-            if (await movement.MayOccupySlotAsync(new BusinessSlot(nominated.Slot.Space, empty), moving.ItemId, cancellationToken)
-                    .ConfigureAwait(false) != SlotAdmission.Allowed)
-                return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
-            plan.Add((empty, remaining));
-        }
+            ItemArrival.OntoExistingPile pile => (pile.Slot.Index, Count: pile.Added),
+            ItemArrival.IntoEmptySlot empty => (empty.Slot.Index, empty.Count),
+            _ => throw new InvalidOperationException($"Unexpected transfer step {step}."),
+        }).ToArray();
+        if (steps[^1] is ItemArrival.IntoEmptySlot { Slot: var free }
+            && await movement.MayOccupySlotAsync(free, moving.ItemId, cancellationToken).ConfigureAwait(false) != SlotAdmission.Allowed)
+            return new ItemMoveOutcome.Refused(ItemMoveRefusal.ItemCannotOccupySlot);
 
-        for (var step = 0; step < plan.Count; step++)
+        for (var step = 0; step < plan.Length; step++)
         {
-            var target = new BoundInventorySlot(new BusinessSlot(nominated.Slot.Space, plan[step].Slot), nominated.Container);
+            var target = new BoundInventorySlot(new BusinessSlot(nominated.Slot.Space, plan[step].Index), nominated.Container);
             var result = await movement.MoveBetweenContainersAsync(from, target, plan[step].Count, cancellationToken)
                 .ConfigureAwait(false);
             if (result is ItemMoveOutcome.Moved) continue;
@@ -109,7 +101,7 @@ internal sealed class CargoTransferDomainService(ISelectedSessionDomainService s
             if (step == 0) return result;
             throw new InvalidOperationException($"Cargo placement step {step} was refused after earlier steps ran: {result}.");
         }
-        var landed = plan[0].Slot;
+        var landed = plan[0].Index;
         return new ItemMoveOutcome.Moved(moveCount, moving.ItemId)
         {
             ActualDestinationSlot = landed == nominated.Slot.Index ? null : new BusinessSlot(nominated.Slot.Space, landed),
