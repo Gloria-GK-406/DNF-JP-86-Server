@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -18,4 +19,14 @@ public interface IAuraSkinSlotDomainService
     /// </summary>
     ValueTask<AuraSkinSlotResult> OpenAsync(SelectedSessionIdentity session, BusinessSlot source,
         DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct);
+}
+
+/// <summary>Which item opens the aura transmog avatar slot and what spending it does.</summary>
+public interface IAuraSkinSlotRuleService
+{
+    /// <summary>
+    /// The effects that spend <paramref name="item"/> from <paramref name="source"/> and open the slot.
+    /// Anything other than the ticket is refused with <see cref="OpeningRejectedException"/>.
+    /// </summary>
+    ImmutableArray<DomainEffect> PlanOpening(BusinessSlot source, ItemReference item);
 }

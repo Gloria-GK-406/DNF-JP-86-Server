@@ -129,6 +129,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IItemDiscardRuleService, ItemDiscardRuleService>();
         services.TryAddSingleton<ILevelUpTicketDomainService, LevelUpTicketDomainService>();
         services.TryAddSingleton<IAuraSkinSlotDomainService, AuraSkinSlotDomainService>();
+        services.TryAddSingleton<IAuraSkinSlotRuleService, AuraSkinSlotRuleService>();
         services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
         services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
         services.TryAddSingleton<IItemUsageRuleService, ItemUsageRuleService>();
