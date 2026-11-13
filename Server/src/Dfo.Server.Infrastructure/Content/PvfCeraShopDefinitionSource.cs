@@ -215,8 +215,9 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         {
             PurchaseRestriction = restriction,
             ServiceSlots = slots.ToImmutable(),
+            // The declaration as the content states it; which premiums are on sale is the shop rule's to decide.
             Premium = row.Category == Fields.PremiumField.Name && premiumTerms.TryGetValue(itemId, out var premium)
-                && Dfo.Server.Abstractions.Accounts.CeraShopPremiums.IsSold(premium.Type) ? new(premium.Type, premium.Duration) : null,
+                ? new(premium.Type, premium.Duration) : null,
             IsService = result.IsService || serviceProducts.Contains(id) || item?.Kind == CeraShopItemKind.Service,
             BuyOnlyCera = onlyCera.Contains(itemId), BuyOnlyCeraPoint = onlyPoint.Contains(itemId),
             Diagnostics = diagnostics.ToImmutable(),

@@ -186,7 +186,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
                 PremiumEntitlements = entitlements, PremiumUsageSlots = usage, NameTagChanged = !quote.NameTags.IsEmpty,
                 PurchaseRestrictions = quote.Restrictions.IsEmpty ? null
                     : (await restrictions.ReadAsync(session.AccountId, now, cancellationToken).ConfigureAwait(false)).Entries,
-                GrantedPremiums = entitlements?.Premiums.Where(p => CeraShopPremiums.IsSold(p.PremiumType)
+                GrantedPremiums = entitlements?.Premiums.Where(p => rules.SellsPremium(p.PremiumType)
                     && quote.Subscriptions.Any(s => (int)s.Service == p.PremiumType)).ToArray() ?? [] }, null);
     }
 }

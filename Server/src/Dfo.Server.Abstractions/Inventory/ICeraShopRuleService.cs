@@ -37,4 +37,7 @@ public interface ICeraShopRuleService
     CeraShopPlanningResult Plan(CeraShopQuote quote,
         IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held,
         int gold, AccountCeraBalances balances, int identitySeed);
+
+    /// <summary>Whether the shop sells this account premium service as a <c>[premium]</c> product.</summary>
+    bool SellsPremium(int premiumType);
 }
