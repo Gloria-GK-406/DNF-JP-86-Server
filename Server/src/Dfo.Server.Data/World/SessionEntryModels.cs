@@ -152,6 +152,17 @@ public sealed record PartyNotificationRecipientPlan(
     public static PartyNotificationRecipientPlan Empty { get; } = new([], []);
 }
 
+/// <summary>A character leaving the world, and who keeps it as a friend.</summary>
+/// <param name="Name">
+/// Taken while the session was still held: by the time the plan is delivered the session is gone,
+/// and the handler that composes the notice reads nothing it could take the name from.
+/// </param>
+/// <param name="Observers">The characters keeping it as a friend that were in the world when the cleanup ran; never the character itself.</param>
+public sealed record SelectedSessionFriendDeparture(
+    Dfo.Server.Data.Characters.CharacterId Character,
+    byte[] Name,
+    IReadOnlyList<Dfo.Server.Data.Characters.CharacterId> Observers);
+
 /// <remarks>
 /// Three projections that are not the same kind of thing. The owner's notices must reach one
 /// connection this code already has in hand -- it is the connection the departure is happening on.
@@ -176,6 +187,13 @@ public sealed record SelectedSessionCleanupNotificationPlan(
     /// when the cleanup ran.
     /// </summary>
     public IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> ConversationDepartures { get; init; } = [];
+
+    /// <summary>
+    /// The departing character's friends to tell that it went offline (NOTI 0x0112, channel 0), or
+    /// nothing when the session never entered the world, nobody who keeps it as a friend is in the
+    /// world, or reading them failed.
+    /// </summary>
+    public SelectedSessionFriendDeparture? FriendDeparture { get; init; }
 
     public SelectedSessionCleanupNotificationPlan(
         NetworkConnectionId ownerConnectionId,

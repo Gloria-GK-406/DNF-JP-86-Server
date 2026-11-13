@@ -64,6 +64,33 @@ public sealed class SchemaVersionTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
+    [Fact]
+    public void Version_four_upgrade_adds_character_relations_and_keeps_the_characters()
+    {
+        var path = Unversioned.NewPath("relations-v4");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE character_relations;
+                PRAGMA user_version=4;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp) VALUES
+                    (71,7,'first',3,1,61,123),(72,7,'second',4,0,62,456);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal(4L, migrated.From);
+            Assert.Equal(CharacterDatabaseSchema.Version, migrated.To);
+            Assert.Equal(2, Scalar(path, "SELECT COUNT(*) FROM characters"));
+            Assert.Equal(123, Scalar(path, "SELECT exp FROM characters WHERE character_id=71 AND name='first' AND level=61"));
+            Assert.Equal(1, Scalar(path, "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='ix_character_relations_target'"));
+            Execute(path, "INSERT INTO character_relations(owner_id,target_id,kind,created_at) VALUES(71,72,1,1800000000),(72,71,2,1800000001);");
+            Assert.Equal(2, Scalar(path, "SELECT COUNT(*) FROM character_relations"));
+            _ = Unversioned.Open(path);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
     /// <summary>
     /// An unversioned database with what the old server left in it comes out of the tool in
     /// exactly the shape the server builds a new one in.

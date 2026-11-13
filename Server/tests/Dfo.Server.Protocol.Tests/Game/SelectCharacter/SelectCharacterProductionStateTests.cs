@@ -49,7 +49,7 @@ public sealed class SelectCharacterProductionStateTests
             Assert.Equal(6501, Assert.Single(result.CharacterEntry.Features.Collections.Achievements).AchievementId);
             Assert.Equal(1, achievements.Reads);
             Assert.Equal(login ? 2 : 0, achievements.Writes);
-            Assert.DoesNotContain(Assert.Single(new SelectedCharacterStateMessageFactoryService().CreateValidated(result)
+            Assert.DoesNotContain(Assert.Single(new SelectedCharacterStateMessageFactoryService().CreateValidated(result, Dfo.Server.Protocol.Game.FriendListRefresh.None)
                 .OfType<Dfo.Server.Protocol.Game.StateSynchronization.AchievementStateMessage>()).Achievements, x => x.AchievementId == 4303);
         });
     }
@@ -281,7 +281,7 @@ public sealed class SelectCharacterProductionStateTests
         result = (await inventoryEntry.ApplyDailyRefillAsync(
             session, result, CancellationToken.None)).Result;
 
-        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result);
+        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result, Dfo.Server.Protocol.Game.FriendListRefresh.None);
 
         Assert.NotEmpty(messages);
         var worn = result.CharacterInventory.Containers.Single(container =>
@@ -307,14 +307,14 @@ public sealed class SelectCharacterProductionStateTests
             seed.Character.Identity.SlotIndex, channel, CancellationToken.None);
         var result = await handler.PrepareAsync(
             selected, seed.Account.AccountId, channel, CancellationToken.None);
-        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result);
+        var messages = new SelectedCharacterStateMessageFactoryService().CreateValidated(result, Dfo.Server.Protocol.Game.FriendListRefresh.None);
 
         Assert.NotNull(result.CharacterEntry.Skills.ProtocolMirror);
         Assert.All(result.CharacterEntry.Features.Collections.CollectionBoxes,
             value => Assert.NotNull(value.Protocol));
-        // 62 static rows on A21, less the knight-only row this job does not take, plus the 9 event, schedule and
+        // 63 static rows on A21 (62 and the entry blacklist), less the knight-only row this job does not take, plus the 9 event, schedule and
         // attendance rows: the event services are always present, so even an empty calendar is announced.
-        Assert.Equal(70, messages.Count);
+        Assert.Equal(71, messages.Count);
         Assert.Equal(13, Assert.Single(result.EpicPieces!).Count);
         Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.StateSynchronization.EpicBookStateMessage>());
         Assert.False(sources.Published);

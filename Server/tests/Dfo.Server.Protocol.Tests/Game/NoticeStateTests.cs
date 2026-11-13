@@ -33,7 +33,7 @@ public sealed class NoticeStateTests
                 Progression = source.CharacterEntry.Progression with { GrowthWeaponStages = [99] },
             },
         };
-        var message = Assert.Single(Dfo.Server.Protocol.Game.SelectCharacter.SelectedCharacterStateMessageFactory.Create(changed)
+        var message = Assert.Single(Dfo.Server.Protocol.Game.SelectCharacter.SelectedCharacterStateMessageFactory.Create(changed, Dfo.Server.Protocol.Game.FriendListRefresh.None)
             .OfType<SecondaryNoticeStateMessage>());
         Assert.Equal(new byte[] { 2,15,16 }, message.EncodeBody());
     }

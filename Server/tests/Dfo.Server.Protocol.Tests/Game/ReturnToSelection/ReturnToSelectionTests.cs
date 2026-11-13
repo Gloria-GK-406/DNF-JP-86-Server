@@ -4,6 +4,8 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
@@ -77,6 +79,58 @@ public sealed class ReturnToSelectionTests
         Assert.Equal(0, sender.Frames[offset + 1][7]);
         Assert.Equal(2, sender.Frames[offset + 1][15]);
         Assert.Equal(0, sender.Frames[offset + 2][0]);
+    }
+
+    /// <summary>RQ-051 on the return-to-selection route: the friends in the world are told the character left.</summary>
+    [Fact]
+    public async Task Returning_to_selection_announces_the_departure_to_the_friends_in_the_world()
+    {
+        var services = new ServiceCollection();
+        new ProtocolModule().ConfigureServices(services, new ConfigurationBuilder().Build());
+        using var provider = services.BuildServiceProvider();
+        var sender = new EncodedSender(provider);
+        var sessions = TestSessions.Directory(out var state);
+        var session = sessions.InWorld(state, new AccountId(1), new CharacterId(1), "return");
+        var roster = new AccountCharacterRoster(session.AccountId, 24, []);
+        var characters = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICharacterRosterDomainService>(),
+            (method, _) => method.Name == nameof(ICharacterRosterDomainService.GetAccountRosterWithAppearanceAsync)
+                ? (true, (object)ValueTask.FromResult(roster)) : (false, null));
+        var departure = new SelectedSessionFriendDeparture(session.CharacterId, "me"u8.ToArray(), [new CharacterId(7)]);
+        var cleanup = ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<ICommandSelectedSessionCleanup>(),
+            (method, _) => method.Name == nameof(ICommandSelectedSessionCleanup.CleanupAsync)
+                ? (true, (object)ValueTask.FromResult(SelectedSessionCleanupNotificationPlan.Empty(session) with { FriendDeparture = departure }))
+                : (false, null));
+        var projections = new RecordingProjections();
+        var handler = ProtocolAlgorithmFixture.Create<GameReturnToSelectionCommandHandler>(sessions, characters, cleanup, sender, projections);
+        var input = new ReturnToSelectionRequest(GameMessageMetadata.Empty);
+        var dispatch = new NetworkDispatchContext(new(session.ConnectionId, NetworkEndpointKind.Game, 10011));
+        await TestGameplay.RunAsync(async () =>
+        {
+            var request = new CommandRequestContext.ProtocolNonEffect(dispatch, input, new ProtocolFrameMetadata.Game(input.Metadata), () => true);
+            try
+            {
+                await handler.HandleAsync(new(Guid.NewGuid(), typeof(GameReturnToSelectionCommand), handler.GetType()) { Request = request }, new(dispatch, input), default);
+            }
+            finally { await request.DrainOperationsAsync(); request.Close(); }
+        });
+
+        var (audience, notification) = Assert.Single(projections.Published);
+        Assert.Equal([new CharacterId(7)], Assert.IsType<NotificationAudience.TheseCharacters>(audience).CharacterIds);
+        var offline = Assert.IsType<FriendWentOffline>(notification);
+        Assert.Equal(session.CharacterId, offline.Character);
+        Assert.Equal("me"u8.ToArray(), offline.Name);
+    }
+
+    private sealed class RecordingProjections : ICommandProjections
+    {
+        public List<(NotificationAudience Audience, object Notification)> Published { get; } = [];
+
+        public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
+            where T : class, INotification<T>
+        {
+            Published.Add((audience, notification));
+            return ValueTask.FromResult(new NotificationDelivery([]));
+        }
     }
 
     /// <summary>

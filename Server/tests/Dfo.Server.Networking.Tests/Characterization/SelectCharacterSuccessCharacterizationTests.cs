@@ -7,7 +7,7 @@ namespace Dfo.Server.Networking.Tests.Characterization;
 public sealed class SelectCharacterSuccessCharacterizationTests
 {
     /// <summary>
-    /// SelectCharacterAcceptedTranscriptTests.AcceptedStaticIdentities (62 frames) without its two
+    /// SelectCharacterAcceptedTranscriptTests.AcceptedStaticIdentities (63 frames) without its two
     /// conditional rows a new job-0 character does not produce: 0x0245 (job 12 only) and 0x0077
     /// (pet welcome, absent without a pet).
     /// </summary>
@@ -28,7 +28,7 @@ public sealed class SelectCharacterSuccessCharacterizationTests
         (0, 0x0158), (0, 0x02D5), (0, 0x02D5), (0, 0x02D5),
         (0, 0x01A8), (0, 0x0009), (0, 0x0344), (0, 0x007C),
         (0, 0x0002), (1, 0x01BA), (0, 0x0035), (0, 0x0111),
-        (0, 0x0016),
+        (1, 0x0078), (0, 0x0016),
     ];
 
     /// <summary>

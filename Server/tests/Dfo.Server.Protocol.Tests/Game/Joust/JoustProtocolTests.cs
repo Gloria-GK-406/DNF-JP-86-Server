@@ -116,7 +116,7 @@ public sealed class JoustProtocolTests
     public void Entry_initializes_native_state_once_without_replaying_results(JoustPhase phase)
     {
         var result=SelectCharacterPayloadTestData.CreateComplete() with{Events=new([],WeeklyAttendanceState.Empty,State(phase))};
-        var messages=SelectedCharacterStateMessageFactory.Create(result);Assert.Empty(messages.OfType<JoustResultsMessage>());Assert.Single(messages.OfType<JoustInfoMessage>());Assert.Single(messages.OfType<JoustBetsMessage>());
+        var messages=SelectedCharacterStateMessageFactory.Create(result, Dfo.Server.Protocol.Game.FriendListRefresh.None);Assert.Empty(messages.OfType<JoustResultsMessage>());Assert.Single(messages.OfType<JoustInfoMessage>());Assert.Single(messages.OfType<JoustBetsMessage>());
         var snapshot=Assert.Single(messages.OfType<JoustStateMessage>());
         Assert.Equal(new byte[]{7,0,JoustPayloadCodec.NativeState(State(phase))},snapshot.EncodeBody());
         Assert.True(messages.ToList().IndexOf(snapshot)<messages.ToList().IndexOf(Assert.Single(messages.OfType<JoustInfoMessage>())));

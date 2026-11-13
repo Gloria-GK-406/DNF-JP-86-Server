@@ -74,6 +74,8 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleDomainStore, Dfo.Server.Persistence.Characters.SqliteSouthernDaleDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDarkElfRuinsDomainStore, Dfo.Server.Persistence.Characters.SqliteDarkElfRuinsDomainStore>();
         services.TryAddSingleton<ICharacterNameTagDomainStore, SqliteCharacterNameTagDomainStore>();
+        services.TryAddSingleton<ICharacterIdentityRepository, SqliteCharacterIdentityRepository>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Relations.ICharacterRelationDomainStore, Dfo.Server.Persistence.Relations.SqliteCharacterRelationDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteSaoTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteDespairTowerDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IGuardianAltarProgressDomainStore, Dfo.Server.Persistence.Characters.SqliteGuardianAltarProgressDomainStore>();

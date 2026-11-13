@@ -784,6 +784,9 @@ public sealed partial class SelectCharacterLifecycleTests
         public SelectCharacterHandler Handler { get; }
         public SelectCharacterRequest Command { get; }
 
+        /// <summary>The batch factory, which records the relation lists the command handed it.</summary>
+        public StubStateMessageFactory StateMessages { get; private init; } = null!;
+
         /// <summary>
         /// The connected user this fixture logs in. Which character an account is playing is read
         /// back from this user's own snapshot, which is where publication binds it.
@@ -817,7 +820,9 @@ public sealed partial class SelectCharacterLifecycleTests
             INetworkConnectionCloser? connectionCloser = null,
             bool failQuest = false,
             ICleanupNotificationDelivery? cleanupDelivery = null,
-            IDarkElfRuinsDomainService? ruins = null)
+            IDarkElfRuinsDomainService? ruins = null,
+            Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService? relations = null,
+            ICharacterIdentityQueryDomainService? identities = null)
         {
             return await TestGameplay.RunAsync(async () =>
             {
@@ -900,16 +905,17 @@ public sealed partial class SelectCharacterLifecycleTests
                     new ReviveSelectedCharacterPetStageHandler(
                         new PetEntry(ledger, revivePet)),
                     new CompensateSelectedCharacterSessionStageHandler(cleanup, directory));
-                bus.Workflow = new LifecycleWorkflow(users, new TestEntryChannel(), new StubStateMessageFactory(), directory,
+                var stateMessages = new StubStateMessageFactory();
+                bus.Workflow = new LifecycleWorkflow(users, new TestEntryChannel(), stateMessages, directory,
                     gameSender ?? sender, notifications, connectionCloser ?? closer, bus,
-                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger, ruins);
+                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger, ruins, relations, identities);
                 var handler = new SelectCharacterHandler(bus);
                 var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
                 return new Fixture(
                     accountId, connectionId, result, ledger, directory, active, closer,
                     users, cleanup, mutations, inventory, sender, notifications, sessionEntry,
                     preparation, bus, handler, command,
-                    registered.OnlineUserId, authenticated.Generation);
+                    registered.OnlineUserId, authenticated.Generation) { StateMessages = stateMessages };
             });
         }
     }
@@ -997,7 +1003,9 @@ public sealed partial class SelectCharacterLifecycleTests
             ISelectedCharacterStateMessageFactory factory, ISelectedSessionDomainService sessions, IGameMessageSender sender,
             IEventService events, INetworkConnectionCloser closer, RecordingCommandBus stages,
             ICleanupNotificationDelivery cleanupDelivery, TownAreaProjectionDelivery town, ITauKingdomDomainService? tau,
-            List<string> ledger, IDarkElfRuinsDomainService? ruins)
+            List<string> ledger, IDarkElfRuinsDomainService? ruins,
+            Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService? relations = null,
+            ICharacterIdentityQueryDomainService? identities = null)
         {
             var dependencies = stages.Dependencies.ToList();
             if (ruins is not null) dependencies.Add(ruins);
@@ -1035,8 +1043,20 @@ public sealed partial class SelectCharacterLifecycleTests
                 FixtureMethod<IBossTowerTicketDomainService>(nameof(IBossTowerTicketDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false)),
                 FixtureMethod<IClientSettingsDomainService>(nameof(IClientSettingsDomainService.ActivateHotkeyProfile), true),
                 FixtureMethod<IItemUsageDomainService>(nameof(IItemUsageDomainService.GetSnapshotAtAsync), ValueTask.FromResult<IReadOnlyList<ItemUsageState>>([])),
+                // Nobody keeps the selected character, and it keeps nobody, unless a case supplies relations.
+                ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService>(),
+                    (method, args) => method.Name switch
+                    {
+                        nameof(Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService.ListAsync) =>
+                            (true, (object)ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Relations.CharacterRelation>>([])),
+                        nameof(Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService.ObserversOfAsync) =>
+                            (true, (object)ValueTask.FromResult<IReadOnlyList<CharacterId>>([])),
+                        _ => (false, null),
+                    }),
                 SelectCharacterDeliveryOptions.Everything,
             });
+            if (relations is not null) dependencies.Add(relations);
+            if (identities is not null) dependencies.Add(identities);
             handler = ProtocolAlgorithmFixture.Create<GameSelectCharacterCommandHandler>(dependencies.ToArray());
         }
         public ValueTask<bool> HandleAsync(CommandExecutionContext context, GameSelectCharacterCommand command, CancellationToken ct) =>
@@ -1077,7 +1097,7 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
             Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
         {
-            Assert.Equal("ReadItemUsageSnapshot", declaration.Name);
+            Assert.Contains(declaration.Name, (string[])["ReadItemUsageSnapshot", "ReadSelectedCharacterRelations", "ReadFriendObservers"]);
             return actual.ReadOnlyAsync(context, declaration, action, ct);
         }
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
@@ -1136,8 +1156,13 @@ public sealed partial class SelectCharacterLifecycleTests
 
     private sealed class StubStateMessageFactory : ISelectedCharacterStateMessageFactory
     {
-        public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result) =>
-            [new StubStateMessage()];
+        public FriendListRefresh? Relations { get; private set; }
+
+        public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result, FriendListRefresh relations)
+        {
+            Relations = relations;
+            return [new StubStateMessage()];
+        }
 
         private sealed record StubStateMessage : IGameNotiMessage
         {

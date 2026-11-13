@@ -24,6 +24,7 @@ internal static class AchievementRegistration
         services.AddDomainEvent<ItemUsed>("character.item-used", 1);
         services.AddDomainEvent<MaterialConsumed>("character.material-consumed", 1);
         services.AddDomainEvent<CharacterLevelChanged>("character.level-changed", 1);
+        services.AddDomainEvent<CharacterGrowTypeChanged>("character.grow-type-changed", 1);
         services.AddDomainEvent<AchievementProgressChanged>("achievement.progress-changed", 1);
         services.AddDomainEvent<AchievementCompleted>("achievement.completed", 1);
         services.AddDomainEvent<TitleUnlocked>("title.unlocked", 1);

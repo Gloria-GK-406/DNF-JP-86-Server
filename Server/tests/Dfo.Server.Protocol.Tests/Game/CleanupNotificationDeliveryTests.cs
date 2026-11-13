@@ -200,6 +200,32 @@ public sealed class CleanupNotificationDeliveryTests
         Assert.Same(departure, Assert.IsType<Dfo.Server.Protocol.Game.ChatConversationLeft>(published[1].Notification).Departure);
     }
 
+    /// <summary>RQ-051 on the disconnect route: the leaver's friends in the world are told it left, after everything else.</summary>
+    [Fact]
+    public async Task A_friend_departure_is_announced_to_the_observers_after_everything_else()
+    {
+        var peer = Peer(9);
+        await using var outbound = Outbound(peer);
+        var notifications = outbound.Projections;
+        var departure = new SelectedSessionFriendDeparture(new CharacterId(42), "a"u8.ToArray(), [new CharacterId(11), new CharacterId(12)]);
+
+        await outbound.RunAsync(async () => await Delivery(outbound).DeliverAsync(
+            new SelectedSessionCleanupNotificationPlan(Owner, [StoreClosed], [peer], [Departed])
+            {
+                FriendDeparture = departure,
+            },
+            CancellationToken.None));
+
+        var published = notifications.Published.ToArray();
+        Assert.Equal(2, published.Length);
+        Assert.IsType<SessionCleanupAnnounced>(published[0].Notification);
+        Assert.Equal([new CharacterId(11), new CharacterId(12)],
+            Assert.IsType<NotificationAudience.TheseCharacters>(published[1].Audience).CharacterIds);
+        var offline = Assert.IsType<FriendWentOffline>(published[1].Notification);
+        Assert.Equal(new CharacterId(42), offline.Character);
+        Assert.Equal("a"u8.ToArray(), offline.Name);
+    }
+
     /// <summary>A half with nothing in it is not delivered at all.</summary>
     /// <remarks>
     /// Most cleanups have nothing to announce -- a stale session that lost its registration, an

@@ -160,7 +160,8 @@ public sealed class CharacterRosterCommandFlowTests
         {
             Assert.Same(name, world.Characters.LastName);
             Assert.Equal(index, world.Characters.LastIndex);
-            Assert.Equal(["delete:True", "commit", "register:DeleteCharacterResponse:False", "flush"], world.Trace);
+            // The relations go in the deletion's own unit; with nobody keeping the character, nobody is told.
+            Assert.Equal(["delete:True", "purge:True", "commit", "register:DeleteCharacterResponse:False", "flush"], world.Trace);
         }
     }
 
@@ -234,6 +235,9 @@ public sealed class CharacterRosterCommandFlowTests
             services.AddSingleton(sessions);
             services.AddSingleton<ICharacterDomainService>(p => Characters = new(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             services.AddSingleton<ICharacterRosterDomainService>(p => (Characters)p.GetRequiredService<ICharacterDomainService>());
+            services.AddSingleton<Dfo.Server.Abstractions.Relations.ICharacterRelationDomainService>(p => new Relations(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
+            services.AddSingleton<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>(new NoProjections());
+            services.AddSingleton(TimeProvider.System);
             services.AddSingleton<INetworkConnectionContexts>(new Connections(Connection));
             services.AddSingleton<IOutboundMessageEncoder>(p => new Encoder(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             Output = new(Trace);
@@ -315,6 +319,25 @@ public sealed class CharacterRosterCommandFlowTests
             public ValueTask CommitAsync(CancellationToken ct) { owner.WriteCommits++; trace.Add("commit"); return ValueTask.CompletedTask; }
             public ValueTask RollbackAsync(CancellationToken ct) { owner.Rollbacks++; return ValueTask.CompletedTask; }
         }
+    }
+    /// <summary>Nobody keeps the deleted character in a relation; the purge is only recorded.</summary>
+    private sealed class Relations(IDomainTransactionAccessor transactions, List<string> trace) : Dfo.Server.Abstractions.Relations.ICharacterRelationDomainService
+    {
+        public ValueTask<Dfo.Server.Abstractions.Relations.CharacterRelationPurge> PurgeAsync(CharacterId character, CancellationToken cancellationToken)
+        {
+            trace.Add("purge:" + (transactions.Current is not null));
+            return ValueTask.FromResult(new Dfo.Server.Abstractions.Relations.CharacterRelationPurge([]));
+        }
+        public ValueTask<Dfo.Server.Abstractions.Relations.CharacterRelationAddOutcome> AddAsync(CharacterId owner, CharacterId target,
+            Dfo.Server.Abstractions.Relations.CharacterRelationKind kind, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Abstractions.Relations.CharacterRelationRemoveOutcome> RemoveAsync(CharacterId owner, CharacterId target,
+            Dfo.Server.Abstractions.Relations.CharacterRelationKind kind, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+    private sealed class NoProjections : Dfo.Server.Abstractions.DomainEvents.ICommandProjections
+    {
+        public ValueTask<Dfo.Server.Abstractions.Notifications.NotificationDelivery> ProjectAsync<T>(Dfo.Server.Abstractions.Notifications.NotificationAudience audience,
+            T notification, CancellationToken cancellationToken = default) where T : class, Dfo.Server.Abstractions.Notifications.INotification<T> =>
+            throw new NotSupportedException("No roster flow here has anyone to tell.");
     }
     private sealed class Output(List<string> trace) : IOutboundSender
     {

@@ -295,6 +295,11 @@ S→C  NOTI 0x00FB  ITEM_LOCK_LIST（第二次）
 S→C  CMD  0x01BA  MERCENARY_INFO（第二次）
 ```
 
+本仓与参照的一处有意差异（2026-11-12，#60，CurrentImplementation，待实机）：`0x0111` 发的是角色的真实好友全量
+（无好友时仍是参照的 8 字节空表），其后紧跟一帧 `CMD 0x0078` 黑名单列表。全量会清掉客户端的黑名单
+（见 [NOTI `0x0111`](../game/server-to-client/NOTI-0x0111.md)），而客户端只在回城时自己请求 `0x0078`；
+未经请求的 CMD 应答客户端照收，与同一段的 `CMD 0x01BA` 一样。
+
 ### `0x0002` subtype 2 就是花名册载荷
 
 把参照的 103 字节按下标摊开，`[0:18]` 与账号花名册的头部逐字段一致
@@ -665,6 +670,7 @@ C->S 0x0010 SELECT_DUNGEON / 0x008F CHANGE_TUTORIAL_FLAG / 0x0252 SECURITY_STATU
 
 `0x001F ACCEPT_QUEST` 是这一趟唯一的新真缺口（参照是回的），未实现的原因是任务表只有读路径；
 `0x007B`/`0x0078`/`0x02BE` 归入有意不回，`0x011B` 归入但无参照。
+（2026-11-12 修正：`0x0078` 已随 #60 黑名单实现应答，见 [0x0078](../game/client-to-server/0x0078.md)；其余两条不变。）
 
 ### 选图与进入副本（同日第三次实机）
 
