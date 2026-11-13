@@ -20,6 +20,27 @@ public sealed class AuctionRuleServiceTests
             (rule.Open, rule.ListingLimit, rule.Duration, rule.Deposit, rule.FeeRateBasisPoints));
     }
 
+    [Fact]
+    public void The_coupon_gives_thirty_listings_and_a_three_percent_fee()
+    {
+        var rule = Rules().For(AuctionMarket.Items, hasCoupon: true);
+        Assert.Equal((30, 500 - 200, 10_000), (rule.ListingLimit, rule.FeeRateBasisPoints, rule.Deposit));
+        Assert.Equal((10, 100), (Rules().For(AuctionMarket.GoldConsignment, true).ListingLimit, Rules().For(AuctionMarket.GoldConsignment, true).FeeRateBasisPoints));
+    }
+
+    [Theory]
+    [InlineData(24u, false, 24)]
+    [InlineData(48u, false, 24)]
+    [InlineData(48u, true, 48)]
+    [InlineData(24u, true, 24)]
+    [InlineData(0u, true, 24)]
+    public void Forty_eight_hours_need_the_coupon(uint requested, bool coupon, int hours) =>
+        Assert.Equal(TimeSpan.FromHours(hours), Rules().ListingDuration(requested, coupon));
+
+    [Fact]
+    public async Task A_cera_item_may_be_listed_with_the_coupon() =>
+        Assert.Equal(AuctionRefusal.None, await Rules(Packagable with { CashPrice = 100 }).CheckEligibilityAsync(Sword, true, default));
+
     [Theory]
     [InlineData(1000, null, 1050)]
     [InlineData(10, null, 11)]

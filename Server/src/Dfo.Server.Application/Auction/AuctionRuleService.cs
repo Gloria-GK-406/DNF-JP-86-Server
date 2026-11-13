@@ -8,8 +8,11 @@ namespace Dfo.Server.Application.Auction;
 /// <summary>The auction house's terms. The one place PVF and auction configuration are read.</summary>
 /// <remarks>
 /// Item market terms are the 70 server's (70Reference, df_auction_r / df_game_r, 2026-11-13): 10
-/// listings, 24 hours, a 10000 gold deposit, 5% fee. The listing limit counts per character, the
-/// coupon and VIP terms are not carried yet (user decisions D1, D2, D7 of #324).
+/// listings, 24 hours, a 10000 gold deposit, 5% fee; the listing limit counts per character.
+/// The auction coupon (account premium 29, item 193 "拍卖行优惠券") lifts them as its PVF
+/// explanation lists: 30 listings (70: premium 0x1d, 30), a 48-hour choice, a 3% fee (70 VIP 3%),
+/// and Cera-shop items may be listed. For consignment it gives the official 1% fee and, as 70's
+/// point auction VIP, 10 listings.
 /// </remarks>
 internal sealed class AuctionRuleService : IAuctionRuleService
 {
@@ -17,6 +20,9 @@ internal sealed class AuctionRuleService : IAuctionRuleService
     private readonly IMailItemRuleService transfers;
     private readonly AuctionMarketRule items;
     private readonly AuctionMarketRule gold;
+    private readonly AuctionMarketRule itemsWithCoupon;
+    private readonly AuctionMarketRule goldWithCoupon;
+    private readonly TimeSpan day;
 
     public AuctionRuleService(IAuctionItemDefinitionSource definitions, IMailItemRuleService transfers, IConfiguration configuration)
     {
@@ -24,10 +30,13 @@ internal sealed class AuctionRuleService : IAuctionRuleService
         this.transfers = transfers;
         // The listing time is 24 hours in both markets; the minutes setting exists to test expiry.
         var duration = TimeSpan.FromMinutes(Math.Max(1, configuration.GetValue("Auction:ListingMinutes", 24 * 60)));
+        day = duration;
         items = new(AuctionMarket.Items, configuration.GetValue("Auction:Items:Enabled", true),
             ListingLimit: 10, Duration: duration, Deposit: 10_000, FeeRateBasisPoints: 500);
         gold = new(AuctionMarket.GoldConsignment, configuration.GetValue("Auction:GoldConsignment:Enabled", true),
             ListingLimit: 3, Duration: duration, Deposit: 0, FeeRateBasisPoints: 500);
+        itemsWithCoupon = items with { ListingLimit = 30, FeeRateBasisPoints = 300 };
+        goldWithCoupon = gold with { ListingLimit = 10, FeeRateBasisPoints = 100 };
         referenceCeraPerMillion = configuration.GetValue("Auction:GoldConsignment:ReferenceCeraPerMillion", 100);
     }
 
@@ -72,12 +81,18 @@ internal sealed class AuctionRuleService : IAuctionRuleService
         return 9500;
     }
 
-    public AuctionMarketRule For(AuctionMarket market) => market switch
+    public AuctionMarketRule For(AuctionMarket market, bool hasCoupon = false) => market switch
     {
-        AuctionMarket.Items => items,
-        AuctionMarket.GoldConsignment => gold,
+        AuctionMarket.Items => hasCoupon ? itemsWithCoupon : items,
+        AuctionMarket.GoldConsignment => hasCoupon ? goldWithCoupon : gold,
         _ => throw new ArgumentOutOfRangeException(nameof(market), market, "Not an auction market."),
     };
+
+    /// <remarks>
+    /// The client sends 24 or 48. 48 is honoured only with the coupon; anything else is a day. The
+    /// test setting <c>Auction:ListingMinutes</c> scales both, so "48" is twice that.
+    /// </remarks>
+    public TimeSpan ListingDuration(uint requestedHours, bool hasCoupon) => hasCoupon && requestedHours >= 48 ? day * 2 : day;
 
     /// <remarks>
     /// 70 refuses locked items, unpackagable templates, attach types 1/2/5 and unsealed 3, timed

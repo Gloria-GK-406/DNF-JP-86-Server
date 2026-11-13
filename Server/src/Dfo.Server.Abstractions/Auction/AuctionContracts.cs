@@ -71,7 +71,8 @@ public abstract record AuctionLotSource
     public sealed record Gold(int TierItemId) : AuctionLotSource;
 }
 
-public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing);
+/// <param name="Hours">The duration the client asked for; the market's rule decides whether it is allowed.</param>
+public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing, uint Hours = 24);
 
 /// <summary>One listing as the house knows it.</summary>
 /// <param name="Item">The item as it was handed over, for showing and searching it; never used to deliver it.</param>
@@ -227,7 +228,11 @@ public sealed record AuctionMarketRule(
 /// <summary>Auction rules: market terms, eligibility, prices and the client's category tree.</summary>
 public interface IAuctionRuleService
 {
-    AuctionMarketRule For(AuctionMarket market);
+    /// <summary>The market's terms; <paramref name="hasCoupon"/> is whether the account holds the auction coupon.</summary>
+    AuctionMarketRule For(AuctionMarket market, bool hasCoupon = false);
+
+    /// <summary>How long a listing stays up: 48 hours when asked for with the coupon, 24 otherwise.</summary>
+    TimeSpan ListingDuration(uint requestedHours, bool hasCoupon);
 
     /// <summary>Whether this held item may be listed. The snapshot is the caller's fact.</summary>
     ValueTask<AuctionRefusal> CheckEligibilityAsync(ItemSnapshot item, bool hasCoupon, CancellationToken cancellationToken);

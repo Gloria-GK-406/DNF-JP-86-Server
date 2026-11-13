@@ -92,7 +92,7 @@ public sealed class GameAuctionCommandHandler(
                 {
                     AuctionRegisterRequest register => await house.ListAsync(character, new(market, market == AuctionMarket.GoldConsignment
                         ? new AuctionLotSource.Gold(register.ItemId)
-                        : new AuctionLotSource.CarriedItem(register.Slot, register.ItemId, register.Count), register.Pricing), token).ConfigureAwait(false),
+                        : new AuctionLotSource.CarriedItem(register.Slot, register.ItemId, register.Count), register.Pricing, register.Hours), token).ConfigureAwait(false),
                     AuctionCancelRequest cancel => await house.CancelAsync(character, market, cancel.Listing, token).ConfigureAwait(false),
                     AuctionBidRequest bid => await BidAsync(character, market, bid, token).ConfigureAwait(false),
                     AuctionBuyPiecesRequest pieces => await BuyPiecesAsync(character, pieces, token).ConfigureAwait(false),

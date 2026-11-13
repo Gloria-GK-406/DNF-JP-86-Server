@@ -25,6 +25,7 @@ internal sealed class AuctionHouseDomainService(
     IAuctionPurse purse,
     ICharacterDomainService characters,
     ICharacterTable owners,
+    Dfo.Server.Abstractions.Accounts.IPremiumServiceDomainService premiums,
     IDomainTransactionAccessor transactions,
     TimeProvider clock) : IAuctionHouseDomainService, IAuctionQueryDomainService
 {
@@ -32,15 +33,18 @@ internal sealed class AuctionHouseDomainService(
     public async ValueTask<AuctionOutcome> ListAsync(CharacterId seller, AuctionListingRequest request, CancellationToken ct)
     {
         RequireWritable();
-        var rule = rules.For(request.Market);
-        if (!rule.Open) throw Refuse(AuctionRefusal.MarketClosed);
         var account = await AccountOf(seller, ct).ConfigureAwait(false);
+        // The coupon is read at listing and its terms are kept on the listing, as with the fee.
+        var hasCoupon = await premiums.For(account)
+            .IsActiveAsync(Dfo.Server.Abstractions.Accounts.PremiumServiceType.AuctionCoupon, ct).ConfigureAwait(false);
+        var rule = rules.For(request.Market, hasCoupon);
+        if (!rule.Open) throw Refuse(AuctionRefusal.MarketClosed);
         var name = (await characters.Get(seller).IdentityAsync(ct).ConfigureAwait(false))?.Name
             ?? throw new InvalidOperationException($"Character {seller.Value} cannot list without an identity.");
         if (await store.CountActiveAsync(seller, request.Market, ct).ConfigureAwait(false) >= rule.ListingLimit)
             throw Refuse(AuctionRefusal.ListingLimit);
 
-        var lot = await lots.InspectAsync(seller, request.Market, request.Lot, ct).ConfigureAwait(false);
+        var lot = await lots.InspectAsync(seller, request.Market, request.Lot, hasCoupon, ct).ConfigureAwait(false);
         Check(rules.CheckPricing(request.Market, request.Pricing, lot.Quantity, lot.Pile));
         var now = clock.GetUtcNow();
         var feeRate = rule.FeeRateBasisPoints;
@@ -48,7 +52,7 @@ internal sealed class AuctionHouseDomainService(
         {
             // The asked price against the tier's recent average sets the rate, and it is kept.
             var average = await ConsignmentAverageAsync(lot.ItemId, lot.GoldAmount, now, ct).ConfigureAwait(false);
-            feeRate = rules.ConsignmentFeeRate(request.Pricing.BuyoutPrice!.Value, average, hasCoupon: false)
+            feeRate = rules.ConsignmentFeeRate(request.Pricing.BuyoutPrice!.Value, average, hasCoupon)
                 ?? throw Refuse(AuctionRefusal.InvalidPrice);
         }
         var changes = new List<MailAssetChange>();
@@ -56,7 +60,7 @@ internal sealed class AuctionHouseDomainService(
         var listing = new AuctionListing(default, request.Market, AuctionListingState.Active, seller, account,
             name, lot.ItemId, lot.Quantity, lot.Quantity,
             lot.GoldAmount, request.Pricing, null, null, null, rule.Deposit, feeRate, now,
-            now + rule.Duration, lot.Shown);
+            now + rules.ListingDuration(request.Hours, hasCoupon), lot.Shown);
         var id = await store.InsertAsync(listing, ct).ConfigureAwait(false);
         changes.AddRange(await lots.TakeIntoCustodyAsync(seller, id, lot, ct).ConfigureAwait(false));
         return AuctionOutcome.Done(new(id, changes));
