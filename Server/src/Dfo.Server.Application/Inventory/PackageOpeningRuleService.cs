@@ -91,28 +91,22 @@ internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource 
 
     // 70 CUser::check_locked_multibox_error / check_multibox_error: before a magic box draws, the
     // equipment, consumable, material, expert material (ITEM_TYPE 10) and creature tabs each hold
-    // N = 2 empty slots, multiplied when the opening is a lucky one. 70 omits the avatar tab; it
-    // is included so that acceptance never depends on what is drawn. Results that still do not
-    // fit are mailed.
+    // N = 2 empty slots. 70 omits the avatar tab; it is included so that acceptance never depends
+    // on what is drawn. 70 scales N for a lucky opening by a DataManager+0x877e byte whose value is
+    // unknown; #325 keeps N = 2 for every opening and every batch, because the extra lucky copies
+    // and anything else that does not fit are mailed, and a larger N only kept a full tab stuck at
+    // luck 8, which advances only on a successful opening.
     // 70 Dispatcher_UseBoosterItem checks one empty creature slot; Dispatcher_CeraPackageOpen has
     // fixed contents and checks nothing. Neither can fail because of what was drawn.
-    public ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition, int luck, int count)
+    public ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition)
     {
         if (definition.Kind == OpeningPackageKind.MagicBox)
-        {
-            var lucky = false;
-            if (definition.UsesSeriaLuck)
-                for (var i = 0; i < count && !lucky; i++) { lucky = LuckBonus(luck); luck = AdvanceLuck(luck); }
-            var required = MagicBoxRoomPerOpening * (lucky ? LuckyOpeningCopies : 1);
-            return [.. MagicBoxRoomSpaces.Select(space => new OpeningRoomRequirement(space, required))];
-        }
+            return [.. MagicBoxRoomSpaces.Select(space => new OpeningRoomRequirement(space, MagicBoxRoomPerOpening))];
         var booster = !definition.Pools.IsEmpty || definition.Kind == OpeningPackageKind.Selection;
         return booster ? [new(BusinessInventorySpace.CreatureInventory, 1)] : [];
     }
 
     private const int MagicBoxRoomPerOpening = 2;
-    // A lucky opening awards the base and two extra copies.
-    private const int LuckyOpeningCopies = 3;
     private static readonly ImmutableArray<BusinessInventorySpace> MagicBoxRoomSpaces =
     [
         BusinessInventorySpace.CarriedEquipment, BusinessInventorySpace.Consumable, BusinessInventorySpace.Material,

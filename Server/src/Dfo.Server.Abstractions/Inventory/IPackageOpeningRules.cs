@@ -15,7 +15,7 @@ public interface IPackageOpeningRuleService
     int AdvanceLuck(int value);
     bool LuckBonus(int value);
     /// <summary>Empty slots required before drawing; decided from facts known before any draw.</summary>
-    ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition, int luck, int count);
+    ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition);
 }
 
 /// <summary>A carried space that must hold at least this many empty slots before an opening draws.</summary>
