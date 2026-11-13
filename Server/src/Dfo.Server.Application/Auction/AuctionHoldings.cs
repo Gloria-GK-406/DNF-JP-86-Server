@@ -101,18 +101,21 @@ internal sealed class AuctionLotHandling(
                 : new MailAsset.Equipment(record.ItemUid ?? throw new InvalidDataException("Held equipment has no identity."));
             if (record.IsPile) builder.AddStackable(record.ItemId, record.Count); else builder.AddEquipment(record.ItemUid!.Value);
             prepared.Add(new(asset, [record]));
+            var itemMail = builder.Build();
+            _ = await mailbox.SendPreparedAsync(itemMail, Align(itemMail, prepared), ct).ConfigureAwait(false);
+            // Gold beside an item goes in a letter of its own. The client lists every attachment as
+            // its own row with a gold field, so an item and its deposit in one letter show a "0 gold"
+            // item row next to the gold row; each claims separately anyway (user test, 2026-11-13).
+            if (gold > 0) await SendGoldAsync(recipient, gold, AuctionLetters.DepositReturned(gold), ct).ConfigureAwait(false);
+            return;
         }
-        else
-        {
-            gold = checked(gold + listing.GoldAmount);
-        }
-        if (gold > 0)
-        {
-            builder.AddGold(gold);
-            prepared.Add(new(new MailAsset.Gold(gold)));
-        }
-        var mail = builder.Build();
-        _ = await mailbox.SendPreparedAsync(mail, Align(mail, prepared), ct).ConfigureAwait(false);
+        await SendGoldAsync(recipient, checked(gold + listing.GoldAmount), letter.Body(listing), ct).ConfigureAwait(false);
+    }
+
+    private async ValueTask SendGoldAsync(CharacterId recipient, int gold, string body, CancellationToken ct)
+    {
+        var mail = MailBuilder.FromSystem(recipient).WithText(AuctionLetters.Title, body).AddGold(gold).Build();
+        _ = await mailbox.SendPreparedAsync(mail, [new PreparedMailAttachment(mail.Attachments[0])], ct).ConfigureAwait(false);
     }
 
     /// <summary>The prepared attachments in the mail's own attachment order, each against the asset value the mail holds.</summary>

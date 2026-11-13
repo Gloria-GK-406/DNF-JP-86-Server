@@ -21,9 +21,10 @@ internal static class AuctionLetters
     public static readonly AuctionLetter ExpiredToSeller = new((listing, _) => listing switch
     {
         { Market: AuctionMarket.GoldConsignment } => $"您寄售的 {Gold(listing.GoldAmount)} 金币已到期，金币已退回。",
-        { Deposit: > 0 } => $"您的拍卖物品已流拍，物品与押金 {Gold(listing.Deposit)} 金币已退回。",
-        _ => "您的拍卖物品已流拍，已退回。",
+        _ => "您的拍卖物品已流拍，物品已退回。",
     });
+
+    public static string DepositReturned(int deposit) => $"您的拍卖押金 {Gold(deposit)} 金币已退回。";
     public static readonly AuctionLetter CancelledToSeller = new((listing, _) => listing is { Market: AuctionMarket.GoldConsignment }
         ? $"您已撤销金币寄售，{Gold(listing.GoldAmount)} 金币已退回。"
         : "您已撤销拍卖，物品已退回，押金不予退还。");
