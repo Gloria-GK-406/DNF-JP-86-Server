@@ -168,7 +168,7 @@ public sealed class MailboxProtocolTests
     }
 
     [Fact]
-    public void A_token_cera_voucher_row_names_the_voucher_and_carries_the_amount_as_gold()
+    public void A_token_cera_voucher_row_names_the_voucher_and_carries_the_amount_as_gold_and_count()
     {
         var core = new byte[82];
         System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1), 2681762);
@@ -182,7 +182,7 @@ public sealed class MailboxProtocolTests
         Assert.Equal(95, reader.ReadInt32()); // gold field: the amount the mail shows
         Assert.Equal(2681762, reader.ReadInt32());
         Assert.Equal(1, reader.ReadByte());
-        Assert.Equal(0, reader.ReadInt32()); // the item's own count is 0
+        Assert.Equal(95, reader.ReadInt32()); // the icon shows the amount as its count
     }
 
     private static byte[] Body(IReadOnlyList<byte[]> frames) => Assert.Single(frames)[15..];

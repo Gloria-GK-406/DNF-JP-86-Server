@@ -590,7 +590,9 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(hasItem ? attachment!.ItemTemplateId : 0);
         writer.Write(hasItem ? (byte)1 : (byte)0);
 
-        var stackable = hasItem && string.Equals(attachment!.ItemKind, "stackable", StringComparison.OrdinalIgnoreCase);
+        // A token Cera voucher shows its amount on the icon too, as a pile count (user test 2026-11-13).
+        var stackable = hasItem && (string.Equals(attachment!.ItemKind, "stackable", StringComparison.OrdinalIgnoreCase)
+            || attachment.ItemKind == "token_cera");
         var creature = hasItem && string.Equals(attachment!.ItemKind, "creature", StringComparison.OrdinalIgnoreCase);
         var avatar = hasItem && string.Equals(attachment!.ItemKind, "avatar", StringComparison.OrdinalIgnoreCase);
         writer.Write(hasItem ? (stackable ? attachment!.ItemCount : core!.Value) : 0);
