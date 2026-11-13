@@ -74,7 +74,7 @@ public abstract record AuctionLotSource
 public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing);
 
 /// <summary>One listing as the house knows it.</summary>
-/// <param name="DisplayCore">The item as it was handed over, for showing it; never used to deliver it.</param>
+/// <param name="Item">The item as it was handed over, for showing and searching it; never used to deliver it.</param>
 public sealed record AuctionListing(
     AuctionListingId Id,
     AuctionMarket Market,
@@ -94,7 +94,7 @@ public sealed record AuctionListing(
     int FeeRateBasisPoints,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,
-    InventoryItemCoreState? DisplayCore)
+    ItemSnapshot? Item)
 {
     public bool HasBid => TopBidder is not null;
 }

@@ -103,7 +103,16 @@ public sealed class AuctionCodecTests
         AuctionListingState.Active, new CharacterId(71), new AccountId(1), "seller"u8.ToArray(), 3037, 30, 18, 0,
         new(start, buyout, null), bid, bid is null ? null : new CharacterId(72), bid is null ? null : new AccountId(2), 10_000, 500,
         DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch,
-        new ItemSnapshot { ItemId = 3037, LegacyKind = 2, Type = ItemTraitClassification.For(2, 3037), Count = 30, IsPile = true }.ToCore());
+        new ItemSnapshot { ItemId = 3037, LegacyKind = 2, Type = ItemTraitClassification.For(2, 3037), Count = 30, IsPile = true });
+
+    [Fact]
+    public void A_request_names_a_long_seller_by_the_twelve_bytes_the_client_was_shown()
+    {
+        var stored = "abcdefghijklmnop"u8.ToArray();
+        Assert.True(AuctionPayloadCodec.SameName("abcdefghijkl"u8.ToArray(), stored));
+        Assert.False(AuctionPayloadCodec.SameName("abcdefghijk"u8.ToArray(), stored));
+        Assert.True(AuctionPayloadCodec.SameName("seller"u8.ToArray(), "seller"u8.ToArray()));
+    }
 
     [Fact]
     public void Lists_have_the_record_sizes_the_client_reads()

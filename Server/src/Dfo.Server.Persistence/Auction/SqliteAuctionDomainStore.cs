@@ -49,7 +49,7 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
             p.AddWithValue("@fee", listing.FeeRateBasisPoints);
             p.AddWithValue("@created", listing.CreatedAt.ToUnixTimeSeconds());
             p.AddWithValue("@expires", listing.ExpiresAt.ToUnixTimeSeconds());
-            p.AddWithValue("@core", listing.DisplayCore is { } core ? InventoryItemCore.Encode(core) : DBNull.Value);
+            p.AddWithValue("@core", listing.Item is { } item ? InventoryItemCore.Encode(item.ToCore()) : DBNull.Value);
             id = Convert.ToInt64(await command.ExecuteScalarAsync(token).ConfigureAwait(false));
         }, cancellationToken).ConfigureAwait(false);
         return new AuctionListingId(id);
@@ -194,7 +194,11 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
         r.GetInt32(17),
         DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(18)),
         DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(19)),
-        r.IsDBNull(20) ? null : InventoryItemCore.Decode((byte[])r.GetValue(20)));
+        r.IsDBNull(20) ? null : Shown(InventoryItemCore.Decode((byte[])r.GetValue(20)), r.GetInt32(7)));
+
+    /// <summary>A pile was stored with its listed count as the core value; equipment keeps its instance value.</summary>
+    private static ItemSnapshot Shown(InventoryItemCoreState core, int quantityInitial) =>
+        ItemSnapshot.FromCore(core, isPile: core.Value == quantityInitial);
 
     private static long? Nullable(SqliteDataReader r, int ordinal) => r.IsDBNull(ordinal) ? null : r.GetInt64(ordinal);
 }

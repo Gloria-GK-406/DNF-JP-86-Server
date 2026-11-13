@@ -28,8 +28,6 @@ internal sealed class AuctionHouseDomainService(
     IDomainTransactionAccessor transactions,
     TimeProvider clock) : IAuctionHouseDomainService, IAuctionQueryDomainService
 {
-    /// <summary>The longest a seller name is kept: the client's 13-byte field less its terminator.</summary>
-    public const int SellerNameLimit = 12;
 
     public async ValueTask<AuctionOutcome> ListAsync(CharacterId seller, AuctionListingRequest request, CancellationToken ct)
     {
@@ -48,9 +46,9 @@ internal sealed class AuctionHouseDomainService(
         if (rule.Deposit > 0) changes.Add(await purse.CollectGoldAsync(seller, rule.Deposit, ct).ConfigureAwait(false));
         var now = clock.GetUtcNow();
         var listing = new AuctionListing(default, request.Market, AuctionListingState.Active, seller, account,
-            name.Length > SellerNameLimit ? name[..SellerNameLimit] : name, lot.ItemId, lot.Quantity, lot.Quantity,
+            name, lot.ItemId, lot.Quantity, lot.Quantity,
             lot.GoldAmount, request.Pricing, null, null, null, rule.Deposit, rule.FeeRateBasisPoints, now,
-            now + rule.Duration, lot.DisplayCore);
+            now + rule.Duration, lot.Shown);
         var id = await store.InsertAsync(listing, ct).ConfigureAwait(false);
         changes.AddRange(await lots.TakeIntoCustodyAsync(seller, id, lot, ct).ConfigureAwait(false));
         return AuctionOutcome.Done(new(id, changes));
@@ -205,9 +203,8 @@ internal sealed class AuctionHouseDomainService(
 
     private async ValueTask<bool> MatchesAsync(AuctionListing listing, AuctionSearchCriteria criteria, CancellationToken ct)
     {
-        var core = listing.DisplayCore;
-        var upgrade = core is null ? 0 : core.Attribute & 0x1F;
-        var forging = core is null ? 0 : core.GenuineUpgrade & 0x1F;
+        var upgrade = listing.Item?.ReinforcementLevel ?? 0;
+        var forging = listing.Item?.GenuineUpgrade ?? 0;
         if (upgrade < (criteria.MinimumUpgrade ?? 0) || upgrade > (criteria.MaximumUpgrade ?? byte.MaxValue)
             || forging < (criteria.MinimumForging ?? 0) || forging > (criteria.MaximumForging ?? byte.MaxValue))
             return false;

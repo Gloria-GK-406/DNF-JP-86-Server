@@ -129,8 +129,9 @@ internal static class AuctionPayloadCodec
             ? new(metadata, false, BinaryPrimitives.ReadUInt32LittleEndian(body), I32(body, 4), Listing(body, 8), Name(body[16..29]), I32(body, 29))
             : new(metadata, true, 0, 0, default, [], 0);
 
-    /// <summary>Whether a request's 13-byte name names the stored seller: the bytes up to the first zero.</summary>
-    public static bool SameName(byte[] requested, byte[] stored) => requested.AsSpan().SequenceEqual(stored);
+    /// <summary>Whether a request's 13-byte name names the stored seller, as the seller's name was written into that field.</summary>
+    public static bool SameName(byte[] requested, byte[] stored) =>
+        requested.AsSpan().SequenceEqual(stored.AsSpan(0, Math.Min(stored.Length, NameField - 1)));
 
     // ---- Replies ------------------------------------------------------------------------------
 
@@ -241,17 +242,17 @@ internal static class AuctionPayloadCodec
     internal static void Display(Span<byte> target, AuctionListing listing)
     {
         target.Clear();
-        if (listing.DisplayCore is not { } core)
+        if (listing.Item is not { } item)
         {
             BinaryPrimitives.WriteInt32LittleEndian(target[1..], listing.ItemId);
             BinaryPrimitives.WriteInt32LittleEndian(target[6..], 1);
             return;
         }
+        var core = item.ToCore();
         target[0] = core.SealFlag;
         BinaryPrimitives.WriteInt32LittleEndian(target[1..], core.DisplayItemId);
         target[5] = core.Attribute;
-        // A pile's core value was its count when listed; equipment keeps its instance value.
-        BinaryPrimitives.WriteInt32LittleEndian(target[6..], core.Value == listing.QuantityInitial ? listing.QuantityRemaining : core.Value);
+        BinaryPrimitives.WriteInt32LittleEndian(target[6..], item.IsPile ? listing.QuantityRemaining : core.Value);
         BinaryPrimitives.WriteUInt16LittleEndian(target[10..], core.Durability);
         BinaryPrimitives.WriteInt32LittleEndian(target[12..], core.EnchantCardId);
         target[16] = core.AmplifyType;

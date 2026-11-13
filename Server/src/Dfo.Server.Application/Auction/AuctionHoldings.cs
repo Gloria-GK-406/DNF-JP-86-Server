@@ -12,7 +12,7 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Auction;
 
 /// <summary>A lot as inspected before anything was taken.</summary>
-internal sealed record InspectedLot(int ItemId, int Quantity, bool Pile, int GoldAmount, InventoryItemCoreState? DisplayCore,
+internal sealed record InspectedLot(int ItemId, int Quantity, bool Pile, int GoldAmount, ItemSnapshot? Shown,
     BusinessSlot? Slot, IBusinessItemContainer? Container, ItemReference? Item);
 
 /// <summary>What a lot is and how it is held and handed over: an item, or an amount of gold.</summary>
@@ -62,7 +62,7 @@ internal sealed class AuctionLotHandling(
                     throw new AuctionRefusedException(AuctionRefusal.ExceedsHolding);
                 var eligibility = await rules.CheckEligibilityAsync(item.Snapshot, hasCoupon: false, ct).ConfigureAwait(false);
                 if (eligibility != AuctionRefusal.None) throw new AuctionRefusedException(eligibility);
-                var display = (item.Snapshot with { Count = carried.Count }).ToCore();
+                var display = item.Snapshot with { Count = carried.Count };
                 return new(item.ItemId, carried.Count, item.IsPile, 0, display, carried.Slot, container, item);
             case AuctionLotSource.Gold gold when market == AuctionMarket.GoldConsignment:
                 if (gold.Amount <= 0 || gold.TierItemId <= 0) throw new AuctionRefusedException(AuctionRefusal.NotEligible);
