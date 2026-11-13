@@ -1,0 +1,120 @@
+0266CBC0: 55                       push ebp
+0266CBC1: 8bec                     mov ebp, esp
+0266CBC3: 83ec28                   sub esp, 0x28
+0266CBC6: 80b9f504000000           cmp byte ptr [ecx + 0x4f5], 0
+0266CBCD: 894dfc                   mov dword ptr [ebp - 4], ecx
+0266CBD0: 7404                     je 0x266cbd6
+0266CBD2: c6451000                 mov byte ptr [ebp + 0x10], 0
+0266CBD6: 53                       push ebx
+0266CBD7: 56                       push esi
+0266CBD8: 57                       push edi
+0266CBD9: 8d717c                   lea esi, [ecx + 0x7c]
+0266CBDC: 8d45f0                   lea eax, [ebp - 0x10]
+0266CBDF: 50                       push eax
+0266CBE0: 8bce                     mov ecx, esi
+0266CBE2: e869b6b4ff               call 0x21b8250
+0266CBE7: 8d4de4                   lea ecx, [ebp - 0x1c]
+0266CBEA: 51                       push ecx
+0266CBEB: 8bce                     mov ecx, esi
+0266CBED: e85eb6b4ff               call 0x21b8250
+0266CBF2: 8b08                     mov ecx, dword ptr [eax]
+0266CBF4: 8b7df0                   mov edi, dword ptr [ebp - 0x10]
+0266CBF7: 3bf9                     cmp edi, ecx
+0266CBF9: 740b                     je 0x266cc06
+0266CBFB: 8b09                     mov ecx, dword ptr [ecx]
+0266CBFD: 85c9                     test ecx, ecx
+0266CBFF: 7405                     je 0x266cc06
+0266CC01: 8b39                     mov edi, dword ptr [ecx]
+0266CC03: 897df0                   mov dword ptr [ebp - 0x10], edi
+0266CC06: 8b7008                   mov esi, dword ptr [eax + 8]
+0266CC09: 8b5d08                   mov ebx, dword ptr [ebp + 8]
+0266CC0C: 8975f8                   mov dword ptr [ebp - 8], esi
+0266CC0F: 90                       nop 
+0266CC10: 8b4dfc                   mov ecx, dword ptr [ebp - 4]
+0266CC13: 8d55e4                   lea edx, [ebp - 0x1c]
+0266CC16: 52                       push edx
+0266CC17: 83c17c                   add ecx, 0x7c
+0266CC1A: e8e1947efe               call 0xe56100
+0266CC1F: 85ff                     test edi, edi
+0266CC21: 0f8405010000             je 0x266cd2c
+0266CC27: 8b17                     mov edx, dword ptr [edi]
+0266CC29: 85d2                     test edx, edx
+0266CC2B: 0f84fb000000             je 0x266cd2c
+0266CC31: 8b08                     mov ecx, dword ptr [eax]
+0266CC33: 85c9                     test ecx, ecx
+0266CC35: 7402                     je 0x266cc39
+0266CC37: 8b09                     mov ecx, dword ptr [ecx]
+0266CC39: 3bd1                     cmp edx, ecx
+0266CC3B: 0f85eb000000             jne 0x266cd2c
+0266CC41: 3b7008                   cmp esi, dword ptr [eax + 8]
+0266CC44: 0f84e7000000             je 0x266cd31
+0266CC4A: 8bc2                     mov eax, edx
+0266CC4C: 85c0                     test eax, eax
+0266CC4E: 0f84d8000000             je 0x266cd2c
+0266CC54: 85f6                     test esi, esi
+0266CC56: 0f84d0000000             je 0x266cd2c
+0266CC5C: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CC5F: 0f84c7000000             je 0x266cd2c
+0266CC65: 837e0800                 cmp dword ptr [esi + 8], 0
+0266CC69: 0f8dc2000000             jge 0x266cd31
+0266CC6F: 85c0                     test eax, eax
+0266CC71: 0f84b5000000             je 0x266cd2c
+0266CC77: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CC7A: 0f84ac000000             je 0x266cd2c
+0266CC80: 807e1d00                 cmp byte ptr [esi + 0x1d], 0
+0266CC84: 0f8589000000             jne 0x266cd13
+0266CC8A: 85c0                     test eax, eax
+0266CC8C: 0f849a000000             je 0x266cd2c
+0266CC92: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CC95: 0f8491000000             je 0x266cd2c
+0266CC9B: 8b4e0c                   mov ecx, dword ptr [esi + 0xc]
+0266CC9E: 85c9                     test ecx, ecx
+0266CCA0: 7471                     je 0x266cd13
+0266CCA2: 8b55fc                   mov edx, dword ptr [ebp - 4]
+0266CCA5: 83bad400000000           cmp dword ptr [edx + 0xd4], 0
+0266CCAC: 750e                     jne 0x266ccbc
+0266CCAE: 85c0                     test eax, eax
+0266CCB0: 747a                     je 0x266cd2c
+0266CCB2: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CCB5: 7475                     je 0x266cd2c
+0266CCB7: e8e435ffff               call 0x26602a0
+0266CCBC: 807d1000                 cmp byte ptr [ebp + 0x10], 0
+0266CCC0: 8b07                     mov eax, dword ptr [edi]
+0266CCC2: 7410                     je 0x266ccd4
+0266CCC4: 85c0                     test eax, eax
+0266CCC6: 7464                     je 0x266cd2c
+0266CCC8: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CCCB: 745f                     je 0x266cd2c
+0266CCCD: 8bcb                     mov ecx, ebx
+0266CCCF: 2b4e14                   sub ecx, dword ptr [esi + 0x14]
+0266CCD2: eb0e                     jmp 0x266cce2
+0266CCD4: 85c0                     test eax, eax
+0266CCD6: 7454                     je 0x266cd2c
+0266CCD8: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CCDB: 744f                     je 0x266cd2c
+0266CCDD: 8b4e14                   mov ecx, dword ptr [esi + 0x14]
+0266CCE0: 03cb                     add ecx, ebx
+0266CCE2: 85c0                     test eax, eax
+0266CCE4: 7446                     je 0x266cd2c
+0266CCE6: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CCE9: 7441                     je 0x266cd2c
+0266CCEB: 85c0                     test eax, eax
+0266CCED: 743d                     je 0x266cd2c
+0266CCEF: 3b7004                   cmp esi, dword ptr [eax + 4]
+0266CCF2: 7438                     je 0x266cd2c
+0266CCF4: 8b4514                   mov eax, dword ptr [ebp + 0x14]
+0266CCF7: 8b5510                   mov edx, dword ptr [ebp + 0x10]
+0266CCFA: 50                       push eax
+0266CCFB: 8b4618                   mov eax, dword ptr [esi + 0x18]
+0266CCFE: 03450c                   add eax, dword ptr [ebp + 0xc]
+0266CD01: 52                       push edx
+0266CD02: 50                       push eax
+0266CD03: 51                       push ecx
+0266CD04: 8b0d70aeba03             mov ecx, dword ptr [0x3baae70]
+0266CD0A: 51                       push ecx
+0266CD0B: 8b4e0c                   mov ecx, dword ptr [esi + 0xc]
+0266CD0E: e89d4affff               call 0x26617b0
+0266CD13: 6a00                     push 0
+0266CD15: 8d55d8                   lea edx, [ebp - 0x28]
+0266CD18: 52                       push edx
+0266CD19: 8d4df0                   lea ecx, [ebp - 0x10]

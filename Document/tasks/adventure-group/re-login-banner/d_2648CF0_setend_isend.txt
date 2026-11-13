@@ -1,0 +1,40 @@
+02648CF0: 55                       push ebp
+02648CF1: 8bec                     mov ebp, esp
+02648CF3: 85c9                     test ecx, ecx
+02648CF5: 7418                     je 0x2648d0f
+02648CF7: 807d0800                 cmp byte ptr [ebp + 8], 0
+02648CFB: 740b                     je 0x2648d08
+02648CFD: 83894c04000008           or dword ptr [ecx + 0x44c], 8
+02648D04: 5d                       pop ebp
+02648D05: c20400                   ret 4
+02648D08: 83a14c040000f7           and dword ptr [ecx + 0x44c], 0xfffffff7
+02648D0F: 5d                       pop ebp
+02648D10: c20400                   ret 4
+02648D13: cc                       int3 
+02648D14: cc                       int3 
+02648D15: cc                       int3 
+02648D16: cc                       int3 
+02648D17: cc                       int3 
+02648D18: cc                       int3 
+02648D19: cc                       int3 
+02648D1A: cc                       int3 
+02648D1B: cc                       int3 
+02648D1C: cc                       int3 
+02648D1D: cc                       int3 
+02648D1E: cc                       int3 
+02648D1F: cc                       int3 
+02648D20: 85c9                     test ecx, ecx
+02648D22: 7503                     jne 0x2648d27
+02648D24: 32c0                     xor al, al
+02648D26: c3                       ret 
+02648D27: 8b814c040000             mov eax, dword ptr [ecx + 0x44c]
+02648D2D: c1e803                   shr eax, 3
+02648D30: 83e001                   and eax, 1
+02648D33: c3                       ret 
+02648D34: cc                       int3 
+02648D35: cc                       int3 
+02648D36: cc                       int3 
+02648D37: cc                       int3 
+02648D38: cc                       int3 
+02648D39: cc                       int3 
+02648D3A: cc                       int3 

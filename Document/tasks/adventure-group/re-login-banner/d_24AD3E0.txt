@@ -1,0 +1,80 @@
+1:024AD3E0: 55                       push ebp
+2:024AD3E1: 8bec                     mov ebp, esp
+3:024AD3E3: 83ec0c                   sub esp, 0xc
+4:024AD3E6: 807d0c00                 cmp byte ptr [ebp + 0xc], 0
+5:024AD3EA: 0f84bd020000             je 0x24ad6ad
+6:024AD3F0: 53                       push ebx
+7:024AD3F1: 8d45f4                   lea eax, [ebp - 0xc]
+8:024AD3F4: 33db                     xor ebx, ebx
+9:024AD3F6: 6a05                     push 5
+10:024AD3F8: 50                       push eax
+11:024AD3F9: 895df4                   mov dword ptr [ebp - 0xc], ebx
+12:024AD3FC: 885df8                   mov byte ptr [ebp - 8], bl
+13:024AD3FF: e87c7f3100               call 0x27c5380
+14:024AD404: 8b45f4                   mov eax, dword ptr [ebp - 0xc]
+15:024AD407: 83c408                   add esp, 8
+16:024AD40A: 3bc3                     cmp eax, ebx
+17:024AD40C: 747d                     je 0x24ad48b
+18:024AD40E: 53                       push ebx
+19:024AD40F: 83f813                   cmp eax, 0x13
+20:024AD412: 7413                     je 0x24ad427
+21:024AD414: 83f816                   cmp eax, 0x16
+22:024AD417: 7407                     je 0x24ad420
+23:024AD419: 681d2c0000               push 0x2c1d
+24:024AD41E: eb0c                     jmp 0x24ad42c
+25:024AD420: 681f2c0000               push 0x2c1f
+26:024AD425: eb05                     jmp 0x24ad42c
+27:024AD427: 681e2c0000               push 0x2c1e
+28:024AD42C: e88f404100               call 0x28c14c0
+29:024AD431: 8b0db8c9a503             mov ecx, dword ptr [0x3a5c9b8]
+30:024AD437: 83c404                   add esp, 4
+31:024AD43A: 50                       push eax
+32:024AD43B: 6809020000               push 0x209
+33:024AD440: e82b78e5ff               call 0x2304c70
+34:024AD445: 0fbe4df8                 movsx ecx, byte ptr [ebp - 8]
+35:024AD449: 8b55f4                   mov edx, dword ptr [ebp - 0xc]
+36:024AD44C: 51                       push ecx
+37:024AD44D: 52                       push edx
+38:024AD44E: 68e8b65c03               push 0x35cb6e8
+39:024AD453: e868d83000               call 0x27bacc0
+40:024AD458: 83c404                   add esp, 4
+41:024AD45B: 50                       push eax
+42:024AD45C: 6820010000               push 0x120
+43:024AD461: 6888b65c03               push 0x35cb688
+44:024AD466: e855d83000               call 0x27bacc0
+45:024AD46B: 83c404                   add esp, 4
+46:024AD46E: 50                       push eax
+47:024AD46F: 68e8b55c03               push 0x35cb5e8
+48:024AD474: e847d83000               call 0x27bacc0
+49:024AD479: 83c404                   add esp, 4
+50:024AD47C: 50                       push eax
+51:024AD47D: 53                       push ebx
+52:024AD47E: e8ed0d3100               call 0x27be270
+53:024AD483: 83c41c                   add esp, 0x1c
+54:024AD486: 5b                       pop ebx
+55:024AD487: 8be5                     mov esp, ebp
+56:024AD489: 5d                       pop ebp
+57:024AD48A: c3                       ret 
+58:024AD48B: 0fbe45f8                 movsx eax, byte ptr [ebp - 8]
+59:024AD48F: 8b0db8dfb303             mov ecx, dword ptr [0x3b3dfb8]
+60:024AD495: a3984bb703               mov dword ptr [0x3b74b98], eax
+61:024AD49A: 8b11                     mov edx, dword ptr [ecx]
+62:024AD49C: 8b82e0050000             mov eax, dword ptr [edx + 0x5e0]
+63:024AD4A2: 56                       push esi
+64:024AD4A3: 57                       push edi
+65:024AD4A4: ffd0                     call eax
+66:024AD4A6: 83f80c                   cmp eax, 0xc
+67:024AD4A9: 756f                     jne 0x24ad51a
+68:024AD4AB: 8b0db8c9a503             mov ecx, dword ptr [0x3a5c9b8]
+69:024AD4B1: 53                       push ebx
+70:024AD4B2: 686cf09603               push 0x396f06c
+71:024AD4B7: 68a0e79503               push 0x395e7a0
+72:024AD4BC: 53                       push ebx
+73:024AD4BD: 68d5010000               push 0x1d5
+74:024AD4C2: e8298ce5ff               call 0x23060f0
+75:024AD4C7: 50                       push eax
+76:024AD4C8: e89d637b00               call 0x2c6386a
+77:024AD4CD: 8bf8                     mov edi, eax
+78:024AD4CF: 83c414                   add esp, 0x14
+79:024AD4D2: 3bfb                     cmp edi, ebx
+80:024AD4D4: 7444                     je 0x24ad51a

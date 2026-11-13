@@ -1,0 +1,40 @@
+02672BF0: 55                       push ebp
+02672BF1: 8bec                     mov ebp, esp
+02672BF3: 6aff                     push -1
+02672BF5: 6803b5e802               push 0x2e8b503
+02672BFA: 64a100000000             mov eax, dword ptr fs:[0]
+02672C00: 50                       push eax
+02672C01: 81ecd0000000             sub esp, 0xd0
+02672C07: 53                       push ebx
+02672C08: 56                       push esi
+02672C09: 57                       push edi
+02672C0A: a1e0ce9903               mov eax, dword ptr [0x399cee0]
+02672C0F: 33c5                     xor eax, ebp
+02672C11: 50                       push eax
+02672C12: 8d45f4                   lea eax, [ebp - 0xc]
+02672C15: 64a300000000             mov dword ptr fs:[0], eax
+02672C1B: 8bf1                     mov esi, ecx
+02672C1D: 8975f0                   mov dword ptr [ebp - 0x10], esi
+02672C20: 8b4e60                   mov ecx, dword ptr [esi + 0x60]
+02672C23: 33ff                     xor edi, edi
+02672C25: 3bcf                     cmp ecx, edi
+02672C27: 7407                     je 0x2672c30
+02672C29: 6a01                     push 1
+02672C2B: e8d095feff               call 0x265c200
+02672C30: c786d0000000ffffffff     mov dword ptr [esi + 0xd0], 0xffffffff
+02672C3A: 39be84000000             cmp dword ptr [esi + 0x84], edi
+02672C40: 0f8675030000             jbe 0x2672fbb
+02672C46: 6a08                     push 8
+02672C48: 897dd4                   mov dword ptr [ebp - 0x2c], edi
+02672C4B: e81008dbfd               call 0x423460
+02672C50: 83c404                   add esp, 4
+02672C53: 3bc7                     cmp eax, edi
+02672C55: 0f84a1030000             je 0x2672ffc
+02672C5B: 8945d4                   mov dword ptr [ebp - 0x2c], eax
+02672C5E: 33c9                     xor ecx, ecx
+02672C60: 8908                     mov dword ptr [eax], ecx
+02672C62: 33d2                     xor edx, edx
+02672C64: 895004                   mov dword ptr [eax + 4], edx
+02672C67: 8b4dd4                   mov ecx, dword ptr [ebp - 0x2c]
+02672C6A: 8d45d4                   lea eax, [ebp - 0x2c]
+02672C6D: 8901                     mov dword ptr [ecx], eax

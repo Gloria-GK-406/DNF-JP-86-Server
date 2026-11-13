@@ -79,3 +79,25 @@
 两项都待用户按 `Document/tasks/adventure-group/` 的测试流程确认。
 
 **判据。** `Server/tests/Dfo.Server.Protocol.Tests/Game/AdventureGroupPushTests.cs`、`Server/tests/Dfo.Server.Application.Tests/Characters/AdventureGroupTests.cs`。
+
+## 2026-11-13 客户端冒险团管理器与登录升级动画（ClientStatic，High，待实机）
+
+证据：静态反汇编，映像 `DNF.unpacked-b1-full.exe`，摘录在 `Document/tasks/adventure-group/re-login-banner/`。
+
+- **管理器**：全局单例 `[0x3A44AB8]`，由惰性 getter `0x14E5A60` 首次创建，进程内不释放。创建时，`0x14E58F0` 把 `Mercenary_levelup.act` 实体存进 manager+8，实体的动画初始为「未结束」（`[anim+0x44C]` bit3 为 0）。
+- **登录时的升级动画**：
+  - 场景 `0x13664A0` 在 `0x1366925` 无条件取管理器，在 `0x136692C` 绘制。
+  - 绘制函数 `0x14E5CF0` 只检查动画的结束位，没结束就画并推进，播完由动画自己置位（`0x265FED0`）。
+  - 结果：每个客户端进程第一次进城都会完整播一遍。等级 ≥1 时附带等级数字（`0x14E5EB3`）。
+  - **任何线上消息都影响不到这一步。** 推论：同一进程回选人再进城不会重播（未实测）。
+- **0x01A0 handler**：`0x14E5C50` → `0x14E5AF0`。不读 body，先在 `0x14E5B78` 执行 `inc [mgr]`，再用自增后的值配 dstr 46535 打出文字，并经 `0x2672BF0` → `0x265C200` 清结束位、从头重播动画。这是重播的唯一路径。
+- **写管理器的线上消息**：只有两条，都是直接覆盖，不比较新旧值，也不碰动画。
+  - NOTI 0x0002 子类型 2 头部：handler `0x13E91E0` 在 `0x13E9354/0x13E9356` 写 +0/+4；
+  - CMD 0x01BA 应答：`0x1585590` → `0x13E1600` 写 u8 + u32。
+
+  USERINFO 子类型 1 的冒险团等级**不写管理器**，只写角色对象 +0x5FD8，由 `0x1847D10` 重建属性效果和 buff 图标（`0x14E6100`）。
+- **对服务端的含义**：
+  - 推送 0x01A0 时，客户端管理器必须仍是旧等级。本仓在同一命令内只可能先发子类型 1，不写管理器，所以升级券和完成任务两条路径**不会多加一级**，之前"待实机"的疑问由此解除（High）。
+  - 登录阶段不得补发 0x01A0。
+- **登录动画的消除办法**：只能改客户端。在 `0x14E58F0` 创建实体之后，对动画调用 `0x2648CF0(1)` 预置结束位；真正升级时 0x01A0 会清位重播。这超出服务端仓，需另立 ClientHack 任务。
+- **NOTI 0x0466 与冒险团无关**：真实 handler 是 `0x024AD6C0`（注册在 `0x2FB8EA0`）。它把 5 字节存到 `[0x3B74B98]`/`[0x3B74B9C]`，只有 `0x24Axxxx` 的另一个 UI 模块读取。
