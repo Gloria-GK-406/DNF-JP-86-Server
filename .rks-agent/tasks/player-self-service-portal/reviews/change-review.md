@@ -174,3 +174,9 @@ verdict: changes_required
 - CH-1：在 PR / 线上开启前加按账号在途上限，或登记为 Accepted Risk 并由用户裁定。
 - CH-2：建议在 `gm-web-admin.md`「玩家自助后台」补一句受信代理前置条件；线上部署核对 Caddy 对 `/api/player/*` 的 `Origin` 处理。
 - 前端测试在高负载下有钩子超时（本次 `items.test.ts`），单独运行稳定通过。
+
+---
+
+## 补充确认：remediation 2（HEAD `0e1cecb31`，verdict 不变：approved）
+
+`git diff 10bc4fd5e 0e1cecb31` 的代码部分只是机械改名：`PlayerRequestLimiter.TryEnter`/`Exit` 改为 `TryAcquire`/`Release`，并同步改了 `GmAccessBoundary` 的调用点与 `PlayerPortalRequestLimitHttpTests`。方法体、锁内逻辑、调用位置、`try/finally` 结构与注释都没有变，行为不变；规则测试本身没有改动。`GmWeb` 源码中已不再出现 `TryEnter`/`.Exit(`。计数器内部使用的 `lock` 语句是 `LockRemovalSourceTests` 明确允许的写法。本审查独立复跑：`LockRemovalSourceTests` 18/18 通过，`PlayerPortalRequestLimitHttpTests` 2/2 通过。
