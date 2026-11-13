@@ -56,21 +56,29 @@ internal sealed class AdventureGroupRuleService(ICharacterManageContentSource co
 }
 
 /// <summary>The account's adventure group, worked out from its characters each time.</summary>
-internal sealed class AdventureGroupDomainService(ICharacterTable characters, IAdventureGroupRuleService rules)
+/// <remarks>
+/// The roster says which characters the account has; each one's level is the character's own
+/// (<see cref="ICharacter.ProgressAsync"/>, worked out from its experience), not the SQL
+/// <c>level</c> column, which is only a compatibility projection.
+/// </remarks>
+internal sealed class AdventureGroupDomainService(
+    ICharacterTable roster, ICharacterDomainService characters, IAdventureGroupRuleService rules)
     : IAdventureGroupDomainService
 {
     public async ValueTask<AdventureGroupStanding> ReadAsync(AccountId accountId, CancellationToken cancellationToken)
     {
-        var roster = await characters.ReadByAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
-        return rules.Evaluate(roster.Select(row => row.Level)).Standing;
+        var levels = await LevelsAsync(accountId, cancellationToken).ConfigureAwait(false);
+        return rules.Evaluate(levels.Select(member => member.Level)).Standing;
     }
 
     public async ValueTask<double> ClearExperienceRateAsync(
         AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
     {
-        var roster = await characters.ReadByAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
-        var self = roster.FirstOrDefault(row => row.CharacterId == characterId.Value);
-        return self is null ? 0 : rules.ClearExperienceRate(rules.Evaluate(roster.Select(row => row.Level)), self.Level);
+        var levels = await LevelsAsync(accountId, cancellationToken).ConfigureAwait(false);
+        var self = levels.FirstOrDefault(member => member.Id == characterId);
+        return self.Id != characterId
+            ? 0
+            : rules.ClearExperienceRate(rules.Evaluate(levels.Select(member => member.Level)), self.Level);
     }
 
     public async ValueTask<AdventureGroupLevelRise?> LevelRiseAsync(
@@ -80,19 +88,37 @@ internal sealed class AdventureGroupDomainService(ICharacterTable characters, IA
         if (change.After <= change.Before)
             return null;
 
-        if (await characters.FindOwnerAsync(change.CharacterId, cancellationToken).ConfigureAwait(false) is not { } owner)
+        if (await roster.FindOwnerAsync(change.CharacterId, cancellationToken).ConfigureAwait(false) is not { } owner)
             return null;
 
-        var roster = await characters.ReadByAccountAsync(owner, cancellationToken).ConfigureAwait(false);
-        if (roster.All(row => row.CharacterId != change.CharacterId.Value))
+        var levels = await LevelsAsync(owner, cancellationToken).ConfigureAwait(false);
+        if (levels.All(member => member.Id != change.CharacterId))
             return null;
 
-        var from = rules.Evaluate(LevelsWith(roster, change.CharacterId, change.Before)).Standing.Level;
-        var to = rules.Evaluate(LevelsWith(roster, change.CharacterId, change.After)).Standing.Level;
+        // The changed character at the event's own before and after; the rest as they stand now.
+        var from = rules.Evaluate(LevelsWith(levels, change.CharacterId, change.Before)).Standing.Level;
+        var to = rules.Evaluate(LevelsWith(levels, change.CharacterId, change.After)).Standing.Level;
         return to > from ? new AdventureGroupLevelRise(owner, from, to) : null;
     }
 
+    /// <summary>The account's characters that have not been deleted, each at its current level.</summary>
+    private async ValueTask<IReadOnlyList<(CharacterId Id, int Level)>> LevelsAsync(
+        AccountId accountId, CancellationToken cancellationToken)
+    {
+        var members = await roster.ReadByAccountAsync(accountId, cancellationToken).ConfigureAwait(false);
+        var levels = new List<(CharacterId, int)>(members.Count);
+        foreach (var member in members)
+        {
+            var id = new CharacterId(member.CharacterId);
+            // A character gone between the two reads is no longer the account's.
+            if (await characters.Get(id).ProgressAsync(cancellationToken).ConfigureAwait(false) is { } progress)
+                levels.Add((id, progress.Level));
+        }
+
+        return levels;
+    }
+
     private static IEnumerable<int> LevelsWith(
-        IReadOnlyList<CharacterRosterRow> roster, CharacterId characterId, int level) =>
-        roster.Select(row => row.CharacterId == characterId.Value ? level : row.Level);
+        IReadOnlyList<(CharacterId Id, int Level)> levels, CharacterId characterId, int level) =>
+        levels.Select(member => member.Id == characterId ? level : member.Level);
 }

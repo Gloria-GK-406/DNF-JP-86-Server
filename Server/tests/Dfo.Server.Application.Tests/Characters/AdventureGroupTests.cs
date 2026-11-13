@@ -83,7 +83,7 @@ public sealed class AdventureGroupTests
     public async Task The_owner_counts_only_the_accounts_characters_that_remain()
     {
         var roster = new Roster((1, 86), (2, 86), (3, 30));
-        var service = new AdventureGroupDomainService(roster.Table, Rules);
+        var service = new AdventureGroupDomainService(roster.Table, roster.Characters, Rules);
 
         Assert.Equal(new AdventureGroupStanding(3, 21570), await service.ReadAsync(Roster.Account, default));
 
@@ -101,7 +101,7 @@ public sealed class AdventureGroupTests
     public async Task The_clear_bonus_skips_the_highest_and_its_equals()
     {
         var roster = new Roster((1, 86), (2, 86), (3, 60), (4, 90));
-        var service = new AdventureGroupDomainService(roster.Table, Rules);
+        var service = new AdventureGroupDomainService(roster.Table, roster.Characters, Rules);
 
         Assert.Equal(0.10, await service.ClearExperienceRateAsync(Roster.Account, new(3), default), 10);
         Assert.Equal(0.10, await service.ClearExperienceRateAsync(Roster.Account, new(1), default), 10);
@@ -117,7 +117,7 @@ public sealed class AdventureGroupTests
     {
         // 86 + 85 = 10785 + 10375 = 21160: level 3. At 86 + 86 = 21570 still level 3.
         var roster = new Roster((1, 86), (2, 86));
-        var service = new AdventureGroupDomainService(roster.Table, Rules);
+        var service = new AdventureGroupDomainService(roster.Table, roster.Characters, Rules);
 
         Assert.Null(await service.LevelRiseAsync(new(new(2), 85, 86), default));
 
@@ -137,7 +137,7 @@ public sealed class AdventureGroupTests
     public async Task A_fall_or_a_deleted_character_raises_nothing()
     {
         var roster = new Roster((1, 86), (2, 86));
-        var service = new AdventureGroupDomainService(roster.Table, Rules);
+        var service = new AdventureGroupDomainService(roster.Table, roster.Characters, Rules);
 
         Assert.Null(await service.LevelRiseAsync(new(new(2), 86, 1), default));
         roster.Delete(2);
@@ -174,8 +174,10 @@ public sealed class AdventureGroupTests
             {
                 nameof(ICharacterTable.ReadByAccountAsync) => ValueTask.FromResult<IReadOnlyList<CharacterRosterRow>>(
                     (AccountId)arguments![0]! == Account
+                        // The SQL level column is a compatibility projection: deliberately wrong
+                        // here, so a calculation that read it instead of the character would fail.
                         ? levels.OrderBy(pair => pair.Key)
-                            .Select((pair, slot) => new CharacterRosterRow(pair.Key, slot, pair.Value)).ToArray()
+                            .Select((pair, slot) => new CharacterRosterRow(pair.Key, slot, 1)).ToArray()
                         : []),
                 nameof(ICharacterTable.FindOwnerAsync) => ValueTask.FromResult<AccountId?>(
                     levels.ContainsKey(((CharacterId)arguments![0]!).Value) ? Account : null),
@@ -184,6 +186,18 @@ public sealed class AdventureGroupTests
         }
 
         public ICharacterTable Table { get; }
+
+        /// <summary>Each character's own progress: the level the account's adventure group is built on.</summary>
+        public ICharacterDomainService Characters => TestRequired.Absent<ICharacterDomainService>((method, arguments) =>
+            method.Name == nameof(ICharacterDomainService.Get)
+                ? Character(((CharacterId)arguments![0]!).Value)
+                : null);
+
+        private ICharacter Character(int id) => TestRequired.Absent<ICharacter>((method, _) =>
+            method.Name == nameof(ICharacter.ProgressAsync)
+                ? ValueTask.FromResult<CharacterProgressionState?>(
+                    levels.TryGetValue(id, out var level) ? new CharacterProgressionState(checked((byte)level), 0) : null)
+                : null);
 
         public void Delete(int id) => levels.Remove(id);
 
