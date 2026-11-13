@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.OnlineTimeReward;
 using Dfo.Server.Protocol.Game.WeeklyAttendance;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Game.GuardianAltar;
@@ -184,6 +185,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSelectedSessionRefresh();
         services.AddStateSynchronizationSlice(configuration);
         services.AddCeraShopPurchaseSlice();
+        services.AddOnlineTimeRewardSlice();
         services.AddAltarSlice();
         services.AddGuardianAltarSlice();
         services.AddIsolatedWorldMaintenanceCommands();

@@ -110,6 +110,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(DungeonEntryIntentDomainService),
         typeof(Dfo.Server.Application.Events.JoustMaintenanceDomainService),
         typeof(Dfo.Server.Application.Sessions.SelectedSessionRefreshDomainService),
+        typeof(Dfo.Server.Application.Events.OnlineTimeRewardDomainService),
         typeof(Dfo.Server.Application.World.RoomMechanismMaintenanceDomainService),
         typeof(SelectedSessionSafety),
         typeof(EffectOperationLedger),
@@ -272,6 +273,10 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyService.RemoveMember(CharacterId, CharacterId)"] = W,
         ["PartyService.RequestInvite(PartyCharacterSnapshot, PartyCharacterSnapshot, PartyInviteDisplayState)"] = W,
         ["PartyService.TransferLeadership(CharacterId, CharacterId)"] = W,
+
+        // OnlineTimeRewardDomainService
+        ["OnlineTimeRewardDomainService.AccrueAsync(SelectedSessionIdentity, CancellationToken)"] = W,
+        ["OnlineTimeRewardDomainService.Retain(IReadOnlyCollection<SelectedSessionIdentity>)"] = W,
 
         // ChatConversationDomainService
         ["ChatConversationDomainService.EndAllOf(SelectedSessionIdentity)"] = W,

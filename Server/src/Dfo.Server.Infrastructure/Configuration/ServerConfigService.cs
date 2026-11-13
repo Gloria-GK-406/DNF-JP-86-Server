@@ -21,6 +21,11 @@ public sealed class ServerConfigService : IServerConfigService
         snapshot.TryAdd("Premium:BlackDiamondEnabled", "true");
         snapshot.TryAdd("Premium:BlackDiamondExtraFatigue", "32");
         snapshot.TryAdd("Fatigue:BaseTotal", "156");
+        snapshot.TryAdd("OnlineTimeReward:Enabled", "false");
+        snapshot.TryAdd("OnlineTimeReward:IntervalMinutes", "5");
+        snapshot.TryAdd("OnlineTimeReward:Cera", "0");
+        snapshot.TryAdd("OnlineTimeReward:TokenCera", "0");
+        snapshot.TryAdd("OnlineTimeReward:Notice", "true");
         values = snapshot;
     }
 

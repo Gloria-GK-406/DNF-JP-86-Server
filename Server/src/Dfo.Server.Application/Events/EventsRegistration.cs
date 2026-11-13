@@ -18,6 +18,7 @@ internal static class EventsRegistration
     internal static IServiceCollection AddEvents(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDomainEvent<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged>("activity.activation-changed", 1);
+        services.AddOnlineTimeReward();
         services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, UnlimitedFatigueActivationSubscriber>();
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, EventsActivationNotificationSubscriber>(
             "activity.activation-refresh", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
