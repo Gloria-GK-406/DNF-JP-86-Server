@@ -87,7 +87,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
                 MailAsset.TokenCera voucher => ("token_cera", 0, MailAsset.TokenCera.VoucherItemId, voucher.Amount, voucher.Amount),
                 _ => throw new MailException(MailFailure.InvalidMail, "Prepared records differ from the attachment descriptor.")
             };
-            var core = snapshot is null ? kind == "token_cera" ? VoucherCore : null : (snapshot with { Count = count }).ToCore();
+            var core = snapshot is null ? null : (snapshot with { Count = count }).ToCore();
             var itemKind = snapshot?.LegacyKind switch { 8 => "avatar", 5 => "creature", _ => kind };
             var detail = snapshot is null ? "" : JsonSerializer.Serialize(new { Avatar = snapshot.AvatarDetail, Creature = snapshot.CreatureDetail });
             long attachmentId = 0;
@@ -247,16 +247,6 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
             header.Unlimited || IsLegacyUnlimited(header.Expires) ? null : ParseDate(header.Expires),
             header.Read, attachments.ToImmutableArray()) { DeliveryKey = header.DeliveryKey };
     }
-
-    /// <summary>
-    /// The voucher row's display core: the item with value 0. The client shows the amount from the
-    /// row's gold field, not from the item (reference server, live test on the same executable).
-    /// </summary>
-    private static readonly InventoryItemCoreState VoucherCore = new ItemSnapshot
-    {
-        ItemId = MailAsset.TokenCera.VoucherItemId, LegacyKind = 3, Type = ItemTraitClassification.For(3),
-        IsPile = true, Count = 0,
-    }.ToCore();
 
     private static bool IsLegacyUnlimited(string value) =>
         string.CompareOrdinal(value, "9999-01-01") >= 0;
