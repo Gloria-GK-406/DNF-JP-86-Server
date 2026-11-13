@@ -498,6 +498,7 @@ public sealed class ExplicitEffectExecutionTests
         { var result = await inner.QuoteAsync(input, level, now, ct); await gate.WaitAsync(); return result; }
         public CeraShopPlanningResult Plan(CeraShopQuote quote, IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held, int gold, AccountCeraBalances balances, int identitySeed) =>
             inner.Plan(quote, held, gold, balances, identitySeed);
+        public bool SellsPremium(int premiumType) => inner.SellsPremium(premiumType);
     }
     private sealed class LifecycleWitness : INetworkConnectionLifecycleHandler
     {

@@ -71,7 +71,8 @@ public abstract record AuctionLotSource
     public sealed record Gold(int TierItemId) : AuctionLotSource;
 }
 
-public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing);
+/// <param name="Hours">The duration the client asked for; the market's rule decides whether it is allowed.</param>
+public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing, uint Hours = 24);
 
 /// <summary>One listing as the house knows it.</summary>
 /// <param name="Item">The item as it was handed over, for showing and searching it; never used to deliver it.</param>
@@ -215,22 +216,45 @@ public interface IAuctionItemDefinitionSource
     ValueTask<AuctionItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken);
 }
 
+/// <summary>What one account identity is allowed at the auction house.</summary>
+/// <param name="Identity">The account premium service that grants it; null for the ordinary account.</param>
+/// <param name="Priority">With several identities at once, the highest priority's entitlement applies whole.</param>
+/// <param name="ListingHours">The durations a listing may ask for; the first is the default.</param>
+public sealed record AuctionEntitlement(
+    Dfo.Server.Abstractions.Accounts.PremiumServiceType? Identity,
+    int Priority,
+    int ItemListingLimit,
+    int ItemFeeRateBasisPoints,
+    IReadOnlyList<uint> ListingHours,
+    bool CashItemsListable,
+    int ConsignmentListingLimit,
+    int ConsignmentFeeRateBasisPoints);
+
 /// <summary>The rules of one market, fixed for as long as the rule service gives it out.</summary>
+/// <remarks>What differs by who lists (limits, fees, durations) is the <see cref="AuctionEntitlement"/>.</remarks>
 public sealed record AuctionMarketRule(
     AuctionMarket Market,
     bool Open,
-    int ListingLimit,
     TimeSpan Duration,
-    int Deposit,
-    int FeeRateBasisPoints);
+    int Deposit);
 
 /// <summary>Auction rules: market terms, eligibility, prices and the client's category tree.</summary>
 public interface IAuctionRuleService
 {
+    /// <summary>The market's terms that do not depend on who lists: open, deposit, the base day.</summary>
     AuctionMarketRule For(AuctionMarket market);
 
+    /// <summary>
+    /// The entitlement of an account holding these active premium services: the highest-priority one
+    /// among the identities in the entitlement table, the ordinary entitlement when none matches.
+    /// </summary>
+    AuctionEntitlement EntitlementFor(IReadOnlyCollection<Dfo.Server.Abstractions.Accounts.PremiumServiceType> activeServices);
+
+    /// <summary>How long a listing stays up: the asked hours when the entitlement allows them, its default otherwise.</summary>
+    TimeSpan ListingDuration(uint requestedHours, AuctionEntitlement entitlement);
+
     /// <summary>Whether this held item may be listed. The snapshot is the caller's fact.</summary>
-    ValueTask<AuctionRefusal> CheckEligibilityAsync(ItemSnapshot item, bool hasCoupon, CancellationToken cancellationToken);
+    ValueTask<AuctionRefusal> CheckEligibilityAsync(ItemSnapshot item, AuctionEntitlement entitlement, CancellationToken cancellationToken);
 
     /// <summary>Normalizes and checks the asked prices for a lot of <paramref name="quantity"/>.</summary>
     AuctionRefusal CheckPricing(AuctionMarket market, AuctionPricing pricing, int quantity, bool pile);
@@ -257,7 +281,7 @@ public interface IAuctionRuleService
     /// The fee rate for a consignment asking <paramref name="price"/> against the tier's recent
     /// <paramref name="average"/>, or null when the price is too far below it to be listed.
     /// </summary>
-    int? ConsignmentFeeRate(long price, long average, bool hasCoupon);
+    int? ConsignmentFeeRate(long price, long average, AuctionEntitlement entitlement);
 }
 
 /// <summary>Where listings and trades are kept. Data operations only; every rule is the house's.</summary>

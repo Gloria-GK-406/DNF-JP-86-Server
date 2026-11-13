@@ -67,7 +67,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         nameTags.Add(new(product.ItemId, product.ServiceDays));
                     }
                     else if (product.Category == "[premium]" && product.Count == 1
-                        && product.Premium is { PremiumType: 22 or 27 or 84 or 97 } contract && contract.Duration > TimeSpan.Zero)
+                        && product.Premium is { } contract && SellsPremium(contract.PremiumType) && contract.Duration > TimeSpan.Zero)
                     {
                         subscriptions.Add(new((PremiumServiceType)contract.PremiumType, contract.Duration));
                     }
@@ -336,6 +336,10 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         if (days < 0) throw Refuse(CeraShopRejection.UnsupportedProduct, "Negative item duration.");
         return days == 0 ? 0 : checked((int)(now.ToUnixTimeSeconds() + (long)days * 86400));
     }
+
+    public bool SellsPremium(int premiumType) => premiumType is (int)PremiumServiceType.OverEquipmentContract
+        or (int)PremiumServiceType.ExpertSkillContract or (int)PremiumServiceType.AuctionCoupon
+        or (int)PremiumServiceType.GrowthContract or (int)PremiumServiceType.CrystalContract;
 
     private static PremiumServiceType CharacterService(int slot) => slot switch
     {
