@@ -36,6 +36,8 @@ internal sealed class RecordingCharacterTable(int level, uint experience) : ICha
 
     public ValueTask<int> OpenExtraEquipmentSlotsAsync(CharacterId characterId, ExtraEquipmentSlots slots,
         CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<int> OpenAuraSkinSlotAsync(CharacterId characterId, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
 
         public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int newLevel, long newExperience, CancellationToken cancellationToken)

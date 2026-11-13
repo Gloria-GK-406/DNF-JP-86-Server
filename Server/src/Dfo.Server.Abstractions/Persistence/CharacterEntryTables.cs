@@ -15,7 +15,8 @@ public sealed record CharacterEntryRow(
     long NameTagItemId,
     long NameTagExpireTime,
     long GuildPowerWar,
-    int GuildLevel);
+    int GuildLevel,
+    int AuraSkinSlot = 0);
 
 /// <summary>One row of <c>character_dimensions</c>.</summary>
 public sealed record DimensionRow(int SortOrder, long Key, int Value1, int Value2);

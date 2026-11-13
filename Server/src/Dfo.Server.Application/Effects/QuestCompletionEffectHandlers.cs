@@ -85,6 +85,18 @@ internal sealed class OpenExtraEquipmentSlotEffectHandler(ICharacterTable charac
         return new ExtraEquipmentSlotChange(effect.Slot);
     }
 }
+internal sealed class OpenAuraSkinSlotEffectHandler(ICharacterTable characters) : EffectHandler<OpenAuraSkinSlotEffect>
+{
+    public override ValueTask ValidateAsync(EffectExecutionContext context, OpenAuraSkinSlotEffect effect, CancellationToken ct) =>
+        ValueTask.CompletedTask;
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, OpenAuraSkinSlotEffect effect, CancellationToken ct)
+    {
+        context.Footprint.DemandEffects(context.Owner);
+        if (await characters.OpenAuraSkinSlotAsync(context.CharacterId, ct).ConfigureAwait(false) != 1)
+            throw new InvalidOperationException("Aura skin slot target refused the write.");
+        return new AuraSkinSlotChange();
+    }
+}
 internal sealed class SetCharacterAwakeningEffectHandler(ICharacterTable characters, IEventService events) : EffectHandler<SetCharacterAwakeningEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, SetCharacterAwakeningEffect effect, CancellationToken ct)

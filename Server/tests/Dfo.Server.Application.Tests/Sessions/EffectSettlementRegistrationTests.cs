@@ -23,11 +23,11 @@ public sealed class EffectSettlementRegistrationTests
                     ? family : new[] { RequestType(handlerRegistry.GetHandlerType(x.MessageType)) }).Where(x => typeof(IEffectSettlementRequest).IsAssignableFrom(x)).Distinct().ToArray()))
             .Where(x => x.Productions.Length > 0).ToArray();
         Assert.Equal(new ushort[] { 0x0015, 0x0019, 0x001A, 0x001B, 0x001D, 0x001E, 0x0022, 0x002C, 0x0050, 0x0051, 0x0063, 0x0064,
-            0x00A0, 0x00C9, 0x00CC, 0x00CD, 0x00CE, 0x00D0, 0x00D7, 0x00ED, 0x00FB, 0x010F, 0x0110, 0x0131, 0x0132, 0x0133, 0x0134, 0x0191, 0x0198, 0x01A2, 0x01AF, 0x01B6, 0x01B7, 0x01C8, 0x0204, 0x0207, 0x0313, 0x0379, 0x037A, 0x03CF, 0x03D0, 0x03E5, 0x03E6, 0x03E7, 0x03E8, 0x03F4, 0x03F5,
+            0x00A0, 0x00C9, 0x00CC, 0x00CD, 0x00CE, 0x00D0, 0x00D7, 0x00ED, 0x00FB, 0x010F, 0x0110, 0x0131, 0x0132, 0x0133, 0x0134, 0x0191, 0x0198, 0x01A2, 0x01AF, 0x01B6, 0x01B7, 0x01C8, 0x0204, 0x0207, 0x0313, 0x0357, 0x0379, 0x037A, 0x03CF, 0x03D0, 0x03E5, 0x03E6, 0x03E7, 0x03E8, 0x03F4, 0x03F5,
             0x03FD, 0x03FE, 0x03FF, 0x0400, 0x0401, 0x0402, 0x0403, 0x0404, 0x0405, 0x0406, 0x0450, 0x04E7 },
             wire.Select(x => x.Registration.Type).Order());
         Assert.All(wire, x => { Assert.Equal(1, x.Registration.Selector); Assert.Single(x.Productions); });
-        Assert.Equal(new[] { "AvatarCompoundRequest", "AvatarPackageOpeningRequest", "CapsuleRequest", "ChargeRentPointRequest", "CollectionBoxRequest", "CompoundItemRequest", "DisjointItemRequest", "EnchantByBeadRequest", "EpicCraftRequest", "FinishQuestRequest",
+        Assert.Equal(new[] { "AuraSkinSlotRequest", "AvatarCompoundRequest", "AvatarPackageOpeningRequest", "CapsuleRequest", "ChargeRentPointRequest", "CollectionBoxRequest", "CompoundItemRequest", "DisjointItemRequest", "EnchantByBeadRequest", "EpicCraftRequest", "FinishQuestRequest",
             "ForgingRequest", "HousingBuyItemRequest", "HousingNetworkRequest", "IncreaseStatusRequest", "ItemSocketRequest", "JoustBetRequest", "LearnSkillRequest", "LevelUpTicketRequest", "LotteryOpeningRequest", "MagicBoxBatchOpeningRequest", "MagicBoxSingleOpeningRequest",
             "MagicSealRequest", "OutworldRequest", "PackageOpeningRequest", "QuestClearCouponRequest", "ReinforceItemRequest",
             "RenameCreatureRequest", "RentEquipmentRequest", "ResetItemQualityRequest", "ResetRandomOptionRequest", "SharedEffectRequest", "TeleportRequest", "UpgradeChronicleRequest", "UseStackableRequest", "VendingMachineRequest", "WarehouseRequest", "WeddingLovePointRequest" },

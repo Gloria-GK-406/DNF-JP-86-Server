@@ -24,7 +24,8 @@ public sealed record CharacterProfileStorageRecord(
     (int Flag1, int Flag2, int Flag3, int Flag4) DimensionFlags,
     byte PvpGrade = 0,
     byte PvpRatingGrade = 0,
-    byte UserState = 0);
+    byte UserState = 0,
+    bool AuraSkinSlotOpen = false);
 
 public sealed record CharacterSkillStorageRow(
     int PageIndex,

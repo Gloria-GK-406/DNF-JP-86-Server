@@ -108,6 +108,7 @@ public sealed class EntryLoadCharacterizationTests
             INSERT INTO character_settings(character_id,character_option_blob,user_state_bits)
                 VALUES(22,X'00A2',1011);
             INSERT INTO character_dimensions VALUES(22,0,9,1,2);
+            UPDATE characters SET aura_skin_slot=1 WHERE character_id=22;
             INSERT INTO character_hotkey_slots VALUES(22,0,20),(22,1,10);
             INSERT INTO character_skills VALUES(22,'pve',0,4,100,5,X'0908');
             INSERT INTO character_active_quests VALUES(22,2,200,6);
@@ -288,6 +289,7 @@ public sealed class EntryLoadCharacterizationTests
         Profile.PvpGrade = 105
         Profile.PvpRatingGrade = 106
         Profile.UserState = 107
+        Profile.AuraSkinSlotOpen = True
         Skill.Job = 8
         Skill.BonusSp = 1004
         Skill.BonusTp = 1005

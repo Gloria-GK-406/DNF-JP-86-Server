@@ -22,7 +22,7 @@ public sealed class CharacterBodyShapeTests
     /// <summary>The character's persisted fields, including tutorial completion.</summary>
     private static readonly string[] Characters =
     [
-        "account_id", "area_id", "area_state", "bonus_sp", "bonus_tp",
+        "account_id", "area_id", "area_state", "aura_skin_slot", "bonus_sp", "bonus_tp",
         "character_id", "clone_title_item_id", "created_at", "delete_flag", "direction",
         "ex_equip_slot_stat", "exp", "grow_type", "guild_level", "guild_power_war", "job",
         "last_inn_town_id", "level", "name", "name_bytes", "name_tag_expire_time",

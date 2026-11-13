@@ -36,6 +36,7 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
 - 版本 5 → 6（`AdventureGroupColumnRetirement.cs`）：删除 `characters.manage_level`。冒险团改由服务端按账号角色等级现算，不落库；该列从无写入者，各行恒为 0，删除不丢数据。库里已无该列时跳过。迁移后 0.3.0 及更早的服务端无法再打开该库。
 - 版本 6 → 7（`AuctionTablesUpgrade.cs`）：新增拍卖行三张表 `auction_listings`（挂单，物品拍卖与金币寄售共用）、`auction_custody`（挂单托管的物品）、`auction_trades`（成交记录）及其索引，既有数据不变。
 - 版本 7 → 8（`PrivateStoreCustodyUpgrade.cs`）：新增个人商店托管表 `private_store_custody`（摊位上陈列的物品，按卖家与陈列格），既有数据不变。
+- 版本 8 → 9（`AuraSkinSlotUpgrade.cs`）：新增 `characters.aura_skin_slot`，记录角色是否已用扩展券开启光环幻化栏，既有角色一律为 0（未开启）。见 #327。
 - 迁移工具不认识的表和列原样保留。
 
 ## 修改表结构时

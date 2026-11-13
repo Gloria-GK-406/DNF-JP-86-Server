@@ -214,7 +214,8 @@ internal sealed class CharacterEntryAssembly(
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
             row.Experience, row.ExtraEquipSlotStat, dimensionRows, flagValues,
             checked((byte)pvpRow.PvpGrade), checked((byte)pvpRow.PvpRatingGrade),
-            checked((byte)row.UserState));
+            checked((byte)row.UserState),
+            row.AuraSkinSlot != 0);
     }
 
     private async ValueTask<CharacterSkillStorageRecord> LoadSkillsAsync(

@@ -358,7 +358,8 @@ public sealed record CharacterEntryExtrasState(
     int ExtraEquipmentSlotState,
     IReadOnlyList<(int SortOrder, long Key, int Value1, int Value2)> Dimensions,
     (int Flag1, int Flag2, int Flag3, int Flag4) DimensionFlags,
-    IReadOnlyList<int> SpecialRewardQuestIds);
+    IReadOnlyList<int> SpecialRewardQuestIds,
+    bool AuraSkinSlotOpen = false);
 
 /// <summary>
 /// Everything about a character that the entry packet shows, as the concepts it is made of.

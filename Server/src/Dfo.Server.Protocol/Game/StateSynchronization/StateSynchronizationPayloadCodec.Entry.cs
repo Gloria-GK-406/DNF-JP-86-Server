@@ -1117,7 +1117,12 @@ internal static partial class StateSynchronizationPayloadCodec
         // receiver's own USERINFO keeps this word zero. The character id remains independently at
         // +18; replacing it with the routing id makes the client create the wrong avatar identity.
         writer.Write(routingWireUserId ?? (ushort)0);
-        writer.Write(new byte[ExtendedSubtypeReservedBlock - sizeof(ushort)]);
+        // The fifteen bytes from +3 land in one client global (VA 013E63DF reads them into 03A419E0);
+        // the last of them, +17, is the aura skin slot flag: 013E6741 passes "> 0" to 019DB390, which
+        // sets bit 3 of the character's +0x468 flags, and 015A473A checks that bit before it offers
+        // the ticket. The bytes in between stay zero.
+        writer.Write(new byte[ExtendedSubtypeReservedBlock - sizeof(ushort) - sizeof(byte)]);
+        writer.Write(extras.AuraSkinSlotOpen ? (byte)1 : (byte)0);
         writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
         writer.Write(DerivedStatBlockLength); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));
         writer.Write(checked((short)stats.MagicalAttack)); writer.Write(checked((short)stats.MagicalDefense)); writer.Write(checked((short)stats.FireResistance)); writer.Write(checked((short)stats.WaterResistance)); writer.Write(checked((short)stats.DarkResistance)); writer.Write(checked((short)stats.LightResistance));
