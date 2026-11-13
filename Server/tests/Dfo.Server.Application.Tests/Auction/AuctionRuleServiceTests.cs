@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Auction;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Auction;
@@ -16,16 +17,25 @@ public sealed class AuctionRuleServiceTests
     public void The_item_market_has_the_70_terms()
     {
         var rule = Rules().For(AuctionMarket.Items);
+        var ordinary = Rules().EntitlementFor([]);
         Assert.Equal((true, 10, TimeSpan.FromHours(24), 10_000, 500),
-            (rule.Open, rule.ListingLimit, rule.Duration, rule.Deposit, rule.FeeRateBasisPoints));
+            (rule.Open, ordinary.ItemListingLimit, rule.Duration, rule.Deposit, ordinary.ItemFeeRateBasisPoints));
     }
 
     [Fact]
     public void The_coupon_gives_thirty_listings_and_a_three_percent_fee()
     {
-        var rule = Rules().For(AuctionMarket.Items, hasCoupon: true);
-        Assert.Equal((30, 500 - 200, 10_000), (rule.ListingLimit, rule.FeeRateBasisPoints, rule.Deposit));
-        Assert.Equal((10, 100), (Rules().For(AuctionMarket.GoldConsignment, true).ListingLimit, Rules().For(AuctionMarket.GoldConsignment, true).FeeRateBasisPoints));
+        var coupon = Rules().EntitlementFor([PremiumServiceType.AuctionCoupon]);
+        Assert.Equal((30, 300, true), (coupon.ItemListingLimit, coupon.ItemFeeRateBasisPoints, coupon.CashItemsListable));
+        Assert.Equal((10, 100), (coupon.ConsignmentListingLimit, coupon.ConsignmentFeeRateBasisPoints));
+    }
+
+    [Fact]
+    public void An_account_without_a_listed_identity_gets_the_ordinary_entitlement()
+    {
+        var entitlement = Rules().EntitlementFor([PremiumServiceType.GrowthContract]);
+        Assert.Null(entitlement.Identity);
+        Assert.Equal(10, entitlement.ItemListingLimit);
     }
 
     [Theory]
@@ -35,11 +45,11 @@ public sealed class AuctionRuleServiceTests
     [InlineData(24u, true, 24)]
     [InlineData(0u, true, 24)]
     public void Forty_eight_hours_need_the_coupon(uint requested, bool coupon, int hours) =>
-        Assert.Equal(TimeSpan.FromHours(hours), Rules().ListingDuration(requested, coupon));
+        Assert.Equal(TimeSpan.FromHours(hours), Rules().ListingDuration(requested, Entitlement(coupon)));
 
     [Fact]
     public async Task A_cera_item_may_be_listed_with_the_coupon() =>
-        Assert.Equal(AuctionRefusal.None, await Rules(Packagable with { CashPrice = 100 }).CheckEligibilityAsync(Sword, true, default));
+        Assert.Equal(AuctionRefusal.None, await Rules(Packagable with { CashPrice = 100 }).CheckEligibilityAsync(Sword, Entitlement(true), default));
 
     [Theory]
     [InlineData(1000, null, 1050)]
@@ -74,26 +84,29 @@ public sealed class AuctionRuleServiceTests
     public void Category_nodes_select_their_family(int category, AuctionItemFamily family, bool expected) =>
         Assert.Equal(expected, Rules().InCategory((ushort)category, family));
 
+    private static AuctionEntitlement Entitlement(bool coupon) =>
+        Rules().EntitlementFor(coupon ? [PremiumServiceType.AuctionCoupon] : []);
+
     private static ItemSnapshot Sword => new() { ItemId = 123, LegacyKind = 1, Type = ItemTraits.Equipment, Count = 1 };
     private static readonly AuctionItemDefinition Packagable = new(true, 0, false, 2, 50, AuctionItemFamily.Weapon);
 
     [Fact]
     public async Task A_packagable_tradable_item_may_be_listed() =>
-        Assert.Equal(AuctionRefusal.None, await Rules(Packagable).CheckEligibilityAsync(Sword, false, default));
+        Assert.Equal(AuctionRefusal.None, await Rules(Packagable).CheckEligibilityAsync(Sword, Entitlement(false), default));
 
     [Fact]
     public async Task Locked_untradable_unpackagable_timed_and_unknown_items_may_not()
     {
-        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable).CheckEligibilityAsync(Sword with { EquipmentLockId = 1 }, false, default));
-        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable, sendable: false).CheckEligibilityAsync(Sword, false, default));
-        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable with { Packagable = false }).CheckEligibilityAsync(Sword, false, default));
-        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable with { Timed = true }).CheckEligibilityAsync(Sword, false, default));
-        Assert.Equal(AuctionRefusal.NotEligible, await Rules(null).CheckEligibilityAsync(Sword, false, default));
+        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable).CheckEligibilityAsync(Sword with { EquipmentLockId = 1 }, Entitlement(false), default));
+        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable, sendable: false).CheckEligibilityAsync(Sword, Entitlement(false), default));
+        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable with { Packagable = false }).CheckEligibilityAsync(Sword, Entitlement(false), default));
+        Assert.Equal(AuctionRefusal.NotEligible, await Rules(Packagable with { Timed = true }).CheckEligibilityAsync(Sword, Entitlement(false), default));
+        Assert.Equal(AuctionRefusal.NotEligible, await Rules(null).CheckEligibilityAsync(Sword, Entitlement(false), default));
     }
 
     [Fact]
     public async Task A_cera_item_needs_a_coupon() =>
-        Assert.Equal(AuctionRefusal.NeedsCoupon, await Rules(Packagable with { CashPrice = 100 }).CheckEligibilityAsync(Sword, false, default));
+        Assert.Equal(AuctionRefusal.NeedsCoupon, await Rules(Packagable with { CashPrice = 100 }).CheckEligibilityAsync(Sword, Entitlement(false), default));
 
     private sealed class Definitions(AuctionItemDefinition? definition) : IAuctionItemDefinitionSource
     {
@@ -115,7 +128,7 @@ public sealed class GoldConsignmentRuleTests
     public void The_consignment_market_is_open_with_three_listings_for_a_day()
     {
         var rule = Rules().For(AuctionMarket.GoldConsignment);
-        Assert.Equal((true, 3, TimeSpan.FromHours(24), 0), (rule.Open, rule.ListingLimit, rule.Duration, rule.Deposit));
+        Assert.Equal((true, 3, TimeSpan.FromHours(24), 0), (rule.Open, Rules().EntitlementFor([]).ConsignmentListingLimit, rule.Duration, rule.Deposit));
     }
 
     [Theory]
@@ -137,10 +150,10 @@ public sealed class GoldConsignmentRuleTests
     [InlineData(180, 5000)]
     [InlineData(181, 9500)]
     public void The_fee_rate_follows_the_price_against_the_average(int price, int? rate) =>
-        Assert.Equal(rate, Rules().ConsignmentFeeRate(price, 100, hasCoupon: false));
+        Assert.Equal(rate, Rules().ConsignmentFeeRate(price, 100, Rules().EntitlementFor([])));
 
     [Fact]
-    public void Just_over_one_hundred_eighty_percent_is_above_it() => Assert.Equal(9500, Rules().ConsignmentFeeRate(1801, 1000, false));
+    public void Just_over_one_hundred_eighty_percent_is_above_it() => Assert.Equal(9500, Rules().ConsignmentFeeRate(1801, 1000, Rules().EntitlementFor([])));
 
     [Fact]
     public void Without_trades_a_tier_is_measured_against_the_reference_per_million() =>

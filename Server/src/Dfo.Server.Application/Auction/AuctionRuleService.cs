@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Auction;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -7,38 +8,50 @@ namespace Dfo.Server.Application.Auction;
 
 /// <summary>The auction house's terms. The one place PVF and auction configuration are read.</summary>
 /// <remarks>
-/// Item market terms are the 70 server's (70Reference, df_auction_r / df_game_r, 2026-11-13): 10
-/// listings, 24 hours, a 10000 gold deposit, 5% fee; the listing limit counts per character.
-/// The auction coupon (account premium 29, item 193 "拍卖行优惠券") lifts them as its PVF
-/// explanation lists: 30 listings (70: premium 0x1d, 30), a 48-hour choice, a 3% fee (70 VIP 3%),
-/// and Cera-shop items may be listed. For consignment it gives the official 1% fee and, as 70's
-/// point auction VIP, 10 listings.
+/// Market terms are the 70 server's (70Reference, df_auction_r / df_game_r, 2026-11-13): 24 hours
+/// and a 10000 gold deposit for items. What an account may do there -- how many listings, the fee,
+/// the durations it may choose, whether Cera-shop items may be listed -- is an entitlement, kept in
+/// one table keyed by the account identity (premium service) that grants it.
 /// </remarks>
 internal sealed class AuctionRuleService : IAuctionRuleService
 {
+    /// <summary>
+    /// Every identity's entitlement. A new identity is one more row; nothing else changes.
+    /// </summary>
+    /// <remarks>
+    /// Ordinary: 70's 10 listings and 5% (consignment: 3 listings, 5% in the normal band).
+    /// Auction coupon (premium 29, item 193 "拍卖行优惠券"), as its PVF explanation lists: 30 listings
+    /// (70 premium 0x1d also 30), a 48-hour choice, 3% (70 VIP 3%), Cera-shop items listable; for
+    /// consignment the official 1% normal band and, as 70's point-auction VIP, 10 listings.
+    /// </remarks>
+    private static readonly IReadOnlyList<AuctionEntitlement> Entitlements =
+    [
+        new(Identity: null, Priority: 0, ItemListingLimit: 10, ItemFeeRateBasisPoints: 500, ListingHours: [24],
+            CashItemsListable: false, ConsignmentListingLimit: 3, ConsignmentFeeRateBasisPoints: 500),
+        new(Identity: PremiumServiceType.AuctionCoupon, Priority: 10, ItemListingLimit: 30, ItemFeeRateBasisPoints: 300,
+            ListingHours: [24, 48], CashItemsListable: true, ConsignmentListingLimit: 10, ConsignmentFeeRateBasisPoints: 100),
+    ];
+
     private readonly IAuctionItemDefinitionSource definitions;
     private readonly IMailItemRuleService transfers;
     private readonly AuctionMarketRule items;
     private readonly AuctionMarketRule gold;
-    private readonly AuctionMarketRule itemsWithCoupon;
-    private readonly AuctionMarketRule goldWithCoupon;
     private readonly TimeSpan day;
 
     public AuctionRuleService(IAuctionItemDefinitionSource definitions, IMailItemRuleService transfers, IConfiguration configuration)
     {
         this.definitions = definitions;
         this.transfers = transfers;
-        // The listing time is 24 hours in both markets; the minutes setting exists to test expiry.
-        var duration = TimeSpan.FromMinutes(Math.Max(1, configuration.GetValue("Auction:ListingMinutes", 24 * 60)));
-        day = duration;
-        items = new(AuctionMarket.Items, configuration.GetValue("Auction:Items:Enabled", true),
-            ListingLimit: 10, Duration: duration, Deposit: 10_000, FeeRateBasisPoints: 500);
-        gold = new(AuctionMarket.GoldConsignment, configuration.GetValue("Auction:GoldConsignment:Enabled", true),
-            ListingLimit: 3, Duration: duration, Deposit: 0, FeeRateBasisPoints: 500);
-        itemsWithCoupon = items with { ListingLimit = 30, FeeRateBasisPoints = 300 };
-        goldWithCoupon = gold with { ListingLimit = 10, FeeRateBasisPoints = 100 };
+        // A listing day is 24 hours; the minutes setting exists to test expiry and scales every duration.
+        day = TimeSpan.FromMinutes(Math.Max(1, configuration.GetValue("Auction:ListingMinutes", 24 * 60)));
+        items = new(AuctionMarket.Items, configuration.GetValue("Auction:Items:Enabled", true), day, Deposit: 10_000);
+        gold = new(AuctionMarket.GoldConsignment, configuration.GetValue("Auction:GoldConsignment:Enabled", true), day, Deposit: 0);
         referenceCeraPerMillion = configuration.GetValue("Auction:GoldConsignment:ReferenceCeraPerMillion", 100);
     }
+
+    public AuctionEntitlement EntitlementFor(IReadOnlyCollection<PremiumServiceType> activeServices) =>
+        Entitlements.Where(entitlement => entitlement.Identity is not { } identity || activeServices.Contains(identity))
+            .MaxBy(entitlement => entitlement.Priority)!;
 
     private readonly int referenceCeraPerMillion;
 
@@ -66,40 +79,44 @@ internal sealed class AuctionRuleService : IAuctionRuleService
 
     /// <remarks>
     /// The official tiers (#322 D3): below 40% of the recent average cannot be listed; up to 150%
-    /// costs 5% (1% with a coupon), then 30%, 40%, 50% up to 160%, 170%, 180%, and 95% above.
+    /// costs the entitlement's rate (5%, 1% with the coupon), then 30%, 40%, 50% up to 160%, 170%, 180%, and 95% above.
     /// Compared in integers, so 180.1% is above 180%.
     /// </remarks>
-    public int? ConsignmentFeeRate(long price, long average, bool hasCoupon)
+    public int? ConsignmentFeeRate(long price, long average, AuctionEntitlement entitlement)
     {
         if (price <= 0 || average <= 0) return null;
         var scaled = price * 100;
         if (scaled < average * 40) return null;
-        if (scaled <= average * 150) return hasCoupon ? 100 : 500;
+        if (scaled <= average * 150) return entitlement.ConsignmentFeeRateBasisPoints;
         if (scaled <= average * 160) return 3000;
         if (scaled <= average * 170) return 4000;
         if (scaled <= average * 180) return 5000;
         return 9500;
     }
 
-    public AuctionMarketRule For(AuctionMarket market, bool hasCoupon = false) => market switch
+    public AuctionMarketRule For(AuctionMarket market) => market switch
     {
-        AuctionMarket.Items => hasCoupon ? itemsWithCoupon : items,
-        AuctionMarket.GoldConsignment => hasCoupon ? goldWithCoupon : gold,
+        AuctionMarket.Items => items,
+        AuctionMarket.GoldConsignment => gold,
         _ => throw new ArgumentOutOfRangeException(nameof(market), market, "Not an auction market."),
     };
 
     /// <remarks>
-    /// The client sends 24 or 48. 48 is honoured only with the coupon; anything else is a day. The
-    /// test setting <c>Auction:ListingMinutes</c> scales both, so "48" is twice that.
+    /// The client sends 24 or 48. Hours the entitlement does not list fall back to its first. The test
+    /// setting <c>Auction:ListingMinutes</c> scales the day, so "48" is two of those.
     /// </remarks>
-    public TimeSpan ListingDuration(uint requestedHours, bool hasCoupon) => hasCoupon && requestedHours >= 48 ? day * 2 : day;
+    public TimeSpan ListingDuration(uint requestedHours, AuctionEntitlement entitlement)
+    {
+        var hours = entitlement.ListingHours.Contains(requestedHours) ? requestedHours : entitlement.ListingHours[0];
+        return day * (hours / 24.0);
+    }
 
     /// <remarks>
     /// 70 refuses locked items, unpackagable templates, attach types 1/2/5 and unsealed 3, timed
     /// items and temporary avatars, and Cera items without a coupon. The transfer checks are the mail
     /// rule's, asked as for another account. Items with avatar or creature details are not taken yet.
     /// </remarks>
-    public async ValueTask<AuctionRefusal> CheckEligibilityAsync(ItemSnapshot item, bool hasCoupon, CancellationToken cancellationToken)
+    public async ValueTask<AuctionRefusal> CheckEligibilityAsync(ItemSnapshot item, AuctionEntitlement entitlement, CancellationToken cancellationToken)
     {
         if (item.IsMirror || item.AvatarDetail is not null || item.CreatureDetail is not null || !item.Lifetime.IsPermanent
             || item.EquipmentLockId != 0 || item.SortLockFlag != 0)
@@ -109,7 +126,7 @@ internal sealed class AuctionRuleService : IAuctionRuleService
         var definition = await definitions.GetAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
         if (definition is null || !definition.Packagable || definition.Timed || definition.Family == AuctionItemFamily.Avatar)
             return AuctionRefusal.NotEligible;
-        if (definition.CashPrice != 0 && !hasCoupon) return AuctionRefusal.NeedsCoupon;
+        if (definition.CashPrice != 0 && !entitlement.CashItemsListable) return AuctionRefusal.NeedsCoupon;
         return AuctionRefusal.None;
     }
 

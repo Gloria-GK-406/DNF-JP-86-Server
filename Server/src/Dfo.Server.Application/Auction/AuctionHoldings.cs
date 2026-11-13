@@ -18,7 +18,7 @@ internal sealed record InspectedLot(int ItemId, int Quantity, bool Pile, int Gol
 /// <summary>What a lot is and how it is held and handed over: an item, or an amount of gold.</summary>
 internal interface IAuctionLotHandling
 {
-    ValueTask<InspectedLot> InspectAsync(CharacterId seller, AuctionMarket market, AuctionLotSource source, bool hasCoupon, CancellationToken ct);
+    ValueTask<InspectedLot> InspectAsync(CharacterId seller, AuctionMarket market, AuctionLotSource source, AuctionEntitlement entitlement, CancellationToken ct);
 
     ValueTask<IReadOnlyList<MailAssetChange>> TakeIntoCustodyAsync(CharacterId seller, AuctionListingId listing, InspectedLot lot, CancellationToken ct);
 
@@ -47,7 +47,7 @@ internal sealed class AuctionLotHandling(
     IDomainTransactionAccessor transactions,
     IMailboxDomainService mailbox) : IAuctionLotHandling
 {
-    public async ValueTask<InspectedLot> InspectAsync(CharacterId seller, AuctionMarket market, AuctionLotSource source, bool hasCoupon,
+    public async ValueTask<InspectedLot> InspectAsync(CharacterId seller, AuctionMarket market, AuctionLotSource source, AuctionEntitlement entitlement,
         CancellationToken ct)
     {
         switch (source)
@@ -61,7 +61,7 @@ internal sealed class AuctionLotHandling(
                 if (item is null || item.ItemId != carried.ItemId) throw new AuctionRefusedException(AuctionRefusal.ItemMoved);
                 if (carried.Count > item.Count || !item.IsPile && carried.Count != 1)
                     throw new AuctionRefusedException(AuctionRefusal.ExceedsHolding);
-                var eligibility = await rules.CheckEligibilityAsync(item.Snapshot, hasCoupon, ct).ConfigureAwait(false);
+                var eligibility = await rules.CheckEligibilityAsync(item.Snapshot, entitlement, ct).ConfigureAwait(false);
                 if (eligibility != AuctionRefusal.None) throw new AuctionRefusedException(eligibility);
                 var display = item.Snapshot with { Count = carried.Count };
                 return new(item.ItemId, carried.Count, item.IsPile, 0, display, carried.Slot, container, item);
