@@ -22,6 +22,7 @@ public static class Migrator
             [4] = CharacterRelationsUpgrade.Apply,
             [5] = AdventureGroupColumnRetirement.Apply,
             [6] = AuctionTablesUpgrade.Apply,
+            [7] = PrivateStoreCustodyUpgrade.Apply,
         };
 
     private static void AddDropDrawMultiplier(SqliteConnection connection)

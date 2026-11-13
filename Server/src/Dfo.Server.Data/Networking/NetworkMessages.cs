@@ -148,6 +148,16 @@ public enum ClientMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
 
+    // Private store (stalls). See Game/PrivateStore.
+    GamePrivateStoreBuy = 0x0001_0052,
+    GamePrivateStoreEnter = 0x0001_0053,
+    GamePrivateStoreExit = 0x0001_0054,
+    GamePrivateStoreCreate = 0x0001_0055,
+    GamePrivateStoreRemove = 0x0001_0056,
+    GamePrivateStoreCompleteDisplay = 0x0001_0057,
+    GamePrivateStoreMoveToGate = 0x0001_0058,
+    GamePrivateStoreVerify = 0x0001_0195,
+
     // The auction house, both markets; body[0] is the market (PAY_TYPE) except for 0x014E. See Game/Auction.
     GameAuctionAveragePrice = 0x0001_00B6,
     GameAuctionRegister = 0x0001_00B7,
@@ -417,6 +427,21 @@ public enum ServerMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
     GameRequestUserChannel = 0x0001_0323,
+    // Private store replies and the area's stall notices. See Game/PrivateStore.
+    GamePrivateStoreBuy = 0x0001_0052,
+    GamePrivateStoreEnter = 0x0001_0053,
+    GamePrivateStoreExit = 0x0001_0054,
+    GamePrivateStoreCreate = 0x0001_0055,
+    GamePrivateStoreRemove = 0x0001_0056,
+    GamePrivateStoreCompleteDisplay = 0x0001_0057,
+    GamePrivateStoreMoveToGate = 0x0001_0058,
+    GamePrivateStoreVerify = 0x0001_0195,
+    GamePrivateStoreOpened = 0x0000_004E,
+    GamePrivateStoreClosed = 0x0000_004F,
+    GamePrivateStoreForceClosed = 0x0000_0050,
+    GamePrivateStoreTitle = 0x0000_0051,
+    GamePrivateStoreLineLeft = 0x0000_0053,
+    GamePrivateStoreAreaList = 0x0000_0054,
     // Auction house replies; both searches answer under 0x00BA. See Game/Auction.
     GameAuctionAveragePrice = 0x0001_00B6,
     GameAuctionRegister = 0x0001_00B7,

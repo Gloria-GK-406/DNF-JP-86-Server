@@ -90,6 +90,8 @@ public sealed class TownAreaProjectionDelivery
             new GameExplicitMessageDelivery(
                 TownPresenceMessages.ForNewcomer(publication.State), []),
             cancellationToken).ConfigureAwait(false);
+        _ = await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+            new PrivateStoreArrival(session), cancellationToken).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session))
             return;
         await partyTownProjection.RefreshObservedPartiesAsync(

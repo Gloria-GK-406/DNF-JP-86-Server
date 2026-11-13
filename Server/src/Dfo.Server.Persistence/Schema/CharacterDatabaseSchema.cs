@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 7;
+    public const int Version = 8;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -337,6 +337,8 @@ internal static class CharacterDatabaseSchema
         CREATE UNIQUE INDEX IF NOT EXISTS ux_auction_custody_equipment ON auction_custody(item_uid) WHERE kind='equipment';
         CREATE TABLE IF NOT EXISTS auction_trades(trade_id INTEGER PRIMARY KEY AUTOINCREMENT,listing_id INTEGER NOT NULL,market INTEGER NOT NULL,item_id INTEGER NOT NULL,quantity INTEGER NOT NULL CHECK(quantity>0),price INTEGER NOT NULL CHECK(price>0),fee INTEGER NOT NULL CHECK(fee>=0),seller_character_id INTEGER NOT NULL,buyer_character_id INTEGER NOT NULL,settled_at INTEGER NOT NULL);
         CREATE INDEX IF NOT EXISTS ix_auction_trades_item ON auction_trades(market,item_id,settled_at);
+        CREATE TABLE IF NOT EXISTS private_store_custody(owner_id INTEGER NOT NULL,display_slot INTEGER NOT NULL CHECK(display_slot BETWEEN 0 AND 13),unit_price INTEGER NOT NULL CHECK(unit_price>0),kind TEXT NOT NULL CHECK(kind IN('equipment','stackable')),item_uid INTEGER NOT NULL DEFAULT 0,item_id INTEGER NOT NULL,item_count INTEGER NOT NULL CHECK(item_count>0),item_core BLOB,PRIMARY KEY(owner_id,display_slot),CHECK(kind='stackable' OR (item_uid>0 AND item_count=1)),CHECK(kind='equipment' OR (item_uid=0 AND item_core IS NOT NULL)));
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_private_store_custody_equipment ON private_store_custody(item_uid) WHERE kind='equipment';
         CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_activation_state(event_id INTEGER PRIMARY KEY,active INTEGER NOT NULL CHECK(active IN(0,1)),configuration_revision INTEGER NOT NULL,applied_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS fatigue_consumption_settings(id INTEGER PRIMARY KEY CHECK(id=1),suspended INTEGER NOT NULL CHECK(suspended IN(0,1)));

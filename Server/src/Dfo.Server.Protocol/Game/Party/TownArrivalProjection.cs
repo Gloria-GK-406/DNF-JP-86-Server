@@ -78,6 +78,9 @@ internal static class TownArrivalProjection
     {
         var deliveries = await TownCaptureDeliveriesAsync(sessions, townAreas, currentViews, admissions, token).ConfigureAwait(false);
         await TownProjectOwnersAsync(sessions, outbox, weaknessState, projectWeakness, deliveries, token).ConfigureAwait(false);
+        foreach (var delivery in deliveries)
+            _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([delivery.Admission.Entry.Session.CharacterId]),
+                new PrivateStoreArrival(delivery.Admission.Entry.Session), token).ConfigureAwait(false);
         await TownProjectPreviousAreasAsync(sessions, townAreas, projections, currentViews, admissions, token).ConfigureAwait(false);
         await TownProjectPeersAsync(sessions, townAreas, projections, partyTown, admissions, deliveries, token).ConfigureAwait(false);
         return deliveries.Count;

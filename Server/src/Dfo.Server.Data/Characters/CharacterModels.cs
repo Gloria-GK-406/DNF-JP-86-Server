@@ -383,7 +383,8 @@ public sealed record CharacterPublicEntryState(
     long VisibilityBits,
     uint CloneTitleItemId,
     CharacterPublicIdentityEntryState? Identity = null,
-    bool HasBlackDiamond = false)
+    bool HasBlackDiamond = false,
+    bool HasPrivateStorePermission = false)
 {
     public CharacterAppearance? Display { get; init; }
 }

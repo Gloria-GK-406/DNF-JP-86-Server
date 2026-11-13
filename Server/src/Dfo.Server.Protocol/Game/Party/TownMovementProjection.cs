@@ -129,6 +129,9 @@ internal static class TownMovementProjection
             connectionId,
             new GameExplicitMessageDelivery(direct, []),
             cancellationToken).ConfigureAwait(false);
+        if (changedArea)
+            _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
+                new PrivateStoreArrival(session), cancellationToken).ConfigureAwait(false);
 
         if (changedArea && previousMember.SharesTownPresence)
             await TownArrivalProjection.TownPublishCurrentRosterCoreAsync(sessions, townAreas, projections, currentViews, previousMember.Area, cancellationToken).ConfigureAwait(false);

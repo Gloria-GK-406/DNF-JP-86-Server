@@ -325,6 +325,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddBlacklistSlice();
         services.AddUnitedFriendSlice();
         Dfo.Server.Protocol.Game.Auction.AuctionRegistration.AddAuctionSlice(services);
+        Dfo.Server.Protocol.Game.PrivateStore.PrivateStoreRegistration.AddPrivateStoreSlice(services);
         services.AddMirrorDungeonEntrySlice();
         services.AddCycleDungeonEntrySlice();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();

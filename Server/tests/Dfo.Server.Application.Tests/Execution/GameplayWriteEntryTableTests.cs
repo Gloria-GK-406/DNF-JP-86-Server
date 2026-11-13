@@ -86,6 +86,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(CreatureRuntimeDomainService),
         typeof(PartyService),
         typeof(Dfo.Server.Application.Chat.ChatConversationDomainService),
+        typeof(Dfo.Server.Application.PrivateStore.PrivateStoreDomainService),
         typeof(OnlineCharacterLocationDomainService),
         typeof(DungeonParticipationDomainService),
         typeof(DungeonCardPresentationCoordinator),
@@ -272,6 +273,21 @@ public sealed class GameplayWriteEntryTableTests
         ["PartyService.RemoveMember(CharacterId, CharacterId)"] = W,
         ["PartyService.RequestInvite(PartyCharacterSnapshot, PartyCharacterSnapshot, PartyInviteDisplayState)"] = W,
         ["PartyService.TransferLeadership(CharacterId, CharacterId)"] = W,
+
+        // PrivateStoreDomainService
+        ["PrivateStoreDomainService.BuyAsync(SelectedSessionIdentity, CharacterId, Byte, Int32, CancellationToken)"] = W,
+        ["PrivateStoreDomainService.CloseAsync(SelectedSessionIdentity, CancellationToken)"] = W,
+        ["PrivateStoreDomainService.DisplayAsync(SelectedSessionIdentity, Byte[], IReadOnlyList<PrivateStoreDisplayLine>, CancellationToken)"] = W,
+        ["PrivateStoreDomainService.Enter(SelectedSessionIdentity, SelectedSessionIdentity)"] = W,
+        ["PrivateStoreDomainService.Find(CharacterId)"] = R,
+        ["PrivateStoreDomainService.In(Int32, Byte, Byte)"] = R,
+        ["PrivateStoreDomainService.IsPermittedAsync(AccountId, CancellationToken)"] = R,
+        ["PrivateStoreDomainService.Leave(SelectedSessionIdentity)"] = W,
+        ["PrivateStoreDomainService.OpenAsync(SelectedSessionIdentity, PrivateStoreSpot, BusinessSlot?, CancellationToken)"] = W,
+        ["PrivateStoreDomainService.ReadGoodsAsync(CharacterId, CancellationToken)"] = R,
+        ["PrivateStoreDomainService.ReturnAbandonedAsync(Int32, CancellationToken)"] = W,
+        ["PrivateStoreDomainService.Visiting(SelectedSessionIdentity)"] = R,
+        ["PrivateStoreDomainService.VisitorsOf(SelectedSessionIdentity)"] = R,
 
         // ChatConversationDomainService
         ["ChatConversationDomainService.EndAllOf(SelectedSessionIdentity)"] = W,
