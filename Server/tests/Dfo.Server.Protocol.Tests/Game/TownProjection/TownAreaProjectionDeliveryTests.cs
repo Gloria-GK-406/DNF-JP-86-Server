@@ -238,7 +238,7 @@ public sealed class TownAreaProjectionDeliveryTests
             Assert.Contains(
                 frames.OfType<CurrentUserStateMessage>(),
                 frame => frame.Character.Identity.CharacterId == existing.CharacterId);
-            var publication = Assert.Single(notifications.Publications);
+            var publication = Assert.Single(notifications.Publications, x => x.Notification is not global::Dfo.Server.Protocol.Game.PrivateStoreArrival);
             Assert.Equal(
                 [existing],
                 Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
@@ -300,7 +300,7 @@ public sealed class TownAreaProjectionDeliveryTests
             Assert.Contains(
                 frames.OfType<CurrentUserStateMessage>(),
                 frame => frame.Character.Identity.CharacterId == existing.CharacterId);
-            Assert.IsType<TownParticipantPublished>(Assert.Single(notifications.Publications).Notification);
+            Assert.IsType<TownParticipantPublished>(Assert.Single(notifications.Publications, x => x.Notification is not global::Dfo.Server.Protocol.Game.PrivateStoreArrival).Notification);
         });
     }
 

@@ -160,6 +160,7 @@ internal static class ProtocolAlgorithmFixture
     internal static IOnlineUserQueryDomainService QueryFor(ISelectedSessionDomainService sessions, Func<NetworkConnectionId, NetworkConnectionContext>? physical = null) => new Users(sessions, physical);
     internal static object Default(Type type)
     {
+        if (type == typeof(ICommandProjections)) return new ArrivalOnlyProjections();
         if (type == typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions)) return new Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions(false, 0, 0);
         if (type == typeof(Dfo.Server.Abstractions.Parties.IPartyService)) return new Dfo.Server.Application.Parties.PartyService(
             (Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)Default(typeof(Dfo.Server.Abstractions.Parties.IPartyMemberStatusDomainService)),
@@ -200,6 +201,14 @@ internal static class ProtocolAlgorithmFixture
         [.. suppliedTo.TryGetValue(town, out var values) ? values : [], .. town.GetType()
         .GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Select(field => field.GetValue(town))
         .OfType<object>()];
+    /// <summary>Lets the newcomer's stall notice through (it lists nothing without stalls) and refuses every other projection.</summary>
+    internal sealed class ArrivalOnlyProjections : ICommandProjections
+    {
+        public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
+            where T : class, INotification<T> => notification is Dfo.Server.Protocol.Game.PrivateStoreArrival
+                ? ValueTask.FromResult(new NotificationDelivery([]))
+                : throw new InvalidOperationException($"The component fixture did not provide ICommandProjections.ProjectAsync for {typeof(T).Name}.");
+    }
     public class Unused : DispatchProxy
     {
         protected override object? Invoke(MethodInfo? method, object?[]? args) =>

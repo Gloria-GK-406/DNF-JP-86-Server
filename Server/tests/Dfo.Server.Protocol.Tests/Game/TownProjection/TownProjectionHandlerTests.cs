@@ -269,7 +269,7 @@ public sealed class TownProjectionHandlerTests
                 Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, previous, CancellationToken.None);
 
             Assert.Collection(
-                notifications.Published,
+                notifications.Published.Where(item => item.Notification is not global::Dfo.Server.Protocol.Game.PrivateStoreArrival),
                 item =>
                 {
                     Assert.Equal(
@@ -318,6 +318,8 @@ public sealed class TownProjectionHandlerTests
             Assert.Equal(
                 [
                     "town-direct",
+                    // The newcomer's own town frames are out before it hears of the stalls there.
+                    "notify:PrivateStoreArrival",
                     "notify:TownAreaRosterReconciled",
                     "notify:TownAreaRosterReconciled",
                     "notify:TownParticipantPublished",
