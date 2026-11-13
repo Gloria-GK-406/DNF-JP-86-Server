@@ -1,0 +1,49 @@
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Pvf.Tests\bin\Debug\net10.0\Dfo.Pvf.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.HttpApi.Tests\bin\Debug\net10.0\Dfo.Server.HttpApi.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Tool\DbMigrate.Tests\bin\Debug\net10.0\DbMigrate.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.Infrastructure.Tests\bin\Debug\net10.0\Dfo.Server.Infrastructure.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.Persistence.Tests\bin\Debug\net10.0\Dfo.Server.Persistence.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+总共 1 个测试文件与指定模式相匹配。
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114040937.trx
+
+已通过! - 失败:     0，通过:   146，已跳过:     0，总计:   146，持续时间: 1 s - Dfo.Server.HttpApi.Tests.dll (net10.0)
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114040938.trx
+
+已通过! - 失败:     0，通过:    82，已跳过:     0，总计:    82，持续时间: 6 s - Dfo.Pvf.Tests.dll (net10.0)
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114040942.trx
+
+已通过! - 失败:     0，通过:    30，已跳过:     0，总计:    30，持续时间: 7 s - DbMigrate.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.Networking.Tests\bin\Debug\net10.0\Dfo.Server.Networking.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.Protocol.Tests\bin\Debug\net10.0\Dfo.Server.Protocol.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.Application.Tests\bin\Debug\net10.0\Dfo.Server.Application.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+[xUnit.net 00:00:21.92]     Dfo.Server.Networking.Tests.Outbound.OutboundRealSocketTests.Ordered_close_sends_fin_without_waiting_for_a_blocked_receive_callback_or_peer_fin(unreadInput: True) [FAIL]
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114041036.trx
+
+已通过! - 失败:     0，通过:  2305，已跳过:     0，总计:  2305，持续时间: 40 s - Dfo.Server.Protocol.Tests.dll (net10.0)
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114041037.trx
+
+已通过! - 失败:     0，通过:   472，已跳过:     0，总计:   472，持续时间: 1 m - Dfo.Server.Persistence.Tests.dll (net10.0)
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114041039.trx
+
+已通过! - 失败:     0，通过:  1038，已跳过:     2，总计:  1040，持续时间: 1 m - Dfo.Server.Infrastructure.Tests.dll (net10.0)
+[xUnit.net 00:01:08.88]     Dfo.Server.Application.Tests.World.MirrorDungeonEntryTests.Refused_mirror_entry_does_not_create_a_run_or_reserve_daily_entry(boundary: "quota") [FAIL]
+[xUnit.net 00:01:56.15]     Dfo.Server.Application.Tests.Execution.LockRemovalSourceTests.No_other_waiting_primitive_is_used_in_the_production_sources [FAIL]
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114041319.trx
+
+失败!  - 失败:     2，通过:  6803，已跳过:     0，总计:  6805，持续时间: 3 m 8 s - Dfo.Server.Application.Tests.dll (net10.0)
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114041351.trx
+
+失败!  - 失败:     1，通过:   221，已跳过:     0，总计:   222，持续时间: 3 m 57 s - Dfo.Server.Networking.Tests.dll (net10.0)
+E:\Project\DNF\DNF-JP-86-Server-player-portal\Server\tests\Dfo.Server.Host.Tests\bin\Debug\net10.0\Dfo.Server.Host.Tests.dll (.NETCoreApp,Version=v10.0)的测试运行
+总共 1 个测试文件与指定模式相匹配。
+结果文件: C:\Users\Gloria\AppData\Local\Temp\claude\ee4ff4290ff1f592\95d2e4ea-7241-4368-9cd2-277ea6a22dc3\scratchpad\final-trx\final_net10.0_20261114041703.trx
+
+已通过! - 失败:     0，通过:   323，已跳过:     1，总计:   324，持续时间: 3 m 11 s - Dfo.Server.Host.Tests.dll (net10.0)
+exit=1

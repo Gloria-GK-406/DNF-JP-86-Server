@@ -1,0 +1,14 @@
+
+> dfo-gm-admin@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 E:/Project/DNF/DNF-JP-86-Server-player-portal/Web/gm-admin
+
+
+ Test Files  16 passed (16)
+      Tests  195 passed (195)
+   Start at  04:09:21
+   Duration  44.24s (tests 47%, import 34%, environment 13%, setup 3%, transform 3%)
+
+exit=0
