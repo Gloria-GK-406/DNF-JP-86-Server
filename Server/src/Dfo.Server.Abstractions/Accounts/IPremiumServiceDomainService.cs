@@ -2,10 +2,21 @@ using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Abstractions.Accounts;
 
-public enum PremiumServiceType { OverEquipmentContract = 22, ExpertSkillContract = 27, AuctionCoupon = 29, BlackDiamond = 56, GrowthContract = 84, CrystalContract = 97,
+public enum PremiumServiceType { PrivateStoreLicense = 8, OverEquipmentContract = 22, ExpertSkillContract = 27, AuctionCoupon = 29, BlackDiamond = 56, GrowthContract = 84, CrystalContract = 97,
     // Legacy storage keys for independent services; never wire premium types.
     FreeGoldCard = 580, DoublePot = 581, QuestHelper = 582, DungeonBuff = 583,
     AutoHpMpRecovery = 584, FreeWeaknessRecovery = 585, AutoRepair = 586, FastPot = 587 }
+
+/// <summary>The account premium services that let a character open a private store.</summary>
+/// <remarks>
+/// The trade licence (premium 8, item 16 "阿拉德大陆商贸许可证"; 70 IsPermissionPrivateStore reads
+/// premium 8) and the auction coupon, whose PVF explanation includes the licence (user decision #43 P1).
+/// </remarks>
+public static class PrivateStorePermission
+{
+    public static readonly IReadOnlyList<PremiumServiceType> Identities =
+        [PremiumServiceType.PrivateStoreLicense, PremiumServiceType.AuctionCoupon];
+}
 
 public enum PremiumBenefit { LearnSkillsEarly, EquipItemsEarly, FreeWeaknessRecovery, AutoRepair, FreeGoldCard, DungeonBuff, DoublePot, QuestItemDropBonus }
 

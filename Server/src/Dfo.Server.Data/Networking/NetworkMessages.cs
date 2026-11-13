@@ -148,6 +148,10 @@ public enum ClientMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
 
+    // Private store: opening a stall and laying out its goods. See Game/PrivateStore.
+    GamePrivateStoreCreate = 0x0001_0055,
+    GamePrivateStoreCompleteDisplay = 0x0001_0057,
+
     // The auction house, both markets; body[0] is the market (PAY_TYPE) except for 0x014E. See Game/Auction.
     GameAuctionAveragePrice = 0x0001_00B6,
     GameAuctionRegister = 0x0001_00B7,
@@ -417,6 +421,9 @@ public enum ServerMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
     GameRequestUserChannel = 0x0001_0323,
+    // Private store replies. See Game/PrivateStore.
+    GamePrivateStoreCreate = 0x0001_0055,
+    GamePrivateStoreCompleteDisplay = 0x0001_0057,
     // Auction house replies; both searches answer under 0x00BA. See Game/Auction.
     GameAuctionAveragePrice = 0x0001_00B6,
     GameAuctionRegister = 0x0001_00B7,

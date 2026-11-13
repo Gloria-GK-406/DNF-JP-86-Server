@@ -766,7 +766,10 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(part.LinkItemId); writer.Write(part.EnchantValue); writer.Write(part.Flag20);
         }
         writer.Write(entry.Display?.TitleAppearanceItemId ?? entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
-        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty)); writer.Write(c.EventCharacter != 0 ? (byte)1 : (byte)0);
+        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty));
+        // Private store permission (70 make_basic_info: u8 IsPermissionPrivateStore after the guild key).
+        // A21 reads it at 013E75A3 and builds the stall object a player clicks to open a store (01784A50).
+        writer.Write(entry.HasPrivateStorePermission ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
         writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility));
         return stream.ToArray();

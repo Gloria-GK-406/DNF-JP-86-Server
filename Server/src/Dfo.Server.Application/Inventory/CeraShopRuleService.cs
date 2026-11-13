@@ -337,7 +337,8 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         return days == 0 ? 0 : checked((int)(now.ToUnixTimeSeconds() + (long)days * 86400));
     }
 
-    public bool SellsPremium(int premiumType) => premiumType is (int)PremiumServiceType.OverEquipmentContract
+    public bool SellsPremium(int premiumType) => premiumType is (int)PremiumServiceType.PrivateStoreLicense
+        or (int)PremiumServiceType.OverEquipmentContract
         or (int)PremiumServiceType.ExpertSkillContract or (int)PremiumServiceType.AuctionCoupon
         or (int)PremiumServiceType.GrowthContract or (int)PremiumServiceType.CrystalContract;
 
