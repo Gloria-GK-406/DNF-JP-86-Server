@@ -110,3 +110,23 @@ T-004 改动面最大：Extras 换型会波及所有构造 `CharacterEntryExtras
 - **测试流程更新：**
   - 加入选人界面右侧与 buff 两项检查；
   - 加入 0 级账号与「返回选人界面换角色再进」两种情形下的登录提示检查。
+
+## Amendment 2026-11-13（契约第 7 版）
+
+T-009 的结论是：登录动画由客户端内部决定，服务端无法消除。实现改为 ClientHack 新插件 `0210_AdventureLevelUpFix`：
+
+- **工作区**：从 ClientHack `main` 切出 worktree `E:\Project\DNF\DNF-JP-86-ClientHack-adventure`，分支 `task/adventure-login-banner`。
+- **钩子**：钩住冒险团管理器绘制函数 RVA `0x010E5CF0`（thiscall，无栈参数）。
+  - 第一次被调用时，若 manager+8 的实体存在、实体 +0x60 的动画存在，就给 `[anim+0x44C]` 置 bit3（已结束），之后不再干预；
+  - 每次都照常调用原函数。
+  - 校验以下几处原字节，以证明偏移属于本镜像：绘制函数序言、实体重启 `0x02272C20` 读取 +0x60、SetEnd `0x02248CF0` 的 `or [ecx+0x44C],8`。
+- **测试与文档**：
+  - 单元测试使用伪宿主与伪内存；
+  - CMake 登记新插件与测试；
+  - 更新 `address-provenance.md`，写明镜像 SHA-256 与 VA/RVA。
+- **部署**：先请用户关闭客户端，再把 stage 产物里的新 DLL 复制到 protocol 与 protocol2 的 `plugins/`。
+- **实测**：
+  - 冒险团等级大于 0 的账号与 0 级账号，进城都没有动画；
+  - 回选人界面换角色再进城，也没有动画；
+  - 真实升级（SC-5）时动画与文字照常出现；
+  - 重测选人界面与 buff（SC-9）。
