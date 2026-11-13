@@ -65,10 +65,10 @@ internal sealed class AuctionLotHandling(
                 var display = item.Snapshot with { Count = carried.Count };
                 return new(item.ItemId, carried.Count, item.IsPile, 0, display, carried.Slot, container, item);
             case AuctionLotSource.Gold gold when market == AuctionMarket.GoldConsignment:
-                if (gold.Amount <= 0 || gold.TierItemId <= 0) throw new AuctionRefusedException(AuctionRefusal.NotEligible);
-                if (await characters.Get(seller).GoldAsync(ct).ConfigureAwait(false) < gold.Amount)
+                var amount = rules.ConsignmentTierGold(gold.TierItemId) ?? throw new AuctionRefusedException(AuctionRefusal.NotEligible);
+                if (await characters.Get(seller).GoldAsync(ct).ConfigureAwait(false) < amount)
                     throw new AuctionRefusedException(AuctionRefusal.InsufficientFunds);
-                return new(gold.TierItemId, 1, false, gold.Amount, null, null, null, null);
+                return new(gold.TierItemId, 1, false, amount, null, null, null, null);
             default:
                 throw new AuctionRefusedException(AuctionRefusal.NotEligible);
         }

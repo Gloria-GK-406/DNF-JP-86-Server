@@ -42,12 +42,20 @@ internal sealed class AuctionHouseDomainService(
 
         var lot = await lots.InspectAsync(seller, request.Market, request.Lot, ct).ConfigureAwait(false);
         Check(rules.CheckPricing(request.Market, request.Pricing, lot.Quantity, lot.Pile));
+        var now = clock.GetUtcNow();
+        var feeRate = rule.FeeRateBasisPoints;
+        if (request.Market == AuctionMarket.GoldConsignment)
+        {
+            // The asked price against the tier's recent average sets the rate, and it is kept.
+            var average = await ConsignmentAverageAsync(lot.ItemId, lot.GoldAmount, now, ct).ConfigureAwait(false);
+            feeRate = rules.ConsignmentFeeRate(request.Pricing.BuyoutPrice!.Value, average, hasCoupon: false)
+                ?? throw Refuse(AuctionRefusal.InvalidPrice);
+        }
         var changes = new List<MailAssetChange>();
         if (rule.Deposit > 0) changes.Add(await purse.CollectGoldAsync(seller, rule.Deposit, ct).ConfigureAwait(false));
-        var now = clock.GetUtcNow();
         var listing = new AuctionListing(default, request.Market, AuctionListingState.Active, seller, account,
             name, lot.ItemId, lot.Quantity, lot.Quantity,
-            lot.GoldAmount, request.Pricing, null, null, null, rule.Deposit, rule.FeeRateBasisPoints, now,
+            lot.GoldAmount, request.Pricing, null, null, null, rule.Deposit, feeRate, now,
             now + rule.Duration, lot.Shown);
         var id = await store.InsertAsync(listing, ct).ConfigureAwait(false);
         changes.AddRange(await lots.TakeIntoCustodyAsync(seller, id, lot, ct).ConfigureAwait(false));
@@ -228,6 +236,10 @@ internal sealed class AuctionHouseDomainService(
     /// <remarks>The average is over trades of the last seven days; the offers are the six lowest unit prices on sale.</remarks>
     public async ValueTask<AuctionPriceReference> PriceReferenceAsync(AuctionMarket market, int itemId, DateTimeOffset now, CancellationToken ct)
     {
+        if (market == AuctionMarket.GoldConsignment)
+            return rules.ConsignmentTierGold(itemId) is { } gold
+                ? new(await ConsignmentAverageAsync(itemId, gold, now, ct).ConfigureAwait(false), [])
+                : new(null, []);
         var (price, quantity) = await store.TradedSinceAsync(market, itemId, now.AddDays(-7), ct).ConfigureAwait(false);
         var offers = (await store.ActiveAsync(market, [itemId], now, ct).ConfigureAwait(false))
             .Where(x => x.Pricing.BuyoutPrice is not null && x.QuantityRemaining > 0)
@@ -235,6 +247,14 @@ internal sealed class AuctionHouseDomainService(
             .GroupBy(x => x.UnitPrice).Select(g => (UnitPrice: g.Key, Count: g.Sum(x => x.Count)))
             .OrderBy(x => x.UnitPrice).Take(6).ToArray();
         return new(quantity > 0 ? price / quantity : null, offers);
+    }
+
+    /// <summary>A tier's average traded price over seven days, or the rule's reference when it has none.</summary>
+    private async ValueTask<long> ConsignmentAverageAsync(int tierItemId, int gold, DateTimeOffset now, CancellationToken ct)
+    {
+        var (price, quantity) = await store.TradedSinceAsync(AuctionMarket.GoldConsignment, tierItemId, now.AddDays(-7), ct)
+            .ConfigureAwait(false);
+        return quantity > 0 ? price / quantity : rules.ConsignmentReferencePrice(gold);
     }
 
     public ValueTask<bool> HasOpenObligationsAsync(CharacterId character, CancellationToken ct) =>

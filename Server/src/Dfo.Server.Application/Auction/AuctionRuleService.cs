@@ -24,8 +24,50 @@ internal sealed class AuctionRuleService : IAuctionRuleService
         this.transfers = transfers;
         items = new(AuctionMarket.Items, configuration.GetValue("Auction:Items:Enabled", true),
             ListingLimit: 10, Duration: TimeSpan.FromHours(24), Deposit: 10_000, FeeRateBasisPoints: 500);
-        gold = new(AuctionMarket.GoldConsignment, configuration.GetValue("Auction:GoldConsignment:Enabled", false),
+        gold = new(AuctionMarket.GoldConsignment, configuration.GetValue("Auction:GoldConsignment:Enabled", true),
             ListingLimit: 3, Duration: TimeSpan.FromHours(24), Deposit: 0, FeeRateBasisPoints: 500);
+        referenceCeraPerMillion = configuration.GetValue("Auction:GoldConsignment:ReferenceCeraPerMillion", 100);
+    }
+
+    private readonly int referenceCeraPerMillion;
+
+    /// <summary>
+    /// The 17 consignment tier items and the gold each stands for. The PVF tier items
+    /// (<c>stackable/cash/chn_trade_gold/</c>) carry no amount, so this table is the rule (#322).
+    /// </summary>
+    private static readonly IReadOnlyDictionary<int, int> Tiers = new Dictionary<int, int>
+    {
+        [2681725] = 1_000_000, [2681726] = 2_000_000, [2681727] = 3_000_000, [2681728] = 4_000_000,
+        [2681729] = 5_000_000, [2681730] = 6_000_000, [2681731] = 7_000_000, [2681732] = 8_000_000,
+        [2681733] = 9_000_000, [2681734] = 10_000_000, [2681735] = 20_000_000, [2681736] = 30_000_000,
+        [2683069] = 40_000_000, [2683070] = 50_000_000, [2683071] = 100_000_000, [2683072] = 150_000_000,
+        [2683073] = 200_000_000,
+    };
+
+    public int? ConsignmentTierGold(int tierItemId) => Tiers.TryGetValue(tierItemId, out var amount) ? amount : null;
+
+    /// <remarks>
+    /// A server policy, not an original value: with no trade of the tier in the last seven days the
+    /// price is measured against <c>Auction:GoldConsignment:ReferenceCeraPerMillion</c> Cera per
+    /// million gold (default 100).
+    /// </remarks>
+    public long ConsignmentReferencePrice(int gold) => Math.Max(1, (long)gold / 1_000_000 * referenceCeraPerMillion);
+
+    /// <remarks>
+    /// The official tiers (#322 D3): below 40% of the recent average cannot be listed; up to 150%
+    /// costs 5% (1% with a coupon), then 30%, 40%, 50% up to 160%, 170%, 180%, and 95% above.
+    /// Compared in integers, so 180.1% is above 180%.
+    /// </remarks>
+    public int? ConsignmentFeeRate(long price, long average, bool hasCoupon)
+    {
+        if (price <= 0 || average <= 0) return null;
+        var scaled = price * 100;
+        if (scaled < average * 40) return null;
+        if (scaled <= average * 150) return hasCoupon ? 100 : 500;
+        if (scaled <= average * 160) return 3000;
+        if (scaled <= average * 170) return 4000;
+        if (scaled <= average * 180) return 5000;
+        return 9500;
     }
 
     public AuctionMarketRule For(AuctionMarket market) => market switch

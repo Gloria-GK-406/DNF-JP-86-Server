@@ -72,6 +72,10 @@ public sealed class GameAuctionCommandHandler(
                 new AuctionCompleted(session, reply, projection), ct).ConfigureAwait(false);
         else
             await outbox.RegisterCmdAsync(connection.ConnectionId, reply, ct).ConfigureAwait(false);
+        // A consignment purchase paid Cera; the buyer's wallet is shown again after the reply.
+        if (session is not null && reply is AuctionBidResponse { Refusal: null, PayType: (byte)AuctionMarket.GoldConsignment })
+            _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
+                new Dfo.Server.Abstractions.Accounts.AccountWalletChanged(session.AccountId), ct).ConfigureAwait(false);
         return reply;
     }
 
@@ -85,8 +89,9 @@ public sealed class GameAuctionCommandHandler(
             {
                 var outcome = request switch
                 {
-                    AuctionRegisterRequest register => await house.ListAsync(character, new(market,
-                        new AuctionLotSource.CarriedItem(register.Slot, register.ItemId, register.Count), register.Pricing), token).ConfigureAwait(false),
+                    AuctionRegisterRequest register => await house.ListAsync(character, new(market, market == AuctionMarket.GoldConsignment
+                        ? new AuctionLotSource.Gold(register.ItemId)
+                        : new AuctionLotSource.CarriedItem(register.Slot, register.ItemId, register.Count), register.Pricing), token).ConfigureAwait(false),
                     AuctionCancelRequest cancel => await house.CancelAsync(character, market, cancel.Listing, token).ConfigureAwait(false),
                     AuctionBidRequest bid => await BidAsync(character, market, bid, token).ConfigureAwait(false),
                     AuctionBuyPiecesRequest pieces => await BuyPiecesAsync(character, pieces, token).ConfigureAwait(false),
