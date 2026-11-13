@@ -94,6 +94,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ICycleDungeonDefinitionSource, PvfCycleDungeonDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IMirrorDungeonDefinitionSource, PvfMirrorDungeonDefinitionSource>();
         services.TryAddSingleton<IMailItemDefinitionSource, PvfMailItemDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Auction.IAuctionItemDefinitionSource, PvfAuctionItemDefinitionSource>();
         services.TryAddSingleton<IInventoryExpansionDefinitionSource, PvfInventoryExpansionDefinitionSource>();
         services.TryAddSingleton<ICargoItemDefinitionSource, PvfCargoItemDefinitionSource>();
         services.TryAddSingleton<IItemCatalogSource, PvfItemCatalogSource>();
@@ -190,6 +191,7 @@ public sealed class InfrastructureModule : IServerModule
     /// <summary>Content sources that load on first use and are warmed at startup (spec appendix B "启动预热").</summary>
     private static void AddContentWarmups(IServiceCollection services) => services
         .AddContentWarmup<IEquipmentGrowthDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Auction.IAuctionItemDefinitionSource>()
         .AddContentWarmup<IEquipmentEmancipateDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>()

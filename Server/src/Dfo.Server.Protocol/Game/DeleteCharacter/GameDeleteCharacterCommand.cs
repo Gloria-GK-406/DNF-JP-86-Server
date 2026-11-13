@@ -27,6 +27,7 @@ public sealed class GameDeleteCharacterCommandHandler(
     IGameCommandOutbox outbox,
     ICommandWorkUnits workUnits,
     ICharacterRelationDomainService relations,
+    Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService auctions,
     ICommandProjections projections,
     TimeProvider clock,
     ILogger<GameDeleteCharacterCommandHandler> logger) : ICommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult>
@@ -49,7 +50,7 @@ public sealed class GameDeleteCharacterCommandHandler(
             : sessions.Find(accountId) is not null
                 ? new Deletion(new CharacterDeletionResult(CharacterDeletionStatus.CharacterSelected, null), null)
             : await workUnits.WriteAsync(context, new CommandWorkUnitDeclaration("delete-character", []),
-                (_, ct) => DeleteAsync(accountId, command.Request.RosterIndex, command.Request.RawName, ct),
+                (unit, ct) => DeleteAsync(unit, accountId, command.Request.RosterIndex, command.Request.RawName, ct),
                 cancellationToken).ConfigureAwait(false);
         var result = deletion.Result;
 
@@ -100,12 +101,18 @@ public sealed class GameDeleteCharacterCommandHandler(
     /// One unit: a character that is gone keeps no relation and is kept in none, so the rows go with
     /// it or not at all. A refused deletion leaves them untouched.
     /// </remarks>
-    private async ValueTask<Deletion> DeleteAsync(AccountId accountId, ushort rosterIndex, byte[] rawName, CancellationToken ct)
+    private async ValueTask<Deletion> DeleteAsync(CommandWorkUnit unit, AccountId accountId, ushort rosterIndex, byte[] rawName,
+        CancellationToken ct)
     {
         var result = await characters.DeleteCharacterAsync(accountId, rosterIndex, rawName, ct).ConfigureAwait(false);
-        return result is { Status: CharacterDeletionStatus.Deleted, CharacterId: { } deleted }
-            ? new(result, await relations.PurgeAsync(deleted, ct).ConfigureAwait(false))
-            : new(result, null);
+        if (result is not { Status: CharacterDeletionStatus.Deleted, CharacterId: { } deleted }) return new(result, null);
+        // Whatever the auction house holds for or from this character must keep somewhere to go back to.
+        if (await auctions.HasOpenObligationsAsync(deleted, ct).ConfigureAwait(false))
+        {
+            unit.RequireRollback();
+            return new(new CharacterDeletionResult(CharacterDeletionStatus.AuctionObligations, null), null);
+        }
+        return new(result, await relations.PurgeAsync(deleted, ct).ConfigureAwait(false));
     }
 
     /// <param name="Purge">The relations cleared with a deleted character, or nothing when none was deleted.</param>

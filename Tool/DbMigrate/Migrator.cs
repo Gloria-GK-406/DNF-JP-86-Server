@@ -21,6 +21,7 @@ public static class Migrator
             [3] = ExtraEquipmentSlotBackfill.Apply,
             [4] = CharacterRelationsUpgrade.Apply,
             [5] = AdventureGroupColumnRetirement.Apply,
+            [6] = AuctionTablesUpgrade.Apply,
         };
 
     private static void AddDropDrawMultiplier(SqliteConnection connection)

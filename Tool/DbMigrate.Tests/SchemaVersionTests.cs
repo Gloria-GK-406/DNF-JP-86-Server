@@ -92,6 +92,42 @@ public sealed class SchemaVersionTests
     }
 
     [Fact]
+    public void Version_six_upgrade_adds_the_auction_tables_and_keeps_every_character()
+    {
+        var path = Unversioned.NewPath("auction-v6");
+        var fresh = Unversioned.NewPath("auction-fresh");
+        try
+        {
+            _ = Unversioned.Open(fresh);
+            _ = Unversioned.Open(path);
+            // A version 6 database has no auction tables yet.
+            Execute(path, """
+                DROP TABLE auction_trades;
+                DROP TABLE auction_custody;
+                DROP TABLE auction_listings;
+                PRAGMA user_version=6;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,slot_index) VALUES
+                    (71,7,'first',0,0,86,123,0);
+                """);
+
+            var migrated = Migrator.Migrate(path, backup: false);
+
+            Assert.Equal((6L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(3, Scalar(path, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name LIKE 'auction_%'"));
+            Assert.Equal(86, Scalar(path, "SELECT level FROM characters WHERE character_id=71"));
+            Assert.Equal(ShapeOf(fresh), ShapeOf(path));
+            _ = Unversioned.Open(path);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+            File.Delete(fresh);
+        }
+    }
+
+    [Fact]
     public void Version_five_upgrade_drops_manage_level_and_keeps_every_character()
     {
         var path = Unversioned.NewPath("adventure-group-v5");
