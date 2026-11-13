@@ -74,6 +74,7 @@ public sealed class PlayerPortalBoundaryHttpTests
 
         var gmRoutes = Routes(host, "/api/gm/v1/");
         foreach (var required in new[] { ("GET", "/api/gm/v1/mail/items"), ("GET", "/api/gm/v1/mail/items/{itemId:int}"), ("GET", "/api/gm/v1/items/{itemId:int}/icon"),
+            ("GET", "/api/gm/v1/items/icon-pack"), ("GET", "/api/gm/v1/items/{itemId:int}/tooltip"),
             ("GET", "/api/gm/v1/player-portal/settings"), ("POST", "/api/gm/v1/player-portal/settings"), ("GET", "/api/gm/v1/player-portal/sessions"),
             ("POST", "/api/gm/v1/player-portal/sessions/kick"), ("POST", "/api/gm/v1/player-portal/sessions/kick-all"), ("GET", "/api/gm/v1/auth/session") })
             Assert.Contains(required, gmRoutes);
@@ -89,6 +90,9 @@ public sealed class PlayerPortalBoundaryHttpTests
         var playerRoutes = Routes(host, "/api/player/v1/");
         Assert.Contains(("GET", "/api/player/v1/me"), playerRoutes);
         Assert.Contains(("POST", "/api/player/v1/auth/logout"), playerRoutes);
+        foreach (var required in new[] { ("POST", "/api/player/v1/mail/send"), ("GET", "/api/player/v1/mail/items"), ("GET", "/api/player/v1/mail/items/{itemId:int}"),
+            ("GET", "/api/player/v1/items/icon-pack"), ("GET", "/api/player/v1/items/{itemId:int}/icon"), ("GET", "/api/player/v1/items/{itemId:int}/tooltip") })
+            Assert.Contains(required, playerRoutes);
         foreach (var (method, path) in playerRoutes)
         {
             foreach (var cookie in new[] { $"Dfo.Gm.Session={gmSecret}", $"{SessionCookie}={gmSecret}" })

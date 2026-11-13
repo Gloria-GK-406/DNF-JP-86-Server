@@ -3,7 +3,7 @@ using static Dfo.Server.Host.Tests.PlayerPortalTestSupport;
 
 namespace Dfo.Server.Host.Tests;
 
-/// <summary>#329 TASK-04, AC-013 (cera part): a player pages through the own succeeded operations only.</summary>
+/// <summary>#329 TASK-04 / TASK-05, AC-013: a player pages through the own succeeded operations only.</summary>
 public sealed class PlayerPortalRecordsHttpTests
 {
     private const string RecordsPath = "/api/player/v1/operations";
@@ -73,5 +73,48 @@ public sealed class PlayerPortalRecordsHttpTests
         using var closed = await alice.Client.GetAsync(RecordsPath);
         Assert.Equal(HttpStatusCode.Forbidden, closed.StatusCode);
         Assert.Equal("portal_closed", await CodeAsync(closed));
+    }
+
+    /// <summary>AC-013 (mail part): mails are records of the own account, filtered by kind, each as the send answered it.</summary>
+    [Fact]
+    public async Task Mail_records_are_the_own_sent_mails_as_they_were_answered()
+    {
+        var clock = new GmTestClock();
+        await using var host = await GmTestHost.StartAsync(clock: clock);
+        await SeedAccountAsync(host, 1, "alice"); await SeedAccountAsync(host, 2, "bob");
+        await SeedCharacterAsync(host, 11, 1, "小明"); await SeedCharacterAsync(host, 21, 2, "鲍勃");
+        await SetPortalAsync(host);
+        using var alice = new PlayerClient(host); var csrf = await alice.SignInAsync("alice");
+        using var bob = new PlayerClient(host); var bobCsrf = await bob.SignInAsync("bob");
+
+        Assert.Equal(HttpStatusCode.OK, (await alice.GrantAsync(csrf, "Cera", 1)).StatusCode);
+        clock.Advance(TimeSpan.FromSeconds(1));
+        var mails = new List<string>();
+        foreach (var gold in new[] { 10, 20 })
+        {
+            using var sent = await alice.SendMailAsync(csrf, 11, gold: gold);
+            Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
+            mails.Insert(0, (await JsonAsync(sent)).GetProperty("receipt").GetRawText());
+            clock.Advance(TimeSpan.FromSeconds(1));
+        }
+        Assert.Equal(HttpStatusCode.NotFound, (await alice.SendMailAsync(csrf, 21)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await bob.SendMailAsync(bobCsrf, 21, gold: 30)).StatusCode);
+
+        var all = await JsonAsync(await alice.Client.GetAsync(RecordsPath));
+        Assert.Equal(3, all.GetProperty("total").GetInt64());
+        Assert.Equal(["mail", "mail", "cera"], all.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("kind").GetString()));
+        var mail = await JsonAsync(await alice.Client.GetAsync(RecordsPath + "?kind=mail"));
+        Assert.Equal(2, mail.GetProperty("total").GetInt64());
+        var items = mail.GetProperty("items").EnumerateArray().ToArray();
+        Assert.Equal(mails, items.Select(item => item.GetRawText()));
+        Assert.All(items, item =>
+        {
+            foreach (var field in new[] { "requestId", "kind", "committedAt", "summary", "result" }) Assert.True(item.TryGetProperty(field, out _), field);
+            Assert.Equal(11, item.GetProperty("characterId").GetInt32());
+        });
+        Assert.Equal(["发给 小明：金币 20", "发给 小明：金币 10"], items.Select(item => item.GetProperty("summary").GetString()));
+        var cera = await JsonAsync(await alice.Client.GetAsync(RecordsPath + "?kind=cera"));
+        Assert.Equal("cera", Assert.Single(cera.GetProperty("items").EnumerateArray()).GetProperty("kind").GetString());
+        Assert.Equal("发给 鲍勃：金币 30", Assert.Single((await JsonAsync(await bob.Client.GetAsync(RecordsPath))).GetProperty("items").EnumerateArray()).GetProperty("summary").GetString());
     }
 }

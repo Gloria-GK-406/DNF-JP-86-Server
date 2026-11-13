@@ -31,6 +31,14 @@ internal static class PlayerPortalTestSupport
     internal static Task SetCeraLimitsAsync(GmTestHost host, long ceraPerGrant = 0, long ceraPerDay = 0, long tokenCeraPerGrant = 0, long tokenCeraPerDay = 0) =>
         host.ExecuteAsync($"UPDATE player_portal_settings SET cera_per_grant={ceraPerGrant},cera_per_day={ceraPerDay},token_cera_per_grant={tokenCeraPerGrant},token_cera_per_day={tokenCeraPerDay},revision=revision+1;");
 
+    /// <summary>Sets the mail limits on the settings row <see cref="SetPortalAsync"/> wrote.</summary>
+    internal static Task SetMailLimitsAsync(GmTestHost host, long mailGoldPerMail = 0, long mailsPerDay = 0) =>
+        host.ExecuteAsync($"UPDATE player_portal_settings SET mail_gold_per_mail={mailGoldPerMail},mails_per_day={mailsPerDay},revision=revision+1;");
+
+    /// <summary>Mailbox messages, mail attachments and created items, as <c>messages:attachments:items</c>.</summary>
+    internal static async Task<string> MailboxAsync(GmTestHost host) => Assert.Single(await host.ReadAsync(
+        "SELECT (SELECT COUNT(*) FROM mailbox_messages)||':'||(SELECT COUNT(*) FROM mailbox_attachments)||':'||(SELECT COUNT(*) FROM items);"));
+
     /// <summary>The account's cera and token cera, as <c>cera:token</c>.</summary>
     internal static async Task<string> BalanceAsync(GmTestHost host, int accountId) =>
         Assert.Single(await host.ReadAsync($"SELECT cera||':'||token_cera FROM accounts WHERE account_id={accountId};"));
@@ -77,6 +85,10 @@ internal static class PlayerPortalTestSupport
         }
         internal Task<HttpResponseMessage> GrantAsync(string csrf, string currency, int amount, Guid? id = null) =>
             PostAsync("/api/player/v1/cera/grant", csrf, new { requestId = id ?? Guid.NewGuid(), currency, amount });
+        /// <summary>A player mail; <paramref name="items"/> are sent as given, so a test can add undeclared fields.</summary>
+        internal Task<HttpResponseMessage> SendMailAsync(string csrf, int characterId, string title = "", string body = "测试",
+            object[]? items = null, int gold = 0, Guid? id = null) =>
+            PostAsync("/api/player/v1/mail/send", csrf, new { requestId = id ?? Guid.NewGuid(), characterId, title, body, items = items ?? [], gold });
         internal string? Secret => Cookies.GetCookies(new Uri(Client.BaseAddress!, "/api/player/")).FirstOrDefault(c => c.Name == SessionCookie)?.Value;
         public void Dispose() => Client.Dispose();
     }

@@ -14,7 +14,7 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Application.Administration;
 
 internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence, IGmAccessDomainService access,
-    IGmMailRuleService rules, IItemCatalogDomainService catalog, IMailboxDomainService mailbox, IItemLifecycleDomainService lifecycle,
+    IGmMailRuleService rules, IItemCatalogDomainService catalog, OfficialMailDelivery delivery,
     ICharacterTable characters, IGmAuditDomainService audit, IDomainTransactionAccessor transactions,
     TimeProvider clock) : IGmOfficialMailDomainService
 {
@@ -112,37 +112,13 @@ internal sealed class GmOfficialMailDomainService(IGmMailPersistence persistence
         var targets = await TargetsAsync(input, token);
         if (!targets.Select(x => new AccountId(x.AccountId)).Distinct().OrderBy(x => x.Value).SequenceEqual(preparation.Accounts.Distinct().OrderBy(x => x.Value)))
             throw Error(GmMailRefusal.Changed, "收件人的账号归属已改变，请重新预览。");
-        var at = clock.GetUtcNow(); var expires = at.AddDays(30);
+        var at = clock.GetUtcNow(); var expires = at + OfficialMailDelivery.Lifetime;
         var grants = await rules.PrepareItemsAsync(input, at, token);
         var sent = new List<GmMailSentRecipient>();
         foreach (var target in targets)
         {
-            var builder = MailBuilder.FromSystem(new CharacterId(target.CharacterId)).WithText(input.Title, input.Body).ExpiresAt(expires);
-            var uids = new List<int>();
-            var records = new List<ItemRecord>();
-            foreach (var grant in grants)
-            {
-                if (grant.Preview.Kind == "equipment")
-                    for (var count = 0; count < grant.Requested.Count; count++)
-                    {
-                        // The rule service already placed the tier's fixed attribute seed on the snapshot.
-                        var record = await lifecycle.CreateAsync(grant.Snapshot, token);
-                        var uid = record.ItemUid!.Value.Value;
-                        records.Add(record); uids.Add(uid); builder.AddEquipment(new ItemIdentity(uid));
-                    }
-                else
-                {
-                    records.Add(await lifecycle.CreateAsync(grant.Snapshot, token));
-                    builder.AddStackable(grant.Requested.ItemId, grant.Requested.Count);
-                }
-            }
-            if (input.Gold > 0) builder.AddGold(input.Gold);
-            var mail = builder.Build();
-            var prepared = mail.Attachments.Select((asset, index) => asset is MailAsset.Gold
-                ? new PreparedMailAttachment(asset) : new PreparedMailAttachment(asset, [records[index]])).ToArray();
-            var mailed = await mailbox.SendPreparedAsync(mail, prepared, token);
-            await persistence.AssertMailWireRangeAsync(mailed.MailId, token);
-            sent.Add(new(Recipient(target), target.AccountId, mailed.MailId, uids.ToArray()));
+            var delivered = await delivery.DeliverAsync(new CharacterId(target.CharacterId), input.Title, input.Body, grants, input.Gold, expires, token);
+            sent.Add(new(Recipient(target), target.AccountId, delivered.MailId, delivered.EquipmentUids));
         }
         var receipt = new GmMailReceipt(id, actor.Id, actor.LoginName, at, expires, input, sent, grants.Select(item => item.Preview).ToArray());
         await persistence.SaveOperationAsync(actor.Id, new(rules.PayloadHash(input), receipt), token);

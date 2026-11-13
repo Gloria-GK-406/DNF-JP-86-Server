@@ -33,6 +33,25 @@ internal static class PlayerRouteMapping
     internal static IResult Error(int status, string code, string message, string? outcome = null) => outcome is null
         ? Results.Json(new { message, code }, statusCode: status) : Results.Json(new { message, code, outcome }, statusCode: status);
 
+    /// <summary>
+    /// A player route off the executor (the mail catalog, icons, tooltips): its refusals answer with the same codes as
+    /// the CMD routes. Cancellation is the request's own and is not answered.
+    /// </summary>
+    internal static async Task<IResult> OutsideAsync(HttpContext context, Func<Task<IResult>> action)
+    {
+        try { return await action(); }
+        catch (PlayerPortalException refusal) { return PlayerRouteReplyMapper.Refusal(refusal); }
+        catch (HttpRouteInputException parsed) { return Error(parsed.StatusCode, "invalid", parsed.Message); }
+        catch (KeyNotFoundException) { return Error(404, "not_found", "未找到该物品。"); }
+        catch (ArgumentException error) { return Error(400, "invalid", error.Message); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.GmWeb.PlayerPortal")
+                .LogError(error, "Player catalog request {Path} failed.", context.Request.Path.Value);
+            return Error(500, "unknown", "物品资料读取失败，请稍后重试。");
+        }
+    }
+
     internal static CookieOptions Cookie(HttpContext context, DateTimeOffset? expires = null) =>
         new() { HttpOnly = true, SameSite = SameSiteMode.Strict, Secure = context.Request.IsHttps, Path = CookiePath, Expires = expires, IsEssential = true };
 }
@@ -46,7 +65,7 @@ internal sealed class PlayerRouteReplyMapper : IHttpRouteReplyMapper
     internal static PlayerRouteReplyMapper Instance { get; } = new();
 
     /// <summary>The player's writes: their failures also say whether anything was committed (SD-1a <c>outcome</c>).</summary>
-    private static readonly HashSet<HttpRouteOperation> Writes = [HttpRouteOperation.PlayerGrantCera];
+    private static readonly HashSet<HttpRouteOperation> Writes = [HttpRouteOperation.PlayerGrantCera, HttpRouteOperation.PlayerSendMail];
 
     public ValueTask<IResult> MapAsync(HttpContext context, HttpRouteOperation operation, HttpRouteReply reply)
     {
@@ -64,6 +83,9 @@ internal sealed class PlayerRouteReplyMapper : IHttpRouteReplyMapper
         }
         if (reply.Value is PlayerCeraGrantResult granted)
             return ValueTask.FromResult(Results.Ok(new { granted.Receipt, granted.Replayed, reminder = reply.Reminder }));
+        // The new-mail notice follows the commit as the mailbox's own event, so there is no reminder to report.
+        if (reply.Value is PlayerMailSendResult sent)
+            return ValueTask.FromResult(Results.Ok(new { sent.Receipt, sent.Replayed }));
         if (operation == HttpRouteOperation.PlayerLogout)
         {
             context.Response.Cookies.Delete(PlayerRouteMapping.SessionCookie, PlayerRouteMapping.Cookie(context));
@@ -95,7 +117,7 @@ internal sealed class PlayerRouteReplyMapper : IHttpRouteReplyMapper
         context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.GmWeb.PlayerPortal")
             .LogError(error, "Player operation {Operation} failed with outcome {Outcome}.", operation, outcome);
 
-    private static IResult Refusal(PlayerPortalException refusal, string? outcome) => refusal.Reason switch
+    internal static IResult Refusal(PlayerPortalException refusal, string? outcome = null) => refusal.Reason switch
     {
         PlayerPortalRefusal.PortalClosed => PlayerRouteMapping.Error(403, "portal_closed", refusal.Message, outcome),
         PlayerPortalRefusal.FeatureDisabled => PlayerRouteMapping.Error(403, "feature_disabled", refusal.Message, outcome),

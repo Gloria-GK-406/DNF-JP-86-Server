@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.PlayerPortal;
 
 namespace Dfo.Server.Abstractions.PlayerPortal;
@@ -40,6 +41,29 @@ public interface IPlayerPortalCeraDomainService
 
     /// <summary>A failed grant's audit, under the identity found when the CMD began; the session is not read again (SD-1a).</summary>
     ValueTask RecordFailureAsync(PlayerIdentity identity, Guid requestId, string outcome, string reason, CancellationToken token);
+}
+
+/// <summary>A player mailing a character of the own account (RQ-011), and the item catalog that mail picks from (SD-8a).</summary>
+public interface IPlayerPortalMailDomainService
+{
+    /// <summary>
+    /// Off the executor, for the catalog, icon and tooltip reads: the master switch, the session, then the mail switch
+    /// (<see cref="PlayerPortalRefusal.FeatureDisabled"/>).
+    /// </summary>
+    ValueTask<PlayerIdentity> AuthorizeCatalogAsync(string? secret, CancellationToken token);
+
+    /// <summary>The GM mail catalog's search, with the same selection rule, so whatever is found can be sent.</summary>
+    ValueTask<ItemCatalogPage> SearchItemsAsync(string? secret, ItemCatalogFilter filter, CancellationToken token);
+    ValueTask<ItemCatalogDetails> ItemDetailsAsync(string? secret, int itemId, CancellationToken token);
+
+    /// <summary>
+    /// Inside the CMD's execution unit: every check of SD-1 in order and the delivery. A request id that already
+    /// succeeded with the same content answers with the stored receipt, before the mail switch, the recipient and the limits.
+    /// </summary>
+    ValueTask<PlayerMailSendResult> SendAsync(string? secret, PlayerMailRequest request, CancellationToken token);
+
+    /// <summary>A failed mail's audit, under the identity found when the CMD began; the session is not read again (SD-1a).</summary>
+    ValueTask RecordFailureAsync(PlayerIdentity identity, Guid requestId, int characterId, string outcome, string reason, CancellationToken token);
 }
 
 /// <summary>The administrator's controls of the player portal; each call authorizes a full-permission GM session.</summary>

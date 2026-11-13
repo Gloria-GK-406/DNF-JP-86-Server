@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.PlayerPortal;
 using Dfo.Server.Application.PlayerPortal;
@@ -42,6 +43,9 @@ internal static class PlayerPortalEndpoints
         // Only the session names the account: an account id in the body is an undeclared field, in the query it is ignored.
         PlayerRouteMapping.Map(group, "POST", Prefix + "/cera/grant", HttpRouteOperation.PlayerGrantCera,
             async (HttpContext c) => new GrantPlayerCeraCommand(PlayerRouteMapping.Secret(c)!, await ReadCeraAsync(c)));
+        PlayerRouteMapping.Map(group, "POST", Prefix + "/mail/send", HttpRouteOperation.PlayerSendMail,
+            async (HttpContext c) => new SendPlayerMailCommand(PlayerRouteMapping.Secret(c)!, await ReadMailAsync(c)));
+        MapCatalog(group);
         PlayerRouteMapping.Map(group, "GET", Prefix + "/operations", HttpRouteOperation.PlayerOperations, (HttpContext c) =>
         {
             var query = c.Request.Query;
@@ -55,6 +59,71 @@ internal static class PlayerPortalEndpoints
             };
             return new QueryPlayerOperationsCommand(PlayerRouteMapping.Secret(c)!, kind, Number(query, "page", 1), Number(query, "pageSize", 20));
         });
+    }
+
+    /// <summary>
+    /// What the mail page picks from (SD-8a): the GM mail catalog, icons and tooltips, read off the executor as the GM
+    /// routes are. The boundary already checked the switch and the session; each read checks them again with the mail
+    /// switch. No GM route is opened to a player.
+    /// </summary>
+    private static void MapCatalog(RouteGroupBuilder group)
+    {
+        const string Catalog = "只读 SQLite 的查询：玩家身份识别与物品目录";
+        const string Icons = "GM 自身的内存状态：GmIconPackStore；玩家身份识别";
+        group.MapGet(Prefix + "/mail/items", (HttpContext context, IPlayerPortalMailDomainService mail) => PlayerRouteMapping.OutsideAsync(context,
+            async () => Results.Ok(await mail.SearchItemsAsync(PlayerRouteMapping.Secret(context),
+                GmOfficialMailEndpoints.ItemFilter(context, message => new HttpRouteInputException(400, message)), context.RequestAborted))))
+            .WithMetadata(new PlayerSessionRequired(), new OutsideGameplay(Catalog));
+        group.MapGet(Prefix + "/mail/items/{itemId:int}", (HttpContext context, IPlayerPortalMailDomainService mail, int itemId) => PlayerRouteMapping.OutsideAsync(context,
+            async () => Results.Ok(await mail.ItemDetailsAsync(PlayerRouteMapping.Secret(context), itemId, context.RequestAborted))))
+            .WithMetadata(new PlayerSessionRequired(), new OutsideGameplay(Catalog));
+        group.MapGet(Prefix + "/items/icon-pack", (HttpContext context, IPlayerPortalMailDomainService mail, GmIconPackStore icons) => PlayerRouteMapping.OutsideAsync(context,
+            async () =>
+            {
+                await mail.AuthorizeCatalogAsync(PlayerRouteMapping.Secret(context), context.RequestAborted);
+                var info = icons.Describe();
+                return Results.Ok(new { available = info.Available, count = info.Count, generatedAt = info.GeneratedAt, pvfSha256 = info.PvfSha256 });
+            })).WithMetadata(new PlayerSessionRequired(), new OutsideGameplay(Icons));
+        group.MapGet(Prefix + "/items/{itemId:int}/icon", (HttpContext context, IPlayerPortalMailDomainService mail, GmIconPackStore icons, int itemId) =>
+            PlayerRouteMapping.OutsideAsync(context, async () =>
+            {
+                await mail.AuthorizeCatalogAsync(PlayerRouteMapping.Secret(context), context.RequestAborted);
+                if (itemId <= 0 || icons.Icon(itemId) is not { } png) return PlayerRouteMapping.Error(404, "not_found", "图标不存在。");
+                // As the GM icon: keyed by item ID, changed only by a rebuilt pack; overrides the boundary's no-store.
+                context.Response.Headers.CacheControl = "private, max-age=86400";
+                return Results.Bytes(png, "image/png");
+            })).WithMetadata(new PlayerSessionRequired(), new OutsideGameplay(Icons));
+        group.MapGet(Prefix + "/items/{itemId:int}/tooltip", (HttpContext context, IPlayerPortalMailDomainService mail, IItemTooltipRuleService tooltips, int itemId) =>
+            PlayerRouteMapping.OutsideAsync(context, async () =>
+            {
+                await mail.AuthorizeCatalogAsync(PlayerRouteMapping.Secret(context), context.RequestAborted);
+                if (itemId <= 0) return PlayerRouteMapping.Error(404, "not_found", "未找到该物品。");
+                return await tooltips.FindAsync(itemId, context.RequestAborted) is { } tooltip
+                    ? Results.Ok(tooltip) : PlayerRouteMapping.Error(404, "not_found", "未找到该物品。");
+            })).WithMetadata(new PlayerSessionRequired(), new OutsideGameplay("PVF 内容源与缓存：物品说明；玩家身份识别"));
+    }
+
+    private const int MailBodyLimit = 8192;
+    private static readonly JsonSerializerOptions MailOptions = new(JsonSerializerDefaults.Web)
+    {
+        NumberHandling = JsonNumberHandling.Strict,
+        RespectNullableAnnotations = true,
+        Converters = { new RequestIdConverter() },
+    };
+
+    /// <summary>Anything beyond the declared fields, an item's equipment options included, is refused here (RQ-011).</summary>
+    private static async Task<PlayerMailRequest> ReadMailAsync(HttpContext context)
+    {
+        if (!context.Request.HasJsonContentType() || context.Request.ContentLength is > MailBodyLimit)
+            throw new HttpRouteInputException(400, "请求字段无效。");
+        if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = MailBodyLimit;
+        try
+        {
+            return await context.Request.ReadFromJsonAsync<PlayerMailRequest>(MailOptions, context.RequestAborted)
+                ?? throw new HttpRouteInputException(400, "请求字段无效。");
+        }
+        catch (Exception error) when (error is JsonException or BadHttpRequestException or NotSupportedException)
+        { throw new HttpRouteInputException(400, "请求字段无效。"); }
     }
 
     private const int CeraBodyLimit = 4096;

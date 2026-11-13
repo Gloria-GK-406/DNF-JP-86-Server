@@ -15,6 +15,8 @@ public sealed record QueryPlayerMeCommand(string Secret) : HttpOperationCommand;
 
 /// <summary>Adds cera to the session's own account (RQ-010); the account is never taken from the request.</summary>
 public sealed record GrantPlayerCeraCommand(string Secret, PlayerCeraRequest Request) : HttpOperationCommand;
+/// <summary>Mails a character of the session's own account (RQ-011); the account is never taken from the request.</summary>
+public sealed record SendPlayerMailCommand(string Secret, PlayerMailRequest Request) : HttpOperationCommand;
 /// <summary>The session's own records, optionally of one kind (RQ-013).</summary>
 public sealed record QueryPlayerOperationsCommand(string Secret, PlayerPortalOperationKind? Kind, int Page, int PageSize) : HttpOperationCommand;
 
@@ -131,6 +133,64 @@ internal sealed class PlayerPortalCeraCommandHandler(IPlayerPortalAccessDomainSe
     }
 }
 
+/// <summary>
+/// The player's mail, shaped like the cera grant: a preparation unit finds who is asking (the identity every failure
+/// audit is written under, SD-1a), then the execution unit judges everything again and delivers (RQ-007 rests on it
+/// alone). A refusal is audited in a unit of its own. The new-mail notice to an online recipient is the mailbox's own
+/// domain event after the commit, as for the GM mail, so a replay, which delivers nothing, announces nothing.
+/// </summary>
+internal sealed class PlayerPortalMailCommandHandler(IPlayerPortalAccessDomainService access, IPlayerPortalMailDomainService mail,
+    ICommandWorkUnits units, ICommandFailureAudit failureAudit) : ICommandHandler<SendPlayerMailCommand, HttpRouteReply>
+{
+    public ValueTask<HttpRouteReply> HandleAsync(CommandExecutionContext context, SendPlayerMailCommand command, CancellationToken token)
+    {
+        HttpOperationWork.DemandOrigin(context, GameplayCallSource.Gm);
+        return HttpOperationWork.ReplyAsync(context, async () => await SendAsync(context, command, token).ConfigureAwait(false));
+    }
+
+    private async ValueTask<HttpRouteReply> SendAsync(CommandExecutionContext c, SendPlayerMailCommand command, CancellationToken ct)
+    {
+        PlayerIdentity? identity = null;
+        var request = command.Request;
+        try
+        {
+            identity = await HttpOperationWork.WriteAsync(units, c, "prepare-player-mail", t => access.AuthorizeAsync(command.Secret, t),
+                ct, CommandFailureAuditRole.Preparation).ConfigureAwait(false);
+            return new(await HttpOperationWork.WriteAsync(units, c, "send-player-mail", t => mail.SendAsync(command.Secret, request, t),
+                ct, CommandFailureAuditRole.Execution).ConfigureAwait(false));
+        }
+        catch (Exception error)
+        {
+            if (c.Request!.Failure is not null)
+            {
+                if (identity is null) throw;
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                await failureAudit.RecordAsync(c, error, async (fact, t) => await mail.RecordFailureAsync(identity, request.RequestId, request.CharacterId,
+                    fact.Outcome.ToString(), fact.Outcome == CommandFailureAuditOutcome.Unknown ? "提交状态暂未确认" : "未提交：存储或规则处理失败", t),
+                    timeout.Token).ConfigureAwait(false);
+                throw;
+            }
+            if (!HttpOperationWork.BusinessFailure(error)) throw;
+            var refusal = error as PlayerPortalException;
+            // Nobody identified, or the identity itself refused: nothing to audit under (SD-1a).
+            if (identity is not null && refusal?.Reason is not (PlayerPortalRefusal.PortalClosed or PlayerPortalRefusal.Unauthenticated))
+                try
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await HttpOperationWork.WriteAsync(units, c, "record-player-mail-failure", async t =>
+                    {
+                        await mail.RecordFailureAsync(identity, request.RequestId, request.CharacterId, refusal is null ? "RolledBack" : "Rejected",
+                            "未提交：" + (refusal?.Message ?? "存储或规则处理失败"), t).ConfigureAwait(false);
+                        return true;
+                    }, timeout.Token).ConfigureAwait(false);
+                }
+                catch (Exception auditError) when (HttpOperationWork.BusinessFailure(auditError) && c.Request.Failure is null)
+                { return new(Error: auditError, Outcome: "auditFailed"); }
+            return new(Error: error, Outcome: refusal is null ? "rolledBack" : "rejected");
+        }
+    }
+}
+
 public static class PlayerPortalCommandRegistration
 {
     /// <summary>Each player and player-portal administration route's CMD.</summary>
@@ -142,6 +202,7 @@ public static class PlayerPortalCommandRegistration
         services.AddInternalCommandHandler<QueryPlayerMeCommand, HttpRouteReply, PlayerPortalCommandHandler>();
         services.AddInternalCommandHandler<QueryPlayerOperationsCommand, HttpRouteReply, PlayerPortalCommandHandler>();
         services.AddInternalCommandHandler<GrantPlayerCeraCommand, HttpRouteReply, PlayerPortalCeraCommandHandler>(failureAudit: CommandFailureAuditCapability.AuditedFailure);
+        services.AddInternalCommandHandler<SendPlayerMailCommand, HttpRouteReply, PlayerPortalMailCommandHandler>(failureAudit: CommandFailureAuditCapability.AuditedFailure);
         services.AddInternalCommandHandler<QueryPlayerPortalSettingsCommand, HttpRouteReply, PlayerPortalCommandHandler>();
         services.AddInternalCommandHandler<ChangePlayerPortalSettingsCommand, HttpRouteReply, PlayerPortalCommandHandler>();
         services.AddInternalCommandHandler<QueryPlayerPortalSessionsCommand, HttpRouteReply, PlayerPortalCommandHandler>();

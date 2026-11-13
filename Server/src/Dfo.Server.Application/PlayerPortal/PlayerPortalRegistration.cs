@@ -13,6 +13,7 @@ internal static class PlayerPortalRegistration
         services.TryAddSingleton<IPlayerPortalAccessDomainService, PlayerPortalAccessDomainService>();
         services.TryAddSingleton<IPlayerPortalAccountDomainService, PlayerPortalAccountDomainService>();
         services.TryAddSingleton<IPlayerPortalCeraDomainService, PlayerPortalCeraDomainService>();
+        services.TryAddSingleton<IPlayerPortalMailDomainService, PlayerPortalMailDomainService>();
         services.TryAddSingleton<IPlayerPortalAdministrationDomainService, PlayerPortalAdministrationDomainService>();
         return services;
     }

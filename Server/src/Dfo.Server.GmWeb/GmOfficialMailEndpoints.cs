@@ -79,15 +79,17 @@ internal static class GmOfficialMailEndpoints
         var q = query["q"].ToString(); if (q.Length > 128) throw new GmMailException(GmMailRefusal.Invalid, "搜索最多 128 个字符。");
         return new(Parse("page", 1), Parse("pageSize", 20), CharacterId: query.ContainsKey("characterId") ? Parse("characterId", 0) : null, Q: string.IsNullOrWhiteSpace(q) ? null : q.Trim());
     }
-    private static ItemCatalogFilter ItemFilter(HttpContext context)
+    /// <summary>The item catalog's query parameters; the player's mail catalog reads them alike with its own refusal (SD-8a).</summary>
+    internal static ItemCatalogFilter ItemFilter(HttpContext context, Func<string, Exception>? refuse = null)
     {
+        refuse ??= message => new GmMailException(GmMailRefusal.Invalid, message);
         var query = context.Request.Query;
         foreach (var name in new[] { "q", "itemId", "category", "equipmentType", "minimumLevel", "maximumLevel", "rarity", "page", "pageSize" })
             if (query.TryGetValue(name, out var values) && values.Count != 1)
-                throw new GmMailException(GmMailRefusal.Invalid, "查询参数重复。");
+                throw refuse("查询参数重复。");
         int? Number(string name) => !query.ContainsKey(name) ? null
             : int.TryParse(query[name], NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number
-            : throw new GmMailException(GmMailRefusal.Invalid, "查询参数无效。");
+            : throw refuse("查询参数无效。");
         string? Text(string name) => string.IsNullOrWhiteSpace(query[name]) ? null : query[name].ToString().Trim();
         return new(Text("q"), Number("itemId"), Text("category"), Text("equipmentType"), Number("minimumLevel"),
             Number("maximumLevel"), Number("rarity"), Number("page") ?? 1, Number("pageSize") ?? 20);

@@ -74,6 +74,11 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
         "GET /api/player/v1/auth/csrf",
         "GET /api/player/v1/auth/session",
         "GET /api/player/v1/auth/status",
+        "GET /api/player/v1/items/icon-pack",
+        "GET /api/player/v1/items/{itemId:int}/icon",
+        "GET /api/player/v1/items/{itemId:int}/tooltip",
+        "GET /api/player/v1/mail/items",
+        "GET /api/player/v1/mail/items/{itemId:int}",
         "GET /gm/{**path}",
     ];
 
@@ -98,13 +103,13 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
         Assert.Equal(Exempt, routes.Where(route => route.Exempt is not null).Select(route => route.Route).Order(StringComparer.Ordinal));
         var commands = routes.Where(route => route.Command is not null).Select(route => route.Command!).ToArray();
         Assert.Equal(commands.Length, commands.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(50, commands.Count(command => command.StartsWith("gm:", StringComparison.Ordinal)));
+        Assert.Equal(51, commands.Count(command => command.StartsWith("gm:", StringComparison.Ordinal)));
         Assert.Equal(
             ["http:POST /api/gate/v1/login", "http:POST /api/gate/v1/register"],
             commands.Where(command => command.StartsWith("http:", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
         var gameplay = endpoints.Where(endpoint => endpoint.Metadata.GetMetadata<OutsideGameplay>() is null
             && (endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null || endpoint.Metadata.GetMetadata<GameplayCmdRoute>() is not null)).ToArray();
-        Assert.Equal(48, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<HttpGameplayOperation>() is not null));
+        Assert.Equal(49, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<HttpGameplayOperation>() is not null));
         Assert.Equal(4, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null));
         Assert.Equal(Enum.GetValues<HttpRouteOperation>().Order(), gameplay.Select(endpoint =>
             endpoint.Metadata.GetMetadata<HttpGameplayOperation>()?.Operation ?? endpoint.Metadata.GetMetadata<EnqueuesItself>()!.Operation).Order());

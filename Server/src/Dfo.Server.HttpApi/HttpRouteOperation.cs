@@ -16,5 +16,6 @@ public enum HttpRouteOperation
     Events, WeeklyAttendance, JoustSettings, JoustRound, JoustChampion, JoustChange, EventsChange,
     PlayerPortalSettings, PlayerPortalSettingsChange, PlayerPortalSessions, PlayerPortalKick, PlayerPortalKickAll,
     PlayerLogin, PlayerLogout, PlayerMe,
-    PlayerGrantCera, PlayerOperations
+    PlayerGrantCera, PlayerOperations,
+    PlayerSendMail
 }

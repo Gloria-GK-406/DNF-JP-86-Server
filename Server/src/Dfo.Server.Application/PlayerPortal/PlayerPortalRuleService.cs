@@ -1,10 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using Dfo.Server.Data.Administration;
 using Dfo.Server.Data.PlayerPortal;
 
 namespace Dfo.Server.Application.PlayerPortal;
 
-/// <summary>The player portal's rules: what settings an administrator may save, and what a player may add.</summary>
+/// <summary>The player portal's rules: what settings an administrator may save, and what a player may add or mail.</summary>
 internal sealed class PlayerPortalRuleService
 {
     /// <summary>A limit never exceeds what a wallet balance can hold.</summary>
@@ -54,6 +56,49 @@ internal sealed class PlayerPortalRuleService
             throw new PlayerPortalException(PlayerPortalRefusal.LimitExceeded, $"单次最多 {perGrant}。");
         if (perDay > 0 && usedToday + amount > perDay)
             throw new PlayerPortalException(PlayerPortalRefusal.LimitExceeded, $"今日剩余 {Math.Max(0, perDay - usedToday)}。");
+    }
+
+    /// <summary>
+    /// The player's own checks of a mail, before the GM mail rules see it. "At least a body or an attachment" (RQ-011) is
+    /// judged here on the request as sent: the GM rules replace a blank body with their default text, after which an
+    /// empty mail would pass. A blank body is blank exactly as the GM rules judge it; a title alone is no body.
+    /// </summary>
+    public void CheckMailContent(PlayerMailRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.RequestId == Guid.Empty || request.CharacterId <= 0 || request.Title is null || request.Body is null
+            || request.Items is null || request.Items.Any(item => item is null))
+            throw Invalid("请求字段无效。");
+        if (string.IsNullOrWhiteSpace(request.Body) && request.Items.Length == 0 && request.Gold <= 0)
+            throw Invalid("邮件至少要有正文或附件。");
+    }
+
+    /// <summary>The GM mail input of a player's mail: the one recipient, and never any equipment option (SD-8).</summary>
+    public GmMailInput ToMailInput(PlayerMailRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return new(request.Title, request.Body, [request.CharacterId],
+            request.Items.Select(item => new GmMailItem(item.ItemId, item.Count)).ToArray(), request.Gold);
+    }
+
+    /// <summary>The normalized content a mail's request id is bound to: recipient, text, items in order and gold.</summary>
+    public string MailPayloadHash(GmMailInput normalized)
+    {
+        ArgumentNullException.ThrowIfNull(normalized);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("mail\n" + JsonSerializer.Serialize(normalized))));
+    }
+
+    /// <summary>
+    /// The mail limits (RQ-020); zero means no limit. <paramref name="mailsToday"/> counts only the succeeded mails of
+    /// the current game day (RQ-022).
+    /// </summary>
+    public void CheckMailLimits(PlayerPortalLimits limits, int gold, long mailsToday)
+    {
+        ArgumentNullException.ThrowIfNull(limits);
+        if (limits.MailGoldPerMail > 0 && gold > limits.MailGoldPerMail)
+            throw new PlayerPortalException(PlayerPortalRefusal.LimitExceeded, $"单封金币最多 {limits.MailGoldPerMail}。");
+        if (limits.MailsPerDay > 0 && mailsToday + 1 > limits.MailsPerDay)
+            throw new PlayerPortalException(PlayerPortalRefusal.LimitExceeded, $"今日邮件已达上限（{limits.MailsPerDay} 封）。");
     }
 
     internal static string CurrencyName(string currency) => currency == TokenCera ? "代币券" : "点券";
