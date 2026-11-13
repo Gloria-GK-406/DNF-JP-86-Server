@@ -134,6 +134,9 @@ public interface IPrivateStoreRuleService
     int? DollCapacity(int itemId);
 
     long Fee(long amount);
+
+    /// <summary>Whether these active account premium services let the account open a stall without a doll.</summary>
+    bool Permits(IReadOnlyCollection<Dfo.Server.Abstractions.Accounts.PremiumServiceType> activeServices);
 }
 
 /// <summary>Where stall goods and their custody are kept. Data operations only.</summary>

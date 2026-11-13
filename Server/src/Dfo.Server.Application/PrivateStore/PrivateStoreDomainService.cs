@@ -40,7 +40,8 @@ internal sealed class PrivateStoreDomainService(
     IPrivateStoreDomainStore store,
     IMailboxDomainService mailbox,
     MailItemTransfers transfers,
-    IDomainTransactionAccessor transactions) : IPrivateStoreDomainService, IPrivateStoreQueryDomainService
+    IDomainTransactionAccessor transactions,
+    TimeProvider clock) : IPrivateStoreDomainService, IPrivateStoreQueryDomainService
 {
     private const string LetterTitle = "个人商店";
 
@@ -233,18 +234,15 @@ internal sealed class PrivateStoreDomainService(
 
     // ---- Read face -----------------------------------------------------------------------------
 
-    /// <remarks>
-    /// The trade licence (premium 8, item 16; 70 IsPermissionPrivateStore reads premium 8) or the
-    /// auction coupon, whose PVF explanation includes the licence (user decision #43 P1).
-    /// </remarks>
+    /// <remarks>Reads which premium services are active; the rule service says whether they permit a stall.</remarks>
     public async ValueTask<bool> IsPermittedAsync(AccountId account, CancellationToken ct)
     {
-        foreach (var identity in PermittingPremiums)
-            if (await premiums.For(account).IsActiveAsync(identity, ct).ConfigureAwait(false)) return true;
-        return false;
+        var now = clock.GetUtcNow().ToUnixTimeSeconds();
+        var active = (await premiums.For(account).ReadAsync(ct).ConfigureAwait(false))
+            .Where(entry => entry.ExpiresAtUnixSeconds > now)
+            .Select(entry => (PremiumServiceType)entry.PremiumType).ToArray();
+        return rules.Permits(active);
     }
-
-    private static readonly PremiumServiceType[] PermittingPremiums = [PremiumServiceType.PrivateStoreLicense, PremiumServiceType.AuctionCoupon];
 
     public PrivateStoreView? Find(CharacterId owner)
     {

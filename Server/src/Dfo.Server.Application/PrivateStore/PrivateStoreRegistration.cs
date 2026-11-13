@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.PrivateStore;
 using Dfo.Server.Abstractions.Scheduling;
 using Dfo.Server.Abstractions.Transactions;
@@ -26,6 +27,13 @@ internal sealed class PrivateStoreRuleService : IPrivateStoreRuleService
     public int? DollCapacity(int itemId) => Dolls.TryGetValue(itemId, out var lines) ? lines : null;
 
     public long Fee(long amount) => amount / 100;
+
+    /// <remarks>
+    /// The trade licence (premium 8, item 16; 70 IsPermissionPrivateStore reads premium 8) or the
+    /// auction coupon, whose PVF explanation includes the licence (user decision #43 P1).
+    /// </remarks>
+    public bool Permits(IReadOnlyCollection<PremiumServiceType> activeServices) =>
+        activeServices.Contains(PremiumServiceType.PrivateStoreLicense) || activeServices.Contains(PremiumServiceType.AuctionCoupon);
 }
 
 /// <summary>What the PrivateStore domain registers; called once from <see cref="Dfo.Server.Application.ApplicationModule"/>.</summary>

@@ -34,12 +34,13 @@ public sealed class PrivateStoreVisitTests
                         .Select(session => new TownAreaMember(session, Area, new CharacterPositionState(2, 2, 100, 200, 0), true))
                         .FirstOrDefault()
                     : null);
+            IReadOnlyList<AccountPremiumEntryState> licence = [new((int)PremiumServiceType.PrivateStoreLicense, long.MaxValue)];
             var premium = TestRequired.Absent<IAccountPremiumServices>((method, _) =>
-                method.Name == nameof(IAccountPremiumServices.IsActiveAsync) ? ValueTask.FromResult(true) : null);
+                method.Name == nameof(IAccountPremiumServices.ReadAsync) ? ValueTask.FromResult(licence) : null);
             var premiums = TestRequired.Absent<IPremiumServiceDomainService>((method, _) =>
                 method.Name == nameof(IPremiumServiceDomainService.For) ? premium : null);
             Stores = new PrivateStoreDomainService(new PrivateStoreRuleService(), null!, premiums, sessions, towns,
-                null!, null!, null!, null!, null!, null!, null!, null!);
+                null!, null!, null!, null!, null!, null!, null!, null!, TimeProvider.System);
         }
 
         public SelectedSessionIdentity Join(SelectedSessionIdentity session)
@@ -89,6 +90,13 @@ public sealed class PrivateStoreVisitTests
         Assert.Null(world.Stores.Visiting(visitor));
         Assert.Empty(world.Stores.VisitorsOf(ownerAgain));
     }
+
+    [Theory]
+    [InlineData(PremiumServiceType.PrivateStoreLicense, true)]
+    [InlineData(PremiumServiceType.AuctionCoupon, true)]
+    [InlineData(PremiumServiceType.GrowthContract, false)]
+    public void The_licence_or_the_auction_coupon_permits_a_stall(PremiumServiceType active, bool permitted) =>
+        Assert.Equal(permitted, new PrivateStoreRuleService().Permits([active]));
 
     [Fact]
     public async Task Leaving_from_a_stale_session_keeps_the_current_visit()
