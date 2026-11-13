@@ -20,7 +20,7 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
         var useRule = await plans.SourceRuleAsync(source.ItemId, ct).ConfigureAwait(false);
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Package, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0) throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "This entry supplies no material.");
-        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition, 0, 1), ct).ConfigureAwait(false);
+        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition), ct).ConfigureAwait(false);
         var rolled = rules.Roll(definition, input.SelectedItems, Random.Shared.Next());
         var grants = await rules.PrepareAsync(rolled, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
@@ -43,7 +43,7 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.AvatarPackage, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0 || !definition.Pools.IsEmpty)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Avatar package has material or random declarations.");
-        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition, 0, 1), ct).ConfigureAwait(false);
+        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition), ct).ConfigureAwait(false);
         var choices = input.Choices.ToDictionary(c => c.ItemId, c => c.Ability);
         var selected = definition.Kind == OpeningPackageKind.Selection
             ? rules.Roll(definition, input.Choices.Select(c => c.ItemId).ToArray(), Random.Shared.Next()) : definition.FixedRewards;
@@ -82,7 +82,7 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var before = definition.UsesSeriaLuck ? await accounts.FindSeriaLuckAsync(session.AccountId, ct).ConfigureAwait(false) : null;
         if (definition.UsesSeriaLuck && before is null) throw new OpeningRejectedException(OpeningRejection.NoSession, "Account luck is absent.");
         var luck = before ?? 0;
-        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition, luck, input.Count), ct).ConfigureAwait(false);
+        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition), ct).ConfigureAwait(false);
         var primary = ImmutableArray.CreateBuilder<OpeningReward>();
         var bonus = ImmutableArray.CreateBuilder<OpeningReward>();
         for (var i = 0; i < input.Count; i++)

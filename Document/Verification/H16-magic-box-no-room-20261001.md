@@ -29,5 +29,11 @@
 
 本节修复只改了错误码，保留了"满包整单拒绝且不扣礼盒"的语义；这让"能否成功"取决于抽中了什么，玩家可借布置背包零成本重抽。#315 改为：
 
-- 魔盒在抽奖前检查装备、消耗品、材料、专业材料、宠物、时装六栏各至少 N 个空格（N=2，本次开盒批次内会触发幸运加倍时 N=6），不满足仍回 02、不扣任何东西；通过后扣盒子与钥匙，放不下的结果转系统邮件（不过期）。
+- 魔盒在抽奖前检查装备、消耗品、材料、专业材料、宠物、时装六栏各至少 N 个空格（N=2；#325 起幸运开盒不再加倍，见下节），不满足仍回 02、不扣任何东西；通过后扣盒子与钥匙，放不下的结果转系统邮件（不过期）。
 - 70 依据：`CUser::check_multibox_error` 0x08675edc 检查 ITEM_TYPE 1/2/3/10/5；`CSlotBoundChecker::init` 0x08373674 把 ITEM_TYPE 10 定为槽 201–248，对应 A21 `SortItemMapping` 的 `(0,10) => ExpertMaterial`；`check_locked_multibox_error` 0x08675fd2 的 N=2 与 `DataManager+0x877e` 倍率。时装栏是本服补上的。
+
+## 2026-11-13 后续：#325 幸运开盒不再加倍
+
+- 线上 0.3.1：消耗品栏只空 2 格的角色在幸运值 8 时被要求每栏 6 格，幸运值只在开盒成功后前进，于是一直卡在 8、盒子打不开。
+- 修复：魔盒预检固定每栏 N=2，与幸运值、批量次数无关；幸运加倍的额外份数和其它放不下的结果照常转系统邮件。70 的 `DataManager+0x877e` 倍率值仍未知，本服不再采用。
+- 测试：`PackageOpeningTests.Magic_box_needs_two_empty_slots_per_tab_even_when_lucky`、`Lucky_copies_that_do_not_fit_after_the_two_slot_check_are_mailed`。
