@@ -63,4 +63,4 @@ decision: manual_required
 
 - **SC-5 / AC-011 在线部分**：在线角色在游戏客户端里实际收到玩家邮件，需要用户按测试流程第 8 步实机验证。
 - **SC-12 / AC-061**：用户测试服未启动，用户尚未验收。启动需先处理 UDP 端口占用；启动后要填写流程文档的"就绪情况"和交付提交号。
-- **合并前**：分支落后 `origin/main` 17 个提交，主干已用结构版本 7 与迁移步骤 `[6]` 承载拍卖行表。本分支变基时需把玩家后台迁移顺延为版本 8、步骤 `[7]`，并重新验证。
+- **变基（已完成，见 `reviews/rebase-1.md`、`reviews/rebase-review.md`）**：分支已变基到 `origin/main` `dbeba6aa7`，玩家后台迁移顺延为版本 9 → 10、步骤 `[9]`，独立复审 approved。变基后全量测试中唯一新增的失败 `GmGameplayRouteTests.Startup_writes_and_the_gm_bootstrap_run_as_startup_jobs` 是主干自身缺陷（`ContentWarmupTests.Participants` 缺 `auction-item-index`），与本分支无关。两份库副本已从原库重新生成并迁到 v10，用户测试服已在提交 `dda6fe28a` 的产物上启动。
