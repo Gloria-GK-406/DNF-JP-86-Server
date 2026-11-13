@@ -57,7 +57,8 @@ internal sealed class PrivateStoreDomainService(
 
     private readonly Lock gate = new();
     private readonly Dictionary<CharacterId, Stall> stalls = [];
-    private readonly Dictionary<CharacterId, CharacterId> visitors = [];
+    // Keyed by character for lookup, but every visit holds the exact visitor and owner sessions.
+    private readonly Dictionary<CharacterId, (SelectedSessionIdentity Visitor, SelectedSessionIdentity Owner)> visitors = [];
 
     public async ValueTask<PrivateStoreView> OpenAsync(SelectedSessionIdentity owner, PrivateStoreSpot spot, BusinessSlot? doll, CancellationToken ct)
     {
@@ -154,8 +155,7 @@ internal sealed class PrivateStoreDomainService(
         lock (gate)
         {
             stalls.Remove(owner.CharacterId);
-            foreach (var visitor in visitors.Where(pair => pair.Value == owner.CharacterId).Select(pair => pair.Key).ToArray())
-                visitors.Remove(visitor);
+            ForgetVisitsTo(owner.CharacterId);
         }
         return new(stall.View(), changes, mailed);
     }
@@ -218,6 +218,7 @@ internal sealed class PrivateStoreDomainService(
             {
                 if (stalls.TryGetValue(owner, out var stall) && sessions.IsInWorld(stall.Owner)) continue;
                 stalls.Remove(owner);
+                ForgetVisitsTo(owner);
             }
             var custody = Custody();
             foreach (var line in await custody.ReadPrivateStoreLinesAsync(owner, ct).ConfigureAwait(false))
@@ -258,26 +259,47 @@ internal sealed class PrivateStoreDomainService(
                 .Select(stall => stall.View()).ToArray();
     }
 
-    public void Enter(CharacterId visitor, CharacterId owner)
+    public void Enter(SelectedSessionIdentity visitor, SelectedSessionIdentity owner)
     {
         GameplayWriteAssertion.Writing(nameof(PrivateStoreDomainService) + "." + nameof(Enter));
-        lock (gate) visitors[visitor] = owner;
+        lock (gate)
+        {
+            // Visits whose sessions have ended are dropped here, the next time anyone walks in.
+            foreach (var stale in visitors.Where(pair => !Live(pair.Value)).Select(pair => pair.Key).ToArray())
+                visitors.Remove(stale);
+            visitors[visitor.CharacterId] = (visitor, owner);
+        }
     }
 
-    public void Leave(CharacterId visitor)
+    public void Leave(SelectedSessionIdentity visitor)
     {
         GameplayWriteAssertion.Writing(nameof(PrivateStoreDomainService) + "." + nameof(Leave));
-        lock (gate) visitors.Remove(visitor);
+        lock (gate)
+            if (visitors.TryGetValue(visitor.CharacterId, out var visit) && visit.Visitor == visitor)
+                visitors.Remove(visitor.CharacterId);
     }
 
-    public IReadOnlyList<CharacterId> VisitorsOf(CharacterId owner)
+    public IReadOnlyList<SelectedSessionIdentity> VisitorsOf(SelectedSessionIdentity owner)
     {
-        lock (gate) return visitors.Where(pair => pair.Value == owner).Select(pair => pair.Key).ToArray();
+        lock (gate)
+            return visitors.Values.Where(visit => visit.Owner == owner && Live(visit)).Select(visit => visit.Visitor).ToArray();
     }
 
-    public CharacterId? Visiting(CharacterId visitor)
+    public SelectedSessionIdentity? Visiting(SelectedSessionIdentity visitor)
     {
-        lock (gate) return visitors.TryGetValue(visitor, out var owner) ? owner : null;
+        lock (gate)
+            return visitors.TryGetValue(visitor.CharacterId, out var visit) && visit.Visitor == visitor && Live(visit) ? visit.Owner : null;
+    }
+
+    /// <summary>Both sessions are still in the world and the owner session still keeps its stall.</summary>
+    private bool Live((SelectedSessionIdentity Visitor, SelectedSessionIdentity Owner) visit) =>
+        sessions.IsInWorld(visit.Visitor) && sessions.IsInWorld(visit.Owner)
+        && stalls.TryGetValue(visit.Owner.CharacterId, out var stall) && stall.Owner == visit.Owner;
+
+    private void ForgetVisitsTo(CharacterId owner)
+    {
+        foreach (var visitor in visitors.Where(pair => pair.Value.Owner.CharacterId == owner).Select(pair => pair.Key).ToArray())
+            visitors.Remove(visitor);
     }
 
     // ---- Helpers -------------------------------------------------------------------------------

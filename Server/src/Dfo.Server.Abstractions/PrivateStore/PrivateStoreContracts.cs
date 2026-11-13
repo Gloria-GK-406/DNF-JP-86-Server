@@ -111,16 +111,17 @@ public interface IPrivateStoreQueryDomainService
     /// <summary>The displayed stalls standing in the town area.</summary>
     IReadOnlyList<PrivateStoreView> In(int channelId, byte townId, byte areaId);
 
-    /// <summary>Records that a visitor is looking at a stall, so it is told of sales and closing.</summary>
-    void Enter(CharacterId visitor, CharacterId owner);
+    /// <summary>Records that this selected session is looking at the stall this owner session keeps.</summary>
+    /// <remarks>A visit belongs to the two exact sessions: it ends with either, never passing to a later session of the character.</remarks>
+    void Enter(SelectedSessionIdentity visitor, SelectedSessionIdentity owner);
 
-    void Leave(CharacterId visitor);
+    void Leave(SelectedSessionIdentity visitor);
 
-    /// <summary>The visitors looking at the owner's stall.</summary>
-    IReadOnlyList<CharacterId> VisitorsOf(CharacterId owner);
+    /// <summary>The sessions still in the world looking at the stall the owner session keeps.</summary>
+    IReadOnlyList<SelectedSessionIdentity> VisitorsOf(SelectedSessionIdentity owner);
 
-    /// <summary>The stall the visitor is looking at.</summary>
-    CharacterId? Visiting(CharacterId visitor);
+    /// <summary>The owner session of the stall this session is looking at, while both sessions and the stall stand.</summary>
+    SelectedSessionIdentity? Visiting(SelectedSessionIdentity visitor);
 }
 
 /// <summary>Private store terms. The one place its PVF and configuration facts are read.</summary>

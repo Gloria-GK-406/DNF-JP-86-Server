@@ -78,7 +78,7 @@ public sealed class GamePrivateStoreCommandHandler(
                     await EnterAsync(context, recipient, enter.Owner, ct).ConfigureAwait(false);
                     break;
                 case PrivateStoreSimpleRequest { Type: ClientMessageType.GamePrivateStoreExit }:
-                    storeQuery.Leave(session.CharacterId);
+                    storeQuery.Leave(session);
                     await outbox.RegisterCmdAsync(connection, new PrivateStoreReply(replyType, []), ct).ConfigureAwait(false);
                     break;
                 case PrivateStoreLineRequest { Buy: false } verify:
@@ -145,7 +145,7 @@ public sealed class GamePrivateStoreCommandHandler(
         CancellationToken ct)
     {
         var session = recipient.Session;
-        var visitorsBefore = storeQuery.VisitorsOf(session.CharacterId);
+        var visitorsBefore = storeQuery.VisitorsOf(session);
         var (closure, projection) = await units.WriteAsync(context, new("private-store-close", [recipient]), async (_, token) =>
         {
             var closed = await stores.CloseAsync(session, token).ConfigureAwait(false);
@@ -161,7 +161,7 @@ public sealed class GamePrivateStoreCommandHandler(
         if (closure is null) return;
         logger.LogInformation("Private store closed character={Character} mailed={Mailed}", session.CharacterId.Value, closure.Mailed);
         if (visitorsBefore.Count > 0)
-            _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters(visitorsBefore),
+            _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions(visitorsBefore),
                 new PrivateStoreBroadcast(new PrivateStoreNotice(ServerMessageType.GamePrivateStoreForceClosed, [])), ct).ConfigureAwait(false);
         await ToAreaAsync(closure.Store, new PrivateStoreNotice(ServerMessageType.GamePrivateStoreClosed,
             PrivateStorePayloadCodec.Closed(session.WireUserId)), ct).ConfigureAwait(false);
@@ -177,7 +177,7 @@ public sealed class GamePrivateStoreCommandHandler(
             throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
         var goods = await units.ReadOnlyAsync(context, new("private-store-enter", [recipient]),
             token => stores.ReadGoodsAsync(owner.CharacterId, token), ct).ConfigureAwait(false);
-        storeQuery.Enter(visitor.CharacterId, owner.CharacterId);
+        storeQuery.Enter(visitor, store.Owner);
         await outbox.RegisterCmdAsync(visitor.ConnectionId, new PrivateStoreReply(ServerMessageType.GamePrivateStoreEnter,
             PrivateStorePayloadCodec.Lines(ownerWireId, goods)), ct).ConfigureAwait(false);
     }
@@ -186,10 +186,10 @@ public sealed class GamePrivateStoreCommandHandler(
         CancellationToken ct)
     {
         var visitor = recipient.Session;
-        if (storeQuery.Visiting(visitor.CharacterId) is not { } owner)
+        if (storeQuery.Visiting(visitor) is not { } owner)
             throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchItem);
         var goods = await units.ReadOnlyAsync(context, new("private-store-verify", [recipient]),
-            token => stores.ReadGoodsAsync(owner, token), ct).ConfigureAwait(false);
+            token => stores.ReadGoodsAsync(owner.CharacterId, token), ct).ConfigureAwait(false);
         if (goods.FirstOrDefault(line => line.DisplaySlot == verify.DisplaySlot) is not { } line)
             throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchItem);
         await outbox.RegisterCmdAsync(visitor.ConnectionId, new PrivateStoreReply(ServerMessageType.GamePrivateStoreVerify,
@@ -200,7 +200,8 @@ public sealed class GamePrivateStoreCommandHandler(
         CancellationToken ct)
     {
         var buyer = recipient.Session;
-        var seller = storeQuery.Visiting(buyer.CharacterId) ?? throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
+        var sellerSession = storeQuery.Visiting(buyer) ?? throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
+        var seller = sellerSession.CharacterId;
         var (bought, shown, refusal) = await units.WriteAsync(context, new("private-store-buy", [recipient]), async (unit, token) =>
         {
             try
@@ -228,10 +229,10 @@ public sealed class GamePrivateStoreCommandHandler(
                 PrivateStorePayloadCodec.Bought(purchase.BuyerGold, destination, purchase.Bought)), projection), ct).ConfigureAwait(false);
         var left = new PrivateStoreNotice(ServerMessageType.GamePrivateStoreLineLeft,
             PrivateStorePayloadCodec.LineLeft(purchase.DisplaySlot, purchase.RemainingCount));
-        var watchers = storeQuery.VisitorsOf(seller).Append(seller).Distinct().ToArray();
-        _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters(watchers), new PrivateStoreBroadcast(left), ct).ConfigureAwait(false);
+        var watchers = storeQuery.VisitorsOf(sellerSession).Append(sellerSession).Distinct().ToArray();
+        _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions(watchers), new PrivateStoreBroadcast(left), ct).ConfigureAwait(false);
         if (purchase.SellerGold is { } gold)
-            _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([seller]),
+            _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions([sellerSession]),
                 new PrivateStoreBroadcast(GameInventoryDelivery.CarriedGoldNotification(gold, DateTimeOffset.UtcNow)), ct).ConfigureAwait(false);
     }
 
