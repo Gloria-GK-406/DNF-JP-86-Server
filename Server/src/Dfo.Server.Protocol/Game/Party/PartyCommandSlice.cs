@@ -92,6 +92,13 @@ internal static class PartyCommandBody
     }
 }
 
+/// <remarks>
+/// Only the shape is enforced here. A decoder that throws drops the whole connection, and the
+/// values in this report are not worth a session: the handler replaces both addresses, the NAT
+/// type and the MTU with what the TCP connection shows, and a relay-fallback report carries the
+/// local adapter address and an uninitialised port by design. Whether the result is usable is the
+/// handler's call, through <see cref="SessionEndpoint.IsValid"/>; it declines and logs instead.
+/// </remarks>
 internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
 {
     private const int PrefixLength = 15;
@@ -110,19 +117,6 @@ internal sealed class SetUdpIpPortDecoder : IGameMessageDecoder
             new SessionIpv4Address(body[5], body[6], body[7], body[8]),
             BinaryPrimitives.ReadUInt16BigEndian(body[9..]),
             BinaryPrimitives.ReadUInt32LittleEndian(body[11..]));
-        if (!endpoint.InnerAddress.IsUsableUnicast)
-            throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid inner IPv4 address.");
-        if (!endpoint.OuterAddress.IsUsableUnicast)
-            throw new InvalidDataException("SET_UDP_IP_PORT contains an invalid outer IPv4 address.");
-        if (endpoint.Port == 0)
-            throw new InvalidDataException("SET_UDP_IP_PORT contains a zero UDP port.");
-        if (!SessionEndpoint.IsValidClientMtu(endpoint.Mtu))
-        {
-            throw new InvalidDataException(
-                $"SET_UDP_IP_PORT contains unsupported A21 MTU '{endpoint.Mtu}'; " +
-                "expected 512, 1024, 1280, or 1472.");
-        }
-
         return new SetUdpIpPortRequest(metadata, endpoint, body[PrefixLength..].ToArray());
     }
 }

@@ -108,14 +108,19 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
         var accepted = endpoints.TryObserve(session.SessionIdentity, observed);
         if (accepted && previous != observed)
             await RepublishPartyEndpointsAsync().ConfigureAwait(false);
-        logger.LogInformation(
+        logger.Log(
+            accepted ? LogLevel.Information : LogLevel.Warning,
             "SET_UDP_IP_PORT session={SessionId} accepted={Accepted} "
-                + "reported={ReportedInner}/{ReportedOuter}:{Port} observed={ObservedAddress}",
+                + "reported={ReportedInner}/{ReportedOuter}:{Port} nat={NatType} mtu={Mtu} "
+                + "reportValid={ReportValid} observed={ObservedAddress}",
             session.SessionIdentity,
             accepted,
             message.Endpoint.InnerAddress,
             message.Endpoint.OuterAddress,
             message.Endpoint.Port,
+            message.Endpoint.NatType,
+            message.Endpoint.Mtu,
+            message.Endpoint.IsValidClientReport,
             context.Connection.RemoteAddress);
         return accepted;
 
