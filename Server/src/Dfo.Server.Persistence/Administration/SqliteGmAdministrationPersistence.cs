@@ -28,13 +28,14 @@ internal sealed class SqliteGmAdministrationPersistence(SqliteDatabase database)
     public async ValueTask DeleteSessionAsync(string hash, CancellationToken cancellationToken) =>
         _ = await database.ExecuteAsync("DELETE FROM gm_sessions WHERE token_hash=@hash;", p => p.AddWithValue("@hash", hash), cancellationToken);
     public async ValueTask AppendAuditAsync(GmAuditRecord record, CancellationToken cancellationToken) =>
-        _ = await database.ExecuteAsync("INSERT INTO gm_audit(operation_id,occurred_at,action,administrator_id,administrator_name,target,outcome,reason) VALUES(@operation,@time,@action,@admin,@name,@target,@outcome,@reason);",
+        _ = await database.ExecuteAsync("INSERT INTO gm_audit(operation_id,occurred_at,action,administrator_id,administrator_name,target,outcome,reason,actor_kind,account_id) VALUES(@operation,@time,@action,@admin,@name,@target,@outcome,@reason,@actor,@account);",
             p =>
             {
                 p.AddWithValue("@operation", record.OperationId); p.AddWithValue("@time", record.OccurredAt.ToUnixTimeMilliseconds());
                 p.AddWithValue("@action", record.Action); p.AddWithValue("@admin", (object?)record.AdministratorId ?? DBNull.Value);
                 p.AddWithValue("@name", (object?)record.AdministratorName ?? DBNull.Value); p.AddWithValue("@target", record.Target);
                 p.AddWithValue("@outcome", record.Outcome); p.AddWithValue("@reason", record.Reason);
+                p.AddWithValue("@actor", record.ActorKind); p.AddWithValue("@account", (object?)record.AccountId ?? DBNull.Value);
             }, cancellationToken);
     public ValueTask<GmAuditPage> QueryAuditAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken) =>
         database.ReadAsync(async (command, token) =>
@@ -44,15 +45,17 @@ internal sealed class SqliteGmAdministrationPersistence(SqliteDatabase database)
             if (filter.Action is { } action) { where.Add("action=@action"); command.Parameters.AddWithValue("@action", action); }
             if (filter.Outcome == GmAuditFilter.Attention) where.Add("outcome<>'Succeeded'");
             else if (filter.Outcome is { } outcome) { where.Add("outcome=@outcome"); command.Parameters.AddWithValue("@outcome", outcome); }
+            if (filter.Actor is { } actor) { where.Add("actor_kind=@actor"); command.Parameters.AddWithValue("@actor", actor); }
             var clause = where.Count == 0 ? "" : " WHERE " + string.Join(" AND ", where);
             command.CommandText = "SELECT COUNT(*) FROM gm_audit" + clause + ";";
             var total = Convert.ToInt64(await command.ExecuteScalarAsync(token));
-            command.CommandText = "SELECT operation_id,occurred_at,action,administrator_id,administrator_name,target,outcome,reason FROM gm_audit" + clause + " ORDER BY occurred_at DESC,operation_id DESC LIMIT @limit OFFSET @offset;";
+            command.CommandText = "SELECT operation_id,occurred_at,action,administrator_id,administrator_name,target,outcome,reason,actor_kind,account_id FROM gm_audit" + clause + " ORDER BY occurred_at DESC,operation_id DESC LIMIT @limit OFFSET @offset;";
             command.Parameters.AddWithValue("@limit", pageSize); command.Parameters.AddWithValue("@offset", (long)(page - 1) * pageSize);
             var records = new List<GmAuditRecord>();
             await using var reader = await command.ExecuteReaderAsync(token);
             while (await reader.ReadAsync(token)) records.Add(new(reader.GetString(0), DateTimeOffset.FromUnixTimeMilliseconds(reader.GetInt64(1)), reader.GetString(2),
-                reader.IsDBNull(3) ? null : reader.GetInt64(3), reader.IsDBNull(4) ? null : reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7)));
+                reader.IsDBNull(3) ? null : reader.GetInt64(3), reader.IsDBNull(4) ? null : reader.GetString(4), reader.GetString(5), reader.GetString(6), reader.GetString(7),
+                reader.GetString(8), reader.IsDBNull(9) ? null : reader.GetInt32(9)));
             return new GmAuditPage(records, total, page, pageSize);
         }, cancellationToken);
     private static GmAdministrator ReadAdministrator(Microsoft.Data.Sqlite.SqliteDataReader reader) =>

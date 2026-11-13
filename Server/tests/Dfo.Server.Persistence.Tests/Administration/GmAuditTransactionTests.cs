@@ -55,6 +55,37 @@ public sealed class GmAuditTransactionTests
         });
     }
     [Fact]
+    public async Task AuditRecordsSayWhoActedAndFilterByActor()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "dfo-gm-audit-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "test.db"); var scope = TestRequired.TransactionScope();
+            var persistence = new SqliteGmAdministrationPersistence(new SqliteDatabase(path, scope)); var at = DateTimeOffset.UtcNow;
+            await using (var transaction = scope.Begin())
+            {
+                await persistence.AppendAuditAsync(new("gm-op", at, "GrantCera", 1, "admin", "fixture", "Succeeded", "操作者验证"), default);
+                await persistence.AppendAuditAsync(new("player-op", at.AddSeconds(1), "PlayerLogin", null, "alice", "fixture", "Rejected", "操作者验证",
+                    GmAuditActors.Player, 7), default);
+                await transaction.CommitAsync(default);
+            }
+            var all = await persistence.QueryAuditAsync(1, 20, GmAuditFilter.All, default);
+            Assert.Equal(2, all.Total);
+            var gm = Assert.Single(all.Items, r => r.OperationId == "gm-op");
+            Assert.Equal((GmAuditActors.Gm, (int?)null, (long?)1, "admin"), (gm.ActorKind, gm.AccountId, gm.AdministratorId, gm.AdministratorName));
+            var player = Assert.Single(all.Items, r => r.OperationId == "player-op");
+            Assert.Equal((GmAuditActors.Player, (int?)7, (long?)null, "alice"), (player.ActorKind, player.AccountId, player.AdministratorId, player.AdministratorName));
+            var players = await persistence.QueryAuditAsync(1, 20, new(Actor: GmAuditActors.Player), default);
+            Assert.Equal("player-op", Assert.Single(players.Items).OperationId); Assert.Equal(1, players.Total);
+            var gms = await persistence.QueryAuditAsync(1, 20, new(Actor: GmAuditActors.Gm), default);
+            Assert.Equal("gm-op", Assert.Single(gms.Items).OperationId); Assert.Equal(1, gms.Total);
+            Assert.Empty((await persistence.QueryAuditAsync(1, 20, new(Outcome: "Succeeded", Actor: GmAuditActors.Player), default)).Items);
+            Assert.True(new GmAuditFilter(Actor: GmAuditActors.Player).IsValid);
+            Assert.False(new GmAuditFilter(Actor: "robot").IsValid);
+            using var connection = new SqliteConnection($"Data Source={path}"); SqliteConnection.ClearPool(connection); Directory.Delete(directory, true);
+        });
+    }
+    [Fact]
     public async Task AuditCannotWriteOutsideAnOwnedTransaction()
     {
         var directory = Path.Combine(Path.GetTempPath(), "dfo-gm-audit-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);

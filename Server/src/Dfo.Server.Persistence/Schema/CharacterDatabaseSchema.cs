@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 9;
+    public const int Version = 10;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -321,10 +321,13 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS domain_event_deliveries(event_id TEXT NOT NULL REFERENCES domain_events(event_id),subscriber_id TEXT NOT NULL,coalescing_key TEXT,state INTEGER NOT NULL DEFAULT 0 CHECK(state IN(0,1,2)),attempt_count INTEGER NOT NULL DEFAULT 0,next_attempt_at INTEGER NOT NULL,processed_at INTEGER,last_error TEXT NOT NULL DEFAULT '',PRIMARY KEY(event_id,subscriber_id));
         CREATE TABLE IF NOT EXISTS gm_administrators (id INTEGER PRIMARY KEY AUTOINCREMENT,login_name TEXT NOT NULL UNIQUE,password_record TEXT NOT NULL,enabled INTEGER NOT NULL,permissions INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_sessions (token_hash TEXT PRIMARY KEY,administrator_id INTEGER NOT NULL,expires_at INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS gm_audit (operation_id TEXT PRIMARY KEY,occurred_at INTEGER NOT NULL,action TEXT NOT NULL,administrator_id INTEGER,administrator_name TEXT,target TEXT NOT NULL,outcome TEXT NOT NULL,reason TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS gm_audit (operation_id TEXT PRIMARY KEY,occurred_at INTEGER NOT NULL,action TEXT NOT NULL,administrator_id INTEGER,administrator_name TEXT,target TEXT NOT NULL,outcome TEXT NOT NULL,reason TEXT NOT NULL,actor_kind TEXT NOT NULL DEFAULT 'gm',account_id INTEGER);
         CREATE TABLE IF NOT EXISTS gm_mail_drafts (administrator_id INTEGER PRIMARY KEY,document TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
+        CREATE TABLE IF NOT EXISTS player_portal_settings(id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL CHECK(enabled IN(0,1)),cera_enabled INTEGER NOT NULL CHECK(cera_enabled IN(0,1)),mail_enabled INTEGER NOT NULL CHECK(mail_enabled IN(0,1)),cera_per_grant INTEGER NOT NULL CHECK(cera_per_grant>=0),cera_per_day INTEGER NOT NULL CHECK(cera_per_day>=0),token_cera_per_grant INTEGER NOT NULL CHECK(token_cera_per_grant>=0),token_cera_per_day INTEGER NOT NULL CHECK(token_cera_per_day>=0),mail_gold_per_mail INTEGER NOT NULL CHECK(mail_gold_per_mail>=0),mails_per_day INTEGER NOT NULL CHECK(mails_per_day>=0),revision INTEGER NOT NULL CHECK(revision>=1));
+        CREATE TABLE IF NOT EXISTS player_portal_sessions(token_hash TEXT PRIMARY KEY,account_id INTEGER NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS player_portal_operations(account_id INTEGER NOT NULL,request_id TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN('cera','mail')),currency TEXT,amount INTEGER NOT NULL CHECK(amount>=0),payload_hash TEXT NOT NULL,receipt_json TEXT NOT NULL,period_day TEXT NOT NULL,committed_at INTEGER NOT NULL,PRIMARY KEY(account_id,request_id));
         CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));
         CREATE TABLE IF NOT EXISTS character_relations(owner_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,target_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,kind INTEGER NOT NULL CHECK(kind BETWEEN 1 AND 255),created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,kind,target_id),CHECK(owner_id<>target_id));
         CREATE INDEX IF NOT EXISTS ix_character_relations_target ON character_relations(target_id,kind);
@@ -444,6 +447,10 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS ix_gm_mail_operations_time ON gm_mail_operations(administrator_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_cera_operations_time ON gm_cera_operations(administrator_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS ix_gm_sessions_expiry ON gm_sessions(expires_at);
+        CREATE INDEX IF NOT EXISTS ix_player_portal_sessions_account ON player_portal_sessions(account_id);
+        CREATE INDEX IF NOT EXISTS ix_player_portal_sessions_expiry ON player_portal_sessions(expires_at);
+        CREATE INDEX IF NOT EXISTS ix_player_portal_operations_usage ON player_portal_operations(account_id,kind,period_day);
+        CREATE INDEX IF NOT EXISTS ix_player_portal_operations_time ON player_portal_operations(account_id,committed_at DESC,request_id DESC);
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_mailbox_pending_equipment_uid ON mailbox_attachments(source_item_uid) WHERE asset_kind='equipment' AND claimed_flag=0 AND source_item_uid>0;
