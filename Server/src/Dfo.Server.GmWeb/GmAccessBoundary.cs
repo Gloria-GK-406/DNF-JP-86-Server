@@ -91,10 +91,10 @@ internal sealed class GmAccessBoundary(RequestDelegate next)
         // A player's executor CMDs are capped per account before they are queued (CH-1); the refused one never runs.
         if (player && !isPublic && playerIdentity is { } held && endpoint?.Metadata.GetMetadata<HttpGameplayOperation>() is not null)
         {
-            if (!limiter.TryEnter(held.AccountId))
+            if (!limiter.TryAcquire(held.AccountId))
             { await Refuse(context, player, 429, "rate_limited", "请求过于频繁，请稍后重试。"); return; }
             try { await next(context); }
-            finally { limiter.Exit(held.AccountId); }
+            finally { limiter.Release(held.AccountId); }
             return;
         }
         await next(context);

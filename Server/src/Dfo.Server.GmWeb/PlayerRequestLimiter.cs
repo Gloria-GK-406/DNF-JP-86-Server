@@ -15,7 +15,7 @@ internal sealed class PlayerRequestLimiter
     private readonly object sync = new();
     private readonly Dictionary<int, int> inFlight = [];
 
-    public bool TryEnter(int accountId)
+    public bool TryAcquire(int accountId)
     {
         lock (sync)
         {
@@ -26,7 +26,7 @@ internal sealed class PlayerRequestLimiter
         }
     }
 
-    public void Exit(int accountId)
+    public void Release(int accountId)
     {
         lock (sync)
         {

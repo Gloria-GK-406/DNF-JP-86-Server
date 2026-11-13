@@ -85,12 +85,12 @@ public sealed class PlayerPortalRequestLimitHttpTests
     public void A_place_is_released_once_and_never_below_zero()
     {
         var limiter = new PlayerRequestLimiter();
-        Assert.True(limiter.TryEnter(7)); Assert.True(limiter.TryEnter(7)); Assert.False(limiter.TryEnter(7));
-        Assert.True(limiter.TryEnter(8));
-        limiter.Exit(7); Assert.Equal(1, limiter.InFlight(7)); Assert.True(limiter.TryEnter(7));
-        limiter.Exit(7); limiter.Exit(7); limiter.Exit(7);
+        Assert.True(limiter.TryAcquire(7)); Assert.True(limiter.TryAcquire(7)); Assert.False(limiter.TryAcquire(7));
+        Assert.True(limiter.TryAcquire(8));
+        limiter.Release(7); Assert.Equal(1, limiter.InFlight(7)); Assert.True(limiter.TryAcquire(7));
+        limiter.Release(7); limiter.Release(7); limiter.Release(7);
         Assert.Equal(0, limiter.InFlight(7)); Assert.Equal(1, limiter.InFlight(8));
-        Assert.True(limiter.TryEnter(7)); Assert.True(limiter.TryEnter(7)); Assert.False(limiter.TryEnter(7));
+        Assert.True(limiter.TryAcquire(7)); Assert.True(limiter.TryAcquire(7)); Assert.False(limiter.TryAcquire(7));
     }
 
     private static async Task UntilAsync(Func<bool> condition)
