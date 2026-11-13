@@ -349,7 +349,7 @@ public sealed record CharacterEntryExtrasState(
     int SkillTreeIndex,
     long NameTagItemId,
     long NameTagExpireTime,
-    int ManageLevel,
+    AdventureGroupStanding AdventureGroup,
     long CharacterExperience,
     int ExtraEquipmentSlotState,
     IReadOnlyList<(int SortOrder, long Key, int Value1, int Value2)> Dimensions,

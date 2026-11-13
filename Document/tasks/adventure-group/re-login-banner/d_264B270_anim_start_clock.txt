@@ -1,0 +1,30 @@
+0264B270: 56                       push esi
+0264B271: 8bf1                     mov esi, ecx
+0264B273: 85f6                     test esi, esi
+0264B275: 7504                     jne 0x264b27b
+0264B277: 32c0                     xor al, al
+0264B279: 5e                       pop esi
+0264B27A: c3                       ret 
+0264B27B: 838e4c04000002           or dword ptr [esi + 0x44c], 2
+0264B282: 57                       push edi
+0264B283: 6a00                     push 0
+0264B285: 6a00                     push 0
+0264B287: 8d8e84000000             lea ecx, [esi + 0x84]
+0264B28D: e8ce881700               call 0x27c3b60
+0264B292: 8b8ee8030000             mov ecx, dword ptr [esi + 0x3e8]
+0264B298: 85c9                     test ecx, ecx
+0264B29A: 7407                     je 0x264b2a3
+0264B29C: e88ffdffff               call 0x264b030
+0264B2A1: eb0b                     jmp 0x264b2ae
+0264B2A3: 8b864c040000             mov eax, dword ptr [esi + 0x44c]
+0264B2A9: c1e802                   shr eax, 2
+0264B2AC: 2401                     and al, 1
+0264B2AE: 84c0                     test al, al
+0264B2B0: 7519                     jne 0x264b2cb
+0264B2B2: 8d8e84000000             lea ecx, [esi + 0x84]
+0264B2B8: e8a3831700               call 0x27c3660
+0264B2BD: 0386a0000000             add eax, dword ptr [esi + 0xa0]
+0264B2C3: 3b86a4000000             cmp eax, dword ptr [esi + 0xa4]
+0264B2C9: 7505                     jne 0x264b2d0
+0264B2CB: 5f                       pop edi
+0264B2CC: 32c0                     xor al, al

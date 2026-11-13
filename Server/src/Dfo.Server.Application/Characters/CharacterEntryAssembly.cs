@@ -182,7 +182,7 @@ internal sealed class CharacterEntryAssembly(
         var projectedTree = builds.IsUnlocked(new(1)) ? builds.Active.Value : -1;
         RequireProfileInRange(conditionState, settingsState, pvpState, expertJobState,
             statsState, guildState, projectedTree,
-            row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel);
+            row.NameTagItemId, row.NameTagExpireTime);
         var dimensionRows = new List<(int, long, int, int)>();
         foreach (var dimension in await dimensions.ReadAsync(characterId, cancellationToken)
                      .ConfigureAwait(false))
@@ -210,7 +210,7 @@ internal sealed class CharacterEntryAssembly(
             checked((byte)row.Job), checked((byte)row.Level),
             checked((uint)row.CloneTitleItemId),
             conditionState, settingsState, pvpState, expertJobState, statsState, guildState,
-            projectedTree, row.NameTagItemId, row.NameTagExpireTime, row.ManageLevel,
+            projectedTree, row.NameTagItemId, row.NameTagExpireTime,
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
             row.Experience, row.ExtraEquipSlotStat, dimensionRows, flagValues,
             checked((byte)pvpRow.PvpGrade), checked((byte)pvpRow.PvpRatingGrade),
@@ -524,8 +524,7 @@ internal sealed class CharacterEntryAssembly(
         CharacterGuildStandingStorageRecord guild,
         int skillTreeIndex,
         long nameTagItemId,
-        long nameTagExpireTime,
-        int manageLevel)
+        long nameTagExpireTime)
     {
         if (c.Stamina is < 0 or > byte.MaxValue || c.FatiguePenalty is < 0 or > uint.MaxValue
             || job.Type is < 0 or > byte.MaxValue || job.Experience is < 0 or > uint.MaxValue
@@ -562,7 +561,6 @@ internal sealed class CharacterEntryAssembly(
                 stats.QuestShopCount }.Any(value => value is < 0 or > ushort.MaxValue)
             || new[] { stats.CurrentHpMpPercent, stats.EquippedCreatureLevel, stats.FlagByte }
                 .Any(value => value is < 0 or > byte.MaxValue)
-            || manageLevel is < 0 or > byte.MaxValue
             || stats.Weight is < 0 or > uint.MaxValue
             || nameTagItemId is < 0 or > uint.MaxValue
             || nameTagExpireTime is < 0 or > uint.MaxValue

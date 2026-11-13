@@ -186,6 +186,28 @@ public sealed class ExperienceBonusDomainServiceTests
     public void OnlyAKillIsPaid(ExperienceEvent occasion) =>
         Assert.Empty(Collect(Service(), CarriedDungeon, occasion));
 
+    /// <summary>The adventure group pays on a clear, last, and on nothing else.</summary>
+    [Theory]
+    [InlineData(ExperienceEvent.DungeonClear, true)]
+    [InlineData(ExperienceEvent.MonsterKill, false)]
+    [InlineData(ExperienceEvent.QuestCompletion, false)]
+    [InlineData(ExperienceEvent.TowerKill, false)]
+    [InlineData(ExperienceEvent.TowerClear, false)]
+    public void TheAdventureGroupPaysOnlyOnAClear(ExperienceEvent occasion, bool paid)
+    {
+        var found = Collect(Service(adventureRate: 0.10), OtherDungeon, occasion);
+
+        if (paid)
+            Assert.Equal(new ExperienceModifier("adventure group", 0.10, ExperienceBonusKind.AdventureGroup), found[^1]);
+        else
+            Assert.DoesNotContain(found, modifier => modifier.Kind == ExperienceBonusKind.AdventureGroup);
+    }
+
+    /// <summary>A character the adventure group does not favour gets no modifier at all.</summary>
+    [Fact]
+    public void ANoughtAdventureRateAddsNothing() =>
+        Assert.Empty(Collect(Service(adventureRate: 0), OtherDungeon, ExperienceEvent.DungeonClear));
+
     private static IReadOnlyList<ExperienceModifier> Collect(
         IExperienceBonusDomainService service,
         int dungeonId,
@@ -209,7 +231,8 @@ public sealed class ExperienceBonusDomainServiceTests
         int channelId = Channel,
         IReadOnlyList<AccountPremiumRow>? premiums = null,
         IOnlineCharacterRuntimeDomainService? potions = null,
-        bool blackDiamond = false) =>
+        bool blackDiamond = false,
+        double adventureRate = 0) =>
         new ExperienceBonusDomainService(
             new OneSession(published),
             new PremiumServiceDomainService(new NoPremium(premiums ?? []), TestRequired.TransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
@@ -221,7 +244,10 @@ public sealed class ExperienceBonusDomainServiceTests
                 new FixedChannelExperience(channels ?? TwoChannels),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None),
-            TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()));
+            TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
+            TestRequired.Absent<IAdventureGroupDomainService>((method, _) =>
+                method.Name == nameof(IAdventureGroupDomainService.ClearExperienceRateAsync)
+                    ? ValueTask.FromResult(adventureRate) : null));
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;

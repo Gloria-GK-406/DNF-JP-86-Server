@@ -825,10 +825,9 @@ internal static partial class StateSynchronizationPayloadCodec
         }
 
         writer.Write(SubtypeOneAfterDimensionPrefix);
-        writer.Write(checked((byte)extras.ManageLevel));
-        // A manage point, which this server does not model. Zero is what the reference carries, so
-        // it is not a placeholder standing in for an unknown -- it is the observed value.
-        writer.Write(0u);
+        // The account's adventure group (冒险团): level u8, then its points i32.
+        writer.Write(extras.AdventureGroup.Level);
+        writer.Write(extras.AdventureGroup.Point);
         writer.Write(SubtypeOneAfterDimensionRest);
     }
 
@@ -1000,7 +999,8 @@ internal static partial class StateSynchronizationPayloadCodec
         using var writer = new BinaryWriter(stream);
         writer.Write((byte)3);
         writer.Write((ushort)1);
-        writer.Write(checked((ushort)extras.ManageLevel));
+        // The viewed character's account's adventure-group level.
+        writer.Write((ushort)extras.AdventureGroup.Level);
         writer.Write(new byte[inspectReservedPrefixLength]);
         writer.Write(checked((ushort)character.Identity.CharacterId.Value));
         writer.Write(checked((uint)extras.CharacterExperience));

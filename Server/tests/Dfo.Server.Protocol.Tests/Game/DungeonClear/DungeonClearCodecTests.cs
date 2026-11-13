@@ -84,6 +84,22 @@ public sealed class DungeonClearCodecTests
         Assert.Equal(baseline, body);
     }
 
+    /// <summary>
+    /// The adventure-group share lands in slot 7 (body+45, ClientStatic 「冒险团奖励」) and nowhere else.
+    /// </summary>
+    [Fact]
+    public void Adventure_group_share_uses_the_seventh_slot()
+    {
+        var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20,
+            experience: new(Base: 100, ClearRank: 20));
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(100, 20,
+            experience: new(Base: 100, ClearRank: 20, AdventureGroup: 10));
+
+        Assert.Equal(10u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(45)));
+        body.AsSpan(45, 4).Clear();
+        Assert.Equal(baseline, body);
+    }
+
     /// <summary>The exit opens on one byte, and the byte is zero.</summary>
     [Fact]
     public void KillCategoriesAreDisplayOnlyAndDoNotChangeClearAwardOrCardLayout()

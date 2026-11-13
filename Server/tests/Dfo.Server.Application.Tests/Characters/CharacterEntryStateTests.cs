@@ -27,7 +27,10 @@ public sealed class CharacterEntryStateTests
             new CharacterFeatureEntryProjection(),
             Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(
                 new Dfo.Server.Application.Tests.Support.CurrentCharacterStub { Stats = new CharacterBaseStats(PhysicalAttack: 123) }), new Dfo.Server.Application.Tests.Support.NoticeStateStub(),
-            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond }, new Dfo.Server.Application.Tests.Support.NoHerasEntries(), creatureStore: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>(), altars: TestRequired.Absent<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>(), tournaments: TestRequired.Absent<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>(), clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>(), goldSilverHorn: TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>((method, _) => method.Name == "ReadQuotaAsync" ? ValueTask.FromResult(new Dfo.Server.Abstractions.World.GoldSilverHornQuotaSnapshot(5555, default, 0, 1)) : null), nameTags: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>(), stores: new Dfo.Server.Application.Characters.AmbientStoreAccess(TestRequired.TransactionScope()));
+            new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond }, new Dfo.Server.Application.Tests.Support.NoHerasEntries(), creatureStore: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>(), altars: TestRequired.Absent<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>(), tournaments: TestRequired.Absent<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>(), clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>(), goldSilverHorn: TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>((method, _) => method.Name == "ReadQuotaAsync" ? ValueTask.FromResult(new Dfo.Server.Abstractions.World.GoldSilverHornQuotaSnapshot(5555, default, 0, 1)) : null), nameTags: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>(), stores: new Dfo.Server.Application.Characters.AmbientStoreAccess(TestRequired.TransactionScope()),
+            adventureGroups: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>((method, arguments) =>
+                method.Name == "ReadAsync" && (AccountId)arguments![0]! == accountId
+                    ? ValueTask.FromResult(new AdventureGroupStanding(3, 21570)) : null));
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 
@@ -36,7 +39,8 @@ public sealed class CharacterEntryStateTests
         Assert.Equal(blackDiamond, result.Public.HasBlackDiamond);
         Assert.Equal(new CharacterPublicIdentityEntryState(8, 9, 10), result.Public.Identity);
         Assert.Equal(123, result.Public.DerivedStats.PhysicalAttack);
-        Assert.Equal(11, result.Public.Extras.ManageLevel);
+        // The account's adventure group as its owner works it out, not anything the row stored.
+        Assert.Equal(new AdventureGroupStanding(3, 21570), result.Public.Extras.AdventureGroup);
         Assert.Equal(new CharacterPvpResultStorageRow(101, 102, 103),
             Assert.Single(result.Public.Pvp.Results));
         Assert.Equal([200], result.Public.Extras.SpecialRewardQuestIds);
@@ -94,7 +98,7 @@ public sealed class CharacterEntryStateTests
         Assert.Equal(storage.SkillTreeIndex, entry.Extras.SkillTreeIndex);
         Assert.Equal(storage.NameTagItemId, entry.Extras.NameTagItemId);
         Assert.Equal(storage.NameTagExpireTime, entry.Extras.NameTagExpireTime);
-        Assert.Equal(storage.ManageLevel, entry.Extras.ManageLevel);
+        Assert.Equal(AdventureGroupStanding.None, entry.Extras.AdventureGroup);
         Assert.Equal(storage.CharacterExperience, entry.Extras.CharacterExperience);
         Assert.Equal(storage.ExtraEquipmentSlotState, entry.Extras.ExtraEquipmentSlotState);
         Assert.Same(storage.Dimensions, entry.Extras.Dimensions);
@@ -115,7 +119,7 @@ public sealed class CharacterEntryStateTests
             new CharacterDerivedStatsStorageRecord(
                 100, 90, 123, 50, 111, 40, 20, 30, 10, 120, 1, 2),
             new CharacterGuildStandingStorageRecord(0, 0),
-            SkillTreeIndex: 0, NameTagItemId: 77, NameTagExpireTime: 88, ManageLevel: 11,
+            SkillTreeIndex: 0, NameTagItemId: 77, NameTagExpireTime: 88,
             HotkeySlots: [20, 10], CharacterOptionBlob: [4], CharacterExperience: 1000,
             ExtraEquipmentSlotState: 1, Dimensions: [(0, 9L, 1, 2)], DimensionFlags: (1, 2, 3, 4),
             PvpGrade: 8, PvpRatingGrade: 9, UserState: 10),

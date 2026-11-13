@@ -209,7 +209,7 @@ internal static class DungeonClearPayloadCodec
     /// Two of its figures carry what the clear actually paid, and the card tail carries what the
     /// clear's free face holds and what a paid flip of it costs; the rest are still zero, and zero
     /// is still the honest value for a
-    /// reward this server does not grant. A clear's avatar, creature, adventure-group and premium
+    /// reward this server does not grant. A clear's avatar, creature and premium
     /// bonuses each need a source this server has not got, and a frame carrying invented figures
     /// would put numbers on the result screen that nothing else could account for.
     /// <para>
@@ -268,6 +268,7 @@ internal static class DungeonClearPayloadCodec
             {
                 1 => experience?.SpiritPotion ?? 0u,
                 2 => experience?.BlackDiamond ?? 0u,
+                7 => experience?.AdventureGroup ?? 0u, // ClientStatic: 「冒险团奖励」 row, body+45.
                 9 => experience?.GrowthContract ?? 0u,
                 18 => killExperience?.GrowthContract ?? 0u, // Already awarded kills; display only.
                 _ => 0u,

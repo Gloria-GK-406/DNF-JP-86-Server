@@ -1,0 +1,60 @@
+0265FED0: 55                       push ebp
+0265FED1: 8bec                     mov ebp, esp
+0265FED3: 83ec0c                   sub esp, 0xc
+0265FED6: 56                       push esi
+0265FED7: 8bf1                     mov esi, ecx
+0265FED9: 85f6                     test esi, esi
+0265FEDB: 0f848e000000             je 0x265ff6f
+0265FEE1: 8b8ee8030000             mov ecx, dword ptr [esi + 0x3e8]
+0265FEE7: 85c9                     test ecx, ecx
+0265FEE9: 7407                     je 0x265fef2
+0265FEEB: e8f0b0feff               call 0x264afe0
+0265FEF0: eb06                     jmp 0x265fef8
+0265FEF2: 8b86a4000000             mov eax, dword ptr [esi + 0xa4]
+0265FEF8: 2b8624040000             sub eax, dword ptr [esi + 0x424]
+0265FEFE: c745f400000000           mov dword ptr [ebp - 0xc], 0
+0265FF05: 8945f8                   mov dword ptr [ebp - 8], eax
+0265FF08: 85c0                     test eax, eax
+0265FF0A: 8d45f8                   lea eax, [ebp - 8]
+0265FF0D: 7f03                     jg 0x265ff12
+0265FF0F: 8d45f4                   lea eax, [ebp - 0xc]
+0265FF12: 53                       push ebx
+0265FF13: 8b9eac030000             mov ebx, dword ptr [esi + 0x3ac]
+0265FF19: 57                       push edi
+0265FF1A: 8b38                     mov edi, dword ptr [eax]
+0265FF1C: 8b864c040000             mov eax, dword ptr [esi + 0x44c]
+0265FF22: c1e803                   shr eax, 3
+0265FF25: 2401                     and al, 1
+0265FF27: 897df8                   mov dword ptr [ebp - 8], edi
+0265FF2A: 7541                     jne 0x265ff6d
+0265FF2C: 83be8000000000           cmp dword ptr [esi + 0x80], 0
+0265FF33: 7438                     je 0x265ff6d
+0265FF35: 6a00                     push 0
+0265FF37: 8bce                     mov ecx, esi
+0265FF39: e842d1feff               call 0x264d080
+0265FF3E: 8b9680000000             mov edx, dword ptr [esi + 0x80]
+0265FF44: 8bc8                     mov ecx, eax
+0265FF46: 85d2                     test edx, edx
+0265FF48: 7408                     je 0x265ff52
+0265FF4A: 8b4218                   mov eax, dword ptr [edx + 0x18]
+0265FF4D: 3b421c                   cmp eax, dword ptr [edx + 0x1c]
+0265FF50: 7404                     je 0x265ff56
+0265FF52: 85c9                     test ecx, ecx
+0265FF54: 791e                     jns 0x265ff74
+0265FF56: 6a00                     push 0
+0265FF58: 8bce                     mov ecx, esi
+0265FF5A: e85127ffff               call 0x26526b0
+0265FF5F: 8bce                     mov ecx, esi
+0265FF61: e85afcffff               call 0x265fbc0
+0265FF66: 838e4c04000008           or dword ptr [esi + 0x44c], 8
+0265FF6D: 5f                       pop edi
+0265FF6E: 5b                       pop ebx
+0265FF6F: 5e                       pop esi
+0265FF70: 8be5                     mov esp, ebp
+0265FF72: 5d                       pop ebp
+0265FF73: c3                       ret 
+0265FF74: 745f                     je 0x265ffd5
+0265FF76: 8bc7                     mov eax, edi
+0265FF78: 2b86b4030000             sub eax, dword ptr [esi + 0x3b4]
+0265FF7E: 3bc1                     cmp eax, ecx
+0265FF80: 7e53                     jle 0x265ffd5

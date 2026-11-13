@@ -179,7 +179,8 @@ public sealed class MonsterDeathCodecTests
 
         // Clear-only bonuses have no declared line in the monster EXP notification.
         var declarable = Enum.GetValues<ExperienceBonusKind>()
-            .Where(kind => kind is not (ExperienceBonusKind.Unlisted or ExperienceBonusKind.SpiritPotion or ExperienceBonusKind.BlackDiamond));
+            .Where(kind => kind is not (ExperienceBonusKind.Unlisted or ExperienceBonusKind.SpiritPotion or ExperienceBonusKind.BlackDiamond
+                or ExperienceBonusKind.AdventureGroup));
         Assert.Equal(
             declarable.Order(),
             MonsterDeathPayloadCodec.NamedLines.Select(line => line.Kind).Order());

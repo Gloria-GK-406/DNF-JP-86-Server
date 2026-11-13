@@ -14,7 +14,6 @@ public sealed record CharacterEntryRow(
     int UserState,
     long NameTagItemId,
     long NameTagExpireTime,
-    int ManageLevel,
     long GuildPowerWar,
     int GuildLevel);
 

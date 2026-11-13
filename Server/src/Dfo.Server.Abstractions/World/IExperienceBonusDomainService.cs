@@ -110,6 +110,12 @@ public enum ExperienceBonusKind
 
     /// <summary>黑钻，通关结算专用加成。</summary>
     BlackDiamond,
+
+    /// <summary>
+    /// 冒险团奖励：通关结算专用加成，账号内等级最高的角色（含同级）没有。显示在
+    /// NOTI <c>0x0023</c> 第 7 格（body+45）。
+    /// </summary>
+    AdventureGroup,
 }
 
 /// <summary>One reason a character earns more than the occasion is worth.</summary>

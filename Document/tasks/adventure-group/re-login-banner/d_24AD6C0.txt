@@ -1,0 +1,18 @@
+024AD6C0: 55                       push ebp
+024AD6C1: 8bec                     mov ebp, esp
+024AD6C3: 83ec08                   sub esp, 8
+024AD6C6: 33c0                     xor eax, eax
+024AD6C8: 8845f8                   mov byte ptr [ebp - 8], al
+024AD6CB: 8945f9                   mov dword ptr [ebp - 7], eax
+024AD6CE: 8d45f8                   lea eax, [ebp - 8]
+024AD6D1: 6a05                     push 5
+024AD6D3: 50                       push eax
+024AD6D4: e8a77c3100               call 0x27c5380
+024AD6D9: 0fbe4df8                 movsx ecx, byte ptr [ebp - 8]
+024AD6DD: 8b55f9                   mov edx, dword ptr [ebp - 7]
+024AD6E0: 83c408                   add esp, 8
+024AD6E3: 890d984bb703             mov dword ptr [0x3b74b98], ecx
+024AD6E9: 89159c4bb703             mov dword ptr [0x3b74b9c], edx
+024AD6EF: 8be5                     mov esp, ebp
+024AD6F1: 5d                       pop ebp
+024AD6F2: c3                       ret 

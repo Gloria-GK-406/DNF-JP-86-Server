@@ -46,8 +46,8 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var core = ItemCore(1001, 17);
             await ExecuteAsync(path, """
                 INSERT INTO characters(character_id, account_id, name, job, level, clone_title_item_id,
-                    user_state,manage_level)
-                VALUES(22, 12, 'loaded', 1, 60, 77,10,13);
+                    user_state)
+                VALUES(22, 12, 'loaded', 1, 60, 77,10);
                 INSERT INTO character_condition(character_id,stamina,fatigue_penalty,
                     champion_break_key_id,champion_break_mode,champion_break_value,
                     crystal_cube_type,crystal_cube_grade,
@@ -113,7 +113,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             Assert.Equal((byte)9, result.Profile.PvpRatingGrade);
             Assert.Equal((byte)10, result.Profile.UserState);
             Assert.Equal(123, result.Profile.DerivedStats.PhysicalAttack);
-            Assert.Equal(13, result.Profile.ManageLevel);
             Assert.Empty(result.Profile.Pvp.Results);
             Assert.Equal(9, Assert.Single(result.Profile.Dimensions).Key);
             Assert.Equal(4, result.Profile.DimensionFlags.Flag4);
@@ -333,7 +332,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
             var result = await new CharacterSide(path).EntryState(new GoldLimitRuleService()).LoadAsync(
                 new AccountId(15), new CharacterId(25), CancellationToken.None);
 
-            Assert.Equal(0, result.Profile.ManageLevel);
             var message = Assert.Single(result.Features.Mailbox.PageMessages);
             Assert.Equal(900, message.MessageId);
             Assert.Equal(string.Empty, message.SenderName);
@@ -398,13 +396,13 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
     /// Nothing asserted it. That is how four of these checks came to be dropped in the change that
     /// regrouped the profile by concept -- the four fields that moved out of the flattened record
     /// were the four whose checks had nothing left to hang off, and losing a refusal shows only
-    /// when a value is out of range, which no fixture had. The four are the last four rows here.
+    /// when a value is out of range, which no fixture had. Three of the four are the last three rows
+    /// here; the fourth, the per-character adventure-group level, left with its column in schema version 6.
     /// </remarks>
     [Theory]
     [InlineData("UPDATE character_condition SET stamina=256 WHERE character_id=23;", Profile)]
     [InlineData("UPDATE character_condition SET mood_value=65536 WHERE character_id=23;", Profile)]
     [InlineData("UPDATE character_pvp SET pvp_rank_point=4294967296 WHERE character_id=23;", Profile)]
-    [InlineData("UPDATE characters SET manage_level=256 WHERE character_id=23;", Extended)]
     [InlineData("UPDATE characters SET name_tag_item_id=4294967296 WHERE character_id=23;", Extended)]
     [InlineData("UPDATE characters SET name_tag_expire_time=4294967296 WHERE character_id=23;", Extended)]
     [InlineData("UPDATE characters SET guild_power_war=4294967296 WHERE character_id=23;", Extended)]

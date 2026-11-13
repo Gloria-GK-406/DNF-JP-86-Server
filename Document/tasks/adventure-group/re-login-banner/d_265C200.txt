@@ -1,0 +1,80 @@
+0265C200: 55                       push ebp
+0265C201: 8bec                     mov ebp, esp
+0265C203: 83ec34                   sub esp, 0x34
+0265C206: 53                       push ebx
+0265C207: 57                       push edi
+0265C208: 8bf9                     mov edi, ecx
+0265C20A: 33db                     xor ebx, ebx
+0265C20C: 3bfb                     cmp edi, ebx
+0265C20E: 0f84d4030000             je 0x265c5e8
+0265C214: 56                       push esi
+0265C215: 8d8f84000000             lea ecx, [edi + 0x84]
+0265C21B: e8f0711600               call 0x27c3410
+0265C220: 899fa0000000             mov dword ptr [edi + 0xa0], ebx
+0265C226: 899fa4000000             mov dword ptr [edi + 0xa4], ebx
+0265C22C: 83a74c040000f1           and dword ptr [edi + 0x44c], 0xfffffff1
+0265C233: 8d8f30020000             lea ecx, [edi + 0x230]
+0265C239: e8d2082600               call 0x28bcb10
+0265C23E: 8b8fe4030000             mov ecx, dword ptr [edi + 0x3e4]
+0265C244: 83ceff                   or esi, 0xffffffff
+0265C247: 899fb0030000             mov dword ptr [edi + 0x3b0], ebx
+0265C24D: 899fb4030000             mov dword ptr [edi + 0x3b4], ebx
+0265C253: 3bcb                     cmp ecx, ebx
+0265C255: 8b5d08                   mov ebx, dword ptr [ebp + 8]
+0265C258: 89b7ac030000             mov dword ptr [edi + 0x3ac], esi
+0265C25E: 0f8496000000             je 0x265c2fa
+0265C264: 83790800                 cmp dword ptr [ecx + 8], 0
+0265C268: 0f868c000000             jbe 0x265c2fa
+0265C26E: 8d45f0                   lea eax, [ebp - 0x10]
+0265C271: 50                       push eax
+0265C272: e8d9bfb5ff               call 0x21b8250
+0265C277: eb07                     jmp 0x265c280
+0265C279: 8da42400000000           lea esp, [esp]
+0265C280: 8d4de4                   lea ecx, [ebp - 0x1c]
+0265C283: 51                       push ecx
+0265C284: 8b8fe4030000             mov ecx, dword ptr [edi + 0x3e4]
+0265C28A: e8719e7ffe               call 0xe56100
+0265C28F: 8b75f0                   mov esi, dword ptr [ebp - 0x10]
+0265C292: 85f6                     test esi, esi
+0265C294: 745c                     je 0x265c2f2
+0265C296: 8b16                     mov edx, dword ptr [esi]
+0265C298: 85d2                     test edx, edx
+0265C29A: 7456                     je 0x265c2f2
+0265C29C: 8b08                     mov ecx, dword ptr [eax]
+0265C29E: 85c9                     test ecx, ecx
+0265C2A0: 7402                     je 0x265c2a4
+0265C2A2: 8b09                     mov ecx, dword ptr [ecx]
+0265C2A4: 3bd1                     cmp edx, ecx
+0265C2A6: 754a                     jne 0x265c2f2
+0265C2A8: 8b55f8                   mov edx, dword ptr [ebp - 8]
+0265C2AB: 3b5008                   cmp edx, dword ptr [eax + 8]
+0265C2AE: 7447                     je 0x265c2f7
+0265C2B0: 8b06                     mov eax, dword ptr [esi]
+0265C2B2: 85c0                     test eax, eax
+0265C2B4: 743c                     je 0x265c2f2
+0265C2B6: 85d2                     test edx, edx
+0265C2B8: 7438                     je 0x265c2f2
+0265C2BA: 3b5004                   cmp edx, dword ptr [eax + 4]
+0265C2BD: 7433                     je 0x265c2f2
+0265C2BF: 8b4a10                   mov ecx, dword ptr [edx + 0x10]
+0265C2C2: 85c9                     test ecx, ecx
+0265C2C4: 741c                     je 0x265c2e2
+0265C2C6: 85c0                     test eax, eax
+0265C2C8: 7428                     je 0x265c2f2
+0265C2CA: 3b5004                   cmp edx, dword ptr [eax + 4]
+0265C2CD: 7423                     je 0x265c2f2
+0265C2CF: 3bcf                     cmp ecx, edi
+0265C2D1: 740f                     je 0x265c2e2
+0265C2D3: 85c0                     test eax, eax
+0265C2D5: 741b                     je 0x265c2f2
+0265C2D7: 3b5004                   cmp edx, dword ptr [eax + 4]
+0265C2DA: 7416                     je 0x265c2f2
+0265C2DC: 53                       push ebx
+0265C2DD: e81effffff               call 0x265c200
+0265C2E2: 6a00                     push 0
+0265C2E4: 8d55d8                   lea edx, [ebp - 0x28]
+0265C2E7: 52                       push edx
+0265C2E8: 8d4df0                   lea ecx, [ebp - 0x10]
+0265C2EB: e8a0052e00               call 0x293c890
+0265C2F0: eb8e                     jmp 0x265c280
+0265C2F2: e8ea606000               call 0x2c623e1

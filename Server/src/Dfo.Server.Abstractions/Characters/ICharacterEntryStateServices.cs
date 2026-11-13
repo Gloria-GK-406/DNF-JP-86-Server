@@ -16,7 +16,6 @@ public sealed record CharacterProfileStorageRecord(
     int SkillTreeIndex,
     long NameTagItemId,
     long NameTagExpireTime,
-    int ManageLevel,
     IReadOnlyList<ushort> HotkeySlots,
     byte[]? CharacterOptionBlob,
     long CharacterExperience,

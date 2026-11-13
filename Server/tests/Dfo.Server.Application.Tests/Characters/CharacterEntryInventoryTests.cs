@@ -652,7 +652,7 @@ public sealed class CharacterEntryInventoryTests
             new CharacterExpertJobStorageRecord(0, 0),
             new CharacterDerivedStatsStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
             new CharacterGuildStandingStorageRecord(0, 0),
-            new CharacterEntryExtrasState(-1, 0, 0, 0, 0, 0, [], (0, 0, 0, 0), []),
+            new CharacterEntryExtrasState(-1, 0, 0, default, 0, 0, [], (0, 0, 0, 0), []),
             0, 0),
         new CharacterSettingsEntryState([], [], 0),
         new CharacterSkillsEntryState(

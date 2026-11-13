@@ -318,7 +318,7 @@ public sealed class GmPlayerDirectoryHttpTests
             if (id < 45)
                 sql.Append($"INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,exp,town_id,area_id,pos_x,pos_y,direction) VALUES({id},{id},'wrong-name',X'{Convert.ToHexString(Encoding.UTF8.GetBytes($"角色{id:D2}"))}',1,2,86,{maximumExperience},1,2,10,20,5);");
         }
-        sql.Append("INSERT INTO characters(character_id,account_id,name,name_bytes,delete_flag) VALUES(46,1,'wrong-name',X'E4B8ADE69687255F27203C623E',1),(47,1,'fallback-forbidden',NULL,0),(48,1,'fallback-forbidden',X'FFFE',0);");
+        sql.Append("INSERT INTO characters(character_id,account_id,name,name_bytes,delete_flag,slot_index) VALUES(46,1,'wrong-name',X'E4B8ADE69687255F27203C623E',1,3),(47,1,'fallback-forbidden',NULL,0,1),(48,1,'fallback-forbidden',X'FFFE',0,2);");
         await host.ExecuteAsync(sql.ToString());
     }
 }

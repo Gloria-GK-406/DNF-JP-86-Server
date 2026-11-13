@@ -1,0 +1,200 @@
+01847D10: 55                       push ebp
+01847D11: 8bec                     mov ebp, esp
+01847D13: 6aff                     push -1
+01847D15: 687b2dde02               push 0x2de2d7b
+01847D1A: 64a100000000             mov eax, dword ptr fs:[0]
+01847D20: 50                       push eax
+01847D21: 51                       push ecx
+01847D22: 53                       push ebx
+01847D23: 56                       push esi
+01847D24: 57                       push edi
+01847D25: a1e0ce9903               mov eax, dword ptr [0x399cee0]
+01847D2A: 33c5                     xor eax, ebp
+01847D2C: 50                       push eax
+01847D2D: 8d45f4                   lea eax, [ebp - 0xc]
+01847D30: 64a300000000             mov dword ptr fs:[0], eax
+01847D36: 8bf1                     mov esi, ecx
+01847D38: 83bed85f000000           cmp dword ptr [esi + 0x5fd8], 0
+01847D3F: 7530                     jne 0x1847d71
+01847D41: 6a08                     push 8
+01847D43: e818b7bdfe               call 0x423460
+01847D48: 83c404                   add esp, 4
+01847D4B: 8945f0                   mov dword ptr [ebp - 0x10], eax
+01847D4E: c745fc00000000           mov dword ptr [ebp - 4], 0
+01847D55: 85c0                     test eax, eax
+01847D57: 7409                     je 0x1847d62
+01847D59: 8bc8                     mov ecx, eax
+01847D5B: e800dbc9ff               call 0x14e5860
+01847D60: eb02                     jmp 0x1847d64
+01847D62: 33c0                     xor eax, eax
+01847D64: c745fcffffffff           mov dword ptr [ebp - 4], 0xffffffff
+01847D6B: 8986d85f0000             mov dword ptr [esi + 0x5fd8], eax
+01847D71: 8b86d85f0000             mov eax, dword ptr [esi + 0x5fd8]
+01847D77: 8b00                     mov eax, dword ptr [eax]
+01847D79: 50                       push eax
+01847D7A: 32db                     xor bl, bl
+01847D7C: e8dfdcc9ff               call 0x14e5a60
+01847D81: 8bc8                     mov ecx, eax
+01847D83: e808dcc9ff               call 0x14e5990
+01847D88: 8bf8                     mov edi, eax
+01847D8A: 39bed4600000             cmp dword ptr [esi + 0x60d4], edi
+01847D90: 7408                     je 0x1847d9a
+01847D92: b301                     mov bl, 1
+01847D94: 89bed4600000             mov dword ptr [esi + 0x60d4], edi
+01847D9A: 85ff                     test edi, edi
+01847D9C: 0f8e27010000             jle 0x1847ec9
+01847DA2: 83bedc5f000000           cmp dword ptr [esi + 0x5fdc], 0
+01847DA9: 7519                     jne 0x1847dc4
+01847DAB: 6a63                     push 0x63
+01847DAD: e8fef82bff               call 0xb076b0
+01847DB2: 83c404                   add esp, 4
+01847DB5: 6a00                     push 0
+01847DB7: 8bc8                     mov ecx, eax
+01847DB9: 8986dc5f0000             mov dword ptr [esi + 0x5fdc], eax
+01847DBF: e80cff2400               call 0x1a97cd0
+01847DC4: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847DCA: 8b01                     mov eax, dword ptr [ecx]
+01847DCC: 8b908c000000             mov edx, dword ptr [eax + 0x8c]
+01847DD2: ffd2                     call edx
+01847DD4: 84c0                     test al, al
+01847DD6: 0f85db000000             jne 0x1847eb7
+01847DDC: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847DE2: 8b01                     mov eax, dword ptr [ecx]
+01847DE4: 8b507c                   mov edx, dword ptr [eax + 0x7c]
+01847DE7: ffd2                     call edx
+01847DE9: c6402400                 mov byte ptr [eax + 0x24], 0
+01847DED: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847DF3: 8b01                     mov eax, dword ptr [ecx]
+01847DF5: 8b9020010000             mov edx, dword ptr [eax + 0x120]
+01847DFB: ffd2                     call edx
+01847DFD: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847E03: 8b01                     mov eax, dword ptr [ecx]
+01847E05: 8b9014010000             mov edx, dword ptr [eax + 0x114]
+01847E0B: 51                       push ecx
+01847E0C: 0f57c0                   xorps xmm0, xmm0
+01847E0F: f30f2ac7                 cvtsi2ss xmm0, edi
+01847E13: f30f110424               movss dword ptr [esp], xmm0
+01847E18: 6a00                     push 0
+01847E1A: 6a00                     push 0
+01847E1C: f30f1145f0               movss dword ptr [ebp - 0x10], xmm0
+01847E21: ffd2                     call edx
+01847E23: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847E29: f30f1045f0               movss xmm0, dword ptr [ebp - 0x10]
+01847E2E: 8b01                     mov eax, dword ptr [ecx]
+01847E30: 8b9014010000             mov edx, dword ptr [eax + 0x114]
+01847E36: 51                       push ecx
+01847E37: f30f110424               movss dword ptr [esp], xmm0
+01847E3C: 6a00                     push 0
+01847E3E: 6a01                     push 1
+01847E40: ffd2                     call edx
+01847E42: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847E48: f30f1045f0               movss xmm0, dword ptr [ebp - 0x10]
+01847E4D: 8b01                     mov eax, dword ptr [ecx]
+01847E4F: 8b9014010000             mov edx, dword ptr [eax + 0x114]
+01847E55: 51                       push ecx
+01847E56: f30f110424               movss dword ptr [esp], xmm0
+01847E5B: 6a00                     push 0
+01847E5D: 6a03                     push 3
+01847E5F: ffd2                     call edx
+01847E61: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847E67: f30f1045f0               movss xmm0, dword ptr [ebp - 0x10]
+01847E6C: 8b01                     mov eax, dword ptr [ecx]
+01847E6E: 8b9014010000             mov edx, dword ptr [eax + 0x114]
+01847E74: 51                       push ecx
+01847E75: f30f110424               movss dword ptr [esp], xmm0
+01847E7A: 6a00                     push 0
+01847E7C: 6a02                     push 2
+01847E7E: ffd2                     call edx
+01847E80: 6a00                     push 0
+01847E82: 6a00                     push 0
+01847E84: 6aff                     push -1
+01847E86: 6a00                     push 0
+01847E88: 83ec08                   sub esp, 8
+01847E8B: 8bcc                     mov ecx, esp
+01847E8D: 8965f0                   mov dword ptr [ebp - 0x10], esp
+01847E90: 6a00                     push 0
+01847E92: c70100000000             mov dword ptr [ecx], 0
+01847E98: c7410400000000           mov dword ptr [ecx + 4], 0
+01847E9F: e8cc5ebefe               call 0x42dd70
+01847EA4: 8b8edc5f0000             mov ecx, dword ptr [esi + 0x5fdc]
+01847EAA: 8b01                     mov eax, dword ptr [ecx]
+01847EAC: 8b5070                   mov edx, dword ptr [eax + 0x70]
+01847EAF: 6a00                     push 0
+01847EB1: 56                       push esi
+01847EB2: 56                       push esi
+01847EB3: ffd2                     call edx
+01847EB5: eb28                     jmp 0x1847edf
+01847EB7: e8a4dbc9ff               call 0x14e5a60
+01847EBC: 8bc8                     mov ecx, eax
+01847EBE: e83de3c9ff               call 0x14e6200
+01847EC3: 84c0                     test al, al
+01847EC5: 751a                     jne 0x1847ee1
+01847EC7: eb16                     jmp 0x1847edf
+01847EC9: 8b86dc5f0000             mov eax, dword ptr [esi + 0x5fdc]
+01847ECF: 85c0                     test eax, eax
+01847ED1: 740e                     je 0x1847ee1
+01847ED3: 8b8ec4280000             mov ecx, dword ptr [esi + 0x28c4]
+01847ED9: 50                       push eax
+01847EDA: e841a91b00               call 0x1a02820
+01847EDF: b301                     mov bl, 1
+01847EE1: 3935b8dfb303             cmp dword ptr [0x3b3dfb8], esi
+01847EE7: 7510                     jne 0x1847ef9
+01847EE9: 84db                     test bl, bl
+01847EEB: 740c                     je 0x1847ef9
+01847EED: e86edbc9ff               call 0x14e5a60
+01847EF2: 8bc8                     mov ecx, eax
+01847EF4: e807e2c9ff               call 0x14e6100
+01847EF9: 8b4df4                   mov ecx, dword ptr [ebp - 0xc]
+01847EFC: 64890d00000000           mov dword ptr fs:[0], ecx
+01847F03: 59                       pop ecx
+01847F04: 5f                       pop edi
+01847F05: 5e                       pop esi
+01847F06: 5b                       pop ebx
+01847F07: 8be5                     mov esp, ebp
+01847F09: 5d                       pop ebp
+01847F0A: c3                       ret 
+01847F0B: cc                       int3 
+01847F0C: cc                       int3 
+01847F0D: cc                       int3 
+01847F0E: cc                       int3 
+01847F0F: cc                       int3 
+01847F10: 55                       push ebp
+01847F11: 8bec                     mov ebp, esp
+01847F13: 56                       push esi
+01847F14: 57                       push edi
+01847F15: 68c5000000               push 0xc5
+01847F1A: 8bf9                     mov edi, ecx
+01847F1C: e88ff72bff               call 0xb076b0
+01847F21: 8b4d08                   mov ecx, dword ptr [ebp + 8]
+01847F24: 8b17                     mov edx, dword ptr [edi]
+01847F26: 8bf0                     mov esi, eax
+01847F28: 8b450c                   mov eax, dword ptr [ebp + 0xc]
+01847F2B: 83c404                   add esp, 4
+01847F2E: 50                       push eax
+01847F2F: 8b82e0050000             mov eax, dword ptr [edx + 0x5e0]
+01847F35: 51                       push ecx
+01847F36: 8bcf                     mov ecx, edi
+01847F38: ffd0                     call eax
+01847F3A: 50                       push eax
+01847F3B: 8bce                     mov ecx, esi
+01847F3D: e86e9cc7ff               call 0x14c1bb0
+01847F42: 6a00                     push 0
+01847F44: 6a00                     push 0
+01847F46: 6aff                     push -1
+01847F48: 6a00                     push 0
+01847F4A: 83ec08                   sub esp, 8
+01847F4D: 8bcc                     mov ecx, esp
+01847F4F: 89650c                   mov dword ptr [ebp + 0xc], esp
+01847F52: 6a00                     push 0
+01847F54: c70100000000             mov dword ptr [ecx], 0
+01847F5A: c7410400000000           mov dword ptr [ecx + 4], 0
+01847F61: e80a5ebefe               call 0x42dd70
+01847F66: 8b16                     mov edx, dword ptr [esi]
+01847F68: 8b4270                   mov eax, dword ptr [edx + 0x70]
+01847F6B: 6a00                     push 0
+01847F6D: 57                       push edi
+01847F6E: 57                       push edi
+01847F6F: 8bce                     mov ecx, esi
+01847F71: ffd0                     call eax
+01847F73: 8b4d10                   mov ecx, dword ptr [ebp + 0x10]
+01847F76: 8b16                     mov edx, dword ptr [esi]

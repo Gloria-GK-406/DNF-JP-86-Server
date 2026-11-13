@@ -275,7 +275,7 @@ internal static class ExperienceFrameEntry
                         SkillTreeIndex: 0,
                         NameTagItemId: 0,
                         NameTagExpireTime: 0,
-                        ManageLevel: 0,
+                        AdventureGroup: default,
                         CharacterExperience: experience,
                         ExtraEquipmentSlotState: 0,
                         Dimensions: [],

@@ -16,11 +16,13 @@ public sealed record ExperienceBreakdown(
     uint SeriaWelcome = 0,
     uint Guild = 0,
     uint Other = 0,
-    uint BlackDiamond = 0)
+    uint BlackDiamond = 0,
+    uint AdventureGroup = 0)
 {
     // Fail explicitly rather than returning a total that contradicts the reward breakdown.
     public uint Total => checked(Base + Channel + GrowthContract + SpiritPotion + FatigueBurning
-        + Party + ClearRank + FatigueBuff + InternetCafe + RapidGrowthBuff + SeriaWelcome + Guild + Other + BlackDiamond);
+        + Party + ClearRank + FatigueBuff + InternetCafe + RapidGrowthBuff + SeriaWelcome + Guild + Other + BlackDiamond
+        + AdventureGroup);
 
     public ExperienceBreakdown Add(ExperienceBonusKind kind, uint amount) => kind switch
     {
@@ -35,6 +37,7 @@ public sealed record ExperienceBreakdown(
         ExperienceBonusKind.SeriaWelcome => this with { SeriaWelcome = checked(SeriaWelcome + amount) },
         ExperienceBonusKind.GuildReward => this with { Guild = checked(Guild + amount) },
         ExperienceBonusKind.BlackDiamond => this with { BlackDiamond = checked(BlackDiamond + amount) },
+        ExperienceBonusKind.AdventureGroup => this with { AdventureGroup = checked(AdventureGroup + amount) },
         ExperienceBonusKind.Unlisted => this with { Other = checked(Other + amount) },
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };

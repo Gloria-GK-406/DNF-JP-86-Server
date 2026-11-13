@@ -1,6 +1,7 @@
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -35,18 +36,24 @@ public sealed class MercenaryInfoHandler(ICommandBus commands)
 internal sealed class MercenaryInfoResponseEncoder : GameCmdMessageEncoder<MercenaryInfoResponse>
 {
     /// <summary>
-    /// The <see cref="GameCmdEnvelope"/> acceptance, then manageLevel=0, managePoint=0 (u32) and
-    /// recordCount=0.
+    /// The payload after the <see cref="GameCmdEnvelope"/> acceptance: manageLevel u8, managePoint
+    /// i32 and recordCount u8, the last always zero.
     /// </summary>
     /// <remarks>
     /// The leading byte was previously described as a status of this message. It is not: it is the
     /// family-wide envelope, and the payload proper starts at manageLevel.
+    /// <para>Also the body of the unprompted frame the entry batch pushes, which is why this is not
+    /// private: the two have to be the same bytes or they are two protocols.</para>
     /// </remarks>
-    /// <remarks>Also the body of the unprompted frame the entry batch pushes, which is why
-    /// this is not private: the two have to be the same bytes or they are two protocols.</remarks>
-    internal static readonly byte[] EmptyRoster = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+    internal static byte[] Roster(AdventureGroupStanding adventureGroup)
+    {
+        var body = new byte[6];
+        body[0] = adventureGroup.Level;
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(1), adventureGroup.Point);
+        return body;
+    }
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         MercenaryInfoResponse message) =>
-        OnePayload(message, GameCmdEnvelope.Accept(EmptyRoster));
+        OnePayload(message, GameCmdEnvelope.Accept(Roster(message.AdventureGroup)));
 }

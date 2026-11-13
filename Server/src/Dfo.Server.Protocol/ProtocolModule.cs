@@ -125,6 +125,7 @@ using Dfo.Server.Protocol.Game.InitialConnection;
 using Dfo.Server.Protocol.Game.Login;
 using Dfo.Server.Protocol.Game.MapEntryReports;
 using Dfo.Server.Protocol.Game.MercenaryInfo;
+using Dfo.Server.Protocol.Game.AdventureGroup;
 using Dfo.Server.Protocol.Game.RosterFollowUp;
 using Dfo.Server.Protocol.Game.SaveGameOption;
 using Dfo.Server.Protocol.Game.SaveCharacterOption;
@@ -273,6 +274,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddCreateCharacterSlice();
         services.AddDeleteCharacterSlice();
         services.AddMercenaryInfoSlice();
+        services.AddAdventureGroupSlice();
         services.AddSaveGameOptionSlice();
         services.AddContentsPlayInfoSlice();
         services.AddConnectionCheckSlice();
