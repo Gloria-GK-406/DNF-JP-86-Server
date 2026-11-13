@@ -38,6 +38,8 @@ internal sealed class GmRouteReplyMapper : IHttpRouteReplyMapper
                 return GmCeraEndpoints.Failure(context, error, reply.Outcome, reply.ExecutorFailed);
             if (operation is >= HttpRouteOperation.MailDraft and <= HttpRouteOperation.MailSend)
                 return GmOfficialMailEndpoints.Failure(context, error, reply.Outcome, reply.ExecutorFailed);
+            if (GmPlayerPortalEndpoints.Operations.Contains(operation))
+                return GmPlayerPortalEndpoints.Failure(context, error);
             if (operation is >= HttpRouteOperation.Initialization)
                 return await GmInitializationEndpoints.Safe(context, () => Task.FromException<IResult>(error));
             if (operation is >= HttpRouteOperation.Overview and <= HttpRouteOperation.Character)

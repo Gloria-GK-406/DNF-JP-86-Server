@@ -61,15 +61,16 @@ internal static class GmAuthenticationEndpoints
     private static QueryGmAuditCommand QueryAudit(HttpContext context)
     {
         var query = context.Request.Query; var page = 1; var pageSize = 20;
-        foreach (var name in new[] { "page", "pageSize", "outcome", "action" })
+        foreach (var name in new[] { "page", "pageSize", "outcome", "action", "actor" })
             if (query.TryGetValue(name, out var values) && values.Count != 1) throw new HttpRouteInputException(400, "查询参数重复。");
         if ((query.TryGetValue("page", out var p) && !int.TryParse(p, out page))
             || (query.TryGetValue("pageSize", out var s) && !int.TryParse(s, out pageSize))
             || page is < 1 or > 1000000 || pageSize is < 1 or > 100) throw new HttpRouteInputException(400, "分页参数无效。");
         string? Text(string name) => string.IsNullOrWhiteSpace(query[name]) ? null : query[name].ToString().Trim();
-        var filter = new GmAuditFilter(Text("action"), Text("outcome"));
+        var filter = new GmAuditFilter(Text("action"), Text("outcome"), Text("actor"));
         if (filter.Action is { } action && !GmAuditFilter.Actions.Contains(action)) throw new HttpRouteInputException(400, "操作类型筛选无效。");
         if (filter.Outcome is { } outcome && !GmAuditFilter.Outcomes.Contains(outcome)) throw new HttpRouteInputException(400, "结果筛选无效。");
+        if (filter.Actor is { } actor && !GmAuditFilter.Actors.Contains(actor)) throw new HttpRouteInputException(400, "操作者筛选无效。");
         return new QueryGmAuditCommand(page, pageSize, filter);
     }
     internal static IResult LogoutResponse(HttpContext context, bool accepted)

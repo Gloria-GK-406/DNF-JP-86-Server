@@ -71,6 +71,9 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
         "GET /api/gm/v1/mail/items",
         "GET /api/gm/v1/mail/items/{itemId:int}",
         "GET /api/gm/v1/server-info",
+        "GET /api/player/v1/auth/csrf",
+        "GET /api/player/v1/auth/session",
+        "GET /api/player/v1/auth/status",
         "GET /gm/{**path}",
     ];
 
@@ -84,6 +87,7 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
         var routes = endpoints
             .Where(endpoint => endpoint.RoutePattern.RawText is { } raw
                 && (raw.StartsWith("/api/gm/", StringComparison.Ordinal) || raw.StartsWith("/gm/", StringComparison.Ordinal)
+                    || raw.StartsWith("/api/player/", StringComparison.Ordinal)
                     || raw.StartsWith("/api/gate/", StringComparison.Ordinal)))
             .Select(Classify)
             .ToArray();
@@ -94,14 +98,14 @@ public sealed class GmGameplayRouteTests(ITestOutputHelper output)
         Assert.Equal(Exempt, routes.Where(route => route.Exempt is not null).Select(route => route.Route).Order(StringComparer.Ordinal));
         var commands = routes.Where(route => route.Command is not null).Select(route => route.Command!).ToArray();
         Assert.Equal(commands.Length, commands.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(40, commands.Count(command => command.StartsWith("gm:", StringComparison.Ordinal)));
+        Assert.Equal(48, commands.Count(command => command.StartsWith("gm:", StringComparison.Ordinal)));
         Assert.Equal(
             ["http:POST /api/gate/v1/login", "http:POST /api/gate/v1/register"],
             commands.Where(command => command.StartsWith("http:", StringComparison.Ordinal)).Order(StringComparer.Ordinal));
         var gameplay = endpoints.Where(endpoint => endpoint.Metadata.GetMetadata<OutsideGameplay>() is null
             && (endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null || endpoint.Metadata.GetMetadata<GameplayCmdRoute>() is not null)).ToArray();
-        Assert.Equal(39, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<HttpGameplayOperation>() is not null));
-        Assert.Equal(3, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null));
+        Assert.Equal(46, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<HttpGameplayOperation>() is not null));
+        Assert.Equal(4, gameplay.Count(endpoint => endpoint.Metadata.GetMetadata<EnqueuesItself>() is not null));
         Assert.Equal(Enum.GetValues<HttpRouteOperation>().Order(), gameplay.Select(endpoint =>
             endpoint.Metadata.GetMetadata<HttpGameplayOperation>()?.Operation ?? endpoint.Metadata.GetMetadata<EnqueuesItself>()!.Operation).Order());
         var registry = host.Services.GetRequiredService<CommandHandlerRegistry>();

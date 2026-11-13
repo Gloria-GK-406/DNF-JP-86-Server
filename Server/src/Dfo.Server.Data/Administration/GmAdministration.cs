@@ -19,6 +19,14 @@ public static class GmAuditActors
 {
     public const string Gm = "gm";
     public const string Player = "player";
+    /// <summary>
+    /// The actor name of a refused player login whose submitted name is not an existing account: a password typed into
+    /// the name field must never reach the audit (RQ-024).
+    /// </summary>
+    public const string UnrecordedPlayerName = "（未记录的登录名）";
+    public const string PlayerLogin = "PlayerLogin";
+    /// <summary>The only actions a player record may carry.</summary>
+    public static IReadOnlySet<string> PlayerActions { get; } = new HashSet<string>(StringComparer.Ordinal) { PlayerLogin, "PlayerLogout", "PlayerGrantCera", "PlayerSendMail" };
 }
 /// <summary>
 /// One audit record. <see cref="ActorKind"/> is <see cref="GmAuditActors.Gm"/> unless a player did it; for a player
@@ -37,7 +45,8 @@ public sealed record GmAuditFilter(string? Action = null, string? Outcome = null
     public const string Attention = "attention";
     public static GmAuditFilter All { get; } = new();
     public static IReadOnlySet<string> Actions { get; } = new HashSet<string>(StringComparer.Ordinal) { "ChangeDailyRefill", "ChangeEvent", "ChangeJoustParameters", "EditMailTemplate",
-        "GrantCera", "Login", "Logout", "SaveInitialization", "SaveMailDraft", "SendOfficialMail", "SetJoustChampion" };
+        "GrantCera", "Login", "Logout", "SaveInitialization", "SaveMailDraft", "SendOfficialMail", "SetJoustChampion",
+        "PlayerLogin", "PlayerLogout", "PlayerGrantCera", "PlayerSendMail", "ChangePlayerPortal", "KickPlayerSessions" };
     public static IReadOnlySet<string> Outcomes { get; } = new HashSet<string>(StringComparer.Ordinal) { Attention, "Succeeded", "Rejected", "RolledBack", "Unknown" };
     public static IReadOnlySet<string> Actors { get; } = new HashSet<string>(StringComparer.Ordinal) { GmAuditActors.Gm, GmAuditActors.Player };
     public bool IsValid => (Action is null || Actions.Contains(Action)) && (Outcome is null || Outcomes.Contains(Outcome))

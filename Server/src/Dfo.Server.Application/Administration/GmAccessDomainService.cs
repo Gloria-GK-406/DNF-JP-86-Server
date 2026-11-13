@@ -65,10 +65,27 @@ internal sealed class GmAuditDomainService(IGmAdministrationPersistence persiste
     public ValueTask AppendAsync(GmAuditRecord record, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(record.OperationId) || record.Action.Length is < 1 or > 64
-            || record.Target.Length > 256 || record.Outcome.Length is < 1 or > 32 || record.Reason.Length > 512)
+            || record.Target.Length > 256 || record.Outcome.Length is < 1 or > 32 || record.Reason.Length > 512
+            || !ValidActor(record))
             throw new ArgumentException("Invalid GM audit record.");
         return persistence.AppendAuditAsync(record, cancellationToken);
     }
+
+    /// <remarks>
+    /// The one write path of every audit record keeps the actor and the account together: an administrator's record
+    /// has no account, a player's has its account. The only player record without one is a refused login whose name
+    /// matched no account, and that record names nobody (RQ-024: the submitted name may be a mistyped password).
+    /// </remarks>
+    private static bool ValidActor(GmAuditRecord record) => record.ActorKind switch
+    {
+        GmAuditActors.Gm => record.AccountId is null && !GmAuditActors.PlayerActions.Contains(record.Action),
+        GmAuditActors.Player => record.AdministratorId is null && !string.IsNullOrEmpty(record.AdministratorName)
+            && GmAuditActors.PlayerActions.Contains(record.Action)
+            && (record.AccountId is > 0
+                || (record.AccountId is null && record.Action == GmAuditActors.PlayerLogin && record.Outcome == "Rejected"
+                    && record.AdministratorName == GmAuditActors.UnrecordedPlayerName)),
+        _ => false,
+    };
     public ValueTask<GmAuditPage> QueryAsync(int page, int pageSize, GmAuditFilter filter, CancellationToken cancellationToken)
     {
         if (page < 1 || page > 1000000 || pageSize is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(page));

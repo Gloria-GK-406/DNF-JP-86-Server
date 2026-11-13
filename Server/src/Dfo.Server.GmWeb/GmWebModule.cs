@@ -26,6 +26,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
         services.AddAntiforgery(options => { options.HeaderName = "X-GM-CSRF"; options.Cookie.Name = "Dfo.Gm.Csrf"; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.HttpOnly = true; });
         services.AddSingleton<GmLoginLimiter>();
+        services.AddKeyedSingleton(GmLoginLimiter.PlayerKey, (provider, _) => new GmLoginLimiter(provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<GmIconPackStore>();
         services.AddHostedService<GmBootstrapService>();
     }
@@ -67,6 +68,8 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         GmEventsEndpoints.Map(group);
         GmServerInfoEndpoints.Map(group, options);
         GmItemEndpoints.Map(group);
+        GmPlayerPortalEndpoints.Map(group);
+        PlayerPortalEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage).WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：静态文件"));
     }
 

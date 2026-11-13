@@ -1,7 +1,12 @@
 namespace Dfo.Server.GmWeb;
 
+/// <remarks>
+/// GmWeb keeps two instances: the GM login's (unkeyed) and the player login's (<see cref="PlayerKey"/>), so that
+/// neither login can rate-limit the other, not even by filling the source slots (RQ-033).
+/// </remarks>
 internal sealed class GmLoginLimiter(TimeProvider clock)
 {
+    internal const string PlayerKey = "player";
     private readonly object sync = new();
     private readonly Dictionary<string, Window> sources = new(StringComparer.Ordinal);
     private static readonly TimeSpan Duration = TimeSpan.FromMinutes(15);

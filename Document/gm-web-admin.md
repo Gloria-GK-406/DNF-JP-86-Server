@@ -55,13 +55,26 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 - 代理须保留 `Host`，并改写（而不是透传）这两个头。只带 `X-Forwarded-For`、不带协议头的远程请求按明文处理并被拒；代理自身不带转发头的本机请求视为本机。
 - 转发处理只作用于后台监听端口。启动器网关接口按 [gate 接口](GateApi.md) 的规则取客户端 IP，不受该配置影响。
 
+后台监听端口上的 `/api/gm/v1` 与 `/api/player/v1` 经过同一个访问边界：端口限定、HTTPS 规则、同源检查与防伪令牌是同一段代码，身份按前缀分开——GM 前缀只认 `Dfo.Gm.Session`，玩家前缀只认 `Dfo.Player.Session`，一方的会话在另一方的接口上一律按未登录拒绝。
+
 登录和所有状态写入使用 `X-GM-CSRF` 防护令牌，前端自动取得并提交。令牌来自 `/api/gm/v1/auth/csrf`，与浏览器 Cookie 和当前管理身份匹配；切换身份或重启服务后重新取得。跨站来源及无效令牌返回 403。CSRF 使用进程临时保护密钥，不写操作系统用户默认密钥目录；重启后 GM 会话仍在，旧 CSRF 需刷新。
 
-同来源、同登录名在 15 分钟失败 5 次后限流；同来源累计失败 20 次也限流，防止换登录名绕过。限流窗口与容量有边界，返回 429。登录失败提示不区分账号是否存在。
+GM 登录与玩家登录各有一个限流实例，互不计数（包括来源槽位被占满时）。同来源、同登录名在 15 分钟失败 5 次后限流；同来源累计失败 20 次也限流，防止换登录名绕过。限流窗口与容量有边界，返回 429。登录失败提示不区分账号是否存在。
 
-登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。`GET /api/gm/v1/audit` 除 `page`/`pageSize` 外还接受 `outcome`（`attention` = 除 Succeeded 以外的全部，或 `Succeeded|Rejected|RolledBack|Unknown` 之一）与 `action`（精确操作键：ChangeDailyRefill、ChangeEvent、ChangeJoustParameters、EditMailTemplate、GrantCera、Login、Logout、SaveInitialization、SaveMailDraft、SendOfficialMail、SetJoustChampion）；筛选在 SQLite 查询内完成，`total` 为筛选后的总数。未知取值或重复参数返回 400 `{ message }`。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
+登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。`GET /api/gm/v1/audit` 除 `page`/`pageSize` 外还接受 `outcome`（`attention` = 除 Succeeded 以外的全部，或 `Succeeded|Rejected|RolledBack|Unknown` 之一）与 `action`（精确操作键：ChangeDailyRefill、ChangeEvent、ChangeJoustParameters、EditMailTemplate、GrantCera、Login、Logout、SaveInitialization、SaveMailDraft、SendOfficialMail、SetJoustChampion、PlayerLogin、PlayerLogout、PlayerGrantCera、PlayerSendMail、ChangePlayerPortal、KickPlayerSessions）与 `actor`（`gm` 或 `player`）；每条记录带 `actorKind` 与 `accountId`，迁移前的记录为 `gm`。玩家记录的操作者名称为账号登录名并带账号 ID；失败登录只在所交登录名对应现有账号时记录该账号，否则记为"（未记录的登录名）"且不带账号，提交的密码从不记录。筛选在 SQLite 查询内完成，`total` 为筛选后的总数。未知取值或重复参数返回 400 `{ message }`。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
 
 运行的客户端、PVF 和现有游戏服务不受当前隔离构建影响。验证使用临时数据库；本文件的启动示例面向独立部署，验证时须显式传入独立 `Database:Path`。
+
+## 玩家自助后台
+
+玩家用游戏账号登录同一个页面，只能读写自己的账号（#329）。接口在 `/api/player/v1`，失败一律为 `{ message, code }`，前端只按 `code` 分支：`portal_closed`（403，玩家后台已关闭）、`feature_disabled`（403）、`unauthenticated`（401，无会话、过期、被踢；登录凭据错误也用它，账号存在与否回答相同）、`not_found`（404）、`limit_exceeded`（409）、`request_conflict`（409）、`invalid`（400）、`rate_limited`（429）、`forbidden`（403，需要 HTTPS、跨站或防伪令牌无效）、`unknown`（500）。
+
+- 公开：`GET auth/status` → `{ enabled }`（总开关关闭时也应答，登录页据此决定是否显示玩家选项）、`GET auth/csrf`、`POST auth/login`（`{ loginName, password }`，与启动器同一套凭据规则，不改写密码记录）。
+- 需玩家会话：`POST auth/logout`、`GET auth/session`、`GET me`（自己的登录名、点券与代币券余额、未删除角色的 ID / 名字 / 职业 / 等级 / 是否在线，以及两个子开关、六项限额与今日用量）。
+- 总开关关闭时，除 `auth/status` 外的玩家接口先于会话判断一律返回 `portal_closed`；关闭的同时所有玩家会话失效。开关、会话与限额在执行器内的命令事务中再判一次，判定与写入不会被其它请求插入。
+- 会话 8 小时、不续期，Cookie `Dfo.Player.Session`（`Path=/api/player`、`HttpOnly`、`SameSite=Strict`，`Secure` 随解析后的协议），库中只存 SHA-256。
+
+管理员接口（全权限，与每日补给同级）在 `/api/gm/v1/player-portal`：`GET/POST settings`（总开关、点券与邮件子开关、六项非负限额 0..2147483647，0 = 不限；全新库与迁移库默认关 / 开 / 开 / 全 0；`revision` 为读到的版本，旧版本保存返回 409）、`GET sessions`（有效会话：账号、登录名、登录与到期时间）、`POST sessions/kick`（`{ accountId }`）、`POST sessions/kick-all`，返回 `{ kicked }`。修改设置与踢人写审计。
 
 ## 服务信息与物品展示
 
