@@ -134,11 +134,20 @@ internal sealed class A21UdpDiscoveryService : BackgroundService
         }
     }
 
-    private static byte[] EncodeResponse(IPEndPoint remote)
+    /// <remarks>
+    /// Both the address and the port go out in host order. CNRDUdpIdentify loads +1 as a u32 and
+    /// passes it through ws2_32!htonl before storing it as its mapped address (0x022E41AA-0x022E41B4),
+    /// and loads +5 through htons (0x022E41BA-0x022E41C5). Network-order address bytes therefore
+    /// come out reversed in the client: every later SET_UDP_IP_PORT reported the mirror of the TCP
+    /// source, and the mirror of an address ending in 224 or above reads as multicast.
+    /// </remarks>
+    internal static byte[] EncodeResponse(IPEndPoint remote)
     {
         var response = new byte[A21UdpDiscoveryProtocol.ResponseLength];
         response[0] = A21UdpDiscoveryProtocol.BindingResponse;
-        remote.Address.GetAddressBytes().CopyTo(response, 1);
+        BinaryPrimitives.WriteUInt32LittleEndian(
+            response.AsSpan(1),
+            BinaryPrimitives.ReadUInt32BigEndian(remote.Address.MapToIPv4().GetAddressBytes()));
         BinaryPrimitives.WriteUInt16LittleEndian(response.AsSpan(5), checked((ushort)remote.Port));
         return response;
     }

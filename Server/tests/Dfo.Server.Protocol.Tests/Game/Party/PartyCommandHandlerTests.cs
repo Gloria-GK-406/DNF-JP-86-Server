@@ -363,6 +363,37 @@ public sealed partial class PartyCommandHandlerTests
         });
     }
 
+    [Fact]
+    public async Task Set_udp_with_an_unusable_reported_address_keeps_the_observed_endpoint()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var reported = Endpoint() with { OuterAddress = new SessionIpv4Address(230, 113, 0, 203) };
+            Assert.False(reported.IsValidClientReport);
+            var connection = new NetworkConnectionContext(
+                Inviter.ConnectionId,
+                NetworkEndpointKind.Game,
+                Inviter.ListenerPort,
+                System.Net.IPAddress.Parse("203.0.113.230"));
+            var online = AuthenticatedSession(connection);
+            var endpoints = new RecordingSessionEndpoints();
+
+            await DriveSetUdpIpPort(
+                    new FixedOnlineUsers(online),
+                    endpoints,
+                    NullLogger<SetUdpIpPortHandler>.Instance)
+                .HandleAsync(
+                    new NetworkDispatchContext(connection),
+                    new SetUdpIpPortRequest(GameMessageMetadata.Empty, reported, []),
+                    CancellationToken.None);
+
+            var observed = Assert.IsType<SessionEndpoint>(endpoints.Find(online.SessionIdentity));
+            Assert.Equal(new SessionIpv4Address(203, 0, 113, 230), observed.InnerAddress);
+            Assert.Equal(new SessionIpv4Address(203, 0, 113, 230), observed.OuterAddress);
+            Assert.Equal(reported.Port, observed.Port);
+        });
+    }
+
     [Theory]
     [InlineData("203.0.113.9", 203, 0, 113, 9)]
     [InlineData("::ffff:198.51.100.7", 198, 51, 100, 7)]

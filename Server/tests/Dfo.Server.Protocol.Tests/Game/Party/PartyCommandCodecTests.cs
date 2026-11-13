@@ -210,16 +210,27 @@ public sealed class PartyCommandCodecTests
         Assert.Throws<InvalidDataException>(() =>
             new SetUdpIpPortDecoder().Decode(GameMessageMetadata.Empty, new byte[length]));
 
+    /// <remarks>
+    /// A decoder throw drops the connection. These values are the handler's to judge. The first
+    /// has the shape seen live on 2026-11-13: an outer address that the discovery reply had
+    /// mirrored (203.0.113.230 reported as 230.113.0.203), which used to keep the player out of
+    /// every channel.
+    /// </remarks>
     [Theory]
+    [InlineData("05C0A80866E67100CB13C7C0050000")]
     [InlineData("050011D001AC11D0010079C0050000")]
     [InlineData("05AC11D0010011D0010079C0050000")]
     [InlineData("057F0000017F0000010079C0050000")]
     [InlineData("05AC11D001AC11D0010000C0050000")]
     [InlineData("05AC11D001AC11D00100793F020000")]
     [InlineData("05AC11D001AC11D001007900000100")]
-    public void Invalid_endpoint_values_are_rejected(string bodyHex) =>
-        Assert.Throws<InvalidDataException>(() =>
+    public void Unusable_endpoint_values_still_decode_for_the_handler_to_judge(string bodyHex)
+    {
+        var request = Assert.IsType<SetUdpIpPortRequest>(
             new SetUdpIpPortDecoder().Decode(GameMessageMetadata.Empty, Hex(bodyHex)));
+
+        Assert.False(request.Endpoint.IsValidClientReport);
+    }
 
     [Theory]
     [InlineData("02000040000000", 64, 0)]
