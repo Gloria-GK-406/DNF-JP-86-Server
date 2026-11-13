@@ -5,7 +5,7 @@ using Dfo.Server.Protocol.Game.UnitedFriend;
 
 namespace Dfo.Server.Protocol.Tests.Game.UnitedFriend;
 
-/// <summary>CMD 0x0122 / 0x0123 requests and replies, and NOTI 0x0111 / 0x0112, byte for byte.</summary>
+/// <summary>CMD 0x0122 / 0x0123 / 0x0323 requests and replies, and NOTI 0x0111 / 0x0112, byte for byte.</summary>
 [Trait("Category", "Unit")]
 public sealed class FriendCodecTests
 {
@@ -160,6 +160,56 @@ public sealed class FriendCodecTests
         Assert.Equal(0x0000_0112, (int)ServerMessageType.GameFriendPresence);
         Assert.Equal(0x0001_0122, (int)ServerMessageType.GameAddFriend);
         Assert.Equal(0x0001_0123, (int)ServerMessageType.GameDeleteFriend);
+        Assert.Equal(ServerMessageType.GameRequestUserChannel, UserChannelResponse.NotThere.MessageType);
+        Assert.Equal(0x0001_0323, (int)ServerMessageType.GameRequestUserChannel);
+        Assert.Equal(0x0001_0323, (int)ClientMessageType.GameRequestUserChannel);
+    }
+
+    [Fact]
+    public void Channel_query_reads_server_and_name_like_a_delete()
+    {
+        var request = Assert.IsType<UserChannelRequest>(new UserChannelDecoder().Decode(Metadata, Convert.FromHexString("01" + "03000000" + "616263")));
+
+        Assert.Equal(new FriendTarget(1, "abc"u8.ToArray()), request.Target, TargetComparer.Instance);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("01")]
+    [InlineData("0100000000")]
+    [InlineData("010300000061")]
+    [InlineData("01010000006100")]
+    public void A_malformed_channel_query_has_no_target(string hex)
+    {
+        Assert.Null(Assert.IsType<UserChannelRequest>(new UserChannelDecoder().Decode(Metadata, Convert.FromHexString(hex))).Target);
+    }
+
+    [Fact]
+    public void A_found_reply_is_ok_group_name_group_and_channel()
+    {
+        var body = UserChannelResponseEncoder.EncodeBody(UserChannelResponse.Found("abc"u8.ToArray(), 7));
+
+        Assert.Equal("01" + "01" + "03000000" + "616263" + "01" + "07", Convert.ToHexString(body));
+    }
+
+    [Theory]
+    [InlineData(49, true)]
+    [InlineData(50, false)]
+    public void A_found_reply_echoes_a_name_of_at_most_49_bytes_and_sends_a_longer_one_empty(int length, bool echoed)
+    {
+        var name = Enumerable.Repeat((byte)'n', length).ToArray();
+
+        var body = UserChannelResponseEncoder.EncodeBody(UserChannelResponse.Found(name, 3));
+
+        var expected = echoed ? Counted(name) : [0, 0, 0, 0];
+        Assert.Equal(Convert.ToHexString([1, 1, .. expected, 1, 3]), Convert.ToHexString(body));
+    }
+
+    [Fact]
+    public void Refusals_are_100_for_not_there_and_0_for_cannot_follow()
+    {
+        Assert.Equal("0064", Convert.ToHexString(UserChannelResponseEncoder.EncodeBody(UserChannelResponse.NotThere)));
+        Assert.Equal("0000", Convert.ToHexString(UserChannelResponseEncoder.EncodeBody(UserChannelResponse.Refused)));
     }
 
     private static byte[] Name255(int index)

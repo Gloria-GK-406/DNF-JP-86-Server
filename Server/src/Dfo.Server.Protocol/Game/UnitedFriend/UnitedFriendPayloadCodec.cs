@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Relations;
 using Dfo.Server.Data.Networking;
@@ -62,6 +63,45 @@ internal static class UnitedFriendPayloadCodec
 
     public static byte[] Encode(DeleteFriendResponse response) =>
         response.Removed ? GameCmdEnvelope.Accept() : GameCmdEnvelope.Refuse(NotListedReason);
+
+    /// <summary><c>u8 server, dstr name</c>, the same fields as a delete; anything else has no target.</summary>
+    public static FriendTarget? DecodeUserChannel(ReadOnlySpan<byte> body) => DecodeTarget(body);
+
+    // The 0x0323 menu's prompts (VA 025AD25D): 100 "the target is not there"; every other reason
+    // "cannot follow in this state".
+    private const byte NotThereReason = 100;
+    private const byte CannotFollowReason = 0x00;
+
+    /// <summary>
+    /// The 0x0323 handler reads the name with a 50-byte bound, so 1 to 49 bytes; a longer name would
+    /// leave its bytes unread and shift the two that matter. The name is never used, so a name that
+    /// does not fit goes out empty, which the handler reads as four bytes.
+    /// </summary>
+    public const int UserChannelNameLimit = 49;
+
+    public static byte[] Encode(UserChannelResponse response)
+    {
+        switch (response.Outcome)
+        {
+            case UserChannelOutcome.Found:
+                var name = response.Name.Length is >= 1 and <= UserChannelNameLimit ? response.Name : [];
+                var payload = new byte[1 + CharacterNameField.LengthPrefixSize + name.Length + 2];
+                // The first byte is read and dropped; the group beside the channel is the one the
+                // client looks the channel up by, the group its catalogue gives this server's channels.
+                payload[0] = GameProtocol.ServerIndex;
+                BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(1), name.Length);
+                name.CopyTo(payload.AsSpan(1 + CharacterNameField.LengthPrefixSize));
+                payload[^2] = GameProtocol.ServerIndex;
+                payload[^1] = response.Channel;
+                return GameCmdEnvelope.Accept(payload);
+            case UserChannelOutcome.NotThere:
+                return GameCmdEnvelope.Refuse(NotThereReason);
+            case UserChannelOutcome.Refused:
+                return GameCmdEnvelope.Refuse(CannotFollowReason);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(response), response.Outcome, "Not a channel query outcome.");
+        }
+    }
 }
 
 internal sealed class AddFriendDecoder : IGameMessageDecoder
@@ -90,4 +130,18 @@ internal sealed class DeleteFriendResponseEncoder : GameCmdMessageEncoder<Delete
         OnePayload(message, EncodeBody(message));
 
     internal static byte[] EncodeBody(DeleteFriendResponse message) => UnitedFriendPayloadCodec.Encode(message);
+}
+
+internal sealed class UserChannelDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new UserChannelRequest(metadata, UnitedFriendPayloadCodec.DecodeUserChannel(body));
+}
+
+internal sealed class UserChannelResponseEncoder : GameCmdMessageEncoder<UserChannelResponse>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(UserChannelResponse message) =>
+        OnePayload(message, EncodeBody(message));
+
+    internal static byte[] EncodeBody(UserChannelResponse message) => UnitedFriendPayloadCodec.Encode(message);
 }

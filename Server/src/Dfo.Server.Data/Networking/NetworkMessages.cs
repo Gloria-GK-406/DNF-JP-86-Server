@@ -148,6 +148,9 @@ public enum ClientMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
 
+    // Which channel a named character is on, asked when the client opens a name's menu. See Game/UnitedFriend.
+    GameRequestUserChannel = 0x0001_0323,
+
     // The client's own periodic liveness probe on the Game endpoint. It arrives with no body
     // and keeps coming for the life of the connection whether or not it is answered.
     // See Game/ConnectionCheck.
@@ -402,6 +405,7 @@ public enum ServerMessageType
     GameRequestBlacklist = 0x0001_0078,
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
+    GameRequestUserChannel = 0x0001_0323,
     // The friend list in full or a removal from it (one type, told apart by its subcmd), and a
     // friend coming online or leaving. See Game/FriendFrames.cs.
     GameFriendInfo = 0x0000_0111,

@@ -15,6 +15,10 @@ CMD 0x0123 按名删好友，成功回 `[1]`，其余一律 `[0][0x15]`（AM-1�
 选角入场发布之后发 NOTI 0x0112 上线（ch=所在频道号）；断线、回选人、选角顶替旧会话三条清理投递都在 1:1 离开通知之后发 0x0112 下线（ch=0）；
 0x0112 的 bl 取接收者是否拉黑了对方。升级（`CharacterLevelChanged`）与转职／觉醒（新事件 `CharacterGrowTypeChanged`）经 LiveOnly 订阅、
 按角色合并，给观察者发全量 0x0111 与 CMD 0x0078；删角色在同一写入单元清掉关系，提交后给在线观察者发 0x0111 subcmd 2、全量、CMD 0x0078。
+频道跟随（2026-11-13）：CMD 0x0323 同在 `Game/UnitedFriend/` 切片。客户端打开按名字弹出的菜单就发 `[u8 server][dstr name]`，
+服务端只读：目标在世界中回 `[1][1][dstr name≤49B][1][u8 ch]`（客户端只用最后的组号与频道号，在自己的频道目录里找频道再直接连过去），
+不在、不存在或已删除回 `[0][100]`，畸形、server≠1、发起者不在世界中、频道号超 255 回 `[0][0]`。不要求好友关系，黑名单不拦，目标不收消息。
+每条请求都回（客户端无超时）。ClientStatic；无 WireCaptured、无 ClientVerified。
 
 | 族 | Type | 实现 | 边界 | 文档 |
 |---|---|---|---|---|
@@ -22,6 +26,8 @@ CMD 0x0123 按名删好友，成功回 `[1]`，其余一律 `[0][0x15]`（AM-1�
 | `0x01` CMD | `0x0122` | `AddFriendResponse` | 最大 body 2；自动编码验证 | [0x0122](game/client-to-server/0x0122.md) |
 | `0x01` | `0x0123` | `DeleteFriendDecoder` / `GameDeleteFriendCommandHandler` | 自动测试；待实机 | [0x0123](game/client-to-server/0x0123.md) |
 | `0x01` CMD | `0x0123` | `DeleteFriendResponse` | 最大 body 2；自动编码验证 | [0x0123](game/client-to-server/0x0123.md) |
+| `0x01` | `0x0323` | `UserChannelDecoder` / `GameRequestUserChannelCommandHandler` | 自动测试；待实机 | [0x0323](game/client-to-server/0x0323.md) |
+| `0x01` CMD | `0x0323` | `UserChannelResponse` | 最大 body 57；自动编码验证 | [0x0323](game/client-to-server/0x0323.md) |
 | `0x00` NOTI | `0x0111` | `FriendListMessage`（subcmd 0）、`FriendRemovedMessage`（subcmd 2）、入场 `FriendListStateMessage` | 64 条时 subcmd 0 最大 body `8 + 64 × 273` = 17480；subcmd 2 单条最大 268；自动编码验证 | [NOTI-0x0111](game/server-to-client/NOTI-0x0111.md) |
 | `0x00` NOTI | `0x0112` | `FriendPresenceMessage`（`FriendCameOnline`／`FriendWentOffline` 推送） | 最大 body 263；自动编码验证；上下线推送自动测试；待实机 | [NOTI-0x0112](game/server-to-client/NOTI-0x0112.md) |
 | `0x01` CMD | `0x0078` | 入场 `BlacklistListStateMessage`（与 `BlacklistListResponse` 同一编码） | 64 条时最大 body 2370；入场序列测试 | [0x0078](game/client-to-server/0x0078.md) |
@@ -704,6 +710,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x02B5` | `CHECK_DOUBLE_CHARACTER_NAME` | Query / 有响应 | 实现服务端功能 | [0x02B5.md](game/client-to-server/0x02B5.md) |
 | `0x01` | `0x02C1` | `CONTENTS_PLAY_INFO` | Query / 有响应 | 实现服务端功能 | [0x02C1.md](game/client-to-server/0x02C1.md) |
 | `0x01` | `0x02CC` | `SHOP_PURCHASE_COUNT` | Query / 有响应 | 实现服务端功能（A21，待实机） | [0x02CC.md](game/client-to-server/0x02CC.md) |
+| `0x01` | `0x0323` | `REQUEST_USER_CHANNEL` | Query / 有响应 | 实现服务端功能（频道跟随，#60，待实机） | [0x0323.md](game/client-to-server/0x0323.md) |
 | `0x01` | `0x0450` | `USE_RANDOMBOX_ITEM_EXPAND` | Mutation / 有响应 | ClientVerified（批量成功；满包错误码已修未部署、提示待复验；原始逐帧未归档） | [0x0450.md](game/client-to-server/0x0450.md) |
 | `0x01` | `0x04DD` | `CHECK_USER_CONNECTION` | Query / 有响应 | 实现服务端功能 | [0x04DD.md](game/client-to-server/0x04DD.md) |
 
@@ -1152,6 +1159,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x02EF` | `FpsPerformanceStatisticDecoder` | 仅证明 decoder 已注册 | [0x02EF](game/client-to-server/0x02EF.md) |
 | `0x01` | `0x0308` | `PrepareCycleDungeonEntryDecoder` | 仅证明 decoder 已注册 | [0x0308](game/client-to-server/0x0308.md) |
 | `0x01` | `0x0313` | `EpicCraftDecoder` | 仅证明 decoder 已注册 | [0x0313](game/client-to-server/0x0313.md) |
+| `0x01` | `0x0323` | `UserChannelDecoder` | 仅证明 decoder 已注册 | [0x0323](game/client-to-server/0x0323.md) |
 | `0x01` | `0x032C` | `RuinsPlayResultDecoder` | 仅证明 decoder 已注册 | [0x032C](game/client-to-server/0x032C.md) |
 | `0x01` | `0x032D` | `RuinsRewardDecoder` | 仅证明 decoder 已注册 | [0x032D](game/client-to-server/0x032D.md) |
 | `0x01` | `0x035C` | `SyncItemSpaceDecoder` | 仅证明 decoder 已注册 | [0x035C](game/client-to-server/0x035C.md) |

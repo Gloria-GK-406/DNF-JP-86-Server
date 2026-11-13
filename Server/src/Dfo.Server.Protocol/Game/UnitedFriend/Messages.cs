@@ -55,3 +55,49 @@ public sealed record DeleteFriendResponse(bool Removed) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameDeleteFriend;
 }
+
+/// <summary>CMD <c>0x0323</c>: which channel the character of this name is on.</summary>
+/// <remarks>
+/// A21 builder in VA <c>025A75C0</c>, <c>u8 server, dstr name</c>, with no length limit of its own.
+/// The client sends it the moment it opens the menu it pops up for a name (a friend's, a chat
+/// sender's), not when the player picks "move to that channel"; the reply is only cached and read
+/// at that pick. <paramref name="Target"/> is null as for <see cref="DeleteFriendRequest"/>; the
+/// request is still answered, because the client has no timeout and an unanswered query leaves the
+/// menu saying "wait or try again" for good.
+/// </remarks>
+public sealed record UserChannelRequest(GameMessageMetadata Metadata, FriendTarget? Target) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameRequestUserChannel;
+}
+
+/// <summary>What a channel query came to.</summary>
+public enum UserChannelOutcome
+{
+    /// <summary>The character is in the world, on <see cref="UserChannelResponse.Channel"/>.</summary>
+    Found,
+
+    /// <summary>No live character has the name, or it is not in the world: the client says the target is not there.</summary>
+    NotThere,
+
+    /// <summary>A malformed request, another server group, a requester out of the world, a channel number above 255: the client says it cannot follow.</summary>
+    Refused,
+}
+
+/// <summary>CMD <c>0x0323</c> reply.</summary>
+/// <remarks>
+/// A21 handler VA <c>02594080</c> reads, after a success, <c>u8, dstr name (max 50), u8 group, u8
+/// channel</c>; only the last two are ever used, to find the channel in the client's own channel
+/// catalogue by group and number. A refusal is <c>[0][reason]</c>: 100 says the target is not there,
+/// any other reason that it cannot be followed.
+/// </remarks>
+/// <param name="Name">The target's name as stored, echoed for the record; empty unless found.</param>
+public sealed record UserChannelResponse(UserChannelOutcome Outcome, byte[] Name, byte Channel) : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameRequestUserChannel;
+
+    public static UserChannelResponse Found(byte[] name, byte channel) => new(UserChannelOutcome.Found, name, channel);
+
+    public static UserChannelResponse NotThere { get; } = new(UserChannelOutcome.NotThere, [], 0);
+
+    public static UserChannelResponse Refused { get; } = new(UserChannelOutcome.Refused, [], 0);
+}

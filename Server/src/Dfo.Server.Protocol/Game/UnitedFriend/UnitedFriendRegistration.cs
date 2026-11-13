@@ -16,8 +16,10 @@ internal static class UnitedFriendRegistration
     {
         services.AddGameCmdMessageDecoder<AddFriendDecoder>(ClientMessageType.GameAddFriend);
         services.AddGameCmdMessageDecoder<DeleteFriendDecoder>(ClientMessageType.GameDeleteFriend);
+        services.AddGameCmdMessageDecoder<UserChannelDecoder>(ClientMessageType.GameRequestUserChannel);
         services.AddGameCmdMessageEncoder<AddFriendResponse, AddFriendResponseEncoder>();
         services.AddGameCmdMessageEncoder<DeleteFriendResponse, DeleteFriendResponseEncoder>();
+        services.AddGameCmdMessageEncoder<UserChannelResponse, UserChannelResponseEncoder>();
         // The friend frames live at the Game layer because selection and the observer pushes send
         // them too; their one encoder registration each is here, and serves every sender.
         services.AddGameNotiMessageEncoder<FriendListMessage, FriendListEncoder>();
@@ -37,8 +39,11 @@ internal static class UnitedFriendRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameAddFriend, typeof(AddFriendRequest)));
         services.AddProtocolCommandHandler<GameDeleteFriendCommand, bool, GameDeleteFriendCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDeleteFriend, typeof(DeleteFriendRequest)));
+        services.AddProtocolCommandHandler<GameRequestUserChannelCommand, UserChannelOutcome, GameRequestUserChannelCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameRequestUserChannel, typeof(UserChannelRequest)));
         services.RegisterProtocolMessageHandler<AddFriendHandler, AddFriendRequest, GameAddFriendCommand>(ClientMessageType.GameAddFriend);
         services.RegisterProtocolMessageHandler<DeleteFriendHandler, DeleteFriendRequest, GameDeleteFriendCommand>(ClientMessageType.GameDeleteFriend);
+        services.RegisterProtocolMessageHandler<UserChannelHandler, UserChannelRequest, GameRequestUserChannelCommand>(ClientMessageType.GameRequestUserChannel);
         return services;
     }
 }

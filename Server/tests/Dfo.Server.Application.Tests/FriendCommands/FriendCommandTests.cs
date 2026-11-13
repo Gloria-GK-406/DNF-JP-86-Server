@@ -18,13 +18,14 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Dfo.Server.Application.Tests.FriendCommands;
 
 /// <summary>
-/// CMD 0x0122 / 0x0123 through the real decoder, dispatcher, command and outbox, over a real SQLite
+/// CMD 0x0122 / 0x0123 / 0x0323 through the real decoder, dispatcher, command and outbox, over a real SQLite
 /// character store. Character 1 ("shop1") is the requester in every case, on listener 10011.
 /// </summary>
 public sealed class FriendCommandTests
 {
     private const ushort Add = 0x0122;
     private const ushort Delete = 0x0123;
+    private const ushort Query = 0x0323;
 
     /// <summary>The requester's own blacklist is empty in these tests, so every follow-up is this body.</summary>
     private const string EmptyBlacklist = "0100";
@@ -240,6 +241,80 @@ public sealed class FriendCommandTests
         Assert.Equal(FullList(Entry(0, "two")), w.Bodies()[^2]);
     }
 
+    [Fact]
+    public async Task A_channel_query_answers_the_group_and_channel_the_target_is_on_and_tells_the_target_nothing()
+    {
+        using var w = new FriendWorld();
+        w.AddCharacter(201, "far");
+        w.EnterWorld(201, 10100);
+
+        await w.SendAsync(Query, DeleteBody("far"));
+
+        Assert.Equal("01" + "01" + "03000000" + Hex("far") + "01" + "03", Assert.Single(w.Bodies()));
+        Assert.Equal([((byte)1, Query)], w.Identities());
+        Assert.Empty(w.FramesToOthers());
+        Assert.Equal(0, w.Fixture.Scalar("SELECT COUNT(*) FROM character_relations"));
+    }
+
+    [Fact]
+    public async Task A_channel_query_needs_no_friendship_and_answers_the_requesters_own_channel_too()
+    {
+        using var w = new FriendWorld();
+        w.AddCharacter(201, "near");
+        w.EnterWorld(201, 10011);
+
+        await w.SendAsync(Query, DeleteBody("near"));
+
+        Assert.Equal("01" + "01" + "04000000" + Hex("near") + "01" + "01", Assert.Single(w.Bodies()));
+    }
+
+    [Theory]
+    [InlineData("offline")]
+    [InlineData("nobody")]
+    [InlineData("gone")]
+    public async Task A_channel_query_for_no_one_in_the_world_answers_not_there(string name)
+    {
+        using var w = new FriendWorld();
+        w.AddCharacter(201, "offline");
+        w.AddCharacter(202, "gone", deleted: true);
+
+        await w.SendAsync(Query, DeleteBody(name));
+
+        Assert.Equal("0064", Assert.Single(w.Bodies()));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("01")]
+    [InlineData("010300000061")]
+    [InlineData("0203000000" + "666172")]
+    public async Task A_malformed_or_cross_group_channel_query_answers_cannot_follow(string hex)
+    {
+        using var w = new FriendWorld();
+        w.AddCharacter(201, "far");
+        w.EnterWorld(201, 10100);
+
+        await w.SendAsync(Query, Convert.FromHexString(hex));
+
+        Assert.Equal("0000", Assert.Single(w.Bodies()));
+    }
+
+    [Fact]
+    public async Task A_channel_query_from_out_of_the_world_or_onto_an_unnumbered_channel_answers_cannot_follow()
+    {
+        using var w = new FriendWorld();
+        w.AddCharacter(201, "odd");
+        w.AddCharacter(202, "far");
+        w.EnterWorld(201, 10200);
+        w.EnterWorld(202, 10100);
+
+        await w.SendAsync(Query, DeleteBody("odd"));
+        w.LeaveWorld();
+        await w.SendAsync(Query, DeleteBody("far"));
+
+        Assert.Equal(["0000", "0000"], w.Bodies());
+    }
+
     private static byte[] AddBody(string name, byte server = 1) => [0xFF, 0xFF, server, .. Counted(name)];
 
     private static byte[] DeleteBody(string name, byte server = 1) => [server, .. Counted(name)];
@@ -260,11 +335,11 @@ public sealed class FriendCommandTests
     private static string FullList(params string[] entries) =>
         "00000000" + Convert.ToHexString(BitConverter.GetBytes(entries.Length)) + string.Concat(entries);
 
-    /// <summary>Listener 10011 is channel 1 and 10100 is channel 3; the fixture has no channel catalogue of its own.</summary>
+    /// <summary>Listener 10011 is channel 1, 10100 channel 3, 10200 channel 300; the fixture has no channel catalogue of its own.</summary>
     private sealed class FixedChannels : IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ChannelEntryIdentity(listenerPort switch { 10011 => 1, 10100 => 3, _ => 0 }, listenerPort, ChannelEntryKind.General));
+            ValueTask.FromResult(new ChannelEntryIdentity(listenerPort switch { 10011 => 1, 10100 => 3, 10200 => 300, _ => 0 }, listenerPort, ChannelEntryKind.General));
 
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
 
