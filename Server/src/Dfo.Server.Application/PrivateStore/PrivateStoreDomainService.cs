@@ -26,6 +26,8 @@ namespace Dfo.Server.Application.PrivateStore;
 /// stall where the seller stands; a shop doll opens one of its own size, consumed when goods are laid
 /// out, whose takings and leftovers go by mail. A sale pays the seller at once (a doll's by mail) less
 /// the A21 licence's 1% fee.
+/// Laying out goods and taking a stall down change custody and the stall together: the stall side is
+/// staged in the caller's transaction (<see cref="StallChanges"/>) and settles with the custody it goes with.
 /// </remarks>
 internal sealed class PrivateStoreDomainService(
     IPrivateStoreRuleService rules,
@@ -52,6 +54,7 @@ internal sealed class PrivateStoreDomainService(
         public BusinessSlot? DollSlot { get; } = doll;
         public int? DollItemId { get; } = dollItemId;
         // Only what the stall is; its goods are custody's (private_store_custody), read when shown or bought.
+        // Set only when a display transaction commits.
         public byte[]? Title { get; set; }
         public PrivateStoreView View() => new(Owner, Spot, DollSlot is not null, Title);
     }
@@ -60,6 +63,11 @@ internal sealed class PrivateStoreDomainService(
     private readonly Dictionary<CharacterId, Stall> stalls = [];
     // Keyed by character for lookup, but every visit holds the exact visitor and owner sessions.
     private readonly Dictionary<CharacterId, (SelectedSessionIdentity Visitor, SelectedSessionIdentity Owner)> visitors = [];
+    // The transaction that has prepared a change to a seller's stall, until it commits or rolls back.
+    private readonly Dictionary<CharacterId, StallChanges> reservations = [];
+
+    private StallChanges Pending => (transactions.Current ?? throw new InvalidOperationException("Stall changes require the item transaction."))
+        .Enlist(this, () => new StallChanges(this));
 
     public async ValueTask<PrivateStoreView> OpenAsync(SelectedSessionIdentity owner, PrivateStoreSpot spot, BusinessSlot? doll, CancellationToken ct)
     {
@@ -127,11 +135,8 @@ internal sealed class PrivateStoreDomainService(
             await lifecycle.DeleteItemAsync(await doll.Container!.TakeAsync(dollItem, 1, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
             changes.Add(new MailAssetChange(owner.CharacterId, dollSlot, dollItem.ItemId, -1, null));
         }
-        lock (gate)
-        {
-            stall.Title = title;
-            return (stall.View(), changes);
-        }
+        Pending.Publish(stall, title);
+        return (stall.View() with { Title = title }, changes);
     }
 
     public async ValueTask<PrivateStoreClosure?> CloseAsync(SelectedSessionIdentity owner, CancellationToken ct)
@@ -153,11 +158,7 @@ internal sealed class PrivateStoreDomainService(
             await MailItemAsync(owner.CharacterId, record, "个人商店已关闭，未售出的物品已退回。", ct).ConfigureAwait(false);
             mailed = true;
         }
-        lock (gate)
-        {
-            stalls.Remove(owner.CharacterId);
-            ForgetVisitsTo(owner.CharacterId);
-        }
+        Pending.Remove(stall);
         return new(stall.View(), changes, mailed);
     }
 
@@ -215,12 +216,12 @@ internal sealed class PrivateStoreDomainService(
         foreach (var owner in await store.OwnersWithCustodyAsync(ct).ConfigureAwait(false))
         {
             if (returned >= limit) break;
+            Stall? abandoned;
             lock (gate)
             {
-                if (stalls.TryGetValue(owner, out var stall) && sessions.IsInWorld(stall.Owner)) continue;
-                stalls.Remove(owner);
-                ForgetVisitsTo(owner);
+                if (stalls.TryGetValue(owner, out abandoned) && sessions.IsInWorld(abandoned.Owner)) continue;
             }
+            if (abandoned is not null) Pending.Remove(abandoned);
             var custody = Custody();
             foreach (var line in await custody.ReadPrivateStoreLinesAsync(owner, ct).ConfigureAwait(false))
             {
@@ -298,6 +299,67 @@ internal sealed class PrivateStoreDomainService(
     {
         foreach (var visitor in visitors.Where(pair => pair.Value.Owner.CharacterId == owner).Select(pair => pair.Key).ToArray())
             visitors.Remove(visitor);
+    }
+
+    // ---- Transaction participant ---------------------------------------------------------------
+
+    /// <summary>The stall side of one transaction: titles to publish and stalls to take down, applied only on commit.</summary>
+    /// <remarks>
+    /// Each change names the stall instance the transaction saw, so a stall that was replaced or taken down
+    /// meanwhile is not touched. Publishing onto a stall that is gone or already titled fails prepare, which
+    /// rolls back the custody taken for it.
+    /// </remarks>
+    private sealed class StallChanges(PrivateStoreDomainService owner) : ITransactionParticipant
+    {
+        // Per seller: the stall seen, and the title to publish on it, or null to take it down.
+        private readonly Dictionary<CharacterId, (Stall Stall, byte[]? Title)> changes = [];
+
+        public bool CommitCanFail => false;
+
+        public void Publish(Stall stall, byte[] title) => changes[stall.Owner.CharacterId] = (stall, title);
+
+        public void Remove(Stall stall) => changes[stall.Owner.CharacterId] = (stall, null);
+
+        public ValueTask PrepareAsync(CancellationToken ct)
+        {
+            lock (owner.gate)
+            {
+                foreach (var (seller, (stall, title)) in changes)
+                {
+                    if (owner.reservations.TryGetValue(seller, out var held) && !ReferenceEquals(held, this))
+                        throw new InvalidOperationException("Another transaction is changing this stall.");
+                    if (title is not null && (!owner.stalls.TryGetValue(seller, out var current) || !ReferenceEquals(current, stall)
+                        || current.Title is not null))
+                        throw new InvalidOperationException("The stall changed before its goods were laid out.");
+                }
+                foreach (var seller in changes.Keys) owner.reservations[seller] = this;
+            }
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask CommitAsync(CancellationToken ct)
+        {
+            lock (owner.gate)
+                foreach (var (seller, (stall, title)) in changes)
+                {
+                    if (title is not null) stall.Title = title;
+                    else if (owner.stalls.TryGetValue(seller, out var current) && ReferenceEquals(current, stall))
+                    {
+                        owner.stalls.Remove(seller);
+                        owner.ForgetVisitsTo(seller);
+                    }
+                    if (ReferenceEquals(owner.reservations.GetValueOrDefault(seller), this)) owner.reservations.Remove(seller);
+                }
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask RollbackAsync(CancellationToken ct)
+        {
+            lock (owner.gate)
+                foreach (var seller in changes.Keys)
+                    if (ReferenceEquals(owner.reservations.GetValueOrDefault(seller), this)) owner.reservations.Remove(seller);
+            return ValueTask.CompletedTask;
+        }
     }
 
     // ---- Helpers -------------------------------------------------------------------------------

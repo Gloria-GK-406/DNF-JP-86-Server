@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.PrivateStore;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -31,6 +32,7 @@ public sealed record GamePrivateStoreCommand(NetworkDispatchContext Dispatch, IP
 /// </remarks>
 public sealed class GamePrivateStoreCommandHandler(
     ISelectedSessionDomainService sessions,
+    IOnlineUserQueryDomainService onlineUsers,
     IPrivateStoreDomainService stores,
     IPrivateStoreQueryDomainService storeQuery,
     ITownAreaDomainService townAreas,
@@ -202,7 +204,10 @@ public sealed class GamePrivateStoreCommandHandler(
         var buyer = recipient.Session;
         var sellerSession = storeQuery.Visiting(buyer) ?? throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
         var seller = sellerSession.CharacterId;
-        var (bought, shown, refusal) = await units.WriteAsync(context, new("private-store-buy", [recipient]), async (unit, token) =>
+        // The sale takes the seller's custody and pays the seller, so the seller's exact session is a
+        // participant too: it is checked before the write and protected if the outcome is uncertain.
+        var sellerRecipient = CaptureSeller(sellerSession);
+        var (bought, shown, refusal) = await units.WriteAsync(context, new("private-store-buy", [recipient, sellerRecipient]), async (unit, token) =>
         {
             try
             {
@@ -234,6 +239,19 @@ public sealed class GamePrivateStoreCommandHandler(
         if (purchase.SellerGold is { } gold)
             _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions([sellerSession]),
                 new PrivateStoreBroadcast(GameInventoryDelivery.CarriedGoldNotification(gold, DateTimeOffset.UtcNow)), ct).ConfigureAwait(false);
+    }
+
+    private SelectedSessionRecipient CaptureSeller(SelectedSessionIdentity seller)
+    {
+        if (sessions.StandingOf(seller) is not { Fenced: false }) throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
+        try
+        {
+            return GameParticipantCapture.Capture(onlineUsers, seller);
+        }
+        catch (InvalidOperationException)
+        {
+            throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
+        }
     }
 
     /// <summary>Tells everyone else standing in the stall's town area.</summary>
