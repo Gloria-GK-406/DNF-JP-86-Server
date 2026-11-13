@@ -47,9 +47,17 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
     {
         var bag = businessInventories.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
         if (bag is null) return 0;
-        var size = Math.Min(LegacyInventoryStorageCoordinates.SlotCount(space), await bag.OpenSlotCountAsync(ct).ConfigureAwait(false));
-        var occupied = (await bag.GetAllAsync(ct).ConfigureAwait(false)).Count(x => x.SlotIndex >= 0 && x.SlotIndex < size);
-        return Math.Max(0, size - occupied);
+        var open = await bag.OpenSlotCountAsync(ct).ConfigureAwait(false);
+        var occupied = (await bag.GetAllAsync(ct).ConfigureAwait(false)).Count(x => x.SlotIndex >= 0 && x.SlotIndex < open);
+        return Math.Max(0, open - occupied);
+    }
+
+    public async ValueTask RequireRoomAsync(SelectedSessionIdentity session, IReadOnlyList<OpeningRoomRequirement> requirements, CancellationToken ct)
+    {
+        foreach (var requirement in requirements)
+            if (await EmptySlotCountAsync(session, requirement.Space, ct).ConfigureAwait(false) < requirement.EmptySlots)
+                throw new OpeningRejectedException(OpeningRejection.NoRoom,
+                    $"Opening needs {requirement.EmptySlots} empty {requirement.Space} slots before drawing.");
     }
 
     public ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) =>

@@ -491,6 +491,8 @@ internal sealed class DeterministicOpeningRules(IPackageOpeningRuleService inner
     public ValueTask<ImmutableArray<OpeningPreparedGrant>> PrepareAsync(IReadOnlyList<OpeningReward> rewards, DateTimeOffset now, CancellationToken ct) => inner.PrepareAsync(rewards, now, ct);
     public int AdvanceLuck(int value) => inner.AdvanceLuck(value);
     public bool LuckBonus(int value) => inner.LuckBonus(value);
+    public ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition, int luck, int count) =>
+        inner.RoomBeforeDrawing(definition, luck, count);
 }
 
 internal sealed class OpeningFixture : IDisposable

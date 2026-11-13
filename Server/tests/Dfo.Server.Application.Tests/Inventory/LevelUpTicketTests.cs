@@ -171,6 +171,7 @@ public sealed class LevelUpTicketTests
     {
         public ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset at, CancellationToken ct) =>
             ValueTask.FromResult(TestItemReferences.FromCore(slot.Index, StackableItemCore.Create(2, ItemId, 10), ItemWorldClass.Interchangeable));
+        public ValueTask RequireRoomAsync(SelectedSessionIdentity session, IReadOnlyList<OpeningRoomRequirement> requirements, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<int> EmptySlotCountAsync(SelectedSessionIdentity session, Dfo.Server.Data.Inventory.BusinessInventorySpace space, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
         public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity s, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)

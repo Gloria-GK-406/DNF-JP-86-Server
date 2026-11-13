@@ -36,14 +36,6 @@ public static class LegacyInventoryStorageCoordinates
         new(BusinessInventorySpace.GuardianGem, InventoryContainerType.GuildMedal, 49, 97),
     ];
 
-    /// <summary>The number of business slots the space spans, before any capacity expansion limit.</summary>
-    public static int SlotCount(BusinessInventorySpace space)
-    {
-        foreach (var band in Bands)
-            if (band.Space == space) return band.Last - band.First + 1;
-        throw new InventorySlotMappingException(new BusinessSlot(space, 0));
-    }
-
     public static LegacyInventoryStorageCoordinate ToStorage(BusinessSlot slot)
     {
         // The legacy 24/25..27 creature positions are normalized before inventory entry.
