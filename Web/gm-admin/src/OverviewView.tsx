@@ -36,8 +36,9 @@ export function OverviewView({ onExpired, onDenied }: { onExpired: () => void; o
   const query = useGmRead<Overview>('overview', onExpired, onDenied);
   const canAudit = nav.can('ViewAudit'); const canConfigure = nav.can('All');
   const ignore = () => {};
-  const attention = useGmRead<AuditPage>(canAudit ? 'audit?page=1&pageSize=100&outcome=attention' : null, onExpired, ignore);
-  const recent = useGmRead<AuditPage>(canAudit ? 'audit?page=1&pageSize=20' : null, onExpired, ignore);
+  // The home page is the administrators' own: player records stay on the audit page, apart from the GM's window (SC-11).
+  const attention = useGmRead<AuditPage>(canAudit ? 'audit?page=1&pageSize=100&outcome=attention&actor=gm' : null, onExpired, ignore);
+  const recent = useGmRead<AuditPage>(canAudit ? 'audit?page=1&pageSize=20&actor=gm' : null, onExpired, ignore);
   const events = useGmRead<EventList>(canConfigure ? 'events' : null, onExpired, ignore);
   const [acks, setAcks] = useState(readAcks);
   const [opened, setOpened] = useState<string | null>(null);

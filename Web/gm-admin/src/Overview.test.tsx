@@ -57,3 +57,33 @@ it('最近操作默认五条，可展开；结果未确认的发放以横幅钉�
   fireEvent.click(within(recent).getByRole('button', { name: /最近 12 条/ }));
   expect(within(recent).getAllByText('发送官方邮件')).toHaveLength(12);
 });
+it('只取管理员的审计记录：玩家的拒绝与操作不进入"需要处理"与"最近操作"', async () => {
+  const gmUnknown = { ...record(3, 'GrantCera', 'Unknown', '结果未确认'), administratorName: '值班管理员', actorKind: 'gm' };
+  const players = Array.from({ length: 120 }, (_, i) => ({ ...record(i, 'PlayerLogin', 'Rejected', '凭据无效'), operationId: `player-${i}`, administratorName: 'alice', actorKind: 'player' }));
+  const playerSend = { ...record(1, 'PlayerSendMail', 'Succeeded', ''), operationId: 'player-send', administratorName: 'alice', actorKind: 'player' };
+  // The server's own filter: without actor=gm the player records fill the window and push the GM's unconfirmed grant out.
+  mocked.mockImplementation(async path => {
+    if (path === 'auth/status') return { initialized: true };
+    if (path === 'auth/session') return identity;
+    if (path === 'overview') return overview;
+    if (path.startsWith('audit?')) {
+      const query = new URLSearchParams(path.slice('audit?'.length));
+      const attention = query.get('outcome') === 'attention';
+      const all = attention ? [...players, gmUnknown] : [playerSend, ...players, gmUnknown];
+      const items = (query.get('actor') === 'gm' ? all.filter(a => a.actorKind === 'gm') : all).slice(0, Number(query.get('pageSize')));
+      return { items, total: items.length, page: 1, pageSize: Number(query.get('pageSize')) };
+    }
+    if (path === 'events') return { entries: [] };
+    return undefined;
+  });
+  renderApp('/');
+  const panel = await screen.findByText('1 类 · 1 条').then(() => attentionPanel());
+  expect(within(panel).getByLabelText('发放点券结果未确认')).toBeTruthy();
+  expect(within(panel).queryByLabelText('玩家登录已拒绝')).toBeNull();
+  const recent = screen.getByRole('region', { name: '最近操作' });
+  await waitFor(() => expect(within(recent).getByText('发放点券')).toBeTruthy());
+  expect(within(recent).queryByText('玩家登录')).toBeNull(); expect(within(recent).queryByText('玩家发邮件')).toBeNull();
+  const audits = mocked.mock.calls.map(([path]) => path).filter(path => path.startsWith('audit?'));
+  expect(audits.length).toBeGreaterThanOrEqual(2);
+  expect(audits.every(path => new URLSearchParams(path.slice('audit?'.length)).get('actor') === 'gm')).toBe(true);
+});

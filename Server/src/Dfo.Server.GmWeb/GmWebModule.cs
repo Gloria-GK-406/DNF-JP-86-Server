@@ -27,6 +27,7 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         services.AddAntiforgery(options => { options.HeaderName = "X-GM-CSRF"; options.Cookie.Name = "Dfo.Gm.Csrf"; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.HttpOnly = true; });
         services.AddSingleton<GmLoginLimiter>();
         services.AddKeyedSingleton(GmLoginLimiter.PlayerKey, (provider, _) => new GmLoginLimiter(provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<PlayerRequestLimiter>();
         services.AddSingleton<GmIconPackStore>();
         services.AddHostedService<GmBootstrapService>();
     }

@@ -5,7 +5,7 @@ import { MailOutlined, UnorderedListOutlined, UserOutlined } from '@ant-design/i
 import { IconPackContext, ItemSourceContext, useIconPackStatus, type ItemSource } from './itemInfo';
 import { useNotiBar } from './NotiBar';
 import { ApiError } from './api';
-import { codeOf, isRetainable, PLAYER_PREFIX, playerRequest, type PlayerIdentity, type PlayerMe } from './playerApi';
+import { codeOf, isRetainable, isUnexecuted, PLAYER_PREFIX, playerRequest, type PlayerIdentity, type PlayerMe } from './playerApi';
 import { PlayerAccountView } from './PlayerAccountView';
 import { PlayerMailView } from './PlayerMailView';
 import { PlayerRecordsView } from './PlayerRecordsView';
@@ -76,6 +76,8 @@ export function PlayerApp({ identity, onClosed, onExpired, onSignedOut }: { iden
       patchSlot(path, { pending: null }); accept(result);
     } catch (failure) {
       if (!alive.current || isRouted(failure)) return;
+      // Not run: the form unlocks for another submit, and an earlier unconfirmed attempt keeps its request ID.
+      if (isUnexecuted(failure)) { noti.failure(failure); return; }
       if (isRetainable(failure)) { patchSlot(path, { pending: { ...attempt, message: failure instanceof Error ? failure.message : '' } }); return; }
       patchSlot(path, { pending: null });
       if (codeOf(failure) === 'feature_disabled') void refreshMe();

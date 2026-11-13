@@ -4,6 +4,7 @@ import { failureMessage } from './NotiBar';
 /* The player API (/api/player/v1). Failures carry `code` (SD-1a) and callers branch on it alone. A 5xx without a code
    (an unexpected server failure) and a request that never got an answer are both `unknown`: a write may have committed. */
 export const PLAYER_PREFIX = '/api/player/v1';
+export const RATE_LIMITED = '请求过于频繁，请稍后重试。';
 
 export type PlayerIdentity = { accountId: number; loginName: string; expiresAt: string };
 export type PlayerLimits = { ceraPerGrant: number; ceraPerDay: number; tokenCeraPerGrant: number; tokenCeraPerDay: number; mailGoldPerMail: number; mailsPerDay: number };
@@ -25,10 +26,11 @@ async function send(path: string, init: RequestInit) {
   try { return await fetch(`${PLAYER_PREFIX}/${path}`, { credentials: 'same-origin', signal: AbortSignal.timeout(30000), ...init }); }
   catch (failure) { throw new ApiError(0, failure instanceof TypeError ? '无法连接服务，请检查网络后重试。' : failureMessage(failure), 'unknown', 'unknown'); }
 }
-async function refusal(response: Response) {
+async function refusal(response: Response, path?: string) {
   const body = await response.json().catch(() => ({})) as { message?: unknown; code?: unknown; outcome?: unknown };
   const code = typeof body.code === 'string' ? body.code : response.status >= 500 ? 'unknown' : 'invalid';
-  const message = typeof body.message === 'string' ? body.message : '服务暂不可用，请稍后重试。';
+  // The login keeps its own wording; elsewhere rate_limited is the per-account cap on requests in flight (not run).
+  const message = code === 'rate_limited' && path !== 'auth/login' ? RATE_LIMITED : typeof body.message === 'string' ? body.message : '服务暂不可用，请稍后重试。';
   return new ApiError(response.status, message, typeof body.outcome === 'string' ? body.outcome : undefined, code);
 }
 
@@ -41,11 +43,13 @@ export async function playerRequest<T>(path: string, payload?: unknown): Promise
     headers['Content-Type'] = 'application/json';
   }
   const response = await send(path, { method: payload === undefined ? 'GET' : 'POST', headers, body: payload === undefined ? undefined : JSON.stringify(payload) });
-  if (!response.ok) throw await refusal(response);
+  if (!response.ok) throw await refusal(response, path);
   return response.status === 204 ? undefined as T : response.json();
 }
 
 export const codeOf = (failure: unknown) => failure instanceof ApiError ? failure.code : undefined;
+/** The request was refused before it ran: it says nothing about an earlier attempt that may have committed. */
+export const isUnexecuted = (failure: unknown) => codeOf(failure) === 'rate_limited';
 /** Whether a write may have committed: keep its request ID and content for a retry. */
 export function isRetainable(failure: unknown) {
   if (!(failure instanceof ApiError)) return true;

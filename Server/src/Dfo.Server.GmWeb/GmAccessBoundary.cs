@@ -3,6 +3,8 @@ using System.Security.Claims;
 using Dfo.Server.Abstractions.Administration;
 using Dfo.Server.Abstractions.PlayerPortal;
 using Dfo.Server.Data.Administration;
+using Dfo.Server.Data.PlayerPortal;
+using Dfo.Server.HttpApi;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
 
@@ -24,7 +26,7 @@ internal sealed class GmAccessBoundary(RequestDelegate next)
     internal const string PlayerStatusPath = PlayerPrefix + "/auth/status";
 
     public async Task InvokeAsync(HttpContext context, IGmAccessDomainService access, IPlayerPortalAccessDomainService players,
-        IAntiforgery antiforgery, GmWebOptions options)
+        IAntiforgery antiforgery, GmWebOptions options, PlayerRequestLimiter limiter)
     {
         var player = context.Request.Path.StartsWithSegments(PlayerPrefix);
         if (!player && !context.Request.Path.StartsWithSegments("/api/gm/v1")) { await next(context); return; }
@@ -33,6 +35,7 @@ internal sealed class GmAccessBoundary(RequestDelegate next)
         var endpoint = context.GetEndpoint();
         var isPublic = endpoint?.Metadata.GetMetadata<GmPublicEndpoint>() is not null;
         var path = context.Request.Path;
+        PlayerIdentity? playerIdentity = null;
         var transportExempt = isPublic && (player ? path == PlayerStatusPath : path == "/api/gm/v1/health" || path == "/api/gm/v1/auth/status");
         if (!transportExempt && !SecureTransport(context))
         { await Refuse(context, player, 403, "forbidden", player ? "远程访问必须使用 HTTPS。" : "远程管理必须使用 HTTPS。"); return; }
@@ -42,7 +45,7 @@ internal sealed class GmAccessBoundary(RequestDelegate next)
             // The status route alone answers while closed: it is how the login page learns that the portal is closed.
             if (path != PlayerStatusPath && !await players.IsOpenAsync(context.RequestAborted))
             { await Refuse(context, player, 403, "portal_closed", "玩家后台已关闭。"); return; }
-            var identity = await players.IdentifyAsync(context.Request.Cookies[PlayerRouteMapping.SessionCookie], context.RequestAborted);
+            var identity = playerIdentity = await players.IdentifyAsync(context.Request.Cookies[PlayerRouteMapping.SessionCookie], context.RequestAborted);
             if (identity is not null)
             {
                 context.Items[PlayerRouteMapping.IdentityKey] = identity;
@@ -84,6 +87,15 @@ internal sealed class GmAccessBoundary(RequestDelegate next)
             { await Refuse(context, player, 403, "forbidden", "跨站请求被拒绝。"); return; }
             try { await antiforgery.ValidateRequestAsync(context); }
             catch (AntiforgeryValidationException) { await Refuse(context, player, 403, "forbidden", "请求验证失败，请刷新页面。"); return; }
+        }
+        // A player's executor CMDs are capped per account before they are queued (CH-1); the refused one never runs.
+        if (player && !isPublic && playerIdentity is { } held && endpoint?.Metadata.GetMetadata<HttpGameplayOperation>() is not null)
+        {
+            if (!limiter.TryEnter(held.AccountId))
+            { await Refuse(context, player, 429, "rate_limited", "请求过于频繁，请稍后重试。"); return; }
+            try { await next(context); }
+            finally { limiter.Exit(held.AccountId); }
+            return;
         }
         await next(context);
     }

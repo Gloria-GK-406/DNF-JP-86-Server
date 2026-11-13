@@ -27,7 +27,7 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 | 路径 | 页面 | 权限 |
 |---|---|---|
-| `/gm/` | 服务概览：关键数字；频道在线（按人数排序）、活动排期、需要处理（拒绝 / 回滚审计按操作与结果合并成组，可展开明细、单组或全部标为已读，已读只记在本浏览器）、最近操作。每块默认 5 行，可展开 / 收起并记住状态；结果未确认的发放以红色横幅固定在顶部 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
+| `/gm/` | 服务概览：关键数字；频道在线（按人数排序）、活动排期、需要处理（拒绝 / 回滚审计按操作与结果合并成组，可展开明细、单组或全部标为已读，已读只记在本浏览器）、最近操作。这两块只取管理员的审计记录（`actor=gm`），玩家记录只在「操作记录」页查看。每块默认 5 行，可展开 / 收起并记住状态；结果未确认的发放以红色横幅固定在顶部 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
 | `/gm/players` | 账号与角色：列表 + 右侧详情；输入纯数字按 ID 查，否则按姓名 / 登录名字面搜索；可勾选账号批量发点券 | QueryPlayers |
 | `/gm/grants` | 发放：邮件记录、点券记录、邮件模板、草稿，以及待确认发放的「查询原编号 / 按原内容安全重试」 | SendMail 或 GrantCera |
 | `/gm/grants/mail`、`/gm/grants/cera` | 写邮件 / 发点券三步页面；写邮件右侧是仿游戏「查看邮件」窗口的预览，核对步骤以服务端预览为准 | SendMail / GrantCera |
@@ -83,7 +83,11 @@ GM 登录与玩家登录各有一个限流实例，互不计数（包括来源�
 
 ## 玩家自助后台
 
-玩家用游戏账号登录同一个页面，只能读写自己的账号（#329）。接口在 `/api/player/v1`，失败一律为 `{ message, code }`，前端只按 `code` 分支：`portal_closed`（403，玩家后台已关闭）、`feature_disabled`（403）、`unauthenticated`（401，无会话、过期、被踢；登录凭据错误也用它，账号存在与否回答相同）、`not_found`（404）、`limit_exceeded`（409）、`request_conflict`（409）、`invalid`（400）、`rate_limited`（429）、`forbidden`（403，需要 HTTPS、跨站或防伪令牌无效）、`unknown`（500）。
+玩家用游戏账号登录同一个页面，只能读写自己的账号（#329）。
+
+经反向代理对外开放玩家后台之前，必须先配置 `GmWeb:TrustedProxies`（见「访问与审计」），地址要与代理实际连入的地址一致：代理从 `::1` 回源时写 `::1`，从 `127.0.0.1` 回源时写 `127.0.0.1`。未配置时所有玩家共用代理这一个来源，玩家登录失败限流会把全体玩家一起锁住（#305）。部署前还要核对反向代理对 `/api/player/*` 的 `Origin` 处理：代理如果只对 `/api/gm*` 拦截外站 `Origin` 并去掉该头，玩家接口的 `Origin` 会原样到达服务端，同源检查改用受信代理解析出的协议与 `Host` 比对，任一不符（例如未配置受信代理时协议仍是 http）玩家的登录与写请求都会被拒为 `forbidden`。
+
+接口在 `/api/player/v1`，失败一律为 `{ message, code }`，前端只按 `code` 分支：`portal_closed`（403，玩家后台已关闭）、`feature_disabled`（403）、`unauthenticated`（401，无会话、过期、被踢；登录凭据错误也用它，账号存在与否回答相同）、`not_found`（404）、`limit_exceeded`（409）、`request_conflict`（409）、`invalid`（400）、`rate_limited`（429）、`forbidden`（403，需要 HTTPS、跨站或防伪令牌无效）、`unknown`（500）。
 
 - 公开：`GET auth/status` → `{ enabled }`（总开关关闭时也应答，登录页据此决定是否显示玩家选项）、`GET auth/csrf`、`POST auth/login`（`{ loginName, password }`，与启动器同一套凭据规则，不改写密码记录）。
 - 需玩家会话：`POST auth/logout`、`GET auth/session`、`GET me`（自己的登录名、点券与代币券余额、未删除角色的 ID / 名字 / 职业 / 等级 / 是否在线，以及两个子开关、六项限额与今日用量）。
@@ -93,6 +97,7 @@ GM 登录与玩家登录各有一个限流实例，互不计数（包括来源�
 - 发邮件 `POST mail/send`：请求体 `{ requestId, characterId, title, body, items: [{ itemId, count }], gold }`，六个字段都必填、不得为 null，物品只认 `itemId` 与 `count`（装备选项或任何其它字段一律 400 `invalid`），账号只取自会话。正文非空白、有物品或金币 > 0 至少占一样，只有标题不算，这一条在 GM 规则填入默认正文之前判定。命令内依次判定写意图、总开关、会话、内容、重放、邮件子开关、收件角色、单封金币与每日封数，再按 GM 官方邮件的同一套规则与投递代码发出：标题正文长度、附件件数与物品是否可发沿用 GM 规则与拒绝消息，留空正文用 GM 默认正文，装备为固定最上级品质，30 天有效。收件角色不存在、已删除或不属于自己账号时回答完全相同（404 `not_found`"收件角色不存在。"）。重放先于子开关、收件角色与限额判定，所以角色删除、子开关关闭或封数用满后重试原编号仍返回原结果。每日封数只计成功的邮件，与点券分开计数。成功返回 `{ receipt, replayed }`；在线角色的新邮件提醒在提交后由邮箱事件发出，与 GM 邮件相同，重放不再提醒。
 - 发信用的物品目录 `GET mail/items`、`GET mail/items/{id}`（查询参数与结果同 GM `mail/items`，选择规则相同，搜得到的就发得出去）、`GET items/icon-pack`、`GET items/{id}/icon`、`GET items/{id}/tooltip`（与 GM 同一图标包与物品说明）：需玩家会话且邮件子开关开启，子开关关闭时为 403 `feature_disabled`。它们在执行器外只读，GM 的同名接口不对玩家开放。
 - 审计动作 `PlayerGrantCera` / `PlayerSendMail`：成功记 `Succeeded`；识别出玩家后的拒绝（子开关、限额、编号冲突、不合法、钱包上限、收件角色）记 `Rejected`；存储或规则处理失败及执行器确认回滚记 `RolledBack`；提交未确认记 `Unknown`。总开关关闭、未登录、请求解析失败与重放不写审计。失败记录用命令开始时识别到的账号，不再读会话。邮件审计的对象为 `角色 {id}`。
+- 在途上限：每个账号同时最多 2 个在游戏执行器上排队或执行的玩家请求（`auth/logout`、`me`、`cera/grant`、`mail/send`、`operations`）。超出的请求在入队前直接返回 429 `rate_limited`，不执行、不写审计，前端提示"请求过于频繁，请稍后重试"，表单随即解锁；此前"结果未确认"的原编号继续保留。登录（另有失败限流）、`auth/status`、`auth/csrf`、`auth/session` 与物品目录、图标、物品说明不计入。
 - 会话 8 小时、不续期，Cookie `Dfo.Player.Session`（`Path=/api/player`、`HttpOnly`、`SameSite=Strict`，`Secure` 随解析后的协议），库中只存 SHA-256。
 
 管理员接口（全权限，与每日补给同级）在 `/api/gm/v1/player-portal`：`GET/POST settings`（总开关、点券与邮件子开关、六项非负限额 0..2147483647，0 = 不限；全新库与迁移库默认关 / 开 / 开 / 全 0；`revision` 为读到的版本，旧版本保存返回 409）、`GET sessions`（有效会话：账号、登录名、登录与到期时间）、`POST sessions/kick`（`{ accountId }`）、`POST sessions/kick-all`，返回 `{ kicked }`。修改设置与踢人写审计。

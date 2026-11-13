@@ -107,6 +107,39 @@ describe('我的账号与加点券', () => {
     expect(await screen.findByText('点券 +7')).toBeTruthy();
     expect(grants()).toHaveLength(2); expect(grants()[1].body).toEqual(grants()[0].body);
   });
+  it('请求过于频繁被拒（未执行）：提示后表单解锁，可直接再提交', async () => {
+    const replies: (() => PlayerReply)[] = [() => refuse(429, 'rate_limited', '服务端原文'),
+      () => ({ body: { receipt: receipt({ currency: 'Cera', amount: 5 }), replayed: false, reminder: 'attempted' } })];
+    handle = call => call.path === 'cera/grant' ? replies.shift()!() : undefined;
+    await open();
+    fireEvent.change(await screen.findByLabelText('数量'), { target: { value: '5' } });
+    fireEvent.click(confirm());
+    expect(await screen.findByText('请求过于频繁，请稍后重试。')).toBeTruthy();
+    expect(screen.queryByText('结果未确认')).toBeNull();
+    await waitFor(() => expect(confirm().disabled).toBe(false));
+    expect((screen.getByLabelText('数量') as HTMLInputElement).disabled).toBe(false);
+    await clickWhenIdle(confirm);
+    expect(await screen.findByText('点券 +5')).toBeTruthy();
+    expect(grants()).toHaveLength(2);
+    expect((grants()[1].body as { requestId: string }).requestId).toMatch(uuid);
+  });
+  it('结果未确认后重试遇到请求过于频繁：仍保留原编号与锁定，再重试仍用原编号', async () => {
+    const replies: (() => PlayerReply)[] = [() => ({ status: 504, body: 'Gateway Timeout' }), () => refuse(429, 'rate_limited', '服务端原文'),
+      () => ({ body: { receipt: receipt({ currency: 'Cera', amount: 9 }), replayed: true, reminder: 'attempted' } })];
+    handle = call => call.path === 'cera/grant' ? replies.shift()!() : undefined;
+    await open();
+    fireEvent.change(await screen.findByLabelText('数量'), { target: { value: '9' } });
+    fireEvent.click(confirm());
+    expect(await screen.findByText('结果未确认')).toBeTruthy();
+    await clickWhenIdle(retry);
+    expect(await screen.findByText('请求过于频繁，请稍后重试。')).toBeTruthy();
+    expect(screen.getByText('结果未确认')).toBeTruthy();
+    expect(confirm().disabled).toBe(true);
+    await clickWhenIdle(retry);
+    expect(await screen.findByText('点券 +9')).toBeTruthy();
+    expect(grants()).toHaveLength(3);
+    expect(grants()[1].body).toEqual(grants()[0].body); expect(grants()[2].body).toEqual(grants()[0].body);
+  });
   it('首次读取账号失败时显示错误与"重新读取"，不一直转圈', async () => {
     let fail = true;
     handle = call => call.path === 'me' && fail ? { status: 500, body: 'Internal Server Error' } : undefined;
