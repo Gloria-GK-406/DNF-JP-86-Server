@@ -1,7 +1,7 @@
 # Routing Decision
 
 - TaskContract: `E:\Project\DNF\DNF-JP-86-Server-adventure\.rks-agent\tasks\adventure-group\TaskContract.md`
-- Contract revision: `5`
+- Contract revision: `6`（2026-11-13 实机测试中修订；第 6 版独立复核见 `task-contract-review-r6.md`，verdict: approved。结构仍为 Single Spec：新增的登录提示与选人界面显示和既有内容共用同一验收与回滚边界）
 - 评审：同目录 `task-contract-review.md`，`verdict: approved`，`contract_revision: 5`。评审记录的路径是主 checkout 下的同名文件；2026-11-13 建 worktree 时整个任务目录按原相对路径搬入本 worktree，SHA-256 逐文件核对一致后删除源副本，内容与修订号未变。
 
 ## SDD Readiness
