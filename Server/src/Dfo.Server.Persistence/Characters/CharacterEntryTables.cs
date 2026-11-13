@@ -259,6 +259,11 @@ internal sealed class SqliteCharacterTable(SqliteDatabase database) : ICharacter
                 parameters.AddWithValue("@slots", (int)slots);
             }, cancellationToken);
 
+    public ValueTask<int> OpenAuraSkinSlotAsync(CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ExecuteAsync(
+            "UPDATE characters SET aura_skin_slot=1 WHERE character_id=@cid AND delete_flag=0",
+            parameters => parameters.AddWithValue("@cid", characterId.Value), cancellationToken);
+
     public ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken) =>
         database.ExecuteAsync(

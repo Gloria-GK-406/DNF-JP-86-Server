@@ -34,7 +34,8 @@ internal sealed class CharacterProfileEntryProjection : ICharacterProfileEntryPr
                     storage.ExtraEquipmentSlotState,
                     storage.Dimensions,
                     storage.DimensionFlags,
-                    []),
+                    [],
+                    storage.AuraSkinSlotOpen),
                 storage.Settings.UserStateBits,
                 storage.CloneTitleItemId,
                 new CharacterPublicIdentityEntryState(

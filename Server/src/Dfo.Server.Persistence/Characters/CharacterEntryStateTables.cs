@@ -60,7 +60,7 @@ internal sealed class SqliteCharacterEntryTable(SqliteDatabase database) : IChar
             """
             SELECT account_id, job, level, clone_title_item_id,
                    exp, ex_equip_slot_stat, user_state, name_tag_item_id,
-                   name_tag_expire_time, guild_power_war, guild_level
+                   name_tag_expire_time, guild_power_war, guild_level, aura_skin_slot
             FROM characters
             WHERE character_id=@cid AND delete_flag=0;
             """,
@@ -68,7 +68,8 @@ internal sealed class SqliteCharacterEntryTable(SqliteDatabase database) : IChar
             reader => new CharacterEntryRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt64(3),
                 reader.GetInt64(4), reader.GetInt32(5), reader.GetInt32(6),
-                reader.GetInt64(7), reader.GetInt64(8), reader.GetInt64(9), reader.GetInt32(10)),
+                reader.GetInt64(7), reader.GetInt64(8), reader.GetInt64(9), reader.GetInt32(10),
+                reader.GetInt32(11)),
             cancellationToken);
 
     public ValueTask<BonusPointRow?> FindBonusPointsAsync(

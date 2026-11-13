@@ -239,6 +239,47 @@ public sealed class PvfCeraShopDefinitionSourceTests
         Assert.Contains(PvfCeraShopDefinitionSource.ParseProduct("[item]", row).Diagnostics, x => x.Code == "MalformedCatalog");
     }
 
+    [Theory]
+    [InlineData("[item]", 1, 0, true)]
+    [InlineData("[creature]", 2, 0, true)]
+    [InlineData("[premium]", 4, 0, true)]
+    [InlineData("[item]", 3, 0, false)]
+    [InlineData("[premium]", 99, 50009, false)]
+    [InlineData("[item]", 100, 70151, false)]
+    [InlineData("[item]", 0, 70052, false)]
+    public void Event_tag_column_is_display_only_but_other_tail_values_stay_refused(string category, int tag, int next, bool accepted)
+    {
+        var row = Numbers(102542, 100330837, 1, 0, 0, 21000, 0, tag, next);
+        row[6] = new(PvfTokenKind.QuotedString, 123);
+        var refused = PvfCeraShopDefinitionSource.ParseProduct(category, row).Diagnostics.Any(x => x.Code == "UnknownCatalogConditions");
+        Assert.Equal(!accepted, refused);
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(2, true)]
+    [InlineData(4, true)]
+    [InlineData(99, false)]
+    public void Package_event_tag_column_is_display_only(int tag, bool accepted)
+    {
+        var row = Numbers(3584, 102, 0, 0, 28800, 0, tag, 0, -1, -1, 1);
+        row[5] = new(PvfTokenKind.QuotedString, 123);
+        var refused = PvfCeraShopDefinitionSource.ParseProduct("[package]", row).Diagnostics.Any(x => x.Code == "UnknownPackageConditions");
+        Assert.Equal(!accepted, refused);
+    }
+
+    [SkippableTheory]
+    [InlineData(102542)] // 宠物蛋 (黄金波比), tag 1
+    [InlineData(103818)] // 光环幻化栏扩展券, tag 2
+    public async Task Tagged_catalog_rows_from_issue_327_have_no_catalog_diagnostics(int productId)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var product = await new PvfCeraShopDefinitionSource(provider).GetProductAsync(productId, default);
+        Assert.NotNull(product);
+        Assert.Empty(product.Diagnostics);
+    }
+
     [SkippableFact]
     public async Task Mixed_package_exposes_service_components_and_unimplemented_purchase_restrictions_are_explicit()
     {

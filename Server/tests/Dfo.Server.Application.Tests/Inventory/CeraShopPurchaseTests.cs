@@ -324,6 +324,19 @@ public sealed class CeraShopPurchaseTests
     }
 
     [SkippableFact]
+    public async Task Actual_archive_event_tagged_egg_and_aura_slot_ticket_can_be_bought()
+    {
+        // #327: both rows carry a nonzero shop event tag (egg 1, ticket 2), which used to refuse them.
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new CeraShopFixture(useArchive: true);
+        var result = await shop.Buy(CeraShopTestContent.Entry(102542), CeraShopTestContent.Entry(103818));
+        Assert.True(result.Receipt is not null, result.Detail);
+        Assert.Equal(100000 - 21000 - 3000, shop.Cera);
+        Assert.Equal(1, shop.Host.Count(100330837));
+        Assert.Equal(1, shop.Host.Count(490700411));
+    }
+
+    [SkippableFact]
     public async Task Actual_archive_avatar_pet_artifact_and_package_pass_through_production_sources_and_storage()
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");

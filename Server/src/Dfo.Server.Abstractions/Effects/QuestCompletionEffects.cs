@@ -23,6 +23,9 @@ public sealed record SetCharacterAwakeningEffect(byte Job, byte Expected, byte V
 /// <summary>Opens one extra equipment slot; already-open slots stay open.</summary>
 public sealed record OpenExtraEquipmentSlotEffect(ExtraEquipmentSlots Slot) : DomainEffect;
 public sealed record ExtraEquipmentSlotChange(ExtraEquipmentSlots Slot) : EffectChange;
+/// <summary>Opens the aura transmog avatar slot (光环幻化栏); an open slot stays open.</summary>
+public sealed record OpenAuraSkinSlotEffect : DomainEffect;
+public sealed record AuraSkinSlotChange : EffectChange;
 public sealed record MaterializeSkillBuildsEffect(SkillBuildId Active, ImmutableArray<CharacterSkillBuild> Expected) : DomainEffect;
 public sealed record SkillBuildsMaterializedChange : EffectChange;
 public sealed record GrantBasicCharacterItemEffect(int ItemId, int Count, ItemPlacement Placement) : InventoryEffect;

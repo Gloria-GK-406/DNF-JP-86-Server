@@ -67,6 +67,8 @@ internal class EffectFootprintProjection(ReplayProjectionNeeds minimum)
                     Needs |= ReplayProjectionNeeds.CharacterAppearance | ReplayProjectionNeeds.Skills; break;
                 // The opened-slot byte travels in USERINFO subtype 1, which the appearance projection composes.
                 case (OpenExtraEquipmentSlotEffect, ExtraEquipmentSlotChange): Needs |= ReplayProjectionNeeds.CharacterAppearance; break;
+                // So does the aura skin slot flag, in the subtype 1 prefix.
+                case (OpenAuraSkinSlotEffect, AuraSkinSlotChange): Needs |= ReplayProjectionNeeds.CharacterAppearance; break;
                 case (SetOpeningPremiumEffect, OpeningPremiumChange):
                 case (SetDoublePotUsageEffect, DoublePotUsageChange): Needs |= ReplayProjectionNeeds.Premium; break;
                 // These runtime changes have no safe absolute wire representation in the current protocol.

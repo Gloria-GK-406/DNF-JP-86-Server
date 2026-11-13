@@ -37,6 +37,10 @@
 | `0x01` | `0x00BD` | `AuctionMyBidsDecoder`；应答 `AuctionMyBidsResponse` | 编码测试；待实机 | [0x00BD](game/client-to-server/0x00BD.md) |
 | `0x01` | `0x014E` | `AuctionBuyPiecesDecoder`；应答 `AuctionBuyPiecesResponse` | 编码测试；待实机 | [0x014E](game/client-to-server/0x014E.md) |
 
+## 2026-11-14 光环幻化栏开启（#327，CurrentImplementation，待实机）
+
+[CMD0357](game/client-to-server/0x0357.md) `OPEN_AURA_SKIN_SLOT`：请求是扩展券 490700411 所在主背包格（i32），成功回 `01`，失败回 `00 码`（17 材料不足、18 已开启、1 其它）。服务端在一个事务里扣 1 张券并写 `characters.aura_skin_slot`，提交后发背包变化并重发 USERINFO subtype 1；开栏标志在 subtype 1 第 17 字节。客户端读取与回包分支为 ClientStatic，见协议页。
+
 ## 2026-11-13 冒险团按账号派生、通关加成与升级推送（CurrentImplementation，待实机）
 
 冒险团等级与点数由冒险团领域服务按账号未删除角色的等级现算，不落库，规则取自 PVF `charactermanage.etc` 与 70（70Reference）。
@@ -1212,6 +1216,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0323` | `UserChannelDecoder` | 仅证明 decoder 已注册 | [0x0323](game/client-to-server/0x0323.md) |
 | `0x01` | `0x032C` | `RuinsPlayResultDecoder` | 仅证明 decoder 已注册 | [0x032C](game/client-to-server/0x032C.md) |
 | `0x01` | `0x032D` | `RuinsRewardDecoder` | 仅证明 decoder 已注册 | [0x032D](game/client-to-server/0x032D.md) |
+| `0x01` | `0x0357` | `AuraSkinSlotDecoder` | 仅证明 decoder 已注册 | [0x0357](game/client-to-server/0x0357.md) |
 | `0x01` | `0x035C` | `SyncItemSpaceDecoder` | 仅证明 decoder 已注册 | [0x035C](game/client-to-server/0x035C.md) |
 | `0x01` | `0x036F` | `PremiumServiceUsageReportDecoder` | 仅证明 decoder 已注册 | [0x036F](game/client-to-server/0x036F.md) |
 | `0x01` | `0x0379` | `ItemSocketDecoder` | 仅证明 decoder 已注册 | [0x0379](game/client-to-server/0x0379.md) |
@@ -1371,6 +1376,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0313` | `EpicCraftResponse` | 仅证明 encoder 可产生该 identity | [0x0313](game/client-to-server/0x0313.md) |
 | `0x01` CMD | `0x032C` | `RuinsAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x032C](game/client-to-server/0x032C.md) |
 | `0x01` CMD | `0x032D` | `RuinsAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x032D](game/client-to-server/0x032D.md) |
+| `0x01` CMD | `0x0357` | `AuraSkinSlotResponse` | 仅证明 encoder 可产生该 identity | [0x0357](game/client-to-server/0x0357.md) |
 | `0x01` CMD | `0x036F` | `PremiumServiceStateMessage` | 仅证明 encoder 可产生该 identity | [0x036F](game/client-to-server/0x036F.md) |
 | `0x01` CMD | `0x0379` | `ItemSocketResponse` | 仅证明 encoder 可产生该 identity | [0x0379](game/client-to-server/0x0379.md) |
 | `0x01` CMD | `0x037A` | `ItemSocketResponse` | 仅证明 encoder 可产生该 identity | [0x037A](game/client-to-server/0x037A.md) |

@@ -116,6 +116,7 @@ using Dfo.Server.Protocol.Game.StoryPause;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.QuestClearCoupon;
 using Dfo.Server.Protocol.Game.LevelUpTicket;
+using Dfo.Server.Protocol.Game.AuraSkinSlot;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Exit;
 using Dfo.Server.Protocol.Game.ReturnToSelection;
@@ -301,6 +302,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddTeleportSlice();
         services.AddQuestClearCouponSlice();
         services.AddLevelUpTicketSlice();
+        services.AddAuraSkinSlotSlice();
         services.AddHiddenCharacterInfoSlice();
         services.AddScriptVersionSlice();
         services.AddScriptSlice();

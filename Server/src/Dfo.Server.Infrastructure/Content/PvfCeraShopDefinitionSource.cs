@@ -279,9 +279,9 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         if (isAvatar && price is not null && avatar is not null && price.RawFields.Length == 7
             && (price.RawFields[4] != 0 || price.RawFields[5] != 0 || price.RawFields[6] != 0))
             Error("UnsupportedAvatarTier", "Unimplemented tier flags or sockets.");
-        if (package && (N(2) != 0 || N(3) != 0 || N(6) != 0 || N(7) != 0 || N(8) != -1 || N(9) != -1))
+        if (package && (N(2) != 0 || N(3) != 0 || !IsEventTag(N(6)) || N(7) != 0 || N(8) != -1 || N(9) != -1))
             Error("UnknownPackageConditions", "Nondefault package fields need interpretation.");
-        if (!package && !isAvatar && !service && (N(7) != 0 || N(8) != 0))
+        if (!package && !isAvatar && !service && (!IsEventTag(N(7)) || N(8) != 0))
             Error("UnknownCatalogConditions", "Nonzero catalog tail fields need interpretation.");
         if (category == Fields.SelectableCharacterPremiumField.Name &&
             (N(2) is < 0 or > 7 || N(3) is not (7 or 30) || N(4) != 0 || N(7) != 0 || N(8) != -1))
@@ -558,6 +558,13 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             .Where(s => s.Values.Any(t => t.Kind != PvfTokenKind.Int32 || t.Value != 0))
             .Select(s => new CeraShopDiagnostic("UnsupportedInstanceDeclaration", source, s.Name))
             .ToImmutableArray();
+    // Package column 6 and the nine-wide rows' column 7 land in the same one-byte catalog field, which the
+    // A21 shop draws as the slot's event tag: 1, 2 and 4 pick frames of cs_eventtag_cn.img, 0 draws none.
+    // Display only, so these values do not change what a purchase delivers. 99 and 100 also occur, always
+    // with a nonzero next column, and are read elsewhere; they stay unexplained and refused.
+    // Evidence: protocol/patterns/data/traces/a21-cera-shop-content-20260909.md.
+    private static bool IsEventTag(int value) => value is 0 or 1 or 2 or 4;
+
     private static bool ServiceCategory(string category) => (category == Fields.VisualField.Name || category == Fields.SelectableCharacterPremiumField.Name || category == Fields.CharacPremiumPackageField.Name);
     private static IReadOnlyDictionary<int, string> Paths(PvfArchive archive, string path) => archive.FindFile(path) < 0 ? System.Collections.ObjectModel.ReadOnlyDictionary<int, string>.Empty
         : PvfListFile.Paths(archive, path, Dfo.Pvf.PvfListDuplicates.First);

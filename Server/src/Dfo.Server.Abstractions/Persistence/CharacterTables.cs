@@ -156,6 +156,12 @@ public interface ICharacterTable
     ValueTask<int> OpenExtraEquipmentSlotsAsync(
         CharacterId characterId, ExtraEquipmentSlots slots, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Marks the character's aura transmog avatar slot opened. Says how many rows that touched; a
+    /// deleted or missing character touches none.
+    /// </summary>
+    ValueTask<int> OpenAuraSkinSlotAsync(CharacterId characterId, CancellationToken cancellationToken);
+
     ValueTask<int> SetProgressAsync(
         CharacterId characterId, int level, long experience, CancellationToken cancellationToken);
 
