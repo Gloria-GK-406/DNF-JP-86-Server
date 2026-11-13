@@ -539,8 +539,9 @@ internal static partial class StateSynchronizationPayloadCodec
         var summaries = new List<(CharacterMailboxMessageEntryState Message, CharacterMailboxAttachmentEntryState? Attachment, int Gold, long? GoldId, bool SeedOnly)>();
         foreach (var message in mailbox.Messages)
         {
+            // A token Cera voucher shows its amount in the row's gold field; the item only names it.
             foreach (var attachment in message.Attachments.Where(value => value.ItemTemplateId > 0 && value.ItemCount > 0))
-                summaries.Add((message, attachment, 0, null, false));
+                summaries.Add((message, attachment, attachment.ItemKind == "token_cera" ? attachment.ItemCount : 0, null, false));
             foreach (var gold in message.GoldAttachments)
                 summaries.Add((message, null, gold.Amount, gold.AttachmentId, false));
             // Old projection callers have no independent gold keys; preserve only their historical shape.

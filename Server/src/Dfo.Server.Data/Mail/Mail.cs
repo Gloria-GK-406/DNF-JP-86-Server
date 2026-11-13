@@ -28,6 +28,15 @@ public abstract record MailAsset
         public BusinessSlot? SourceSlot { get; init; }
     }
     public sealed record Gold(int Amount) : MailAsset;
+
+    /// <summary>
+    /// A token Cera voucher (item 2681762): system mail only, credited to the recipient's account
+    /// when claimed. The client recognises the item and reads the amount from the row's gold field.
+    /// </summary>
+    public sealed record TokenCera(int Amount) : MailAsset
+    {
+        public const int VoucherItemId = 2681762;
+    }
 }
 
 public sealed record Mail
@@ -59,6 +68,7 @@ public sealed class MailBuilder(MailSource source, CharacterId recipient)
     public MailBuilder AddEquipment(ItemIdentity identity) { attachments.Add(new MailAsset.Equipment(identity)); return this; }
     public MailBuilder AddStackable(int itemId, int count, BusinessSlot? sourceSlot = null) { attachments.Add(new MailAsset.Stackable(itemId, count) { SourceSlot = sourceSlot }); return this; }
     public MailBuilder AddGold(int amount) { attachments.Add(new MailAsset.Gold(amount)); return this; }
+    public MailBuilder AddTokenCera(int amount) { attachments.Add(new MailAsset.TokenCera(amount)); return this; }
     public Mail Build()
     {
         if (source is null || recipient.Value <= 0 || title is null || body is null
@@ -68,7 +78,7 @@ public sealed class MailBuilder(MailSource source, CharacterId recipient)
         {
             if (asset switch { MailAsset.Equipment e => e.Identity.Value <= 0,
                 MailAsset.Stackable s => s.ItemId <= 0 || s.Count <= 0,
-                MailAsset.Gold g => g.Amount <= 0, _ => true })
+                MailAsset.Gold g => g.Amount <= 0, MailAsset.TokenCera t => t.Amount <= 0 || source.Character is not null, _ => true })
                 throw new MailException(MailFailure.InvalidMail, "Attachment identifiers and amounts must be positive.");
         }
         if (attachments.OfType<MailAsset.Equipment>().Select(x => x.Identity).Distinct().Count() != attachments.OfType<MailAsset.Equipment>().Count())
@@ -90,7 +100,11 @@ public sealed record MailView(long Id, CharacterId Recipient, int SenderCharacte
 }
 public sealed record MailAssetChange(CharacterId Character, BusinessSlot? Slot, int ItemId, int Count, int? GoldBalance);
 public sealed record MailSendReceipt(long MailId, ImmutableArray<MailAssetChange> Changes);
-public sealed record MailClaimReceipt(long MailId, long AttachmentId, ImmutableArray<MailAssetChange> Changes);
+public sealed record MailClaimReceipt(long MailId, long AttachmentId, ImmutableArray<MailAssetChange> Changes)
+{
+    /// <summary>The claim credited the recipient's account currency (a token Cera voucher).</summary>
+    public bool AccountCurrencyChanged { get; init; }
+}
 
 public sealed record MailRecipient(CharacterId CharacterId, byte[] Name, int Level, int Job, int GrowType);
 public sealed record MailHeader(long Id, DateTimeOffset CreatedAt, DateTimeOffset? ExpiresAt);

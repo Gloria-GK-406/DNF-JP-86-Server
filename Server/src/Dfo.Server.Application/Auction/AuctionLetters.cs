@@ -41,7 +41,7 @@ internal static class AuctionLetters
     }
 
     public static string ConsignmentSold(AuctionListing listing, long price, long fee, long net) =>
-        $"您寄售的 {Gold(listing.GoldAmount)} 金币已成交。\n成交价 +{Gold(price)} 代币券\n手续费 -{Gold(fee)} 代币券\n实得 {Gold(net)} 代币券，已直接存入账号。";
+        $"您寄售的 {Gold(listing.GoldAmount)} 金币已成交。\n成交价 +{Gold(price)} 代币券\n手续费 -{Gold(fee)} 代币券\n实得 {Gold(net)} 代币券，领取本信即可存入账号。";
 
     private static string Gold(long value) => value.ToString("N0", CultureInfo.InvariantCulture);
 }

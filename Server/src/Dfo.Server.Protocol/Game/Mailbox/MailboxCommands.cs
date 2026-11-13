@@ -4,4 +4,4 @@ using Dfo.Server.Data.Mail;
 namespace Dfo.Server.Protocol.Game.Mailbox;
 
 public enum MailboxOperation { Open, Claim, Read, Delete, Query, Send }
-public sealed record MailboxResult(CharacterMailboxEntryState? Inbox = null, MailboxAssetProjection? Assets = null, MailRecipient? Recipient = null);
+public sealed record MailboxResult(CharacterMailboxEntryState? Inbox = null, MailboxAssetProjection? Assets = null, MailRecipient? Recipient = null, bool WalletChanged = false);

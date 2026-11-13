@@ -167,6 +167,24 @@ public sealed class MailboxProtocolTests
         Assert.Equal(encoded.Length, reader.BaseStream.Position);
     }
 
+    [Fact]
+    public void A_token_cera_voucher_row_names_the_voucher_and_carries_the_amount_as_gold()
+    {
+        var core = new byte[82];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(core.AsSpan(1), 2681762);
+        var voucher = new CharacterMailboxAttachmentEntryState(77, 0, 3, 0, 0, 0, 2681762, "token_cera", 95, 0, 0, 0, 0, 0, -1, 0, core, "");
+        var letter = new CharacterMailboxMessageEntryState(21, 0, [], 1, 0, Encoding.UTF8.GetBytes("t"), Encoding.UTF8.GetBytes("b"),
+            0, 3600, 1770000000, 1, [voucher]);
+        using var reader = new BinaryReader(new MemoryStream(StateSynchronizationPayloadCodec.EncodeMailbox(new(0, [letter]))));
+        Assert.Equal(1, reader.ReadByte());
+        Assert.Equal(0, reader.ReadByte());
+        reader.ReadInt32(); reader.ReadInt32(); ReadDstr(reader);
+        Assert.Equal(95, reader.ReadInt32()); // gold field: the amount the mail shows
+        Assert.Equal(2681762, reader.ReadInt32());
+        Assert.Equal(1, reader.ReadByte());
+        Assert.Equal(0, reader.ReadInt32()); // the item's own count is 0
+    }
+
     private static byte[] Body(IReadOnlyList<byte[]> frames) => Assert.Single(frames)[15..];
     private static string ReadDstr(BinaryReader reader) => Encoding.UTF8.GetString(reader.ReadBytes(reader.ReadInt32()));
 }

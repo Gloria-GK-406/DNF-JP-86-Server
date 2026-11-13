@@ -72,20 +72,11 @@ public sealed class GameAuctionCommandHandler(
                 new AuctionCompleted(session, reply, projection), ct).ConfigureAwait(false);
         else
             await outbox.RegisterCmdAsync(connection.ConnectionId, reply, ct).ConfigureAwait(false);
-        // A consignment purchase moved Cera out of the buyer's account and token Cera into the
-        // seller's: both wallets are shown again, the seller's only if the seller is in the world.
-        if (session is not null && request is AuctionBidRequest bid
-            && reply is AuctionBidResponse { Refusal: null, PayType: (byte)AuctionMarket.GoldConsignment })
-        {
+        // A consignment purchase paid Cera: the buyer's wallet is shown again after the reply. The
+        // seller's token Cera arrives as a voucher mail and is shown when claimed.
+        if (session is not null && reply is AuctionBidResponse { Refusal: null, PayType: (byte)AuctionMarket.GoldConsignment })
             _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
                 new Dfo.Server.Abstractions.Accounts.AccountWalletChanged(session.AccountId), ct).ConfigureAwait(false);
-            var sellers = await units.ReadOnlyAsync(context, new("auction-sold-listing", []),
-                async token => await query.FindAsync(bid.Listing, token).ConfigureAwait(false) is { } sold
-                    ? new[] { sold.SellerAccount } : [], ct).ConfigureAwait(false);
-            if (sellers.Length == 1 && sessions.Find(sellers[0]) is { } seller)
-                _ = await projections.ProjectAsync(new NotificationAudience.TheseSessions([seller]),
-                    new Dfo.Server.Abstractions.Accounts.AccountWalletChanged(sellers[0]), ct).ConfigureAwait(false);
-        }
         return reply;
     }
 

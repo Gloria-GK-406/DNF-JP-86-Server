@@ -167,11 +167,11 @@ internal sealed class AuctionPurse(
         var net = checked((int)(price - fee));
         if (listing.Market == AuctionMarket.GoldConsignment)
         {
-            // #322 D1: the seller is paid in token Cera straight to the account; the letter only tells.
-            _ = await wallets.AddAsync(listing.SellerAccount, AccountCurrency.TokenCera, net, ct).ConfigureAwait(false);
-            var notice = MailBuilder.FromSystem(listing.Seller)
-                .WithText(AuctionLetters.Title, AuctionLetters.ConsignmentSold(listing, price, fee, net)).Build();
-            _ = await mailbox.SendPreparedAsync(notice, [], ct).ConfigureAwait(false);
+            // As 70 makeSuccessfulBid does for its point auction: the seller is mailed a token Cera
+            // voucher for the net amount, credited to the account when claimed (user decision 2026-11-13).
+            var voucher = MailBuilder.FromSystem(listing.Seller)
+                .WithText(AuctionLetters.Title, AuctionLetters.ConsignmentSold(listing, price, fee, net)).AddTokenCera(net).Build();
+            _ = await mailbox.SendPreparedAsync(voucher, [new PreparedMailAttachment(voucher.Attachments[0])], ct).ConfigureAwait(false);
             return;
         }
         await SendGoldAsync(listing.Seller, checked(net + deposit),
