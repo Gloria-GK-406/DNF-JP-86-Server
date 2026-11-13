@@ -15,11 +15,18 @@ internal static class AuctionLetters
     public const string Title = "拍卖行";
 
     public static readonly AuctionLetter Outbid = new((_, amount) => $"您的竞拍已被超过，竞拍款 {Gold(amount)} 金币已退回。");
-    public static readonly AuctionLetter Bought = new((_, _) => "您在拍卖行购得的物品已送达。");
-    public static readonly AuctionLetter ExpiredToSeller = new((listing, _) => listing is { Deposit: > 0 }
-        ? $"您的拍卖物品已流拍，物品与押金 {Gold(listing.Deposit)} 金币已退回。"
-        : "您的拍卖物品已流拍，已退回。");
-    public static readonly AuctionLetter CancelledToSeller = new((_, _) => "您已撤销拍卖，物品已退回，押金不予退还。");
+    public static readonly AuctionLetter Bought = new((listing, _) => listing is { Market: AuctionMarket.GoldConsignment }
+        ? $"您购买的 {Gold(listing.GoldAmount)} 金币已送达。"
+        : "您在拍卖行购得的物品已送达。");
+    public static readonly AuctionLetter ExpiredToSeller = new((listing, _) => listing switch
+    {
+        { Market: AuctionMarket.GoldConsignment } => $"您寄售的 {Gold(listing.GoldAmount)} 金币已到期，金币已退回。",
+        { Deposit: > 0 } => $"您的拍卖物品已流拍，物品与押金 {Gold(listing.Deposit)} 金币已退回。",
+        _ => "您的拍卖物品已流拍，已退回。",
+    });
+    public static readonly AuctionLetter CancelledToSeller = new((listing, _) => listing is { Market: AuctionMarket.GoldConsignment }
+        ? $"您已撤销金币寄售，{Gold(listing.GoldAmount)} 金币已退回。"
+        : "您已撤销拍卖，物品已退回，押金不予退还。");
     public static readonly AuctionLetter CancelledToBidder = new((_, amount) => $"卖家已撤销拍卖，您的竞拍款 {Gold(amount)} 金币已退回。");
 
     public static string Sold(AuctionListing listing, int quantity, long price, long fee, int deposit)

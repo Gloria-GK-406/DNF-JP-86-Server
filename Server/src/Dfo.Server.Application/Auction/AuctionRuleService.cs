@@ -22,10 +22,12 @@ internal sealed class AuctionRuleService : IAuctionRuleService
     {
         this.definitions = definitions;
         this.transfers = transfers;
+        // The listing time is 24 hours in both markets; the minutes setting exists to test expiry.
+        var duration = TimeSpan.FromMinutes(Math.Max(1, configuration.GetValue("Auction:ListingMinutes", 24 * 60)));
         items = new(AuctionMarket.Items, configuration.GetValue("Auction:Items:Enabled", true),
-            ListingLimit: 10, Duration: TimeSpan.FromHours(24), Deposit: 10_000, FeeRateBasisPoints: 500);
+            ListingLimit: 10, Duration: duration, Deposit: 10_000, FeeRateBasisPoints: 500);
         gold = new(AuctionMarket.GoldConsignment, configuration.GetValue("Auction:GoldConsignment:Enabled", true),
-            ListingLimit: 3, Duration: TimeSpan.FromHours(24), Deposit: 0, FeeRateBasisPoints: 500);
+            ListingLimit: 3, Duration: duration, Deposit: 0, FeeRateBasisPoints: 500);
         referenceCeraPerMillion = configuration.GetValue("Auction:GoldConsignment:ReferenceCeraPerMillion", 100);
     }
 
