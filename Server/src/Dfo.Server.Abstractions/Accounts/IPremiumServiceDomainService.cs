@@ -6,6 +6,15 @@ public enum PremiumServiceType { OverEquipmentContract = 22, ExpertSkillContract
     // Legacy storage keys for independent services; never wire premium types.
     FreeGoldCard = 580, DoublePot = 581, QuestHelper = 582, DungeonBuff = 583,
     AutoHpMpRecovery = 584, FreeWeaknessRecovery = 585, AutoRepair = 586, FastPot = 587 }
+/// <summary>The account premium services the Cera shop sells as a [premium] product.</summary>
+/// <remarks>One list for the shop's content reading, its purchase rule and its purchase report.</remarks>
+public static class CeraShopPremiums
+{
+    public static bool IsSold(int premiumType) => premiumType is (int)PremiumServiceType.OverEquipmentContract
+        or (int)PremiumServiceType.ExpertSkillContract or (int)PremiumServiceType.AuctionCoupon
+        or (int)PremiumServiceType.GrowthContract or (int)PremiumServiceType.CrystalContract;
+}
+
 public enum PremiumBenefit { LearnSkillsEarly, EquipItemsEarly, FreeWeaknessRecovery, AutoRepair, FreeGoldCard, DungeonBuff, DoublePot, QuestItemDropBonus }
 
 public interface IPremiumServiceDomainService

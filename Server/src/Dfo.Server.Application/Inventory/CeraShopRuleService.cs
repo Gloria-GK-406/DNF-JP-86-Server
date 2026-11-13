@@ -67,7 +67,7 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
                         nameTags.Add(new(product.ItemId, product.ServiceDays));
                     }
                     else if (product.Category == "[premium]" && product.Count == 1
-                        && product.Premium is { PremiumType: 22 or 27 or 84 or 97 } contract && contract.Duration > TimeSpan.Zero)
+                        && product.Premium is { } contract && CeraShopPremiums.IsSold(contract.PremiumType) && contract.Duration > TimeSpan.Zero)
                     {
                         subscriptions.Add(new((PremiumServiceType)contract.PremiumType, contract.Duration));
                     }
