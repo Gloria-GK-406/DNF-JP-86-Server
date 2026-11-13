@@ -11,8 +11,10 @@
 | 分节 | 行宽 | 零基列与语义 |
 |---|---:|---|
 | avatar | 6 | 0 商品号、1 物品、2 档位（从1开始）、3/4 额外支付、5 价格；负价格查装备的档位 |
-| coin/item/material/recoveryitem/premium/creature/community item | 9 | 0 商品号、1 物品、2 数量、3 金币、4 未解释支付、5 点券、6 名称、7/8 尾字段 |
-| package/regular package/community package | 11 | 0 商品号、1 礼包、2 通常为0（不是零奖励）、4 点券、5 名称；其它条件不静默丢弃；默认尾8/9为-1，尾10为分类 |
+| coin/item/material/recoveryitem/premium/creature/community item | 9 | 0 商品号、1 物品、2 数量、3 金币、4 未解释支付、5 点券、6 名称、7 活动角标（见下）、8 未解释（非 0 时拒绝） |
+| package/regular package/community package | 11 | 0 商品号、1 礼包、2 通常为0（不是零奖励）、4 点券、5 名称、6 活动角标（见下）；其它条件不静默丢弃；默认尾8/9为-1，尾10为分类 |
+
+**活动角标列**（9 列分节第 7 列、礼包分节第 6 列）：客户端把两者读进商品记录的同一个单字节，只用来在格子上画 `cs_eventtag_cn.img` 的角标，值为 1、2、4 时分别画不同帧，0 不画。属于显示字段，不影响发货，服务端接受 0、1、2、4。99、100 也出现过，都在下一列带编号的契约类和红包类行里，含义未查明，继续拒绝。**High（静态走图）**，定位过程、客户端字符串解密方法和地址见 [a21-cerashop-columns-20261113](../probes/a21-cerashop-columns-20261113.md)。
 | visual | 8 | 0 商品号、1 装备、5 点券、6 名称；当前全部是 name tag 权益 |
 | selectable character premium | 9 | 1 权益物品、5 点券、6 名称；含商品号-1的标题行 |
 | charac premium package | 9 | 1 权益物品、2 点券、3 名称 |
