@@ -12,6 +12,9 @@ public interface ILotteryRuleService
     void RequireDeclared(int potItemId);
 
     OpeningReward Roll(int potItemId);
+
+    /// <summary>Empty slots required before drawing, from the quick bar and the pot stack alone.</summary>
+    System.Collections.Immutable.ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(bool quickBarFull, int potCount);
 }
 public sealed record LotteryOpeningResult(OpeningInventoryReceipt Receipt, BusinessSlot SourceSlot, int GoldAfter);
 public interface ILotteryOpeningDomainService

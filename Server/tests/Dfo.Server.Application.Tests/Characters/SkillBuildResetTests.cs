@@ -153,6 +153,8 @@ public sealed class SkillBuildResetTests
     // Transactional stand-in payment: a scalar row makes rollback observable without reproducing inventory rules.
     private sealed class WaterInventory(SqliteDatabase db, IApplyEffectsDomainService executor):IOpeningInventoryDomainService
     {
+        public ValueTask RequireRoomAsync(SelectedSessionIdentity session, IReadOnlyList<OpeningRoomRequirement> requirements, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<int> EmptySlotCountAsync(SelectedSessionIdentity session, Dfo.Server.Data.Inventory.BusinessInventorySpace space, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<IReadOnlyList<Dfo.Server.Data.Accounts.AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
         public async ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> plan, DateTimeOffset at, Dfo.Server.Abstractions.Effects.IEffectFootprintRecorder footprint, CancellationToken ct)
         {

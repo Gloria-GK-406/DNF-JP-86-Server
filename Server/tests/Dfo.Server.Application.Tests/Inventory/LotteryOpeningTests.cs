@@ -19,6 +19,8 @@ public sealed class LotteryOpeningTests
         public Action? BeforeRoll;
         public OpeningReward Roll(int id)
         { Calls++; BeforeRoll?.Invoke(); return new(id switch { 7110 => 20002, 7120 => 10402, 7150 => 31353, _ => throw new InvalidOperationException() }, 1); }
+        public System.Collections.Immutable.ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(bool quickBarFull, int potCount) =>
+            new Dfo.Server.Application.Inventory.LotteryRuleService(Cache!, new Dfo.Server.Application.Inventory.LotteryRandomSource()).RoomBeforeDrawing(quickBarFull, potCount);
     }
     private static CeraShopFixture Fixture(Fixed? selector = null, Action<IServiceCollection>? configure = null)
     {

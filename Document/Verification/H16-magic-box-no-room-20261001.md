@@ -24,3 +24,10 @@
 - Protocol完整回归1228通过，无失败／跳过。现有满包不扣源／材料的Application定向回归1项通过（既有业务代码未修改）。
 - 证据：E:/Project/DNF/DNF-JP-86-Server/artifacts/h16-box-no-room-20261001/ 下 red.trx、codec.trx、protocol.trx、capacity.trx及checks.json。
 - 按用户要求未部署；PID18764及H15运行目录保持，全部运行Dfo DLL哈希与原manifest一致。用户继续测试使用旧服务；稍后部署才会生效。新满包提示与资源无扣除仍需部署后的实机复验。
+
+## 2026-11-13 后续：#315 改为抽奖前预检
+
+本节修复只改了错误码，保留了"满包整单拒绝且不扣礼盒"的语义；这让"能否成功"取决于抽中了什么，玩家可借布置背包零成本重抽。#315 改为：
+
+- 魔盒在抽奖前检查装备、消耗品、材料、专业材料、宠物、时装六栏各至少 N 个空格（N=2，本次开盒批次内会触发幸运加倍时 N=6），不满足仍回 02、不扣任何东西；通过后扣盒子与钥匙，放不下的结果转系统邮件（不过期）。
+- 70 依据：`CUser::check_multibox_error` 0x08675edc 检查 ITEM_TYPE 1/2/3/10/5；`CSlotBoundChecker::init` 0x08373674 把 ITEM_TYPE 10 定为槽 201–248，对应 A21 `SortItemMapping` 的 `(0,10) => ExpertMaterial`；`check_locked_multibox_error` 0x08675fd2 的 N=2 与 `DataManager+0x877e` 倍率。时装栏是本服补上的。

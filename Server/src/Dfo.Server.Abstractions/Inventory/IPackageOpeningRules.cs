@@ -14,4 +14,9 @@ public interface IPackageOpeningRuleService
         DateTimeOffset now, CancellationToken cancellationToken);
     int AdvanceLuck(int value);
     bool LuckBonus(int value);
+    /// <summary>Empty slots required before drawing; decided from facts known before any draw.</summary>
+    ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition, int luck, int count);
 }
+
+/// <summary>A carried space that must hold at least this many empty slots before an opening draws.</summary>
+public sealed record OpeningRoomRequirement(BusinessInventorySpace Space, int EmptySlots);
