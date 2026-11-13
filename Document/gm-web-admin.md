@@ -15,7 +15,7 @@ dotnet build Server/86JP.Server.slnx -c Release
 dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb:Enabled=true --GmWeb:ListenUrl=http://127.0.0.1:18081
 ```
 
-访问 `http://127.0.0.1:18081/gm/`。前端开发模式 `npm run dev`，Vite 将 `/api/gm` 转发至本机 18081；开发者修改实际后端监听地址时同步修改代理目标。
+访问 `http://127.0.0.1:18081/gm/`。前端开发模式 `npm run dev`，Vite 将 `/api/gm` 与 `/api/player` 转发至本机 18081；开发者修改实际后端监听地址时同步修改代理目标。
 
 `GmWeb:Enabled` 默认 false，`GmWeb:ListenUrl` 默认本机 18081。与 `LauncherAuth:*`、`Networking:*` 开关独立；全部 HTTP 关闭时不启动 Kestrel。启用多个 HTTP 功能时使用不同端口，功能路由只在各自端口提供。Host 与各模块共享同一容器、运行态和数据库。
 
@@ -32,9 +32,25 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 | `/gm/grants` | 发放：邮件记录、点券记录、邮件模板、草稿，以及待确认发放的「查询原编号 / 按原内容安全重试」 | SendMail 或 GrantCera |
 | `/gm/grants/mail`、`/gm/grants/cera` | 写邮件 / 发点券三步页面；写邮件右侧是仿游戏「查看邮件」窗口的预览，核对步骤以服务端预览为准 | SendMail / GrantCera |
 | `/gm/initialization`、`/gm/daily-refill`、`/gm/events` | 初始化配置、每日补给、活动管理 | 全部权限 |
-| `/gm/operations` | 操作记录，按结果和操作类型筛选 | ViewAudit |
+| `/gm/player-portal` | 玩家后台：总开关与两个子开关（切换即保存，限额取已保存的值）、六项限额（0 = 不限，点保存才提交）、在线会话与踢下线；版本冲突或结果未确认时锁定写入，重新读取后才能继续 | 全部权限 |
+| `/gm/operations` | 操作记录，按结果、操作类型和操作者（管理员 / 玩家自助）筛选；玩家记录的操作者显示登录名、"玩家"标记与账号 ID | ViewAudit |
 
 旧地址 `/gm/characters`、`/gm/mail`、`/gm/wallet` 自动跳转到新页面。待确认发放的请求编号与冻结内容仍按管理员保存在 sessionStorage，刷新或换页不丢失、不自动重发；配置类页面遇到版本冲突或结果未确认时锁定写入，重新读取后才能继续。
+
+### 登录与玩家界面
+
+页面启动时先读 `/api/player/v1/auth/status` 与玩家会话：玩家会话有效就进玩家界面（同一浏览器同时有管理员会话时也是玩家优先，玩家退出后若管理员会话仍有效直接回管理台），否则进管理台或登录页。玩家后台开启时登录页有"玩家 / 管理员"切换，默认玩家；关闭（或状态读不到）时只有管理员登录。
+
+| 路径 | 页面 |
+|---|---|
+| `/gm/player` | 我的账号：点券与代币券余额、角色列表（"发邮件"带上该角色进入发邮件页）、加点券（币种切换、快捷 +1 万 / +10 万 / +100 万、加后预览；设置了每日上限时显示今日已用，按单次与剩余额度拦截） |
+| `/gm/player/mail` | 发邮件：收件人只列自己的角色；物品检索内嵌在附件面板（与 GM 邮件同一目录接口与件数规则，装备每件一格、共 10 格，物品只带 ID 与数量）；金币、标题、正文；信件预览（正文留空时显示实际投递的默认正文） |
+| `/gm/player/records` | 记录：全部 / 点券 / 邮件，按时间倒序分页 |
+
+- 玩家接口按 `code` 分支：任一请求得到 `portal_closed` 进入"玩家后台已关闭"页（包括总开关关闭时被拒的登出），`unauthenticated` 回登录页；玩家界面每 60 秒重读一次账号，停在页面上也会切换。首次读取账号失败时显示错误消息、HTTP 状态与"重新读取"。
+- 子开关关闭时对应表单不可提交；邮件子开关关闭时不请求物品目录、图标包、图标与悬停提示。
+- 加点券、发邮件每次提交带新的 `requestId`；结果未确认（`unknown`、无 `code` 的 5xx、网络错误、`outcome` 为 `unknown` / `rolledBack`）时保留原编号与内容并锁定表单（保存在玩家界面这一层，切换页面后回来仍锁定），"用原编号重试"按原内容重发，"放弃"清除；明确被拒后下次提交换新编号。`reminder: "failed"` 与重放都按成功显示。
+- 宽度 ≤ 900px 时左侧导轨换成底部标签（账号 / 发邮件 / 记录）。
 
 ## 管理员首次初始化
 

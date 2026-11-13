@@ -13,21 +13,28 @@ export type ItemTooltip = { itemId: number; name: string; rarity: number | null;
   explain: string | null; flavor: string | null; durability: number | null; weight: number | null; price: number | null; stackLimit: number | null };
 /** What a caller already knows about an item, used until (or instead of) the tooltip data. */
 export type ItemBrief = { name?: string | null; rarity?: number | null; category?: string | null; level?: number | null };
+/** Where item catalog reads, icons and tooltips come from: the GM API, or the player API with the same relative paths (SD-8a). */
+export type ItemSource = { key: string; prefix: string; read: <T>(path: string) => Promise<T>; quiet: <T>(path: string) => Promise<T | undefined> };
+// Wrapped so a test's vi.mock('./api') still applies: the import is read at call time.
+export const gmItems: ItemSource = { key: 'gm', prefix: '/api/gm/v1', read: path => api(path), quiet: path => quietApi(path) };
+export const ItemSourceContext = createContext<ItemSource>(gmItems);
+export const useItemSource = () => useContext(ItemSourceContext);
 
 const detailCache = new Map<string, ItemCatalogDetails>();
 const detailInflight = new Map<string, Promise<ItemCatalogDetails>>();
-const tooltipCache = new Map<number, ItemTooltip | null>();
-const tooltipInflight = new Map<number, Promise<ItemTooltip | null>>();
-const failedIcons = new Set<number>();
+const tooltipCache = new Map<string, ItemTooltip | null>();
+const tooltipInflight = new Map<string, Promise<ItemTooltip | null>>();
+const failedIcons = new Set<string>();
 export function resetItemCaches() { detailCache.clear(); detailInflight.clear(); tooltipCache.clear(); tooltipInflight.clear(); failedIcons.clear(); }
-export const cachedDetails = (purpose: ItemPurpose, itemId: number) => detailCache.get(`${purpose}:${itemId}`);
-export function rememberDetails(purpose: ItemPurpose, details: ItemCatalogDetails) { detailCache.set(`${purpose}:${details.item.itemId}`, details); }
-export function loadDetails(purpose: ItemPurpose, itemId: number) {
-  const key = `${purpose}:${itemId}`;
+const detailKey = (source: ItemSource, purpose: ItemPurpose, itemId: number) => `${source.key}:${purpose}:${itemId}`;
+export const cachedDetails = (purpose: ItemPurpose, itemId: number, source = gmItems) => detailCache.get(detailKey(source, purpose, itemId));
+export function rememberDetails(purpose: ItemPurpose, details: ItemCatalogDetails, source = gmItems) { detailCache.set(detailKey(source, purpose, details.item.itemId), details); }
+export function loadDetails(purpose: ItemPurpose, itemId: number, source = gmItems) {
+  const key = detailKey(source, purpose, itemId);
   const cached = detailCache.get(key); if (cached) return Promise.resolve(cached);
   let pending = detailInflight.get(key);
   if (!pending) {
-    pending = api<ItemCatalogDetails>(`${purpose}/items/${itemId}`).then(value => { detailCache.set(key, value); return value; })
+    pending = source.read<ItemCatalogDetails>(`${purpose}/items/${itemId}`).then(value => { detailCache.set(key, value); return value; })
       .finally(() => detailInflight.delete(key));
     detailInflight.set(key, pending);
   }
@@ -35,7 +42,7 @@ export function loadDetails(purpose: ItemPurpose, itemId: number) {
 }
 type Access = { onExpired: () => void; onDenied: () => void };
 /** Catalog details (name, kind, equipment capabilities) for a set of item IDs under one selection rule. */
-export function useItemDetails(purpose: ItemPurpose, ids: number[], access: Access) {
+export function useItemDetails(purpose: ItemPurpose, ids: number[], access: Access, source = gmItems) {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
   const [failed, setFailed] = useState<Record<number, string>>({});
   const [attempt, setAttempt] = useState(0);
@@ -43,8 +50,8 @@ export function useItemDetails(purpose: ItemPurpose, ids: number[], access: Acce
   useEffect(() => {
     let active = true;
     for (const id of unique) {
-      if (detailCache.has(`${purpose}:${id}`)) continue;
-      loadDetails(purpose, id).then(() => { if (active) { setFailed(old => { if (!(id in old)) return old; const next = { ...old }; delete next[id]; return next; }); rerender(); } })
+      if (detailCache.has(detailKey(source, purpose, id))) continue;
+      loadDetails(purpose, id, source).then(() => { if (active) { setFailed(old => { if (!(id in old)) return old; const next = { ...old }; delete next[id]; return next; }); rerender(); } })
         .catch(failure => {
           if (!active) return;
           if (failure instanceof ApiError && failure.status === 401) access.onExpired();
@@ -53,37 +60,41 @@ export function useItemDetails(purpose: ItemPurpose, ids: number[], access: Acce
         });
     }
     return () => { active = false; };
-  }, [purpose, key, attempt]);
+  }, [purpose, key, attempt, source.key]);
   const details: Record<number, ItemCatalogDetails | undefined> = {};
-  for (const id of unique) details[id] = detailCache.get(`${purpose}:${id}`);
+  for (const id of unique) details[id] = detailCache.get(detailKey(source, purpose, id));
   return { details, failed, ready: unique.every(id => !!details[id]), retry: () => { setFailed({}); setAttempt(value => value + 1); } };
 }
-function loadTooltip(itemId: number) {
-  if (tooltipCache.has(itemId)) return Promise.resolve(tooltipCache.get(itemId) ?? null);
-  let pending = tooltipInflight.get(itemId);
+function loadTooltip(source: ItemSource, itemId: number) {
+  const key = `${source.key}:${itemId}`;
+  if (tooltipCache.has(key)) return Promise.resolve(tooltipCache.get(key) ?? null);
+  let pending = tooltipInflight.get(key);
   if (!pending) {
-    pending = quietApi<ItemTooltip>(`items/${itemId}/tooltip`).then(value => { tooltipCache.set(itemId, value ?? null); return value ?? null; })
-      .finally(() => tooltipInflight.delete(itemId));
-    tooltipInflight.set(itemId, pending);
+    pending = source.quiet<ItemTooltip>(`items/${itemId}/tooltip`).then(value => { tooltipCache.set(key, value ?? null); return value ?? null; })
+      .finally(() => tooltipInflight.delete(key));
+    tooltipInflight.set(key, pending);
   }
   return pending;
 }
 
 /** Whether the deployment has an icon pack; unknown until the shell has asked once. */
 export const IconPackContext = createContext<boolean | undefined>(undefined);
-export function useIconPackStatus() {
+/** `enabled` false asks nothing and reports no pack (the player's mail switch is off). */
+export function useIconPackStatus(source = gmItems, enabled = true) {
   const [available, setAvailable] = useState<boolean | undefined>(undefined);
   useEffect(() => {
+    if (!enabled) { setAvailable(false); return; }
     let active = true;
-    quietApi<{ available: boolean }>('items/icon-pack').then(value => { if (active) setAvailable(!!value?.available); });
+    source.quiet<{ available: boolean }>('items/icon-pack').then(value => { if (active) setAvailable(!!value?.available); });
     return () => { active = false; };
-  }, []);
-  return available;
+  }, [source.key, enabled]);
+  return enabled ? available : false;
 }
 function IconFace({ itemId, name, size }: { itemId: number; name: string; size: number }) {
-  const pack = useContext(IconPackContext); const [, rerender] = useReducer((value: number) => value + 1, 0);
-  if (pack && !failedIcons.has(itemId))
-    return <img src={`/api/gm/v1/items/${itemId}/icon`} alt="" width={size} height={size} loading="lazy" onError={() => { failedIcons.add(itemId); rerender(); }} />;
+  const pack = useContext(IconPackContext); const source = useItemSource(); const [, rerender] = useReducer((value: number) => value + 1, 0);
+  const key = `${source.key}:${itemId}`;
+  if (pack && !failedIcons.has(key))
+    return <img src={`${source.prefix}/items/${itemId}/icon`} alt="" width={size} height={size} loading="lazy" onError={() => { failedIcons.add(key); rerender(); }} />;
   return <span className="ini" aria-hidden="true">{nameInitial(name)}</span>;
 }
 export const rarityClass = (rarity: number | null | undefined) => `s${rarity ?? 0}`;
@@ -111,8 +122,9 @@ const attachText: Record<string, [string, 'ok' | 'seal' | 'bad']> = { free: ['�
   'trade delete': ['无法交易 · 无法删除', 'bad'], account: ['账号绑定', 'bad'] };
 /* 说明框不计算品级、强化、增幅、锻造带来的附加数值：属性按 PVF 原值显示，成长只显示状态。 */
 export function ItemCard({ itemId, brief, equip, capabilities }: { itemId: number; brief?: ItemBrief; equip?: ItemEquipmentOptions | null; capabilities?: ItemEquipmentCapabilities | null }) {
-  const [tip, setTip] = useState<ItemTooltip | null | undefined>(() => tooltipCache.has(itemId) ? tooltipCache.get(itemId) ?? null : undefined);
-  useEffect(() => { let active = true; if (tip === undefined) loadTooltip(itemId).then(value => { if (active) setTip(value); }); return () => { active = false; }; }, [itemId, tip]);
+  const source = useItemSource(); const tipKey = `${source.key}:${itemId}`;
+  const [tip, setTip] = useState<ItemTooltip | null | undefined>(() => tooltipCache.has(tipKey) ? tooltipCache.get(tipKey) ?? null : undefined);
+  useEffect(() => { let active = true; if (tip === undefined) loadTooltip(source, itemId).then(value => { if (active) setTip(value); }); return () => { active = false; }; }, [itemId, tip, source]);
   const name = tip?.name ?? brief?.name ?? `物品 ${itemId}`; const rarity = tip?.rarity ?? brief?.rarity ?? 0;
   const state = equip ? equipStateOf(equip) : null; const grow = state && state.growth !== 'none' ? state.level : 0;
   const sealed = tip?.attach === 'sealing' && state?.seal !== 'unsealed';

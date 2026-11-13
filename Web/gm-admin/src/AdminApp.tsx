@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Drawer, Input, Popover, Segmented, Tooltip, type InputRef } from 'antd';
-import { AuditOutlined, BgColorsOutlined, CalendarOutlined, DashboardOutlined, ExclamationCircleOutlined, GiftOutlined, LogoutOutlined, MenuOutlined, SearchOutlined, SendOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
+import { AuditOutlined, BgColorsOutlined, CalendarOutlined, DashboardOutlined, ExclamationCircleOutlined, GiftOutlined, LogoutOutlined, MenuOutlined, SearchOutlined, SendOutlined, SettingOutlined, TeamOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import { api, ApiError, type Identity, type Overview, type Permission, type ServerInfo } from './api';
 import { greeting } from './format';
 import { quietApi } from './quietApi';
@@ -10,7 +10,7 @@ import { palettes, useLook, type Mode, type PaletteKey } from './look';
 import { useNotiBar } from './NotiBar';
 import { GrantsProvider, usePendingCount } from './pending';
 import { BrandMark, Denied, KV } from './ui';
-import { LoginView } from './LoginView';
+import { LoginView, type PlayerLoginOption } from './LoginView';
 import { OverviewView } from './OverviewView';
 import { PlayersView } from './PlayersView';
 import { GrantsView } from './GrantsView';
@@ -20,6 +20,7 @@ import { InitializationView } from './InitializationView';
 import { DailyRefillView } from './DailyRefillView';
 import { EventsView } from './EventsView';
 import { AuditView } from './AuditView';
+import { PlayerPortalAdminView } from './PlayerPortalAdminView';
 
 type Need = Permission | 'All' | 'Grants';
 type Page = { key: string; label: string; group: string; icon: ReactNode; need: Need };
@@ -30,6 +31,7 @@ const pages: Page[] = [
   { key: '/initialization', label: '初始化配置', group: '游戏配置', icon: <SettingOutlined />, need: 'All' },
   { key: '/daily-refill', label: '每日补给', group: '游戏配置', icon: <GiftOutlined />, need: 'All' },
   { key: '/events', label: '活动管理', group: '游戏配置', icon: <CalendarOutlined />, need: 'All' },
+  { key: '/player-portal', label: '玩家后台', group: '游戏配置', icon: <UserSwitchOutlined />, need: 'All' },
   { key: '/operations', label: '操作记录', group: '审计', icon: <AuditOutlined />, need: 'ViewAudit' },
 ];
 const subpages: Record<string, { label: string; parent: string; need: Permission }> = {
@@ -43,7 +45,8 @@ type Nav = { go: (path: string, state?: unknown) => void; composeMail: (seed?: M
 const NavContext = createContext<Nav>({ go: () => {}, composeMail: () => {}, composeCera: () => {}, can: () => false });
 export const useNav = () => useContext(NavContext);
 
-export function AdminApp() {
+/** `player` adds the player choice to the login page (the shell passes it while the player portal is open). */
+export function AdminApp({ player }: { player?: PlayerLoginOption } = {}) {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [initialized, setInitialized] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,7 +120,7 @@ export function AdminApp() {
       if (failure instanceof ApiError && failure.status === 401) applyIdentity(null); else noti.failure(failure);
     } finally { if (isCurrent(epoch)) { transitioning.current = false; setLoading(false); } }
   }
-  if (!identity) return <LoginView initialized={initialized} loading={loading} onLogin={values => void login(values)} onReconnect={() => void refresh()} />;
+  if (!identity) return <LoginView initialized={initialized} loading={loading} onLogin={values => void login(values)} onReconnect={() => void refresh()} player={player} />;
   if (legacy[location.pathname]) return <Navigate to={legacy[location.pathname]} replace />;
   const viewGeneration = generation.current;
   const access = { onExpired: () => expire(viewGeneration) };
@@ -139,6 +142,7 @@ export function AdminApp() {
   else if (location.pathname === '/initialization') content = <InitializationView key={key} {...access} onDenied={configDenied} />;
   else if (location.pathname === '/daily-refill') content = <DailyRefillView key={key} {...access} onDenied={configDenied} />;
   else if (location.pathname === '/events') content = <EventsView key={key} {...access} onDenied={configDenied} />;
+  else if (location.pathname === '/player-portal') content = <PlayerPortalAdminView key={key} {...access} onDenied={configDenied} />;
   else content = <AuditView key={key} {...access} onDenied={deny('ViewAudit')} />;
   const nav: Nav = {
     go: (path, navState) => navigate(path, navState === undefined ? undefined : { state: navState }),

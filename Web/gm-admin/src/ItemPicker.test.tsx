@@ -161,3 +161,12 @@ it.each([401, 403])('目录访问失败 %s 触发原有身份处理', async stat
   if (status === 401) await screen.findByLabelText('管理员账号'); else await screen.findByText('没有访问此页面的权限');
   expect(screen.queryByRole('dialog')).toBeNull();
 });
+it('GM 用途的检索与图标仍走管理员前缀', async () => {
+  const original = mocked.getMockImplementation()!;
+  mocked.mockImplementation(async (path, payload, method) => path === 'items/icon-pack' ? { available: true } : original(path, payload, method));
+  await composeWith(); const dialog = await picker();
+  await within(dialog).findByRole('button', { name: '添加物品 3037' });
+  expect(mocked.mock.calls.some(([path]) => String(path).startsWith('mail/items?'))).toBe(true);
+  await waitFor(() => expect(dialog.querySelector('img')).not.toBeNull());
+  expect([...dialog.querySelectorAll('img')].every(img => img.getAttribute('src')!.startsWith('/api/gm/v1/items/'))).toBe(true);
+});
