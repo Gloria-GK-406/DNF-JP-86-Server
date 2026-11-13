@@ -1,11 +1,13 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class InventorySortDomainService(
-    ICharacterBusinessInventoryDomainService inventories, IInventorySortRuleService sorting)
+    ICharacterBusinessInventoryDomainService inventories, IInventorySortRuleService sorting,
+    ILogger<InventorySortDomainService> logger)
     : IInventorySortDomainService
 {
     public async ValueTask<bool?> ChangeLockAsync(CharacterId character, BusinessSlot slot,
@@ -43,7 +45,10 @@ internal sealed class InventorySortDomainService(
             while (locked.Contains(target)) target++;
             plan.Add((item, target++));
         }
-        if (plan.All(move => move.Item.SlotIndex == move.Target)) return true;
+        var moved = plan.Count(move => move.Item.SlotIndex != move.Target);
+        logger.LogInformation("Sort items character={CharacterId}: list {Space} order {Order} moved {Moved} of {Total}",
+            character.Value, space, order, moved, items.Length);
+        if (moved == 0) return true;
         var records = new List<(ItemRecord Record, int Target)>();
         foreach (var move in plan)
             records.Add((await container.TakeAsync(move.Item, null, ct).ConfigureAwait(false), move.Target));

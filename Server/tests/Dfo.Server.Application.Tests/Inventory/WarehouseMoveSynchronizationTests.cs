@@ -139,7 +139,7 @@ public sealed class WarehouseMoveSynchronizationTests
     [Theory]
     [InlineData(2)]
     [InlineData(12)]
-    public async Task Split_merge_and_different_item_swap_publish_both_committed_slots(byte list)
+    public async Task Split_merge_and_occupied_nomination_publish_both_committed_slots(byte list)
     {
         using var host = WarehouseStorageTests.Fixture();
         host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
@@ -152,8 +152,66 @@ public sealed class WarehouseMoveSynchronizationTests
         AssertSlot(host, list, 0, 2000, 5, 0);
         await host.Seed(65, 5000, 1);
         await Send(host, 0, 65, list, 0);
-        AssertSlot(host, 0, 65, 2000, 5, 0);
-        AssertSlot(host, list, 0, 5000, 1, 0);
+        // An occupied nomination is redirected to an empty slot: what was stored stays stored.
+        Assert.Equal(new((InventoryContainerType)list, 1),
+            Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).DestinationSlot);
+        AssertSlot(host, 0, 65, -1, 0, 0);
+        AssertSlot(host, list, 0, 2000, 5, 0);
+        AssertSlot(host, list, 1, 5000, 1, 0);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(12)]
+    public async Task Deposit_and_withdrawal_join_the_existing_pile_whatever_slot_is_nominated(byte list)
+    {
+        using var host = WarehouseStorageTests.Fixture();
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
+        await host.Seed(65, 2000, 3);
+        await Send(host, 0, 65, list, 2);
+        AssertSlot(host, list, 2, 2000, 3, 0);
+        await host.Seed(65, 2000, 4);
+        await Send(host, 0, 65, list, 5);
+        Assert.Equal(new((InventoryContainerType)list, 2),
+            Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).DestinationSlot);
+        AssertSlot(host, 0, 65, -1, 0, 0);
+        AssertSlot(host, list, 2, 2000, 7, 0);
+        AssertSlot(host, list, 5, -1, 0, 0);
+
+        // Past the stack limit (10): the pile fills, the rest opens one new slot.
+        await host.Seed(65, 2000, 6);
+        await Send(host, 0, 65, list, 2);
+        AssertSlot(host, 0, 65, -1, 0, 0);
+        AssertSlot(host, list, 2, 2000, 10, 0);
+        AssertSlot(host, list, 0, 2000, 3, 0);
+
+        await host.Seed(66, 2000, 2);
+        await Send(host, list, 0, 0, 70);
+        Assert.Equal(new(InventoryContainerType.Main, 66),
+            Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).DestinationSlot);
+        AssertSlot(host, 0, 66, 2000, 5, 0);
+        AssertSlot(host, 0, 70, -1, 0, 0);
+        AssertSlot(host, list, 0, -1, 0, 0);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(12)]
+    public async Task A_deposit_with_no_pile_room_and_no_empty_slot_changes_neither_side(byte list)
+    {
+        using var host = WarehouseStorageTests.Fixture();
+        host.Sql("INSERT INTO account_cargo_state(account_id,selection_key) VALUES(1,8)");
+        for (var slot = 0; slot < 8; slot++)
+        {
+            await host.Seed(65, 2000, 10);
+            await Send(host, 0, 65, list, slot);
+        }
+        await host.Seed(65, 2000, 4);
+        var before = host.StoredCore(65);
+        await Send(host, 0, 65, list, 3);
+        Assert.NotNull(Assert.Single(host.Sender.Messages.OfType<MoveItemSpaceResponse>()).ErrorCode);
+        Assert.Equal(before, host.StoredCore(65));
+        Assert.Equal(80, host.Scalar($"SELECT SUM(count) FROM item_slots WHERE list_type={list}"));
     }
 
     [Theory]
