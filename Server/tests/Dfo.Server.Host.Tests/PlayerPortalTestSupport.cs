@@ -27,6 +27,14 @@ internal static class PlayerPortalTestSupport
         host.ExecuteAsync($"INSERT INTO player_portal_settings(id,enabled,cera_enabled,mail_enabled,cera_per_grant,cera_per_day,token_cera_per_grant,token_cera_per_day,mail_gold_per_mail,mails_per_day,revision) VALUES(1,{B(enabled)},{B(cera)},{B(mail)},0,0,0,0,0,0,1) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,cera_enabled=excluded.cera_enabled,mail_enabled=excluded.mail_enabled,revision=revision+1;");
     private static int B(bool value) => value ? 1 : 0;
 
+    /// <summary>Sets the cera limits on the settings row <see cref="SetPortalAsync"/> wrote.</summary>
+    internal static Task SetCeraLimitsAsync(GmTestHost host, long ceraPerGrant = 0, long ceraPerDay = 0, long tokenCeraPerGrant = 0, long tokenCeraPerDay = 0) =>
+        host.ExecuteAsync($"UPDATE player_portal_settings SET cera_per_grant={ceraPerGrant},cera_per_day={ceraPerDay},token_cera_per_grant={tokenCeraPerGrant},token_cera_per_day={tokenCeraPerDay},revision=revision+1;");
+
+    /// <summary>The account's cera and token cera, as <c>cera:token</c>.</summary>
+    internal static async Task<string> BalanceAsync(GmTestHost host, int accountId) =>
+        Assert.Single(await host.ReadAsync($"SELECT cera||':'||token_cera FROM accounts WHERE account_id={accountId};"));
+
     internal static async Task<JsonElement> JsonAsync(HttpResponseMessage response) => await response.Content.ReadFromJsonAsync<JsonElement>();
     internal static async Task<string?> CodeAsync(HttpResponseMessage response) =>
         (await JsonAsync(response)).TryGetProperty("code", out var code) ? code.GetString() : null;
@@ -67,6 +75,8 @@ internal static class PlayerPortalTestSupport
             if (csrf is not null) request.Headers.Add("X-GM-CSRF", csrf);
             return Client.SendAsync(request);
         }
+        internal Task<HttpResponseMessage> GrantAsync(string csrf, string currency, int amount, Guid? id = null) =>
+            PostAsync("/api/player/v1/cera/grant", csrf, new { requestId = id ?? Guid.NewGuid(), currency, amount });
         internal string? Secret => Cookies.GetCookies(new Uri(Client.BaseAddress!, "/api/player/")).FirstOrDefault(c => c.Name == SessionCookie)?.Value;
         public void Dispose() => Client.Dispose();
     }

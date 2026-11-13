@@ -15,5 +15,6 @@ public enum HttpRouteOperation
     DailyRefill, DailyRefillChange, DailyRefillItems, DailyRefillItem,
     Events, WeeklyAttendance, JoustSettings, JoustRound, JoustChampion, JoustChange, EventsChange,
     PlayerPortalSettings, PlayerPortalSettingsChange, PlayerPortalSessions, PlayerPortalKick, PlayerPortalKickAll,
-    PlayerLogin, PlayerLogout, PlayerMe
+    PlayerLogin, PlayerLogout, PlayerMe,
+    PlayerGrantCera, PlayerOperations
 }

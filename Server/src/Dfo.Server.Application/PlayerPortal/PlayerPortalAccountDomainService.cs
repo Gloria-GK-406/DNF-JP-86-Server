@@ -31,10 +31,21 @@ internal sealed class PlayerPortalAccountDomainService(IPlayerPortalAccessDomain
         var settings = await portal.ReadSettingsAsync(token);
         var day = days.PeriodDay(clock.GetUtcNow());
         var today = new PlayerUsageView(
-            (await portal.UsageAsync(identity.AccountId, PlayerPortalOperationKind.Cera, "Cera", day, token)).Amount,
-            (await portal.UsageAsync(identity.AccountId, PlayerPortalOperationKind.Cera, "TokenCera", day, token)).Amount,
-            (await portal.UsageAsync(identity.AccountId, PlayerPortalOperationKind.Mail, null, day, token)).Count);
+            await PlayerPortalDailyUsage.CeraAsync(portal, identity.AccountId, PlayerPortalRuleService.Cera, day, token),
+            await PlayerPortalDailyUsage.CeraAsync(portal, identity.AccountId, PlayerPortalRuleService.TokenCera, day, token),
+            await PlayerPortalDailyUsage.MailsAsync(portal, identity.AccountId, day, token));
         return new(identity.AccountId, identity.LoginName, new(account.Balances.Cera, account.Balances.TokenCera), characters,
             new(settings.CeraEnabled, settings.MailEnabled, settings.Limits, today));
+    }
+
+    /// <remarks>Only the switch and the session gate the records: a closed feature still lets the player look (RQ-021).</remarks>
+    public async ValueTask<PlayerOperationsView> OperationsAsync(string secret, PlayerPortalOperationKind? kind, int page, int pageSize,
+        CancellationToken token)
+    {
+        var identity = await access.AuthorizeAsync(secret, token);
+        if (page is < 1 or > 1000000 || pageSize is < 1 or > 100)
+            throw new PlayerPortalException(PlayerPortalRefusal.Invalid, "查询参数无效。");
+        var stored = await portal.OperationsAsync(identity.AccountId, kind, page, pageSize, token);
+        return new(stored.Items.Select(operation => PlayerPortalReceipts.Parse(operation.ReceiptJson)).ToArray(), stored.Total, page, pageSize);
     }
 }

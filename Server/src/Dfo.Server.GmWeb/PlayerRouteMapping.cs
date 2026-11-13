@@ -30,7 +30,8 @@ internal static class PlayerRouteMapping
         context.Response.StatusCode = status;
         return context.Response.WriteAsJsonAsync(new { message, code }, context.RequestAborted);
     }
-    internal static IResult Error(int status, string code, string message) => Results.Json(new { message, code }, statusCode: status);
+    internal static IResult Error(int status, string code, string message, string? outcome = null) => outcome is null
+        ? Results.Json(new { message, code }, statusCode: status) : Results.Json(new { message, code, outcome }, statusCode: status);
 
     internal static CookieOptions Cookie(HttpContext context, DateTimeOffset? expires = null) =>
         new() { HttpOnly = true, SameSite = SameSiteMode.Strict, Secure = context.Request.IsHttps, Path = CookiePath, Expires = expires, IsEssential = true };
@@ -44,9 +45,25 @@ internal sealed class PlayerRouteReplyMapper : IHttpRouteReplyMapper
 {
     internal static PlayerRouteReplyMapper Instance { get; } = new();
 
+    /// <summary>The player's writes: their failures also say whether anything was committed (SD-1a <c>outcome</c>).</summary>
+    private static readonly HashSet<HttpRouteOperation> Writes = [HttpRouteOperation.PlayerGrantCera];
+
     public ValueTask<IResult> MapAsync(HttpContext context, HttpRouteOperation operation, HttpRouteReply reply)
     {
-        if (reply.Error is { } error) return ValueTask.FromResult(Failure(context, operation, reply, error));
+        // The grant committed; only its reminder failed. It answers as the success it is (TASK-04 decision 8.6).
+        if (reply is { Outcome: "reminderFailed", Value: PlayerCeraGrantResult reminded })
+        {
+            Log(context, reply.Error, operation, reply.Outcome);
+            return ValueTask.FromResult(Results.Ok(new { reminded.Receipt, reminded.Replayed, reminder = "failed" }));
+        }
+        if (reply.Error is { } error)
+        {
+            if (Writes.Contains(operation) && reply.Outcome is null)
+                reply = reply with { Outcome = Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error) ? "unknown" : "rejected" };
+            return ValueTask.FromResult(Failure(context, operation, reply, error));
+        }
+        if (reply.Value is PlayerCeraGrantResult granted)
+            return ValueTask.FromResult(Results.Ok(new { granted.Receipt, granted.Replayed, reminder = reply.Reminder }));
         if (operation == HttpRouteOperation.PlayerLogout)
         {
             context.Response.Cookies.Delete(PlayerRouteMapping.SessionCookie, PlayerRouteMapping.Cookie(context));
@@ -57,29 +74,35 @@ internal sealed class PlayerRouteReplyMapper : IHttpRouteReplyMapper
 
     private static IResult Failure(HttpContext context, HttpRouteOperation operation, HttpRouteReply reply, Exception error)
     {
+        // A write's outcome travels with its failure; "auditFailed" means the result is unconfirmed to the player.
+        var outcome = !Writes.Contains(operation) ? null : reply.Outcome == "auditFailed" ? "unknown" : reply.Outcome;
         if (!reply.ExecutorFailed && reply.Outcome is not ("unknown" or "auditFailed"))
         {
             switch (error)
             {
-                case PlayerPortalException refusal: return Refusal(refusal);
-                case HttpRouteInputException parsed: return PlayerRouteMapping.Error(parsed.StatusCode, "invalid", parsed.Message);
+                case PlayerPortalException refusal: return Refusal(refusal, outcome);
+                case HttpRouteInputException parsed: return PlayerRouteMapping.Error(parsed.StatusCode, "invalid", parsed.Message, outcome);
                 case ArgumentException or JsonException or BadHttpRequestException:
-                    return PlayerRouteMapping.Error(400, "invalid", error.Message);
+                    return PlayerRouteMapping.Error(400, "invalid", error.Message, outcome);
             }
         }
-        context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.GmWeb.PlayerPortal")
-            .LogError(error, "Player operation {Operation} failed with outcome {Outcome}.", operation, reply.Outcome);
-        return PlayerRouteMapping.Error(500, "unknown", "结果暂未确认，请稍后重试。");
+        Log(context, error, operation, reply.Outcome);
+        return PlayerRouteMapping.Error(500, "unknown", reply.ExecutorFailed && reply.Outcome == "rolledBack"
+            ? "未提交，请稍后用原编号重试。" : "结果暂未确认，请稍后重试。", outcome);
     }
 
-    private static IResult Refusal(PlayerPortalException refusal) => refusal.Reason switch
+    private static void Log(HttpContext context, Exception? error, HttpRouteOperation operation, string? outcome) =>
+        context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Dfo.Server.GmWeb.PlayerPortal")
+            .LogError(error, "Player operation {Operation} failed with outcome {Outcome}.", operation, outcome);
+
+    private static IResult Refusal(PlayerPortalException refusal, string? outcome) => refusal.Reason switch
     {
-        PlayerPortalRefusal.PortalClosed => PlayerRouteMapping.Error(403, "portal_closed", refusal.Message),
-        PlayerPortalRefusal.FeatureDisabled => PlayerRouteMapping.Error(403, "feature_disabled", refusal.Message),
-        PlayerPortalRefusal.Unauthenticated => PlayerRouteMapping.Error(401, "unauthenticated", refusal.Message),
-        PlayerPortalRefusal.NotFound => PlayerRouteMapping.Error(404, "not_found", refusal.Message),
-        PlayerPortalRefusal.LimitExceeded => PlayerRouteMapping.Error(409, "limit_exceeded", refusal.Message),
-        PlayerPortalRefusal.RequestConflict => PlayerRouteMapping.Error(409, "request_conflict", refusal.Message),
-        _ => PlayerRouteMapping.Error(400, "invalid", refusal.Message),
+        PlayerPortalRefusal.PortalClosed => PlayerRouteMapping.Error(403, "portal_closed", refusal.Message, outcome),
+        PlayerPortalRefusal.FeatureDisabled => PlayerRouteMapping.Error(403, "feature_disabled", refusal.Message, outcome),
+        PlayerPortalRefusal.Unauthenticated => PlayerRouteMapping.Error(401, "unauthenticated", refusal.Message, outcome),
+        PlayerPortalRefusal.NotFound => PlayerRouteMapping.Error(404, "not_found", refusal.Message, outcome),
+        PlayerPortalRefusal.LimitExceeded => PlayerRouteMapping.Error(409, "limit_exceeded", refusal.Message, outcome),
+        PlayerPortalRefusal.RequestConflict => PlayerRouteMapping.Error(409, "request_conflict", refusal.Message, outcome),
+        _ => PlayerRouteMapping.Error(400, "invalid", refusal.Message, outcome),
     };
 }

@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.PlayerPortal;
@@ -37,6 +39,55 @@ internal static class PlayerPortalEndpoints
         // Takes nothing from the request: the account is the session's (RQ-003).
         PlayerRouteMapping.Map(group, "GET", Prefix + "/me", HttpRouteOperation.PlayerMe,
             (HttpContext c) => new QueryPlayerMeCommand(PlayerRouteMapping.Secret(c)!));
+        // Only the session names the account: an account id in the body is an undeclared field, in the query it is ignored.
+        PlayerRouteMapping.Map(group, "POST", Prefix + "/cera/grant", HttpRouteOperation.PlayerGrantCera,
+            async (HttpContext c) => new GrantPlayerCeraCommand(PlayerRouteMapping.Secret(c)!, await ReadCeraAsync(c)));
+        PlayerRouteMapping.Map(group, "GET", Prefix + "/operations", HttpRouteOperation.PlayerOperations, (HttpContext c) =>
+        {
+            var query = c.Request.Query;
+            foreach (var name in new[] { "kind", "page", "pageSize" })
+                if (query.TryGetValue(name, out var values) && values.Count != 1) throw InvalidQuery();
+            PlayerPortalOperationKind? kind = !query.ContainsKey("kind") ? null : query["kind"].ToString() switch
+            {
+                "cera" => PlayerPortalOperationKind.Cera,
+                "mail" => PlayerPortalOperationKind.Mail,
+                _ => throw InvalidQuery(),
+            };
+            return new QueryPlayerOperationsCommand(PlayerRouteMapping.Secret(c)!, kind, Number(query, "page", 1), Number(query, "pageSize", 20));
+        });
+    }
+
+    private const int CeraBodyLimit = 4096;
+    private static readonly JsonSerializerOptions CeraOptions = new(JsonSerializerDefaults.Web)
+    {
+        NumberHandling = JsonNumberHandling.Strict,
+        Converters = { new RequestIdConverter() },
+    };
+
+    private static async Task<PlayerCeraRequest> ReadCeraAsync(HttpContext context)
+    {
+        if (!context.Request.HasJsonContentType() || context.Request.ContentLength is > CeraBodyLimit)
+            throw new HttpRouteInputException(400, "请求字段无效。");
+        if (context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } limit) limit.MaxRequestBodySize = CeraBodyLimit;
+        try
+        {
+            return await context.Request.ReadFromJsonAsync<PlayerCeraRequest>(CeraOptions, context.RequestAborted)
+                ?? throw new HttpRouteInputException(400, "请求字段无效。");
+        }
+        catch (Exception error) when (error is JsonException or BadHttpRequestException or NotSupportedException)
+        { throw new HttpRouteInputException(400, "请求字段无效。"); }
+    }
+
+    private static int Number(IQueryCollection query, string name, int fallback) => !query.ContainsKey(name) ? fallback
+        : int.TryParse(query[name], NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : throw InvalidQuery();
+    private static HttpRouteInputException InvalidQuery() => new(400, "查询参数无效。");
+
+    private sealed class RequestIdConverter : JsonConverter<Guid>
+    {
+        public override Guid Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
+            reader.TokenType == JsonTokenType.String && Guid.TryParse(reader.GetString(), out var id) && id != Guid.Empty
+                ? id : throw new JsonException("Invalid UUID.");
+        public override void Write(Utf8JsonWriter writer, Guid value, JsonSerializerOptions options) => writer.WriteStringValue(value);
     }
 
     private static async Task<IResult> LoginAsync(HttpContext context, ILauncherCredentialReader credentials,

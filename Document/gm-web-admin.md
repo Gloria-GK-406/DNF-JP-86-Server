@@ -72,6 +72,9 @@ GM 登录与玩家登录各有一个限流实例，互不计数（包括来源�
 - 公开：`GET auth/status` → `{ enabled }`（总开关关闭时也应答，登录页据此决定是否显示玩家选项）、`GET auth/csrf`、`POST auth/login`（`{ loginName, password }`，与启动器同一套凭据规则，不改写密码记录）。
 - 需玩家会话：`POST auth/logout`、`GET auth/session`、`GET me`（自己的登录名、点券与代币券余额、未删除角色的 ID / 名字 / 职业 / 等级 / 是否在线，以及两个子开关、六项限额与今日用量）。
 - 总开关关闭时，除 `auth/status` 外的玩家接口先于会话判断一律返回 `portal_closed`；关闭的同时所有玩家会话失效。开关、会话与限额在执行器内的命令事务中再判一次，判定与写入不会被其它请求插入。
+- 加点券 `POST cera/grant`：请求体 `{ requestId, currency, amount }`（`requestId` 为非空 UUID；`currency` 只认 `Cera` / `TokenCera`，区分大小写；`amount` 1..2147483647；不接受未声明字段，账号只取自会话）。命令内依次判定写意图、总开关、会话、重放、点券子开关、单次与每日限额，再按 GM 发点券的钱包规则入账。同一账号同一编号同内容只入账一次，重试返回原回执（`replayed: true`），先于子开关与限额判定，所以额度用完或子开关关闭后重试仍返回原结果；同编号不同内容为 `request_conflict`。每日限额只计成功的操作，点券与代币券各自计数，按服务端日切（`Game:DailyResetTime`）换日。成功返回 `{ receipt, replayed, reminder }`，`reminder` 为 `attempted` / `offline` / `failed`（提醒失败不影响已提交的入账）。写操作的失败在 `code` 之外带 `outcome`：`rejected`（未提交）、`rolledBack`、`unknown`（结果未确认，用原编号重试）。
+- 记录 `GET operations?kind=cera|mail&page=&pageSize=`（`pageSize` 1..100，默认 20）：只含自己账号的成功操作，按时间倒序，返回 `{ items, total, page, pageSize }`；每项是存下的回执原样，公共字段为 `requestId`、`kind`、`committedAt`、`summary`、`result`，点券回执另有 `currency`、`amount`、`before` / `after`（`{ cera, tokenCera }`）。查看只受总开关与会话约束，不受子开关约束。
+- 审计动作 `PlayerGrantCera`：成功记 `Succeeded`；识别出玩家后的拒绝（子开关、限额、编号冲突、不合法、钱包上限）记 `Rejected`；提交未确认记 `Unknown`。总开关关闭、未登录与请求解析失败不写审计。失败记录用命令开始时识别到的账号，不再读会话。
 - 会话 8 小时、不续期，Cookie `Dfo.Player.Session`（`Path=/api/player`、`HttpOnly`、`SameSite=Strict`，`Secure` 随解析后的协议），库中只存 SHA-256。
 
 管理员接口（全权限，与每日补给同级）在 `/api/gm/v1/player-portal`：`GET/POST settings`（总开关、点券与邮件子开关、六项非负限额 0..2147483647，0 = 不限；全新库与迁移库默认关 / 开 / 开 / 全 0；`revision` 为读到的版本，旧版本保存返回 409）、`GET sessions`（有效会话：账号、登录名、登录与到期时间）、`POST sessions/kick`（`{ accountId }`）、`POST sessions/kick-all`，返回 `{ kicked }`。修改设置与踢人写审计。

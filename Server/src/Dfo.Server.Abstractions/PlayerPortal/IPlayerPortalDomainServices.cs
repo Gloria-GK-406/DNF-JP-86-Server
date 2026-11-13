@@ -24,6 +24,22 @@ public interface IPlayerPortalAccessDomainService
 public interface IPlayerPortalAccountDomainService
 {
     ValueTask<PlayerAccountView> MeAsync(string secret, CancellationToken token);
+
+    /// <summary>The session's own succeeded operations, newest first, optionally of one kind (RQ-013).</summary>
+    ValueTask<PlayerOperationsView> OperationsAsync(string secret, PlayerPortalOperationKind? kind, int page, int pageSize, CancellationToken token);
+}
+
+/// <summary>A player adding cera to the own account (RQ-010).</summary>
+public interface IPlayerPortalCeraDomainService
+{
+    /// <summary>
+    /// Inside the CMD's execution unit: every check of SD-1 in order and the credit. A request id that already
+    /// succeeded with the same content answers with the stored receipt, before the feature switch and the limits.
+    /// </summary>
+    ValueTask<PlayerCeraGrantResult> GrantAsync(string? secret, PlayerCeraRequest request, CancellationToken token);
+
+    /// <summary>A failed grant's audit, under the identity found when the CMD began; the session is not read again (SD-1a).</summary>
+    ValueTask RecordFailureAsync(PlayerIdentity identity, Guid requestId, string outcome, string reason, CancellationToken token);
 }
 
 /// <summary>The administrator's controls of the player portal; each call authorizes a full-permission GM session.</summary>
