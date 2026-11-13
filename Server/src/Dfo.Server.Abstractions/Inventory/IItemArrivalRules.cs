@@ -29,6 +29,27 @@ public abstract record ItemArrival
     public sealed record NoRoom : ItemArrival;
 }
 
+/// <summary>Every step of a pile moved in from another list, or why it cannot land.</summary>
+/// <remarks>
+/// A transfer is all or nothing: either every step is listed, or none is and the caller changes
+/// neither side. Each step is an <see cref="ItemArrival.OntoExistingPile"/> or an
+/// <see cref="ItemArrival.IntoEmptySlot"/>.
+/// </remarks>
+public abstract record ItemTransferArrival
+{
+    private ItemTransferArrival()
+    {
+    }
+
+    public sealed record Placed(IReadOnlyList<ItemArrival> Steps) : ItemTransferArrival;
+
+    /// <summary>Nothing stacks onto and no slot is free for what is left.</summary>
+    public sealed record NoRoom : ItemTransferArrival;
+
+    /// <summary>What is left after filling the piles is more than one slot holds.</summary>
+    public sealed record ExceedsStackLimit : ItemTransferArrival;
+}
+
 /// <summary>
 /// Where an item goes when it arrives, decided without reference to any store.
 /// </summary>
@@ -60,6 +81,21 @@ public interface IItemArrivalRuleService
         int count,
         ItemPlacement placement,
         IReadOnlySet<BusinessSlot> occupiedSlots);
+
+    /// <summary>Where a pile moved between lists by the player lands.</summary>
+    /// <remarks>
+    /// Piles it can join (lowest slot first) are filled as far as the stack limit, as for a grant;
+    /// what is left goes to the nominated slot when that is free, otherwise to the first free slot
+    /// below <paramref name="openSlots"/>. Nothing already in the destination is moved. A stack
+    /// limit of one joins nothing.
+    /// </remarks>
+    ItemTransferArrival ForTransfer(
+        IReadOnlyList<ItemPile> present,
+        int count,
+        int stackLimit,
+        BusinessSlot nominated,
+        IReadOnlySet<BusinessSlot> occupiedSlots,
+        int openSlots);
 }
 
 /// <summary>

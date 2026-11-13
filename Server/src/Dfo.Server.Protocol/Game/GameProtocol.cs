@@ -277,8 +277,6 @@ internal static class GameProtocol
 
     public const ushort CharacterStatisticType = 0x007B;
 
-    public const ushort RequestBlacklistType = 0x0078;
-
     public const ushort FarmEventActionType = 0x02BE;
 
     public const ushort PiType = 0x011B;

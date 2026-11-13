@@ -20,10 +20,11 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
         var useRule = await plans.SourceRuleAsync(source.ItemId, ct).ConfigureAwait(false);
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Package, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0) throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "This entry supplies no material.");
+        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition, 0, 1), ct).ConfigureAwait(false);
         var rolled = rules.Roll(definition, input.SelectedItems, Random.Shared.Next());
         var grants = await rules.PrepareAsync(rolled, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
-            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now);
+            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, delivery: ItemDeliveryMode.InventoryThenMail);
         return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
     }
 }
@@ -42,6 +43,7 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.AvatarPackage, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0 || !definition.Pools.IsEmpty)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Avatar package has material or random declarations.");
+        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition, 0, 1), ct).ConfigureAwait(false);
         var choices = input.Choices.ToDictionary(c => c.ItemId, c => c.Ability);
         var selected = definition.Kind == OpeningPackageKind.Selection
             ? rules.Roll(definition, input.Choices.Select(c => c.ItemId).ToArray(), Random.Shared.Next()) : definition.FixedRewards;
@@ -51,7 +53,7 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
         if (!avatarIds.SetEquals(choices.Keys))
             throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "Avatar choices must match all granted avatars.");
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
-            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now);
+            grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, delivery: ItemDeliveryMode.InventoryThenMail);
         return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
     }
 }
@@ -80,6 +82,7 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var before = definition.UsesSeriaLuck ? await accounts.FindSeriaLuckAsync(session.AccountId, ct).ConfigureAwait(false) : null;
         if (definition.UsesSeriaLuck && before is null) throw new OpeningRejectedException(OpeningRejection.NoSession, "Account luck is absent.");
         var luck = before ?? 0;
+        await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition, luck, input.Count), ct).ConfigureAwait(false);
         var primary = ImmutableArray.CreateBuilder<OpeningReward>();
         var bonus = ImmutableArray.CreateBuilder<OpeningReward>();
         for (var i = 0; i < input.Count; i++)
@@ -96,7 +99,8 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var rewards = primary.Concat(bonus.Select(r => r with { Count = checked(r.Count * 2) })).ToArray();
         var grants = await rules.PrepareAsync(rewards, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, consumed, grants,
-            await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, luckBefore: before, luckAfter: before is null ? null : luck);
+            await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, luckBefore: before, luckAfter: before is null ? null : luck,
+            delivery: ItemDeliveryMode.InventoryThenMail);
         var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
         ImmutableArray<OpeningRewardDisplay> Display(IEnumerable<OpeningReward> entries) => entries.GroupBy(r => r.ItemId).Select(g =>
             receipt.Rewards.First(r => r.ItemId == g.Key) with { Count = checked(g.Sum(r => r.Count)) }).ToImmutableArray();

@@ -437,6 +437,7 @@ public sealed class OrdinaryQuestEffectTests
         var result = await Finish(shop);
         Assert.True(result.Finished); Assert.Equal((byte?)17,result.GrowType);
         Assert.Equal(17,shop.Scalar("SELECT grow_type FROM characters WHERE character_id=1"));
+        Assert.Equal([17],GrowTypeEvents(shop));
         Assert.Equal(0,shop.Count(2000));
         Assert.Equal(3,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=0 AND slot=0 AND skill_id=999 AND hex(extra_values)='0102'"));
         Assert.Equal(2,shop.Scalar("SELECT level FROM character_skills WHERE character_id=1 AND page_index=1 AND slot=3 AND skill_id=1 AND hex(extra_values)='0908'"));
@@ -451,6 +452,15 @@ public sealed class OrdinaryQuestEffectTests
         Assert.Equal(5,shop.Scalar("SELECT bonus_sp FROM characters WHERE character_id=1"));
         Assert.Equal(3,shop.Scalar("SELECT bonus_tp FROM characters WHERE character_id=1"));
         Assert.False((await Finish(shop)).Finished);
+        Assert.Equal([17],GrowTypeEvents(shop));
+    }
+
+    /// <summary>The grow type each recorded <c>character.grow-type-changed</c> fact carries, in recording order (friend refresh, RQ-052).</summary>
+    private static int[] GrowTypeEvents(ShopFixture shop)
+    {
+        var count=shop.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='character.grow-type-changed'");
+        return [.. Enumerable.Range(0,count).Select(index=>shop.Scalar(
+            $"SELECT COALESCE(json_extract(payload_json,'$.GrowType'),json_extract(payload_json,'$.growType')) FROM domain_events WHERE event_type='character.grow-type-changed' ORDER BY sequence LIMIT 1 OFFSET {index}"))];
     }
 
     [Fact]
@@ -463,6 +473,7 @@ public sealed class OrdinaryQuestEffectTests
         var before = (await state.ReadAsync(new(1),default))!;
         var result = await Finish(shop);
         Assert.True(result.Finished); Assert.Equal((byte?)2,result.Awakening); Assert.Equal((byte?)33,result.GrowType);
+        Assert.Equal([33],GrowTypeEvents(shop));
         var after = (await state.ReadAsync(new(1),default))!;
         Assert.Equal(2,after.Career.Awakening); Assert.Equal(before.Pages.Count,after.Pages.Count);
         foreach (var page in before.Pages)
@@ -549,6 +560,7 @@ public sealed class OrdinaryQuestEffectTests
         using var shop=Composite(CompositeRules()); CompositeSeed(shop,materialized);
         var result=await Finish(shop); Assert.True(result.Finished); Assert.Equal((byte?)1,result.GrowType);
         var state=shop.Services.GetRequiredService<ICharacterSkillStateDomainService>(); var facts=(await state.ReadAsync(new(1),default))!;
+        Assert.Equal([1],GrowTypeEvents(shop));
         Assert.Equal(2,facts.Level); Assert.Equal(materialized?3:2,facts.Pages.Count);
         foreach(var page in facts.Pages) {Assert.DoesNotContain(page.Skills,x=>x.SkillId is 999 or 1);Assert.Equal(3,page.Skills.Single(x=>x.SkillId==7).Level);Assert.All(page.Skills,x=>Assert.Empty(x.ExtraValues));}
         var builds=await state.BuildsAsync(new(1),default); Assert.Equal(0,builds.Active.Value); Assert.False(builds.IsUnlocked(new(1)));

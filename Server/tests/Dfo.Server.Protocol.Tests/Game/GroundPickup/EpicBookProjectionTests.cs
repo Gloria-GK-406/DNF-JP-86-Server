@@ -28,7 +28,7 @@ public sealed class EpicBookProjectionTests
     public void Selected_character_stream_contains_the_account_book_in_the_existing_position()
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete() with { EpicPieces = [new EpicPieceBalance(10300000, 13)] };
-        var messages = SelectedCharacterStateMessageFactory.Create(seed);
+        var messages = SelectedCharacterStateMessageFactory.Create(seed, Dfo.Server.Protocol.Game.FriendListRefresh.None);
         var epic = Assert.Single(messages.OfType<EpicBookStateMessage>());
         Assert.Equal(0, epic.Mode);
         Assert.Equal(13, Assert.Single(epic.Pieces).Count);

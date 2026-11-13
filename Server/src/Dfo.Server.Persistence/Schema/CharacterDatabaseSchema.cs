@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 5;
+    public const int Version = 6;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -326,6 +326,8 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS gm_mail_templates (administrator_id INTEGER NOT NULL,id TEXT NOT NULL,name TEXT NOT NULL,document TEXT NOT NULL,PRIMARY KEY(administrator_id,id),UNIQUE(administrator_id,name));
         CREATE TABLE IF NOT EXISTS gm_mail_operations (administrator_id INTEGER NOT NULL,request_id TEXT NOT NULL,payload_hash TEXT NOT NULL,committed_at INTEGER NOT NULL,receipt TEXT NOT NULL,PRIMARY KEY(administrator_id,request_id));
         CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));
+        CREATE TABLE IF NOT EXISTS character_relations(owner_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,target_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,kind INTEGER NOT NULL CHECK(kind BETWEEN 1 AND 255),created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,kind,target_id),CHECK(owner_id<>target_id));
+        CREATE INDEX IF NOT EXISTS ix_character_relations_target ON character_relations(target_id,kind);
         CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_activation_state(event_id INTEGER PRIMARY KEY,active INTEGER NOT NULL CHECK(active IN(0,1)),configuration_revision INTEGER NOT NULL,applied_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS fatigue_consumption_settings(id INTEGER PRIMARY KEY CHECK(id=1),suspended INTEGER NOT NULL CHECK(suspended IN(0,1)));

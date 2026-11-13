@@ -162,7 +162,9 @@ public sealed class WarehouseStorageTests
         host.Sql("UPDATE item_slots SET slot_index=20 WHERE list_type=2;");
         Assert.IsType<ItemMoveOutcome.Moved>(await Move(host, new(BusinessInventorySpace.PersonalCargo, 20), new(BusinessInventorySpace.Consumable, 1), 1));
         Assert.Equal(2, (await Bag(host, BusinessInventorySpace.PersonalCargo).GetAsync(20, default))!.Count);
-        Assert.Equal(core with { Value = 1 }, (await Bag(host, BusinessInventorySpace.Consumable).GetAsync(1, default))!.Snapshot.ToCore());
+        // The withdrawn one joins the pile still in the bag rather than opening the nominated slot.
+        Assert.Equal(core with { Value = 6 }, (await Bag(host, BusinessInventorySpace.Consumable).GetAsync(0, default))!.Snapshot.ToCore());
+        Assert.Null(await Bag(host, BusinessInventorySpace.Consumable).GetAsync(1, default));
         await InTransaction(host, async () => Assert.True(await host.Services.GetRequiredService<IInventorySortDomainService>()
             .SortAsync(host.Session.CharacterId, BusinessInventorySpace.PersonalCargo, InventorySortOrder.Default, default)));
         Assert.Equal(2, (await Bag(host, BusinessInventorySpace.PersonalCargo).GetAsync(20, default))!.Count);

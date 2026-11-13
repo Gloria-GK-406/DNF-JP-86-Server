@@ -70,7 +70,7 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseRuleService useRules)
     public ImmutableArray<DomainEffect> Build(int sourceId, ItemUseRule rule, IReadOnlyList<OpeningSlotConsumption> consumed,
         ImmutableArray<OpeningPreparedGrant> grants, IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,
         int gold = 0, int? luckBefore = null,
-        int? luckAfter = null, DoublePotUsageDecision? quota = null)
+        int? luckAfter = null, DoublePotUsageDecision? quota = null, ItemDeliveryMode delivery = ItemDeliveryMode.InventoryOnly)
     {
         var result = ImmutableArray.CreateBuilder<DomainEffect>();
         foreach (var cost in consumed) result.Add(new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count));
@@ -104,7 +104,7 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseRuleService useRules)
                     throw Reject(OpeningRejection.UnsupportedContent, "Invalid virtual reward destination.");
                 result.Add(new GrantOpeningVirtualEffect(range.FirstIndex, grant.Item.ItemId, grant.Item.Placement.ItemKind, grant.Reward));
             }
-            else result.Add(new GrantPreparedItemEffect(grant, ItemDeliveryMode.InventoryOnly));
+            else result.Add(new GrantPreparedItemEffect(grant, delivery));
         }
         if (luckBefore is { } before && luckAfter is { } after) result.Add(new SetSeriaLuckEffect(before, after));
         else if (luckBefore is not null || luckAfter is not null) throw Reject(OpeningRejection.InvalidRequest, "Incomplete luck decision.");

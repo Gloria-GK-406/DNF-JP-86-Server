@@ -68,6 +68,13 @@ public sealed class ConversationCodecTests
     }
 
     [Fact]
+    public void Blacklist_refusal_is_result_77_alone()
+    {
+        Assert.Equal("4D", Convert.ToHexString(ConversationRefusedEncoder.EncodeBody(new())));
+        Assert.Equal(ServerMessageType.GameConversationOpened, new ConversationRefusedMessage().MessageType);
+    }
+
+    [Fact]
     public void Left_frame_is_id_and_the_leavers_name()
     {
         var body = ConversationLeftEncoder.EncodeBody(new(new(0x0102), "ab"u8.ToArray()));

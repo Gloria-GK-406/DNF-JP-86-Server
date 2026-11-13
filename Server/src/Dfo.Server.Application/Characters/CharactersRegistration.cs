@@ -121,6 +121,9 @@ internal static class CharactersRegistration
         services.TryAddSingleton<
             IOtherCharacterDetailQueryDomainService,
             OtherCharacterDetailQueryDomainService>();
+        // Who a live character is, by exact name or by identifier, for anyone showing or naming
+        // another character without keeping a copy of its name.
+        services.TryAddSingleton<ICharacterIdentityQueryDomainService, CharacterIdentityQueryDomainService>();
         return services;
     }
 }

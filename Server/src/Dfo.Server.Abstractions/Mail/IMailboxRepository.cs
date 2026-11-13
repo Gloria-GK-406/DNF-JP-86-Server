@@ -13,7 +13,6 @@ public sealed record PreparedMailAttachment(MailAsset Asset, IReadOnlyList<ItemR
 
 public interface IMailboxRepository
 {
-    ValueTask<MailRecipient?> FindRecipientAsync(byte[] name, CancellationToken cancellationToken);
     // Must run before reading mutable facts in a mailbox write use case.
     ValueTask AcquireWriteAsync(CancellationToken cancellationToken);
     ValueTask<long> InsertAsync(Dfo.Server.Data.Mail.Mail mail, string senderName, DateTimeOffset now,

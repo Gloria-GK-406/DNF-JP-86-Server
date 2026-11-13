@@ -15,6 +15,7 @@ internal static class OneToOneChatRegistration
         services.AddGameCmdMessageDecoder<LeaveConversationDecoder>(ClientMessageType.GameLeaveConversation);
         services.AddGameCmdMessageDecoder<ConversationUserStateDecoder>(ClientMessageType.GameConversationUserState);
         services.AddGameNotiMessageEncoder<ConversationOpenedMessage, ConversationOpenedEncoder>();
+        services.AddGameNotiMessageEncoder<ConversationRefusedMessage, ConversationRefusedEncoder>();
         services.AddGameNotiMessageEncoder<ConversationLeftMessage, ConversationLeftEncoder>();
         services.AddGameNotiMessageEncoder<ConversationMessage, ConversationMessageEncoder>();
         services.AddNotificationHandler<ChatConversationOpened, ChatConversationOpenedHandler>();

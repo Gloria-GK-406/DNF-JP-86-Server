@@ -104,17 +104,6 @@ public sealed record CharacterStatisticReport(GameMessageMetadata Metadata, byte
     public ClientMessageType MessageType => ClientMessageType.GameCharacterStatistic;
 }
 
-/// <summary>CMD 0x0078 <c>REQUEST_BLACKLIST</c>: asked for on the way back into town.</summary>
-/// <remarks>
-/// An empty body. A working A21 session received one and answered none -- which is the answer only
-/// because this server has no blacklist to send; a server that had one would owe a list here.
-/// </remarks>
-public sealed record RequestBlacklistReport(GameMessageMetadata Metadata, byte[] Body)
-    : IUnansweredReport
-{
-    public ClientMessageType MessageType => ClientMessageType.GameRequestBlacklist;
-}
-
 /// <summary>CMD 0x02BE <c>FARM_EVENT_ACTION</c>: one byte, sent once on arriving in town.</summary>
 /// <remarks>A working A21 session received one and answered none.</remarks>
 public sealed record FarmEventActionReport(GameMessageMetadata Metadata, byte[] Body)
@@ -213,12 +202,6 @@ internal sealed class CharacterStatisticDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
         new CharacterStatisticReport(metadata, body.ToArray());
-}
-
-internal sealed class RequestBlacklistDecoder : IGameMessageDecoder
-{
-    public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        new RequestBlacklistReport(metadata, body.ToArray());
 }
 
 internal sealed class FarmEventActionDecoder : IGameMessageDecoder

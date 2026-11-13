@@ -397,7 +397,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
     /// regrouped the profile by concept -- the four fields that moved out of the flattened record
     /// were the four whose checks had nothing left to hang off, and losing a refusal shows only
     /// when a value is out of range, which no fixture had. Three of the four are the last three rows
-    /// here; the fourth, the per-character adventure-group level, left with its column in schema version 5.
+    /// here; the fourth, the per-character adventure-group level, left with its column in schema version 6.
     /// </remarks>
     [Theory]
     [InlineData("UPDATE character_condition SET stamina=256 WHERE character_id=23;", Profile)]

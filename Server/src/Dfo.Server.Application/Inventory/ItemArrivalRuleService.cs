@@ -86,6 +86,39 @@ internal sealed class ItemArrivalRuleService : IItemArrivalRuleService
         return new ItemArrival.NoRoom();
     }
 
+    public ItemTransferArrival ForTransfer(
+        IReadOnlyList<ItemPile> present,
+        int count,
+        int stackLimit,
+        BusinessSlot nominated,
+        IReadOnlySet<BusinessSlot> occupiedSlots,
+        int openSlots)
+    {
+        ArgumentNullException.ThrowIfNull(present);
+        ArgumentNullException.ThrowIfNull(occupiedSlots);
+        if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
+        var limit = stackLimit > 0 ? stackLimit : int.MaxValue;
+        var steps = new List<ItemArrival>();
+        var remaining = count;
+        if (limit > 1)
+        {
+            foreach (var pile in present.Where(p => p.Slot.Index < openSlots).OrderBy(p => p.Slot.Index))
+            {
+                if (pile.Count >= limit) continue;
+                var added = (int)Math.Min(remaining, (long)limit - pile.Count);
+                steps.Add(new ItemArrival.OntoExistingPile(pile.Slot, added, pile.Count + added));
+                remaining -= added;
+                if (remaining == 0) return new ItemTransferArrival.Placed(steps);
+            }
+        }
+        if (remaining > limit) return new ItemTransferArrival.ExceedsStackLimit();
+        var slot = !occupiedSlots.Contains(nominated) ? nominated
+            : FirstFreeSlot(new BusinessSlotRange(nominated.Space, 0, openSlots - 1), occupiedSlots);
+        if (slot is null) return new ItemTransferArrival.NoRoom();
+        steps.Add(new ItemArrival.IntoEmptySlot(slot.Value, remaining));
+        return new ItemTransferArrival.Placed(steps);
+    }
+
     /// <summary>What the archive's equipment index makes every worn item.</summary>
     private const byte EquipmentKind = 1;
 

@@ -26,6 +26,10 @@ public interface IAvatarPackageOpeningDomainService
 public interface IOpeningInventoryDomainService
 {
     ValueTask<ItemReference> SourceAsync(SelectedSessionIdentity session, BusinessSlot slot, DateTimeOffset now, CancellationToken cancellationToken);
+    /// <summary>Empty slots within the opened part of one carried space, read before any reward is drawn.</summary>
+    ValueTask<int> EmptySlotCountAsync(SelectedSessionIdentity session, BusinessInventorySpace space, CancellationToken cancellationToken);
+    /// <summary>Refuses with <see cref="OpeningRejection.NoRoom"/> when any requirement is unmet.</summary>
+    ValueTask RequireRoomAsync(SelectedSessionIdentity session, IReadOnlyList<OpeningRoomRequirement> requirements, CancellationToken cancellationToken);
     ValueTask<IReadOnlyList<AccountPremiumEntryState>> ReadPremiumsAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
     ValueTask<OpeningEffectsApplication> ApplyAsync(SelectedSessionIdentity session, IReadOnlyList<DomainEffect> effects,
         DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);

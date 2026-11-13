@@ -36,6 +36,26 @@ internal sealed class ConversationUserStateDecoder : IGameMessageDecoder
         new ConversationUserStateReport(metadata);
 }
 
+internal sealed class ConversationRefusedEncoder : GameNotiMessageEncoder<ConversationRefusedMessage>
+{
+    /// <summary>
+    /// Result 77, <c>BLACK_USER</c>: the A21 handler (VA <c>024EAFA0</c>) reads nothing after it and shows
+    /// text 4763. Value from the auction DWARF <c>ENUM_ERROR</c>, branch from the handler; see
+    /// <c>protocol/game/server-to-client/NOTI-0x016A.md</c> and
+    /// <c>.rks-agent/tasks/chat-routing-first-batch/research/conversation-re-20261112.md</c>.
+    /// </summary>
+    internal const byte Blacklisted = 77;
+
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(ConversationRefusedMessage message) =>
+        OnePayload(message, EncodeBody(message));
+
+    internal static byte[] EncodeBody(ConversationRefusedMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return [Blacklisted];
+    }
+}
+
 internal sealed class ConversationOpenedEncoder : GameNotiMessageEncoder<ConversationOpenedMessage>
 {
     /// <summary>Result 0: success. The client treats every value but 77, 100 and 101 as one.</summary>

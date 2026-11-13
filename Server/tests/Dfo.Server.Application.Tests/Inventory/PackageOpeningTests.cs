@@ -375,7 +375,7 @@ public sealed class PackageOpeningTests
     }
 
     [Fact]
-    public async Task Full_reward_band_does_not_consume_material_or_source()
+    public async Task Drawn_reward_that_cannot_be_placed_is_mailed_after_the_box_is_spent()
     {
         using var opening = new OpeningFixture();
         opening.Content.Items[3] = opening.Content.Items[3] with {
@@ -383,9 +383,47 @@ public sealed class PackageOpeningTests
         // Quick slots also belong to the main consumable band.
         foreach (var slot in new[] { 3, 4, 5, 6, 7, 8, 65 }) await opening.Host.Seed(slot, 3, 1);
         await opening.Host.Seed(80, 1000, 1); await opening.Host.Seed(120, 2000, 1);
-        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Box(1));
-        Assert.Equal(OpeningRejection.NoRoom, error.Reason); Assert.Equal(1, opening.Host.Count(1000)); Assert.Equal(1, opening.Host.Count(2000));
+        var result = await opening.Box(1);
+        Assert.NotNull(result.Receipt);
+        Assert.Equal(0, opening.Host.Count(1000)); Assert.Equal(0, opening.Host.Count(2000));
+        Assert.Equal(7, opening.Host.Count(3)); Assert.Equal(1, opening.Host.Count(6000));
+        Assert.Equal(2, opening.Host.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE item_template_id=3 AND claimed_flag=0"));
+        Assert.Equal(0, opening.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages WHERE expire_at <> '9999-12-31 23:59:59'"));
+    }
+
+    // #315: room is reserved before drawing, for every copy a lucky opening could award.
+    [Theory]
+    [InlineData(8, false)]
+    [InlineData(0, true)]
+    public async Task Lucky_box_reserves_room_for_its_extra_copies_before_drawing(int luck, bool accepted)
+    {
+        using var opening = new OpeningFixture();
+        opening.Content.Definitions[1000] = opening.Content.Definitions[1000] with { UsesSeriaLuck = true };
+        await opening.Host.Seed(80, 1000, 1); await opening.Host.Seed(120, 2000, 1);
+        // Five of the 32 opened equipment slots stay empty: enough for N = 2, not for a lucky 2 x 3.
+        foreach (var slot in Enumerable.Range(9, 27)) await opening.Host.Seed(slot, 6001, 1);
+        opening.Host.Sql($"UPDATE accounts SET seria_luck_value={luck} WHERE account_id=1");
+        if (accepted) Assert.NotNull((await opening.Box(1)).Receipt);
+        else
+        {
+            var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Box(1));
+            Assert.Equal(OpeningRejection.NoRoom, error.Reason);
+        }
+        Assert.Equal(accepted ? 0 : 1, opening.Host.Count(1000)); Assert.Equal(accepted ? 0 : 1, opening.Host.Count(2000));
+        Assert.Equal(accepted ? 1 : luck, opening.Host.Scalar("SELECT seria_luck_value FROM accounts WHERE account_id=1"));
         Assert.Equal(0, opening.Host.Scalar("SELECT COUNT(*) FROM mailbox_messages"));
+    }
+
+    [Fact]
+    public async Task Fixed_package_mails_what_its_full_band_cannot_hold()
+    {
+        using var opening = new OpeningFixture();
+        await opening.Host.Seed(80, 1001, 2);
+        foreach (var slot in Enumerable.Range(3, 6).Concat(Enumerable.Range(65, 36)).Where(slot => slot != 80))
+            await opening.Host.Seed(slot, 6001, 1);
+        Assert.NotNull((await opening.Package()).Receipt);
+        Assert.Equal(1, opening.Host.Count(1001)); Assert.Equal(0, opening.Host.Count(3));
+        Assert.Equal(2, opening.Host.Scalar("SELECT SUM(item_count) FROM mailbox_attachments WHERE item_template_id=3 AND claimed_flag=0"));
     }
 
     [Fact]
@@ -453,6 +491,8 @@ internal sealed class DeterministicOpeningRules(IPackageOpeningRuleService inner
     public ValueTask<ImmutableArray<OpeningPreparedGrant>> PrepareAsync(IReadOnlyList<OpeningReward> rewards, DateTimeOffset now, CancellationToken ct) => inner.PrepareAsync(rewards, now, ct);
     public int AdvanceLuck(int value) => inner.AdvanceLuck(value);
     public bool LuckBonus(int value) => inner.LuckBonus(value);
+    public ImmutableArray<OpeningRoomRequirement> RoomBeforeDrawing(OpeningPackageDefinition definition, int luck, int count) =>
+        inner.RoomBeforeDrawing(definition, luck, count);
 }
 
 internal sealed class OpeningFixture : IDisposable

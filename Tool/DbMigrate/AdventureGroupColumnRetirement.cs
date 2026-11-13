@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace DbMigrate;
 
 /// <summary>
-/// Drops <c>characters.manage_level</c> (schema 4 to 5).
+/// Drops <c>characters.manage_level</c> (schema 5 to 6).
 /// </summary>
 /// <remarks>
 /// The adventure group (冒险团) belongs to the account and is worked out from its characters' levels

@@ -22,5 +22,6 @@ public interface IOpeningEffectPlanRuleService
     ImmutableArray<DomainEffect> Build(int sourceId, ItemUseRule rule, IReadOnlyList<OpeningSlotConsumption> consumed,
         ImmutableArray<OpeningPreparedGrant> grants, IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,
         int gold = 0,
-        int? luckBefore = null, int? luckAfter = null, DoublePotUsageDecision? quota = null);
+        int? luckBefore = null, int? luckAfter = null, DoublePotUsageDecision? quota = null,
+        ItemDeliveryMode delivery = ItemDeliveryMode.InventoryOnly);
 }

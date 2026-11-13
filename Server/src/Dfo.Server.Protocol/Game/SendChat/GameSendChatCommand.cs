@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Relations;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
@@ -34,6 +35,12 @@ public sealed record GameSendChatCommand(NetworkDispatchContext Dispatch, SendCh
 /// its own window as it sends it, so it goes only to the other member, and it is never refused --
 /// a refusal would raise an error box over a line the window already shows.
 /// </para>
+/// <para>
+/// A recipient who has blacklisted the speaker is left out of every scope, after the megaphone is
+/// used: what the speaker paid for and sees does not depend on who has blacklisted them. A whisper
+/// whose target has is therefore as silent as one to an offline name. The speaker's own blacklist
+/// holds nothing back -- a blacklist only filters what its owner receives.
+/// </para>
 /// </remarks>
 internal sealed class GameSendChatCommandHandler(
     ISelectedSessionDomainService sessions,
@@ -43,6 +50,7 @@ internal sealed class GameSendChatCommandHandler(
     IMailboxQueryDomainService directory,
     IChannelEntryDomainService channels,
     IMaterialConsumptionDomainService materials,
+    ICharacterRelationQueryDomainService relations,
     ICommandWorkUnits units,
     ICommandProjections projections,
     IGameCommandOutbox outbox,
@@ -71,7 +79,7 @@ internal sealed class GameSendChatCommandHandler(
         }
 
         var recipient = new SelectedSessionRecipient(speaker, connection, request.Metadata);
-        var facts = route.NameLimit is null && route.Kind != ChatKind.Whisper ? new ChatFacts(null, null)
+        var facts = route.NameLimit is null && route.Kind != ChatKind.Whisper ? new ChatFacts(null, null, null)
             : await units.ReadOnlyAsync(execution, new("ChatParticipants", [recipient]),
                 token => ReadFactsAsync(speaker, route, request, token), ct).ConfigureAwait(false);
         if (route.NameLimit is { } nameLimit && (facts.SpeakerName is not { Length: > 0 } name || name.Length > nameLimit))
@@ -102,6 +110,15 @@ internal sealed class GameSendChatCommandHandler(
         if (route.Kind is ChatKind.Whisper or ChatKind.Conversation)
             members = [.. members.Where(member => member != speaker.CharacterId)];
         if (members.Count != 0)
+        {
+            // Routes that already read facts read the blockers with them; the rest read them only when
+            // someone is there to filter, so neither pays for a second transaction.
+            var blockers = facts.Blockers ?? await units.ReadOnlyAsync(execution, new("ChatBlockers", [recipient]),
+                token => BlockersAsync(speaker, token), ct).ConfigureAwait(false);
+            if (blockers.Count != 0)
+                members = [.. members.Where(member => !blockers.Contains(member))];
+        }
+        if (members.Count != 0)
             await projections.ProjectAsync(new NotificationAudience.TheseCharacters(members),
                 new ChatMessagePosted(Line(speaker, route.Kind, request, facts.SpeakerName, channelId, conversation), speaker.CharacterId, followUp), ct)
                 .ConfigureAwait(false);
@@ -120,8 +137,11 @@ internal sealed class GameSendChatCommandHandler(
         CharacterId? target = null;
         if (route.Kind == ChatKind.Whisper && request.TargetName is { Length: > 0 } targetName)
             target = (await directory.FindRecipientAsync(targetName, ct).ConfigureAwait(false))?.CharacterId;
-        return new ChatFacts(name, target);
+        return new ChatFacts(name, target, await BlockersAsync(speaker, ct).ConfigureAwait(false));
     }
+
+    private async ValueTask<IReadOnlySet<CharacterId>> BlockersAsync(SelectedSessionIdentity speaker, CancellationToken ct) =>
+        (await relations.ObserversOfAsync(speaker.CharacterId, CharacterRelationKind.Blacklist, ct).ConfigureAwait(false)).ToHashSet();
 
     // A whisper to no one by that name, or to someone offline, is silent: the speaker is told nothing.
     private static ChatScope? Scope(SelectedSessionIdentity speaker, ChatKind kind, CharacterId? target,
@@ -184,7 +204,8 @@ internal sealed class GameSendChatCommandHandler(
         return false;
     }
 
-    private sealed record ChatFacts(byte[]? SpeakerName, CharacterId? Target);
+    /// <param name="Blockers">Who has blacklisted the speaker; null when no facts were read.</param>
+    private sealed record ChatFacts(byte[]? SpeakerName, CharacterId? Target, IReadOnlySet<CharacterId>? Blockers);
 }
 
 public sealed record GameItemLinkChatCommand(NetworkDispatchContext Dispatch, ItemLinkChatRequest Input) : IProtocolCommand<bool>

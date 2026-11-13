@@ -217,7 +217,8 @@ internal sealed class CharacterSide
             new SqliteCharacterExpertRecipeTable(this.database),
             new SqliteCharacterPvpMissionTable(this.database),
             new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database, transactions: TestRequired.TransactionScope(), items: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemDomainStore>()), TimeProvider.System,
-                new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database)),
+                new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database),
+                new Dfo.Server.Application.Characters.CharacterIdentityQueryDomainService(new Dfo.Server.Persistence.Characters.SqliteCharacterIdentityRepository(this.database))),
             goldLimits, new PremiumServiceUsageDomainService(
                 new PremiumServiceDomainService(new SqliteAccountPremiumTable(this.database), this.Scope, TimeProvider.System, null!, new DisabledDefaultPremiumSettings()),
                 new Dfo.Server.Application.UsageQuotas.UsageQuotaDomainService(

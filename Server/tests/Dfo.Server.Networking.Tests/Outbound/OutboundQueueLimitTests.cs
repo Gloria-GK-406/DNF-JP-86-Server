@@ -68,7 +68,10 @@ public sealed class OutboundQueueLimitTests
         ("007C", 8, 8, 1, 1),
         ("CMD01BA", 7, 7, 1, 1),
         ("0035", 13, 13, 1, 1),
-        ("0111", 8, 8, 1, 1),
+        // The real friend list (friend-relations-first-batch): 64 entries of a 255-byte name, 8 + 64 x 273.
+        ("0111", 8, 17_480, 1, 1),
+        // The blacklist straight after it: 64 entries of a 30-byte name, 2 + 64 x 37.
+        ("CMD0078", 2, 2_370, 1, 1),
         ("0016", 9, 9, 1, 1),
         ("000E", 609, 36363, 1, 1),
         ("0165", 3, 3, 1, 1),
@@ -90,10 +93,10 @@ public sealed class OutboundQueueLimitTests
     [Fact]
     public void The_selection_bound_is_the_sum_of_its_inputs()
     {
-        Assert.Equal(69, Selection.Length);
-        Assert.Equal(450_680, Selection.Sum(row => row.MaximumBody));
-        Assert.Equal(237, Selection.Sum(row => row.MaximumFrames));
-        Assert.Equal(450_680 + 237 * GameFrameHeader, OutboundLimits.SelectionOutboundBound);
+        Assert.Equal(70, Selection.Length);
+        Assert.Equal(470_522, Selection.Sum(row => row.MaximumBody));
+        Assert.Equal(238, Selection.Sum(row => row.MaximumFrames));
+        Assert.Equal(470_522 + 238 * GameFrameHeader, OutboundLimits.SelectionOutboundBound);
         Assert.All(Selection, row =>
         {
             Assert.True(row.MaximumBody >= row.MeasuredBody, row.Type);
@@ -104,9 +107,10 @@ public sealed class OutboundQueueLimitTests
     [Fact]
     public void The_same_rows_reproduce_the_measured_selection()
     {
-        // TASK-03: 39,285 B in 195 frames on a new character, the fence reply excluded.
-        Assert.Equal(195, Selection.Sum(row => row.MeasuredFrames));
-        Assert.Equal(39_285, Selection.Sum(row => row.MeasuredBody) + 195 * GameFrameHeader);
+        // TASK-03: 39,285 B in 195 frames on a new character, the fence reply excluded; the entry
+        // blacklist (friend-relations-first-batch) adds one 2-byte frame.
+        Assert.Equal(196, Selection.Sum(row => row.MeasuredFrames));
+        Assert.Equal(39_302, Selection.Sum(row => row.MeasuredBody) + 196 * GameFrameHeader);
     }
 
     [Fact]

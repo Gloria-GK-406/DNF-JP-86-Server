@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
@@ -48,7 +49,10 @@ internal sealed class SelectedSessionCleanupService(
     Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService housing,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower,
     IEnumerable<Dfo.Server.Abstractions.World.BossTower.IBossTowerDepartureSink> bossTowerDepartures,
-    Dfo.Server.Abstractions.Chat.IChatConversationDomainService conversations) : ISelectedSessionCleanupDomainService
+    Dfo.Server.Abstractions.Chat.IChatConversationDomainService conversations,
+    Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService relations,
+    ICharacterIdentityQueryDomainService identities,
+    ILogger<SelectedSessionCleanupService> logger) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {
@@ -70,6 +74,7 @@ internal sealed class SelectedSessionCleanupService(
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> conversationDepartures = [];
+        SelectedSessionFriendDeparture? friendDeparture = null;
         var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && currentMember.Session == session)
         {
@@ -209,6 +214,23 @@ internal sealed class SelectedSessionCleanupService(
                 && remaining == departure.Remaining.Session)];
             return true;
         });
+        // Who keeps this character as a friend, and its name, are read while the session is still held:
+        // the plan is delivered after the session is gone. Only a session that entered the world was
+        // announced online, so only its end is announced. A failed read costs that notice and nothing
+        // else: it is not a cleanup failure, which would make return to selection close the connection
+        // and a replacing selection roll back the steps above. It is logged here instead.
+        if (sessions.StandingOf(session) is { Phase: SelectedSessionPhase.InWorld })
+        {
+            try
+            {
+                friendDeparture = await ReadFriendDepartureAsync(session).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Friend departure notice dropped for character {Character}: reading its friends failed",
+                    session.CharacterId.Value);
+            }
+        }
         // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
         // and only if this session still owns them: a successor that has already begun keeps its own.
         Run(() => runtime.EndExact(session));
@@ -231,6 +253,7 @@ internal sealed class SelectedSessionCleanupService(
             partyRecipients)
         {
             ConversationDepartures = conversationDepartures,
+            FriendDeparture = friendDeparture,
         };
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);
@@ -248,6 +271,25 @@ internal sealed class SelectedSessionCleanupService(
             try { await action().ConfigureAwait(false); }
             catch (Exception error) { failures.Add(error); }
         }
+    }
+
+    /// <summary>The leaver's friends in the world, with its name, or nothing when there is nobody to tell.</summary>
+    /// <remarks>
+    /// The character's own successor session, when one is already in the world, has announced it
+    /// online; telling its friends it left would contradict that, so this session says nothing.
+    /// </remarks>
+    private async ValueTask<SelectedSessionFriendDeparture?> ReadFriendDepartureAsync(SelectedSessionIdentity session)
+    {
+        var character = session.CharacterId;
+        if (sessions.TryGetInWorld(character, out var current) && current != session) return null;
+        var keepers = await relations.ObserversOfAsync(character,
+            Dfo.Server.Abstractions.Relations.CharacterRelationKind.Friend, CancellationToken.None).ConfigureAwait(false);
+        CharacterId[] observers = [.. keepers.Where(observer => observer != character && sessions.TryGetInWorld(observer, out _)).Distinct()];
+        if (observers.Length == 0) return null;
+        return (await identities.ReadAsync([character], CancellationToken.None).ConfigureAwait(false))
+            .TryGetValue(character, out var identity)
+            ? new SelectedSessionFriendDeparture(character, identity.Name, observers)
+            : null;
     }
 
     /// <summary>Settles one durable cleanup step inside the caller's unit, or alone when there is none.</summary>

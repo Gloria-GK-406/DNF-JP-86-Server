@@ -549,10 +549,28 @@ internal sealed record CeraBalanceStateMessage(
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeCera(Wallet);
 }
 
-internal sealed record CrossServerFriendBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
+/// <summary>NOTI <c>0x0111</c> subcmd 0 in the entry batch: the character's real friend list (RQ-038).</summary>
+/// <remarks>
+/// Where the reference sequence has its 0x0111, between CERA and USER_POSITION. A character without
+/// friends sends the same eight bytes the empty baseline did. The bytes are the shared encoder's, so
+/// the entry frame and every later full list cannot drift apart.
+/// </remarks>
+internal sealed record FriendListStateMessage(FriendListMessage List) : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x0111;
-    internal override byte[] EncodeBody() => new byte[8];
+    internal override byte[] EncodeBody() => FriendListEncoder.EncodeBody(List);
+}
+
+/// <summary>CMD <c>0x0078</c> straight after the entry friend list: the character's blacklist.</summary>
+/// <remarks>
+/// The full list just cleared the client's blacklist (RQ-004), and the client asks for it only on its
+/// way back from a dungeon. A21 handles this reply unsolicited, as it does the CMD 0x01BA a few frames
+/// earlier. The bytes are the 0x0078 reply's own encoder's.
+/// </remarks>
+internal sealed record BlacklistListStateMessage(BlacklistListResponse List) : GameStateSynchronizationMessage, IGameCmdMessage
+{
+    internal override ushort Type => 0x0078;
+    internal override byte[] EncodeBody() => BlacklistListResponseEncoder.EncodeBody(List);
 }
 
 internal sealed record CharacterPositionStateMessage(
@@ -636,7 +654,8 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<EntryMarkerMessage>(services);
         AddNoti<TownReadyStateMessage>(services);
         AddNoti<CeraBalanceStateMessage>(services);
-        AddNoti<CrossServerFriendBaselineMessage>(services);
+        AddNoti<FriendListStateMessage>(services);
+        AddCmd<BlacklistListStateMessage>(services);
         AddNoti<CharacterPositionStateMessage>(services);
         AddNoti<PetWelcomeStateMessage>(services);
     }
