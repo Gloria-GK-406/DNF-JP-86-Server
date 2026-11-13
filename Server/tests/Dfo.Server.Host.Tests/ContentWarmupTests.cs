@@ -106,6 +106,7 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfItemUseRuleDefinitionSource")] = Warmed<IItemUseRuleDefinitionSource>(),
         [Infra("PvfLuckyStarRentalContentSource")] = Warmed<Abstractions.Rental.ILuckyStarRentalContentSource>(),
         [Infra("PvfMailItemDefinitionSource")] = Warmed<IMailItemDefinitionSource>(),
+        [Infra("PvfAuctionItemDefinitionSource")] = Warmed<Abstractions.Auction.IAuctionItemDefinitionSource>(),
         [Infra("PvfMirrorDungeonDefinitionSource")] = Warmed<Abstractions.World.IMirrorDungeonDefinitionSource>(),
         [Infra("PvfNpcShopDefinitionSource")] = Warmed<INpcShopDefinitionSource>(),
         [Infra("PvfQuestParameterSource")] = Warmed<IQuestParameterSource>(),

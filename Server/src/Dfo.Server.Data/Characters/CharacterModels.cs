@@ -77,6 +77,10 @@ public enum CharacterDeletionStatus
     /// session's own word that the character is the account's and still exists.
     /// </remarks>
     CharacterSelected,
+
+    /// <summary>The character still sells, or is the top bidder on, an active auction listing.</summary>
+    /// <remarks>Refused so that everything the auction house holds keeps a live character to go back to (#324 D6).</remarks>
+    AuctionObligations,
 }
 
 /// <summary>A character's combat stats, in the fixed-point form the wire and the database use.</summary>

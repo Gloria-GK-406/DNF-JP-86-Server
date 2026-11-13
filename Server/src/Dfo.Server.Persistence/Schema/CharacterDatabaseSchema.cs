@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 6;
+    public const int Version = 7;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -328,6 +328,15 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));
         CREATE TABLE IF NOT EXISTS character_relations(owner_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,target_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,kind INTEGER NOT NULL CHECK(kind BETWEEN 1 AND 255),created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,kind,target_id),CHECK(owner_id<>target_id));
         CREATE INDEX IF NOT EXISTS ix_character_relations_target ON character_relations(target_id,kind);
+        CREATE TABLE IF NOT EXISTS auction_listings(listing_id INTEGER PRIMARY KEY AUTOINCREMENT,market INTEGER NOT NULL CHECK(market IN(0,1)),state INTEGER NOT NULL CHECK(state BETWEEN 0 AND 3),seller_character_id INTEGER NOT NULL,seller_account_id INTEGER NOT NULL,seller_name BLOB NOT NULL,item_id INTEGER NOT NULL CHECK(item_id>0),quantity_initial INTEGER NOT NULL CHECK(quantity_initial>0),quantity_remaining INTEGER NOT NULL CHECK(quantity_remaining>=0 AND quantity_remaining<=quantity_initial),gold_amount INTEGER NOT NULL DEFAULT 0 CHECK(gold_amount>=0),start_price INTEGER CHECK(start_price>0),buyout_price INTEGER CHECK(buyout_price>0),unit_price INTEGER CHECK(unit_price>0),current_bid INTEGER CHECK(current_bid>0),top_bidder_character_id INTEGER,top_bidder_account_id INTEGER,deposit INTEGER NOT NULL DEFAULT 0 CHECK(deposit>=0),fee_rate_bp INTEGER NOT NULL CHECK(fee_rate_bp BETWEEN 0 AND 10000),created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,closed_at INTEGER,display_core BLOB,CHECK(start_price IS NOT NULL OR buyout_price IS NOT NULL),CHECK((current_bid IS NULL)=(top_bidder_character_id IS NULL)));
+        CREATE INDEX IF NOT EXISTS ix_auction_listings_due ON auction_listings(state,expires_at);
+        CREATE INDEX IF NOT EXISTS ix_auction_listings_seller ON auction_listings(seller_character_id,state);
+        CREATE INDEX IF NOT EXISTS ix_auction_listings_bidder ON auction_listings(top_bidder_character_id,state);
+        CREATE INDEX IF NOT EXISTS ix_auction_listings_item ON auction_listings(market,state,item_id);
+        CREATE TABLE IF NOT EXISTS auction_custody(listing_id INTEGER PRIMARY KEY REFERENCES auction_listings(listing_id),kind TEXT NOT NULL CHECK(kind IN('equipment','stackable')),item_uid INTEGER NOT NULL DEFAULT 0,item_id INTEGER NOT NULL,item_count INTEGER NOT NULL CHECK(item_count>0),item_core BLOB,CHECK(kind='stackable' OR (item_uid>0 AND item_count=1)),CHECK(kind='equipment' OR (item_uid=0 AND item_core IS NOT NULL)));
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_auction_custody_equipment ON auction_custody(item_uid) WHERE kind='equipment';
+        CREATE TABLE IF NOT EXISTS auction_trades(trade_id INTEGER PRIMARY KEY AUTOINCREMENT,listing_id INTEGER NOT NULL,market INTEGER NOT NULL,item_id INTEGER NOT NULL,quantity INTEGER NOT NULL CHECK(quantity>0),price INTEGER NOT NULL CHECK(price>0),fee INTEGER NOT NULL CHECK(fee>=0),seller_character_id INTEGER NOT NULL,buyer_character_id INTEGER NOT NULL,settled_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS ix_auction_trades_item ON auction_trades(market,item_id,settled_at);
         CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_activation_state(event_id INTEGER PRIMARY KEY,active INTEGER NOT NULL CHECK(active IN(0,1)),configuration_revision INTEGER NOT NULL,applied_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS fatigue_consumption_settings(id INTEGER PRIMARY KEY CHECK(id=1),suspended INTEGER NOT NULL CHECK(suspended IN(0,1)));

@@ -236,6 +236,7 @@ public sealed class CharacterRosterCommandFlowTests
             services.AddSingleton<ICharacterDomainService>(p => Characters = new(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             services.AddSingleton<ICharacterRosterDomainService>(p => (Characters)p.GetRequiredService<ICharacterDomainService>());
             services.AddSingleton<Dfo.Server.Abstractions.Relations.ICharacterRelationDomainService>(p => new Relations(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
+            services.AddSingleton<Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService>(new NoAuctions());
             services.AddSingleton<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>(new NoProjections());
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<INetworkConnectionContexts>(new Connections(Connection));
@@ -332,6 +333,17 @@ public sealed class CharacterRosterCommandFlowTests
             Dfo.Server.Abstractions.Relations.CharacterRelationKind kind, CancellationToken cancellationToken) => throw new NotSupportedException();
         public ValueTask<Dfo.Server.Abstractions.Relations.CharacterRelationRemoveOutcome> RemoveAsync(CharacterId owner, CharacterId target,
             Dfo.Server.Abstractions.Relations.CharacterRelationKind kind, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+    /// <summary>The deleted character holds nothing at the auction house.</summary>
+    private sealed class NoAuctions : Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService
+    {
+        public ValueTask<bool> HasOpenObligationsAsync(CharacterId character, CancellationToken cancellationToken) => ValueTask.FromResult(false);
+        public ValueTask<Dfo.Server.Abstractions.Auction.AuctionListing?> FindAsync(Dfo.Server.Abstractions.Auction.AuctionListingId listing, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Abstractions.Auction.AuctionPage> SearchAsync(Dfo.Server.Abstractions.Auction.AuctionSearchCriteria criteria, int offset, int limit, DateTimeOffset now, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Auction.AuctionListing>> BySellerAsync(CharacterId seller, Dfo.Server.Abstractions.Auction.AuctionMarket market, int limit, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<Dfo.Server.Abstractions.Auction.AuctionListing>> ByTopBidderAsync(CharacterId bidder, Dfo.Server.Abstractions.Auction.AuctionMarket market, int limit, DateTimeOffset now, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<Dfo.Server.Abstractions.Auction.AuctionPriceReference> PriceReferenceAsync(Dfo.Server.Abstractions.Auction.AuctionMarket market, int itemId, DateTimeOffset now, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public bool IsOpen(Dfo.Server.Abstractions.Auction.AuctionMarket market) => false;
     }
     private sealed class NoProjections : Dfo.Server.Abstractions.DomainEvents.ICommandProjections
     {

@@ -148,6 +148,17 @@ public enum ClientMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
 
+    // The auction house, both markets; body[0] is the market (PAY_TYPE) except for 0x014E. See Game/Auction.
+    GameAuctionAveragePrice = 0x0001_00B6,
+    GameAuctionRegister = 0x0001_00B7,
+    GameAuctionCancel = 0x0001_00B8,
+    GameAuctionBid = 0x0001_00B9,
+    GameAuctionSearchByItem = 0x0001_00BA,
+    GameAuctionSearchByCriteria = 0x0001_00BB,
+    GameAuctionMyListings = 0x0001_00BC,
+    GameAuctionMyBids = 0x0001_00BD,
+    GameAuctionBuyPieces = 0x0001_014E,
+
     // Which channel a named character is on, asked when the client opens a name's menu. See Game/UnitedFriend.
     GameRequestUserChannel = 0x0001_0323,
 
@@ -406,6 +417,15 @@ public enum ServerMessageType
     GameAddFriend = 0x0001_0122,
     GameDeleteFriend = 0x0001_0123,
     GameRequestUserChannel = 0x0001_0323,
+    // Auction house replies; both searches answer under 0x00BA. See Game/Auction.
+    GameAuctionAveragePrice = 0x0001_00B6,
+    GameAuctionRegister = 0x0001_00B7,
+    GameAuctionCancel = 0x0001_00B8,
+    GameAuctionBid = 0x0001_00B9,
+    GameAuctionSearch = 0x0001_00BA,
+    GameAuctionMyListings = 0x0001_00BC,
+    GameAuctionMyBids = 0x0001_00BD,
+    GameAuctionBuyPieces = 0x0001_014E,
     // The friend list in full or a removal from it (one type, told apart by its subcmd), and a
     // friend coming online or leaving. See Game/FriendFrames.cs.
     GameFriendInfo = 0x0000_0111,

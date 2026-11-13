@@ -1,5 +1,25 @@
 # 协议清单
 
+## 2026-11-13 拍卖行（#324，CurrentImplementation，待实机）
+
+物品拍卖（市场字节 0）的九条 CMD 由 `Game/Auction/` 切片的 `GameAuctionCommandHandler` 统一处理，业务在拍卖行领域服务
+`AuctionHouseDomainService`，族内约定（市场字节、`[1][pt]`／`[0][码][pt]` 应答、两种搜索都以 0x00BA 应答、168/151/159 字节记录与
+117 字节物品显示）见 [拍卖族](patterns/flow-auction.md)。规则取 70（70Reference）：上限 10、24 小时、押金 10000（成交和流拍退、撤单不退）、
+手续费 5%、加价不低于 5%、最高出价者只能买断、有出价也能撤单；自买按账号判断。所有交付经系统邮件，到期由每分钟的定时任务结算。
+寄售（市场字节 1）在规则里默认关闭，请求回 0x8C。布局只有上游转录，无 WireCaptured、无 ClientVerified。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x00B6` | `AuctionAveragePriceDecoder` / `GameAuctionCommandHandler` | 编码测试；待实机 | [0x00B6](game/client-to-server/0x00B6.md) |
+| `0x01` | `0x00B7` | `AuctionRegisterDecoder` / `GameAuctionCommandHandler` | 编码与托管测试；待实机 | [0x00B7](game/client-to-server/0x00B7.md) |
+| `0x01` | `0x00B8` | `AuctionCancelDecoder` / `GameAuctionCommandHandler` | 待实机 | [0x00B8](game/client-to-server/0x00B8.md) |
+| `0x01` | `0x00B9` | `AuctionBidDecoder` / `GameAuctionCommandHandler` | 编码测试；待实机 | [0x00B9](game/client-to-server/0x00B9.md) |
+| `0x01` | `0x00BA` | `AuctionSearchByItemDecoder`；应答 `AuctionSearchResponse` | 编码测试；待实机 | [0x00BA](game/client-to-server/0x00BA.md) |
+| `0x01` | `0x00BB` | `AuctionSearchByCriteriaDecoder`；应答 type 0x00BA | 待实机 | [0x00BB](game/client-to-server/0x00BB.md) |
+| `0x01` | `0x00BC` | `AuctionMyListingsDecoder`；应答 `AuctionMyListingsResponse` | 编码测试；待实机 | [0x00BC](game/client-to-server/0x00BC.md) |
+| `0x01` | `0x00BD` | `AuctionMyBidsDecoder`；应答 `AuctionMyBidsResponse` | 编码测试；待实机 | [0x00BD](game/client-to-server/0x00BD.md) |
+| `0x01` | `0x014E` | `AuctionBuyPiecesDecoder`；应答 `AuctionBuyPiecesResponse` | 编码测试；待实机 | [0x014E](game/client-to-server/0x014E.md) |
+
 ## 2026-11-13 冒险团按账号派生、通关加成与升级推送（CurrentImplementation，待实机）
 
 冒险团等级与点数由冒险团领域服务按账号未删除角色的等级现算，不落库，规则取自 PVF `charactermanage.etc` 与 70（70Reference）。
