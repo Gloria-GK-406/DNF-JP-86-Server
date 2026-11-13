@@ -52,6 +52,7 @@ internal sealed class GmAccessBoundary(RequestDelegate next)
         await next(context);
     }
 
+    // With GmWeb:TrustedProxies these are the forwarded scheme and client address (GmWebModule).
     internal static bool SecureTransport(HttpContext context) => context.Request.IsHttps
         || (context.Connection.RemoteIpAddress is { } address && IPAddress.IsLoopback(address));
     internal static Task Reject(HttpContext context, int status, string message)

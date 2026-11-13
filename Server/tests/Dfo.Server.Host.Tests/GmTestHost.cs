@@ -36,7 +36,7 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
     internal static async Task<GmTestHost> StartAsync(string? administrator = "operator", string password = Password, string permissions = "All", string? directory = null,
         CookieContainer? cookies = null, TimeProvider? clock = null, bool remoteConnection = false, bool https = false, GmAuditFault? fault = null,
         IReadOnlyDictionary<string, string?>? configuration = null, Action<IServiceCollection>? configureServices = null, int? listenerPort = null,
-        bool realContent = false, Func<IHttpApiFeature, IHttpApiFeature>? wrapFeature = null)
+        bool realContent = false, Func<IHttpApiFeature, IHttpApiFeature>? wrapFeature = null, bool peerOverride = false)
     {
         directory ??= NewDirectory();
         // Keep the ephemeral port listening until Kestrel takes the same socket.
@@ -88,7 +88,8 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
                 certificate = X509CertificateLoader.LoadPkcs12(generated.Export(X509ContentType.Pfx), null, X509KeyStorageFlags.Exportable);
                 builder.ConfigureWebHost(web => web.ConfigureKestrel(server => server.ConfigureHttpsDefaults(tls => tls.ServerCertificate = certificate)));
             }
-            builder.ConfigureHttpApi(config, wrapFeature is null ? remoteConnection ? new RemoteFeature(feature) : feature : wrapFeature(feature));
+            IHttpApiFeature hosted = wrapFeature is null ? remoteConnection ? new RemoteFeature(feature) : feature : wrapFeature(feature);
+            builder.ConfigureHttpApi(config, peerOverride ? new PeerFeature(hosted) : hosted);
             host = builder.Build(); await host.StartAsync();
             if (!listenerUsed) listener?.Dispose();
             var address = host.Services.GetRequiredService<IServer>().Features
@@ -126,6 +127,31 @@ internal sealed class GmTestHost(IHost host, HttpClient client, string directory
         await using var command = connection.CreateCommand(); command.CommandText = sql; await command.ExecuteNonQueryAsync();
     }
     public async ValueTask DisposeAsync() { Client.Dispose(); await host.StopAsync(); host.Dispose(); certificate?.Dispose(); using var connection = new SqliteConnection($"Data Source={Path.Combine(directory, "test.db")}"); SqliteConnection.ClearPool(connection); }
+    /// <summary>Test-only header naming the direct peer of a request; never part of the production pipeline.</summary>
+    internal const string PeerHeader = "X-Test-Peer";
+    /// <summary>
+    /// Sets the connection's remote address from <see cref="PeerHeader"/> before GmWeb's own middleware
+    /// (and so before forwarded-header processing), as if the request had connected from that address.
+    /// </summary>
+    private sealed class PeerFeature(IHttpApiFeature inner) : IHttpApiFeature
+    {
+        public bool Enabled => inner.Enabled; public Uri? ListenUrl => inner.ListenUrl;
+        public void ConfigureServices(IServiceCollection services) => inner.ConfigureServices(services);
+        public void ConfigureMiddleware(IApplicationBuilder app)
+        {
+            app.Use(next => context =>
+            {
+                if (context.Request.Headers.TryGetValue(PeerHeader, out var peer))
+                {
+                    context.Connection.RemoteIpAddress = IPAddress.Parse(peer.ToString());
+                    context.Request.Headers.Remove(PeerHeader);
+                }
+                return next(context);
+            });
+            inner.ConfigureMiddleware(app);
+        }
+        public void MapEndpoints(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder endpoints) => inner.MapEndpoints(endpoints);
+    }
     private sealed class RemoteFeature(GmWebModule inner) : IHttpApiFeature
     {
         public bool Enabled => inner.Enabled; public Uri? ListenUrl => inner.ListenUrl;

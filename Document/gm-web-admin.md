@@ -46,7 +46,14 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 ## 访问与审计
 
-默认本机 HTTP；远程管理使用直接 HTTPS 与有效服务证书（Kestrel 的标准证书配置）。服务器采用实际连接判断，不信任请求携带的 `X-Forwarded-*`/`Forwarded`。本阶段没有反向代理信任配置；远程明文管理请求被拒绝。不要用代理头替代 HTTPS。
+默认本机 HTTP；远程管理使用 HTTPS：直接用 Kestrel 的标准证书配置，或放在受信反向代理之后。远程明文管理请求被拒绝；来源是本机回环时视为安全连接。
+
+受信代理由 `GmWeb:TrustedProxies` 配置（IP 列表：JSON 数组，或逗号分隔的单个值；默认空）。每项必须是单个 IP，主机名、网段、端口、作用域与 `0.0.0.0`/`::` 都使启动失败，错误信息含该配置项名；`::ffff:a.b.c.d` 与 `a.b.c.d` 视为同一地址。
+
+- 为空时不信任任何 `X-Forwarded-*`/`Forwarded`，一律按实际连接判断。
+- 非空时，只有直连地址在列表中的后台请求，才采用 `X-Forwarded-For` 的最近一跳与 `X-Forwarded-Proto`（只读一层）。解析结果用于 HTTPS 判断、同源检查、会话 Cookie 的 `Secure` 与登录失败限流；其余来源伪造的转发头不起作用。
+- 代理须保留 `Host`，并改写（而不是透传）这两个头。只带 `X-Forwarded-For`、不带协议头的远程请求按明文处理并被拒；代理自身不带转发头的本机请求视为本机。
+- 转发处理只作用于后台监听端口。启动器网关接口按 [gate 接口](GateApi.md) 的规则取客户端 IP，不受该配置影响。
 
 登录和所有状态写入使用 `X-GM-CSRF` 防护令牌，前端自动取得并提交。令牌来自 `/api/gm/v1/auth/csrf`，与浏览器 Cookie 和当前管理身份匹配；切换身份或重启服务后重新取得。跨站来源及无效令牌返回 403。CSRF 使用进程临时保护密钥，不写操作系统用户默认密钥目录；重启后 GM 会话仍在，旧 CSRF 需刷新。
 
