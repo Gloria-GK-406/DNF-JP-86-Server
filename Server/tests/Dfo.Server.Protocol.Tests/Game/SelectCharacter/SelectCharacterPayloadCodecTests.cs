@@ -462,10 +462,14 @@ public sealed class SelectCharacterPayloadCodecTests
 
         Assert.Equal(77, EncodePremiumService(result).Length);
         // MERCENARY_INFO is a CMD, so like PREMIUM_SERVICE it is built directly rather than looked
-        // up in the batch. Seven bytes: the envelope's acceptance and an empty expedition roster.
+        // up in the batch. Seven bytes: the envelope's acceptance, the account's adventure group
+        // (level u8, points i32) and an empty mercenary roster.
         Assert.Equal(
             new byte[] { 0x01, 0, 0, 0, 0, 0, 0 },
-            new MercenarySupportStateMessage().EncodeBody());
+            new MercenarySupportStateMessage(default).EncodeBody());
+        Assert.Equal(
+            new byte[] { 0x01, 3, 0x42, 0x54, 0, 0, 0 },
+            new MercenarySupportStateMessage(new(3, 21570)).EncodeBody());
     }
 
     [Fact]
@@ -687,7 +691,6 @@ public sealed class SelectCharacterPayloadCodecTests
                     INSERT INTO character_pvp(character_id) VALUES(22);
                     INSERT INTO character_settings(character_id) VALUES(22);
                     INSERT INTO character_expert_job(character_id) VALUES(22);
-                    UPDATE characters SET manage_level=8 WHERE character_id=22;
                     INSERT INTO character_skill_builds VALUES(22,0,1),(22,1,1);
                     INSERT INTO character_invisible_flags(character_id,slot_index,flag_value)
                     VALUES(22,13502,1);
@@ -719,6 +722,7 @@ public sealed class SelectCharacterPayloadCodecTests
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>()));
             services.TryAddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>());
             await using var provider = services.BuildServiceProvider();
             var typed = await provider.GetRequiredService<ICharacterEntryStateDomainService>().LoadAsync(
@@ -970,7 +974,7 @@ internal static class SelectCharacterPayloadTestData
             SkillTreeIndex: 0,
             NameTagItemId: 0,
             NameTagExpireTime: 0,
-            ManageLevel: 8,
+            AdventureGroup: new(8, 0),
             CharacterExperience: 500,
             ExtraEquipmentSlotState: 0,
             Dimensions: [(0, 1, 2, 3)],

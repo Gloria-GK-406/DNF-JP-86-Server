@@ -64,6 +64,42 @@ public sealed class SchemaVersionTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }
 
+    [Fact]
+    public void Version_four_upgrade_drops_manage_level_and_keeps_every_character()
+    {
+        var path = Unversioned.NewPath("adventure-group-v4");
+        var fresh = Unversioned.NewPath("adventure-group-fresh");
+        try
+        {
+            _ = Unversioned.Open(fresh);
+            _ = Unversioned.Open(path);
+            // A version 4 database still has the per-character column nothing ever wrote.
+            Execute(path, """
+                ALTER TABLE characters ADD COLUMN manage_level INTEGER NOT NULL DEFAULT 0;
+                PRAGMA user_version=4;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,slot_index,manage_level) VALUES
+                    (71,7,'first',0,0,86,123,0,0),(72,7,'second',1,0,70,45,1,3);
+                """);
+
+            var migrated = Migrator.Migrate(path, backup: false);
+
+            Assert.Equal((4L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM pragma_table_info('characters') WHERE name='manage_level'"));
+            Assert.Equal(2, Scalar(path, "SELECT COUNT(*) FROM characters WHERE account_id=7"));
+            Assert.Equal(86, Scalar(path, "SELECT level FROM characters WHERE character_id=71"));
+            Assert.Equal(45, Scalar(path, "SELECT exp FROM characters WHERE character_id=72"));
+            Assert.Equal(ShapeOf(fresh), ShapeOf(path));
+            _ = Unversioned.Open(path);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+            File.Delete(fresh);
+        }
+    }
+
     /// <summary>
     /// An unversioned database with what the old server left in it comes out of the tool in
     /// exactly the shape the server builds a new one in.

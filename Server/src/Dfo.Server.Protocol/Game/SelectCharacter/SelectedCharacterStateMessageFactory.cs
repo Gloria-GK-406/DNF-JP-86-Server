@@ -140,7 +140,7 @@ internal static class SelectedCharacterStateMessageFactory
         // Subtype six, not a second copy of the subtype the batch opened with. The older client
         // took nothing here; A21's own server sends this frame once, right after the marker.
         messages.Add(new TownReadyStateMessage(result.Character.Identity.CharacterId));
-        messages.Add(new MercenarySupportStateMessage());
+        messages.Add(new MercenarySupportStateMessage(result.CharacterEntry.Public.Extras.AdventureGroup));
         messages.Add(new CeraBalanceStateMessage(result.Account.Wallet));
         messages.Add(new CrossServerFriendBaselineMessage());
         messages.Add(new CharacterPositionStateMessage(

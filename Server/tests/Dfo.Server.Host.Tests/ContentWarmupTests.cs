@@ -19,7 +19,7 @@ public sealed partial class ContentWarmupTests
     /// <summary>The warmup participants a real-content host registers. Appendix B cites this list.</summary>
     internal static readonly IReadOnlyList<string> Participants =
     [
-        "achievement-catalog", "title-book-catalog", "character-skill-rules", "gold-carry-limits",
+        "achievement-catalog", "title-book-catalog", "character-skill-rules", "gold-carry-limits", "character-manage",
         "premium-service-rules", "quest-helper-puppets", "experience-rules", "drop-rules",
         "gold-silver-horn", "hell-reward", "sao-tower", "dark-elf-ruins", "marriage-ceremony", "marriage-proposal",
         "marriage-capsule", "marriage-housing", "altar-dungeons", "guardian-altar", "joust", "tournament-dungeons",
@@ -53,6 +53,7 @@ public sealed partial class ContentWarmupTests
         [App("Characters.CharacterSkillRuleService")] = Warmed<Abstractions.Characters.ICharacterSkillRuleService>("CharacterSkillRuleWarmup"),
         [Infra("PvfSkillPointDefinitionSource")] = Warmed<ISkillRuleDefinitionSource>("CharacterSkillRuleWarmup"),
         [Infra("PvfGoldCarryLimitSource")] = Warmed<IGoldCarryLimitSource>(),
+        [Infra("PvfCharacterManageContentSource")] = Warmed<ICharacterManageContentSource>(),
         [App("Accounts.PremiumServiceRuleService")] = Warmed<Abstractions.Accounts.IPremiumServiceRuleService>(),
         [App("Accounts.QuestHelperPuppetRuleService")] = Warmed<Abstractions.Accounts.IQuestHelperPuppetRuleService>(),
         [App("World.ExperienceRuleService")] = Warmed<Abstractions.World.IExperienceRuleService>(),

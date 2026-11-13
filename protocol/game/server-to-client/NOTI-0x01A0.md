@@ -45,3 +45,37 @@
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-13 冒险团升级推送（CurrentImplementation，待实机）
+
+**body 为空。**
+- 70 服务端对应 NOTI 的 body 为空（70Reference）。
+- A21 handler 落在打包区，静态布局未知；本仓按空 body 发送。实机若证明不成立，撤掉推送需用户确认。
+
+**客户端行为（ClientStatic）。**
+- 链路：`0x014E5C50` → `0x014E5AF0`，在 `0x014E5B78` 把冒险团管理器等级**加 1**。
+- 随后播放 dstr 46535「冒险团已升为 Lv%d」与动画（`Document/outputs/notice-flags-20260924/investigation.md` 第 3 节）。
+- 因为是加 1，跨几级就发几帧。
+
+**服务端触发。** 订阅 `CharacterLevelChanged`，策略 LiveOnly，不设合并键：
+
+1. 由冒险团领域服务计算 a、b：
+   - 把该角色的等级分别换成事件的 before 和 after，账号其余未删除角色取当前等级，按 `charactermanage.etc` 算出两个冒险团等级 a 和 b；
+   - 规则见本页下方。
+2. 只有 b > a 时才推送，并且要求账号的已选角色在世界中（城镇或副本）。冒险团下降、不在世界中、角色已删除时都不推。
+3. 推送 b−a 帧。
+4. 每次等级变更最多推一次：LiveOnly 先提交消费、从不重放，跨进程或过期（默认 30 秒）的事件跳过。
+5. 错过的升级在下次进入世界时，由 USERINFO1 和 `0x01BA` 的绝对值改正。
+
+**规则（70Reference，`df_game_r` 符号）。**
+- 角色点数 = 各级 `[point bonus]` 之和，累加到角色当前等级；
+- 账号点数 = 各角色点数之和，封顶在 `[manage level point]` 第 `[manage level max]` 个阈值（A21 为 175350）；
+- 等级 = 账号点数达到的最高阈值序号，最大为 10。
+
+**未证实。**
+- A21 的空 body；
+- 升级券路径是否会多加一级：该路径在同一命令里先发带新等级的 USERINFO1。
+
+两项都待用户按 `Document/tasks/adventure-group/` 的测试流程确认。
+
+**判据。** `Server/tests/Dfo.Server.Protocol.Tests/Game/AdventureGroupPushTests.cs`、`Server/tests/Dfo.Server.Application.Tests/Characters/AdventureGroupTests.cs`。

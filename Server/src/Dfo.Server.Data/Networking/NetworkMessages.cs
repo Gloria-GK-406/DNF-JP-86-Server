@@ -399,6 +399,7 @@ public enum ServerMessageType
     GameGrowthItemRenewData = 0x0000_01E1,
     GameGrowthItemChangeData = 0x0000_01E2,
     GameInformNotice = 0x0000_01A1,
+    GameAdventureGroupLevelUp = 0x0000_01A0,
     GameRosterFollowUp = 0x0001_02A8,
     GameContentsPlayInfo = 0x0001_02C1,
     GameConnectionCheck = 0x0001_04DD,

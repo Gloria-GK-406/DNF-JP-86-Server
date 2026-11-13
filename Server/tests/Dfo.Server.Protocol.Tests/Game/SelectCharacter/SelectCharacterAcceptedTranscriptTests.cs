@@ -270,6 +270,18 @@ public sealed class SelectCharacterAcceptedTranscriptTests
                 Assert.Equal(new byte[] { (byte)(i == 35 ? 1 : 2), 1, 255, 255, 255, 255, 0, 0 }, frames[i][15..]);
                 continue;
             }
+            if (frames[i][0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frames[i].AsSpan(1)) == 0x01BA)
+            {
+                // The baseline was captured when this frame was all zero. It now carries the
+                // account's adventure group, the same standing USERINFO 1 carries: pin those bytes.
+                var standing = result.CharacterEntry.Public.Extras.AdventureGroup;
+                var expected = new byte[7];
+                expected[0] = 1;
+                expected[1] = standing.Level;
+                BinaryPrimitives.WriteInt32LittleEndian(expected.AsSpan(2), standing.Point);
+                Assert.Equal(expected, frames[i][15..]);
+                continue;
+            }
             Assert.True(AcceptedKnightFrameSha256[i] == hashes[i], $"Frame {i}: expected={AcceptedKnightFrameSha256[i]}, actual={hashes[i]}");
         }
     }

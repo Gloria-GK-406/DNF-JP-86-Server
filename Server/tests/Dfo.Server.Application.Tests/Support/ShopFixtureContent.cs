@@ -24,6 +24,7 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
         services.AddSingleton<ICharacterStatDefinitionSource>(character);
         services.AddSingleton<ISkillRuleDefinitionSource>(character);
         services.AddSingleton<IGoldCarryLimitSource>(content);
+        services.AddSingleton<ICharacterManageContentSource>(new AdventureGroupTestContent());
         services.AddSingleton<IClearRewardRateSource>(rewards);
         services.AddSingleton<IGoldDropTableSource>(rewards);
         services.AddSingleton<IDropItemPoolSource>(rewards);
@@ -46,6 +47,7 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
         services.AddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
         services.AddSingleton<ISkillRuleDefinitionSource, PvfSkillPointDefinitionSource>();
         services.AddSingleton<IGoldCarryLimitSource, PvfGoldCarryLimitSource>();
+        services.AddSingleton<ICharacterManageContentSource, PvfCharacterManageContentSource>();
         services.AddSingleton<IClearRewardRateSource, PvfClearRewardRateSource>();
         services.AddSingleton<IGoldDropTableSource>(p => p.GetRequiredService<PvfDropRateTableSource>());
         services.AddSingleton<IDropItemPoolSource, PvfDropItemPoolSource>();

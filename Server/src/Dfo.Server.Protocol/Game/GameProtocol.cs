@@ -256,6 +256,9 @@ internal static class GameProtocol
 
     public const ushort ClearDungeonRewardNotificationType = 0x0023;
 
+    /// <summary>NOTI <c>MANAGE_LEVEL_UP</c>: the adventure group rose one level. Empty body.</summary>
+    public const ushort AdventureGroupLevelUpNotificationType = 0x01A0;
+
     /// <summary>The tutorial's own level grant, asked and answered under one type.</summary>
     public const ushort TutorialLevelUpType = 0x01E4;
 

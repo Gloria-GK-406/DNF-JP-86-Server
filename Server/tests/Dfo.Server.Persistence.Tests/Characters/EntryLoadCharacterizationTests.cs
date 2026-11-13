@@ -97,8 +97,8 @@ public sealed class EntryLoadCharacterizationTests
         await connection.OpenAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,clone_title_item_id,slot_index,delete_flag,town_id,area_id,pos_x,pos_y,direction,area_state,bonus_sp,bonus_tp,exp,ex_equip_slot_stat,user_state,name_tag_item_id,name_tag_expire_time,manage_level,guild_power_war,guild_level)
-                VALUES(22,12,'loaded',X'00A0',8,1,60,1001,0,0,101,102,1002,1003,103,104,1004,1005,1006,1007,107,1044,1045,132,1047,115);
+            INSERT INTO characters(character_id,account_id,name,name_bytes,job,grow_type,level,clone_title_item_id,slot_index,delete_flag,town_id,area_id,pos_x,pos_y,direction,area_state,bonus_sp,bonus_tp,exp,ex_equip_slot_stat,user_state,name_tag_item_id,name_tag_expire_time,guild_power_war,guild_level)
+                VALUES(22,12,'loaded',X'00A0',8,1,60,1001,0,0,101,102,1002,1003,103,104,1004,1005,1006,1007,107,1044,1045,1047,115);
             INSERT INTO character_stats(character_id,stat_hp_max,stat_mp_max,stat_physical_attack,stat_physical_defense,stat_magical_attack,stat_magical_defense,stat_move_speed,stat_attack_speed,stat_cast_speed,stat_inventory_limit,stat_fire_resistance,stat_water_resistance,stat_dark_resistance,stat_light_resistance,stat_hp_regen_speed,stat_mp_regen_speed,stat_hit_recovery,stat_jump_power,stat_weight,progress1,progress2,current_hp_mp_percent,equipped_creature_level,equip_list_trailing,flag_byte,server_timestamp,quest_shop_count,gold_carry_limit,auction_gold_limit)
                 VALUES(22,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1035,1036,1037,1038,1039,1040,1041,1042,1043,1033,1034,129,130,1046,131,1048,1049,600000000,600000000);
             INSERT INTO character_condition(character_id,stamina,fatigue_penalty,fatigue_update,fatigue_display_update,is_event_character,is_hardcore_mode,is_hardcore_dead,hardcore_death_count,is_private_store,chat_ban_end_time,mood_value,black_count,chaos_point,trailing_byte,creature_field1,creature_field2,creature_field3,creature_field4,creature_buffer,pc_room_id,is_premium_pc_room,server_group_id,channel_display_mode,channel_type,is_return_user,return_user_flag,disguise_kind,is_disguised,emotion_index,action_byte,costume_flag,aura_flag,pet_display_flag,title_display_flag,link_slot_enabled,link_type_a,link_type_b,pc_room_state,champion_break_key_id,champion_break_mode,champion_break_value,crystal_cube_type,crystal_cube_grade,dimension_flag1,dimension_flag2,dimension_flag3,dimension_flag4)
@@ -272,7 +272,6 @@ public sealed class EntryLoadCharacterizationTests
         Profile.SkillTreeIndex = -1
         Profile.NameTagItemId = 1044
         Profile.NameTagExpireTime = 1045
-        Profile.ManageLevel = 132
         Profile.HotkeySlots[0] = 20
         Profile.HotkeySlots[1] = 10
         Profile.CharacterOptionBlob = 0x00A2

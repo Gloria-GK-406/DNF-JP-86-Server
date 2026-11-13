@@ -134,7 +134,6 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
         [ProtocolType("Dfo.Server.Protocol.Game.DungeonSelection.EnterSelectDungeonAcknowledgementEncoder")] = new(Category.E2, EncodingRow, ConstantBytes),
         [ProtocolType("Dfo.Server.Protocol.Game.GroundPickup.GroundPickupPayloadCodec")] = new(Category.E2, EncodingRow, ConstantBytes),
         [ProtocolType("Dfo.Server.Protocol.Game.MapEntryReports.SecurityStatusAcknowledgementEncoder")] = new(Category.E2, EncodingRow, ConstantBytes),
-        [ProtocolType("Dfo.Server.Protocol.Game.MercenaryInfo.MercenaryInfoResponseEncoder")] = new(Category.E2, EncodingRow, ConstantBytes),
         [ProtocolType("Dfo.Server.Protocol.Game.MonsterDeath.MonsterDeathPayloadCodec")] = new(Category.E2, EncodingRow, ConstantBytes),
         [ProtocolType("Dfo.Server.Protocol.Game.StateSynchronization.StateSynchronizationPayloadCodec")] = new(Category.E2, EncodingRow, ConstantBytes),
 

@@ -1,5 +1,19 @@
 # 协议清单
 
+## 2026-11-13 冒险团按账号派生、通关加成与升级推送（CurrentImplementation，待实机）
+
+冒险团等级与点数由冒险团领域服务按账号未删除角色的等级现算，不落库，规则取自 PVF `charactermanage.etc` 与 70（70Reference）。
+
+- **发包取值**：
+  - [USERINFO](game/server-to-client/NOTI-0x0002.md) 子类型 1 尾部写本账号的等级和点数；
+  - 子类型 3 `+3` 写被查看角色所属账号的等级；
+  - 子类型 2 头部两条路径统一写 0；
+  - [0x01BA](game/client-to-server/0x01BA.md) 的应答和入场帧写 `01 等级 点数 00`。
+- **通关加成**：非账号最高等级角色通关时，冒险团加成写入 [NOTI0023](game/server-to-client/NOTI-0x0023.md) i7（body+45）。领主之塔计入但不显示，受 110 万封顶；死亡之塔、迷妄之塔不加。
+- **升级推送**：角色等级变化使冒险团升级、且账号在世界中时，推送 b−a 帧空 body 的 [NOTI01A0](game/server-to-client/NOTI-0x01A0.md)，每次等级变化最多推一次。
+- **数据库**：schema v5 删除 `characters.manage_level`。
+- **实机待验**：空 body，以及升级券路径是否会多加一级。实机结果见 `Document/tasks/adventure-group/`。
+
 ## 2026-11-12 聊天单入口路由第一批（#61，CurrentImplementation，待实机）
 
 CurrentImplementation：CMD 0x0011 一个入口按 mode 分流——区域 3/45/46、队伍 2/9 回推 NOTI 0x000C（含发言者，
@@ -1392,6 +1406,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0187` | `CharacterOptionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0187](game/server-to-client/NOTI-0x0187.md) |
 | `0x00` NOTI | `0x019D` | `LuckyStarStateMessage` | 仅证明 encoder 可产生该 identity | [0x019D](game/server-to-client/NOTI-0x019D.md) |
 | `0x00` NOTI | `0x019F` | `SupportCharacterStateMessage`、`SupportTagNotification` | 仅证明 encoder 可产生该 identity | [0x019F](game/server-to-client/NOTI-0x019F.md) |
+| `0x00` NOTI | `0x01A0` | `AdventureGroupLevelUpNotice` | 仅证明 encoder 可产生该 identity | [0x01A0](game/server-to-client/NOTI-0x01A0.md) |
 | `0x00` NOTI | `0x01A1` | `InformNoticeNotice` | 仅证明 encoder 可产生该 identity | [0x01A1](game/server-to-client/NOTI-0x01A1.md) |
 | `0x00` NOTI | `0x01A8` | `PcRoomPlayTimeStateMessage` | 仅证明 encoder 可产生该 identity | [0x01A8](game/server-to-client/NOTI-0x01A8.md) |
 | `0x00` NOTI | `0x01B9` | `SecondaryNoticeStateMessage` | 仅证明 encoder 可产生该 identity | [0x01B9](game/server-to-client/NOTI-0x01B9.md) |

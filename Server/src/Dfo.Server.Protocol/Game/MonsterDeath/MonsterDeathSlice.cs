@@ -90,7 +90,8 @@ internal sealed class ExperienceBonusLines
         amounts[(int)ExperienceBonusKind.RapidGrowthBuff] = b.RapidGrowthBuff;
         amounts[(int)ExperienceBonusKind.SeriaWelcome] = b.SeriaWelcome;
         amounts[(int)ExperienceBonusKind.GuildReward] = b.Guild;
-        // Potion and clear-rank amounts stay in the base display until their wire slots are proven.
+        // Potion, clear-rank and adventure-group amounts stay in the base display until their wire
+        // slots in this frame are proven; the clear result frame carries them on their own rows.
         return new ExperienceBonusLines(amounts);
     }
 

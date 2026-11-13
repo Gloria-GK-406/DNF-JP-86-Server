@@ -531,7 +531,7 @@ internal sealed record TownReadyStateMessage(CharacterId CharacterId)
 /// The body is the family envelope's acceptance byte followed by manageLevel, managePoint and a
 /// zero record count, which is byte for byte what the handler's reply carries.
 /// </remarks>
-internal sealed record MercenarySupportStateMessage
+internal sealed record MercenarySupportStateMessage(Dfo.Server.Data.Characters.AdventureGroupStanding AdventureGroup)
     : GameStateSynchronizationMessage, IGameCmdMessage
 {
     internal override ushort Type => 0x01BA;
@@ -539,7 +539,7 @@ internal sealed record MercenarySupportStateMessage
     // Not a second copy of the handler's six bytes: the handler's own roster is the source, so the
     // two cannot drift apart into a batch frame and a reply that disagree.
     internal override byte[] EncodeBody() =>
-        GameCmdEnvelope.Accept(MercenaryInfo.MercenaryInfoResponseEncoder.EmptyRoster);
+        GameCmdEnvelope.Accept(MercenaryInfo.MercenaryInfoResponseEncoder.Roster(AdventureGroup));
 }
 
 internal sealed record CeraBalanceStateMessage(

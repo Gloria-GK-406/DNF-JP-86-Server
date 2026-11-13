@@ -36,7 +36,8 @@ public sealed class LightweightProtocolCommandFlowTests(ITestOutputHelper output
         Assert.All(trace.Calls,c=>Assert.True(c.WithoutTransaction));
         Assert.Equal(protocol is 0 or 3 or 5 or 6 or 8 or 10 or 11 or 13,
             trace.Calls.Any(c=>c.Name=="online.TryGetByConnection"));
-        Assert.Equal(protocol is 1 or 2 or 4 or 13,
+        // 7 (CMD 0x01BA) asks whose adventure group to answer with.
+        Assert.Equal(protocol is 1 or 2 or 4 or 7 or 13,
             trace.Calls.Any(c=>c.Name=="sessions.FindByConnection"));
         if(protocol is not (13 or 14))
         {
@@ -156,6 +157,8 @@ public sealed class LightweightProtocolCommandFlowTests(ITestOutputHelper output
             s.AddSingleton(p=>new GameplayOutboxes(p.GetRequiredService<IOutboundSender>(),p.GetRequiredService<GameplayCloseCauses>(),p.GetRequiredService<ILogger<GameplayOutbox>>()));
             var clock=s.Last(d=>d.ServiceType==typeof(TimeProvider));
             s.AddSingleton<TimeProvider>(p=>new ClockProbe((TimeProvider)Actual(clock,p),trace,p));
+            // The adventure group's own arithmetic is covered elsewhere; this flow only needs an answer.
+            s.AddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>());
             Decorate<IOnlineUserQueryDomainService>(s,"online",trace);Decorate<ISelectedSessionDomainService>(s,"sessions",trace);Decorate<INpcShopDomainService>(s,"shops",trace);
             foreach(var category in Categories.Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct())
             {

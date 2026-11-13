@@ -29,7 +29,7 @@ internal sealed class CharacterProfileEntryProjection : ICharacterProfileEntryPr
                     storage.SkillTreeIndex,
                     storage.NameTagItemId,
                     storage.NameTagExpireTime,
-                    storage.ManageLevel,
+                    AdventureGroupStanding.None,
                     storage.CharacterExperience,
                     storage.ExtraEquipmentSlotState,
                     storage.Dimensions,
@@ -235,7 +235,8 @@ internal sealed class CharacterEntryStateDomainService(
     ICreatureDomainStore creatureStore, AmbientStoreAccess stores,
     IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments,
     IClientSettingsDomainService clientSettings,
-    IGoldSilverHornDomainService goldSilverHorn, ICharacterNameTagDomainService nameTags) : ICharacterEntryStateDomainService
+    IGoldSilverHornDomainService goldSilverHorn, ICharacterNameTagDomainService nameTags,
+    IAdventureGroupDomainService adventureGroups) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -277,8 +278,11 @@ internal sealed class CharacterEntryStateDomainService(
         publicState = publicState with { VisibilityBits = appearance.VisibilityBits,
             Settings = publicState.Settings with { UserStateBits = appearance.VisibilityBits } };
         var tag = await nameTags.ReadEffectiveAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
+        // The adventure group is the account's, worked out now; USERINFO 1 and 3 and the entry
+        // batch's 0x01BA all read it from here.
+        var adventureGroup = await adventureGroups.ReadAsync(accountId, cancellationToken).ConfigureAwait(false);
         publicState = publicState with { Extras = publicState.Extras with
-            { NameTagItemId = tag.ItemId, NameTagExpireTime = tag.ExpiresAtUnixSeconds } };
+            { NameTagItemId = tag.ItemId, NameTagExpireTime = tag.ExpiresAtUnixSeconds, AdventureGroup = adventureGroup } };
         var remainingEntries = new List<(int DungeonId, int Remaining)>();
         remainingEntries.AddRange((await altars.ReadQuotaAsync(characterId, cancellationToken).ConfigureAwait(false))
                 .Select(value => (value.DungeonId, value.Remaining)));

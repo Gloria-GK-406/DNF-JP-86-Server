@@ -62,6 +62,65 @@ public sealed class ExperienceCalculationDomainServiceTests
     }
 
     [Fact]
+    public async Task AdventureGroupIsItsOwnClearShareOfTheUnscoredBase()
+    {
+        var service = new ExperienceCalculationDomainService(new FixedWorth(101, 22), new AdventureBonuses(),
+            tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(),
+            bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
+        var clear = await service.CalculateAsync(new ClearExperienceContext(
+            Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, CancellationToken.None);
+
+        // floor(101 x 0.2) = 20 growth, floor(101 x 0.1) = 10 adventure group; rank stays out of both.
+        Assert.Equal(new ExperienceBreakdown(Base: 101, ClearRank: 22, GrowthContract: 20, AdventureGroup: 10), clear);
+        Assert.Equal(153u, clear.Total);
+    }
+
+    [Theory]
+    [InlineData(500_000u, 100_000u, 50_000u)]     // under the cap: the whole 10%
+    [InlineData(900_000u, 180_000u, 20_000u)]     // adventure cut to what growth left under the cap
+    [InlineData(1_000_000u, 100_000u, 0u)]        // growth fills the cap; adventure gets nothing
+    public async Task BossTowerKeepsItsCapAndCutsTheAdventureGroupLast(uint bossBase, uint growth, uint adventure)
+    {
+        var service = new ExperienceCalculationDomainService(new FixedWorth(), new AdventureBonuses(),
+            tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(),
+            bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>((method, _) =>
+                method.Name == "ClearExperienceAsync" ? ValueTask.FromResult(bossBase) : null));
+        var result = await service.CalculateAsync(new TowerClearExperienceContext(
+            Occasion(ExperienceEvent.TowerClear), DungeonParticipationMode.BossTower, 1), 70, CancellationToken.None);
+
+        Assert.Equal(bossBase, result.Base);
+        Assert.Equal(growth, result.GrowthContract);
+        Assert.Equal(adventure, result.AdventureGroup);
+        Assert.True(result.Total <= 1_100_000u);
+    }
+
+    [Fact]
+    public async Task AdventureGroupLeavesKillsAndIllusionTowersAlone()
+    {
+        var service = new ExperienceCalculationDomainService(new FixedWorth(), new AdventureBonuses(),
+            tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>((method, _) =>
+                method.Name == "ClearExperienceAsync" ? ValueTask.FromResult(5000u) : null),
+            bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
+        var kill = await service.CalculateAsync(new KillExperienceContext(
+            Occasion(ExperienceEvent.MonsterKill), 5, MonsterRank.Ordinary, 0, 1, 1), 3, CancellationToken.None);
+        var illusion = await service.CalculateAsync(new TowerClearExperienceContext(
+            Occasion(ExperienceEvent.TowerClear), DungeonParticipationMode.IllusionTower, 1), 70, CancellationToken.None);
+
+        Assert.Equal(0u, kill.AdventureGroup);
+        Assert.Equal(new ExperienceBreakdown(Base: 5000), illusion);
+    }
+
+    /// <summary>What the bonus service hands a clear when the adventure group pays: it comes last.</summary>
+    /// <remarks>The adventure group is only ever collected for a clear; a kill gets growth alone.</remarks>
+    private sealed class AdventureBonuses : IExperienceBonusDomainService
+    {
+        public ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(ExperienceOccasion occasion, CancellationToken token) =>
+            ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>(occasion.Event == ExperienceEvent.DungeonClear
+                ? [new("growth", .2, ExperienceBonusKind.GrowthContract), new("adventure group", .1, ExperienceBonusKind.AdventureGroup)]
+                : [new("growth", .2, ExperienceBonusKind.GrowthContract)]);
+    }
+
+    [Fact]
     public void UnrepresentableRewardsFailRatherThanLosingPartsOfTheBreakdown()
     {
         Assert.Throws<OverflowException>(() => new ExperienceBreakdown(Base: uint.MaxValue,

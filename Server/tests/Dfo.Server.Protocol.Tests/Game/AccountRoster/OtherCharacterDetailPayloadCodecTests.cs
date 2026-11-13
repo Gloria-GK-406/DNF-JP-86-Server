@@ -16,7 +16,7 @@ public sealed class OtherCharacterDetailPayloadCodecTests
             DerivedStats = ZeroStats(),
             Extras = source.CharacterEntry.Public.Extras with
             {
-                ManageLevel = 0,
+                AdventureGroup = default,
                 CharacterExperience = 0,
                 ExtraEquipmentSlotState = 0,
                 SkillTreeIndex = 0,
@@ -70,7 +70,7 @@ public sealed class OtherCharacterDetailPayloadCodecTests
             DerivedStats = ZeroStats(),
             Extras = source.CharacterEntry.Public.Extras with
             {
-                ManageLevel = 6,
+                AdventureGroup = new(6, 0),
                 CharacterExperience = 1_046_561_640,
                 ExtraEquipmentSlotState = 3,
                 SkillTreeIndex = -1,

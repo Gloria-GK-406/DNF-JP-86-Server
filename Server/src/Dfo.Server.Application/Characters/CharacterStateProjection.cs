@@ -71,8 +71,9 @@ internal static class CharacterStateProjection
                 summary.CloneTitleItemId) { Display = summary.Display });
         }
         return new CharacterRosterEntryState(
-            roster.SlotLimit, roster.SlotLimit, checked((byte)selectedEntry.Public.Extras.ManageLevel),
-            0, 0, 0, characters);
+            // +5/+6 stay zero on both roster paths: the reference writes zero here and A21 is not
+            // known to read the adventure group from this header.
+            roster.SlotLimit, roster.SlotLimit, 0, 0, 0, 0, characters);
     }
 
     internal static CharacterEntryState CompleteCollectionBoxProjection(

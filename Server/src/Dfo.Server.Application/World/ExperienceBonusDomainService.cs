@@ -13,7 +13,8 @@ internal sealed class ExperienceBonusDomainService(
     IChannelEntryDomainService channels,
     IExperienceRuleService experienceRules,
     TimeProvider clock,
-    IOnlineCharacterRuntimeDomainService onlineCharacters) : IExperienceBonusDomainService
+    IOnlineCharacterRuntimeDomainService onlineCharacters,
+    IAdventureGroupDomainService adventureGroups) : IExperienceBonusDomainService
 {
     public async ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
         ExperienceOccasion occasion, CancellationToken cancellationToken)
@@ -26,6 +27,10 @@ internal sealed class ExperienceBonusDomainService(
         var growthRate = await account.GetExperienceBonusRateAsync(cancellationToken).ConfigureAwait(false);
         var blackDiamondRate = occasion.Event == ExperienceEvent.DungeonClear
             ? await account.GetBlackDiamondExperienceBonusRateAsync(cancellationToken).ConfigureAwait(false) : 0;
+        var adventureRate = occasion.Event == ExperienceEvent.DungeonClear
+            ? await adventureGroups.ClearExperienceRateAsync(occasion.Account, occasion.Character, cancellationToken)
+                .ConfigureAwait(false)
+            : 0;
         var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken).ConfigureAwait(false);
         if (!sessions.IsInWorld(session))
             return [];
@@ -40,6 +45,10 @@ internal sealed class ExperienceBonusDomainService(
         var potionRate = onlineCharacters.SpiritPotionBonusRateOf(occasion.Character);
         if (occasion.Event == ExperienceEvent.DungeonClear && potionRate > 0)
             found.Add(new("spirit potion", potionRate, ExperienceBonusKind.SpiritPotion));
+        // Last, so a capped settlement (the boss tower) cuts it before the bonuses that were there
+        // first.
+        if (adventureRate > 0)
+            found.Add(new("adventure group", adventureRate, ExperienceBonusKind.AdventureGroup));
         return found;
     }
 }

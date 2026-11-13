@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.MercenaryInfo;
@@ -12,7 +13,8 @@ public sealed record MercenaryInfoRequest(
     public ClientMessageType MessageType => ClientMessageType.GameMercenaryInfo;
 }
 
-public sealed record MercenaryInfoResponse : IGameCmdMessage
+/// <summary>CMD 0x01BA reply: the account's adventure group and an empty mercenary roster.</summary>
+public sealed record MercenaryInfoResponse(AdventureGroupStanding AdventureGroup) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameMercenaryInfo;
 }

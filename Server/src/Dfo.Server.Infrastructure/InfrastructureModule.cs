@@ -102,6 +102,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();
         services.TryAddSingleton<IGoldCarryLimitSource, PvfGoldCarryLimitSource>();
+        services.TryAddSingleton<ICharacterManageContentSource, PvfCharacterManageContentSource>();
         services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
         services.TryAddSingleton<ISkillRuleDefinitionSource, PvfSkillPointDefinitionSource>();
         services.TryAddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
@@ -193,6 +194,7 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Achievements.ITitleBookDefinitionSource>()
         .AddContentWarmup<IGoldCarryLimitSource>()
+        .AddContentWarmup<ICharacterManageContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IHellRewardDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.ISaoTowerContentSource>()

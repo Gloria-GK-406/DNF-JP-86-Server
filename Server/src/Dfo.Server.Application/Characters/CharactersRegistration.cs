@@ -50,6 +50,10 @@ internal static class CharactersRegistration
             ICharacterEntryPreparationRuleService, CharacterEntryPreparationRuleService>();
         services.TryAddSingleton<IGoldLimitRuleService, GoldLimitRuleService>();
         services.TryAddSingleton<ICarriedGoldRuleService, CarriedGoldRuleService>();
+        // The adventure group (冒险团): one rule over the archive's table, one owner that works it out
+        // from the account's characters each time it is asked.
+        services.TryAddSingleton<IAdventureGroupRuleService, AdventureGroupRuleService>();
+        services.TryAddSingleton<IAdventureGroupDomainService, AdventureGroupDomainService>();
         services.TryAddSingleton<IExpertSkillContractRuleService, ExpertSkillContractRuleService>();
         services.TryAddSingleton<IDungeonEffectRuleService, DungeonEffectRuleService>();
         services.TryAddSingleton<IWeaknessRuleService>(_ => new WeaknessRuleService(configuration));
