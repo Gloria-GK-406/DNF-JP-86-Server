@@ -153,4 +153,42 @@ public sealed class AuctionCodecTests
     [InlineData(86400, 25)]
     public void Hours_left_count_as_the_70_server_counts_them(int seconds, byte hours) =>
         Assert.Equal(hours, GameAuctionCommandHandler.HoursLeft(DateTimeOffset.UnixEpoch.AddSeconds(seconds), DateTimeOffset.UnixEpoch));
+
+    [Fact]
+    public void A_consignment_listing_reads_its_tier_price_and_hours()
+    {
+        var body = new byte[28];
+        body[0] = 1;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(4), 2681725);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(8), 1);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(12), -1);
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(16), 120);
+        BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(24), 24);
+        var request = AuctionPayloadCodec.DecodeRegister(Metadata, body);
+        Assert.False(request.Malformed);
+        Assert.Equal((2681725, new AuctionPricing(null, 120)), (request.ItemId, request.Pricing));
+    }
+
+    [Fact]
+    public void A_consignment_purchase_reads_price_and_the_four_byte_listing()
+    {
+        var body = Convert.FromHexString("01E80300001000000000000000" + "7DEB2800");
+        var request = AuctionPayloadCodec.DecodeBid(Metadata, body);
+        Assert.Equal((1, 1000L, new AuctionListingId(16)), (request.PayType, request.Amount, request.Listing));
+    }
+
+    [Fact]
+    public void A_consignment_record_shows_its_tier_and_no_bid()
+    {
+        var listing = new AuctionListing(new AuctionListingId(7), AuctionMarket.GoldConsignment, AuctionListingState.Active,
+            new CharacterId(71), new AccountId(1), "seller"u8.ToArray(), 2681725, 1, 1, 1_000_000, new(null, 120), null, null, null,
+            0, 500, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, null);
+        var body = AuctionPayloadCodec.Encode(new AuctionSearchResponse(1, null, 1, [new(listing, 24)]));
+        Assert.Equal(1, body[1]);
+        var record = body.AsSpan(8, 168);
+        Assert.Equal(uint.MaxValue, BinaryPrimitives.ReadUInt32LittleEndian(record[9..]));
+        Assert.Equal(120U, BinaryPrimitives.ReadUInt32LittleEndian(record[13..]));
+        Assert.Equal(2681725, BinaryPrimitives.ReadInt32LittleEndian(record[44..]));
+        Assert.Equal(1, BinaryPrimitives.ReadInt32LittleEndian(record[49..]));
+    }
 }

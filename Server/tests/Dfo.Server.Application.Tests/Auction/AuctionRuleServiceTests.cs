@@ -85,3 +85,54 @@ public sealed class AuctionRuleServiceTests
             ValueTask.FromResult(new MailItemSendDecision(sendable ? MailItemSendRefusal.None : MailItemSendRefusal.TemplateTradeRestricted));
     }
 }
+
+public sealed class GoldConsignmentRuleTests
+{
+    private static AuctionRuleService Rules() => new(new NoDefinitions(), new AnyTransfer(), new ConfigurationBuilder().Build());
+
+    [Fact]
+    public void The_consignment_market_is_open_with_three_listings_for_a_day()
+    {
+        var rule = Rules().For(AuctionMarket.GoldConsignment);
+        Assert.Equal((true, 3, TimeSpan.FromHours(24), 0), (rule.Open, rule.ListingLimit, rule.Duration, rule.Deposit));
+    }
+
+    [Theory]
+    [InlineData(2681725, 1_000_000)]
+    [InlineData(2681736, 30_000_000)]
+    [InlineData(2683069, 40_000_000)]
+    [InlineData(2683073, 200_000_000)]
+    public void Tier_items_stand_for_their_gold(int item, int gold) => Assert.Equal(gold, Rules().ConsignmentTierGold(item));
+
+    [Fact]
+    public void Other_items_are_not_tiers() => Assert.Null(Rules().ConsignmentTierGold(2681762));
+
+    [Theory]
+    [InlineData(39, null)]
+    [InlineData(40, 500)]
+    [InlineData(150, 500)]
+    [InlineData(151, 3000)]
+    [InlineData(170, 4000)]
+    [InlineData(180, 5000)]
+    [InlineData(181, 9500)]
+    public void The_fee_rate_follows_the_price_against_the_average(int price, int? rate) =>
+        Assert.Equal(rate, Rules().ConsignmentFeeRate(price, 100, hasCoupon: false));
+
+    [Fact]
+    public void Just_over_one_hundred_eighty_percent_is_above_it() => Assert.Equal(9500, Rules().ConsignmentFeeRate(1801, 1000, false));
+
+    [Fact]
+    public void Without_trades_a_tier_is_measured_against_the_reference_per_million() =>
+        Assert.Equal(20_000, Rules().ConsignmentReferencePrice(200_000_000));
+
+    private sealed class NoDefinitions : IAuctionItemDefinitionSource
+    {
+        public ValueTask<AuctionItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken) => ValueTask.FromResult<AuctionItemDefinition?>(null);
+    }
+
+    private sealed class AnyTransfer : IMailItemRuleService
+    {
+        public ValueTask<MailItemSendDecision> CanSendAsync(ItemSnapshot core, bool sameAccount, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(new MailItemSendDecision(MailItemSendRefusal.None));
+    }
+}

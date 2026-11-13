@@ -74,7 +74,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
         {
             var prepared = attachments[ordinal];
             var records = prepared.Items;
-            if (prepared.Asset is MailAsset.Gold ? records.Count != 0 : records.Count == 0)
+            if (prepared.Asset is MailAsset.Gold or MailAsset.TokenCera ? records.Count != 0 : records.Count == 0)
                 throw new MailException(MailFailure.InvalidMail, "An item attachment requires detached records; gold does not.");
             var snapshot = records.Count == 0 ? null : records[0].Snapshot;
             var (kind, uid, itemId, count, amount) = prepared.Asset switch
@@ -84,6 +84,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
                 MailAsset.Stackable stack when records.All(record => record.IsPile && record.ItemId == stack.ItemId)
                     && records.Sum(record => (long)record.Count) == stack.Count => ("stackable", 0, stack.ItemId, stack.Count, 0),
                 MailAsset.Gold money => ("gold", 0, 0, 1, money.Amount),
+                MailAsset.TokenCera voucher => ("token_cera", 0, MailAsset.TokenCera.VoucherItemId, voucher.Amount, voucher.Amount),
                 _ => throw new MailException(MailFailure.InvalidMail, "Prepared records differ from the attachment descriptor.")
             };
             var core = snapshot is null ? null : (snapshot with { Count = count }).ToCore();
@@ -190,7 +191,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
     {
         var count = await database.ExecuteAsync("""
             UPDATE mailbox_attachments SET claimed_flag=1
-            WHERE attachment_id=@id AND claimed_flag=0 AND asset_kind='gold'
+            WHERE attachment_id=@id AND claimed_flag=0 AND asset_kind IN ('gold','token_cera')
             """, p => p.AddWithValue("@id", attachmentId), cancellationToken).ConfigureAwait(false);
         return count == 1;
     }
@@ -236,6 +237,7 @@ internal sealed class SqliteMailboxRepository(SqliteDatabase database, IItemDoma
             {
                 "equipment" => new MailAsset.Equipment(new ItemIdentity(checked((int)r.GetInt64(2)))),
                 "gold" => new MailAsset.Gold(r.GetInt32(5)),
+                "token_cera" => new MailAsset.TokenCera(r.GetInt32(5)),
                 _ => new MailAsset.Stackable(r.GetInt32(3), r.GetInt32(4))
             };
             return new MailAttachment(r.GetInt64(0), asset, r.GetInt32(6) != 0, kind == "legacy");

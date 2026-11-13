@@ -65,10 +65,10 @@ internal sealed class AuctionLotHandling(
                 var display = item.Snapshot with { Count = carried.Count };
                 return new(item.ItemId, carried.Count, item.IsPile, 0, display, carried.Slot, container, item);
             case AuctionLotSource.Gold gold when market == AuctionMarket.GoldConsignment:
-                if (gold.Amount <= 0 || gold.TierItemId <= 0) throw new AuctionRefusedException(AuctionRefusal.NotEligible);
-                if (await characters.Get(seller).GoldAsync(ct).ConfigureAwait(false) < gold.Amount)
+                var amount = rules.ConsignmentTierGold(gold.TierItemId) ?? throw new AuctionRefusedException(AuctionRefusal.NotEligible);
+                if (await characters.Get(seller).GoldAsync(ct).ConfigureAwait(false) < amount)
                     throw new AuctionRefusedException(AuctionRefusal.InsufficientFunds);
-                return new(gold.TierItemId, 1, false, gold.Amount, null, null, null, null);
+                return new(gold.TierItemId, 1, false, amount, null, null, null, null);
             default:
                 throw new AuctionRefusedException(AuctionRefusal.NotEligible);
         }
@@ -101,18 +101,21 @@ internal sealed class AuctionLotHandling(
                 : new MailAsset.Equipment(record.ItemUid ?? throw new InvalidDataException("Held equipment has no identity."));
             if (record.IsPile) builder.AddStackable(record.ItemId, record.Count); else builder.AddEquipment(record.ItemUid!.Value);
             prepared.Add(new(asset, [record]));
+            var itemMail = builder.Build();
+            _ = await mailbox.SendPreparedAsync(itemMail, Align(itemMail, prepared), ct).ConfigureAwait(false);
+            // Gold beside an item goes in a letter of its own. The client lists every attachment as
+            // its own row with a gold field, so an item and its deposit in one letter show a "0 gold"
+            // item row next to the gold row; each claims separately anyway (user test, 2026-11-13).
+            if (gold > 0) await SendGoldAsync(recipient, gold, AuctionLetters.DepositReturned(gold), ct).ConfigureAwait(false);
+            return;
         }
-        else
-        {
-            gold = checked(gold + listing.GoldAmount);
-        }
-        if (gold > 0)
-        {
-            builder.AddGold(gold);
-            prepared.Add(new(new MailAsset.Gold(gold)));
-        }
-        var mail = builder.Build();
-        _ = await mailbox.SendPreparedAsync(mail, Align(mail, prepared), ct).ConfigureAwait(false);
+        await SendGoldAsync(recipient, checked(gold + listing.GoldAmount), letter.Body(listing), ct).ConfigureAwait(false);
+    }
+
+    private async ValueTask SendGoldAsync(CharacterId recipient, int gold, string body, CancellationToken ct)
+    {
+        var mail = MailBuilder.FromSystem(recipient).WithText(AuctionLetters.Title, body).AddGold(gold).Build();
+        _ = await mailbox.SendPreparedAsync(mail, [new PreparedMailAttachment(mail.Attachments[0])], ct).ConfigureAwait(false);
     }
 
     /// <summary>The prepared attachments in the mail's own attachment order, each against the asset value the mail holds.</summary>
@@ -164,11 +167,11 @@ internal sealed class AuctionPurse(
         var net = checked((int)(price - fee));
         if (listing.Market == AuctionMarket.GoldConsignment)
         {
-            // #322 D1: the seller is paid in token Cera straight to the account; the letter only tells.
-            _ = await wallets.AddAsync(listing.SellerAccount, AccountCurrency.TokenCera, net, ct).ConfigureAwait(false);
-            var notice = MailBuilder.FromSystem(listing.Seller)
-                .WithText(AuctionLetters.Title, AuctionLetters.ConsignmentSold(listing, price, fee, net)).Build();
-            _ = await mailbox.SendPreparedAsync(notice, [], ct).ConfigureAwait(false);
+            // As 70 makeSuccessfulBid does for its point auction: the seller is mailed a token Cera
+            // voucher for the net amount, credited to the account when claimed (user decision 2026-11-13).
+            var voucher = MailBuilder.FromSystem(listing.Seller)
+                .WithText(AuctionLetters.Title, AuctionLetters.ConsignmentSold(listing, price, fee, net)).AddTokenCera(net).Build();
+            _ = await mailbox.SendPreparedAsync(voucher, [new PreparedMailAttachment(voucher.Attachments[0])], ct).ConfigureAwait(false);
             return;
         }
         await SendGoldAsync(listing.Seller, checked(net + deposit),

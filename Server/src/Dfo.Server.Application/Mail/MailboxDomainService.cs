@@ -13,7 +13,7 @@ namespace Dfo.Server.Application.Mail;
 
 internal sealed class MailboxDomainService(IMailboxRepository repository, ICharacterDomainService characters,
     ICharacterTable owners, MailItemTransfers items, DomainTransactionScope transactions,
-    TimeProvider time, IEventService events) : IMailboxDomainService
+    TimeProvider time, IEventService events, Dfo.Server.Abstractions.Accounts.IAccountWalletDomainService wallets) : IMailboxDomainService
 {
     public ValueTask<MailSendReceipt> SendAsync(Dfo.Server.Data.Mail.Mail mail, CancellationToken cancellationToken = default) =>
         SendCoreAsync(mail, null, cancellationToken);
@@ -84,6 +84,11 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                         }
                         prepared.Add(new(asset));
                         break;
+                    case MailAsset.TokenCera:
+                        if (mail.Source.Character is not null || supplied is not null && supplied[index].Items.Count != 0)
+                            throw Error(MailFailure.InvalidMail);
+                        prepared.Add(new(asset));
+                        break;
                 }
             }
             var id = await repository.InsertAsync(mail, senderName, now, prepared, cancellationToken);
@@ -131,6 +136,12 @@ internal sealed class MailboxDomainService(IMailboxRepository repository, IChara
                     if ((long)after - before != gold.Amount) throw Error(MailFailure.GoldLimit);
                     changes.Add(new(recipient, null, 0, gold.Amount, after));
                     break;
+                case MailAsset.TokenCera voucher:
+                    if (!await repository.MarkClaimedAsync(attachmentId, cancellationToken)) throw Error(MailFailure.ConcurrentChange);
+                    var account = await owners.FindOwnerAsync(recipient, cancellationToken) ?? throw Error(MailFailure.CharacterNotFound);
+                    try { _ = await wallets.AddAsync(account, Dfo.Server.Abstractions.Accounts.AccountCurrency.TokenCera, voucher.Amount, cancellationToken); }
+                    catch (Dfo.Server.Abstractions.Accounts.WalletException) { throw Error(MailFailure.GoldLimit); }
+                    return new MailClaimReceipt(mail.Id, attachmentId, changes.ToImmutable()) { AccountCurrencyChanged = true };
             }
             return new MailClaimReceipt(mail.Id, attachmentId, changes.ToImmutable());
         }, cancellationToken);

@@ -539,8 +539,9 @@ internal static partial class StateSynchronizationPayloadCodec
         var summaries = new List<(CharacterMailboxMessageEntryState Message, CharacterMailboxAttachmentEntryState? Attachment, int Gold, long? GoldId, bool SeedOnly)>();
         foreach (var message in mailbox.Messages)
         {
+            // A token Cera voucher shows its amount in the row's gold field; the item only names it.
             foreach (var attachment in message.Attachments.Where(value => value.ItemTemplateId > 0 && value.ItemCount > 0))
-                summaries.Add((message, attachment, 0, null, false));
+                summaries.Add((message, attachment, attachment.ItemKind == "token_cera" ? attachment.ItemCount : 0, null, false));
             foreach (var gold in message.GoldAttachments)
                 summaries.Add((message, null, gold.Amount, gold.AttachmentId, false));
             // Old projection callers have no independent gold keys; preserve only their historical shape.
@@ -578,7 +579,8 @@ internal static partial class StateSynchronizationPayloadCodec
         bool seedOnly)
     {
         var hasItem = attachment is { ItemTemplateId: > 0, ItemCount: > 0 };
-        var core = hasItem ? DecodeMailboxCore(attachment!) : null;
+        var voucher = hasItem && attachment!.ItemKind == "token_cera";
+        var core = !hasItem ? null : voucher ? VoucherCore(attachment!.ItemTemplateId) : DecodeMailboxCore(attachment!);
         var messageId = checked((int)message.MessageId);
         uint claimWireId = hasItem ? MailboxIds.Attachment(attachment!.AttachmentId)
             : goldId is { } id ? MailboxIds.Attachment(id) : checked((uint)messageId);
@@ -589,7 +591,8 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(hasItem ? attachment!.ItemTemplateId : 0);
         writer.Write(hasItem ? (byte)1 : (byte)0);
 
-        var stackable = hasItem && string.Equals(attachment!.ItemKind, "stackable", StringComparison.OrdinalIgnoreCase);
+        // A token Cera voucher shows its amount on the icon too, as a pile count (user test 2026-11-13).
+        var stackable = voucher || hasItem && string.Equals(attachment!.ItemKind, "stackable", StringComparison.OrdinalIgnoreCase);
         var creature = hasItem && string.Equals(attachment!.ItemKind, "creature", StringComparison.OrdinalIgnoreCase);
         var avatar = hasItem && string.Equals(attachment!.ItemKind, "avatar", StringComparison.OrdinalIgnoreCase);
         writer.Write(hasItem ? (stackable ? attachment!.ItemCount : core!.Value) : 0);
@@ -638,6 +641,16 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(messageId); // Same parent key for all attachments and the body record.
         writer.Write((byte)0); // A21 terminal byte @0119952B; semantics pending.
     }
+
+    /// <summary>
+    /// A token Cera voucher is no item in custody, so it has no stored core: the row shows the voucher
+    /// item with value 0, and the amount goes in the row's gold field (reference server, live test on
+    /// the same executable) and in the icon's count.
+    /// </summary>
+    private static InventoryItemCoreState VoucherCore(int itemId) => new ItemSnapshot
+    {
+        ItemId = itemId, LegacyKind = 3, Type = ItemTraitClassification.For(3), IsPile = true, Count = 0,
+    }.ToCore();
 
     private static InventoryItemCoreState DecodeMailboxCore(CharacterMailboxAttachmentEntryState attachment)
     {

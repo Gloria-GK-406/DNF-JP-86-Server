@@ -76,7 +76,8 @@ public sealed class GameMailboxCommandHandler(ISelectedSessionDomainService sess
                             return new MailboxResult(Assets: projection with { Gold = await characters.Get(session.CharacterId).GoldAsync(ct) });
                         case MailboxOperation.Claim:
                             var claim = await unit.InvokeSelfSettlingAsync(t => mailbox.ClaimAsync(session.CharacterId, MailboxIds.DecodeAttachment(wireId), t), ct);
-                            return new MailboxResult(Assets: await assets.PrepareAsync(session.CharacterId, claim.Changes, ct));
+                            return new MailboxResult(Assets: await assets.PrepareAsync(session.CharacterId, claim.Changes, ct),
+                                WalletChanged: claim.AccountCurrencyChanged);
                         case MailboxOperation.Read:
                             if (action == 0)
                                 await unit.InvokeSelfSettlingAsync(async t => { await mailbox.DeleteAsync(session.CharacterId, wireId, t); return true; }, ct);
@@ -134,6 +135,10 @@ public sealed class GameMailboxCommandHandler(ISelectedSessionDomainService sess
         logger.LogInformation("Mailbox character={Character} operation={Operation} id={Id} action={Action} error={Error}", session.CharacterId, operation, wireId, action, error);
         if (error != 0) await outbox.RegisterCmdAsync(connection, reply, token);
         else await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]), new MailboxCompleted(session, reply, result), token);
+        // A claimed token Cera voucher changed the account wallet: show it after the claim reply.
+        if (error == 0 && result.WalletChanged)
+            await notifications.ProjectAsync(new NotificationAudience.TheseSessions([session]),
+                new Dfo.Server.Abstractions.Accounts.AccountWalletChanged(session.AccountId), token);
         return new(result, reply, (failure as MailException)?.Reason, failure);
 
         void DemandCurrent()

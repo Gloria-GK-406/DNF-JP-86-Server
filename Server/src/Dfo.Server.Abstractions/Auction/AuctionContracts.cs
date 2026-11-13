@@ -67,8 +67,8 @@ public abstract record AuctionLotSource
     /// <summary>A quantity of the item in one of the seller's carried slots, as the request names it.</summary>
     public sealed record CarriedItem(BusinessSlot Slot, int ItemId, int Count) : AuctionLotSource;
 
-    /// <summary>An amount of the seller's gold, sold as the consignment tier that names it.</summary>
-    public sealed record Gold(int Amount, int TierItemId) : AuctionLotSource;
+    /// <summary>The seller's gold, as much as the consignment tier item names.</summary>
+    public sealed record Gold(int TierItemId) : AuctionLotSource;
 }
 
 public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing);
@@ -246,6 +246,18 @@ public interface IAuctionRuleService
 
     /// <summary>Whether an item of <paramref name="family"/> belongs under the client's category node.</summary>
     bool InCategory(ushort category, AuctionItemFamily family);
+
+    /// <summary>The gold a consignment tier item stands for, or null when the item is not a tier.</summary>
+    int? ConsignmentTierGold(int tierItemId);
+
+    /// <summary>The price to measure a consignment against when the tier has no recent trade.</summary>
+    long ConsignmentReferencePrice(int gold);
+
+    /// <summary>
+    /// The fee rate for a consignment asking <paramref name="price"/> against the tier's recent
+    /// <paramref name="average"/>, or null when the price is too far below it to be listed.
+    /// </summary>
+    int? ConsignmentFeeRate(long price, long average, bool hasCoupon);
 }
 
 /// <summary>Where listings and trades are kept. Data operations only; every rule is the house's.</summary>

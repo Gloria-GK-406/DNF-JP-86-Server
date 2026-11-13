@@ -57,6 +57,13 @@ internal static class AuctionPayloadCodec
             }
             return new(metadata, pt, false, business, item, count, new(start, buyout, unit), hours);
         }
+        if (pt == 1 && body.Length == 28)
+        {
+            // Gold consignment (sender A21 VA 01056F50): pt, u8 0, u16 0, u32 tier item, u32 1,
+            // u32 -1, u32 price in Cera (-1 when the box was empty), u32 0, u32 hours.
+            return new(metadata, pt, false, default, I32(body, 4), 1, new(null, Price(body, 16)),
+                BinaryPrimitives.ReadUInt32LittleEndian(body[24..]));
+        }
         return Malformed();
 
         AuctionRegisterRequest Malformed() => new(metadata, pt, true, default, 0, 0, new(null, null), 0);
