@@ -101,7 +101,6 @@ public sealed class BlacklistListBuilderTests
         public ValueTask<bool> ExistsAsync(CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public int Limit(CharacterRelationKind kind) => 64;
     }
 
     private sealed class Identities(params CharacterPublicIdentity[] live) : ICharacterIdentityQueryDomainService

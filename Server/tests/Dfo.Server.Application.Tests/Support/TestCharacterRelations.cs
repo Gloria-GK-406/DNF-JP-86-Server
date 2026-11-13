@@ -50,7 +50,6 @@ internal sealed class TestCharacterRelations : ICharacterRelationQueryDomainServ
     public ValueTask<bool> ExistsAsync(CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
-    public int Limit(CharacterRelationKind kind) => 64;
 
     public ValueTask<CharacterPublicIdentity?> FindByNameAsync(byte[] name, CancellationToken cancellationToken) =>
         throw new NotSupportedException();

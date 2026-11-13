@@ -136,7 +136,6 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<bool> ExistsAsync(CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public int Limit(CharacterRelationKind kind) => 64;
     }
 
     /// <summary>Character 777 "pal" is a friend and 778 "foe" is blacklisted, both offline; only the selected character holds them.</summary>
@@ -160,7 +159,6 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<bool> ExistsAsync(CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public int Limit(CharacterRelationKind kind) => 64;
 
         public ValueTask<CharacterPublicIdentity?> FindByNameAsync(byte[] name, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

@@ -8,21 +8,14 @@ namespace Dfo.Server.Application.Relations;
 /// <summary>The one owner of character relations, behind both the read and the write face.</summary>
 /// <remarks>
 /// Passive: it keeps relations and answers what a change did, and never tells anyone. Its
-/// dependencies are held to the store, the identity read, the transaction and the clock by
-/// <c>RelationPassivityArchitectureTests</c>.
+/// dependencies are held to the store, the identity read, the relation rules, the transaction and
+/// the clock by <c>RelationPassivityArchitectureTests</c>.
 /// </remarks>
 internal sealed class CharacterRelationDomainService(ICharacterRelationDomainStore store,
-    ICharacterIdentityQueryDomainService identities, IDomainTransactionAccessor transactions, TimeProvider clock)
+    ICharacterIdentityQueryDomainService identities, ICharacterRelationRuleService rules,
+    IDomainTransactionAccessor transactions, TimeProvider clock)
     : ICharacterRelationDomainService, ICharacterRelationQueryDomainService
 {
-    /// <summary>The client's friend and blacklist windows both hold 64 (research/client-evidence.md, RQ-002); the only place the number is kept.</summary>
-    private const int ClientListLimit = 64;
-
-    public int Limit(CharacterRelationKind kind) => kind switch
-    {
-        CharacterRelationKind.Friend or CharacterRelationKind.Blacklist => ClientListLimit,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a relation kind."),
-    };
 
     public ValueTask<IReadOnlyList<CharacterRelation>> ListAsync(
         CharacterId owner, CharacterRelationKind kind, CancellationToken cancellationToken) =>
@@ -45,7 +38,7 @@ internal sealed class CharacterRelationDomainService(ICharacterRelationDomainSto
         CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken)
     {
         RequireWritable();
-        var limit = Limit(kind);
+        var capacity = rules.Capacity(kind);
         if (owner == target) return CharacterRelationAddOutcome.Self;
         var live = await identities.ReadAsync([owner, target], cancellationToken).ConfigureAwait(false);
         if (!live.ContainsKey(owner))
@@ -53,7 +46,7 @@ internal sealed class CharacterRelationDomainService(ICharacterRelationDomainSto
         if (!live.ContainsKey(target)) return CharacterRelationAddOutcome.TargetMissing;
         if (await store.ExistsAsync(owner, target, kind, cancellationToken).ConfigureAwait(false))
             return CharacterRelationAddOutcome.AlreadyPresent;
-        if (await store.CountAsync(owner, kind, cancellationToken).ConfigureAwait(false) >= limit)
+        if (await store.CountAsync(owner, kind, cancellationToken).ConfigureAwait(false) >= capacity)
             return CharacterRelationAddOutcome.Full;
         return await store.InsertAsync(owner, target, kind, clock.GetUtcNow(), cancellationToken).ConfigureAwait(false)
             ? CharacterRelationAddOutcome.Added
@@ -77,7 +70,7 @@ internal sealed class CharacterRelationDomainService(ICharacterRelationDomainSto
 
     private CharacterRelationKind Known(CharacterRelationKind kind)
     {
-        _ = Limit(kind);
+        _ = rules.Capacity(kind);
         return kind;
     }
 

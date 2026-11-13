@@ -69,8 +69,6 @@ public interface ICharacterRelationQueryDomainService
     ValueTask<bool> ExistsAsync(
         CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken);
 
-    /// <summary>How many relations of that kind one owner may hold.</summary>
-    int Limit(CharacterRelationKind kind);
 }
 
 /// <summary>Changes relations. Every write, a GM's included, goes through here.</summary>

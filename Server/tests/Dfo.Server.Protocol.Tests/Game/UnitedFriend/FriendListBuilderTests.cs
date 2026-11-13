@@ -179,7 +179,6 @@ public sealed class FriendListBuilderTests
         public ValueTask<bool> ExistsAsync(CharacterId owner, CharacterId target, CharacterRelationKind kind, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
-        public int Limit(CharacterRelationKind kind) => 64;
     }
 
     private sealed class FakeIdentities(IReadOnlyDictionary<CharacterId, CharacterPublicIdentity> live) : ICharacterIdentityQueryDomainService

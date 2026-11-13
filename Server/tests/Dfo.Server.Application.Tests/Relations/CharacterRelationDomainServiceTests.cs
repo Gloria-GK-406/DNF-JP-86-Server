@@ -50,7 +50,7 @@ public sealed class CharacterRelationDomainServiceTests
     public async Task The_limit_admits_the_last_place_and_refuses_the_next_without_writing(CharacterRelationKind kind)
     {
         await using var f = new RelationFixture();
-        var limit = f.Query.Limit(kind);
+        var limit = f.Services.GetRequiredService<ICharacterRelationRuleService>().Capacity(kind);
         Assert.Equal(64, limit);
         f.Relate(A, f.AddLiveCharacters(limit - 1), kind);
 

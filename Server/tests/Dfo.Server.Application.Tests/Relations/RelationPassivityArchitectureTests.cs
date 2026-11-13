@@ -16,8 +16,8 @@ namespace Dfo.Server.Application.Tests.Relations;
 /// <remarks>
 /// A relation service that could send or raise events would have two places deciding who hears about
 /// a change, and the protocol paths that already push would push twice. So its constructor may take
-/// exactly the store, the identity read, the transaction accessor and the clock, and nothing it reaches
-/// may be a way to notify. Each rule has a case that feeds it a violation, so a rule that lets
+/// exactly the store, the identity read, the relation rules, the transaction accessor and the clock,
+/// and nothing it reaches may be a way to notify. Each rule has a case that feeds it a violation, so a rule that lets
 /// everything through cannot pass for a clean repository.
 /// </remarks>
 public sealed class RelationPassivityArchitectureTests
@@ -25,7 +25,7 @@ public sealed class RelationPassivityArchitectureTests
     private static readonly Type[] Allowed =
     [
         typeof(ICharacterRelationDomainStore), typeof(ICharacterIdentityQueryDomainService),
-        typeof(IDomainTransactionAccessor), typeof(TimeProvider),
+        typeof(ICharacterRelationRuleService), typeof(IDomainTransactionAccessor), typeof(TimeProvider),
     ];
 
     /// <summary>Ways to tell someone something: events, notifications, projections, outboxes and senders.</summary>
@@ -40,7 +40,7 @@ public sealed class RelationPassivityArchitectureTests
             .Select(x => $"{implementation.Name} takes {x.Name}").ToArray();
 
     [Fact]
-    public void The_relation_service_takes_only_its_store_the_identity_read_the_transaction_and_the_clock() =>
+    public void The_relation_service_takes_only_its_store_the_identity_read_its_rules_the_transaction_and_the_clock() =>
         Assert.Empty(ConstructorViolations(typeof(CharacterRelationDomainService)));
 
     [Fact]
@@ -82,6 +82,7 @@ public sealed class RelationPassivityArchitectureTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<ICharacterIdentityQueryDomainService, AnnouncingIdentities>();
+        services.AddSingleton<ICharacterRelationRuleService>(TestRequired.Absent<ICharacterRelationRuleService>());
         services.AddSingleton(TestRequired.Absent<IEventService>());
         using var provider = services.BuildServiceProvider();
         Assert.Equal(["CharacterRelationDomainService reaches IEventService"],
