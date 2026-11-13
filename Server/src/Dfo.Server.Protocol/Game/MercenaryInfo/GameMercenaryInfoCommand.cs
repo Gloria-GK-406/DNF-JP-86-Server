@@ -1,6 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
@@ -16,7 +16,7 @@ public sealed record GameMercenaryInfoCommand(NetworkDispatchContext Dispatch, M
 
 public sealed class GameMercenaryInfoCommandHandler(
     IGameCommandOutbox sender,
-    ISelectedSessionDomainService sessions,
+    IOnlineUserQueryDomainService onlineUsers,
     IAdventureGroupDomainService adventureGroups,
     ILogger<MercenaryInfoHandler> logger) : ICommandHandler<GameMercenaryInfoCommand, bool>
 {
@@ -24,11 +24,13 @@ public sealed class GameMercenaryInfoCommandHandler(
         GameMercenaryInfoCommand command, CancellationToken cancellationToken)
     {
         var context = command.Dispatch; var message = command.Input;
-        // The account's adventure group when the connection has a selected character; nothing to
-        // count otherwise.
-        var adventureGroup = sessions.FindByConnection(context.Connection.ConnectionId) is { } session
-            ? await adventureGroups.ReadAsync(session.AccountId, cancellationToken).ConfigureAwait(false)
-            : AdventureGroupStanding.None;
+        // The client asks on the roster screen as well as in town, so the answer is the
+        // authenticated account's, with or without a selected character. Nothing to count for a
+        // connection that has not logged in.
+        var adventureGroup = onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
+            && online?.AccountId is { } accountId
+                ? await adventureGroups.ReadAsync(accountId, cancellationToken).ConfigureAwait(false)
+                : AdventureGroupStanding.None;
         logger.LogInformation(
             "Mercenary info {ConnectionId}: adventure group level {Level}, {Point} points, empty mercenary roster",
             context.Connection.ConnectionId, adventureGroup.Level, adventureGroup.Point);
