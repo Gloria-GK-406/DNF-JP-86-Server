@@ -30,7 +30,9 @@ public sealed class CharacterEntryStateTests
             new Dfo.Server.Application.Tests.Support.CardPremiums(accountId.Value) { Enabled = blackDiamond }, new Dfo.Server.Application.Tests.Support.NoHerasEntries(), creatureStore: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>(), altars: TestRequired.Absent<Dfo.Server.Abstractions.World.IAltarDungeonDomainService>(), tournaments: TestRequired.Absent<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>(), clientSettings: TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>(), goldSilverHorn: TestRequired.Absent<Dfo.Server.Abstractions.World.IGoldSilverHornDomainService>((method, _) => method.Name == "ReadQuotaAsync" ? ValueTask.FromResult(new Dfo.Server.Abstractions.World.GoldSilverHornQuotaSnapshot(5555, default, 0, 1)) : null), nameTags: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>(), stores: new Dfo.Server.Application.Characters.AmbientStoreAccess(TestRequired.TransactionScope()),
             adventureGroups: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>((method, arguments) =>
                 method.Name == "ReadAsync" && (AccountId)arguments![0]! == accountId
-                    ? ValueTask.FromResult(new AdventureGroupStanding(3, 21570)) : null));
+                    ? ValueTask.FromResult(new AdventureGroupStanding(3, 21570)) : null),
+            privateStores: TestRequired.Absent<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService>((method, arguments) =>
+                method.Name == "IsPermittedAsync" ? ValueTask.FromResult(false) : null));
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 

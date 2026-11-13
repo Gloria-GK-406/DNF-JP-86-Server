@@ -75,14 +75,14 @@ public sealed class GamePrivateStoreCommandHandler(
                     await CloseAsync(context, recipient, replyType, ct).ConfigureAwait(false);
                     break;
                 case PrivateStoreSimpleRequest { Type: ClientMessageType.GamePrivateStoreEnter } enter:
-                    await EnterAsync(session, enter.Owner, ct).ConfigureAwait(false);
+                    await EnterAsync(context, recipient, enter.Owner, ct).ConfigureAwait(false);
                     break;
                 case PrivateStoreSimpleRequest { Type: ClientMessageType.GamePrivateStoreExit }:
                     storeQuery.Leave(session.CharacterId);
                     await outbox.RegisterCmdAsync(connection, new PrivateStoreReply(replyType, []), ct).ConfigureAwait(false);
                     break;
                 case PrivateStoreLineRequest { Buy: false } verify:
-                    await VerifyAsync(session, verify, ct).ConfigureAwait(false);
+                    await VerifyAsync(context, recipient, verify, ct).ConfigureAwait(false);
                     break;
                 case PrivateStoreLineRequest buy:
                     await BuyAsync(context, recipient, buy, ct).ConfigureAwait(false);
@@ -133,12 +133,12 @@ public sealed class GamePrivateStoreCommandHandler(
             }
         }, ct).ConfigureAwait(false);
         if (refusal != PrivateStoreRefusal.None) throw new PrivateStoreRefusedException(refusal);
-        logger.LogInformation("Private store displayed character={Character} lines={Lines}", session.CharacterId.Value, view!.Lines.Count);
+        logger.LogInformation("Private store displayed character={Character} lines={Lines}", session.CharacterId.Value, display.Lines.Count);
         _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new PrivateStoreCompleted(session, new PrivateStoreReply(ServerMessageType.GamePrivateStoreCompleteDisplay, [0]), projection!), ct)
             .ConfigureAwait(false);
-        await ToAreaAsync(view, new PrivateStoreNotice(ServerMessageType.GamePrivateStoreTitle,
-            PrivateStorePayloadCodec.Title(session.WireUserId, view.Title!)), ct).ConfigureAwait(false);
+        await ToAreaAsync(view!, new PrivateStoreNotice(ServerMessageType.GamePrivateStoreTitle,
+            PrivateStorePayloadCodec.Title(session.WireUserId, view!.Title!)), ct).ConfigureAwait(false);
     }
 
     private async ValueTask CloseAsync(CommandExecutionContext context, SelectedSessionRecipient recipient, ServerMessageType replyType,
@@ -167,21 +167,30 @@ public sealed class GamePrivateStoreCommandHandler(
             PrivateStorePayloadCodec.Closed(session.WireUserId)), ct).ConfigureAwait(false);
     }
 
-    private async ValueTask EnterAsync(SelectedSessionIdentity visitor, ushort ownerWireId, CancellationToken ct)
+    private async ValueTask EnterAsync(CommandExecutionContext context, SelectedSessionRecipient recipient, ushort ownerWireId,
+        CancellationToken ct)
     {
+        var visitor = recipient.Session;
         if (!sessions.TryGetInWorld(ownerWireId, out var owner) || storeQuery.Find(owner.CharacterId) is not { Displayed: true } store
             || townAreas.Find(visitor.CharacterId) is not { } here || here.Area.ChannelId != store.Spot.ChannelId
             || here.Area.TownId != store.Spot.TownId || here.Area.AreaId != store.Spot.AreaId)
             throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchStore);
+        var goods = await units.ReadOnlyAsync(context, new("private-store-enter", [recipient]),
+            token => stores.ReadGoodsAsync(owner.CharacterId, token), ct).ConfigureAwait(false);
         storeQuery.Enter(visitor.CharacterId, owner.CharacterId);
         await outbox.RegisterCmdAsync(visitor.ConnectionId, new PrivateStoreReply(ServerMessageType.GamePrivateStoreEnter,
-            PrivateStorePayloadCodec.Lines(ownerWireId, store.Lines)), ct).ConfigureAwait(false);
+            PrivateStorePayloadCodec.Lines(ownerWireId, goods)), ct).ConfigureAwait(false);
     }
 
-    private async ValueTask VerifyAsync(SelectedSessionIdentity visitor, PrivateStoreLineRequest verify, CancellationToken ct)
+    private async ValueTask VerifyAsync(CommandExecutionContext context, SelectedSessionRecipient recipient, PrivateStoreLineRequest verify,
+        CancellationToken ct)
     {
-        if (storeQuery.Visiting(visitor.CharacterId) is not { } owner || storeQuery.Find(owner) is not { } store
-            || store.Lines.FirstOrDefault(line => line.DisplaySlot == verify.DisplaySlot) is not { } line)
+        var visitor = recipient.Session;
+        if (storeQuery.Visiting(visitor.CharacterId) is not { } owner)
+            throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchItem);
+        var goods = await units.ReadOnlyAsync(context, new("private-store-verify", [recipient]),
+            token => stores.ReadGoodsAsync(owner, token), ct).ConfigureAwait(false);
+        if (goods.FirstOrDefault(line => line.DisplaySlot == verify.DisplaySlot) is not { } line)
             throw new PrivateStoreRefusedException(PrivateStoreRefusal.NoSuchItem);
         await outbox.RegisterCmdAsync(visitor.ConnectionId, new PrivateStoreReply(ServerMessageType.GamePrivateStoreVerify,
             PrivateStorePayloadCodec.Line(line)), ct).ConfigureAwait(false);

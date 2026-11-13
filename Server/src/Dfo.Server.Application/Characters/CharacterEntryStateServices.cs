@@ -236,7 +236,8 @@ internal sealed class CharacterEntryStateDomainService(
     IAltarDungeonDomainService altars, ITournamentDungeonDomainService tournaments,
     IClientSettingsDomainService clientSettings,
     IGoldSilverHornDomainService goldSilverHorn, ICharacterNameTagDomainService nameTags,
-    IAdventureGroupDomainService adventureGroups) : ICharacterEntryStateDomainService
+    IAdventureGroupDomainService adventureGroups,
+    Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService privateStores) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
@@ -265,17 +266,11 @@ internal sealed class CharacterEntryStateDomainService(
             if (definition?.HasSpecialRewardStatus == true)
                 specialRewardQuestIds.Add(clearFlag.SlotIndex);
         }
-        async ValueTask<bool> HasPrivateStorePermissionAsync(Dfo.Server.Data.Accounts.AccountId account, CancellationToken ct)
-        {
-            foreach (var identity in PrivateStorePermission.Identities)
-                if (await premiums.For(account).IsActiveAsync(identity, ct).ConfigureAwait(false)) return true;
-            return false;
-        }
         var publicState = profile.Public with
         {
             HasBlackDiamond = await premiums.For(accountId)
                 .IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false),
-            HasPrivateStorePermission = await HasPrivateStorePermissionAsync(accountId, cancellationToken).ConfigureAwait(false),
+            HasPrivateStorePermission = await privateStores.IsPermittedAsync(accountId, cancellationToken).ConfigureAwait(false),
             Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,

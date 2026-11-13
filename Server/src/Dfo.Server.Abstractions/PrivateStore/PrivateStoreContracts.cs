@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
@@ -44,14 +45,13 @@ public sealed record PrivateStoreDisplayLine(byte DisplaySlot, long UnitPrice, B
 /// <param name="Snapshot">The item as held in custody; for a pile its count is what is left.</param>
 public sealed record PrivateStoreLine(byte DisplaySlot, long UnitPrice, ItemSnapshot Snapshot);
 
-/// <summary>An open stall as anyone may see it.</summary>
+/// <summary>An open stall as anyone may see it; its goods are read from custody (<see cref="IPrivateStoreDomainService.ReadGoodsAsync"/>).</summary>
 /// <param name="Doll">The stall is kept by a shop doll: the seller may walk away and is paid by mail.</param>
 public sealed record PrivateStoreView(
     SelectedSessionIdentity Owner,
     PrivateStoreSpot Spot,
     bool Doll,
-    byte[]? Title,
-    IReadOnlyList<PrivateStoreLine> Lines)
+    byte[]? Title)
 {
     public bool Displayed => Title is not null;
 }
@@ -91,6 +91,9 @@ public interface IPrivateStoreDomainService
     /// <summary>Takes the stall down; unsold goods go back to the bag, or by mail when they do not fit.</summary>
     ValueTask<PrivateStoreClosure?> CloseAsync(SelectedSessionIdentity owner, CancellationToken ct);
 
+    /// <summary>The goods on a displayed stall, as custody holds them; empty when the stall is not up.</summary>
+    ValueTask<IReadOnlyList<PrivateStoreLine>> ReadGoodsAsync(CharacterId owner, CancellationToken ct);
+
     ValueTask<PrivateStorePurchase> BuyAsync(SelectedSessionIdentity buyer, CharacterId seller, byte displaySlot, int count, CancellationToken ct);
 
     /// <summary>Mails back goods of stalls whose seller is no longer there to keep them.</summary>
@@ -100,6 +103,9 @@ public interface IPrivateStoreDomainService
 /// <summary>Reads stalls; a domain service so notification handlers may ask it.</summary>
 public interface IPrivateStoreQueryDomainService
 {
+    /// <summary>Whether the account may put up a stall without a shop doll; the one place this is decided.</summary>
+    ValueTask<bool> IsPermittedAsync(AccountId account, CancellationToken ct);
+
     PrivateStoreView? Find(CharacterId owner);
 
     /// <summary>The displayed stalls standing in the town area.</summary>

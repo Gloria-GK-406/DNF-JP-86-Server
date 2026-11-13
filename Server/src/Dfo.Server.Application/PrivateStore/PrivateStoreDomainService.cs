@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Auction;
@@ -49,9 +50,9 @@ internal sealed class PrivateStoreDomainService(
         public PrivateStoreSpot Spot { get; } = spot;
         public BusinessSlot? DollSlot { get; } = doll;
         public int? DollItemId { get; } = dollItemId;
+        // Only what the stall is; its goods are custody's (private_store_custody), read when shown or bought.
         public byte[]? Title { get; set; }
-        public List<PrivateStoreLine> Lines { get; set; } = [];
-        public PrivateStoreView View() => new(Owner, Spot, DollSlot is not null, Title, [.. Lines]);
+        public PrivateStoreView View() => new(Owner, Spot, DollSlot is not null, Title);
     }
 
     private readonly Lock gate = new();
@@ -73,7 +74,7 @@ internal sealed class PrivateStoreDomainService(
             if (held.Item is null || rules.DollCapacity(held.Item.ItemId) is null) throw Refuse(PrivateStoreRefusal.NotPermitted);
             dollItem = held.Item.ItemId;
         }
-        else if (!await PermittedAsync(owner, ct).ConfigureAwait(false))
+        else if (!await IsPermittedAsync(owner.AccountId, ct).ConfigureAwait(false))
             throw Refuse(PrivateStoreRefusal.NotPermitted);
         lock (gate)
         {
@@ -99,7 +100,6 @@ internal sealed class PrivateStoreDomainService(
         var ordinary = itemRules.EntitlementFor([]);
         var custody = Custody();
         var changes = new List<MailAssetChange>();
-        var laid = new List<PrivateStoreLine>();
         long total = 0;
         foreach (var line in lines.OrderBy(line => line.DisplaySlot))
         {
@@ -116,7 +116,6 @@ internal sealed class PrivateStoreDomainService(
             var record = await held.Container!.TakeAsync(item, count, ct).ConfigureAwait(false);
             await custody.AcceptPrivateStoreLineAsync(owner.CharacterId, line.DisplaySlot, line.UnitPrice, record, ct).ConfigureAwait(false);
             changes.Add(new MailAssetChange(owner.CharacterId, line.Source, item.ItemId, -count, null));
-            laid.Add(new PrivateStoreLine(line.DisplaySlot, line.UnitPrice, record.Snapshot));
         }
         if (stall.DollSlot is { } dollSlot)
         {
@@ -129,7 +128,6 @@ internal sealed class PrivateStoreDomainService(
         lock (gate)
         {
             stall.Title = title;
-            stall.Lines = laid;
             return (stall.View(), changes);
         }
     }
@@ -168,14 +166,15 @@ internal sealed class PrivateStoreDomainService(
         GameplayWriteAssertion.Writing(nameof(PrivateStoreDomainService) + "." + nameof(BuyAsync));
         RequireWritable();
         Stall stall;
-        PrivateStoreLine line;
         lock (gate)
         {
             if (!stalls.TryGetValue(seller, out var found) || !sessions.IsInWorld(found.Owner) || found.Title is null)
                 throw Refuse(PrivateStoreRefusal.NoSuchStore);
             stall = found;
-            line = stall.Lines.FirstOrDefault(value => value.DisplaySlot == displaySlot) ?? throw Refuse(PrivateStoreRefusal.NoSuchItem);
         }
+        var custody = Custody();
+        var line = (await custody.ReadPrivateStoreLinesAsync(seller, ct).ConfigureAwait(false))
+            .FirstOrDefault(value => value.DisplaySlot == displaySlot) ?? throw Refuse(PrivateStoreRefusal.NoSuchItem);
         if (stall.Owner.AccountId == buyer.AccountId) throw Refuse(PrivateStoreRefusal.OwnStore);
         var amount = line.Snapshot.IsPile ? count : 1;
         if (amount <= 0 || amount > line.Snapshot.Count) throw Refuse(PrivateStoreRefusal.NoSuchItem);
@@ -195,20 +194,16 @@ internal sealed class PrivateStoreDomainService(
             sellerGold = await account.AddGoldAsync((int)(price - fee), ct).ConfigureAwait(false);
             if ((long)sellerGold - before != price - fee) throw Refuse(PrivateStoreRefusal.SellerGoldLimit);
         }
-        var record = await Custody().TakePrivateStoreLineAsync(seller, displaySlot, amount, ct).ConfigureAwait(false);
+        var record = await custody.TakePrivateStoreLineAsync(seller, displaySlot, amount, ct).ConfigureAwait(false);
         var changes = new List<MailAssetChange> { new(buyer.CharacterId, null, 0, -(int)price, buyerGold) };
         if (!await TryPutAsync(buyer.CharacterId, record, changes, ct).ConfigureAwait(false)) throw Refuse(PrivateStoreRefusal.NoRoom);
-        int remaining;
-        PrivateStoreView view;
-        lock (gate)
-        {
-            remaining = line.Snapshot.Count - amount;
-            stall.Lines = stall.Lines.Select(value => value.DisplaySlot != displaySlot ? value
-                    : value with { Snapshot = value.Snapshot with { Count = remaining } })
-                .Where(value => value.DisplaySlot != displaySlot || remaining > 0).ToList();
-            view = stall.View();
-        }
-        return new(view, displaySlot, amount, remaining, price, fee, buyerGold, sellerGold, record.Snapshot, changes);
+        return new(stall.View(), displaySlot, amount, line.Snapshot.Count - amount, price, fee, buyerGold, sellerGold, record.Snapshot, changes);
+    }
+
+    public async ValueTask<IReadOnlyList<PrivateStoreLine>> ReadGoodsAsync(CharacterId owner, CancellationToken ct)
+    {
+        if (Find(owner) is not { Displayed: true }) return [];
+        return await Custody().ReadPrivateStoreLinesAsync(owner, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<int> ReturnAbandonedAsync(int limit, CancellationToken ct)
@@ -236,6 +231,19 @@ internal sealed class PrivateStoreDomainService(
     }
 
     // ---- Read face -----------------------------------------------------------------------------
+
+    /// <remarks>
+    /// The trade licence (premium 8, item 16; 70 IsPermissionPrivateStore reads premium 8) or the
+    /// auction coupon, whose PVF explanation includes the licence (user decision #43 P1).
+    /// </remarks>
+    public async ValueTask<bool> IsPermittedAsync(AccountId account, CancellationToken ct)
+    {
+        foreach (var identity in PermittingPremiums)
+            if (await premiums.For(account).IsActiveAsync(identity, ct).ConfigureAwait(false)) return true;
+        return false;
+    }
+
+    private static readonly PremiumServiceType[] PermittingPremiums = [PremiumServiceType.PrivateStoreLicense, PremiumServiceType.AuctionCoupon];
 
     public PrivateStoreView? Find(CharacterId owner)
     {
@@ -279,12 +287,6 @@ internal sealed class PrivateStoreDomainService(
         lock (gate) return stalls.TryGetValue(owner.CharacterId, out var stall) && stall.Owner == owner ? stall : null;
     }
 
-    private async ValueTask<bool> PermittedAsync(SelectedSessionIdentity owner, CancellationToken ct)
-    {
-        foreach (var identity in PrivateStorePermission.Identities)
-            if (await premiums.For(owner.AccountId).IsActiveAsync(identity, ct).ConfigureAwait(false)) return true;
-        return false;
-    }
 
     private async ValueTask<(IBusinessItemContainer? Container, ItemReference? Item)> CarriedAsync(CharacterId owner, BusinessSlot slot,
         CancellationToken ct)
