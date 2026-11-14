@@ -49,7 +49,7 @@ decision: manual_required
 | SC-9 受信代理（#305）全部验收，两侧 | 有证据 | `GmTrustedProxyHttpTests`、`GmWebOptionsTests`、`GateHttpHostTests`（TASK-02）；玩家侧 AC-031/032（TASK-03） |
 | SC-10 前端页面与手机宽度 | 有证据 | 前端 195 例；浏览器 `07-mobile-account.jpg`、`08-mobile-mail.jpg`（375px，scrollWidth 等于 clientWidth，无横向滚动） |
 | SC-11 GM 原有功能不变、零警告 | 有证据（附说明） | 零警告构建；GM 相关测试全部通过；全量中两例非本分支失败已如上归因；GM 概览回归已由 remediation 1 修复 |
-| SC-12 用当前主干库准备用户测试并交付 | 未完成 | 已完成：用户副本 `artifacts/player-portal-329/db/user/dfo-server.db`（主干 Release 库的 backup 副本，已迁到 v7，账号 4、角色 9，与原库一致，原库未变，TASK-07）；启动脚本 `run-user-server.sh`；流程文档 `Document/tasks/player-self-service-portal/用户测试流程.md`。**测试服尚未启动**：UDP 12311/12312 被另一会话的 41xxx 测试服占用，需要用户决定 |
+| SC-12 用当前主干库准备用户测试并交付 | 用户已验收（范围有限，见文末） | 已完成：用户副本 `artifacts/player-portal-329/db/user/dfo-server.db`（主干 Release 库的 backup 副本，已迁到 v7，账号 4、角色 9，与原库一致，原库未变，TASK-07）；启动脚本 `run-user-server.sh`；流程文档 `Document/tasks/player-self-service-portal/用户测试流程.md`。**测试服尚未启动**：UDP 12311/12312 被另一会话的 41xxx 测试服占用，需要用户决定 |
 | SC-13 迁移结构一致、默认关闭、审计归 gm | 有证据 | `Tool/DbMigrate.Tests` 30/30，含结构一致性与 `PlayerPortalMigrationTests`；两份主干库副本实际迁移结果（TASK-07） |
 
 ## 共享决定的落地差异（勘误）
@@ -64,3 +64,12 @@ decision: manual_required
 - **SC-5 / AC-011 在线部分**：在线角色在游戏客户端里实际收到玩家邮件，需要用户按测试流程第 8 步实机验证。
 - **SC-12 / AC-061**：用户测试服未启动，用户尚未验收。启动需先处理 UDP 端口占用；启动后要填写流程文档的"就绪情况"和交付提交号。
 - **变基（已完成，见 `reviews/rebase-1.md`、`reviews/rebase-review.md`）**：分支已变基到 `origin/main` `dbeba6aa7`，玩家后台迁移顺延为版本 9 → 10、步骤 `[9]`，独立复审 approved。变基后全量测试中唯一新增的失败 `GmGameplayRouteTests.Startup_writes_and_the_gm_bootstrap_run_as_startup_jobs` 是主干自身缺陷（`ContentWarmupTests.Participants` 缺 `auction-item-index`），与本分支无关。两份库副本已从原库重新生成并迁到 v10，用户测试服已在提交 `dda6fe28a` 的产物上启动。
+
+## 用户测试与裁定（2026-11-14）
+
+- 测试服在 `dda6fe28a` 的产物上运行，用的是主干库副本（v10）。用户反馈"happy path 没问题"，实测了发送邮件和加点券。
+- 用户原话："happy path没问题，测试我只测了发送邮件和点券。直接开pr把，有问题后续版本修"。
+- 结果与未覆盖项见 `Document/tasks/player-self-service-portal/用户测试流程.md`「用户测试结果」。
+- 本记录的 `decision` 仍为 `manual_required`。原因是 SC-5 的在线实机收信，以及流程中第 5、6、8–16 步没有用户实测。
+- 用户已明确接受这些残余风险，并授权开 PR。
+
