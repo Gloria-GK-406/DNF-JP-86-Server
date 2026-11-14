@@ -29,6 +29,7 @@ public sealed class PackageScript
 
     private readonly IReadOnlyList<Sym> _in;
     private readonly Func<int, string?> _removeReason;
+    private readonly Func<int, int, string?>? _abilityReason;
     private readonly List<Sym> _out = [];
 
     public List<Change> Changes { get; } = [];
@@ -40,15 +41,20 @@ public sealed class PackageScript
     public int RewardsAfter { get; private set; }
     public IReadOnlyList<Sym> Result => _out;
 
-    private PackageScript(IReadOnlyList<Sym> tokens, Func<int, string?> removeReason)
+    private PackageScript(IReadOnlyList<Sym> tokens, Func<int, string?> removeReason, Func<int, int, string?>? abilityReason)
     {
         _in = tokens;
         _removeReason = removeReason;
+        _abilityReason = abilityReason;
     }
 
-    public static PackageScript Repair(IReadOnlyList<Sym> tokens, Func<int, string?> removeReason)
+    /// <param name="abilityReason">
+    /// For <c>[booster info]</c> avatar rows: (item id, ability index) → why the row goes, or null to keep it. A random pool
+    /// grants exactly the row's ability (70: ext2 goes straight into the item); a selection's ability comes from the request.
+    /// </param>
+    public static PackageScript Repair(IReadOnlyList<Sym> tokens, Func<int, string?> removeReason, Func<int, int, string?>? abilityReason = null)
     {
-        var script = new PackageScript(tokens, removeReason);
+        var script = new PackageScript(tokens, removeReason, abilityReason);
         script.Walk();
         return script;
     }
@@ -90,8 +96,11 @@ public sealed class PackageScript
 
     private void Copy(int from, int to) { for (var k = from; k < to; k++) _out.Add(_in[k]); }
 
-    /// <summary>Filters (id, …) tuples of <paramref name="stride"/> ints; returns the kept tokens.</summary>
-    private List<Sym> Filter(int from, int to, int stride, string container, out int before, out int after)
+    /// <summary>
+    /// Filters (id, …) tuples of <paramref name="stride"/> ints; returns the kept tokens.
+    /// <paramref name="countAt"/> is the count's offset in a tuple; <paramref name="abilityAt"/> the avatar ability's, or -1.
+    /// </summary>
+    private List<Sym> Filter(int from, int to, int stride, string container, out int before, out int after, int countAt = 1, int abilityAt = -1)
     {
         var kept = new List<Sym>();
         before = 0; after = 0;
@@ -100,9 +109,9 @@ public sealed class PackageScript
             var id = _in[k].Value;
             before++;
             RewardIds.Add(id);
-            var reason = _removeReason(id);
+            var reason = _removeReason(id) ?? (abilityAt >= 0 ? _abilityReason?.Invoke(id, _in[k + abilityAt].Value) : null);
             if (reason is null) { after++; for (var s = 0; s < stride; s++) kept.Add(_in[k + s]); }
-            else Changes.Add(new(container, id, stride >= 2 ? _in[k + 1].Value : 0, reason));
+            else Changes.Add(new(container, id, _in[k + countAt].Value, reason));
         }
         RewardsBefore += before;
         RewardsAfter += after;
@@ -158,7 +167,7 @@ public sealed class PackageScript
             if (r >= close || !IsTag(_in[r], CloseOf(name))) return BoosterInfoVerbatim(mark, i, close, $"[booster info] {name}: closing tag missing");
             var stride = name is "[avatar]" or "[special avatar]" ? 5 : name == "[broadcast]" ? 4 : 3;
             if ((r - q) % stride != 0) return BoosterInfoVerbatim(mark, i, close, $"[booster info] {name}: {r - q} ints, not a multiple of {stride}");
-            var kept = Filter(q, r, stride, "[booster info] " + name, out var before, out var after);
+            var kept = Filter(q, r, stride, "[booster info] " + name, out var before, out var after, countAt: 2, abilityAt: stride == 5 ? 4 : -1);
             if (after == 0 && before > 0)
             {
                 emptied++;

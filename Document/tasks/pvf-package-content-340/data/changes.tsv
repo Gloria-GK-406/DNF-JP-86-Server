@@ -14,6 +14,14 @@ species		creature/creature.lst		167		added SDCharacterKR/SwordMan/SDCharacter_Sw
 species		creature/creature.lst		168		added SDCharacterKR/Thief/SDCharacter_Thief.cre (TW70 creature.lst)
 species		creature/creature.lst		172		added brown/brown.cre (in-archive .cre named name_0<species>)
 species		creature/creature.lst		477		added petit_skeleton_gold/petit_skeleton_gold_7.cre (in-archive .cre named name_0<species>)
+package	52	stackable/cash/wildavatar_bear.stk	[booster info] [special avatar]	40747	1	avatar ability 0 is not one the avatar declares
+package	52	stackable/cash/wildavatar_bear.stk	[booster info] [special avatar]	40734	1	avatar ability 0 is not one the avatar declares
+package	54	stackable/cash/wildavatar_giraffe.stk	[booster info] [special avatar]	48747	1	avatar ability 7 is not one the avatar declares
+package	54	stackable/cash/wildavatar_giraffe.stk	[booster info] [special avatar]	48747	1	avatar ability 9 is not one the avatar declares
+package	54	stackable/cash/wildavatar_giraffe.stk	[booster info] [special avatar]	48747	1	avatar ability 14 is not one the avatar declares
+package	54	stackable/cash/wildavatar_giraffe.stk	[booster info] [special avatar]	48734	1	avatar ability 7 is not one the avatar declares
+package	54	stackable/cash/wildavatar_giraffe.stk	[booster info] [special avatar]	48734	1	avatar ability 9 is not one the avatar declares
+package	54	stackable/cash/wildavatar_giraffe.stk	[booster info] [special avatar]	48734	1	avatar ability 14 is not one the avatar declares
 package	721	stackable/cash/prayer_greatsuccess2009sm1.stk	[package data]	63069	1	missing from equipment.lst and stackable.lst
 package	722	stackable/cash/prayer_greatsuccess2009sm2.stk	[package data]	63069	1	missing from equipment.lst and stackable.lst
 package	723	stackable/cash/prayer_greatsuccess2009ft1.stk	[package data]	63069	1	missing from equipment.lst and stackable.lst
@@ -26,11 +34,13 @@ package	729	stackable/cash/prayer_greatsuccess2009pr1.stk	[package data]	63069	1
 package	730	stackable/cash/prayer_greatsuccess2009pr2.stk	[package data]	63069	1	missing from equipment.lst and stackable.lst
 package	731	stackable/cash/prayer_greatsuccess2009atgn1.stk	[package data]	63069	1	missing from equipment.lst and stackable.lst
 package	732	stackable/cash/prayer_greatsuccess2009atgn2.stk	[package data]	63069	1	missing from equipment.lst and stackable.lst
-package	863	stackable/cash/package_random_hero.stk	[booster info] [creature]	63069	550	missing from equipment.lst and stackable.lst
-package	2660413	stackable/cash/package_randomcreature_2.stk	[booster info] [creature]	63069	1000	missing from equipment.lst and stackable.lst
-package	8209	stackable/event/eventserver/event_8209.stk	[booster info] [etc]	8459	1000	missing from equipment.lst and stackable.lst
+package	863	stackable/cash/package_random_hero.stk	[booster info] [creature]	63069	1	missing from equipment.lst and stackable.lst
+package	2660276	stackable/cash/booster_11hotsummer_sm1.stk	[booster info] [avatar]	40909	1	avatar ability 0 is not one the avatar declares
+package	2660277	stackable/cash/booster_11hotsummer_sm2.stk	[booster info] [avatar]	40913	1	avatar ability 0 is not one the avatar declares
+package	2660413	stackable/cash/package_randomcreature_2.stk	[booster info] [creature]	63069	1	missing from equipment.lst and stackable.lst
+package	8209	stackable/event/eventserver/event_8209.stk	[booster info] [etc]	8459	1	missing from equipment.lst and stackable.lst
 package	8209	stackable/event/eventserver/event_8209.stk	[booster info] [etc]			category emptied: category removed
-package	8211	stackable/event/ontime/event_8211.stk	[booster info] [etc]	8555	1000	missing from equipment.lst and stackable.lst
+package	8211	stackable/event/ontime/event_8211.stk	[booster info] [etc]	8555	1	missing from equipment.lst and stackable.lst
 package	8211	stackable/event/ontime/event_8211.stk	[booster info] [etc]			category emptied: category removed
 package	8556	stackable/event/bluemarble/gold.stk	[booster select category] 0 0 [avatar]	101520396	1	missing from equipment.lst and stackable.lst
 package	8556	stackable/event/bluemarble/gold.stk	[booster select category] 0 0 [avatar]			category emptied: category removed
@@ -122,32 +132,32 @@ package	10000155	stackable/event/creatormage/startupavatar.stk	[booster select c
 package	10000155	stackable/event/creatormage/startupavatar.stk	[booster select category] 5 0 [avatar]	106510472	1	missing from equipment.lst and stackable.lst
 package	10000155	stackable/event/creatormage/startupavatar.stk	[booster select category] 5 0 [avatar]	106540461	1	missing from equipment.lst and stackable.lst
 package	10000155	stackable/event/creatormage/startupavatar.stk	[booster select category] 5 0 [avatar]			category emptied: category removed
-package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560452	1000	missing from equipment.lst and stackable.lst
-package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560453	1000	missing from equipment.lst and stackable.lst
-package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560454	1000	missing from equipment.lst and stackable.lst
-package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560455	1000	missing from equipment.lst and stackable.lst
-package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560456	1000	missing from equipment.lst and stackable.lst
+package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560452	1	missing from equipment.lst and stackable.lst
+package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560453	1	missing from equipment.lst and stackable.lst
+package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560454	1	missing from equipment.lst and stackable.lst
+package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560455	1	missing from equipment.lst and stackable.lst
+package	10000117	stackable/10000117.stk	[booster info] [equipment]	106560456	1	missing from equipment.lst and stackable.lst
 package	10000117	stackable/10000117.stk	[booster info] [equipment]			category emptied: category removed
 package	10000117	stackable/10000117.stk	[booster info]			every category emptied: [booster info] removed
-package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500469	1000	missing from equipment.lst and stackable.lst
-package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500470	1000	missing from equipment.lst and stackable.lst
-package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500471	1000	missing from equipment.lst and stackable.lst
-package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500472	1000	missing from equipment.lst and stackable.lst
-package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500473	1000	missing from equipment.lst and stackable.lst
+package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500469	1	missing from equipment.lst and stackable.lst
+package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500470	1	missing from equipment.lst and stackable.lst
+package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500471	1	missing from equipment.lst and stackable.lst
+package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500472	1	missing from equipment.lst and stackable.lst
+package	10000119	stackable/10000119.stk	[booster info] [equipment]	106500473	1	missing from equipment.lst and stackable.lst
 package	10000119	stackable/10000119.stk	[booster info] [equipment]			category emptied: category removed
 package	10000119	stackable/10000119.stk	[booster info]			every category emptied: [booster info] removed
-package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510473	1000	missing from equipment.lst and stackable.lst
-package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510474	1000	missing from equipment.lst and stackable.lst
-package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510475	1000	missing from equipment.lst and stackable.lst
-package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510476	1000	missing from equipment.lst and stackable.lst
-package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510477	1000	missing from equipment.lst and stackable.lst
+package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510473	1	missing from equipment.lst and stackable.lst
+package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510474	1	missing from equipment.lst and stackable.lst
+package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510475	1	missing from equipment.lst and stackable.lst
+package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510476	1	missing from equipment.lst and stackable.lst
+package	10000120	stackable/10000120.stk	[booster info] [equipment]	106510477	1	missing from equipment.lst and stackable.lst
 package	10000120	stackable/10000120.stk	[booster info] [equipment]			category emptied: category removed
 package	10000120	stackable/10000120.stk	[booster info]			every category emptied: [booster info] removed
-package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540462	1000	missing from equipment.lst and stackable.lst
-package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540463	1000	missing from equipment.lst and stackable.lst
-package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540464	1000	missing from equipment.lst and stackable.lst
-package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540465	1000	missing from equipment.lst and stackable.lst
-package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540466	1000	missing from equipment.lst and stackable.lst
+package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540462	1	missing from equipment.lst and stackable.lst
+package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540463	1	missing from equipment.lst and stackable.lst
+package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540464	1	missing from equipment.lst and stackable.lst
+package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540465	1	missing from equipment.lst and stackable.lst
+package	10000121	stackable/10000121.stk	[booster info] [equipment]	106540466	1	missing from equipment.lst and stackable.lst
 package	10000121	stackable/10000121.stk	[booster info] [equipment]			category emptied: category removed
 package	10000121	stackable/10000121.stk	[booster info]			every category emptied: [booster info] removed
 package	10000576	stackable/10000576.stk	[booster select category] 0 0 [avatar]	101500634	1	missing from equipment.lst and stackable.lst
@@ -905,7 +915,7 @@ package	10000849	stackable/10000849.stk	[booster select category] 8 2 [avatar]	1
 package	10000849	stackable/10000849.stk	[booster select category] 8 2 [avatar]	108530501	1	missing from equipment.lst and stackable.lst
 package	10000849	stackable/10000849.stk	[booster select category] 8 2 [avatar]	108540498	1	missing from equipment.lst and stackable.lst
 package	10000849	stackable/10000849.stk	[booster select category] 8 2 [avatar]			category emptied: category removed
-package	10001567	stackable/10001567.stk	[booster info] [cera]	10001566	1000	missing from equipment.lst and stackable.lst
+package	10001567	stackable/10001567.stk	[booster info] [cera]	10001566	1	missing from equipment.lst and stackable.lst
 package	10001567	stackable/10001567.stk	[booster info] [cera]			category emptied: category removed
 package	10001567	stackable/10001567.stk	[booster info]			every category emptied: [booster info] removed
 package	10001805	stackable/10001805.stk	[booster select category] 2 0 [avatar]	112580020	1	missing from equipment.lst and stackable.lst
@@ -1187,7 +1197,7 @@ package	10012511	stackable/10012511.stk	[booster select category] 0 0 [equipment
 package	10012511	stackable/10012511.stk	[booster select category] 0 0 [equipment]	100331170	1	missing from equipment.lst and stackable.lst
 package	10012511	stackable/10012511.stk	[booster select category] 0 0 [equipment]	100331171	1	missing from equipment.lst and stackable.lst
 package	10012511	stackable/10012511.stk	[booster select category] 0 0 [equipment]	100331172	1	missing from equipment.lst and stackable.lst
-package	10087972	stackable/10087972.stk	[booster info] [stackable]	8346	1000	missing from equipment.lst and stackable.lst
+package	10087972	stackable/10087972.stk	[booster info] [stackable]	8346	1	missing from equipment.lst and stackable.lst
 package	10087972	stackable/10087972.stk	[booster info] [stackable]			category emptied: category removed
 package	10148824	stackable/10148824.stk	[booster select category] 0 0 [avatar]	101580076	1	missing from equipment.lst and stackable.lst
 package	10148824	stackable/10148824.stk	[booster select category] 0 0 [avatar]	101580075	1	missing from equipment.lst and stackable.lst
@@ -1358,50 +1368,50 @@ package	10148824	stackable/10148824.stk	[booster select category] 9 0 [avatar]	1
 package	10148824	stackable/10148824.stk	[booster select category] 9 0 [avatar]	109580068	1	missing from equipment.lst and stackable.lst
 package	10148824	stackable/10148824.stk	[booster select category] 9 0 [avatar]	109580068	1	missing from equipment.lst and stackable.lst
 package	10148824	stackable/10148824.stk	[booster select category] 9 0 [avatar]			category emptied: category removed
-package	2749863	stackable/event/chn_event_destroy_object_2013/chn_tera_weapon_box.stk	[booster info] [equipment]	29738	91	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675850	5263	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675851	5263	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675852	2632	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675853	2632	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675854	3846	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675855	3846	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675856	3846	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675857	3846	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675858	3846	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675859	3846	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675860	3333	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675861	3333	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675862	3333	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675863	3333	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675864	3333	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675865	4762	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675866	4762	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675867	2381	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675868	2381	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675869	2381	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675870	247	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675871	247	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675872	247	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675873	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675874	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675875	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675876	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675877	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675878	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675879	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675880	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675881	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675882	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675883	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675884	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675885	494	missing from equipment.lst and stackable.lst
-package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675886	494	missing from equipment.lst and stackable.lst
+package	2749863	stackable/event/chn_event_destroy_object_2013/chn_tera_weapon_box.stk	[booster info] [equipment]	29738	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675850	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675851	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675852	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675853	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675854	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675855	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675856	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675857	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675858	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675859	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675860	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675861	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675862	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675863	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675864	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675865	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675866	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675867	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675868	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675869	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675870	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675871	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675872	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675873	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675874	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675875	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675876	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675877	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675878	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675879	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675880	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675881	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675882	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675883	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675884	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675885	1	missing from equipment.lst and stackable.lst
+package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]	2675886	1	missing from equipment.lst and stackable.lst
 package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info] [etc]			category emptied: category removed
 package	690001045	stackable/event/chn_event_20131224_under_2000m/131205_opened_Emblem.stk	[booster info]			every category emptied: [booster info] removed
-package	10006659	stackable/event/chn_event_20151203_fishing/chn_low_grade_b_1_10006659.stk	[booster info] [etc]	10006663	9990	missing from equipment.lst and stackable.lst
-package	10006660	stackable/event/chn_event_20151203_fishing/chn_middle_grade_b_2_10006660.stk	[booster info] [etc]	10006663	9970	missing from equipment.lst and stackable.lst
-package	10006661	stackable/event/chn_event_20151203_fishing/chn_high_grade_b_3_10006661.stk	[booster info] [etc]	10006663	9950	missing from equipment.lst and stackable.lst
-package	10006662	stackable/event/chn_event_20151203_fishing/chn_top_grade_b_4_10006662.stk	[booster info] [etc]	10006663	9000	missing from equipment.lst and stackable.lst
+package	10006659	stackable/event/chn_event_20151203_fishing/chn_low_grade_b_1_10006659.stk	[booster info] [etc]	10006663	1	missing from equipment.lst and stackable.lst
+package	10006660	stackable/event/chn_event_20151203_fishing/chn_middle_grade_b_2_10006660.stk	[booster info] [etc]	10006663	1	missing from equipment.lst and stackable.lst
+package	10006661	stackable/event/chn_event_20151203_fishing/chn_high_grade_b_3_10006661.stk	[booster info] [etc]	10006663	1	missing from equipment.lst and stackable.lst
+package	10006662	stackable/event/chn_event_20151203_fishing/chn_top_grade_b_4_10006662.stk	[booster info] [etc]	10006663	1	missing from equipment.lst and stackable.lst
 package	490000484	stackable/event/chn_event_20160126_at_swordman_2nd_event/chn_box_weapon_plus_490000484.stk	[booster select category] 0 0 [equipment]	490000492	1	missing from equipment.lst and stackable.lst
 package	10151698	stackable/10151698.stk	[package data]	42619	1	missing from equipment.lst and stackable.lst
 package	10151699	stackable/10151699.stk	[package data]	42619	1	missing from equipment.lst and stackable.lst
@@ -1443,7 +1453,7 @@ package	10151734	stackable/10151734.stk	[package data]	58619	1	missing from equi
 package	10151735	stackable/10151735.stk	[package data]	58619	1	missing from equipment.lst and stackable.lst
 package	10151736	stackable/10151736.stk	[package data]	58619	1	missing from equipment.lst and stackable.lst
 package	10151737	stackable/10151737.stk	[package data]	58619	1	missing from equipment.lst and stackable.lst
-package	10151905	stackable/10151905.stk	[booster info] [etc]	10151836	1000	missing from equipment.lst and stackable.lst
+package	10151905	stackable/10151905.stk	[booster info] [etc]	10151836	1	missing from equipment.lst and stackable.lst
 package	10151905	stackable/10151905.stk	[booster info] [etc]			category emptied: category removed
 package	10153497	stackable/10153497.stk	[booster select category] 0 0 [avatar]	101551080	1	missing from equipment.lst and stackable.lst
 package	10153497	stackable/10153497.stk	[booster select category] 0 0 [avatar]	101561212	1	missing from equipment.lst and stackable.lst
@@ -1634,15 +1644,15 @@ package	10000891	stackable/10000891.stk	[booster select category] 8 0 [avatar]	1
 package	10000891	stackable/10000891.stk	[booster select category] 8 0 [avatar]	109540325	1	missing from equipment.lst and stackable.lst
 package	10000891	stackable/10000891.stk	[booster select category] 8 0 [avatar]	109580108	1	missing from equipment.lst and stackable.lst
 package	10000891	stackable/10000891.stk	[booster select category] 8 0 [avatar]			category emptied: category removed
-package	10015040	stackable/10015040.stk	[booster info] [etc]	8344	1000	missing from equipment.lst and stackable.lst
-package	10001051	stackable/10001051.stk	[booster info] [cera]	10001033	1000	missing from equipment.lst and stackable.lst
+package	10015040	stackable/10015040.stk	[booster info] [etc]	8344	1	missing from equipment.lst and stackable.lst
+package	10001051	stackable/10001051.stk	[booster info] [cera]	10001033	1	missing from equipment.lst and stackable.lst
 package	10001051	stackable/10001051.stk	[booster info] [cera]			category emptied: category removed
 package	10001051	stackable/10001051.stk	[booster info]			every category emptied: [booster info] removed
-package	10001557	stackable/10001557.stk	[booster info] [equipment]	100300496	1000	missing from equipment.lst and stackable.lst
+package	10001557	stackable/10001557.stk	[booster info] [equipment]	100300496	1	missing from equipment.lst and stackable.lst
 package	10001557	stackable/10001557.stk	[booster info] [equipment]			category emptied: category removed
-package	10001557	stackable/10001557.stk	[booster info] [equipment]	100310477	1000	missing from equipment.lst and stackable.lst
+package	10001557	stackable/10001557.stk	[booster info] [equipment]	100310477	1	missing from equipment.lst and stackable.lst
 package	10001557	stackable/10001557.stk	[booster info] [equipment]			category emptied: category removed
-package	10001557	stackable/10001557.stk	[booster info] [equipment]	100320497	1000	missing from equipment.lst and stackable.lst
+package	10001557	stackable/10001557.stk	[booster info] [equipment]	100320497	1	missing from equipment.lst and stackable.lst
 package	10001557	stackable/10001557.stk	[booster info] [equipment]			category emptied: category removed
 package	10001557	stackable/10001557.stk	[booster info]			every category emptied: [booster info] removed
 package	10012187	stackable/10012187.stk	[booster select category] 0 0 [etc]	100350302	1	missing from equipment.lst and stackable.lst
@@ -1868,49 +1878,49 @@ package	10001263	stackable/10001263.stk	[booster select category] 9 0 [avatar]	1
 package	10001263	stackable/10001263.stk	[booster select category] 9 0 [avatar]	109510229	1	missing from equipment.lst and stackable.lst
 package	10001263	stackable/10001263.stk	[booster select category] 9 0 [avatar]	109540252	1	missing from equipment.lst and stackable.lst
 package	10001263	stackable/10001263.stk	[booster select category] 9 0 [avatar]			category emptied: category removed
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012200	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012201	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012202	1000	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012203	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012204	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012205	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012206	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012207	1015	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012208	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012209	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012210	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012211	1000	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012212	9498	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012213	1000	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012214	1000	missing from equipment.lst and stackable.lst
-package	10012198	stackable/10012198.stk	[booster info] [etc]	10012215	5	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012200	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012201	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012202	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012203	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012204	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012205	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012206	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012207	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012208	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012209	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012210	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012211	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012212	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012213	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012214	1	missing from equipment.lst and stackable.lst
+package	10012198	stackable/10012198.stk	[booster info] [etc]	10012215	1	missing from equipment.lst and stackable.lst
 package	10012198	stackable/10012198.stk	[booster info] [etc]			category emptied: category removed
 package	10012198	stackable/10012198.stk	[booster info]			every category emptied: [booster info] removed
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012216	295	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012217	490	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012218	11900	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012219	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012220	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012221	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012222	11900	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012223	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012224	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012225	11900	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012226	11900	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012227	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012228	4000	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012229	11900	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012230	11705	missing from equipment.lst and stackable.lst
-package	10012199	stackable/10012199.stk	[booster info] [etc]	10012231	10	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012216	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012217	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012218	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012219	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012220	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012221	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012222	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012223	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012224	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012225	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012226	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012227	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012228	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012229	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012230	1	missing from equipment.lst and stackable.lst
+package	10012199	stackable/10012199.stk	[booster info] [etc]	10012231	1	missing from equipment.lst and stackable.lst
 package	10012199	stackable/10012199.stk	[booster info] [etc]			category emptied: category removed
 package	10012199	stackable/10012199.stk	[booster info]			every category emptied: [booster info] removed
-package	10012192	stackable/10012192.stk	[booster info] [etc]	10012265	1000	missing from equipment.lst and stackable.lst
+package	10012192	stackable/10012192.stk	[booster info] [etc]	10012265	1	missing from equipment.lst and stackable.lst
 package	10012192	stackable/10012192.stk	[booster info] [etc]			category emptied: category removed
-package	10012193	stackable/10012193.stk	[booster info] [etc]	10012265	1000	missing from equipment.lst and stackable.lst
+package	10012193	stackable/10012193.stk	[booster info] [etc]	10012265	1	missing from equipment.lst and stackable.lst
 package	10012193	stackable/10012193.stk	[booster info] [etc]			category emptied: category removed
-package	10012193	stackable/10012193.stk	[booster info] [etc]	10012261	1000	missing from equipment.lst and stackable.lst
+package	10012193	stackable/10012193.stk	[booster info] [etc]	10012261	1	missing from equipment.lst and stackable.lst
 package	10012193	stackable/10012193.stk	[booster info] [etc]			category emptied: category removed
-package	10012194	stackable/10012194.stk	[booster info] [etc]	10012265	1000	missing from equipment.lst and stackable.lst
+package	10012194	stackable/10012194.stk	[booster info] [etc]	10012265	1	missing from equipment.lst and stackable.lst
 package	10012194	stackable/10012194.stk	[booster info] [etc]			category emptied: category removed
 package	10012424	stackable/10012424.stk	[booster select category] 0 0 [stackable]	2660853	1	missing from equipment.lst and stackable.lst
 package	10012424	stackable/10012424.stk	[booster select category] 0 0 [stackable]			category emptied: category removed
@@ -2124,14 +2134,14 @@ package	10000347	stackable/10000347.stk	[package data]	104550434	1	missing from 
 package	10000347	stackable/10000347.stk	[package data]	104560614	1	missing from equipment.lst and stackable.lst
 package	10000347	stackable/10000347.stk	[package data]	104570392	1	missing from equipment.lst and stackable.lst
 package	10000347	stackable/10000347.stk	[package data]			container emptied: tag removed
-package	10012997	stackable/10012997.stk	[booster info] [etc]	10013074	1000	missing from equipment.lst and stackable.lst
-package	10013002	stackable/10013002.stk	[booster info] [etc]	10013074	1000	missing from equipment.lst and stackable.lst
-package	10013145	stackable/10013145.stk	[booster info] [etc]	10013074	1000	missing from equipment.lst and stackable.lst
+package	10012997	stackable/10012997.stk	[booster info] [etc]	10013074	1	missing from equipment.lst and stackable.lst
+package	10013002	stackable/10013002.stk	[booster info] [etc]	10013074	1	missing from equipment.lst and stackable.lst
+package	10013145	stackable/10013145.stk	[booster info] [etc]	10013074	1	missing from equipment.lst and stackable.lst
 package	10013145	stackable/10013145.stk	[booster info] [etc]			category emptied: category removed
 package	10013145	stackable/10013145.stk	[booster info]			every category emptied: [booster info] removed
-package	10013147	stackable/10013147.stk	[booster info] [etc]	10013074	1000	missing from equipment.lst and stackable.lst
+package	10013147	stackable/10013147.stk	[booster info] [etc]	10013074	1	missing from equipment.lst and stackable.lst
 package	10013147	stackable/10013147.stk	[booster info] [etc]			category emptied: category removed
-package	10014941	stackable/10014941.stk	[booster info] [etc]	10014940	1000	missing from equipment.lst and stackable.lst
+package	10014941	stackable/10014941.stk	[booster info] [etc]	10014940	1	missing from equipment.lst and stackable.lst
 package	10014941	stackable/10014941.stk	[booster info] [etc]			category emptied: category removed
 package	10014941	stackable/10014941.stk	[booster info]			every category emptied: [booster info] removed
 package	10014764	stackable/10014764.stk	[booster select category] 0 0 [stackable]	10012850	1	missing from equipment.lst and stackable.lst
@@ -2300,7 +2310,7 @@ package	10014622	stackable/10014622.stk	[booster select category] 8 0 [stackable
 package	10014622	stackable/10014622.stk	[booster select category] 8 0 [stackable]			category emptied: category removed
 package	10014622	stackable/10014622.stk	[booster select category] 9 0 [stackable]	10012695	1	missing from equipment.lst and stackable.lst
 package	10014622	stackable/10014622.stk	[booster select category] 9 0 [stackable]			category emptied: category removed
-package	10014623	stackable/10014623.stk	[booster info] [etc]	63069	817	missing from equipment.lst and stackable.lst
+package	10014623	stackable/10014623.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
 package	10014745	stackable/10014745.stk	[booster select category] 0 0 [avatar]	101520761	1	missing from equipment.lst and stackable.lst
 package	10014745	stackable/10014745.stk	[booster select category] 0 0 [avatar]			category emptied: category removed
 package	10014745	stackable/10014745.stk	[booster select category] 1 0 [avatar]	112520274	1	missing from equipment.lst and stackable.lst
@@ -2526,22 +2536,22 @@ package	10014946	stackable/10014946.stk	[booster select category] 9 0 [avatar]	1
 package	10014946	stackable/10014946.stk	[booster select category] 9 0 [avatar]	1810022	1	missing from equipment.lst and stackable.lst
 package	10014946	stackable/10014946.stk	[booster select category] 9 0 [avatar]	1810023	1	missing from equipment.lst and stackable.lst
 package	10014946	stackable/10014946.stk	[booster select category] 9 0 [avatar]			category emptied: category removed
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320538	250	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320540	250	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320537	250	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320539	250	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320542	9750	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320544	9750	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320541	9750	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320543	9750	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320546	10000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320548	10000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320545	10000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320547	10000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320550	5000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320552	5000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320549	5000	missing from equipment.lst and stackable.lst
-package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320551	5000	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320538	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320540	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320537	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320539	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320542	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320544	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320541	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320543	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320546	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320548	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320545	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320547	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320550	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320552	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320549	1	missing from equipment.lst and stackable.lst
+package	10014989	stackable/10014989.stk	[booster info] [equipment]	100320551	1	missing from equipment.lst and stackable.lst
 package	10014989	stackable/10014989.stk	[booster info] [equipment]			category emptied: category removed
 package	10014989	stackable/10014989.stk	[booster info]			every category emptied: [booster info] removed
 package	10014991	stackable/10014991.stk	[booster select category] 0 0 [avatar]	101550779	1	missing from equipment.lst and stackable.lst
@@ -2733,9 +2743,9 @@ package	10148965	stackable/10148965.stk	[booster select category] 10 0 [avatar]	
 package	10148965	stackable/10148965.stk	[booster select category] 10 0 [avatar]	113560150	1	missing from equipment.lst and stackable.lst
 package	10148965	stackable/10148965.stk	[booster select category] 10 0 [avatar]	113570115	1	missing from equipment.lst and stackable.lst
 package	10148965	stackable/10148965.stk	[booster select category] 10 0 [avatar]			category emptied: category removed
-package	10015724	stackable/10015724.stk	[booster info] [etc]	100360292	1000	missing from equipment.lst and stackable.lst
+package	10015724	stackable/10015724.stk	[booster info] [etc]	100360292	1	missing from equipment.lst and stackable.lst
 package	10015724	stackable/10015724.stk	[booster info] [etc]			category emptied: category removed
-package	10015725	stackable/10015725.stk	[booster info] [etc]	100360292	1000	missing from equipment.lst and stackable.lst
+package	10015725	stackable/10015725.stk	[booster info] [etc]	100360292	1	missing from equipment.lst and stackable.lst
 package	10015725	stackable/10015725.stk	[booster info] [etc]			category emptied: category removed
 package	10089750	stackable/10089750.stk	[booster select category] 0 0 [creature]	63292	1	missing from equipment.lst and stackable.lst
 package	10089750	stackable/10089750.stk	[booster select category] 0 0 [creature]	63297	1	missing from equipment.lst and stackable.lst
@@ -3577,38 +3587,38 @@ package	10001055	stackable/10001055.stk	[booster select category] 8 0 [avatar]	1
 package	10001055	stackable/10001055.stk	[booster select category] 8 0 [avatar]			category emptied: category removed
 package	10001055	stackable/10001055.stk	[booster select category] 9 0 [avatar]	112550250	1	missing from equipment.lst and stackable.lst
 package	10001055	stackable/10001055.stk	[booster select category] 9 0 [avatar]			category emptied: category removed
-package	10092439	stackable/10092439.stk	[booster info] [etc]	63069	817	missing from equipment.lst and stackable.lst
-package	10092440	stackable/10092440.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092441	stackable/10092441.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092441	stackable/10092441.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092553	stackable/10092553.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092554	stackable/10092554.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092554	stackable/10092554.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092355	stackable/10092355.stk	[booster info] [creature]	63069	1000	missing from equipment.lst and stackable.lst
-package	10092639	stackable/10092639.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10092639	stackable/10092639.stk	[booster info] [etc]	63069	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320538	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320540	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320537	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320539	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100321919	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100321921	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100321918	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100321920	400	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320546	800	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320548	800	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320545	800	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320547	800	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320550	900	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320552	900	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320549	900	missing from equipment.lst and stackable.lst
-package	10093578	stackable/10093578.stk	[booster info] [etc]	100320551	900	missing from equipment.lst and stackable.lst
+package	10092439	stackable/10092439.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092440	stackable/10092440.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092441	stackable/10092441.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092441	stackable/10092441.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092553	stackable/10092553.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092554	stackable/10092554.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092554	stackable/10092554.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092355	stackable/10092355.stk	[booster info] [creature]	63069	1	missing from equipment.lst and stackable.lst
+package	10092639	stackable/10092639.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10092639	stackable/10092639.stk	[booster info] [etc]	63069	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320538	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320540	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320537	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320539	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100321919	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100321921	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100321918	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100321920	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320546	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320548	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320545	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320547	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320550	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320552	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320549	1	missing from equipment.lst and stackable.lst
+package	10093578	stackable/10093578.stk	[booster info] [etc]	100320551	1	missing from equipment.lst and stackable.lst
 package	10093578	stackable/10093578.stk	[booster info] [etc]			category emptied: category removed
 package	10093578	stackable/10093578.stk	[booster info]			every category emptied: [booster info] removed
-package	10094059	stackable/10094059.stk	[booster info] [etc]	63395	1000	missing from equipment.lst and stackable.lst
-package	10094059	stackable/10094059.stk	[booster info] [etc]	63396	2000	missing from equipment.lst and stackable.lst
-package	10094060	stackable/10094060.stk	[booster info] [etc]	63397	1000	missing from equipment.lst and stackable.lst
-package	10094060	stackable/10094060.stk	[booster info] [etc]	63398	2000	missing from equipment.lst and stackable.lst
+package	10094059	stackable/10094059.stk	[booster info] [etc]	63395	1	missing from equipment.lst and stackable.lst
+package	10094059	stackable/10094059.stk	[booster info] [etc]	63396	1	missing from equipment.lst and stackable.lst
+package	10094060	stackable/10094060.stk	[booster info] [etc]	63397	1	missing from equipment.lst and stackable.lst
+package	10094060	stackable/10094060.stk	[booster info] [etc]	63398	1	missing from equipment.lst and stackable.lst
 package	10093788	stackable/10093788.stk	[package data]	10014910	1	missing from equipment.lst and stackable.lst
 package	10089920	stackable/10089920.stk	[booster select category] 0 0 [equipment]	63309	1	missing from equipment.lst and stackable.lst
 package	10089920	stackable/10089920.stk	[booster select category] 0 0 [equipment]	63307	1	missing from equipment.lst and stackable.lst
@@ -3872,7 +3882,7 @@ package	10100268	stackable/10100268.stk	[booster select category] 0 0 [equipment
 package	10100268	stackable/10100268.stk	[booster select category] 0 0 [equipment]	63471	1	missing from equipment.lst and stackable.lst
 package	10100268	stackable/10100268.stk	[booster select category] 0 0 [equipment]	63473	1	missing from equipment.lst and stackable.lst
 package	10100268	stackable/10100268.stk	[booster select category] 0 0 [equipment]			category emptied: category removed
-package	10101873	stackable/10101873.stk	[booster info] [etc]	10101872	1000	missing from equipment.lst and stackable.lst
+package	10101873	stackable/10101873.stk	[booster info] [etc]	10101872	1	missing from equipment.lst and stackable.lst
 package	10101873	stackable/10101873.stk	[booster info] [etc]			category emptied: category removed
 package	10101873	stackable/10101873.stk	[booster info]			every category emptied: [booster info] removed
 package	10147616	stackable/10147616.stk	[booster select category] 0 0 [equipment]	101040408	1	missing from equipment.lst and stackable.lst
@@ -3910,15 +3920,15 @@ package	10147616	stackable/10147616.stk	[booster select category] 5 0 [equipment
 package	10147616	stackable/10147616.stk	[booster select category] 5 0 [equipment]	109030222	1	missing from equipment.lst and stackable.lst
 package	10147616	stackable/10147616.stk	[booster select category] 5 0 [equipment]	109040225	1	missing from equipment.lst and stackable.lst
 package	10147616	stackable/10147616.stk	[booster select category] 5 0 [equipment]			category emptied: category removed
-package	10147634	stackable/10147634.stk	[booster info] [etc]	100110488	1000	missing from equipment.lst and stackable.lst
+package	10147634	stackable/10147634.stk	[booster info] [etc]	100110488	1	missing from equipment.lst and stackable.lst
 package	10147634	stackable/10147634.stk	[booster info] [etc]			category emptied: category removed
-package	10147634	stackable/10147634.stk	[booster info] [etc]	100160442	1000	missing from equipment.lst and stackable.lst
+package	10147634	stackable/10147634.stk	[booster info] [etc]	100160442	1	missing from equipment.lst and stackable.lst
 package	10147634	stackable/10147634.stk	[booster info] [etc]			category emptied: category removed
-package	10147634	stackable/10147634.stk	[booster info] [etc]	100210466	1000	missing from equipment.lst and stackable.lst
+package	10147634	stackable/10147634.stk	[booster info] [etc]	100210466	1	missing from equipment.lst and stackable.lst
 package	10147634	stackable/10147634.stk	[booster info] [etc]			category emptied: category removed
-package	10147634	stackable/10147634.stk	[booster info] [etc]	100260474	1000	missing from equipment.lst and stackable.lst
+package	10147634	stackable/10147634.stk	[booster info] [etc]	100260474	1	missing from equipment.lst and stackable.lst
 package	10147634	stackable/10147634.stk	[booster info] [etc]			category emptied: category removed
-package	10147634	stackable/10147634.stk	[booster info] [etc]	100060501	1000	missing from equipment.lst and stackable.lst
+package	10147634	stackable/10147634.stk	[booster info] [etc]	100060501	1	missing from equipment.lst and stackable.lst
 package	10147634	stackable/10147634.stk	[booster info] [etc]			category emptied: category removed
 package	10147634	stackable/10147634.stk	[booster info]			every category emptied: [booster info] removed
 package	10147661	stackable/10147661.stk	[booster select category] 0 0 [equipment]	100331417	1	missing from equipment.lst and stackable.lst
@@ -3997,23 +4007,23 @@ package	10147919	stackable/10147919.stk	[booster select category] 8 0 [avatar]		
 package	10147919	stackable/10147919.stk	[booster select category] 9 0 [avatar]	108500457	1	missing from equipment.lst and stackable.lst
 package	10147919	stackable/10147919.stk	[booster select category] 9 0 [avatar]	108510460	1	missing from equipment.lst and stackable.lst
 package	10147919	stackable/10147919.stk	[booster select category] 9 0 [avatar]			category emptied: category removed
-package	10148133	stackable/10148133.stk	[booster info] [creature]	63070	1000	missing from equipment.lst and stackable.lst
+package	10148133	stackable/10148133.stk	[booster info] [creature]	63070	1	missing from equipment.lst and stackable.lst
 package	10148133	stackable/10148133.stk	[booster info] [creature]			category emptied: category removed
 package	10148133	stackable/10148133.stk	[booster info]			every category emptied: [booster info] removed
-package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331462	35	missing from equipment.lst and stackable.lst
-package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331463	35	missing from equipment.lst and stackable.lst
-package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331464	3	missing from equipment.lst and stackable.lst
-package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331465	13	missing from equipment.lst and stackable.lst
-package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331466	12	missing from equipment.lst and stackable.lst
-package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331467	2	missing from equipment.lst and stackable.lst
+package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331462	1	missing from equipment.lst and stackable.lst
+package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331463	1	missing from equipment.lst and stackable.lst
+package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331464	1	missing from equipment.lst and stackable.lst
+package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331465	1	missing from equipment.lst and stackable.lst
+package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331466	1	missing from equipment.lst and stackable.lst
+package	10148827	stackable/10148827.stk	[booster info] [equipment]	100331467	1	missing from equipment.lst and stackable.lst
 package	10148827	stackable/10148827.stk	[booster info] [equipment]			category emptied: category removed
 package	10148827	stackable/10148827.stk	[booster info]			every category emptied: [booster info] removed
-package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331468	35	missing from equipment.lst and stackable.lst
-package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331469	35	missing from equipment.lst and stackable.lst
-package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331470	3	missing from equipment.lst and stackable.lst
-package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331471	13	missing from equipment.lst and stackable.lst
-package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331472	12	missing from equipment.lst and stackable.lst
-package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331473	2	missing from equipment.lst and stackable.lst
+package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331468	1	missing from equipment.lst and stackable.lst
+package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331469	1	missing from equipment.lst and stackable.lst
+package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331470	1	missing from equipment.lst and stackable.lst
+package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331471	1	missing from equipment.lst and stackable.lst
+package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331472	1	missing from equipment.lst and stackable.lst
+package	10148828	stackable/10148828.stk	[booster info] [equipment]	100331473	1	missing from equipment.lst and stackable.lst
 package	10148828	stackable/10148828.stk	[booster info] [equipment]			category emptied: category removed
 package	10148828	stackable/10148828.stk	[booster info]			every category emptied: [booster info] removed
 package	10148829	stackable/10148829.stk	[booster select category] 0 0 [equipment]	101590276	1	missing from equipment.lst and stackable.lst
@@ -4554,12 +4564,12 @@ package	10148902	stackable/10148902.stk	[package data]	109500869	1	missing from 
 package	10148902	stackable/10148902.stk	[package data]	109510868	1	missing from equipment.lst and stackable.lst
 package	10148902	stackable/10148902.stk	[package data]	109540851	1	missing from equipment.lst and stackable.lst
 package	10148902	stackable/10148902.stk	[package data]	109580471	1	missing from equipment.lst and stackable.lst
-package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331468	35	missing from equipment.lst and stackable.lst
-package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331469	35	missing from equipment.lst and stackable.lst
-package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331470	3	missing from equipment.lst and stackable.lst
-package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331471	13	missing from equipment.lst and stackable.lst
-package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331472	12	missing from equipment.lst and stackable.lst
-package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331473	2	missing from equipment.lst and stackable.lst
+package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331468	1	missing from equipment.lst and stackable.lst
+package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331469	1	missing from equipment.lst and stackable.lst
+package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331470	1	missing from equipment.lst and stackable.lst
+package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331471	1	missing from equipment.lst and stackable.lst
+package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331472	1	missing from equipment.lst and stackable.lst
+package	10148935	stackable/10148935.stk	[booster info] [equipment]	100331473	1	missing from equipment.lst and stackable.lst
 package	10148935	stackable/10148935.stk	[booster info] [equipment]			category emptied: category removed
 package	10148935	stackable/10148935.stk	[booster info]			every category emptied: [booster info] removed
 package	10148936	stackable/10148936.stk	[booster select category] 0 0 [equipment]	101590276	1	missing from equipment.lst and stackable.lst
@@ -4704,15 +4714,15 @@ package	10149214	stackable/10149214.stk	[booster select category] 9 0 [avatar]		
 package	10149214	stackable/10149214.stk	[booster select category] 10 0 [avatar]	113521137	1	missing from equipment.lst and stackable.lst
 package	10149214	stackable/10149214.stk	[booster select category] 10 0 [avatar]	113521138	1	missing from equipment.lst and stackable.lst
 package	10149214	stackable/10149214.stk	[booster select category] 10 0 [avatar]			category emptied: category removed
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149535	1000	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149534	400	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149538	300	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149532	500	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149531	500	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149533	500	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149536	500	missing from equipment.lst and stackable.lst
-package	10149502	stackable/10149502.stk	[booster info] [etc]	10149530	500	missing from equipment.lst and stackable.lst
-package	10157088	stackable/10157088.stk	[booster info] [etc]	10156740	900	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149535	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149534	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149538	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149532	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149531	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149533	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149536	1	missing from equipment.lst and stackable.lst
+package	10149502	stackable/10149502.stk	[booster info] [etc]	10149530	1	missing from equipment.lst and stackable.lst
+package	10157088	stackable/10157088.stk	[booster info] [etc]	10156740	10	missing from equipment.lst and stackable.lst
 package	10157088	stackable/10157088.stk	[booster info] [etc]			category emptied: category removed
 package	10157088	stackable/10157088.stk	[booster info]			every category emptied: [booster info] removed
 package	10157323	stackable/10157323.stk	[booster select category] 0 0 [etc]	8623	1	missing from equipment.lst and stackable.lst
@@ -5025,6 +5035,7 @@ package	10157942	stackable/10157942.stk	[booster select category] 8 0 [avatar]		
 package	10157942	stackable/10157942.stk	[booster select category] 9 0 [avatar]	108500457	1	missing from equipment.lst and stackable.lst
 package	10157942	stackable/10157942.stk	[booster select category] 9 0 [avatar]	108510460	1	missing from equipment.lst and stackable.lst
 package	10157942	stackable/10157942.stk	[booster select category] 9 0 [avatar]			category emptied: category removed
+header	490001919	stackable/chn_490001919.stk	[booster category num] 0 [booster selection num] 1 [booster select category] 0 0			removed: unclosed selection header that swallows [action usable place]
 package	490001973	stackable/chn_490001973.stk	[booster select category] 0 0 [stackable]	10155380	1	missing from equipment.lst and stackable.lst
 package	490001973	stackable/chn_490001973.stk	[booster select category] 0 0 [stackable]			category emptied: category removed
 package	490001973	stackable/chn_490001973.stk	[booster select category] 1 0 [stackable]	10155381	1	missing from equipment.lst and stackable.lst

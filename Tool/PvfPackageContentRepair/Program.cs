@@ -7,8 +7,10 @@ using Dfo.Pvf.Tokens;
 using PvfPackageContentRepair;
 
 // Issue #340: package content that the PVF itself gets wrong. Rewards whose item id no list declares are removed,
-// pets whose species creature.lst forgot get their TW70 species row back, and package rewards with an absolute
-// expiration date that has passed become permanent. Everything else in the archive is preserved byte for byte.
+// pets whose species creature.lst forgot get their species row back, package rewards with an absolute expiration
+// date that has passed become permanent, random-pool avatar rows naming an ability the avatar does not declare are
+// removed, and one unclosed selection header that hides [action usable place] from the client is dropped.
+// Everything else in the archive is preserved byte for byte.
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 Console.OutputEncoding = Encoding.UTF8;
 try
@@ -82,7 +84,7 @@ internal static class Repair
     private const string ExpirationTag = "[expiration date]";
 
     private sealed record Package(int Id, string Path, string Type, List<Sym> Tokens);
-    private sealed record ItemFacts(string Path, int? PetSpecies, DateTime[] Expirations);
+    private sealed record ItemFacts(string Path, int? PetSpecies, DateTime[] Expirations, HashSet<int>? Abilities);
 
     private sealed class Census
     {
@@ -92,6 +94,8 @@ internal static class Repair
         public required HashSet<int> Species { get; init; }
         public required List<Package> Packages { get; init; }
         public required Dictionary<int, ItemFacts?> Items { get; init; }
+        /// <summary><c>skill/abilitydatas.dat</c> <c>[ability case] id …</c>: the ability indexes each case declares.</summary>
+        public required Dictionary<int, HashSet<int>> AbilityCases { get; init; }
         public int UnlistedPackageFiles { get; set; }
     }
 
@@ -146,9 +150,16 @@ internal static class Repair
         // 2. Packages: remove rewards no list declares and pets whose species cannot be restored.
         foreach (var package in census.Packages)
         {
-            var script = PackageScript.Repair(package.Tokens, plan.RemoveReason);
-            if (script.Changes.Count == 0) continue;
-            engine.Replace(package.Path, script.Result.ToList(), $"#340: {script.Changes.Count(c => c.ItemId != 0)} rewards removed");
+            var tokens = package.Tokens;
+            var stray = StrayHeader(tokens);
+            if (stray >= 0)
+            {
+                rows.Add($"header	{package.Id}	{package.Path}	{string.Join(" ", tokens.Skip(stray).Take(StrayHeaderLength))}			removed: unclosed selection header that swallows [action usable place]");
+                tokens = [.. tokens.Take(stray), .. tokens.Skip(stray + StrayHeaderLength)];
+            }
+            var script = PackageScript.Repair(tokens, plan.RemoveReason, plan.AbilityReason);
+            if (script.Changes.Count == 0 && stray < 0) continue;
+            engine.Replace(package.Path, script.Result.ToList(), stray >= 0 ? "#340: stray selection header removed" : $"#340: {script.Changes.Count(c => c.ItemId != 0)} rewards removed");
             foreach (var c in script.Changes)
                 rows.Add($"package\t{package.Id}\t{package.Path}\t{c.Container}\t{(c.ItemId == 0 ? "" : c.ItemId)}\t{(c.ItemId == 0 ? "" : c.Count)}\t{c.Reason}");
         }
@@ -173,7 +184,8 @@ internal static class Repair
         using var patched = new Engine(output);
         var patchedCensus = Load(patched);
         var after = Summarize(patchedCensus, Plan(patchedCensus, now), now);
-        if (after.MissingRewardOccurrences != 0 || after.UnresolvedPetOccurrences != 0 || after.ExpiredRewardItems != 0 || after.SpeciesToRestore.Length != 0)
+        if (after.MissingRewardOccurrences != 0 || after.UnresolvedPetOccurrences != 0 || after.ExpiredRewardItems != 0 || after.SpeciesToRestore.Length != 0
+            || after.UndeclaredAbilityRows.Length != 0 || after.StrayHeaders.Length != 0)
             throw new InvalidDataException("Repaired archive still has findings: " + JsonSerializer.Serialize(after, Json));
 
         var summary = new
@@ -214,7 +226,16 @@ internal static class Repair
             Species = a.ReadList("creature/creature.lst").Entries.Select(e => e.Id).ToHashSet(),
             Packages = [],
             Items = [],
+            AbilityCases = [],
         };
+        var abilityData = Engine.Read(a, "skill/abilitydatas.dat");
+        for (var k = 0; k + 1 < abilityData.Count; k++)
+        {
+            if (!PackageScript.IsTag(abilityData[k]) || abilityData[k].Text != "[ability case]" || abilityData[k + 1].Kind != PvfTokenKind.Int32) continue;
+            var end = k + 2;
+            while (end < abilityData.Count && !PackageScript.IsTag(abilityData[end])) end++;
+            census.AbilityCases[abilityData[k + 1].Value] = AbilityIndexes(abilityData, k + 2, end);
+        }
         foreach (var (id, path) in census.Stackable)
         {
             var index = a.FindFile(path);
@@ -240,23 +261,47 @@ internal static class Repair
             var tokens = Engine.Read(a, path);
             int? species = null; var pet = false;
             var expirations = new List<DateTime>();
+            HashSet<int>? abilities = null;
             for (var k = 0; k + 1 < tokens.Count; k++)
             {
                 if (!PackageScript.IsTag(tokens[k])) continue;
                 var tag = tokens[k].Text;
                 if (tag == "[equipment type]" && tokens[k + 1].IsString && tokens[k + 1].Text == "[creature]") pet = true;
                 else if (tag == "[creature species]" && tokens[k + 1].Kind == PvfTokenKind.Int32) species = tokens[k + 1].Value;
+                else if (tag == "[avatar select ability]")
+                {
+                    var end = k + 1;
+                    while (end < tokens.Count && !PackageScript.IsTag(tokens[end])) end++;
+                    (abilities ??= []).UnionWith(AbilityIndexes(tokens, k + 1, end));
+                }
+                else if (tag == "[ability case index]" && tokens[k + 1].Kind == PvfTokenKind.Int32)
+                    (abilities ??= []).UnionWith(census.AbilityCases.GetValueOrDefault(tokens[k + 1].Value, []));
                 else if (tag == ExpirationTag && tokens[k + 1].IsString)
                     expirations.Add(DateTime.ParseExact(tokens[k + 1].Text.Trim(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
             }
-            facts = new(path, pet && census.Equipment.ContainsKey(id) ? species ?? -1 : null, [.. expirations]);
+            facts = new(path, pet && census.Equipment.ContainsKey(id) ? species ?? -1 : null, [.. expirations], abilities);
         }
         census.Items[id] = facts;
         return facts;
     }
 
+    /// <summary>
+    /// Ability entries are <c>index [TYPE] operands…</c>: an index is an integer directly followed by an upper-case
+    /// bracketed type such as <c>[MAGICAL_ATTACK]</c> or <c>[SKILL_LEVEL]</c> (job names in operands are lower case).
+    /// </summary>
+    private static HashSet<int> AbilityIndexes(IReadOnlyList<Sym> tokens, int from, int to)
+    {
+        var set = new HashSet<int>();
+        for (var k = from; k + 1 < to; k++)
+            if (tokens[k].Kind == PvfTokenKind.Int32 && tokens[k + 1].IsString && tokens[k + 1].Text is var t
+                && t.StartsWith('[') && t == t.ToUpperInvariant() && t.Any(char.IsLetter))
+                set.Add(tokens[k].Value);
+        return set;
+    }
+
     private sealed record RepairPlan(
         Func<int, string?> RemoveReason,
+        Func<int, int, string?> AbilityReason,
         HashSet<int> MissingIds,
         Dictionary<int, int> UnresolvedPets,
         List<int> RestoredSpecies,
@@ -290,7 +335,10 @@ internal static class Repair
             missing.Contains(id) ? "missing from equipment.lst and stackable.lst"
             : unresolved.TryGetValue(id, out var sp) ? $"pet species {sp} not in creature.lst and no source to restore it"
             : null;
-        return new(Reason, missing, unresolved, restored, expired, future);
+        string? AbilityReason(int id, int ability) =>
+            Facts(census, id) is { Abilities: { } declared } && !declared.Contains(ability)
+                ? $"avatar ability {ability} is not one the avatar declares" : null;
+        return new(Reason, AbilityReason, missing, unresolved, restored, expired, future);
     }
 
     private sealed record Report(
@@ -309,20 +357,25 @@ internal static class Repair
         string[] PackagesEmptiedByRemoval,
         string[] SelectionBlocksEmptied,
         string[] SelectionBlocksBelowSelectionNum,
+        string[] UndeclaredAbilityRows,
+        string[] StrayHeaders,
         string[] ParseAnomalies);
 
     private static Report Summarize(Census census, RepairPlan plan, DateTime now)
     {
         var affected = 0; var occurrences = 0; var petOccurrences = 0;
+        var abilityRows = new List<string>();
         var emptied = new List<string>(); var emptiedBlocks = new List<string>(); var shortBlocks = new List<string>(); var anomalies = new List<string>();
         foreach (var p in census.Packages)
         {
-            var script = PackageScript.Repair(p.Tokens, plan.RemoveReason);
+            var script = PackageScript.Repair(p.Tokens, plan.RemoveReason, plan.AbilityReason);
             var removed = script.Changes.Where(c => c.ItemId != 0 && !c.Reason.StartsWith("marker", StringComparison.Ordinal)).ToList();
             anomalies.AddRange(script.Anomalies.Select(x => $"{p.Id}\t{p.Path}\t{x}"));
             if (removed.Count == 0 && !script.Changes.Any()) continue;
             affected++;
             occurrences += removed.Count(c => plan.MissingIds.Contains(c.ItemId));
+            abilityRows.AddRange(removed.Where(c => c.Reason.StartsWith("avatar ability", StringComparison.Ordinal))
+                .Select(c => $"{p.Id}	{p.Path}	{c.Container}	{c.ItemId}	{c.Reason}"));
             petOccurrences += removed.Count(c => plan.UnresolvedPets.ContainsKey(c.ItemId));
             if (script.RewardsAfter == 0 && script.RewardsBefore > 0) emptied.Add($"{p.Id}\t{p.Type}\t{p.Path}\t{script.RewardsBefore} rewards");
             var selectionNum = SelectionNum(p.Tokens);
@@ -346,6 +399,8 @@ internal static class Repair
             [.. emptied],
             [.. emptiedBlocks],
             [.. shortBlocks],
+            [.. abilityRows],
+            [.. census.Packages.Where(p => StrayHeader(p.Tokens) >= 0).Select(p => $"{p.Id}	{p.Path}")],
             [.. anomalies]);
     }
 
@@ -356,6 +411,25 @@ internal static class Repair
         foreach (var id in referenced)
             if (Facts(census, id) is { PetSpecies: int sp } facts && !census.Species.Contains(sp))
                 yield return $"{id}\t{facts.Path}\tspecies {sp}";
+    }
+
+    private const int StrayHeaderLength = 7;
+
+    /// <summary>
+    /// <c>[booster category num] n [booster selection num] n [booster select category] c1 c2</c> left unclosed right before
+    /// <c>[action usable place]</c> (490001919). The client's block tag reader (028A9A70) skips the place names, swallows
+    /// <c>[/action usable place]</c> and ends the block, so the place restriction never reaches its top-level handler, while
+    /// the complete declarations after it overwrite the leftovers. Removing the leftovers gives the file its evident reading.
+    /// </summary>
+    private static int StrayHeader(IReadOnlyList<Sym> t)
+    {
+        bool Tag(int k, string text) => k >= 0 && k < t.Count && PackageScript.IsTag(t[k]) && t[k].Text == text;
+        bool Int(int k) => k >= 0 && k < t.Count && t[k].Kind == PvfTokenKind.Int32;
+        for (var k = 0; k + 7 < t.Count; k++)
+            if (Tag(k, "[booster category num]") && Int(k + 1) && Tag(k + 2, "[booster selection num]") && Int(k + 3)
+                && Tag(k + 4, "[booster select category]") && Int(k + 5) && Int(k + 6) && Tag(k + 7, "[action usable place]"))
+                return k;
+        return -1;
     }
 
     private static int SelectionNum(List<Sym> tokens)

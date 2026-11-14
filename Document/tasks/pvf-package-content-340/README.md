@@ -2,8 +2,8 @@
 
 - 基线：`main` `ef20398a3`（0.3.2）；分支 `task/pvf-package-content-340`。
 - 输入 PVF：`PvfBuilds/revised-20261113/Script.pvf`，SHA-256 `E1F3A25C93502708D499283CF7A6B8840EDB39C354CEB09CCB9E1133F3C123F2`（线上 0.3.2）。
-- 输出 PVF：`PvfBuilds/revised-20261114/Script.pvf`，SHA-256 **`EBF8DDD3927478D1192C7729B0E5483D79525E8607C2B589B9C2FDB3F3B17ABB`**，74,090,993 字节。
-- 范围：#328 普查的第 9–12 类（零散格式、缺失物品、缺宠物种类、过期奖励）。第 1–8 类是服务端缺陷，归 #328；第 13 类归 #341。
+- 输出 PVF：`PvfBuilds/revised-20261114/Script.pvf`，SHA-256 **`FBEB8D6BDCE91FB617793ADE985F134C2FD3011876987BF3FFC04A0E2A8A6646`**，74,092,822 字节。
+- 范围：#328 普查的第 9–12 类（零散格式、缺失物品、缺宠物种类、过期奖励），以及 #328 修完解析后二次核对的 6 个礼包（见“#328 二次核对”）。第 1–8 类是服务端缺陷，归 #328；第 13 类归 #341。
 - 新 PVF **尚未部署**，也没有替换任何客户端目录里的 PVF。服务端和客户端必须换同一份（理由见“缺失物品”一节）。
 
 ## 工具
@@ -24,17 +24,15 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
   - `[package data]`、`[package data selection]`、`[package data include usable period]`：平铺 (id, 数量[, 期限])。
   - `[booster info]`：类别 `[x] 抽取数 (id 权重 数量 [扩展…])… [/x]`，`[charactor]` 多一个 `` `职业` A B `` 头。
   - `[booster select category] c1 c2`：修饰标签加类别条目 (id 数量 [扩展…])，不要求闭合标签。
-  - 读不通的容器原样保留并记为异常（`ParseAnomalies`）。全部 13,269 个礼包里有 2 处，都不藏缺失物品：
-    - 10003593（`chn_box_ontime_20140510.stk`）：`[gunner]`、`[at gunner]` 两段 `[charactor]` 的权重写成浮点数 `252.5`、`4.5`，整数序列在此中断。手工核对该礼包 142 个奖励 ID，全部在列表中。客户端对浮点权重的读法没有查。
-    - 490001919：第一个 `[booster select category] 0 0` 没有闭合，后面跟着 `[action usable place]`、`[booster category num]` 和真正的各个块。工具只跳过这个头，后面的块照常检查；该礼包没有缺失物品。这是 #328 第 7 类说的“顶层标签混进选择段”的例子。
+  - 读不通的容器原样保留并记为异常（`ParseAnomalies`）。修前 2 处，修后剩 1 处：10003593 的 `[charactor]` 权重写成浮点数（客户端截断成整数读，见“#328 二次核对”），整数序列在此中断，工具把整个 `[booster info]` 原样保留。手工核对该礼包 142 个奖励 ID，全部在列表中。
 
 数据文件（本目录 `data/`）：
 
 | 文件 | 内容 |
 |---|---|
-| `changes.tsv` | 全部 5,076 条改动：删掉的每个奖励（礼包、容器、物品 ID、数量、原因）、因此移除的空容器、补登记的种类、去掉的到期时间 |
+| `changes.tsv` | 全部 5,087 条改动：删掉的每个奖励（礼包、容器、物品 ID、数量、原因）、因此移除的空容器、补登记的种类、去掉的到期时间、删掉的残留选择头 |
 | `empty-packages.tsv` | 删完后整个礼包没有奖励的 95 个礼包，**待你裁定** |
-| `repair-report.json` | 工具输出：修前、修后两次审计结果，以及 294 个被替换文件的 token 数 |
+| `repair-report.json` | 工具输出：修前、修后两次审计结果，以及 299 个被替换文件的 token 数 |
 
 ## 第 9 类：零散格式（10 个礼包）——不改 PVF，回报 #328
 
@@ -108,12 +106,28 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 - 普查写的是 490003449–490003454，其中 490003450 本身是礼包（钓鱼王的鱼饵礼盒），不是奖励，没有到期时间。
 - 改的是物品自身，所以商城、掉落等其他途径得到的这些物品也一起变成永久。礼包奖励里没有到期时间还在未来的物品。
 
+## #328 二次核对（6 个礼包）
+
+#328 按第 9 类的结论改完解析后重新普查，又有 6 个礼包读不了。逐个对照 A21 `ImportStackableScript`：
+
+| 礼包 | 原文 | 客户端读法（依据） | 处理 |
+|---|---|---|---|
+| 10007852、10008885 Platinum_Emblem_Box | token 级没有不成对的数字。异常之处：多个 `[stackable] [/stackable]` 空类别（10007852 有 15 个，10008885 有 14 个），以及坐标 (7,4) 出现两块，两块都是空类别 | 空类别同第 9 类；同坐标后写覆盖（见 490001689） | 不改 PVF，回报 #328 |
+| 10003593 | `[gunner]`、`[at gunner]` 两段 `[charactor]` 的权重是浮点 token：`252.5`、`4.5` | 权重用严格整数读取 `028A9310`：kind 0（整数）直接取；kind 2（浮点）用 `cvttss2si` 向零截断（`028A94A4..028A94F8`，Confirmed）。即 252.5→252、4.5→4 | 不改 PVF，回报 #328 |
+| 490001689 | 先是一套残缺的 (0,0)…(6,0)，后面是完整的 (0,0)…(9,3)；两套只有 (6,0) 不同（前空后有） | 块结束时 `map[(c1,c2)]`（`0296C3D0`，查找或插入）再做 vector 赋值（`01520AC0`，源为空时清空），**后写覆盖**，空块也覆盖（Confirmed）。结果就是后一套完整内容 | 不改 PVF，回报 #328 |
+| 490001919 | `[booster category num] 0 [booster selection num] 1 [booster select category] 0 0` 未闭合，紧跟 `[action usable place]`，再后面才是 `[booster category num] 1 5` 和真正的各块 | 块内读标签的 `028A9A70` 只收 kind 3/4（标签）：遇到 `[village]`、`[seria room]` 这类反引号串就跳过，吞掉下一个标签 `[/action usable place]` 并返回失败，块 (0,0) 就此以空内容结束（`028A9B0E..028A9BA6`、`029A3645..029A365B`，Confirmed）。之后顶层的 `[booster category num] 1 5`、各块照常读入，(0,0) 被后写覆盖。结果：5 个类别都能选，但 **`[action usable place]` 根本没进顶层处理器，使用地点限制丢了** | **改 PVF**：删掉那 7 个残留 token，文件变成“村庄/赛丽亚房间使用 + 5 个类别”的本意。客户端从此也有使用地点限制 |
+| 54 wildavatar_giraffe 等 4 个 `[cera booster]`/`[booster]` | 随机池时装行的第 5 个数（属性号）不在该时装声明的属性里：54 的 48734、48747（`[ability case index] 250`）各有属性号 7、9、14 三行，case 250 恰好缺这三个号；52 的 40734、40747 与 2660276 的 40909、2660277 的 40913 是属性号 0，而它们的 case 50 从 1 开始 | 随机礼包开启只发 2 字节 0x00A0，客户端不参与。70 的发放链把 ext2 直接写进物品（`refs/70-server.md` §6），没有校验 | **改 PVF**：这 10 行开出来是一件属性不存在的时装，结果明显错误，从随机池删掉，其余行按权重重新分配。删后没有类别变空 |
+
+- 属性号集合：时装的 `[avatar select ability]` 和 `[ability case index]` 指向的 `skill/abilitydatas.dat` `[ability case]`；条目写法是 `编号 [类型] 参数…`，编号后紧跟全大写的类型标签。
+- 自选块里也有 136 行时装属性号不在声明里，**没有改**：自选开启时属性由玩家在属性窗里选、随请求发来（0x00A0 尾部），块里的值只是界面默认值。服务端应校验请求里的属性号，不该校验 PVF 默认值。
+- 490001919 删头之后，工具审计的 `StrayHeaders` 为 0。
+
 ## 核对
 
-- 新 PVF 回读：721,185 个条目，294 个被替换（`creature.lst` 1 + 礼包 287 + 过期物品 6），其余条目和原有字符串偏移不变（工具内建校验）。
-- `audit` 新 PVF：缺失奖励 0、缺种类宠物 0、过期奖励 0、待补种类 0；解析异常仍是上面那 2 处（PVF 未改）。第 9 类 PVF 不改，靠 #328 服务端处理。
+- 新 PVF 回读：721,185 个条目，299 个被替换（`creature.lst` 1 + 礼包 291 + 过期物品 6 + 490001919 1；490001919 只删残留头），其余条目和原有字符串偏移不变（工具内建校验）。
+- `audit` 新 PVF：缺失奖励 0、缺种类宠物 0、过期奖励 0、待补种类 0、随机池未声明属性 0、残留选择头 0；解析异常剩 10003593 一处（浮点权重，PVF 未改）。第 9 类 PVF 不改，靠 #328 服务端处理。
 - 可重复：用最终版工具对同一输入再跑一次，输出 SHA-256 与 `changes.tsv` 逐字节相同。
-- 抽查 `PvfProbe dump` 新旧对比：10014623（`[booster random]`）、10090038（自选，类别删空保留坐标）、10000328（装扮礼包删空）、721（`[package data]` 删 63069）、`creature/creature.lst`、`stackable/chn_490003449.stk`。
+- 抽查 `PvfProbe dump` 新旧对比：10014623（`[booster random]`）、10090038（自选，类别删空保留坐标）、10000328（装扮礼包删空）、721（`[package data]` 删 63069）、490001919（删残留头）、`creature/creature.lst`、`stackable/chn_490003449.stk`。
 - 服务端带真实 PVF 的测试，新旧 PVF 各跑一遍对比，结果见下节。
 
 ## 服务端测试
@@ -127,7 +141,7 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 | Dfo.Server.Infrastructure.Tests | 1,034 通过、17 失败、2 跳过 | 相同 |
 | Dfo.Server.Host.Tests | 322 通过、1 失败、1 跳过 | 相同 |
 
-失败的测试名单新旧完全一致，是这些测试和 0.3.2 修订版 PVF 之间已有的不匹配（例如掉落池、黑暗精灵遗迹、日常补充），与本次改动无关，没有处理。
+表中“新 PVF”一列是第一版输出（`EBF8DDD3…`）的结果；加入二次核对的改动后，Application 与 Infrastructure 两项用 `FBEB8D6B…` 又跑了一遍，结果与表中相同。失败的测试名单新旧完全一致，是这些测试和 0.3.2 修订版 PVF 之间已有的不匹配（例如掉落池、黑暗精灵遗迹、日常补充），与本次改动无关，没有处理。
 
 ## 未覆盖
 

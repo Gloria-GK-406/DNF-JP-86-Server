@@ -2,12 +2,12 @@
   "Source": "E:\\Project\\DNF\\PvfBuilds\\revised-20261113\\Script.pvf",
   "SourceSha256": "E1F3A25C93502708D499283CF7A6B8840EDB39C354CEB09CCB9E1133F3C123F2",
   "Output": "E:\\Project\\DNF\\PvfBuilds\\revised-20261114\\Script.pvf",
-  "OutputSha256": "EBF8DDD3927478D1192C7729B0E5483D79525E8607C2B589B9C2FDB3F3B17ABB",
-  "RunAt": "2026-11-14 15:24:23",
+  "OutputSha256": "FBEB8D6BDCE91FB617793ADE985F134C2FD3011876987BF3FFC04A0E2A8A6646",
+  "RunAt": "2026-11-14 15:38:15",
   "Before": {
     "PackagesScanned": 13269,
     "UnlistedStackableFiles": 0,
-    "PackagesWithMissingRewards": 287,
+    "PackagesWithMissingRewards": 291,
     "MissingRewardIds": 3056,
     "MissingRewardOccurrences": 4193,
     "SpeciesToRestore": [
@@ -918,6 +918,21 @@
       "490707321\tstackable/cash/chn_490707321.stk\t(10,3)\t9->0"
     ],
     "SelectionBlocksBelowSelectionNum": [],
+    "UndeclaredAbilityRows": [
+      "52\tstackable/cash/wildavatar_bear.stk\t[booster info] [special avatar]\t40747\tavatar ability 0 is not one the avatar declares",
+      "52\tstackable/cash/wildavatar_bear.stk\t[booster info] [special avatar]\t40734\tavatar ability 0 is not one the avatar declares",
+      "54\tstackable/cash/wildavatar_giraffe.stk\t[booster info] [special avatar]\t48747\tavatar ability 7 is not one the avatar declares",
+      "54\tstackable/cash/wildavatar_giraffe.stk\t[booster info] [special avatar]\t48747\tavatar ability 9 is not one the avatar declares",
+      "54\tstackable/cash/wildavatar_giraffe.stk\t[booster info] [special avatar]\t48747\tavatar ability 14 is not one the avatar declares",
+      "54\tstackable/cash/wildavatar_giraffe.stk\t[booster info] [special avatar]\t48734\tavatar ability 7 is not one the avatar declares",
+      "54\tstackable/cash/wildavatar_giraffe.stk\t[booster info] [special avatar]\t48734\tavatar ability 9 is not one the avatar declares",
+      "54\tstackable/cash/wildavatar_giraffe.stk\t[booster info] [special avatar]\t48734\tavatar ability 14 is not one the avatar declares",
+      "2660276\tstackable/cash/booster_11hotsummer_sm1.stk\t[booster info] [avatar]\t40909\tavatar ability 0 is not one the avatar declares",
+      "2660277\tstackable/cash/booster_11hotsummer_sm2.stk\t[booster info] [avatar]\t40913\tavatar ability 0 is not one the avatar declares"
+    ],
+    "StrayHeaders": [
+      "490001919\tstackable/chn_490001919.stk"
+    ],
     "ParseAnomalies": [
       "10003593\tstackable/event/chn_event_ontime_20140510/chn_box_ontime_20140510.stk\t[booster info] [charactor]: closing tag missing",
       "490001919\tstackable/chn_490001919.stk\t[booster select category] 0 0: closing tag missing"
@@ -939,16 +954,19 @@
     "PackagesEmptiedByRemoval": [],
     "SelectionBlocksEmptied": [],
     "SelectionBlocksBelowSelectionNum": [],
+    "UndeclaredAbilityRows": [],
+    "StrayHeaders": [],
     "ParseAnomalies": [
-      "10003593\tstackable/event/chn_event_ontime_20140510/chn_box_ontime_20140510.stk\t[booster info] [charactor]: closing tag missing",
-      "490001919\tstackable/chn_490001919.stk\t[booster select category] 0 0: closing tag missing"
+      "10003593\tstackable/event/chn_event_ontime_20140510/chn_box_ontime_20140510.stk\t[booster info] [charactor]: closing tag missing"
     ]
   },
-  "ReplacedFiles": 294,
+  "ReplacedFiles": 299,
   "AppendedNarrow": 62,
   "AppendedWideChars": 0,
   "Log": [
     "creature/creature.lst\t972->1002 tokens\t#340: 15 species rows restored",
+    "stackable/cash/wildavatar_bear.stk\t581->571 tokens\t#340: 2 rewards removed",
+    "stackable/cash/wildavatar_giraffe.stk\t666->636 tokens\t#340: 6 rewards removed",
     "stackable/cash/prayer_greatsuccess2009sm1.stk\t78->76 tokens\t#340: 1 rewards removed",
     "stackable/cash/prayer_greatsuccess2009sm2.stk\t78->76 tokens\t#340: 1 rewards removed",
     "stackable/cash/prayer_greatsuccess2009ft1.stk\t78->76 tokens\t#340: 1 rewards removed",
@@ -962,6 +980,8 @@
     "stackable/cash/prayer_greatsuccess2009atgn1.stk\t78->76 tokens\t#340: 1 rewards removed",
     "stackable/cash/prayer_greatsuccess2009atgn2.stk\t78->76 tokens\t#340: 1 rewards removed",
     "stackable/cash/package_random_hero.stk\t250->247 tokens\t#340: 1 rewards removed",
+    "stackable/cash/booster_11hotsummer_sm1.stk\t61->56 tokens\t#340: 1 rewards removed",
+    "stackable/cash/booster_11hotsummer_sm2.stk\t61->56 tokens\t#340: 1 rewards removed",
     "stackable/cash/package_randomcreature_2.stk\t138->135 tokens\t#340: 1 rewards removed",
     "stackable/event/eventserver/event_8209.stk\t55->49 tokens\t#340: 1 rewards removed",
     "stackable/event/ontime/event_8211.stk\t51->45 tokens\t#340: 1 rewards removed",
@@ -1234,6 +1254,7 @@
     "stackable/10157348.stk\t507->367 tokens\t#340: 35 rewards removed",
     "stackable/10157349.stk\t595->525 tokens\t#340: 35 rewards removed",
     "stackable/10157942.stk\t238->138 tokens\t#340: 20 rewards removed",
+    "stackable/chn_490001919.stk\t109->102 tokens\t#340: stray selection header removed",
     "stackable/chn_490001973.stk\t61->53 tokens\t#340: 2 rewards removed",
     "stackable/cash/chn_490707321.stk\t1823->1671 tokens\t#340: 36 rewards removed",
     "stackable/event/chn_event_20141230_sheep_puzzle/chn_sheep_young_70por_10004550.stk\t32->30 tokens\t#340: permanent, [expiration date] removed",
@@ -1242,6 +1263,6 @@
     "stackable/chn_490003452.stk\t35->33 tokens\t#340: permanent, [expiration date] removed",
     "stackable/chn_490003453.stk\t35->33 tokens\t#340: permanent, [expiration date] removed",
     "stackable/chn_490003454.stk\t35->33 tokens\t#340: permanent, [expiration date] removed",
-    "verify: 721185 entries, 294 replaced, 7435 name samples stable"
+    "verify: 721185 entries, 299 replaced, 7435 name samples stable"
   ]
 }
