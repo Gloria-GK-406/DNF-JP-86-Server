@@ -1,4 +1,4 @@
-﻿# Routing Decision
+# Routing Decision
 
 - TaskContract: `.rks-agent/tasks/pvp-duel-phase1/TaskContract.md`
 - Contract revision: `2`（`task-contract-review.md` approved）

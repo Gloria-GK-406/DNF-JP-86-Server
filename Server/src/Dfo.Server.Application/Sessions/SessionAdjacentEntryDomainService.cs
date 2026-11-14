@@ -1,4 +1,3 @@
-﻿using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.World;
@@ -16,8 +15,7 @@ internal sealed class SessionAdjacentEntryDomainService(
     ITownAreaDomainService townAreas,
     ISelectedSessionDomainService sessions,
     IExpertStoreDomainService expertStores,
-    IPvpLobbyDomainService lobby,
-    IPvpRoomQueryDomainService pvpRooms) : ISessionAdjacentEntryDomainService
+    IPvpLobbyDomainService lobby) : ISessionAdjacentEntryDomainService
 {
     public ValueTask<SessionAdjacentEntryState> LoadAsync(
         SessionAdjacentSubject subject,
@@ -73,8 +71,6 @@ internal sealed class SessionAdjacentEntryDomainService(
         foreach (var participant in ready)
             participants.Add(new PvpLobbyParticipantState(participant.CharacterId));
 
-        var rooms = pvpRooms.RoomsOn(listenerPort).Select(PvpRoomLobbyView.Of).ToArray();
-
-        return new PvpLobbyEntryState(participants, rooms);
+        return new PvpLobbyEntryState(participants);
     }
 }

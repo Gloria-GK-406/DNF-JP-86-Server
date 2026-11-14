@@ -247,6 +247,31 @@ public sealed class PvpDuelWireTests
         Assert.False(a.IsClosed || c.IsClosed);
     }
 
+    /// <remarks>
+    /// Review F-2: a record kept from before the archive's grade table was enforced may hold a grade above its top.
+    /// Selection reads the record on every channel, so it must still enter, with the top grade's band.
+    /// </remarks>
+    [PvfFact]
+    public async Task A_character_whose_stored_grade_is_above_the_top_still_enters_with_the_top_grade_s_band()
+    {
+        using var timeout = new CancellationTokenSource(Budget);
+        var ct = timeout.Token;
+        await using var server = await StartAsync(ranked: false, ct);
+        using var client = await server.EnterWorldAsync("high", "duel-high", "DuelHigh", ct,
+            () => server.ExecuteSqlAsync("UPDATE character_pvp_record SET grade = 25, grade_experience = NULL", ct));
+
+        var rules = server.Services.GetRequiredService<IPvpSettlementRuleService>();
+        var lower = rules.LowerBound(rules.MaximumGrade);
+        var shown = Assert.Single(client.Frames, frame => frame.Is(0, 0x0030)).Body.ToArray();
+        Assert.Equal(lower, (long)BinaryPrimitives.ReadInt32LittleEndian(shown.AsSpan(8)));
+        Assert.Equal(lower, (long)BinaryPrimitives.ReadInt32LittleEndian(shown.AsSpan(12)));
+        Assert.Equal(Math.Min(rules.UpperBound(rules.MaximumGrade), int.MaxValue),
+            (long)BinaryPrimitives.ReadInt32LittleEndian(shown.AsSpan(16)));
+        Assert.Equal(25, shown[20]);
+        Assert.Equal(25L, await ScalarAsync(server, "SELECT grade FROM character_pvp_record", ct));
+        Assert.False(client.IsClosed);
+    }
+
     [PvfFact]
     public async Task A_room_invitation_reaches_a_lobby_member_who_accepts_into_the_room_without_the_enter_reply()
     {

@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -451,8 +451,8 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
 
     /// <summary>
     /// A member leaves, by how its battle stands: a fight counts it dead and fled, loading or linking cancels
-    /// the battle, the ranking and result screens stop waiting for it, a waiting room lets it go. A session
-    /// that ended gives up its seat; a fighter that only stopped sending heartbeats keeps it.
+    /// the battle, the ranking and result screens stop waiting for it, a waiting room lets it go. The member
+    /// gives up its seat; a fighter that only stopped sending heartbeats is the deadline's, not a departure.
     /// </summary>
     ValueTask<PvpRoomOutcome> DepartAsync(
         SelectedSessionIdentity session, PvpDepartureReason reason, CancellationToken cancellationToken);

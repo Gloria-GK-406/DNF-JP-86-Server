@@ -218,9 +218,11 @@ public sealed class PvpBattleDomainTests
         var f = new PvpRoomFixture { DuelChannel = Ranked };
         var (room, fighters) = await f.FightAsync(3);
         var outsider = f.Join(9);
-        Changed(await f.Commit(rooms => rooms.DepartAsync(fighters[2], PvpDepartureReason.HeartbeatLost, default)));
+        var start = f.Clock.Now;
+        await FallSilentAsync(f, room, fighters[2], fighters[..2]);
+        Assert.True(f.Committed(room).Match!.Fighters.Single(x => x.CharacterId == fighters[2].CharacterId).Fled);
 
-        f.Clock.Now += PvpRoomFixture.BattleTime - TimeSpan.FromSeconds(5) - TimeSpan.FromMilliseconds(1);
+        f.Clock.Now = start + PvpRoomFixture.BattleTime - TimeSpan.FromSeconds(5) - TimeSpan.FromMilliseconds(1);
         Refused(await f.Commit(rooms => rooms.ReportTimeoutAsync(fighters[0], [], default)), PvpRoomRefusal.TooEarly);
         f.Clock.Now += TimeSpan.FromMilliseconds(1);
         Refused(await f.Commit(rooms => rooms.ReportTimeoutAsync(outsider, [], default)), PvpRoomRefusal.NotFighter);
@@ -530,7 +532,7 @@ public sealed class PvpBattleDomainTests
     {
         var f = new PvpRoomFixture { DuelChannel = Ranked };
         var (fighting, fighters) = await f.FightAsync();
-        await f.Commit(rooms => rooms.DepartAsync(fighters[1], PvpDepartureReason.HeartbeatLost, default));
+        await FallSilentAsync(f, fighting, fighters[1], fighters[..1]);
         Assert.Equal(PvpRoomPhase.AwaitRank, f.Committed(fighting).Phase);
         var (running, runners) = await f.FightAsync(first: 11);
         var (owner, guest) = (f.Join(21), f.Join(22));
@@ -764,11 +766,70 @@ public sealed class PvpBattleDomainTests
         var character = new CharacterId(77);
         f.Records.Records[character] = new PvpRecord(2, 1, null, 4, 3, 0, 0, 0);
 
-        var view = await new PvpRecordDomainService(f.Records, f.BattleRules).ViewAsync(character, default);
+        var view = await new PvpRecordDomainService(f.Records, f.BattleRules, NullLogger<PvpRecordDomainService>.Instance).ViewAsync(character, default);
 
         Assert.Equal(new PvpRecordView(2, 1, f.BattleRules.LowerBound(2), f.BattleRules.LowerBound(2), f.BattleRules.UpperBound(2), 4, 3), view);
         f.Records.Records[character] = new PvpRecord(2, 1, f.BattleRules.LowerBound(2) + 7, 4, 3, 0, 0, 0);
-        Assert.Equal(f.BattleRules.LowerBound(2) + 7, (await new PvpRecordDomainService(f.Records, f.BattleRules).ViewAsync(character, default)).Experience);
+        Assert.Equal(f.BattleRules.LowerBound(2) + 7, (await new PvpRecordDomainService(f.Records, f.BattleRules, NullLogger<PvpRecordDomainService>.Instance).ViewAsync(character, default)).Experience);
+    }
+
+    /// <summary>
+    /// The production path for a fighter that stops sending heartbeats: the others keep sending, and the room's own
+    /// deadline counts the silent one fled once its heartbeat window has passed.
+    /// </summary>
+    private static async Task FallSilentAsync(
+        PvpRoomFixture f, PvpRoomSnapshot room, SelectedSessionIdentity silent, SelectedSessionIdentity[] talking)
+    {
+        var since = f.Committed(room).Match!.Fighters.Single(x => x.CharacterId == silent.CharacterId).LastHeartbeat;
+        f.Clock.Now = since + TimeSpan.FromSeconds(29);
+        foreach (var fighter in talking) await f.Commit(rooms => rooms.HeartbeatAsync(fighter, default));
+        f.Clock.Now = since + TimeSpan.FromSeconds(30);
+        Assert.Equal([room.Id], f.Rooms.Deadlines(f.Clock.Now).DueRooms);
+        Changed(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
+    }
+
+    /// <remarks>
+    /// Review F-2: a grade kept from before the archive's table was enforced must not lock the character out of
+    /// selection, which reads the record on every channel; the band is the top grade's and the store is left alone.
+    /// </remarks>
+    [Fact]
+    public async Task A_stored_grade_above_the_top_is_shown_in_the_top_grade_s_band_with_a_warning()
+    {
+        var f = new PvpRoomFixture();
+        var character = new CharacterId(78);
+        var top = PvpRoomFixture.Grades.MaximumGrade;
+        var stored = new PvpRecord(25, 1, null, 4, 3, 0, 0, 0);
+        f.Records.Records[character] = stored;
+        var log = new Dfo.Server.Application.Tests.Execution.RecordingExecutionLogger<PvpRecordDomainService>();
+
+        var view = await new PvpRecordDomainService(f.Records, f.BattleRules, log).ViewAsync(character, default);
+
+        Assert.Equal(new PvpRecordView(25, 1, f.BattleRules.LowerBound(top), f.BattleRules.LowerBound(top),
+            f.BattleRules.UpperBound(top), 4, 3), view);
+        var warning = Assert.Single(log.Entries);
+        Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, warning.Level);
+        Assert.Equal(stored, f.Records.Records[character]);
+        // Counter-check: a grade inside the table is shown in its own band and logs nothing.
+        f.Records.Records[character] = stored with { Grade = top };
+        Assert.Equal(f.BattleRules.UpperBound(top),
+            (await new PvpRecordDomainService(f.Records, f.BattleRules, log).ViewAsync(character, default)).UpperBound);
+        Assert.Single(log.Entries);
+    }
+
+    [Fact]
+    public async Task A_stored_grade_above_the_top_settles_from_the_top_grade_s_band()
+    {
+        var f = new PvpRoomFixture { DuelChannel = Ranked };
+        var (room, fighters) = await f.FightAsync();
+        foreach (var fighter in fighters)
+            f.Records.Records[fighter.CharacterId] = new PvpRecord(25, 0, null, 0, 0, 0, 0, 0);
+        await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default));
+
+        Assert.IsType<PvpSettlementOutcome.Settled>(await f.SettleAsync(f.Committed(room).Match!.Id));
+
+        // The fixture's top grade 3 starts at 600: a win there earns nothing, a loss of 20 drops to grade 2.
+        Assert.Equal(((byte)3, (long?)600), (f.Records.Of(fighters[0]).Grade, f.Records.Of(fighters[0]).Experience));
+        Assert.Equal(((byte)2, (long?)580), (f.Records.Of(fighters[1]).Grade, f.Records.Of(fighters[1]).Experience));
     }
 
     private static SelectedSessionCleanupService Cleanup(

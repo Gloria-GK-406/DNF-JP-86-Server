@@ -33,6 +33,7 @@ internal sealed class PvpSettlementRuleService(IPvpGradeDefinitionSource grades,
 
     public PvpSettlementDecision Decide(PvpSettlementFacts facts) => PvpGradeRules.Decide(grades.Load(), facts);
     public byte GradeOf(long experience) => PvpGradeRules.GradeOf(grades.Load(), experience);
+    public byte MaximumGrade => grades.Load().MaximumGrade;
     public long LowerBound(byte grade) => PvpGradeRules.Step(grades.Load(), grade).LowerBound;
     public long UpperBound(byte grade) => PvpGradeRules.Step(grades.Load(), grade).UpperBound;
 

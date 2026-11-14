@@ -1,4 +1,4 @@
-﻿using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Application.DomainEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;

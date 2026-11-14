@@ -20,10 +20,11 @@ public enum PvpFighterReports : byte
 public enum PvpDepartureReason
 {
     /// <summary>The session ended: its connection closed, it went back to character selection, or a new selection replaced it.</summary>
+    /// <remarks>
+    /// A fighter that only stopped sending heartbeats is not a departure: the room's own deadline counts it fled and
+    /// it keeps its seat (<see cref="IPvpRoomDomainService.AdvanceDueAsync"/>).
+    /// </remarks>
     Disconnected,
-
-    /// <summary>The fighter stopped sending heartbeats while fighting; its session is still in the world.</summary>
-    HeartbeatLost,
 }
 
 /// <summary>How a battle ended, frozen at that moment.</summary>

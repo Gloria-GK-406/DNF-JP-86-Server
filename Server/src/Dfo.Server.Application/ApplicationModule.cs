@@ -1,4 +1,4 @@
-﻿using Dfo.Server.Application.Pvp;
+using Dfo.Server.Application.Pvp;
 using Dfo.Server.Application.UsageQuotas;
 using Dfo.Server.Application.Marriage;
 using Dfo.Server.Application.Events;

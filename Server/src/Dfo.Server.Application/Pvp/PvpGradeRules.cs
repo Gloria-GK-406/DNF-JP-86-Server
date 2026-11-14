@@ -10,6 +10,12 @@ internal static class PvpGradeRules
             ? catalog.Grades[grade]
             : throw new ArgumentOutOfRangeException(nameof(grade), grade, "Grade is above the archive's top grade.");
 
+    /// <summary>
+    /// A stored grade the archive's table can answer for: one above the top grade (kept from before the table was
+    /// enforced) reads as the top grade. The stored value itself is left alone.
+    /// </summary>
+    public static byte Within(PvpGradeCatalog catalog, byte grade) => Math.Min(grade, catalog.MaximumGrade);
+
     /// <summary>The grade an amount of experience falls in; experience past the top grade's bound stays at the top grade.</summary>
     public static byte GradeOf(PvpGradeCatalog catalog, long experience)
     {
@@ -22,7 +28,7 @@ internal static class PvpGradeRules
     public static PvpSettlementDecision Decide(PvpGradeCatalog catalog, PvpSettlementFacts facts)
     {
         ArgumentNullException.ThrowIfNull(facts);
-        var experience = facts.Experience ?? Step(catalog, facts.Grade).LowerBound;
+        var experience = facts.Experience ?? Step(catalog, Within(catalog, facts.Grade)).LowerBound;
         var grade = GradeOf(catalog, experience);
         if (!facts.Entitlements.RecordsResult) return new(grade, experience, 0, false);
 

@@ -127,6 +127,7 @@ public sealed class PvpGradeRulesTests
         Assert.Equal(709000, rules.LowerBound(10));
         Assert.Equal(949000, rules.UpperBound(10));
         Assert.Equal(9999999, rules.UpperBound(20));
+        Assert.Equal(20, rules.MaximumGrade);
         Assert.Throws<ArgumentOutOfRangeException>(() => rules.LowerBound(21));
         Assert.Throws<ArgumentOutOfRangeException>(() => rules.GradeOf(-1));
     }
@@ -141,6 +142,15 @@ public sealed class PvpGradeRulesTests
         Assert.Equal(new PvpSettlementDecision(3, 650, 500, true), decision);
         Assert.Equal(new PvpSettlementDecision(0, 50, -500, true),
             PvpGradeRules.Decide(Steep, Facts(550, PvpOutcome.Loss)));
+    }
+
+    [Fact]
+    public void A_stored_grade_above_the_top_without_experience_starts_at_the_top_grade_s_lower_bound()
+    {
+        Assert.Equal(new PvpSettlementDecision(3, 600, 0, true),
+            PvpGradeRules.Decide(Steep, Facts(null, PvpOutcome.Win) with { Grade = 25 }));
+        Assert.Equal(new PvpSettlementDecision(1, 100, -500, true),
+            PvpGradeRules.Decide(Steep, Facts(null, PvpOutcome.Loss) with { Grade = 25 }));
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;

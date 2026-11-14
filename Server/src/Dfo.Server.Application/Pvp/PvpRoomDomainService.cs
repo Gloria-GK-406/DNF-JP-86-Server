@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
@@ -445,9 +445,8 @@ internal sealed class PvpRoomDomainService(
             || room.Snapshot.SeatOf(session.CharacterId) is not { } seat
             || ((PvpSeat.Taken)room.Snapshot.Seats[seat]).Session != session)
             return Refused(PvpRoomRefusal.NotSeated);
+        if (!Enum.IsDefined(reason)) throw new ArgumentOutOfRangeException(nameof(reason), reason, null);
         var snapshot = room.Snapshot;
-        var keepsSeat = reason == PvpDepartureReason.HeartbeatLost;
-        if (keepsSeat && snapshot.Phase != PvpRoomPhase.Fighting) return Refused(PvpRoomRefusal.WrongPhase);
         var next = snapshot;
         if (snapshot.Match is { } match && match.FighterOf(session) is { } index && !match.Fighters[index].Departed)
         {
@@ -463,10 +462,8 @@ internal sealed class PvpRoomDomainService(
                 PvpRoomPhase.Waiting => throw new InvalidOperationException("A waiting duel room has no battle."),
             };
         }
-        else if (keepsSeat) return Refused(PvpRoomRefusal.NotFighter);
-        return ValueTask.FromResult<PvpRoomOutcome>(keepsSeat
-            ? Stage(pending, room, next, PvpRoomChangeKind.Departed)
-            : Stage(pending, room, next, PvpRoomChangeKind.Departed, (seat, PvpSeatReleaseReason.Departed)));
+        return ValueTask.FromResult<PvpRoomOutcome>(
+            Stage(pending, room, next, PvpRoomChangeKind.Departed, (seat, PvpSeatReleaseReason.Departed)));
     }
 
     public PvpDeadlineScan Deadlines(DateTimeOffset now)

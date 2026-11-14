@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;

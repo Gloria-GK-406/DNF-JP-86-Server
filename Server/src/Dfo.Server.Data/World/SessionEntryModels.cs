@@ -80,15 +80,14 @@ public sealed record PvpLobbyParticipantState(CharacterId CharacterId);
 /// <remarks>
 /// A null lobby on the composed state means duelling does not apply to this entry at all,
 /// which is different from a lobby that applies and happens to be empty. Only the second
-/// is a lobby the character could join.
+/// is a lobby the character could join. The rooms are not carried here: the room owner is
+/// their one source, and the selection's lobby snapshot reads them when it is sent.
 /// </remarks>
 public sealed record PvpLobbyEntryState(
-    IReadOnlyList<PvpLobbyParticipantState> Participants,
-    IReadOnlyList<Dfo.Server.Data.Game.PvpRoomSnapshotState> Rooms)
+    IReadOnlyList<PvpLobbyParticipantState> Participants)
 {
     public static PvpLobbyEntryState Empty { get; } = new(
-        Array.Empty<PvpLobbyParticipantState>(),
-        Array.Empty<Dfo.Server.Data.Game.PvpRoomSnapshotState>());
+        Array.Empty<PvpLobbyParticipantState>());
 }
 
 /// <summary>

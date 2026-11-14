@@ -21,7 +21,10 @@ public enum PvpOutcome : byte
 }
 
 /// <summary>Everything one fighter's settlement is decided from.</summary>
-/// <param name="Grade">The stored grade; only read when <paramref name="Experience"/> is null.</param>
+/// <param name="Grade">
+/// The stored grade; only read when <paramref name="Experience"/> is null. A grade above the archive's top, which a
+/// record from before the grade table was enforced may hold, starts at the top grade's lower bound.
+/// </param>
 /// <param name="Experience">
 /// Accumulated grade experience, or null for a record that has never had any, which starts at
 /// the lower bound of <paramref name="Grade"/>.
@@ -72,6 +75,10 @@ public interface IPvpSettlementRuleService
     PvpSettlementDecision Decide(PvpSettlementFacts facts);
 
     byte GradeOf(long experience);
+
+    /// <summary>The archive's top grade; <see cref="LowerBound"/> and <see cref="UpperBound"/> refuse any grade above it.</summary>
+    byte MaximumGrade { get; }
+
     long LowerBound(byte grade);
     long UpperBound(byte grade);
 

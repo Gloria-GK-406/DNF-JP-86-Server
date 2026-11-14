@@ -1,4 +1,4 @@
-﻿using Dfo.Server.Application.World;
+using Dfo.Server.Application.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Testing;
