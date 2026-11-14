@@ -50,3 +50,4 @@ state: ready
 - A1（TASK-02 审查移交）：启动期校验与 FreeDuel 权益归属指派给 T-004。
   - 权益按频道身份取：`ChannelEntryKind.FreeDuel`（含按频道号配置的自由决斗频道，环境可能为空）一律取"不记录"行；`ChannelEntryKind.Pvp` 按登录环境取（8 不记录、24 记录），表中没有的环境为配置错误。`EntitlementsOf` 的输入随之改为频道身份（`ChannelEntryIdentity`）。
   - 显式启动检查：在开始接受连接之前，遍历频道目录中被判为决斗频道的每个频道调用 `EntitlementsOf`，并强制加载两份 PvP 内容源；任一失败即终止启动（不依赖只记 Warning 的内容预热）。挂接点沿用宿主现有的启动前检查/就绪机制，T-004 细化时确定。
+- A2（TASK-05 完成后）：T-006 拆为两个单元——TASK-06 房间侧协议（频道信息、房间、大厅增量、开局帧 `0x002D`、决斗邀请、组队互斥、拒绝码映射含 `ShuttingDown`）与 TASK-07 对局侧协议（`0x012A`/`0x012B`/`0x006E`/`0x0037`/`0x0038`/`0x003A`/`0x0039`，NOTI `0x002E`/`0x0031`/`0x002F`/`0x0030`，`PvpBattleProjection` 三个接缝、离场 sink 实现与按接收者延后的投影队列、选角补发 `0x0030`，以及 TASK-05 审查移交项）。T-007 由 TASK-08、T-008 由 TASK-09 承接。
