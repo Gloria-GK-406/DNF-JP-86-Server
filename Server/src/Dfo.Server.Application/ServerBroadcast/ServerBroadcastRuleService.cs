@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.ServerBroadcast;
@@ -10,7 +11,7 @@ namespace Dfo.Server.Application.ServerBroadcast;
 /// <summary>Reads <c>ServerBroadcast:*</c> once; <c>Enabled</c> turns every kind off together.</summary>
 internal sealed class ServerBroadcastRuleService : IServerBroadcastRuleService
 {
-    private readonly HashSet<ServerBroadcastKind> enabled = [];
+    private readonly FrozenSet<ServerBroadcastKind> enabled;
     private readonly IEquipmentDefinitionSource equipment;
     private readonly IExtraDropContentSource extraDrops;
 
@@ -19,10 +20,9 @@ internal sealed class ServerBroadcastRuleService : IServerBroadcastRuleService
     {
         this.equipment = equipment;
         this.extraDrops = extraDrops;
-        if (settings.GetConfig<bool>("ServerBroadcast:Enabled"))
-            foreach (var kind in Enum.GetValues<ServerBroadcastKind>())
-                if (settings.GetConfig<bool>("ServerBroadcast:" + kind))
-                    enabled.Add(kind);
+        enabled = settings.GetConfig<bool>("ServerBroadcast:Enabled")
+            ? Enum.GetValues<ServerBroadcastKind>().Where(kind => settings.GetConfig<bool>("ServerBroadcast:" + kind)).ToFrozenSet()
+            : FrozenSet<ServerBroadcastKind>.Empty;
         ForgingMinimumStage = Positive(settings, "ServerBroadcast:ForgingMinimumStage");
         LotteryMinimumRarity = Positive(settings, "ServerBroadcast:LotteryMinimumRarity");
         AncientDungeonMinimumRarity = Positive(settings, "ServerBroadcast:AncientDungeonMinimumRarity");
