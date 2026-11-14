@@ -1048,6 +1048,9 @@ equipped-creature columns; both groups stay in `character_condition`, the creatu
 
 ### `character_pvp` — 8 columns
 
+> Superseded by schema v11; see [Amendment A-1](#amendment-a-1--character_pvp-is-split-at-schema-v11).
+> The table below is the ruling as made.
+
 | Column | From |
 |---|---|
 | `character_id` | new — the folded `character_pvp_skill_state` cannot supply it, because that table has a row only for characters whose PvP pages were seeded and this one has a row for every character |
@@ -1294,6 +1297,38 @@ inventing one is outside this work. Recorded so the loss is a decision rather th
 | The avatar detail's surviving value checks — 30-byte jewel socket, both colours in 0..65535 | `Server/src/Dfo.Server.Application/Inventory/InventoryEntryAssembly.cs`, the avatar-detail check |
 | `character_creatures.mode_flag` decides whether two columns are sent, not what they mean | `Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationPayloadCodec.Entry.cs`, the pet section |
 | `character_new_items.character_id` is still read, and an index names it | `Server/src/Dfo.Server.Persistence/Inventory/InventoryItemTables.cs` (the `SELECT` list and the main-inventory `WHERE`) and `IndexDeclarations` in the schema |
+
+## Amendments
+
+The ruling above is kept as made. An amendment records where a later schema version departs from
+it and why; the declaration in `CharacterDatabaseSchema.cs` is the authority on the current shape.
+
+### Amendment A-1 — `character_pvp` is split at schema v11
+
+[M-7](#m-7-the-five-one-row-per-character-tables-that-fold) folded `character_pvp_skill_state` into
+`character_pvp`, and [M-6](#m-6-the-characters-own-three-tables-become-five-cut-by-concept) gave
+`character_pvp` the grades, rank point and streaks. Schema v11 (the duel arena's first phase,
+`Tool/DbMigrate/PvpRecordSplitUpgrade.cs`) drops `character_pvp` and splits it by writer:
+
+| Table | Columns | Writer |
+|---|---|---|
+| `character_pvp_record` | grade, rating grade, grade experience, wins, losses, draws, win streak, peak win streak | duel settlement (`SqlitePvpRecordDomainStore.SettleAsync`) |
+| `character_pvp_skill_state` | `skills_initialized` | the PvP skill seeding (`PvpSkillProfileService`) |
+| `character_pvp_legacy` | `rank_point`, `stat_a`, `win_streak`, `lose_streak` (from the old `pvp_*` columns), only where any was non-zero | the migration alone; nothing reads it |
+
+Why the fold no longer holds: the writer test M-7 applied to `character_pvp_skill_state` ("what it
+would read alongside in `character_pvp` is the rest of this character's duel-arena state") stopped
+being true once settlement became a writer. Settlement writes the record and never the seeding
+flag; seeding writes the flag and never the record. Two writers with disjoint columns on one row is
+the split this ruling makes elsewhere ([S-1](#where-similar-tables-stay-apart)). The new
+`character_pvp_skill_state` is not the pre-ruling table of the same name: it keeps M-7's reading —
+a row for every character from creation, a flag instead of the row's existence — under its own
+key. The four streak and point columns had no reader and no settled meaning ([D-4](#deferred));
+the duel record does not adopt them, so they are kept only for audit.
+
+Scope: this amendment changes no ruling outside `character_pvp`. `CharacterBodyShapeTests` now lists
+`character_pvp` among the folded-away tables. Migration notes:
+[Document/DatabaseSchemaMigration.md](../../Document/DatabaseSchemaMigration.md) (10 → 11).
 
 ## Appendix: every reallocated column
 
