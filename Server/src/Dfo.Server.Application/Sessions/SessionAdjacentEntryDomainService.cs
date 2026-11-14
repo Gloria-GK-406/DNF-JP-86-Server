@@ -1,7 +1,6 @@
 ﻿using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.Pvp;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;

@@ -312,6 +312,15 @@ public enum ClientMessageType
     // Where the character is standing, and where it walks to. See Game/TownProjection.
     GameSetUserPosition = 0x0001_0023,
     GameSetUserArea = 0x0001_0024,
+
+    // Whether duelling is open, and the duel rooms. See Game/PvpChannelInfo and Game/PvpRoom.
+    GamePvpChannelInfo = 0x0001_00C3,
+    GameMakePvpRoom = 0x0001_0032,
+    GameEnterPvpRoom = 0x0001_0033,
+    GameSetPvpSeatState = 0x0001_0034,
+    GameSetPvpReadyState = 0x0001_0035,
+    GameSetPvpTeamMode = 0x0001_0036,
+    GameSetPvpMapIndex = 0x0001_003B,
 }
 
 public enum ServerMessageType
@@ -646,6 +655,21 @@ public enum ServerMessageType
 
     // The selection screen closed. See Game/DungeonSelection.
     GameBackToVillage = 0x0001_0084,
+
+    // Whether duelling is open, the duel rooms' command replies and what the lobby sees of the rooms.
+    // See Game/PvpChannelInfo and Game/PvpRoom.
+    GamePvpChannelInfo = 0x0001_00C3,
+    GameMakePvpRoom = 0x0001_0032,
+    GameEnterPvpRoom = 0x0001_0033,
+    GameSetPvpSeatState = 0x0001_0034,
+    GameSetPvpReadyState = 0x0001_0035,
+    GameSetPvpTeamMode = 0x0001_0036,
+    GameSetPvpMapIndex = 0x0001_003B,
+    GamePvpRoomInfo = 0x0000_0029,
+    GamePvpRoomState = 0x0000_002A,
+    GamePvpSeatState = 0x0000_002B,
+    GamePvpReadyState = 0x0000_002C,
+    GameStartPvp = 0x0000_002D,
 }
 
 public interface IClientNetworkMessage

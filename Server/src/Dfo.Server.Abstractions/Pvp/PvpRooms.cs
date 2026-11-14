@@ -321,7 +321,11 @@ public sealed record PvpInvitation(
     PvpRoomId RoomId,
     SelectedSessionIdentity Inviter,
     SelectedSessionIdentity Invitee,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt)
+{
+    /// <summary>The peer value the inviter's client sent with the invitation; the invitee's acceptance echoes it.</summary>
+    public int PeerToken { get; init; }
+}
 
 public abstract record PvpInviteOutcome
 {
@@ -404,12 +408,16 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
     ValueTask<PvpRoomOutcome> SetReadyAsync(
         SelectedSessionIdentity actor, bool ready, CancellationToken cancellationToken);
 
+    /// <param name="peerToken">The peer value the inviter's client sent; an acceptance must echo it.</param>
     ValueTask<PvpInviteOutcome> InviteAsync(
-        SelectedSessionIdentity inviter, SelectedSessionIdentity invitee, CancellationToken cancellationToken);
+        SelectedSessionIdentity inviter, SelectedSessionIdentity invitee, CancellationToken cancellationToken, int peerToken = 0);
 
     /// <summary>The invitee accepts; the room is entered as <see cref="EnterAsync"/> would, without a password.</summary>
+    /// <param name="peerToken">
+    /// The peer value the acceptance echoed; one that is not the invitation's finds no invitation. Null skips the check.
+    /// </param>
     ValueTask<PvpRoomOutcome> AcceptInviteAsync(
-        SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken);
+        SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken, int? peerToken = null);
 
     /// <summary>A fighter finished loading; once every fighter has, the fighters link to each other.</summary>
     ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);

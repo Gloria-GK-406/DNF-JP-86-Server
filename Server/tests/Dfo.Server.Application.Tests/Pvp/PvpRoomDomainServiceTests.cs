@@ -389,6 +389,20 @@ public sealed class PvpRoomDomainServiceTests
     }
 
     [Fact]
+    public async Task An_acceptance_echoing_another_peer_token_finds_no_invitation_and_leaves_it_standing()
+    {
+        var f = new PvpRoomFixture();
+        var (owner, target) = (f.Join(1), f.Join(2));
+        _ = await f.CreateAsync(owner);
+        _ = Assert.IsType<PvpInviteOutcome.Sent>(await f.Commit(rooms => rooms.InviteAsync(owner, target, default, 64)));
+
+        await AssertRefused(f, PvpRoomRefusal.InviteMissing, rooms => rooms.AcceptInviteAsync(target, owner.CharacterId, default, 65));
+        var accepted = Assert.IsType<PvpRoomOutcome.Changed>(
+            await f.Commit(rooms => rooms.AcceptInviteAsync(target, owner.CharacterId, default, 64)));
+        Assert.Equal(PvpRoomChangeKind.InviteAccepted, accepted.Kind);
+    }
+
+    [Fact]
     public async Task An_invitation_expires_after_thirty_seconds()
     {
         var f = new PvpRoomFixture();

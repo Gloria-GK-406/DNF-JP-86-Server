@@ -25,6 +25,21 @@ public sealed record PartyInviteRequestMessage(
     public ServerMessageType MessageType => ServerMessageType.GamePartyInviteRequest;
 }
 
+/// <summary>NOTI <c>0x0007</c> request type 2: an invitation into the sender's duel room.</summary>
+/// <remarks>
+/// Upstream <c>HandleRoomInviteRequestAsync</c> writes seven bytes: the inviter's user id, the request type 2 and
+/// the peer value the inviter's REQUEST_PEER carried, which RESPONSE_PEER echoes. The party form's display tail
+/// (<see cref="PartyInviteRequestMessage"/>) is not part of it. The inviter's USERINFO0 must precede it: A21
+/// <c>118C640</c> (upstream address) ignores an invitation from a user id it has no record of.
+/// </remarks>
+public sealed record PvpRoomInviteRequestMessage(ushort InviterWireUserId, int PeerValue) : IGameNotiMessage
+{
+    /// <summary>ENUM_PEER_REQUEST_TYPE of a duel room invitation.</summary>
+    public const byte RequestType = 2;
+
+    public ServerMessageType MessageType => ServerMessageType.GamePartyInviteRequest;
+}
+
 public sealed record PartyInviteAcceptedMessage(
     ushort InviteeWireUserId,
     ushort InviterWireUserId) : IGameNotiMessage
@@ -100,6 +115,21 @@ internal sealed class PartyInviteRequestEncoder
             body.AsSpan(9), message.Display.Stamina);
         BinaryPrimitives.WriteUInt16LittleEndian(
             body.AsSpan(11), message.Display.AntiMagic);
+        return body;
+    }
+}
+
+internal sealed class PvpRoomInviteRequestEncoder : GameNotiMessageEncoder<PvpRoomInviteRequestMessage>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(PvpRoomInviteRequestMessage message) =>
+        OnePayload(message, EncodeBody(message));
+
+    internal static byte[] EncodeBody(PvpRoomInviteRequestMessage message)
+    {
+        var body = new byte[7];
+        BinaryPrimitives.WriteUInt16LittleEndian(body, message.InviterWireUserId);
+        body[2] = PvpRoomInviteRequestMessage.RequestType;
+        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), message.PeerValue);
         return body;
     }
 }

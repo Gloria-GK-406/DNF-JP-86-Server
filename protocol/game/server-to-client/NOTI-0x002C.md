@@ -52,3 +52,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-14 决斗场一期实现（TASK-06，CurrentImplementation，待实机）
+
+`u8 座位, u8 准备(0/1)`（上游 `BuildReadyStateBody`，静态 2 字节一致，High）。只发给房内成员：等待阶段准备标志变化，
+以及开局时的房主准备（排在 `0x002D` 之前）。
+
+实机前不标 ClientVerified；无 `.hex` 样本，布局来自上游转录与静态走图，字节由编码/解码测试固定。

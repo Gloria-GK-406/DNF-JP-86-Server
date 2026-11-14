@@ -39,6 +39,8 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Raids;
+using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Protocol.Game.PvpRoom;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -150,11 +152,17 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
     }
 }
 
+/// <summary>REQUEST_PEER: a party invitation (type 0), or an invitation into the sender's duel room (type 2).</summary>
+/// <remarks>
+/// One command for the one message, dispatched on the request type (Spec RQ-022). A duel room and a party
+/// exclude each other (RQ-015): a party invitation from or to a seated character is refused 0x13.
+/// </remarks>
 internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties, IPartyMemberStatusDomainService memberStatus,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameRequestPeerCommandHandler> logger,
-    AntonRaidSquadProjection raidSquads)
+    IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox,
+    IPvpRoomDomainService rooms, ISelectedCharacterCurrentViewDomainService currentViews, ICommandWorkUnits units,
+    ILogger<GameRequestPeerCommandHandler> logger, AntonRaidSquadProjection raidSquads)
     : ICommandHandler<GameRequestPeerCommand, bool>
 {
 
@@ -165,6 +173,8 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
         var message = command.Input;
         var request = commandContext.Request ?? throw new InvalidOperationException("A party protocol request is required.");
         request.DemandCurrent();
+        if (message.RequestType == PvpRoomInviteRequestMessage.RequestType)
+            return await InviteToRoomAsync(commandContext, command, cancellationToken).ConfigureAwait(false);
         if (message.RequestType != 0)
         {
             logger.LogInformation(
@@ -187,6 +197,14 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
                 "REQUEST_PEER target={Target} is not a current selected session",
                 message.TargetWireUserId);
             await RefuseAsync(PartyFailureReason.TargetNotFound).ConfigureAwait(false);
+            return false;
+        }
+
+        if (rooms.IsSeated(inviter.CharacterId) || rooms.IsSeated(target.CharacterId))
+        {
+            logger.LogInformation("REQUEST_PEER inviter={Inviter} target={Target} refused: a side holds a duel room seat",
+                inviter.WireUserId, message.TargetWireUserId);
+            await RefuseWithAsync(PartyRefusalCode.Refused).ConfigureAwait(false);
             return false;
         }
 
@@ -235,20 +253,83 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
                 ?? parties.RequestInvite(inviterCharacter, targetCharacter, display);
         }
 
-        ValueTask RefuseAsync(PartyFailureReason failure) => outbox.RegisterExplicitAsync(
+        ValueTask RefuseAsync(PartyFailureReason failure) => RefuseWithAsync(PartyRefusalCode.ForInvite(failure));
+
+        ValueTask RefuseWithAsync(byte reason) => outbox.RegisterExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
-                [new RequestPeerRefusal(PartyRefusalCode.ForInvite(failure), message.RequestType)], []),
+                [new RequestPeerRefusal(reason, message.RequestType)], []),
             cancellationToken);
 
     }
+
+    /// <summary>
+    /// Type 2: the room owner records the invitation in one write unit; once it returns, the invitee gets the
+    /// inviter's USERINFO0 and then NOTI 0x0007 type 2. A refusal answers <c>00 reason 02</c>.
+    /// </summary>
+    private async ValueTask<bool> InviteToRoomAsync(CommandExecutionContext execution, GameRequestPeerCommand command,
+        CancellationToken cancellationToken)
+    {
+        var connection = command.Dispatch.Connection;
+        var message = command.Input;
+        if (sessions.FindByConnection(connection.ConnectionId) is not { } inviter)
+        {
+            logger.LogInformation("REQUEST_PEER type 2 ignored for non-current connection {ConnectionId}", connection.ConnectionId);
+            return false;
+        }
+        PvpInviteOutcome outcome;
+        // Upstream takes only the seven-byte form for a room invitation.
+        if (message.Tail.Length != 0)
+            outcome = new PvpInviteOutcome.Refused(PvpRoomRefusal.InviteMissing);
+        else if (!sessions.TryGetInWorld(message.TargetWireUserId, out var target))
+            outcome = new PvpInviteOutcome.Refused(PvpRoomRefusal.TargetUnavailable);
+        else
+            outcome = await units.WriteAsync(execution,
+                new CommandWorkUnitDeclaration("PvpRoomInvite", [new SelectedSessionRecipient(inviter, connection, message.Metadata)]),
+                (_, token) => rooms.InviteAsync(inviter, target, token, message.PeerValue), cancellationToken).ConfigureAwait(false);
+        switch (outcome)
+        {
+            case PvpInviteOutcome.Refused refused:
+                logger.LogInformation("REQUEST_PEER type 2 inviter={Inviter} target={Target} refused: {Refusal}",
+                    inviter.WireUserId, message.TargetWireUserId, refused.Reason);
+                await outbox.RegisterExplicitAsync(connection.ConnectionId, new GameExplicitMessageDelivery(
+                    [new RequestPeerRefusal(PvpRoomRefusalCode.ForInvite(refused.Reason), message.RequestType)], []),
+                    cancellationToken).ConfigureAwait(false);
+                return false;
+            case PvpInviteOutcome.Sent sent:
+                if (await currentViews.TryLoadAsync(inviter, cancellationToken).ConfigureAwait(false) is not { } view)
+                {
+                    logger.LogWarning("REQUEST_PEER type 2 inviter={Inviter}: current view gone after the invitation was recorded; not delivered",
+                        inviter.WireUserId);
+                    return false;
+                }
+                await projections.ProjectAsync(new NotificationAudience.TheseSessions([sent.Invitation.Invitee]),
+                    new PvpRoomBroadcast([
+                        new PvpParticipantPublicationMessage(PvpRoomProjector.Identity(view)),
+                        new PvpRoomInviteRequestMessage(inviter.WireUserId, message.PeerValue),
+                    ]), cancellationToken).ConfigureAwait(false);
+                logger.LogInformation("REQUEST_PEER type 2 inviter={Inviter} target={Target} room={Room}: invited",
+                    inviter.WireUserId, message.TargetWireUserId, sent.Room.Number);
+                return true;
+            default:
+                throw new InvalidOperationException($"Unknown duel invitation outcome {outcome.GetType().Name}.");
+        }
+    }
 }
 
+/// <summary>RESPONSE_PEER: accepting a party invitation (type 0), or an invitation into a duel room (type 2).</summary>
+/// <remarks>
+/// One command for the one message, dispatched on the request type (Spec RQ-022). A seated character cannot
+/// join a party, nor anyone a seated inviter's (RQ-015): refused 0x13.
+/// </remarks>
 internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameResponsePeerCommandHandler> logger,
-    AntonRaidSquadProjection raidSquads)
+    IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox,
+    IPvpRoomDomainService rooms, IPvpLobbyDomainService lobby, ISelectedCharacterCurrentViewDomainService currentViews,
+    IOnlineCharacterRuntimeDomainService online, IOnlineUserQueryDomainService onlineUsers,
+    IGameSessionEndpointDomainService endpoints, IWeaknessDomainService weakness, ICommandWorkUnits units,
+    ILogger<GameResponsePeerCommandHandler> logger, AntonRaidSquadProjection raidSquads)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -260,6 +341,8 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
         var message = command.Input;
         var request = commandContext.Request ?? throw new InvalidOperationException("A party protocol request is required.");
         request.DemandCurrent();
+        if (message.RequestType == PvpRoomInviteRequestMessage.RequestType)
+            return await AcceptRoomInviteAsync(commandContext, command, cancellationToken).ConfigureAwait(false);
         if (message.RequestType != 0)
         {
             logger.LogInformation(
@@ -282,6 +365,14 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
                 "RESPONSE_PEER inviter={Inviter} is not a current selected session",
                 message.InviterWireUserId);
             await RefuseAsync(PartyFailureReason.TargetNotFound).ConfigureAwait(false);
+            return false;
+        }
+
+        if (rooms.IsSeated(invitee.CharacterId) || rooms.IsSeated(inviter.CharacterId))
+        {
+            logger.LogInformation("RESPONSE_PEER invitee={Invitee} inviter={Inviter} refused: a side holds a duel room seat",
+                invitee.WireUserId, message.InviterWireUserId);
+            await RefuseWithAsync(PartyRefusalCode.Refused).ConfigureAwait(false);
             return false;
         }
 
@@ -328,11 +419,60 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
             return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
         }
 
-        ValueTask RefuseAsync(PartyFailureReason failure) => outbox.RegisterExplicitAsync(
+        ValueTask RefuseAsync(PartyFailureReason failure) => RefuseWithAsync(PartyRefusalCode.ForAcceptance(failure));
+
+        ValueTask RefuseWithAsync(byte reason) => outbox.RegisterExplicitAsync(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(
-                [new ResponsePeerRefusal(PartyRefusalCode.ForAcceptance(failure), message.RequestType)], []),
+                [new ResponsePeerRefusal(reason, message.RequestType)], []),
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Type 2. The seven-byte form is an acceptance; the client declines a room invitation by closing its dialog
+    /// and sends nothing (upstream: A21 <c>2535A30</c>), so a sixteen-byte decline form changes nothing and is
+    /// not answered. An acceptance enters the room in one write unit and projects as an entry with no command
+    /// reply; a refusal answers <c>00 reason 02</c>.
+    /// </summary>
+    private async ValueTask<bool> AcceptRoomInviteAsync(CommandExecutionContext execution, GameResponsePeerCommand command,
+        CancellationToken cancellationToken)
+    {
+        var connection = command.Dispatch.Connection;
+        var message = command.Input;
+        if (sessions.FindByConnection(connection.ConnectionId) is not { } invitee)
+        {
+            logger.LogInformation("RESPONSE_PEER type 2 ignored for non-current connection {ConnectionId}", connection.ConnectionId);
+            return false;
+        }
+        if (message.Tail.Length != 0)
+        {
+            logger.LogInformation("RESPONSE_PEER type 2 invitee={Invitee} inviter={Inviter}: declined; nothing changes",
+                invitee.WireUserId, message.InviterWireUserId);
+            return false;
+        }
+        PvpRoomOutcome outcome = !sessions.TryGetInWorld(message.InviterWireUserId, out var inviter)
+            ? new PvpRoomOutcome.Refused(PvpRoomRefusal.SessionNotCurrent)
+            : await units.WriteAsync(execution,
+                new CommandWorkUnitDeclaration("PvpRoomInviteAccept", [new SelectedSessionRecipient(invitee, connection, message.Metadata)]),
+                (_, token) => rooms.AcceptInviteAsync(invitee, inviter.CharacterId, token, message.PeerValue), cancellationToken).ConfigureAwait(false);
+        switch (outcome)
+        {
+            case PvpRoomOutcome.Refused refused:
+                logger.LogInformation("RESPONSE_PEER type 2 invitee={Invitee} inviter={Inviter} refused: {Refusal}",
+                    invitee.WireUserId, message.InviterWireUserId, refused.Reason);
+                await outbox.RegisterExplicitAsync(connection.ConnectionId, new GameExplicitMessageDelivery(
+                    [new ResponsePeerRefusal(PvpRoomRefusalCode.ForAcceptance(refused.Reason), message.RequestType)], []),
+                    cancellationToken).ConfigureAwait(false);
+                return false;
+            case PvpRoomOutcome.Changed changed:
+                logger.LogInformation("RESPONSE_PEER type 2 invitee={Invitee} inviter={Inviter} room={Room}: entered",
+                    invitee.WireUserId, message.InviterWireUserId, changed.After?.Number);
+                await new PvpRoomProjector(sessions, lobby, currentViews, online, onlineUsers, endpoints, townAreas, parties,
+                    projectionState, weakness, projections, outbox, logger).ProjectAsync(changed, cancellationToken).ConfigureAwait(false);
+                return true;
+            default:
+                throw new InvalidOperationException($"Unknown duel room outcome {outcome.GetType().Name}.");
+        }
     }
 }
 

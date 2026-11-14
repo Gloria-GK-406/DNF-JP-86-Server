@@ -155,7 +155,7 @@ internal static class SupplementalSynchronizationCodec
     public static GameMessagePayload EncodeTownLeave(ushort userId) =>
         Payload(0x0006, BitConverter.GetBytes(userId));
 
-    private static GameMessagePayload EncodePvpIdentityRoster(
+    internal static GameMessagePayload EncodePvpIdentityRoster(
         IReadOnlyList<PvpParticipantEntryState> identities)
     {
         if (identities.Count > ushort.MaxValue)
@@ -207,8 +207,18 @@ internal static class SupplementalSynchronizationCodec
             participant.Pets);
 
     private static GameMessagePayload EncodePvpRoomSnapshot(
-        IReadOnlyList<PvpRoomSnapshotState> rooms)
+        IReadOnlyList<PvpRoomSnapshotState> rooms) => Payload(0x0029, EncodePvpRoomInfoBody(rooms));
+
+    /// <summary>NOTI <c>0x0029</c> body: the rooms in the order given.</summary>
+    /// <remarks>
+    /// Upstream <c>PvpRoomNotificationBuilder.WriteRoomInfo</c> and its A21 reader (<c>1173790</c> upstream,
+    /// <c>0x00D73790</c> here): each seat is a state byte and a user id and nothing else, so a byte more per
+    /// seat would shift every later seat and the password flag. The protocol page's static reads (u8 state at
+    /// +10, u16 user at +11 for the first seat) agree.
+    /// </remarks>
+    internal static byte[] EncodePvpRoomInfoBody(IReadOnlyList<PvpRoomSnapshotState> rooms)
     {
+        ArgumentNullException.ThrowIfNull(rooms);
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write(checked((ushort)rooms.Count));
@@ -221,29 +231,46 @@ internal static class SupplementalSynchronizationCodec
             writer.Write(room.NameType);
             if (room.NameType == 0)
                 WriteDstr(writer, room.Name);
-            // research.md §2: room state 1 waiting / 2 in battle; seat state 0 individual, 1/2 team,
-            // 0xFE closed, 0xFF empty. The trailing seat byte and the matching type stay 0 until their meaning is
-            // settled against A21 samples.
-            writer.Write(room.Waiting ? (byte)1 : (byte)2);
+            writer.Write(PvpRoomStateByte(room.Waiting));
             writer.Write(room.OwnerSeat);
             writer.Write(room.MapIndex);
             writer.Write(room.BattleMode);
             foreach (var seat in seats)
             {
-                writer.Write(seat.Occupancy switch
-                {
-                    PvpRoomSeatOccupancy.Open => (byte)0xFF,
-                    PvpRoomSeatOccupancy.Closed => (byte)0xFE,
-                    PvpRoomSeatOccupancy.Taken => seat.Team,
-                });
-                writer.Write(seat.UserId);
-                writer.Write((byte)0);
+                writer.Write(PvpSeatStateByte(seat));
+                writer.Write(PvpSeatUserId(seat));
             }
             writer.Write(room.HasPassword ? (byte)1 : (byte)0);
+            // The matching type: 0 for a free room, the only kind the first phase opens.
             writer.Write(0);
         }
-        return Payload(0x0029, stream.ToArray());
+        return stream.ToArray();
     }
+
+    /// <summary>A room's state byte: research.md §2 and upstream <c>FreeDuelRoom</c>, 1 waiting and 2 in battle.</summary>
+    internal static byte PvpRoomStateByte(bool waiting) => waiting ? (byte)1 : (byte)2;
+
+    /// <summary>
+    /// A seat's state byte: 0xFF empty, 0xFE closed, and for a taken seat its side, 0 an individual fighter and
+    /// 1 or 2 a team (research.md §2, upstream <c>FreeDuelRoom</c> seat states).
+    /// </summary>
+    internal static byte PvpSeatStateByte(PvpRoomSeatState seat) => seat.Occupancy switch
+    {
+        PvpRoomSeatOccupancy.Open => 0xFF,
+        PvpRoomSeatOccupancy.Closed => 0xFE,
+        PvpRoomSeatOccupancy.Taken => seat.Team switch
+        {
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            _ => throw new InvalidDataException($"PvP seat side {seat.Team} has no wire state."),
+        },
+        _ => throw new InvalidDataException($"PvP seat occupancy {seat.Occupancy} has no wire state."),
+    };
+
+    /// <summary>The user id a seat shows: its session's for a taken seat, 0 otherwise.</summary>
+    internal static ushort PvpSeatUserId(PvpRoomSeatState seat) =>
+        seat.Occupancy == PvpRoomSeatOccupancy.Taken ? seat.UserId : (ushort)0;
 
     private static void WriteDstr(BinaryWriter writer, byte[]? value)
     {

@@ -39,6 +39,24 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 
 [CMD0013](game/client-to-server/0x0013.md) 布局不变。Equipment24 除 `[support weapon]` 外，接受角色转职 `[support weapon sub type]` 列出子类型的 `[weapon]`（修订版 PVF 仅流浪武士＝光剑子类型 5）；背包↔副武器槽、装备栏内 12↔24 的移动与互换按同一规则判定。线上拒绝日志、PVF 与上游参照见协议页。
 
+## 2026-11-14 决斗场一期 房间侧（TASK-06，CurrentImplementation，待实机）
+
+频道信息 `0x00C3` 在 `Game/PvpChannelInfo/`；建房、进房、座位、准备、模式、地图在 `Game/PvpRoom/`，六条 CMD 由同一个
+`GamePvpRoomCommandHandler` 处理，房间状态由领域 `PvpRoomDomainService` 持有，每条命令一个写工作单元，返回后由 `PvpRoomProjector`
+投影：请求者本人的帧直接登记，房内成员与同监听端口大厅就绪者经精确会话通知，进房离城、退房回城复用城镇投影。
+拒绝一律 `00 reason` 挂在原命令号，码表见 [0x0032](game/client-to-server/0x0032.md)。决斗邀请是 `0x000A`/`0x000B` 的 type 2，
+在原组队 CMD 内按 type 分派；组队 type 0 新增与房间互斥的拒绝。NOTI `0x0029` 每座位改为 3 字节（此前多写 1 字节）。
+布局只有上游转录与静态走图，无 WireCaptured、无 ClientVerified；对局帧（`0x002E` 之后）属 TASK-07。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x00C3` | `PvpChannelInfoDecoder` / `GamePvpChannelInfoCommandHandler` | 编码测试；客户端应答处理静态已核（High），待实机 | [0x00C3](game/client-to-server/0x00C3.md) |
+| `0x01` | `0x0032` | `MakePvpRoomDecoder` / `GamePvpRoomCommandHandler` | 解码、帧序测试；成功无 CMD 待抓包 | [0x0032](game/client-to-server/0x0032.md) |
+| `0x01` | `0x0033` | `EnterPvpRoomDecoder`；成功 `EnterPvpRoomAccepted` | 解码、帧序测试；待实机 | [0x0033](game/client-to-server/0x0033.md) |
+| `0x01` | `0x0034` `0x0035` `0x0036` `0x003B` | 同一切片 | 解码、帧序测试；`0x0036` 只收 1 字节；待实机 | [0x0034](game/client-to-server/0x0034.md) |
+| `0x00` NOTI | `0x0029` `0x002A` `0x002B` `0x002C` `0x002D` | `PvpRoomInfoMessage` 等五个编码器 | 编码测试与大厅增量累积=快照测试；待实机 | [NOTI-0x0029](game/server-to-client/NOTI-0x0029.md) |
+| `0x01` / `0x00` NOTI | `0x000A` `0x000B` / `0x0007` type 2 | 组队 CMD 内分派；`PvpRoomInviteRequestMessage`（7 字节） | 命令测试；A21 只验证过 type 0 | [0x000A](game/client-to-server/0x000A.md) |
+
 ## 2026-11-14 个人商店（#43，CurrentImplementation，开店与上架已实机抓包，其余待实机）
 
 入口是驴子地摊：USERINFO 子类 0 里公会 u32 之后那个字节是个人商店许可（原记为 EventCharacter），置 1 后客户端出现开店入口。
@@ -755,9 +773,9 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x0006` | `DELETE_CHARACTER` | Mutation / 有响应 | 实现服务端功能 | [0x0006.md](game/client-to-server/0x0006.md) |
 | `0x01` | `0x0007` | `RETURN_SELECT_CHARACTER` | Mutation / 有响应 | 双向验证结束（A21） | [0x0007.md](game/client-to-server/0x0007.md) |
 | `0x01` | `0x0008` | GET_USERINFO | Query / mode 2 名单与 mode 3 当前角色详情 | ClientVerified（A21 mode 2/3） | [0x0008.md](game/client-to-server/0x0008.md) |
-| `0x01` | `0x000A` | `REQUEST_PEER` | Mutation / type 0 组队邀请；type 1/2 范围外 | ClientVerified（A21 type 0） | [0x000A.md](game/client-to-server/0x000A.md) |
+| `0x01` | `0x000A` | `REQUEST_PEER` | Mutation / type 0 组队邀请；type 2 决斗房间邀请（2026-11-14，待实机）；type 1 范围外 | ClientVerified（A21 type 0） | [0x000A.md](game/client-to-server/0x000A.md) |
 | `0x01` | `0x00A6` | `CALL_PARTY_MEMBER_REALTIME_INFO` | Query / 定向刷新队员实时摘要 | ClientVerified（A21 当前在队查询） | [0x00A6.md](game/client-to-server/0x00A6.md) |
-| `0x01` | `0x000B` | `RESPONSE_PEER` | Mutation / type 0 接受邀请 | ClientVerified（A21 type 0；真实 body 待归档） | [0x000B.md](game/client-to-server/0x000B.md) |
+| `0x01` | `0x000B` | `RESPONSE_PEER` | Mutation / type 0 接受邀请；type 2 接受决斗房间邀请（2026-11-14，待实机） | ClientVerified（A21 type 0；真实 body 待归档） | [0x000B.md](game/client-to-server/0x000B.md) |
 | `0x01` | `0x000C` | `SET_PARTY_INFO` | Mutation / 无队时创建、在队时更新；当前成功路径无 CMD 回包 | ClientVerified（既有 A21 12B direct 创建/更新、inline-title 创建）；Normal 编辑残留目标规范化为 CurrentImplementation，新增边界及拒绝仍待实机；inline-title 长度上限 256 B 为 CurrentImplementation，客户端上限待 ClientStatic | [0x000C.md](game/client-to-server/0x000C.md) |
 | `0x01` | `0x000D` | `LEAVE_PARTY` | Mutation / 离队或解散 | ClientVerified（A21 普通成员、多人队长与单人队主动离队） | [0x000D.md](game/client-to-server/0x000D.md) |
 | `0x01` | `0x000E` | `WALKOUT_PARTY_MEMBER` | Mutation / 队长按稳定槽位踢出成员；成功无 CMD 回包 | ClientVerified（A21 城镇两人队成功路径；拒绝与地下城路径待验证） | [0x000E.md](game/client-to-server/0x000E.md) |

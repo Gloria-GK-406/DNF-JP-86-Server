@@ -56,3 +56,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-14 决斗场一期实现（TASK-06，CurrentImplementation，待实机）
+
+`u16 房间号, u8 模式, u8 n`，再 `n × (u8 座位, u8 state, u16 uid)`；state 同 [NOTI-0x0029](NOTI-0x0029.md)（上游
+`BuildSeatStateBody`/`BuildOccupiedSeatStatesBody`，静态下界 8 字节一致，High）。座位的占用者、阵营或开关状态变化时发给同端口
+大厅就绪者；模式变化时列出全部占用座位；房间销毁前把最后的占用座位发成空座。准备标志不在其中。
+
+实机前不标 ClientVerified；无 `.hex` 样本，布局来自上游转录与静态走图，字节由编码/解码测试固定。

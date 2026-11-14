@@ -477,7 +477,7 @@ public sealed class GameplayWriteEntryTableTests
 
         // PvpRoomDomainService
         ["PvpRoomDomainService.AbandonSettlementAsync(PvpMatchId, CancellationToken)"] = W,
-        ["PvpRoomDomainService.AcceptInviteAsync(SelectedSessionIdentity, CharacterId, CancellationToken)"] = W,
+        ["PvpRoomDomainService.AcceptInviteAsync(SelectedSessionIdentity, CharacterId, CancellationToken, Int32?)"] = W,
         ["PvpRoomDomainService.AcknowledgeRankAsync(SelectedSessionIdentity, CancellationToken)"] = W,
         ["PvpRoomDomainService.AcknowledgeResultAsync(SelectedSessionIdentity, CancellationToken)"] = W,
         ["PvpRoomDomainService.AdvanceDueAsync(PvpRoomId, DateTimeOffset, CancellationToken)"] = W,
@@ -491,7 +491,7 @@ public sealed class GameplayWriteEntryTableTests
         ["PvpRoomDomainService.FindConclusion(PvpMatchId)"] = ReadNote(ConditionalEnlist),
         ["PvpRoomDomainService.FindSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
         ["PvpRoomDomainService.HeartbeatAsync(SelectedSessionIdentity, CancellationToken)"] = W,
-        ["PvpRoomDomainService.InviteAsync(SelectedSessionIdentity, SelectedSessionIdentity, CancellationToken)"] = W,
+        ["PvpRoomDomainService.InviteAsync(SelectedSessionIdentity, SelectedSessionIdentity, CancellationToken, Int32)"] = W,
         ["PvpRoomDomainService.IsSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
         ["PvpRoomDomainService.PendingConclusions()"] = ReadNote(ConditionalEnlist),
         ["PvpRoomDomainService.ReportDeathAsync(SelectedSessionIdentity, CharacterId?, CancellationToken)"] = W,

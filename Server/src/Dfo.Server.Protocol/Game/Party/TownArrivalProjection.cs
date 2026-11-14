@@ -74,9 +74,9 @@ internal static class TownArrivalProjection
         ISelectedCharacterCurrentViewDomainService currentViews, IGameCommandOutbox outbox,
         IWeaknessDomainService weaknessState, bool projectWeakness, ICommandProjections projections,
         IPartyTownProjectionDelivery partyTown,
-        List<TownAreaAdmission> admissions, CancellationToken token)
+        List<TownAreaAdmission> admissions, CancellationToken token, bool ownState = true)
     {
-        var deliveries = await TownCaptureDeliveriesAsync(sessions, townAreas, currentViews, admissions, token).ConfigureAwait(false);
+        var deliveries = await TownCaptureDeliveriesAsync(sessions, townAreas, currentViews, admissions, token, ownState).ConfigureAwait(false);
         await TownProjectOwnersAsync(sessions, outbox, weaknessState, projectWeakness, deliveries, token).ConfigureAwait(false);
         foreach (var delivery in deliveries)
             _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([delivery.Admission.Entry.Session.CharacterId]),
@@ -86,7 +86,7 @@ internal static class TownArrivalProjection
         return deliveries.Count;
     }
 
-    internal static async ValueTask<List<TownReturnDelivery>> TownCaptureDeliveriesAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ISelectedCharacterCurrentViewDomainService currentViews, List<TownAreaAdmission> admissions, CancellationToken cancellationToken)
+    internal static async ValueTask<List<TownReturnDelivery>> TownCaptureDeliveriesAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ISelectedCharacterCurrentViewDomainService currentViews, List<TownAreaAdmission> admissions, CancellationToken cancellationToken, bool ownState = true)
     {
         var deliveries = new List<TownReturnDelivery>();
         foreach (var admission in admissions)
@@ -106,7 +106,8 @@ internal static class TownArrivalProjection
                     admission.Entry.Session,
                     admission.Entry.Runtime,
                     own.Position,
-                    peers.Select(candidate => candidate.Participant).ToArray())));
+                    peers.Select(candidate => candidate.Participant).ToArray(),
+                    ownState)));
         }
 
         return deliveries;

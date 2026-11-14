@@ -14,6 +14,8 @@ using Dfo.Server.Protocol.Game.SaveHotkeys;
 using Dfo.Server.Protocol.Game.SaveQuickChat;
 using Dfo.Server.Protocol.Game.OneToOneChat;
 using Dfo.Server.Protocol.Game.Blacklist;
+using Dfo.Server.Protocol.Game.PvpChannelInfo;
+using Dfo.Server.Protocol.Game.PvpRoom;
 using Dfo.Server.Protocol.Game.UnitedFriend;
 using Dfo.Server.Protocol.Game.SendChat;
 using Dfo.Server.Protocol.Game.MirrorDungeonEntry;
@@ -175,6 +177,8 @@ public sealed class ProtocolModule : IServerModule
         services.AddQuestProgressSlice();
         services.AddPartySlice();
         services.AddAntonRaidSlice();
+        services.AddPvpChannelInfoSlice();
+        services.AddPvpRoomSlice();
         services.AddGameMessageSending();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink, ReplayStateProjectionDelivery>();
         services.AddDungeonsSlice();

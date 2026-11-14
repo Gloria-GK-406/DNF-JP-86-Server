@@ -52,3 +52,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-14 决斗场一期实现（TASK-06，CurrentImplementation，待实机）
+
+`u8 地图, u8 模式`（上游 `BuildStartPvpBody`，静态 2 字节一致，High）。地图是开局时抽定的下标，随机选择（0）已被换成具体地图。
+由 CMD `0x0035` 房主开局发给参战成员，排在 `0x002C` 之后、`0x002A` 之前；其余对局帧属 TASK-07。
+
+实机前不标 ClientVerified；无 `.hex` 样本，布局来自上游转录与静态走图，字节由编码/解码测试固定。

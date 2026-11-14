@@ -117,6 +117,14 @@ internal sealed record PvpParticipantPublicationMessage(
         [SupplementalSynchronizationCodec.EncodePvpIdentity(Participant)];
 }
 
+/// <summary>USERINFO subtype 0 roster of several duel participants in one frame, in the order given.</summary>
+internal sealed record PvpParticipantRosterMessage(
+    IReadOnlyList<PvpParticipantEntryState> Participants) : SupplementalSynchronizationMessage, IGameNotiMessage
+{
+    internal override IReadOnlyList<GameMessagePayload> EncodePayloads() =>
+        [SupplementalSynchronizationCodec.EncodePvpIdentityRoster(Participants)];
+}
+
 internal sealed record TrailingEquipmentLockSnapshotMessage(
     Dfo.Server.Data.Inventory.CharacterInventoryEntryState CharacterInventory,
     Dfo.Server.Data.Inventory.AccountInventoryEntryState AccountInventory)
@@ -169,6 +177,7 @@ internal static class SupplementalSynchronizationEncoderRegistration
         AddNoti<EntryAdmissionNoticeMessage>(services);
         AddNoti<PvpLobbySnapshotMessage>(services);
         AddNoti<PvpParticipantPublicationMessage>(services);
+        AddNoti<PvpParticipantRosterMessage>(services);
         AddNoti<TrailingEquipmentLockSnapshotMessage>(services);
         AddNoti<AcceptedQuestProgressMessage>(services);
         AddNoti<PetRevivalStateMessage>(services);

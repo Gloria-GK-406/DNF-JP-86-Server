@@ -243,7 +243,7 @@ internal sealed class PvpRoomDomainService(
     }
 
     public async ValueTask<PvpInviteOutcome> InviteAsync(
-        SelectedSessionIdentity inviter, SelectedSessionIdentity invitee, CancellationToken cancellationToken)
+        SelectedSessionIdentity inviter, SelectedSessionIdentity invitee, CancellationToken cancellationToken, int peerToken = 0)
     {
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(InviteAsync));
         ArgumentNullException.ThrowIfNull(inviter);
@@ -267,13 +267,13 @@ internal sealed class PvpRoomDomainService(
             return new PvpInviteOutcome.Refused(PvpRoomRefusal.Blacklisted);
 
         var invitation = new PvpInvitation(Guid.NewGuid(), room.Snapshot.Id, inviter, invitee,
-            clock.GetUtcNow() + rules.InvitationLifetime);
+            clock.GetUtcNow() + rules.InvitationLifetime) { PeerToken = peerToken };
         pending.PutInvitation(new(inviter.CharacterId, invitee.CharacterId), invitation);
         return new PvpInviteOutcome.Sent(invitation, room.Snapshot);
     }
 
     public ValueTask<PvpRoomOutcome> AcceptInviteAsync(
-        SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken)
+        SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken, int? peerToken = null)
     {
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AcceptInviteAsync));
         ArgumentNullException.ThrowIfNull(invitee);
@@ -281,6 +281,9 @@ internal sealed class PvpRoomDomainService(
         if (!sessions.IsInWorld(invitee)) return Refused(PvpRoomRefusal.SessionNotCurrent);
         var key = new InvitationKey(inviter, invitee.CharacterId);
         if (pending.FindInvitation(key) is not { } invitation) return Refused(PvpRoomRefusal.InviteMissing);
+        // Upstream HandleRoomInviteResponseAsync: an acceptance echoing another token answers no invitation, and
+        // leaves the one there is standing.
+        if (peerToken is { } echoed && echoed != invitation.PeerToken) return Refused(PvpRoomRefusal.InviteMissing);
         if (clock.GetUtcNow() >= invitation.ExpiresAt)
         {
             pending.PutInvitation(key, null);
