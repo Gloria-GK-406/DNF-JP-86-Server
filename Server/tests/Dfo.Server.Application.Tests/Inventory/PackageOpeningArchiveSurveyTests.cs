@@ -34,9 +34,6 @@ public sealed class PackageOpeningArchiveSurveyTests(ITestOutputHelper output)
         ("service", new[] { 27, 63, 64, 65, 66, 67, 69, 70, 71, 72, 73, 152, 719, 838, 957, 2660393, 2660394, 7523,
             2682006, 10007846, 10005185, 10153551, 10153887, 10012295, 10015568, 10148432, 10157325, 10158080,
             490001485, 490001928 }),
-        // Fixed in the #344 archive: pool abilities outside the avatar's options (54) and an unclosed selection
-        // block that swallows the use-place restriction (490001919).
-        ("#340", new[] { 54, 490001919 }),
     }.SelectMany(group => group.Item2.Select(id => (id, group.Item1))).ToDictionary(x => x.id, x => x.Item2);
 
     [SkippableFact]
