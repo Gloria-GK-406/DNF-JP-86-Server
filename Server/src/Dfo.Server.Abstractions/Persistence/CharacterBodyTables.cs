@@ -89,15 +89,11 @@ public sealed record CharacterStatsRow(
     int WaterResistance,
     long Weight);
 
-/// <summary>One row of <c>character_pvp</c>.</summary>
-public sealed record CharacterPvpRow(
-    int PvpGrade,
-    int PvpLoseStreak,
-    long PvpRankPoint,
-    int PvpRatingGrade,
-    long PvpStatA,
-    int PvpWinStreak,
-    int SkillsInitialized);
+/// <summary>The two grades of a <c>character_pvp_record</c> row that the entry shows.</summary>
+public sealed record CharacterPvpGradeRow(int Grade, int RatingGrade);
+
+/// <summary>One row of <c>character_pvp_skill_state</c>.</summary>
+public sealed record CharacterPvpSkillStateRow(int SkillsInitialized);
 
 /// <summary>One row of <c>character_settings</c>.</summary>
 public sealed record CharacterSettingsRow(
@@ -157,10 +153,23 @@ public interface ICharacterStatsTable
         CancellationToken cancellationToken);
 }
 
-/// <summary>The <c>character_pvp</c> table.</summary>
-public interface ICharacterPvpTable
+/// <summary>The <c>character_pvp_record</c> table, as the character body sees it.</summary>
+/// <remarks>
+/// Only the row's beginning and the two grades the entry shows. What a battle changes in the same
+/// row is read and settled by <c>IPvpRecordDomainStore</c>.
+/// </remarks>
+public interface ICharacterPvpRecordTable
 {
-    ValueTask<CharacterPvpRow?> FindAsync(
+    ValueTask<CharacterPvpGradeRow?> FindGradesAsync(
+        CharacterId characterId, CancellationToken cancellationToken);
+
+    ValueTask InsertIfAbsentAsync(CharacterId characterId, CancellationToken cancellationToken);
+}
+
+/// <summary>The <c>character_pvp_skill_state</c> table.</summary>
+public interface ICharacterPvpSkillStateTable
+{
+    ValueTask<CharacterPvpSkillStateRow?> FindAsync(
         CharacterId characterId, CancellationToken cancellationToken);
 
     ValueTask InsertIfAbsentAsync(CharacterId characterId, CancellationToken cancellationToken);

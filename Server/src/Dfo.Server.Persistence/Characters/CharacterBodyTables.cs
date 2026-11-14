@@ -90,21 +90,27 @@ internal sealed partial class SqliteCharacterStatsTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_pvp</c> table.</summary>
-internal sealed partial class SqliteCharacterPvpTable(SqliteDatabase database) : ICharacterPvpTable
+/// <summary>The <c>character_pvp_record</c> table, as the character body sees it.</summary>
+internal sealed partial class SqliteCharacterPvpRecordTable(SqliteDatabase database) : ICharacterPvpRecordTable
 {
-    public ValueTask<CharacterPvpRow?> FindAsync(
+    public ValueTask<CharacterPvpGradeRow?> FindGradesAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadFirstAsync(
-            """
-            SELECT pvp_grade, pvp_lose_streak, pvp_rank_point, pvp_rating_grade, pvp_stat_a,
-            pvp_win_streak, skills_initialized
-            FROM character_pvp WHERE character_id=@cid;
-            """,
+            "SELECT grade, rating_grade FROM character_pvp_record WHERE character_id=@cid;",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new CharacterPvpRow(
-                reader.GetInt32(0), reader.GetInt32(1), reader.GetInt64(2), reader.GetInt32(3),
-                reader.GetInt64(4), reader.GetInt32(5), reader.GetInt32(6)),
+            reader => new CharacterPvpGradeRow(reader.GetInt32(0), reader.GetInt32(1)),
+            cancellationToken);
+}
+
+/// <summary>The <c>character_pvp_skill_state</c> table.</summary>
+internal sealed partial class SqliteCharacterPvpSkillStateTable(SqliteDatabase database) : ICharacterPvpSkillStateTable
+{
+    public ValueTask<CharacterPvpSkillStateRow?> FindAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        database.ReadFirstAsync(
+            "SELECT skills_initialized FROM character_pvp_skill_state WHERE character_id=@cid;",
+            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            reader => new CharacterPvpSkillStateRow(reader.GetInt32(0)),
             cancellationToken);
 }
 
@@ -176,13 +182,29 @@ internal sealed partial class SqliteCharacterConditionTable
     }
 }
 
-/// <summary>The <c>character_pvp</c> table, written.</summary>
-internal sealed partial class SqliteCharacterPvpTable
+/// <summary>The <c>character_pvp_record</c> table, begun.</summary>
+/// <remarks>
+/// A new record has no grade experience: null reads as the lower bound of its grade, which the
+/// rule service knows and this table does not.
+/// </remarks>
+internal sealed partial class SqliteCharacterPvpRecordTable
 {
     public async ValueTask InsertIfAbsentAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         _ = await database.ExecuteAsync(
-            "INSERT INTO character_pvp (character_id) VALUES (@cid) "
+            "INSERT INTO character_pvp_record (character_id) VALUES (@cid) "
+            + "ON CONFLICT(character_id) DO NOTHING;",
+            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            cancellationToken).ConfigureAwait(false);
+}
+
+/// <summary>The <c>character_pvp_skill_state</c> table, written.</summary>
+internal sealed partial class SqliteCharacterPvpSkillStateTable
+{
+    public async ValueTask InsertIfAbsentAsync(
+        CharacterId characterId, CancellationToken cancellationToken) =>
+        _ = await database.ExecuteAsync(
+            "INSERT INTO character_pvp_skill_state (character_id) VALUES (@cid) "
             + "ON CONFLICT(character_id) DO NOTHING;",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             cancellationToken).ConfigureAwait(false);
@@ -190,7 +212,7 @@ internal sealed partial class SqliteCharacterPvpTable
     public async ValueTask MarkSkillsInitializedAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         _ = await database.ExecuteAsync(
-            "UPDATE character_pvp SET skills_initialized=1 WHERE character_id=@cid",
+            "UPDATE character_pvp_skill_state SET skills_initialized=1 WHERE character_id=@cid",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             cancellationToken).ConfigureAwait(false);
 }

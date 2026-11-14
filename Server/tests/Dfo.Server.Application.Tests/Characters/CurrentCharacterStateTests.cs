@@ -206,7 +206,7 @@ public sealed class CurrentCharacterStateTests
                 INSERT INTO character_skill_builds VALUES(71,0,1),(71,1,1);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0);
                 INSERT INTO character_stats(character_id,stat_hp_max,progress1,progress2,current_hp_mp_percent) VALUES(71,17,4,5,73);
-                INSERT INTO character_pvp(character_id) VALUES(71);
+                INSERT INTO character_pvp_record(character_id) VALUES(71); INSERT INTO character_pvp_skill_state(character_id) VALUES(71);
                 INSERT INTO character_settings(character_id) VALUES(71);
                 INSERT INTO character_expert_job(character_id) VALUES(71);
                 INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)

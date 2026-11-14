@@ -11,14 +11,14 @@ namespace Dfo.Server.Application.Characters;
 /// Brings a character's duelling skills into being the first time they are asked for.
 /// </summary>
 /// <remarks>
-/// The marker row is the whole of the decision: its absence means these have never been set up,
-/// and its presence means they have. Reading it, writing the skills, and writing the marker is a
-/// sequence, and a sequence is a decision -- so it is made here.
+/// The marker is the whole of the decision: every character has a skill-state row from creation,
+/// and its flag says whether these have been set up. Reading it, writing the skills, and setting
+/// the flag is a sequence, and a sequence is a decision -- so it is made here.
 /// </remarks>
 internal sealed class PvpSkillProfileService(
     ICharacterTable characters,
     ICharacterSkillTable skills,
-    ICharacterPvpTable pvp,
+    ICharacterPvpSkillStateTable skillState,
     CharacterSkillFactsReader skillFacts) : ICharacterPvpSkillProfileRepository
 {
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
@@ -35,10 +35,10 @@ internal sealed class PvpSkillProfileService(
             throw new InvalidDataException("PvP skill profile owner does not match the account.");
         }
 
-        var pvpRow = await pvp.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
+        var state = await skillState.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException(
-                $"Character {characterId.Value} has no duel-arena row to seed skills against.");
-        if (pvpRow.SkillsInitialized == 0)
+                $"Character {characterId.Value} has no duel skill-state row to seed skills against.");
+        if (state.SkillsInitialized == 0)
         {
             foreach (var page in initialProfile.Pages)
             {
@@ -50,7 +50,7 @@ internal sealed class PvpSkillProfileService(
                 }
             }
 
-            await pvp.MarkSkillsInitializedAsync(characterId, cancellationToken)
+            await skillState.MarkSkillsInitializedAsync(characterId, cancellationToken)
                 .ConfigureAwait(false);
         }
 

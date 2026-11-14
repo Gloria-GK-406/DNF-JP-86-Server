@@ -278,10 +278,6 @@ public sealed record CharacterPvpResultStorageRow(long Value32, int Value16A, in
 
 /// <summary>Where the character stands in duelling.</summary>
 public sealed record CharacterPvpStandingStorageRecord(
-    long RankPoint,
-    long StatA,
-    int WinStreak,
-    int LoseStreak,
     IReadOnlyList<CharacterPvpResultStorageRow> Results);
 
 /// <summary>The second trade a character has taken up, and how far along it is.</summary>

@@ -685,7 +685,7 @@ public sealed class SelectCharacterPayloadCodecTests
                     VALUES(22,12,'row9',1,60);
                     INSERT INTO character_condition(character_id,pc_room_state) VALUES(22,0);
                     INSERT INTO character_stats(character_id) VALUES(22);
-                    INSERT INTO character_pvp(character_id) VALUES(22);
+                    INSERT INTO character_pvp_record(character_id) VALUES(22); INSERT INTO character_pvp_skill_state(character_id) VALUES(22);
                     INSERT INTO character_settings(character_id) VALUES(22);
                     INSERT INTO character_expert_job(character_id) VALUES(22);
                     INSERT INTO character_skill_builds VALUES(22,0,1),(22,1,1);
@@ -971,7 +971,6 @@ internal static class SelectCharacterPayloadTestData
         var derivedStats = new CharacterDerivedStatsStorageRecord(
             100, 90, 80, 70, 60, 50, 40, 30, 20, 120, 11, 12);
         var duelling = new CharacterPvpStandingStorageRecord(
-            7, 0, 0, 0,
             [
                 new CharacterPvpResultStorageRow(0x11223344, 0x5566, 0x7788),
                 new CharacterPvpResultStorageRow(0x01020304, 0x0506, 0x0708),

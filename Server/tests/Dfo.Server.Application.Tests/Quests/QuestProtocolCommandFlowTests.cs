@@ -212,7 +212,7 @@ public sealed class QuestProtocolCommandFlowTests(ITestOutputHelper output)
             var wrapper=typeof(CommandProbe<,>).MakeGenericType(descriptor.ServiceType.GenericTypeArguments);s.AddScoped(descriptor.ServiceType,p=>Activator.CreateInstance(wrapper,ActivatorUtilities.CreateInstance(p,descriptor.ImplementationType!),trace,p,protocol)!);
             var units=s.Last(x=>x.ServiceType==typeof(ICommandWorkUnits));s.AddSingleton<ICommandWorkUnits>(p=>new UnitProbe((ICommandWorkUnits)(units.ImplementationInstance??units.ImplementationFactory?.Invoke(p)??ActivatorUtilities.CreateInstance(p,units.ImplementationType!)),trace,p,protocol));
         });
-        f.SetLevel(20);f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1)");
+        f.SetLevel(20);f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp_record(character_id) VALUES(1); INSERT INTO character_pvp_skill_state(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1)");
         if(protocol!=0)f.Sql($"INSERT INTO character_active_quests VALUES(1,0,2001,{(protocol==2?1:0)})");
         await f.Seed(3,2000,1);return f;
     }

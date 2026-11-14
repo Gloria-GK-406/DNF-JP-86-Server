@@ -55,8 +55,8 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                     VALUES(22,7,8,-1234,1,99,1,255,1,2,3,4,0);
                 INSERT INTO character_settings(character_id,user_state_bits,character_option_blob)
                     VALUES(22,5,X'0304');
-                INSERT INTO character_pvp(character_id,pvp_grade,pvp_rating_grade,pvp_rank_point)
-                    VALUES(22,8,9,99);
+                INSERT INTO character_pvp_record(character_id,grade,rating_grade) VALUES(22,8,9);
+                INSERT INTO character_pvp_skill_state(character_id) VALUES(22);
                 INSERT INTO character_expert_job(character_id,expert_job_type,expert_job_exp)
                     VALUES(22,2,30);
                 INSERT INTO character_stats(character_id,stat_hp_max,stat_physical_attack,
@@ -183,7 +183,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(30,15,'gold',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(30,0);
                 INSERT INTO character_stats(character_id) VALUES(30);
-                INSERT INTO character_pvp(character_id) VALUES(30);
+                INSERT INTO character_pvp_record(character_id) VALUES(30); INSERT INTO character_pvp_skill_state(character_id) VALUES(30);
                 INSERT INTO character_settings(character_id) VALUES(30);
                 INSERT INTO character_expert_job(character_id) VALUES(30);
                 UPDATE character_stats SET gold_carry_limit={carry}, auction_gold_limit={auction} WHERE character_id=30;
@@ -216,7 +216,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(31,16,'nogold',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(31,0);
                 INSERT INTO character_stats(character_id) VALUES(31);
-                INSERT INTO character_pvp(character_id) VALUES(31);
+                INSERT INTO character_pvp_record(character_id) VALUES(31); INSERT INTO character_pvp_skill_state(character_id) VALUES(31);
                 INSERT INTO character_settings(character_id) VALUES(31);
                 INSERT INTO character_expert_job(character_id) VALUES(31);
                 """);
@@ -244,7 +244,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(24,14,'mail',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(24,0);
                 INSERT INTO character_stats(character_id) VALUES(24);
-                INSERT INTO character_pvp(character_id) VALUES(24);
+                INSERT INTO character_pvp_record(character_id) VALUES(24); INSERT INTO character_pvp_skill_state(character_id) VALUES(24);
                 INSERT INTO character_settings(character_id) VALUES(24);
                 INSERT INTO character_expert_job(character_id) VALUES(24);
 
@@ -322,7 +322,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(25,15,'upgrade',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(25,0);
                 INSERT INTO character_stats(character_id) VALUES(25);
-                INSERT INTO character_pvp(character_id) VALUES(25);
+                INSERT INTO character_pvp_record(character_id) VALUES(25); INSERT INTO character_pvp_skill_state(character_id) VALUES(25);
                 INSERT INTO character_settings(character_id) VALUES(25);
                 INSERT INTO character_expert_job(character_id) VALUES(25);
                 INSERT INTO mailbox_messages(message_id,receiver_character_id) VALUES(900,25);
@@ -360,7 +360,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(23,13,'bad',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(23,0);
                 INSERT INTO character_stats(character_id) VALUES(23);
-                INSERT INTO character_pvp(character_id) VALUES(23);
+                INSERT INTO character_pvp_record(character_id) VALUES(23); INSERT INTO character_pvp_skill_state(character_id) VALUES(23);
                 INSERT INTO character_settings(character_id) VALUES(23);
                 INSERT INTO character_expert_job(character_id) VALUES(23);
                 """);
@@ -402,7 +402,6 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
     [Theory]
     [InlineData("UPDATE character_condition SET stamina=256 WHERE character_id=23;", Profile)]
     [InlineData("UPDATE character_condition SET mood_value=65536 WHERE character_id=23;", Profile)]
-    [InlineData("UPDATE character_pvp SET pvp_rank_point=4294967296 WHERE character_id=23;", Profile)]
     [InlineData("UPDATE characters SET name_tag_item_id=4294967296 WHERE character_id=23;", Extended)]
     [InlineData("UPDATE characters SET name_tag_expire_time=4294967296 WHERE character_id=23;", Extended)]
     [InlineData("UPDATE characters SET guild_power_war=4294967296 WHERE character_id=23;", Extended)]
@@ -417,7 +416,7 @@ public sealed class SqliteCharacterEntryStateRepositoryTests
                 INSERT INTO characters(character_id,account_id,name,job,level) VALUES(23,13,'wide',1,60);
                 INSERT INTO character_condition(character_id,pc_room_state) VALUES(23,0);
                 INSERT INTO character_stats(character_id) VALUES(23);
-                INSERT INTO character_pvp(character_id) VALUES(23);
+                INSERT INTO character_pvp_record(character_id) VALUES(23); INSERT INTO character_pvp_skill_state(character_id) VALUES(23);
                 INSERT INTO character_settings(character_id) VALUES(23);
                 INSERT INTO character_expert_job(character_id) VALUES(23);
                 """);

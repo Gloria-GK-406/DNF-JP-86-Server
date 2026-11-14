@@ -260,7 +260,7 @@ public sealed class CouponProtocolCommandFlowTests(ITestOutputHelper output)
             owner.Content.Placements[item]=new(2,1000,new(BusinessInventorySpace.Consumable,0,55));
             await owner.Host.Seed(69,item,2);
             if(branch==1)await TestGameplay.RunAsync(owner.Host.Services,async()=>{await using var tx=owner.Host.Services.GetRequiredService<DomainTransactionScope>().Begin();await owner.Host.Services.GetRequiredService<ICharacterFatigueDomainService>().SpendAsync(owner.Host.Session.CharacterId,50,default);await tx.CommitAsync(default);});
-            if(branch==2)owner.Host.Sql("INSERT OR IGNORE INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT OR IGNORE INTO character_pvp(character_id) VALUES(1); INSERT OR IGNORE INTO character_settings(character_id) VALUES(1); INSERT OR IGNORE INTO character_expert_job(character_id) VALUES(1); INSERT INTO character_active_quests VALUES(1,0,101,9); INSERT INTO character_quest_notify_selections VALUES(1,2,101)");
+            if(branch==2)owner.Host.Sql("INSERT OR IGNORE INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT OR IGNORE INTO character_pvp_record(character_id) VALUES(1); INSERT OR IGNORE INTO character_pvp_skill_state(character_id) VALUES(1); INSERT OR IGNORE INTO character_settings(character_id) VALUES(1); INSERT OR IGNORE INTO character_expert_job(character_id) VALUES(1); INSERT INTO character_active_quests VALUES(1,0,101,9); INSERT INTO character_quest_notify_selections VALUES(1,2,101)");
             return new(owner,item,new(new(1,0x204,0,7),69,0,0,branch==0?42u:branch==1?58u:77u,0,0,true),trace);
         }
     }

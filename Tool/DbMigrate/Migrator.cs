@@ -28,6 +28,7 @@ public static class Migrator
             [10] = AuctionQuantityOwnershipUpgrade.Apply,
             [11] = GameplayParameterStorageRetirement.Apply,
             [12] = AntonRaidRewardUpgrade.Apply,
+            [13] = PvpRecordSplitUpgrade.Apply,
         };
 
     private static void AddDropDrawMultiplier(SqliteConnection connection)

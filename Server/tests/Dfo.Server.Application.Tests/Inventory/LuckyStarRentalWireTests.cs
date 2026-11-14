@@ -32,7 +32,7 @@ public sealed class LuckyStarRentalWireTests
                 (IEquipmentRentalDomainService)(descriptor.ImplementationInstance??descriptor.ImplementationFactory?.Invoke(provider)??ActivatorUtilities.CreateInstance(provider,descriptor.ImplementationType!)),
                 provider.GetRequiredService<IDomainTransactionAccessor>(),provider.GetRequiredService<IAccountLuckyStarDomainService>(),observation));
         });
-        f.Host.Sql("UPDATE accounts SET lucky_star=100; UPDATE characters SET job=0; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
+        f.Host.Sql("UPDATE accounts SET lucky_star=100; UPDATE characters SET job=0; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp_record(character_id) VALUES(1); INSERT INTO character_pvp_skill_state(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
         for (var slot = 9; slot <= 40; slot++)
             await f.Host.SeedCore(slot, StackableItemCore.Create(1, 401000037, 123));
         var before = DatabaseRows(f.Host);
@@ -149,7 +149,7 @@ public sealed class LuckyStarRentalWireTests
     public async Task Purchase_then_rental_retry_preserves_gold_stars_uid_and_absolute_deadline()
     {
         using var f=new CeraShopFixture(useArchive:true,configure:services=>services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterSkillPointDomainService,Dfo.Server.Application.Characters.CharacterSkillPointDomainService>());
-        f.Host.Sql("UPDATE characters SET job=0; UPDATE character_stats SET carried_gold=5000000; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
+        f.Host.Sql("UPDATE characters SET job=0; UPDATE character_stats SET carried_gold=5000000; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp_record(character_id) VALUES(1); INSERT INTO character_pvp_skill_state(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
         var dispatch=f.Host.Services.GetRequiredService<INetworkMessageDispatcher>();
         var body=new byte[22];Array.Fill(body,(byte)0xA5,0,14);
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(14),1);

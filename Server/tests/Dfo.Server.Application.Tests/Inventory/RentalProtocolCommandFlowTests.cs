@@ -278,7 +278,7 @@ public sealed class RentalProtocolCommandFlowTests(ITestOutputHelper output)
             if(delivery is not null) services.AddSingleton<IOutboundSender>(delivery.Recorder);
             configure?.Invoke(services);
         });
-        owner.Host.Sql("UPDATE accounts SET lucky_star=100; UPDATE characters SET job=0; UPDATE character_stats SET carried_gold=5000000; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
+        owner.Host.Sql("UPDATE accounts SET lucky_star=100; UPDATE characters SET job=0; UPDATE character_stats SET carried_gold=5000000; INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_pvp_record(character_id) VALUES(1); INSERT INTO character_pvp_skill_state(character_id) VALUES(1); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
         return owner;
     }
     internal static ValueTask Send(ShopFixture f, bool charge, ushort sequence=7, bool invalid=false)

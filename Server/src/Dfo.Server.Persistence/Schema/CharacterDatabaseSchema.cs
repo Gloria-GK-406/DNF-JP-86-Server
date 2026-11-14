@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 13;
+    public const int Version = 14;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -442,7 +442,11 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_item_locks ( character_id INTEGER NOT NULL, equipment_lock_id INTEGER NOT NULL, inventory_list_type INTEGER NOT NULL, slot INTEGER NOT NULL, state INTEGER NOT NULL, remaining_seconds INTEGER, PRIMARY KEY (character_id, equipment_lock_id) );
         CREATE TABLE IF NOT EXISTS character_knight_shield_deck(character_id INTEGER, slot_index INTEGER, shield_item_id INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_mercenary_support(owner_character_id INTEGER NOT NULL,slot INTEGER NOT NULL,support_character_id INTEGER NOT NULL,skill_id INTEGER NOT NULL,striker_skill_id INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_character_id,slot));
-        CREATE TABLE IF NOT EXISTS character_pvp ( character_id INTEGER PRIMARY KEY, pvp_grade INTEGER NOT NULL DEFAULT 0, pvp_lose_streak INTEGER NOT NULL DEFAULT 0, pvp_rank_point INTEGER NOT NULL DEFAULT 0, pvp_rating_grade INTEGER NOT NULL DEFAULT 0, pvp_stat_a INTEGER NOT NULL DEFAULT 0, pvp_win_streak INTEGER NOT NULL DEFAULT 0, skills_initialized INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
+        CREATE TABLE IF NOT EXISTS character_pvp_record ( character_id INTEGER PRIMARY KEY, grade INTEGER NOT NULL DEFAULT 0, rating_grade INTEGER NOT NULL DEFAULT 0, grade_experience INTEGER CHECK (grade_experience >= 0), win INTEGER NOT NULL DEFAULT 0 CHECK (win >= 0), lose INTEGER NOT NULL DEFAULT 0 CHECK (lose >= 0), draw INTEGER NOT NULL DEFAULT 0 CHECK (draw >= 0), win_streak INTEGER NOT NULL DEFAULT 0 CHECK (win_streak >= 0), peak_win_streak INTEGER NOT NULL DEFAULT 0 CHECK (peak_win_streak >= win_streak), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
+        CREATE TABLE IF NOT EXISTS character_pvp_skill_state ( character_id INTEGER PRIMARY KEY, skills_initialized INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
+        CREATE TABLE IF NOT EXISTS character_pvp_legacy ( character_id INTEGER PRIMARY KEY, rank_point INTEGER NOT NULL, stat_a INTEGER NOT NULL, win_streak INTEGER NOT NULL, lose_streak INTEGER NOT NULL );
+        CREATE TABLE IF NOT EXISTS pvp_matches ( match_id TEXT PRIMARY KEY, room_id INTEGER NOT NULL, listener_port INTEGER NOT NULL, channel_env INTEGER, battle_mode INTEGER NOT NULL, outcome_kind INTEGER NOT NULL CHECK (outcome_kind IN (0, 1, 2)), winner INTEGER, records_result INTEGER NOT NULL CHECK (records_result IN (0, 1)), game_day TEXT NOT NULL, completed_at INTEGER NOT NULL, CHECK (outcome_kind <> 2 OR records_result = 0) );
+        CREATE TABLE IF NOT EXISTS pvp_match_results ( match_id TEXT NOT NULL REFERENCES pvp_matches(match_id), character_id INTEGER NOT NULL, seat INTEGER NOT NULL, team INTEGER NOT NULL, outcome INTEGER NOT NULL CHECK (outcome IN (0, 1, 2)), kills INTEGER NOT NULL CHECK (kills >= 0), deaths INTEGER NOT NULL CHECK (deaths >= 0), fled INTEGER NOT NULL CHECK (fled IN (0, 1)), counts_toward_daily INTEGER NOT NULL CHECK (counts_toward_daily IN (0, 1)), previous_grade INTEGER NOT NULL, grade INTEGER NOT NULL, experience_change INTEGER NOT NULL, experience INTEGER NOT NULL CHECK (experience >= 0), win_streak INTEGER NOT NULL CHECK (win_streak >= 0), PRIMARY KEY (match_id, character_id), CHECK (fled = 0 OR outcome = 1) );
         CREATE TABLE IF NOT EXISTS character_pvp_missions(character_id INTEGER, sort_order INTEGER, mission_id INTEGER, progress_value INTEGER, PRIMARY KEY(character_id,sort_order));
         CREATE TABLE IF NOT EXISTS character_skill_builds(character_id INTEGER NOT NULL,build_id INTEGER NOT NULL CHECK(build_id >= 0),unlocked INTEGER NOT NULL CHECK(unlocked IN (0,1)),PRIMARY KEY(character_id,build_id),FOREIGN KEY(character_id) REFERENCES characters(character_id) ON DELETE CASCADE);
         CREATE TABLE IF NOT EXISTS character_skills ( character_id INTEGER NOT NULL, mode TEXT NOT NULL CHECK (mode IN ('pve', 'pvp')), page_index INTEGER NOT NULL, slot INTEGER NOT NULL, skill_id INTEGER NOT NULL, level INTEGER NOT NULL, extra_values BLOB, PRIMARY KEY (character_id, mode, page_index, slot), UNIQUE (character_id, mode, page_index, skill_id), CHECK (mode <> 'pvp' OR page_index BETWEEN 0 AND 1), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
@@ -469,6 +473,7 @@ internal static class CharacterDatabaseSchema
         CREATE INDEX IF NOT EXISTS ix_player_portal_sessions_expiry ON player_portal_sessions(expires_at);
         CREATE INDEX IF NOT EXISTS ix_player_portal_operations_usage ON player_portal_operations(account_id,kind,period_day);
         CREATE INDEX IF NOT EXISTS ix_player_portal_operations_time ON player_portal_operations(account_id,committed_at DESC,request_id DESC);
+        CREATE INDEX IF NOT EXISTS ix_pvp_match_results_character ON pvp_match_results(character_id);
         CREATE INDEX IF NOT EXISTS idx_item_slots_core ON item_slots(core_uid);
         CREATE INDEX IF NOT EXISTS idx_characters_account ON characters(account_id, delete_flag, slot_index);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_mailbox_pending_equipment_uid ON mailbox_attachments(source_item_uid) WHERE asset_kind='equipment' AND claimed_flag=0 AND source_item_uid>0;

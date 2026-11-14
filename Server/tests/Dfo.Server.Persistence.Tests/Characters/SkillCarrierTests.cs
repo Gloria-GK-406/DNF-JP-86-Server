@@ -248,7 +248,7 @@ public sealed class SkillCarrierTests
             Assert.Equal(0L, await ScalarAsync(
                 path, "SELECT COUNT(*) FROM character_skills WHERE mode='pve'"));
             Assert.Equal(1L, await ScalarAsync(
-                path, "SELECT skills_initialized FROM character_pvp WHERE character_id=1"));
+                path, "SELECT skills_initialized FROM character_pvp_skill_state WHERE character_id=1"));
 
             // A second seeding is refused by the marker rather than written and deduplicated.
             var again = await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(

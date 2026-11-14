@@ -55,7 +55,7 @@ internal sealed class QuestTestCommands
         var owner=assembly.GetType($"Dfo.Server.Protocol.Game.{slice}.Game{name}CommandHandler",true)!;
         if(shop is not null && shop.Session.AccountId==account && shop.Session.CharacterId==character)
         {
-            shop.Sql("INSERT OR IGNORE INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT OR IGNORE INTO character_pvp(character_id) VALUES(1); INSERT OR IGNORE INTO character_settings(character_id) VALUES(1); INSERT OR IGNORE INTO character_expert_job(character_id) VALUES(1)");
+            shop.Sql("INSERT OR IGNORE INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT OR IGNORE INTO character_pvp_record(character_id) VALUES(1); INSERT OR IGNORE INTO character_pvp_skill_state(character_id) VALUES(1); INSERT OR IGNORE INTO character_settings(character_id) VALUES(1); INSERT OR IGNORE INTO character_expert_job(character_id) VALUES(1)");
             var bytes=new byte[wire==0x22?10:4];BinaryPrimitives.WriteUInt16LittleEndian(bytes,wire);BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(2),(ushort)args[2]!);
             if(wire==0x22){BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(4),(ushort)args[3]!);BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(6),(ushort)args[4]!);BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(8),0xFFFF);}
             var counter=Counters.GetValue(shop.Connection,_=>new());var sequence=++counter.Sequence;var (ordinal,fresh)=counter.Value.Observe(sequence);

@@ -72,7 +72,7 @@ public sealed class EntryLoadCharacterizationTests
                 + $"VALUES(22,12,'job',{job},60);"
                 + "INSERT INTO character_stats(character_id) VALUES(22);"
                 + "INSERT INTO character_condition(character_id,pc_room_state) VALUES(22,0);"
-                + "INSERT INTO character_pvp(character_id) VALUES(22);"
+                + "INSERT INTO character_pvp_record(character_id) VALUES(22); INSERT INTO character_pvp_skill_state(character_id) VALUES(22);"
                 + "INSERT INTO character_settings(character_id) VALUES(22);"
                 + "INSERT INTO character_expert_job(character_id) VALUES(22);"
                 + row);
@@ -103,8 +103,8 @@ public sealed class EntryLoadCharacterizationTests
                 VALUES(22,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1035,1036,1037,1038,1039,1040,1041,1042,1043,1033,1034,129,130,1046,131,1048,1049,600000000,600000000);
             INSERT INTO character_condition(character_id,stamina,fatigue_penalty,fatigue_update,fatigue_display_update,is_event_character,is_hardcore_mode,is_hardcore_dead,hardcore_death_count,is_private_store,chat_ban_end_time,mood_value,black_count,chaos_point,trailing_byte,creature_field1,creature_field2,creature_field3,creature_field4,creature_buffer,pc_room_id,is_premium_pc_room,server_group_id,channel_display_mode,channel_type,is_return_user,return_user_flag,disguise_kind,is_disguised,emotion_index,action_byte,costume_flag,aura_flag,pet_display_flag,title_display_flag,link_slot_enabled,link_type_a,link_type_b,pc_room_state,champion_break_key_id,champion_break_mode,champion_break_value,crystal_cube_type,crystal_cube_grade,dimension_flag1,dimension_flag2,dimension_flag3,dimension_flag4)
                 VALUES(22,108,1008,1018,1021,0,0,1,1010,1,1012,1013,1016,1017,128,110,111,112,113,X'0102030405060708',1015,0,114,1019,118,0,117,116,1,1020,121,122,123,124,125,1,119,120,1053,1050,1051,1052,1,7,1,2,3,4);
-            INSERT INTO character_pvp(character_id,skills_initialized,pvp_grade,pvp_rating_grade,pvp_rank_point,pvp_stat_a,pvp_win_streak,pvp_lose_streak)
-                VALUES(22,0,105,106,1014,1022,126,127);
+            INSERT INTO character_pvp_record(character_id,grade,rating_grade) VALUES(22,105,106);
+            INSERT INTO character_pvp_skill_state(character_id,skills_initialized) VALUES(22,0);
             INSERT INTO character_settings(character_id,character_option_blob,user_state_bits)
                 VALUES(22,X'00A2',1011);
             INSERT INTO character_dimensions VALUES(22,0,9,1,2);
@@ -234,10 +234,6 @@ public sealed class EntryLoadCharacterizationTests
         Profile.Condition.TitleDisplayFlag = 125
         Profile.Condition.TrailingByte = 128
         Profile.Settings.UserStateBits = 1011
-        Profile.Pvp.RankPoint = 1014
-        Profile.Pvp.StatA = 1022
-        Profile.Pvp.WinStreak = 126
-        Profile.Pvp.LoseStreak = 127
         Profile.Pvp.Results = []
         Profile.ExpertJob.Type = 109
         Profile.ExpertJob.Experience = 1009

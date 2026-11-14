@@ -651,7 +651,7 @@ public sealed class CharacterEntryInventoryTests
         new CharacterPublicEntryState(
             new CharacterConditionStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, CreatureBuffer: []),
             new CharacterSettingsStorageRecord(0),
-            new CharacterPvpStandingStorageRecord(0, 0, 0, 0, []),
+            new CharacterPvpStandingStorageRecord([]),
             new CharacterExpertJobStorageRecord(0, 0),
             new CharacterDerivedStatsStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
             new CharacterGuildStandingStorageRecord(0, 0),

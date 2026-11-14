@@ -378,7 +378,7 @@ public sealed class TournamentDungeonTests
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             var clock = new QuotaClock();
             await using var f = await Fixture(tickets: 0, configure: services => services.AddSingleton<TimeProvider>(clock));
-            f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+            f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp_record(character_id) VALUES(71); INSERT INTO character_pvp_skill_state(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
             var tournament = Tournament(f);
             async Task<Dfo.Server.Abstractions.World.TournamentQuotaSnapshot> Quota() => Assert.Single(await tournament.ReadQuotaAsync(new(71), default));
             Assert.Equal(9, (await Quota()).Remaining);

@@ -49,7 +49,7 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(123, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(127, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("character_guardian_altar(character_id:INTEGER,revision:INTEGER,state_json:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("guardian_altar_settlements(character_id:INTEGER,round:INTEGER,run_id:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("equipment_rental_instances(character_id:INTEGER,item_uid:INTEGER,template_id:INTEGER)", shape, StringComparison.Ordinal);
@@ -58,6 +58,8 @@ public sealed class SchemaOwnershipTests
         Assert.Contains("southern_dale_daily_quest(character_id:INTEGER,period:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("character_relations(created_at:INTEGER,kind:INTEGER,owner_id:INTEGER,target_id:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("auction_trades(", shape, StringComparison.Ordinal);
+        foreach (var pvpTable in new[] { "character_pvp_record", "character_pvp_skill_state", "character_pvp_legacy", "pvp_matches", "pvp_match_results" })
+            Assert.Contains(pvpTable + "(", shape, StringComparison.Ordinal);
         Assert.Contains("auction_custody(", shape, StringComparison.Ordinal);
         Assert.Contains("character_collectbox_state(character_id:INTEGER,selected_box_index:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("marriage_ceremonies(", shape, StringComparison.Ordinal);

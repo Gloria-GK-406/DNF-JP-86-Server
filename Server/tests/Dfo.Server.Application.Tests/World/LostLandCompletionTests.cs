@@ -149,7 +149,7 @@ public sealed class LostLandCompletionTests
                 participation: provider.GetRequiredService<IDungeonParticipationDomainService>(),
                 clock: provider.GetRequiredService<TimeProvider>()));
         });
-        fixture.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_pvp(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
+        fixture.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0); INSERT INTO character_settings(character_id) VALUES(1); INSERT INTO character_pvp_record(character_id) VALUES(1); INSERT INTO character_pvp_skill_state(character_id) VALUES(1); INSERT INTO character_expert_job(character_id) VALUES(1);");
         return fixture;
     }
 

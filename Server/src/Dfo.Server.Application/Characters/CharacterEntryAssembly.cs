@@ -33,7 +33,7 @@ internal sealed class CharacterEntryAssembly(
     ICharacterConditionTable condition,
     ICharacterStatsTable statsRows,
     ICharacterSettingsTable settings,
-    ICharacterPvpTable pvp,
+    ICharacterPvpRecordTable pvp,
     ICharacterHotkeyTable hotkeys,
     ICharacterDimensionTable dimensions,
     ICharacterSkillTable skills,
@@ -143,7 +143,7 @@ internal sealed class CharacterEntryAssembly(
             : await settings.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
         var pvpRow = settingsRow is null
             ? null
-            : await pvp.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
+            : await pvp.FindGradesAsync(characterId, cancellationToken).ConfigureAwait(false);
         var jobRow = pvpRow is null
             ? null
             : await expertJob.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
@@ -158,8 +158,7 @@ internal sealed class CharacterEntryAssembly(
         // ruling cut them into. Nothing above this line changes shape; only where it comes from.
         var conditionState = Condition(conditionRow);
         var settingsState = new CharacterSettingsStorageRecord(settingsRow.UserStateBits);
-        var pvpState = new CharacterPvpStandingStorageRecord(
-            pvpRow.PvpRankPoint, pvpRow.PvpStatA, pvpRow.PvpWinStreak, pvpRow.PvpLoseStreak, []);
+        var pvpState = new CharacterPvpStandingStorageRecord([]);
         var expertJobState = new CharacterExpertJobStorageRecord(
             jobRow.ExpertJobType, jobRow.ExpertJobExperience);
         var statsState = DerivedStats(statsRow);
@@ -180,7 +179,7 @@ internal sealed class CharacterEntryAssembly(
 
         var builds = await skillBuilds.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
         var projectedTree = builds.IsUnlocked(new(1)) ? builds.Active.Value : -1;
-        RequireProfileInRange(conditionState, settingsState, pvpState, expertJobState,
+        RequireProfileInRange(conditionState, settingsState, expertJobState,
             statsState, guildState, projectedTree,
             row.NameTagItemId, row.NameTagExpireTime);
         var dimensionRows = new List<(int, long, int, int)>();
@@ -213,7 +212,7 @@ internal sealed class CharacterEntryAssembly(
             projectedTree, row.NameTagItemId, row.NameTagExpireTime,
             [.. slots.Select(value => checked((ushort)value))], flags.Item1,
             row.Experience, row.ExtraEquipSlotStat, dimensionRows, flagValues,
-            checked((byte)pvpRow.PvpGrade), checked((byte)pvpRow.PvpRatingGrade),
+            checked((byte)pvpRow.Grade), checked((byte)pvpRow.RatingGrade),
             checked((byte)row.UserState),
             row.AuraSkinSlot != 0);
     }
@@ -519,7 +518,6 @@ internal sealed class CharacterEntryAssembly(
     private static void RequireProfileInRange(
         CharacterConditionStorageRecord c,
         CharacterSettingsStorageRecord settings,
-        CharacterPvpStandingStorageRecord pvp,
         CharacterExpertJobStorageRecord job,
         CharacterDerivedStatsStorageRecord stats,
         CharacterGuildStandingStorageRecord guild,
@@ -532,7 +530,6 @@ internal sealed class CharacterEntryAssembly(
             || c.HardcoreDeathCount is < 0 or > ushort.MaxValue
             || settings.UserStateBits is < 0 or > uint.MaxValue
             || c.ChatBanEndTime is < 0 or > uint.MaxValue || c.MoodValue is < 0 or > ushort.MaxValue
-            || pvp.RankPoint is < 0 or > uint.MaxValue
             || new[] { c.EventCharacter, c.PrivateStore, c.HardcoreMode, c.HardcoreDead }
                 .Any(value => value is < 0 or > 1)
             || new[] { c.PremiumPcRoom, c.Disguised, c.ReturnUser, c.LinkSlotEnabled }
@@ -541,12 +538,12 @@ internal sealed class CharacterEntryAssembly(
             || new[] { c.CreatureField1, c.CreatureField2, c.CreatureField3, c.CreatureField4,
                 c.ServerGroupId, guild.Level, c.DisguiseKind, c.ReturnUserFlag, c.ChannelType,
                 c.LinkTypeA, c.LinkTypeB, c.ActionByte, c.CostumeFlag, c.AuraFlag,
-                c.PetDisplayFlag, c.TitleDisplayFlag, pvp.WinStreak, pvp.LoseStreak,
-                c.TrailingByte }.Any(value => value is < 0 or > byte.MaxValue)
+                c.PetDisplayFlag, c.TitleDisplayFlag, c.TrailingByte }
+                .Any(value => value is < 0 or > byte.MaxValue)
             || new[] { c.FatigueUpdate, c.ChannelDisplayMode, c.EmotionIndex,
                 c.FatigueDisplayUpdate }.Any(value => value is < 0 or > ushort.MaxValue)
             || c.PcRoomId is < 0 or > uint.MaxValue || c.BlackCount is < 0 or > uint.MaxValue
-            || c.ChaosPoint is < 0 or > uint.MaxValue || pvp.StatA is < 0 or > uint.MaxValue
+            || c.ChaosPoint is < 0 or > uint.MaxValue
             || new[] { stats.HpMaximum, stats.MpMaximum, stats.PhysicalAttack,
                 stats.PhysicalDefense, stats.MagicalAttack, stats.MagicalDefense, stats.MoveSpeed,
                 stats.AttackSpeed, stats.CastSpeed, stats.InventoryLimit, stats.Progress1,
