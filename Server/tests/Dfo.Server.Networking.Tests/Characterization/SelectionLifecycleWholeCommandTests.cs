@@ -85,7 +85,7 @@ public sealed class SelectionLifecycleWholeCommandTests
     private sealed class PvpChannel(IChannelEntryDomainService actual) : IChannelEntryDomainService
     {
         public async ValueTask<ChannelEntryIdentity> ResolveAsync(int port, CancellationToken token) =>
-            (await actual.ResolveAsync(port, token)) with { Kind = ChannelEntryKind.Pvp };
+            (await actual.ResolveAsync(port, token)) with { Kind = ChannelEntryKind.Pvp, LoginEnvironment = 8 };
         public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
             ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
             CancellationToken cancellationToken) =>

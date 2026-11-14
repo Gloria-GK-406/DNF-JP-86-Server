@@ -476,9 +476,18 @@ public sealed class GameplayWriteEntryTableTests
         ["PvpLobbyDomainService.ReadyOn(Int32, CharacterId)"] = R,
 
         // PvpRoomDomainService
-        ["PvpRoomDomainService.Offer(PvpRoom)"] = W,
-        ["PvpRoomDomainService.OfferedOn(Int32)"] = R,
-        ["PvpRoomDomainService.Withdraw(UInt16)"] = W,
+        ["PvpRoomDomainService.AcceptInviteAsync(SelectedSessionIdentity, CharacterId, CancellationToken)"] = W,
+        ["PvpRoomDomainService.CreateAsync(PvpRoomCreation, CancellationToken)"] = W,
+        ["PvpRoomDomainService.EnterAsync(SelectedSessionIdentity, UInt16, ImmutableArray<Byte>?, CancellationToken)"] = W,
+        ["PvpRoomDomainService.Find(PvpRoomId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.FindSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.InviteAsync(SelectedSessionIdentity, SelectedSessionIdentity, CancellationToken)"] = W,
+        ["PvpRoomDomainService.IsSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.RoomsOn(Int32)"] = R,
+        ["PvpRoomDomainService.SetMapAsync(SelectedSessionIdentity, Int32, CancellationToken)"] = W,
+        ["PvpRoomDomainService.SetModeAsync(SelectedSessionIdentity, PvpBattleMode, CancellationToken)"] = W,
+        ["PvpRoomDomainService.SetReadyAsync(SelectedSessionIdentity, Boolean, CancellationToken)"] = W,
+        ["PvpRoomDomainService.SetSeatAsync(SelectedSessionIdentity, Int32, PvpSeatAction, PvpTeam, CancellationToken)"] = W,
 
         // DungeonEntryIntentDomainService
         ["DungeonEntryIntentDomainService.Authorize(SelectedSessionIdentity, Int32, Boolean)"] = R,

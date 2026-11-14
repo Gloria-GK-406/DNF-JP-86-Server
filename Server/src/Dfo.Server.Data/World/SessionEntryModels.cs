@@ -66,19 +66,6 @@ public sealed record ExpertStoreEntryState(bool OwnsOpenStore)
     public static ExpertStoreEntryState None { get; } = new(false);
 }
 
-/// <summary>A duel room currently offered in the lobby.</summary>
-/// <param name="NameType">
-/// Which of the client's preset room names is shown. Rooms are named by selection rather
-/// than free text.
-/// </param>
-public sealed record PvpRoomState(
-    ushort RoomId,
-    CharacterId OwnerCharacterId,
-    byte NameType,
-    short MapIndex,
-    bool HasPassword,
-    byte BattleMode);
-
 /// <summary>Someone waiting in the duelling lobby.</summary>
 /// <remarks>
 /// Carries no location. A lobby participant is in the lobby, not standing anywhere, and
@@ -97,11 +84,11 @@ public sealed record PvpLobbyParticipantState(CharacterId CharacterId);
 /// </remarks>
 public sealed record PvpLobbyEntryState(
     IReadOnlyList<PvpLobbyParticipantState> Participants,
-    IReadOnlyList<PvpRoomState> Rooms)
+    IReadOnlyList<Dfo.Server.Data.Game.PvpRoomSnapshotState> Rooms)
 {
     public static PvpLobbyEntryState Empty { get; } = new(
         Array.Empty<PvpLobbyParticipantState>(),
-        Array.Empty<PvpRoomState>());
+        Array.Empty<Dfo.Server.Data.Game.PvpRoomSnapshotState>());
 }
 
 /// <summary>

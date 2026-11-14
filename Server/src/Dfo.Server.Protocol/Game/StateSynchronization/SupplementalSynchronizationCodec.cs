@@ -214,25 +214,33 @@ internal static class SupplementalSynchronizationCodec
         writer.Write(checked((ushort)rooms.Count));
         foreach (var room in rooms)
         {
-            var seats = room.Seats ?? throw Missing($"Pvp.Room[{room.RoomId}].Seats");
+            var seats = room.Seats ?? throw Missing($"Pvp.Room[{room.RoomNumber}].Seats");
             if (seats.Count != 8)
                 throw new InvalidDataException("PvP room requires exactly eight ordered seats.");
-            writer.Write(room.RoomId);
+            writer.Write(room.RoomNumber);
             writer.Write(room.NameType);
             if (room.NameType == 0)
                 WriteDstr(writer, room.Name);
-            writer.Write(room.RoomState);
-            writer.Write(room.ManagerSeat);
+            // research.md §2: room state 1 waiting / 2 in battle; seat state 0 individual, 1/2 team,
+            // 0xFE closed, 0xFF empty. The trailing seat byte and the matching type stay 0 until their meaning is
+            // settled against A21 samples.
+            writer.Write(room.Waiting ? (byte)1 : (byte)2);
+            writer.Write(room.OwnerSeat);
             writer.Write(room.MapIndex);
             writer.Write(room.BattleMode);
             foreach (var seat in seats)
             {
-                writer.Write(seat.State);
+                writer.Write(seat.Occupancy switch
+                {
+                    PvpRoomSeatOccupancy.Open => (byte)0xFF,
+                    PvpRoomSeatOccupancy.Closed => (byte)0xFE,
+                    PvpRoomSeatOccupancy.Taken => seat.Team,
+                });
                 writer.Write(seat.UserId);
                 writer.Write((byte)0);
             }
             writer.Write(room.HasPassword ? (byte)1 : (byte)0);
-            writer.Write(room.MatchingType);
+            writer.Write(0);
         }
         return Payload(0x0029, stream.ToArray());
     }

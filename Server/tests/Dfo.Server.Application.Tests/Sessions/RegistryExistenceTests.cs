@@ -98,9 +98,15 @@ public sealed class RegistryExistenceTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService, Dfo.Server.Application.Tests.Support.FixedFatigue>();
-        new ApplicationModule().ConfigureServices(
-            services,
-            new ConfigurationBuilder().Build());
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Database:Path"] = Path.Combine(Path.GetTempPath(), $"dfo-registry-{Guid.NewGuid():N}.db"),
+        }).Build();
+        // The duel room owner behind the lobby view moves characters through town, which reaches content and
+        // storage; both open lazily, so resolving the graph reads neither.
+        new Dfo.Server.Infrastructure.InfrastructureModule().ConfigureServices(services, configuration);
+        new Dfo.Server.Persistence.PersistenceModule().ConfigureServices(services, configuration);
+        new ApplicationModule().ConfigureServices(services, configuration);
         return services.BuildServiceProvider();
     }
 }

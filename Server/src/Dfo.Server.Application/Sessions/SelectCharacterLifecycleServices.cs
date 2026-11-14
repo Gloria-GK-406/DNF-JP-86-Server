@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Pvp;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -438,23 +439,9 @@ internal sealed class SelectCharacterSessionEntryService(
                 continue;
             identities.Add(CreatePvpParticipant(current));
         }
-        var offeredRooms = pvpRooms.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
-        var rooms = lobby.Rooms.Select(room =>
-        {
-            if (!offeredRooms.TryGetValue(room.RoomId, out var source))
-                throw new InvalidDataException($"PvP room {room.RoomId} is unavailable.");
-            return new PvpRoomSnapshotState(
-            room.RoomId, room.NameType,
-            (source.Name
-                ?? throw new InvalidDataException("PvP room name is unavailable.")),
-            source.RoomState,
-            source.ManagerSeat,
-            room.MapIndex, room.BattleMode,
-            source.Seats is { Count: 8 } seats
-                ? seats : throw new InvalidDataException("PvP room seats are unavailable."),
-            room.HasPassword,
-            source.MatchingType);
-        }).ToArray();
+        // Read again rather than taken from the adjacent state: the lobby snapshot is sent now, and a room
+        // committed or gone since the adjacent state was composed would otherwise be shown wrongly.
+        var rooms = pvpRooms.RoomsOn(session.ListenerPort).Select(PvpRoomLobbyView.Of).ToArray();
         return new PvpLobbySynchronizationState(
             identities, rooms, CreatePvpParticipant(result));
     }

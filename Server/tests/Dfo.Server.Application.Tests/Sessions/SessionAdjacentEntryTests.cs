@@ -135,7 +135,7 @@ public sealed class SessionAdjacentEntryTests
                 ListenerPort = 10012,
             });
             var service = new SessionAdjacentEntryDomainService(
-                registry, sessions, Stores, new PvpLobbyDomainService(), new Dfo.Server.Application.Pvp.PvpRoomDomainService());
+                registry, sessions, Stores, new PvpLobbyDomainService(), new Dfo.Server.Application.Tests.Pvp.PvpRoomFixture().Rooms);
 
             var result = await service.LoadAsync(Subject(characterId: 99), CancellationToken.None);
 
@@ -285,6 +285,6 @@ public sealed class SessionAdjacentEntryTests
                 sessions.EnterWorldWithConnection(state, exact);
         }
 
-        return new SessionAdjacentEntryDomainService(presence, sessions, stores, lobby, new Dfo.Server.Application.Pvp.PvpRoomDomainService());
+        return new SessionAdjacentEntryDomainService(presence, sessions, stores, lobby, new Dfo.Server.Application.Tests.Pvp.PvpRoomFixture().Rooms);
     }
 }

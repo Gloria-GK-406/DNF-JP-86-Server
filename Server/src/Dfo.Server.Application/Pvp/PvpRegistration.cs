@@ -15,6 +15,8 @@ internal static class PvpRegistration
         services.TryAddSingleton<IPvpRoomQueryDomainService>(sp => sp.GetRequiredService<PvpRoomDomainService>());
         services.TryAddSingleton<IPvpSettlementRuleService, PvpSettlementRuleService>();
         services.TryAddSingleton<IPvpRoomRuleService, PvpRoomRuleService>();
+        services.TryAddSingleton<IPvpStartupVerification, PvpStartupVerification>();
+        services.AddPvpDeadlineScheduler();
         return services;
     }
 }

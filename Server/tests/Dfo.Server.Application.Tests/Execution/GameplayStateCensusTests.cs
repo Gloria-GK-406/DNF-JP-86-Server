@@ -89,6 +89,7 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
         [typeof(Dfo.Server.Application.Authentication.LoginSessionMaintenanceService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Application.Events.JoustMaintenanceService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Application.World.DungeonDeadlineScheduler)] = new(Category.E1, ProducerRow, "typed source scheduling, per-kind wake set and next deadline, coalescing and drain; deadlines stay in the domain owners"),
+        [typeof(Dfo.Server.Application.Pvp.PvpDeadlineScheduler)] = new(Category.E1, ProducerRow, "typed source scheduling, wake flag and next deadline per source, coalescing and drain; deadlines stay in the room owner"),
         [typeof(Dfo.Server.Protocol.Game.CharacterDeath.DungeonPartyWipeService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Protocol.Game.Creatures.CreatureClockService)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),
         [typeof(Dfo.Server.Protocol.Game.MarriageProposal.MarriageWeddingScheduler)] = new(Category.E1, ProducerRow, "typed source scheduling, accepted rounds, coalescing and drain; owns no gameplay state"),

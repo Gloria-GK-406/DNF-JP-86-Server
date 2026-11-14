@@ -41,6 +41,8 @@ public sealed class TimerSourceJobFailureTests
     {
         ["DomainEventHostedService"] =
             "Event consumption, not a timer: a group whose CMD ends a job logs a Warning and backs off (DomainEventDispatcher.RunAsync, EndedAJob).",
+        ["PvpDeadlineScheduler"] =
+            "No duel deadline source is registered yet, so it submits no CMD to fail; its loop is DungeonDeadlineScheduler's (EndedAJob retry). The row moves to the reconciliation with its first source.",
     };
 
     [Theory]

@@ -7,6 +7,8 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
+using Dfo.Server.Application.Tests.Pvp;
 
 namespace Dfo.Server.Application.Tests.Sessions;
 
@@ -83,96 +85,53 @@ public sealed class PvpLobbyEntryTests
     }
 
     [Fact]
-    public async Task The_lobby_lists_the_rooms_on_offer()
+    public async Task The_lobby_lists_the_committed_rooms_by_number()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
-            rooms.Offer(Room(2));
-            rooms.Offer(Room(1));
+        var rooms = new PvpRoomFixture();
+        await rooms.CreateAsync(rooms.Join(1));
+        await rooms.CreateAsync(rooms.Join(2));
 
-            var result = await Service(lobby, rooms)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+        var result = await TestGameplay.RunAsync(() => Service(new PvpLobbyDomainService(), rooms.Rooms)
+            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None).AsTask());
 
-            Assert.Equal([1, 2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
-        });
-    }
-
-    /// <remarks>
-    /// A room that has not finished being announced is withheld, because a character who
-    /// joined it now would race the announcement it is still making.
-    /// </remarks>
-    [Fact]
-    public async Task A_room_still_being_announced_is_not_offered()
-    {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
-            rooms.Offer(Room(1, published: false));
-            rooms.Offer(Room(2));
-
-            var result = await Service(lobby, rooms)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
-
-            Assert.Equal([2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
-        });
+        Assert.Equal([1, 2], result.PvpLobby!.Rooms.Select(room => (int)room.RoomNumber));
     }
 
     [Fact]
     public async Task Rooms_on_another_listener_are_not_offered()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
-            rooms.Offer(Room(1, listenerPort: 10011));
+        var rooms = new PvpRoomFixture();
+        await rooms.CreateAsync(rooms.Join(1));
 
-            var result = await Service(lobby, rooms)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+        var result = await TestGameplay.RunAsync(() => Service(new PvpLobbyDomainService(), rooms.Rooms)
+            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel with { ListenerPort = 10011 }), CancellationToken.None).AsTask());
 
-            Assert.Empty(result.PvpLobby!.Rooms);
-        });
+        Assert.Empty(result.PvpLobby!.Rooms);
     }
 
     [Fact]
     public async Task A_room_carries_what_the_lobby_shows_about_it()
     {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
-            rooms.Offer(new PvpRoom(
-                RoomId: 7,
-                OwnerCharacterId: new CharacterId(10),
-                ListenerPort: 10068,
-                NameType: 3,
-                MapIndex: 42,
-                HasPassword: true,
-                BattleMode: 2,
-                Published: true));
+        var rooms = new PvpRoomFixture();
+        var owner = rooms.Join(10);
+        var room = await rooms.CreateAsync(owner, PvpBattleMode.Team, password: [7]);
+        await rooms.Commit(service => service.SetMapAsync(owner, 3, default));
+        await rooms.SeatAsync(owner, 5, PvpSeatAction.Close);
 
-            var result = await Service(lobby, rooms)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
+        var result = await TestGameplay.RunAsync(() => Service(new PvpLobbyDomainService(), rooms.Rooms)
+            .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None).AsTask());
 
-            var room = Assert.Single(result.PvpLobby!.Rooms);
-            Assert.Equal(10, room.OwnerCharacterId.Value);
-            Assert.Equal(3, room.NameType);
-            Assert.Equal(42, room.MapIndex);
-            Assert.True(room.HasPassword);
-            Assert.Equal(2, room.BattleMode);
-        });
-    }
-
-    [Fact]
-    public void Withdrawing_removes_a_room_from_the_offers()
-    {
-        TestGameplay.Run(() =>
-        {
-            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
-            rooms.Offer(Room(1));
-
-            Assert.True(rooms.Withdraw(1));
-            Assert.False(rooms.Withdraw(1));
-            Assert.Empty(rooms.OfferedOn(10068));
-        });
+        var shown = Assert.Single(result.PvpLobby!.Rooms);
+        Assert.Equal(room.Number, shown.RoomNumber);
+        Assert.Equal([0x41, 0x42], shown.Name);
+        Assert.True(shown.Waiting);
+        Assert.Equal(0, shown.OwnerSeat);
+        Assert.Equal(3, shown.MapIndex);
+        Assert.True(shown.HasPassword);
+        Assert.Equal((byte)PvpBattleMode.Team, shown.BattleMode);
+        Assert.Equal(new PvpRoomSeatState(PvpRoomSeatOccupancy.Taken, 1, owner.WireUserId, false), shown.Seats[0]);
+        Assert.Equal(PvpRoomSeatOccupancy.Closed, shown.Seats[5].Occupancy);
+        Assert.Equal(PvpRoomSeatOccupancy.Open, shown.Seats[1].Occupancy);
     }
 
     [Fact]
@@ -195,14 +154,11 @@ public sealed class PvpLobbyEntryTests
             Dfo.Server.Testing.TestSessions.Directory(),
             Stores,
             lobby,
-            rooms ?? new PvpRoomDomainService());
+            rooms ?? new PvpRoomFixture().Rooms);
 
     private static SessionAdjacentSubject Subject(ChannelEntryIdentity channel) =>
         new(new CharacterId(99), new AccountId(1), channel, TownId: 1, AreaId: 0);
 
     private static PvpLobbyParticipant Ready(int characterId, int listenerPort = 10068) =>
         new(new CharacterId(characterId), listenerPort);
-
-    private static PvpRoom Room(ushort roomId, int listenerPort = 10068, bool published = true) =>
-        new(roomId, new CharacterId(1), listenerPort, 0, 0, false, 0, published);
 }

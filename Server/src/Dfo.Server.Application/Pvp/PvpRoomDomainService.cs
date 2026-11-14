@@ -1,41 +1,546 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Abstractions.Relations;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
+using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Pvp;
 
-/// <summary>Keeps the duel rooms on offer in memory.</summary>
-internal sealed class PvpRoomDomainService : IPvpRoomDomainService
+/// <summary>The duel rooms and the invitations into them, committed with the caller's transaction.</summary>
+/// <remarks>
+/// Every write is staged in this transaction's <see cref="Changes"/>: reads inside the same writable
+/// transaction see it, nobody else does, and it is applied only when the transaction commits -- so a
+/// database write that fails in the same use case leaves the rooms, their numbers and the invitations as
+/// they were. The town moves a change implies are made at that commit too, never before it.
+/// </remarks>
+internal sealed class PvpRoomDomainService(
+    IDomainTransactionAccessor transactions,
+    ISelectedSessionDomainService sessions,
+    IChannelEntryDomainService channels,
+    IPartyService parties,
+    ICharacterRelationQueryDomainService relations,
+    IPvpLobbyDomainService lobby,
+    ITownTransitDomainService transit,
+    IOnlineCharacterRuntimeDomainService online,
+    IPvpRoomRuleService rules,
+    IPvpDeadlineWake deadlines,
+    TimeProvider clock,
+    ILogger<PvpRoomDomainService> logger) : IPvpRoomDomainService
 {
-    private readonly ConcurrentDictionary<ushort, PvpRoom> _rooms = new();
+    private readonly Lock gate = new();
+    private readonly Dictionary<PvpRoomId, Room> rooms = [];
+    private readonly Dictionary<CharacterId, PvpRoomId> seated = [];
+    private readonly Dictionary<InvitationKey, PvpInvitation> invitations = [];
 
-    public void Offer(PvpRoom room)
-    {
-        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(Offer));
-        ArgumentNullException.ThrowIfNull(room);
-        _rooms[room.RoomId] = room;
-    }
+    /// <summary>A committed room and the password only this owner compares.</summary>
+    private sealed record Room(PvpRoomSnapshot Snapshot, ImmutableArray<byte>? Password);
 
-    public bool Withdraw(ushort roomId)
-    {
-        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(Withdraw));
-        return _rooms.TryRemove(roomId, out _);
-    }
+    private readonly record struct InvitationKey(CharacterId Inviter, CharacterId Invitee);
 
-    public IReadOnlyList<PvpRoom> OfferedOn(int listenerPort)
+    private Changes Pending
     {
-        var rooms = new List<PvpRoom>();
-        foreach (var room in _rooms.Values)
+        get
         {
-            // A room still being announced is withheld: showing it would invite a join that
-            // races the announcement it has not finished making.
-            if (!room.Published || room.ListenerPort != listenerPort)
-                continue;
+            var transaction = transactions.Current
+                ?? throw new InvalidOperationException("Duel room changes require the caller's transaction.");
+            if (transaction.IsReadOnly)
+                throw new InvalidOperationException("Duel room changes require a writable transaction.");
+            return transaction.Enlist(this, () => new Changes(this));
+        }
+    }
 
-            rooms.Add(room);
+    private Changes? Staged => transactions.Current is { IsReadOnly: false } ? Pending : null;
+
+    public IReadOnlyList<PvpRoomSnapshot> RoomsOn(int listenerPort)
+    {
+        lock (gate)
+            return [.. rooms.Values.Select(room => room.Snapshot).Where(room => room.ListenerPort == listenerPort)
+                .OrderBy(room => room.Number)];
+    }
+
+    public PvpRoomSnapshot? Find(PvpRoomId id)
+    {
+        if (Staged is { } staged) return staged.Find(id)?.Snapshot;
+        lock (gate) return rooms.GetValueOrDefault(id)?.Snapshot;
+    }
+
+    public PvpRoomSnapshot? FindSeated(CharacterId characterId)
+    {
+        if (Staged is { } staged) return staged.FindSeated(characterId)?.Snapshot;
+        lock (gate) return seated.TryGetValue(characterId, out var id) ? rooms[id].Snapshot : null;
+    }
+
+    public bool IsSeated(CharacterId characterId) => FindSeated(characterId) is not null;
+
+    public async ValueTask<PvpRoomOutcome> CreateAsync(PvpRoomCreation request, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(CreateAsync));
+        ArgumentNullException.ThrowIfNull(request);
+        var pending = Pending;
+        var owner = request.Owner;
+        if (!sessions.IsInWorld(owner)) return Refuse(PvpRoomRefusal.SessionNotCurrent);
+        var channel = await channels.ResolveAsync(owner.ListenerPort, cancellationToken).ConfigureAwait(false);
+        if (!channel.IsPvp) return Refuse(PvpRoomRefusal.NotDuelChannel);
+        if (!Enum.IsDefined(request.Mode) || !PvpBattleModeCapabilities.Of(request.Mode).Supported)
+            return Refuse(PvpRoomRefusal.UnsupportedMode);
+        if (!rules.AcceptsMap(request.MapIndex)) return Refuse(PvpRoomRefusal.InvalidMap);
+        var password = request.Password is { Length: > 0 } offered ? offered : (ImmutableArray<byte>?)null;
+        if (password is { } chosen && !rules.AcceptsPassword(chosen)) return Refuse(PvpRoomRefusal.InvalidPassword);
+        if (pending.FindSeated(owner.CharacterId) is not null) return Refuse(PvpRoomRefusal.AlreadySeated);
+        if (InParty(owner.CharacterId)) return Refuse(PvpRoomRefusal.InParty);
+
+        var seats = Enumerable.Repeat(PvpSeat.OpenSeat, PvpRoomSnapshot.SeatCount).ToImmutableArray()
+            .SetItem(0, new PvpSeat.Taken(owner, rules.TeamForNewcomer(request.Mode, []), Ready: false));
+        var snapshot = new PvpRoomSnapshot(
+            PvpRoomId.New(), pending.NextNumber(channel.ListenerPort), channel, request.NameType,
+            request.Name.IsDefault ? [] : request.Name,
+            password is not null, request.MapIndex, request.Mode, OwnerSeat: 0, seats, PvpRoomPhase.Waiting,
+            Version: 0, PvpRoomOrigin.PlayerCreated, Match: null);
+        var town = new TownMoves(channel.ChannelId, leaving: [owner], returning: []);
+        var created = pending.Put(snapshot.Id, null, new Room(snapshot, password), town)!;
+        return new PvpRoomOutcome.Changed(PvpRoomChangeKind.Created, null, created.Snapshot, [], town);
+    }
+
+    public ValueTask<PvpRoomOutcome> EnterAsync(
+        SelectedSessionIdentity session, ushort number, ImmutableArray<byte>? password, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(EnterAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        var pending = Pending;
+        if (!sessions.IsInWorld(session)) return Refused(PvpRoomRefusal.SessionNotCurrent);
+        if (pending.FindByNumber(session.ListenerPort, number) is not { } room) return Refused(PvpRoomRefusal.RoomMissing);
+        return ValueTask.FromResult(Admit(pending, room, session, PvpRoomChangeKind.Entered, password, checkPassword: true));
+    }
+
+    public ValueTask<PvpRoomOutcome> SetSeatAsync(
+        SelectedSessionIdentity actor, int seat, PvpSeatAction action, PvpTeam team, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(SetSeatAsync));
+        ArgumentNullException.ThrowIfNull(actor);
+        var pending = Pending;
+        if (Acting(pending, actor) is not (var room, var own)) return Refused(ActingRefusal(actor));
+        var snapshot = room.Snapshot;
+        if (seat is < 0 or >= PvpRoomSnapshot.SeatCount) return Refused(PvpRoomRefusal.InvalidSeat);
+        if (snapshot.Phase != PvpRoomPhase.Waiting) return Refused(PvpRoomRefusal.NotWaiting);
+        var isOwner = own == snapshot.OwnerSeat;
+        var target = snapshot.Seats[seat];
+        switch (action)
+        {
+            case PvpSeatAction.ChangeTeam:
+                if (seat != own) return Refused(PvpRoomRefusal.InvalidSeat);
+                if (!rules.AcceptsTeam(snapshot.Mode, team)) return Refused(PvpRoomRefusal.InvalidTeam);
+                return Changed(pending, room, snapshot with
+                {
+                    Seats = snapshot.Seats.SetItem(seat, (PvpSeat.Taken)target with { Team = team }),
+                }, PvpRoomChangeKind.TeamChanged);
+            case PvpSeatAction.Leave:
+                if (seat != own) return Refused(PvpRoomRefusal.InvalidSeat);
+                return ValueTask.FromResult(Release(pending, room, seat, PvpSeatReleaseReason.Left));
+            case PvpSeatAction.Kick:
+                if (!isOwner) return Refused(PvpRoomRefusal.NotOwner);
+                if (seat == own || target is not PvpSeat.Taken) return Refused(PvpRoomRefusal.InvalidSeat);
+                return ValueTask.FromResult(Release(pending, room, seat, PvpSeatReleaseReason.Kicked));
+            case PvpSeatAction.Close:
+                if (!isOwner) return Refused(PvpRoomRefusal.NotOwner);
+                if (target is not PvpSeat.Open) return Refused(PvpRoomRefusal.InvalidSeat);
+                if (!rules.AllowsClosing(snapshot.MemberCount, snapshot.Seats.Count(x => x is PvpSeat.Open)))
+                    return Refused(PvpRoomRefusal.LastOpenSeat);
+                return Changed(pending, room, snapshot with { Seats = snapshot.Seats.SetItem(seat, PvpSeat.ClosedSeat) },
+                    PvpRoomChangeKind.SeatClosed);
+            case PvpSeatAction.Open:
+                if (!isOwner) return Refused(PvpRoomRefusal.NotOwner);
+                if (target is not PvpSeat.Closed) return Refused(PvpRoomRefusal.InvalidSeat);
+                return Changed(pending, room, snapshot with { Seats = snapshot.Seats.SetItem(seat, PvpSeat.OpenSeat) },
+                    PvpRoomChangeKind.SeatOpened);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action), action, null);
+        }
+    }
+
+    public ValueTask<PvpRoomOutcome> SetModeAsync(
+        SelectedSessionIdentity actor, PvpBattleMode mode, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(SetModeAsync));
+        ArgumentNullException.ThrowIfNull(actor);
+        var pending = Pending;
+        if (OwnerActing(pending, actor) is not { } room) return Refused(OwnerRefusal(pending, actor));
+        var snapshot = room.Snapshot;
+        if (snapshot.Phase != PvpRoomPhase.Waiting) return Refused(PvpRoomRefusal.NotWaiting);
+        if (!Enum.IsDefined(mode) || !PvpBattleModeCapabilities.Of(mode).Supported) return Refused(PvpRoomRefusal.UnsupportedMode);
+        var teams = rules.Reassign(mode, snapshot.MemberCount);
+        var seats = snapshot.Seats;
+        var next = 0;
+        foreach (var (index, member) in snapshot.Members)
+            seats = seats.SetItem(index, member with { Team = teams[next++] });
+        return Changed(pending, room, snapshot with { Mode = mode, Seats = seats }, PvpRoomChangeKind.ModeChanged);
+    }
+
+    public ValueTask<PvpRoomOutcome> SetMapAsync(
+        SelectedSessionIdentity actor, int mapIndex, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(SetMapAsync));
+        ArgumentNullException.ThrowIfNull(actor);
+        var pending = Pending;
+        if (OwnerActing(pending, actor) is not { } room) return Refused(OwnerRefusal(pending, actor));
+        if (room.Snapshot.Phase != PvpRoomPhase.Waiting) return Refused(PvpRoomRefusal.NotWaiting);
+        if (!rules.AcceptsMap(mapIndex)) return Refused(PvpRoomRefusal.InvalidMap);
+        return Changed(pending, room, room.Snapshot with { MapIndex = mapIndex }, PvpRoomChangeKind.MapChanged);
+    }
+
+    public ValueTask<PvpRoomOutcome> SetReadyAsync(
+        SelectedSessionIdentity actor, bool ready, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(SetReadyAsync));
+        ArgumentNullException.ThrowIfNull(actor);
+        var pending = Pending;
+        if (Acting(pending, actor) is not (var room, var own)) return Refused(ActingRefusal(actor));
+        var snapshot = room.Snapshot;
+        if (snapshot.Phase != PvpRoomPhase.Waiting) return Refused(PvpRoomRefusal.NotWaiting);
+        var self = (PvpSeat.Taken)snapshot.Seats[own];
+        if (own != snapshot.OwnerSeat || !ready)
+            return Changed(pending, room, snapshot with { Seats = snapshot.Seats.SetItem(own, self with { Ready = ready }) },
+                PvpRoomChangeKind.ReadyChanged);
+
+        var members = snapshot.Members.ToArray();
+        if (rules.RefuseStart(snapshot.Mode, [.. members.Select(x => new PvpRoomMemberFacts(
+                x.Member.Team, x.Member.Ready, x.Seat == snapshot.OwnerSeat))]) is { } refusal)
+            return Refused(refusal);
+
+        var match = PvpMatchId.New();
+        var startedAt = clock.GetUtcNow();
+        return Changed(pending, room, snapshot with
+        {
+            Seats = snapshot.Seats.SetItem(own, self with { Ready = true }),
+            Phase = PvpRoomPhase.Loading,
+            Match = new PvpMatch(
+                match,
+                [.. members.Select(x => new PvpFighter(x.Seat, x.Member.CharacterId, x.Member.Session, x.Member.Team))],
+                rules.StartMap(snapshot.MapIndex, match.Value.GetHashCode()),
+                startedAt,
+                startedAt + rules.LoadingTimeout),
+        }, PvpRoomChangeKind.MatchStarted);
+    }
+
+    public async ValueTask<PvpInviteOutcome> InviteAsync(
+        SelectedSessionIdentity inviter, SelectedSessionIdentity invitee, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(InviteAsync));
+        ArgumentNullException.ThrowIfNull(inviter);
+        ArgumentNullException.ThrowIfNull(invitee);
+        var pending = Pending;
+        if (Acting(pending, inviter) is not (var room, _)) return new PvpInviteOutcome.Refused(ActingRefusal(inviter));
+        if (room.Snapshot.Phase != PvpRoomPhase.Waiting) return new PvpInviteOutcome.Refused(PvpRoomRefusal.NotWaiting);
+        if (invitee.CharacterId == inviter.CharacterId || invitee.ListenerPort != inviter.ListenerPort
+            || !sessions.IsInWorld(invitee))
+            return new PvpInviteOutcome.Refused(PvpRoomRefusal.TargetUnavailable);
+        if (pending.FindSeated(invitee.CharacterId) is not null) return new PvpInviteOutcome.Refused(PvpRoomRefusal.TargetSeated);
+        if (InParty(invitee.CharacterId)) return new PvpInviteOutcome.Refused(PvpRoomRefusal.TargetInParty);
+        if (!lobby.ReadyOn(invitee.ListenerPort, inviter.CharacterId)
+                .Any(x => x.CharacterId == invitee.CharacterId && (x.Session is null || x.Session == invitee)))
+            return new PvpInviteOutcome.Refused(PvpRoomRefusal.TargetNotInLobby);
+        if (!room.Snapshot.Seats.Any(seat => seat is PvpSeat.Open)) return new PvpInviteOutcome.Refused(PvpRoomRefusal.Full);
+        if (await relations.ExistsAsync(inviter.CharacterId, invitee.CharacterId, CharacterRelationKind.Blacklist, cancellationToken)
+                .ConfigureAwait(false)
+            || await relations.ExistsAsync(invitee.CharacterId, inviter.CharacterId, CharacterRelationKind.Blacklist, cancellationToken)
+                .ConfigureAwait(false))
+            return new PvpInviteOutcome.Refused(PvpRoomRefusal.Blacklisted);
+
+        var invitation = new PvpInvitation(Guid.NewGuid(), room.Snapshot.Id, inviter, invitee,
+            clock.GetUtcNow() + rules.InvitationLifetime);
+        pending.PutInvitation(new(inviter.CharacterId, invitee.CharacterId), invitation);
+        return new PvpInviteOutcome.Sent(invitation, room.Snapshot);
+    }
+
+    public ValueTask<PvpRoomOutcome> AcceptInviteAsync(
+        SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AcceptInviteAsync));
+        ArgumentNullException.ThrowIfNull(invitee);
+        var pending = Pending;
+        if (!sessions.IsInWorld(invitee)) return Refused(PvpRoomRefusal.SessionNotCurrent);
+        var key = new InvitationKey(inviter, invitee.CharacterId);
+        if (pending.FindInvitation(key) is not { } invitation) return Refused(PvpRoomRefusal.InviteMissing);
+        if (clock.GetUtcNow() >= invitation.ExpiresAt)
+        {
+            pending.PutInvitation(key, null);
+            return Refused(PvpRoomRefusal.InviteExpired);
+        }
+        // Both sides must still be the exact sessions the invitation was made between.
+        if (invitation.Invitee != invitee
+            || !sessions.TryGetInWorld(inviter, out var current) || current != invitation.Inviter)
+            return Refused(PvpRoomRefusal.SessionNotCurrent);
+        if (pending.Find(invitation.RoomId) is not { } room) return Refused(PvpRoomRefusal.RoomMissing);
+        if (room.Snapshot.SeatOf(inviter) is not { } seat
+            || ((PvpSeat.Taken)room.Snapshot.Seats[seat]).Session != invitation.Inviter)
+            return Refused(PvpRoomRefusal.NotSeated);
+        var outcome = Admit(pending, room, invitee, PvpRoomChangeKind.InviteAccepted, null, checkPassword: false);
+        if (outcome is PvpRoomOutcome.Changed) pending.PutInvitation(key, null);
+        return ValueTask.FromResult(outcome);
+    }
+
+    private PvpRoomOutcome Admit(
+        Changes pending, Room room, SelectedSessionIdentity session, PvpRoomChangeKind kind,
+        ImmutableArray<byte>? password, bool checkPassword)
+    {
+        if (pending.FindSeated(session.CharacterId) is not null) return Refuse(PvpRoomRefusal.AlreadySeated);
+        if (InParty(session.CharacterId)) return Refuse(PvpRoomRefusal.InParty);
+        var snapshot = room.Snapshot;
+        if (snapshot.Phase != PvpRoomPhase.Waiting) return Refuse(PvpRoomRefusal.NotWaiting);
+        if (checkPassword && room.Password is { } expected
+            && !(password is { } offered && offered.AsSpan().SequenceEqual(expected.AsSpan())))
+            return Refuse(PvpRoomRefusal.WrongPassword);
+        var seat = snapshot.Seats.IndexOf(PvpSeat.OpenSeat);
+        if (seat < 0) return Refuse(PvpRoomRefusal.Full);
+        var team = rules.TeamForNewcomer(snapshot.Mode, [.. snapshot.Members.Select(x => x.Member.Team)]);
+        var town = new TownMoves(snapshot.Channel.ChannelId, leaving: [session], returning: []);
+        var after = pending.Put(snapshot.Id, room,
+            room with { Snapshot = snapshot with { Seats = snapshot.Seats.SetItem(seat, new PvpSeat.Taken(session, team, false)) } },
+            town)!;
+        return new PvpRoomOutcome.Changed(kind, snapshot, after.Snapshot, [], town);
+    }
+
+    /// <summary>Takes a member off a seat; the owner's seat passes on, and the last one out ends the room.</summary>
+    private PvpRoomOutcome Release(Changes pending, Room room, int seat, PvpSeatReleaseReason reason)
+    {
+        var snapshot = room.Snapshot;
+        var leaving = (PvpSeat.Taken)snapshot.Seats[seat];
+        var seats = snapshot.Seats.SetItem(seat, PvpSeat.OpenSeat);
+        var remaining = Enumerable.Range(0, seats.Length).Where(index => seats[index] is PvpSeat.Taken).ToArray();
+        var owner = seat == snapshot.OwnerSeat ? rules.Successor(seat, remaining) : snapshot.OwnerSeat;
+        var town = new TownMoves(snapshot.Channel.ChannelId, leaving: [], returning: [leaving.Session]);
+        var after = owner is { } next
+            ? pending.Put(snapshot.Id, room, room with { Snapshot = snapshot with { Seats = seats, OwnerSeat = next } }, town)
+            : pending.Put(snapshot.Id, room, null, town);
+        return new PvpRoomOutcome.Changed(
+            reason == PvpSeatReleaseReason.Left ? PvpRoomChangeKind.Left : PvpRoomChangeKind.Kicked,
+            snapshot, after?.Snapshot, [new PvpSeatRelease(seat, leaving.Session, reason)], town);
+    }
+
+    private static ValueTask<PvpRoomOutcome> Changed(Changes pending, Room room, PvpRoomSnapshot next, PvpRoomChangeKind kind)
+    {
+        var town = new TownMoves(room.Snapshot.Channel.ChannelId, leaving: [], returning: []);
+        var after = pending.Put(room.Snapshot.Id, room, room with { Snapshot = next }, town)!;
+        return ValueTask.FromResult<PvpRoomOutcome>(new PvpRoomOutcome.Changed(kind, room.Snapshot, after.Snapshot, [], town));
+    }
+
+    /// <summary>The room the actor holds a seat in as exactly this session, and that seat.</summary>
+    private (Room Room, int Seat)? Acting(Changes pending, SelectedSessionIdentity actor)
+    {
+        if (!sessions.IsInWorld(actor) || pending.FindSeated(actor.CharacterId) is not { } room) return null;
+        var seat = room.Snapshot.SeatOf(actor.CharacterId)!.Value;
+        return ((PvpSeat.Taken)room.Snapshot.Seats[seat]).Session == actor ? (room, seat) : null;
+    }
+
+    private PvpRoomRefusal ActingRefusal(SelectedSessionIdentity actor) =>
+        sessions.IsInWorld(actor) ? PvpRoomRefusal.NotSeated : PvpRoomRefusal.SessionNotCurrent;
+
+    private Room? OwnerActing(Changes pending, SelectedSessionIdentity actor) =>
+        Acting(pending, actor) is (var room, var seat) && seat == room.Snapshot.OwnerSeat ? room : null;
+
+    private PvpRoomRefusal OwnerRefusal(Changes pending, SelectedSessionIdentity actor) =>
+        Acting(pending, actor) is null ? ActingRefusal(actor) : PvpRoomRefusal.NotOwner;
+
+    private bool InWorld(SelectedSessionIdentity session) => sessions.IsInWorld(session);
+
+    private DateTimeOffset Now => clock.GetUtcNow();
+
+    private void WakeDeadlines() => deadlines.Wake();
+
+    private bool InParty(CharacterId characterId) => parties.KeyOf(characterId).Kind == PartyKeyKind.Real;
+
+    private static PvpRoomOutcome Refuse(PvpRoomRefusal reason) => new PvpRoomOutcome.Refused(reason);
+
+    private static ValueTask<PvpRoomOutcome> Refused(PvpRoomRefusal reason) => ValueTask.FromResult(Refuse(reason));
+
+    /// <summary>Makes a committed change's town moves; a commit cannot fail, so a failed move is logged.</summary>
+    private async ValueTask ApplyAsync(TownMoves town)
+    {
+        IReadOnlyList<TownDepartureResult> departures = [];
+        IReadOnlyList<TownReturnAdmission> returns = [];
+        try
+        {
+            if (town.Leaving.Count > 0)
+                departures = transit.LeaveTown(town.Leaving, TownAreaDepartureReason.PvpRoom);
+            if (town.Returning.Count > 0)
+            {
+                var requests = town.Returning
+                    .Select(session => online.PositionOf(session) is { } position
+                        ? new TownReturnRequest(session, town.ChannelId, position) : null)
+                    .OfType<TownReturnRequest>().ToArray();
+                returns = await transit.ReturnToTownAsync(requests, CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+        catch (Exception error)
+        {
+            logger.LogError(error, "Duel room town moves failed after the room change committed");
+        }
+        town.Complete(departures, returns);
+    }
+
+    private sealed class TownMoves(
+        int channelId, IReadOnlyList<SelectedSessionIdentity> leaving, IReadOnlyList<SelectedSessionIdentity> returning)
+        : IPvpTownMoves
+    {
+        public int ChannelId => channelId;
+        public IReadOnlyList<SelectedSessionIdentity> Leaving => leaving;
+        public IReadOnlyList<SelectedSessionIdentity> Returning => returning;
+        public bool Applied { get; private set; }
+        public IReadOnlyList<TownDepartureResult> Departures { get; private set; } = [];
+        public IReadOnlyList<TownReturnAdmission> Returns { get; private set; } = [];
+
+        public void Complete(IReadOnlyList<TownDepartureResult> departures, IReadOnlyList<TownReturnAdmission> returns)
+        {
+            Departures = departures;
+            Returns = returns;
+            Applied = true;
+        }
+    }
+
+    private sealed class Changes(PvpRoomDomainService owner) : ITransactionParticipant
+    {
+        private readonly Dictionary<PvpRoomId, (Room? Before, Room? After)> rooms = [];
+        private readonly Dictionary<InvitationKey, (PvpInvitation? Before, PvpInvitation? After)> invitations = [];
+        private readonly List<TownMoves> towns = [];
+
+        public bool CommitCanFail => false;
+
+        public Room? Find(PvpRoomId id)
+        {
+            if (rooms.TryGetValue(id, out var change)) return change.After;
+            lock (owner.gate) return owner.rooms.GetValueOrDefault(id);
         }
 
-        rooms.Sort(static (left, right) => left.RoomId.CompareTo(right.RoomId));
-        return rooms;
+        public Room? FindSeated(CharacterId characterId)
+        {
+            foreach (var (_, after) in rooms.Values)
+                if (after?.Snapshot.SeatOf(characterId) is not null)
+                    return after;
+            lock (owner.gate)
+                return owner.seated.TryGetValue(characterId, out var id) && !rooms.ContainsKey(id) ? owner.rooms[id] : null;
+        }
+
+        public Room? FindByNumber(int listenerPort, ushort number) =>
+            Visible(listenerPort).FirstOrDefault(room => room.Snapshot.Number == number);
+
+        /// <summary>The smallest positive number no room on the listener shows, as this transaction sees them.</summary>
+        public ushort NextNumber(int listenerPort)
+        {
+            var used = Visible(listenerPort).Select(room => room.Snapshot.Number).ToHashSet();
+            for (var number = 1; number <= ushort.MaxValue; number++)
+                if (!used.Contains((ushort)number))
+                    return (ushort)number;
+            throw new InvalidOperationException("Every duel room number on this listener is in use.");
+        }
+
+        private List<Room> Visible(int listenerPort)
+        {
+            List<Room> visible;
+            lock (owner.gate)
+                visible = [.. owner.rooms.Values.Where(room => !rooms.ContainsKey(room.Snapshot.Id))];
+            visible.AddRange(rooms.Values.Select(change => change.After).OfType<Room>());
+            return [.. visible.Where(room => room.Snapshot.ListenerPort == listenerPort)];
+        }
+
+        /// <summary>Stages a room's next state; its version is one past the committed one, however often it is staged.</summary>
+        public Room? Put(PvpRoomId id, Room? before, Room? after, TownMoves town)
+        {
+            var committed = rooms.TryGetValue(id, out var prior) ? prior.Before : before;
+            var stamped = after is null ? null : after with
+            {
+                Snapshot = after.Snapshot with { Version = (committed?.Snapshot.Version ?? 0) + 1 },
+            };
+            rooms[id] = (committed, stamped);
+            towns.Add(town);
+            return stamped;
+        }
+
+        public PvpInvitation? FindInvitation(InvitationKey key)
+        {
+            if (invitations.TryGetValue(key, out var change)) return change.After;
+            lock (owner.gate) return owner.invitations.GetValueOrDefault(key);
+        }
+
+        public void PutInvitation(InvitationKey key, PvpInvitation? next)
+        {
+            if (invitations.TryGetValue(key, out var prior)) invitations[key] = (prior.Before, next);
+            else lock (owner.gate) invitations[key] = (owner.invitations.GetValueOrDefault(key), next);
+        }
+
+        public ValueTask PrepareAsync(CancellationToken cancellationToken)
+        {
+            lock (owner.gate)
+            {
+                foreach (var (id, (before, after)) in rooms)
+                {
+                    if (!ReferenceEquals(owner.rooms.GetValueOrDefault(id), before))
+                        throw new InvalidOperationException("A duel room changed before commit.");
+                    if (after is null) continue;
+                    var snapshot = after.Snapshot;
+                    if (owner.rooms.Values.Any(room => room.Snapshot.Id != id && !rooms.ContainsKey(room.Snapshot.Id)
+                            && room.Snapshot.ListenerPort == snapshot.ListenerPort && room.Snapshot.Number == snapshot.Number)
+                        || rooms.Any(other => other.Key != id && other.Value.After is { } staged
+                            && staged.Snapshot.ListenerPort == snapshot.ListenerPort && staged.Snapshot.Number == snapshot.Number))
+                        throw new InvalidOperationException("A duel room number was taken before commit.");
+                    foreach (var (seat, member) in snapshot.Members)
+                    {
+                        if (owner.seated.TryGetValue(member.CharacterId, out var held) && held != id
+                            && !(rooms.TryGetValue(held, out var releasing) && releasing.After?.Snapshot.SeatOf(member.CharacterId) is null))
+                            throw new InvalidOperationException("A duel room member took another seat before commit.");
+                        // A seat taken in this transaction must still belong to the exact session that took it.
+                        if (before?.Snapshot.Seats[seat] is PvpSeat.Taken kept && kept.Session == member.Session) continue;
+                        if (!owner.InWorld(member.Session))
+                            throw new InvalidOperationException("A duel room seat's session changed before commit.");
+                    }
+                }
+                foreach (var (key, (before, _)) in invitations)
+                    if (!ReferenceEquals(owner.invitations.GetValueOrDefault(key), before))
+                        throw new InvalidOperationException("A duel invitation changed before commit.");
+            }
+            return ValueTask.CompletedTask;
+        }
+
+        public async ValueTask CommitAsync(CancellationToken cancellationToken)
+        {
+            var wake = false;
+            lock (owner.gate)
+            {
+                foreach (var (id, (before, _)) in rooms)
+                    if (before is not null)
+                        foreach (var (_, member) in before.Snapshot.Members)
+                            if (owner.seated.GetValueOrDefault(member.CharacterId) == id)
+                                owner.seated.Remove(member.CharacterId);
+                foreach (var (id, (before, after)) in rooms)
+                {
+                    if (after is null) owner.rooms.Remove(id);
+                    else
+                    {
+                        owner.rooms[id] = after;
+                        foreach (var (_, member) in after.Snapshot.Members) owner.seated[member.CharacterId] = id;
+                    }
+                    wake |= before?.Snapshot.Match?.PhaseDeadline != after?.Snapshot.Match?.PhaseDeadline;
+                }
+                foreach (var (key, (_, after)) in invitations)
+                    if (after is null) owner.invitations.Remove(key);
+                    else owner.invitations[key] = after;
+                // Expired invitations, and those into rooms that are gone, are tidied whenever anything commits.
+                var now = owner.Now;
+                foreach (var (key, invitation) in owner.invitations.ToArray())
+                    if (now >= invitation.ExpiresAt || !owner.rooms.ContainsKey(invitation.RoomId))
+                        owner.invitations.Remove(key);
+            }
+            foreach (var town in towns) await owner.ApplyAsync(town).ConfigureAwait(false);
+            if (wake) owner.WakeDeadlines();
+        }
+
+        public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }

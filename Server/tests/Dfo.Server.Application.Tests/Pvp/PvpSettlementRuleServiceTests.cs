@@ -15,24 +15,44 @@ public sealed class PvpSettlementRuleServiceTests
     [Theory]
     [InlineData((byte)8)]
     [InlineData((byte)13)]
-    public void Practice_duel_channels_record_nothing(byte environment)
+    [InlineData((byte)24)]
+    [InlineData(null)]
+    public void A_free_duel_channel_records_nothing_whatever_its_environment(byte? environment)
     {
-        Assert.Equal(new PvpChannelEntitlements(false, false, 0, 0), Unarchived().EntitlementsOf(environment));
+        Assert.Equal(new PvpChannelEntitlements(false, false, 0, 0),
+            Unarchived().EntitlementsOf(new ChannelEntryIdentity(68, 10068, ChannelEntryKind.FreeDuel, environment)));
+    }
+
+    [Fact]
+    public void The_practice_duel_channel_records_nothing()
+    {
+        Assert.Equal(new PvpChannelEntitlements(false, false, 0, 0), Unarchived().EntitlementsOf(Duel(8)));
     }
 
     [Fact]
     public void The_ranked_duel_channel_records_and_caps_daily_experience()
     {
-        Assert.Equal(new PvpChannelEntitlements(true, true, 50, 10), Unarchived().EntitlementsOf(24));
+        Assert.Equal(new PvpChannelEntitlements(true, true, 50, 10), Unarchived().EntitlementsOf(Duel(24)));
     }
 
     [Theory]
     [InlineData((byte)0)]
+    [InlineData((byte)13)]
     [InlineData((byte)23)]
     [InlineData((byte)25)]
-    public void A_login_environment_without_a_duel_channel_has_no_entitlements(byte environment)
+    [InlineData(null)]
+    public void A_duel_channel_environment_without_a_row_has_no_entitlements(byte? environment)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Unarchived().EntitlementsOf(environment));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Unarchived().EntitlementsOf(Duel(environment)));
+    }
+
+    [Theory]
+    [InlineData(ChannelEntryKind.General)]
+    [InlineData(ChannelEntryKind.SaintHorn)]
+    [InlineData(ChannelEntryKind.Raid)]
+    public void A_channel_that_is_not_a_duel_channel_has_no_entitlements(ChannelEntryKind kind)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Unarchived().EntitlementsOf(new ChannelEntryIdentity(1, 10011, kind, 24)));
     }
 
     [Fact]
@@ -45,11 +65,13 @@ public sealed class PvpSettlementRuleServiceTests
             var channel = await Classify((byte)environment);
             if (!channel.IsPvp) continue;
             duelling.Add((byte)environment);
-            Assert.NotNull(rules.EntitlementsOf((byte)environment));
+            Assert.NotNull(rules.EntitlementsOf(channel));
         }
 
         Assert.Equal(new byte[] { 8, 13, 24 }, duelling);
     }
+
+    private static ChannelEntryIdentity Duel(byte? environment) => new(70, 10070, ChannelEntryKind.Pvp, environment);
 
     [SkippableFact]
     public void Battle_time_limits_come_from_the_archive()

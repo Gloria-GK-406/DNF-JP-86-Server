@@ -98,6 +98,10 @@ internal sealed class GameServerStartupService(IServiceProvider services, IHostE
                 cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Character progression constrained: TopLevel={TopLevel}, MaxExperience={Maximum}",
                 scale.TopLevel, scale.MaximumExperience);
+            // Duel channels and duel content fail startup here; the warmup below only logs a failed item.
+            var duelChannels = await services.GetRequiredService<Dfo.Server.Abstractions.Pvp.IPvpStartupVerification>()
+                .VerifyAsync(cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Duel channels verified: {Count}", duelChannels);
             await ContentWarmup.RunAsync(ContentWarmup.IsEnabled(services.GetService<Microsoft.Extensions.Configuration.IConfiguration>()),
                 services.GetServices<IContentWarmup>, logger, cancellationToken).ConfigureAwait(false);
         }

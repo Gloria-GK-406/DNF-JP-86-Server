@@ -17,19 +17,30 @@ public sealed record PvpParticipantEntryState(
     IReadOnlyList<InventoryItemState> Equipment,
     IReadOnlyList<CharacterPetRuntimeState> Pets);
 
-public sealed record PvpRoomSeatState(byte State, ushort UserId);
+public enum PvpRoomSeatOccupancy : byte
+{
+    Open,
+    Closed,
+    Taken,
+}
 
+/// <summary>One seat of a room as the lobby shows it.</summary>
+/// <param name="Team">The side number of a taken seat: 0 for an individual fighter, 1 or 2 for a team.</param>
+/// <param name="UserId">The wire user id of a taken seat's session; 0 otherwise.</param>
+public sealed record PvpRoomSeatState(PvpRoomSeatOccupancy Occupancy, byte Team, ushort UserId, bool Ready);
+
+/// <summary>One committed duel room as the lobby shows it; the wire layout is the codec's.</summary>
+/// <param name="Waiting">Whether the room is waiting for its next battle rather than running one.</param>
 public sealed record PvpRoomSnapshotState(
-    ushort RoomId,
+    ushort RoomNumber,
     byte NameType,
     byte[] Name,
-    byte RoomState,
-    byte ManagerSeat,
+    bool Waiting,
+    byte OwnerSeat,
     short MapIndex,
     byte BattleMode,
     IReadOnlyList<PvpRoomSeatState> Seats,
-    bool HasPassword,
-    int MatchingType);
+    bool HasPassword);
 
 public sealed record PvpLobbySynchronizationState(
     IReadOnlyList<PvpParticipantEntryState> OrderedIdentities,

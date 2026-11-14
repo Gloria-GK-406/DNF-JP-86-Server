@@ -1,6 +1,7 @@
 ﻿using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Pvp;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Sessions;
@@ -73,18 +74,7 @@ internal sealed class SessionAdjacentEntryDomainService(
         foreach (var participant in ready)
             participants.Add(new PvpLobbyParticipantState(participant.CharacterId));
 
-        var offered = pvpRooms.OfferedOn(listenerPort);
-        var rooms = new List<PvpRoomState>(offered.Count);
-        foreach (var room in offered)
-        {
-            rooms.Add(new PvpRoomState(
-                room.RoomId,
-                room.OwnerCharacterId,
-                room.NameType,
-                room.MapIndex,
-                room.HasPassword,
-                room.BattleMode));
-        }
+        var rooms = pvpRooms.RoomsOn(listenerPort).Select(PvpRoomLobbyView.Of).ToArray();
 
         return new PvpLobbyEntryState(participants, rooms);
     }

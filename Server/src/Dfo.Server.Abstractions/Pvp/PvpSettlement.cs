@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Channel;
+
 namespace Dfo.Server.Abstractions.Pvp;
 
 /// <summary>What a duel channel lets a finished battle change.</summary>
@@ -60,8 +62,12 @@ public interface IPvpGradeDefinitionSource { PvpGradeCatalog Load(); }
 
 public interface IPvpSettlementRuleService
 {
-    /// <summary>What the duel channel of this login environment records; throws for any other environment.</summary>
-    PvpChannelEntitlements EntitlementsOf(byte loginEnvironment);
+    /// <summary>
+    /// What a duel channel records. A free-duel channel records nothing whatever its environment; a ranked or
+    /// practice duel channel answers by its login environment, and throws for an environment without a row,
+    /// as it does for a channel that is not a duel channel at all.
+    /// </summary>
+    PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel);
 
     PvpSettlementDecision Decide(PvpSettlementFacts facts);
 

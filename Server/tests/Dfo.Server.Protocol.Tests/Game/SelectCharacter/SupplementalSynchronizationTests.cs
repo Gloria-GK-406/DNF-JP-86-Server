@@ -112,12 +112,17 @@ public sealed class SupplementalSynchronizationTests
         var existingB = Identity(3, 0xB2);
         var newcomer = Identity(7, 0xC3);
         var seats = Enumerable.Range(0, 8)
-            .Select(index => new PvpRoomSeatState((byte)index, (ushort)(100 + index)))
+            .Select(index => index switch
+            {
+                0 => new PvpRoomSeatState(PvpRoomSeatOccupancy.Taken, 2, 100, true),
+                1 => new PvpRoomSeatState(PvpRoomSeatOccupancy.Closed, 0, 0, false),
+                _ => new PvpRoomSeatState(PvpRoomSeatOccupancy.Open, 0, 0, false),
+            })
             .ToArray();
         PvpRoomSnapshotState[] rooms =
         [
-            new PvpRoomSnapshotState(20, 1, [], 2, 3, 4, 5, seats, true, 6),
-            new PvpRoomSnapshotState(10, 0, [0x51], 7, 1, 8, 2, seats, false, 9),
+            new PvpRoomSnapshotState(20, 1, [], false, 3, 4, 5, seats, true),
+            new PvpRoomSnapshotState(10, 0, [0x51], true, 1, 8, 2, seats, false),
         ];
 
         var batch = SupplementalSynchronizationCodec.EncodePvpLobby(
@@ -132,6 +137,9 @@ public sealed class SupplementalSynchronizationTests
         var roomBody = Body(batch.DirectPayloads[1]);
         Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(roomBody));
         Assert.Equal(20, BinaryPrimitives.ReadUInt16LittleEndian(roomBody.AsSpan(2)));
+        // number, name type 1 (no name), state 2 (in battle), owner seat, map, mode, then the seats.
+        Assert.Equal([1, 2, 3, 4, 0, 5], roomBody[4..10]);
+        Assert.Equal([2, 100, 0, 0, 0xFE, 0, 0, 0, 0xFF, 0, 0, 0], roomBody[10..22]);
         Assert.Equal([0xC3], newcomer.Character.Identity.Name);
     }
 
