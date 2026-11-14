@@ -71,7 +71,7 @@ Stage2在非起播场景可能直接进入scene12并公告冠军；Stage3无条�
 
 ## 2026-10-06 A21 JOUST 接线（ClientStatic / CurrentImplementation）
 
-EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
+EXE SHA256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；dump `E:/Project/DNF/ClientEvidence/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin` SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，image base `00400000`。下列地址均为 RVA。
 
 31B：offset0 u16RoundNo；offset2 u8Stage；offset3起7×4B：+0 u8WinnerKnightIndex，+1 u8WinnerAuxIndex，+2 u8LoserKnightIndex，+3 u8LoserAuxIndex。绝不能写成两u16或padding。阶段0/1/2/3累计4/6/7/7个结果；尚未提供结果用KnightFF/Aux0占位（ServerPolicy，未来槽读取未实机确认）。
 

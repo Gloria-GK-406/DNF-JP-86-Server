@@ -2,7 +2,7 @@
 
 日期：2026-10-20。只读反汇编，不是 WireCaptured 或 ClientVerified。
 
-输入为 `E:/Project/DNF/DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin`，SHA-256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`。manifest 标明 S4A21、image base `0x00400000`、122085376 字节、无读取空洞。下文地址全部为 **RVA**，不是 VA；工作产物目录 `artifacts/lucky-star-rental-20261020/probe-clientstatic.py` 重现指令提取，结果为 `clientstatic-disassembly.txt`。
+输入为 `E:/Project/DNF/ClientEvidence/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin`，SHA-256 `AAAE24216E0E260AFA528445775E767D104F658FD68FDAD21EC7BB601B9C8A3D`。manifest 标明 S4A21、image base `0x00400000`、122085376 字节、无读取空洞。下文地址全部为 **RVA**，不是 VA；工作产物目录 `artifacts/lucky-star-rental-20261020/probe-clientstatic.py` 重现指令提取，结果为 `clientstatic-disassembly.txt`。
 
 ## 请求 22B 是 body，整帧为 36B
 

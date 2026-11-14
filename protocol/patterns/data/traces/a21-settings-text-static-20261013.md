@@ -1,7 +1,7 @@
 # A21 设置 blob 与键位文本静态复核
 
 日期：2026-10-13；服务端基线：314bd463。证据为 ClientStatic，不等于 ClientVerified。
-只读反汇编文件：`E:/Project/DNF/DNFClient-A21-protocol2/DNF.unpacked-b1-debug.exe`，SHA-256：
+只读反汇编文件：`E:/Project/DNF/ClientEvidence/binaries/DNF.unpacked-b1-debug-ca7eca4e.exe`，SHA-256：
 `CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`。
 以下均为 VA（image base 00400000）；与机器区使用的 RVA 不混用。
 

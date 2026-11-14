@@ -22,7 +22,7 @@
 
 | 输入 | 大小 | 时间 | SHA-256 |
 |---|---:|---|---|
-| `E:/Project/DNF/DNFClient-A21-protocol/DNF.unpacked-b1-debug.exe` | 94,199,808 | `2026-09-06T22:48:26.3116609+08:00` | `CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14` |
+| `E:/Project/DNF/ClientEvidence/binaries/DNF.unpacked-b1-debug-ca7eca4e.exe` | 94,199,808 | `2026-09-06T22:48:26.3116609+08:00` | `CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14` |
 | `E:/Project/DNF/DNFClient-A21-protocol/dstr.dat` | 3,173,376 | `2026-02-04T14:51:25.4340524+08:00` | `60E9857773831B341BAE0D490FCAEAF0AF184B9776717E2FCF293E1BC7F92F10` |
 | `E:/Project/DNF/ServerS4A21 origin/master` | — | `2026-09-07T23:34:10Z` | commit `c58cd2b479b0357cb6ca78887c9d638b080f4638` |
 
@@ -32,7 +32,7 @@
 ```powershell
 python -X utf8 `
   .rks-agent/tasks/party-mode-rules/attempts/spec-001-party-settings-foundation/evidence/probe_a21_party_settings.py `
-  E:/Project/DNF/DNFClient-A21-protocol/DNF.unpacked-b1-debug.exe `
+  E:/Project/DNF/ClientEvidence/binaries/DNF.unpacked-b1-debug-ca7eca4e.exe `
   E:/Project/DNF/DNFClient-A21-protocol/dstr.dat
 ```
 

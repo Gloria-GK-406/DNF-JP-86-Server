@@ -92,7 +92,7 @@ CurrentImplementation：探查服原来仅注册 EVENT_INFO 的 2226；现有
 
 ## 2026-10-27 有限实机确认：气球与正式图入口
 
-实际进程16192来自`E:\Project\DNF\DNFClient-A21-protocol2\DNF.exe`，现场复核EXE SHA-256为
+实际进程16192来自`E:\Project\DNF\ClientStore\versions\content\0.3.2\DNF.exe`，现场复核EXE SHA-256为
 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`；PVF为本页D45C…AEF84。
 后端为本任务独立Host17484、代理36420；运行基线63fb399的未提交任务构建，使用原玩家库的一致性副本。
 代理显式启用033F调度差分，其他帧来源仍分别标记。

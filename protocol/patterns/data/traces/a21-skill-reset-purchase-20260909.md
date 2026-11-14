@@ -2,7 +2,7 @@
 
 日期：2026-09-09。以下只摘录本次商城购买请求，不包含登录凭据。
 
-- 客户端：`E:/Project/DNF/DNFClient-A21-protocol/DNF.exe`，SHA-256 `1f8244d3f7309bbe2fde4299e1863a894f6b28d5707bf01732980585b20b00dd`（本次重算）。
+- 客户端：`E:/Project/DNF/ClientStore/versions/content/0.3.2/DNF.exe`，SHA-256 `1f8244d3f7309bbe2fde4299e1863a894f6b28d5707bf01732980585b20b00dd`（本次重算）。
 - 服务端：`main` 提交 `bda0c3f22b616410ad8773c9c9f9f14e724c116e`，Release Host。
 - 源日志：`Server/src/Dfo.Server.Host/bin/Release/net10.0/Logs/server-20260909-160133.stdout.log`，读取快照 SHA-256 `826c413376f0000478828dbe894e75b6172a77cbeb39c76ceb80367a30f2c73b`。该文件仍可能追加，下文保留第174行的完整相关报文。
 

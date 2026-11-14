@@ -85,6 +85,18 @@
 `probes/` 与上一节的"直接写进文档"不冲突：一句观察写进文档就够了；成表成段的探查结果
 归档到 `probes/`，文档引用它——否则那张表会在每份引用它的文档里各抄一遍。
 
+### 内存镜像与解包 exe → 证据目录
+
+dump、b1 解包 exe 这类大文件不进仓库，放在工作区的 `E:\Project\DNF\ClientEvidence\`，按
+`dumps\<dump 名>\`、`binaries\<名>-<SHA-256 前 8 位>.exe`、`traces\<日期>-<主题>\` 分类。
+用 `ClientStore` 的 `evidence add` 收录，`index.md` 登记哈希与引用情况。引用时写
+`ClientEvidence/...` 路径加哈希。客户端目录是用后即弃的，**不要引用客户端目录里的文件**。
+
+工作区客户端由 `E:\Project\DNF\ClientStore` 生成，游戏文件是内容仓的只读链接。要引用某个
+版本的 DNF.exe 或 Script.pvf，写组件版本加哈希（如 `content:0.3.2` 的 `DNF.exe`）。
+旧的手工客户端（DNFClient、DNFClient-A21-debug / protocol / protocol2 / protocol3）已移除；
+历史记录里指向它们的路径，按 `ClientEvidence\legacy-paths.md` 对照。
+
 ### 反汇编 → 客户端哈希 + 地址段
 
 **只写地址段是不够的。** RVA 只在同一个二进制上稳定，而客户端会被重建。少了哈希，

@@ -55,7 +55,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## 布局与语义（龙跃武器成长值）
 
-ClientStatic / Confirmed（布局）、High（语义）。dump `DNFClient-A21-debug/dumps/dnf-dump-20260922-194214-883-23144`，
+ClientStatic / Confirmed（布局）、High（语义）。dump `ClientEvidence/dumps/dnf-dump-20260922-194214-883-23144`，
 handler VA `0x01188130`（= 上表 RVA `0x00D88130` + 0x400000），读取原语 u8 `0x027C5230`、u16 `0x027C52A0`。
 
 ```text

@@ -2,7 +2,7 @@
 
 ## 证据
 
-ClientStatic / High：A21 原始内存 dump `DNFClient-A21-debug/dumps-keep/dnf-dump-20260822-184128-028-16280/DNF-memory-rva.bin`，客户端 handler RVA `0x00D0A1A0`、错误分派 `0x00D09FD0`。支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。RVA 直接作为 memory-rva 文件偏移，不能减 ImageBase。
+ClientStatic / High：A21 原始内存 dump `ClientEvidence/dumps/dnf-dump-20260822-184128-028-16280/DNF-memory-rva.bin`，客户端 handler RVA `0x00D0A1A0`、错误分派 `0x00D09FD0`。支持客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。RVA 直接作为 memory-rva 文件偏移，不能减 ImageBase。
 
 ## 当前发送
 

@@ -2,7 +2,7 @@
 
 ## 基线与判据
 
-- 客户端：`E:/Project/DNF/DNFClient-A21-protocol/DNF.exe`，SHA-256
+- 客户端：`E:/Project/DNF/ClientStore/versions/content/0.3.2/DNF.exe`，SHA-256
   `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。
 - 证据：同版本 `dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin`；
   `manifest.json` 报 image base `0x00400000`、`hole_bytes=0`。以下地址都是 RVA，
