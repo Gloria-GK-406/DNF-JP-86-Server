@@ -10,6 +10,8 @@ using PvfPackageContentRepair;
 // pets whose species creature.lst forgot get their species row back, package rewards with an absolute expiration
 // date that has passed become permanent, random-pool avatar rows naming an ability the avatar does not declare are
 // removed, and one unclosed selection header that hides [action usable place] from the client is dropped.
+// Packages left with no reward are deleted: their stackable.lst rows go, and so do the entries that name them in
+// other packages and in the few non-package files listed in Repair.References.
 // Everything else in the archive is preserved byte for byte.
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 Console.OutputEncoding = Encoding.UTF8;
@@ -150,11 +152,12 @@ internal static class Repair
         // 2. Packages: remove rewards no list declares and pets whose species cannot be restored.
         foreach (var package in census.Packages)
         {
+            if (plan.Deleted.ContainsKey(package.Id)) continue;
             var tokens = package.Tokens;
             var stray = StrayHeader(tokens);
             if (stray >= 0)
             {
-                rows.Add($"header	{package.Id}	{package.Path}	{string.Join(" ", tokens.Skip(stray).Take(StrayHeaderLength))}			removed: unclosed selection header that swallows [action usable place]");
+                rows.Add($"header\t{package.Id}\t{package.Path}\t{string.Join(" ", tokens.Skip(stray).Take(StrayHeaderLength))}\t\t\tremoved: unclosed selection header that swallows [action usable place]");
                 tokens = [.. tokens.Take(stray), .. tokens.Skip(stray + StrayHeaderLength)];
             }
             var script = PackageScript.Repair(tokens, plan.RemoveReason, plan.AbilityReason);
@@ -165,7 +168,7 @@ internal static class Repair
         }
 
         // 3. Expired rewards: drop the absolute expiration so the item is permanent.
-        foreach (var (id, facts) in plan.Expired)
+        foreach (var (id, facts) in plan.Expired.Where(x => !plan.Deleted.ContainsKey(x.Id)))
         {
             var tokens = engine.Read(facts.Path);
             var kept = new List<Sym>();
@@ -178,6 +181,40 @@ internal static class Repair
             engine.Replace(facts.Path, kept, $"#340: permanent, {ExpirationTag} removed");
         }
 
+        // 4. Deleted packages: drop their stackable.lst rows (the .stk bodies stay as unlisted files, like the archive's
+        //    other unlisted .stk files; removing file entries would rewrite the file and hash tables) and every
+        //    reference outside packages whose format is known.
+        if (plan.Deleted.Count > 0)
+        {
+            var deleted = plan.Deleted;
+            const string list = "stackable/stackable.lst";
+            var lst = engine.Read(list);
+            var keptRows = new List<Sym>();
+            for (var k = 0; k < lst.Count; k++)
+            {
+                if (lst[k].Kind == PvfTokenKind.Int32 && k + 1 < lst.Count && lst[k + 1].IsString && deleted.TryGetValue(lst[k].Value, out var round))
+                {
+                    var package = census.Packages.First(p => p.Id == lst[k].Value);
+                    rows.Add($"delete\t{package.Id}\t{package.Path}\t{list}\t\t\tpackage deleted: no reward left after removal (round {round}, {package.Type})");
+                    k++;
+                    continue;
+                }
+                keptRows.Add(lst[k]);
+            }
+            if (lst.Count - keptRows.Count != 2 * deleted.Count) throw new InvalidDataException("stackable.lst rows do not match the deleted packages");
+            engine.Replace(list, keptRows, $"#340: {deleted.Count} empty packages deleted");
+
+            foreach (var reference in References)
+            {
+                var tokens = engine.Read(reference.Path);
+                var (kept, removed) = reference.Remove(tokens, deleted.ContainsKey);
+                if (removed.Count == 0) continue;
+                engine.Replace(reference.Path, kept, $"#340: {removed.Count} references to deleted packages removed");
+                foreach (var (id, text) in removed)
+                    rows.Add($"reference\t{id}\t{reference.Path}\t{reference.Container}\t{id}\t\tremoved {text}");
+            }
+        }
+
         engine.Write(output);
 
         // Re-audit the written archive with a fresh reader: every category must now be empty.
@@ -185,8 +222,15 @@ internal static class Repair
         var patchedCensus = Load(patched);
         var after = Summarize(patchedCensus, Plan(patchedCensus, now), now);
         if (after.MissingRewardOccurrences != 0 || after.UnresolvedPetOccurrences != 0 || after.ExpiredRewardItems != 0 || after.SpeciesToRestore.Length != 0
-            || after.UndeclaredAbilityRows.Length != 0 || after.StrayHeaders.Length != 0)
+            || after.UndeclaredAbilityRows.Length != 0 || after.StrayHeaders.Length != 0 || after.DeletedPackages.Length != 0)
             throw new InvalidDataException("Repaired archive still has findings: " + JsonSerializer.Serialize(after, Json));
+        // Unlisted .stk files (the deleted packages' own bodies among them) are unreachable and not checked.
+        var listed = patchedCensus.Stackable.Values.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var leftovers = ScanReferences(patched.Archive, [.. plan.Deleted.Keys],
+            path => path.StartsWith("stackable/", StringComparison.OrdinalIgnoreCase) && path.EndsWith(".stk", StringComparison.OrdinalIgnoreCase) && !listed.Contains(path));
+        var unexpected = leftovers.Where(h => !IgnoredReference(h.Path)).ToList();
+        if (unexpected.Count != 0)
+            throw new InvalidDataException("Deleted packages are still referenced:\n" + string.Join("\n", unexpected.Select(h => $"{h.Id}\t{h.Path}\t{h.Context}")));
 
         var summary = new
         {
@@ -198,6 +242,7 @@ internal static class Repair
             Before = before,
             After = after,
             ReplacedFiles = engine.Log.Count - 1,
+            RemainingIgnoredReferences = leftovers.Select(h => $"{h.Id}\t{h.Path}\t{h.Context}").ToArray(),
             engine.AppendedNarrow,
             engine.AppendedWideChars,
             Log = engine.Log,
@@ -306,7 +351,8 @@ internal static class Repair
         Dictionary<int, int> UnresolvedPets,
         List<int> RestoredSpecies,
         List<(int Id, ItemFacts Facts)> Expired,
-        List<(int Id, ItemFacts Facts)> FutureExpiring);
+        List<(int Id, ItemFacts Facts)> FutureExpiring,
+        Dictionary<int, int> Deleted);
 
     private static RepairPlan Plan(Census census, DateTime now)
     {
@@ -331,14 +377,28 @@ internal static class Repair
             .Order().ToList();
         var unresolved = petSpecies.Where(kv => !restored.Contains(kv.Value)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
+        // Packages left without any reward are deleted from the PVF (user decision on #340). A package whose only
+        // rewards were deleted packages is then empty too, so deletion repeats until nothing more empties; the value
+        // is the round that emptied it (1 = emptied by the category 10/11 removals themselves).
+        var deleted = new Dictionary<int, int>();
         string? Reason(int id) =>
             missing.Contains(id) ? "missing from equipment.lst and stackable.lst"
             : unresolved.TryGetValue(id, out var sp) ? $"pet species {sp} not in creature.lst and no source to restore it"
+            : deleted.TryGetValue(id, out var round) ? $"package {id} deleted (empty after removal, round {round})"
             : null;
         string? AbilityReason(int id, int ability) =>
             Facts(census, id) is { Abilities: { } declared } && !declared.Contains(ability)
                 ? $"avatar ability {ability} is not one the avatar declares" : null;
-        return new(Reason, AbilityReason, missing, unresolved, restored, expired, future);
+        for (var round = 1; ; round++)
+        {
+            var emptied = census.Packages
+                .Where(p => !deleted.ContainsKey(p.Id))
+                .Where(p => PackageScript.Repair(p.Tokens, Reason, AbilityReason) is { RewardsBefore: > 0, RewardsAfter: 0 })
+                .Select(p => p.Id).ToList();
+            if (emptied.Count == 0) break;
+            foreach (var id in emptied) deleted[id] = round;
+        }
+        return new(Reason, AbilityReason, missing, unresolved, restored, expired, future, deleted);
     }
 
     private sealed record Report(
@@ -355,6 +415,7 @@ internal static class Repair
         string[] FutureExpiringRewards,
         string[] PetsWithMissingSpecies,
         string[] PackagesEmptiedByRemoval,
+        string[] DeletedPackages,
         string[] SelectionBlocksEmptied,
         string[] SelectionBlocksBelowSelectionNum,
         string[] UndeclaredAbilityRows,
@@ -375,7 +436,7 @@ internal static class Repair
             affected++;
             occurrences += removed.Count(c => plan.MissingIds.Contains(c.ItemId));
             abilityRows.AddRange(removed.Where(c => c.Reason.StartsWith("avatar ability", StringComparison.Ordinal))
-                .Select(c => $"{p.Id}	{p.Path}	{c.Container}	{c.ItemId}	{c.Reason}"));
+                .Select(c => $"{p.Id}\t{p.Path}\t{c.Container}\t{c.ItemId}\t{c.Reason}"));
             petOccurrences += removed.Count(c => plan.UnresolvedPets.ContainsKey(c.ItemId));
             if (script.RewardsAfter == 0 && script.RewardsBefore > 0) emptied.Add($"{p.Id}\t{p.Type}\t{p.Path}\t{script.RewardsBefore} rewards");
             var selectionNum = SelectionNum(p.Tokens);
@@ -397,10 +458,11 @@ internal static class Repair
             [.. plan.FutureExpiring.Select(x => $"{x.Id}\t{x.Facts.Path}")],
             [.. PetsWithMissingSpecies(census)],
             [.. emptied],
+            [.. census.Packages.Where(p => plan.Deleted.ContainsKey(p.Id)).Select(p => $"{p.Id}\t{p.Type}\t{p.Path}\tround {plan.Deleted[p.Id]}")],
             [.. emptiedBlocks],
             [.. shortBlocks],
             [.. abilityRows],
-            [.. census.Packages.Where(p => StrayHeader(p.Tokens) >= 0).Select(p => $"{p.Id}	{p.Path}")],
+            [.. census.Packages.Where(p => StrayHeader(p.Tokens) >= 0).Select(p => $"{p.Id}\t{p.Path}")],
             [.. anomalies]);
     }
 
@@ -411,6 +473,128 @@ internal static class Repair
         foreach (var id in referenced)
             if (Facts(census, id) is { PetSpecies: int sp } facts && !census.Species.Contains(sp))
                 yield return $"{id}\t{facts.Path}\tspecies {sp}";
+    }
+
+    // ---------------- references to deleted packages outside packages ----------------
+
+    private sealed record Reference(string Path, string Container, Func<List<Sym>, Func<int, bool>, (List<Sym> Kept, List<(int Id, string Text)> Removed)> Remove);
+
+    /// <summary>
+    /// Every non-package file that names a deleted package as an item, found by scanning the whole archive for the
+    /// deleted ids (2026-11-14, source revised-20261113). Only files without a <c>(r)</c>/<c>(f)</c> prefix are edited:
+    /// see <see cref="IgnoredReference"/>.
+    /// </summary>
+    private static readonly Reference[] References =
+    [
+        // id, 2, level, name, description, icon: one six-token record per item.
+        new("etc/iteminfo.dat", "item record", (t, deleted) => Records(t, 6, r =>
+            t[r].Kind == PvfTokenKind.Int32 && t[r + 1].Kind == PvfTokenKind.Int32 && t[r + 2].Kind == PvfTokenKind.Int32
+            && t[r + 3].IsString && t[r + 4].IsString && t[r + 5].Kind == PvfTokenKind.Int32, deleted)),
+        // [grow type] n, then rows: level, item, count, two message keys.
+        new("event/levelupreward.evt", "[grow type]", LevelUpRows),
+        // [stackable item] condition item count …
+        new("event/eventreward/reward_alljob.evt", "[stackable item]", (t, deleted) => Triples(t, "[stackable item]", deleted)),
+        // [reward item] letters item count
+        new("event/seriaroomdecoanimation.evt", "[reward item]", (t, deleted) => Triples(t, "[reward item]", deleted)),
+    ];
+
+    private static (List<Sym>, List<(int, string)>) Records(List<Sym> t, int stride, Func<int, bool> shape, Func<int, bool> deleted)
+    {
+        if (t.Count % stride != 0) throw new InvalidDataException($"record file is not {stride}-token records");
+        var kept = new List<Sym>(); var removed = new List<(int, string)>();
+        for (var r = 0; r < t.Count; r += stride)
+        {
+            if (!shape(r)) throw new InvalidDataException($"unexpected record at token {r}");
+            if (deleted(t[r].Value)) removed.Add((t[r].Value, string.Join(" ", t.Skip(r).Take(stride))));
+            else kept.AddRange(t.Skip(r).Take(stride));
+        }
+        return (kept, removed);
+    }
+
+    private static (List<Sym>, List<(int, string)>) Triples(List<Sym> t, string tag, Func<int, bool> deleted)
+    {
+        var kept = new List<Sym>(); var removed = new List<(int, string)>();
+        for (var k = 0; k < t.Count; k++)
+        {
+            kept.Add(t[k]);
+            if (!PackageScript.IsTag(t[k]) || t[k].Text != tag) continue;
+            var end = k + 1;
+            while (end < t.Count && t[end].Kind == PvfTokenKind.Int32) end++;
+            if (end >= t.Count || !PackageScript.IsTag(t[end]) || t[end].Text != "[/" + tag[1..] || (end - k - 1) % 3 != 0)
+                throw new InvalidDataException($"{tag} at token {k} is not a closed list of integer triples");
+            for (var r = k + 1; r < end; r += 3)
+                if (deleted(t[r + 1].Value)) removed.Add((t[r + 1].Value, string.Join(" ", t.Skip(r).Take(3))));
+                else kept.AddRange(t.Skip(r).Take(3));
+            k = end - 1;
+        }
+        return (kept, removed);
+    }
+
+    private static (List<Sym>, List<(int, string)>) LevelUpRows(List<Sym> t, Func<int, bool> deleted)
+    {
+        var kept = new List<Sym>(); var removed = new List<(int, string)>();
+        for (var k = 0; k < t.Count; k++)
+        {
+            if (k + 4 < t.Count && t[k].Kind == PvfTokenKind.Int32 && t[k + 1].Kind == PvfTokenKind.Int32 && deleted(t[k + 1].Value)
+                && t[k + 2].Kind == PvfTokenKind.Int32 && t[k + 3].IsString && t[k + 4].IsString && t[k + 3].Text.StartsWith("game_server_msg_", StringComparison.Ordinal))
+            {
+                removed.Add((t[k + 1].Value, string.Join(" ", t.Skip(k).Take(5))));
+                k += 4;
+                continue;
+            }
+            kept.Add(t[k]);
+        }
+        return (kept, removed);
+    }
+
+    /// <summary>
+    /// Hits the scan finds that are not item references, or are left on purpose:
+    /// <c>(r)</c>/<c>(f)</c>-prefixed files are other-region leftovers (Korean names, a <c>(r)cerashop.etc</c> next to the
+    /// <c>etc/cerashop.etc</c> the server reads) and are not edited; the .xui panels only show an item icon for an
+    /// event the server does not run; the rest are other id spaces where 8556/8557 appear as indexes or skill values.
+    /// </summary>
+    private static bool IgnoredReference(string path) =>
+        path[(path.LastIndexOf('/') + 1)..] is var name && (name.StartsWith("(r)", StringComparison.Ordinal) || name.StartsWith("(f)", StringComparison.Ordinal))
+        || path.EndsWith(".xui", StringComparison.Ordinal)
+        || IgnoredPaths.Contains(path);
+
+    private static readonly HashSet<string> IgnoredPaths =
+    [
+        "etc/itemdictionary/baseitemdictionarytable.etc",
+        "etc/techimageindexfile1.etc",
+        "n_quest/quest.lst",
+        "passiveobject/passiveobject.lst",
+        "passiveobject/actionobject/monster/action/isadorasun.act",
+        "skill/atgunner/g3.skl",
+        "skill/gunner/fastdraw.skl",
+        "skill/swordman/flowmindtwo.skl",
+        "skill/thief/verticalspiralex.skl",
+    ];
+
+    private static List<(int Id, string Path, string Context)> ScanReferences(PvfArchive archive, HashSet<int> ids, Func<string, bool>? skip = null)
+    {
+        var hits = new List<(int, string, string)>();
+        var number = new System.Text.RegularExpressions.Regex(@"\d+");
+        for (var i = 0; i < archive.FileCount; i++)
+        {
+            var e = archive.GetEntry(i);
+            var path = archive.ResolveString(e.PathOffset) + "/" + archive.ResolveString(e.NameOffset);
+            if (skip?.Invoke(path) == true) continue;
+            if (e.IsScript)
+            {
+                var tokens = Engine.Read(archive, path);
+                for (var k = 0; k < tokens.Count; k++)
+                    if (tokens[k].Kind == PvfTokenKind.Int32 && ids.Contains(tokens[k].Value))
+                        hits.Add((tokens[k].Value, path, string.Join(" ", tokens.Skip(Math.Max(0, k - 3)).Take(7))));
+            }
+            else if (e.IsUnicodeText)
+            {
+                var text = archive.ReadUnicodeText(i);
+                foreach (System.Text.RegularExpressions.Match m in number.Matches(text))
+                    if (int.TryParse(m.Value, out var v) && ids.Contains(v)) hits.Add((v, path, "text offset " + m.Index));
+            }
+        }
+        return hits;
     }
 
     private const int StrayHeaderLength = 7;

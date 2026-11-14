@@ -2,8 +2,8 @@
 
 - 基线：`main` `ef20398a3`（0.3.2）；分支 `task/pvf-package-content-340`。
 - 输入 PVF：`PvfBuilds/revised-20261113/Script.pvf`，SHA-256 `E1F3A25C93502708D499283CF7A6B8840EDB39C354CEB09CCB9E1133F3C123F2`（线上 0.3.2）。
-- 输出 PVF：`PvfBuilds/revised-20261114/Script.pvf`，SHA-256 **`FBEB8D6BDCE91FB617793ADE985F134C2FD3011876987BF3FFC04A0E2A8A6646`**，74,092,822 字节。
-- 范围：#328 普查的第 9–12 类（零散格式、缺失物品、缺宠物种类、过期奖励），以及 #328 修完解析后二次核对的 6 个礼包（见“#328 二次核对”）。第 1–8 类是服务端缺陷，归 #328；第 13 类归 #341。
+- 输出 PVF：`PvfBuilds/revised-20261114/Script.pvf`，SHA-256 **`A97132DDA0970B3E0CE7C3DE8052ACF0BE2664F52E26C819B1D8CB6D427CFCD2`**，74,414,936 字节。
+- 范围：#328 普查的第 9–12 类（零散格式、缺失物品、缺宠物种类、过期奖励），#328 修完解析后二次核对的 6 个礼包（见“#328 二次核对”），以及按你的裁定删掉删完后没有奖励的礼包（见“删掉没有奖励的礼包”）。第 1–8 类是服务端缺陷，归 #328；第 13 类归 #341。
 - 新 PVF **尚未部署**，也没有替换任何客户端目录里的 PVF。服务端和客户端必须换同一份（理由见“缺失物品”一节）。
 
 ## 工具
@@ -18,7 +18,7 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 - `audit`：只读，统计会改什么。修好的 PVF 各项都是 0。
 - `repair`：写出 `<new.pvf>`、`<new.pvf>.json`（前后两次审计、每个被替换文件的 token 数）和 `<new.pvf>.changes.tsv`（逐条改动）。拒绝原地改写和覆盖已有文件。
 - 写法沿用 0.3.2 修订版的追加块方式（`Engine.cs` 取自 `PvfBuilds/revised-20261113/tool`）：每个被改文件追加一个新 chunk，其余 721,185 个条目、原有 body 字节、字符串池偏移都不动，写完逐条回读校验。
-- 写完后用新读取器重新审计输出文件，任一类不为 0 就报错退出。
+- 写完后用新读取器重新审计输出文件，任一类不为 0 就报错退出；再全归档复扫被删礼包的 ID，除“删掉没有奖励的礼包”一节列明不改的文件外还有引用也报错退出。
 - 扫描范围与 #328 普查相同：`stackable.lst` 中 `[stackable type]` 为 `[booster]`、`[cera package]`、`[cera booster]`、`[booster random]`、`[booster selection]`、`[usable cera package]` 的 13,269 个礼包。`[stackable type]` 重复时取最后一个，与客户端一致（见第 9 类）。
 - 奖励容器按 A21 客户端 `ImportStackableScript`（`02999F40`）的读法解析，依据工作区 `Document/礼包开启全量修复-20261114/refs/a21-client.md` §1–§4：
   - `[package data]`、`[package data selection]`、`[package data include usable period]`：平铺 (id, 数量[, 期限])。
@@ -30,9 +30,9 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 
 | 文件 | 内容 |
 |---|---|
-| `changes.tsv` | 全部 5,087 条改动：删掉的每个奖励（礼包、容器、物品 ID、数量、原因）、因此移除的空容器、补登记的种类、去掉的到期时间、删掉的残留选择头 |
-| `empty-packages.tsv` | 删完后整个礼包没有奖励的 95 个礼包，**待你裁定** |
-| `repair-report.json` | 工具输出：修前、修后两次审计结果，以及 299 个被替换文件的 token 数 |
+| `changes.tsv` | 全部 2,896 条改动：保留下来的礼包里删掉的每个奖励（礼包、容器、物品 ID、数量、原因）、因此移除的空容器、补登记的种类、去掉的到期时间、删掉的残留选择头、删除的礼包（`delete`）、礼包以外的引用（`reference`） |
+| `deleted-packages.tsv` | 删除的 103 个礼包：类型、名称、原有奖励数、第几轮删空（见“删掉没有奖励的礼包”）、文件路径 |
+| `repair-report.json` | 工具输出：修前、修后两次审计结果，279 个被替换文件的 token 数，以及复扫时按规则不改的引用 |
 
 ## 第 9 类：零散格式（10 个礼包）——不改 PVF，回报 #328
 
@@ -57,18 +57,52 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 
 规则：奖励 ID 在 `equipment.lst`、`stackable.lst` 里都没有，就从礼包里删掉这一条。
 
-- 共删 4,193 条，涉及 3,056 个不同 ID、287 个礼包。分容器：自选块 3,210、`[package data]` 785、`[booster info]` 198（4,193 = 3,210 + 785 + 198）。`[package data selection]` 和自选块里的 `[default select]`、`[recommend]` 都没有命中缺失 ID。
+- 源 PVF 里 3,056 个缺失 ID 在 287 个礼包中出现 4,193 次。其中删空的礼包整包删除（见下节），不再逐条改写；保留下来的礼包共删 2,247 条：自选块 1,616、`[package data]` 587、`[booster info]` 44。`[package data selection]` 和自选块里的 `[default select]`、`[recommend]` 都没有命中缺失 ID。
 - 和普查口径（278 个礼包、2,866 个 ID）的差别：普查的 278 个全部包含在内。多出的 9 个是自选礼包，奖励写在 `[stackable]` 类别里（10000597、10000612、10000649、10012346、10012424、10012685、10014622、10014764、490001973）；服务端现在读不了这个类别（#328 第 7 类），普查到不了奖励检查，客户端则把它当正常类别读（a21-client.md §4.1）。ID 数多出来也是同一原因。
 - 容器只在**被本次删空时**移除，原本就空的保持原样（例如上面第 9 类那些空类别）：
-  - `[package data]` 删空就去掉标签和闭合标签（24 处）；
-  - `[booster info]` 的类别删空就整个类别去掉（38 处），整个 `[booster info]` 删空就去掉（21 处）。抽取权重由客户端读入时累加，删条目后其余条目按比例重新分配；
-  - 自选块里的类别删空就去掉类别标签（779 处），但 **`[booster select category] c1 c2 … [/booster select category]` 本身一律保留**。
-- 为什么保留自选块：`c1 c2` 是客户端下拉框的坐标键（a21-client.md §3.2）。保留后类别坐标、`[booster category num]`、`[booster category name]` 都不变，删空的类别在客户端显示为空列表、OK 按钮不可用，和 PVF 里原有的“无”类别一样。共 752 个类别被删空，分布在 65 个自选礼包里；没有出现“删了一部分、剩下的不够 `[booster selection num]`”的类别。
+  - `[package data]` 删空就去掉标签和闭合标签；
+  - `[booster info]` 的类别删空就整个类别去掉（24 处），整个 `[booster info]` 删空就去掉。抽取权重由客户端读入时累加，删条目后其余条目按比例重新分配；
+  - 自选块里的类别删空就去掉类别标签（275 处），但 **`[booster select category] c1 c2 … [/booster select category]` 本身一律保留**。
+  - 保留下来的礼包里没有整段 `[package data]` 或整个 `[booster info]` 被删空的情况；这两种只出现在整包删除的礼包里。
+- 为什么保留自选块：`c1 c2` 是客户端下拉框的坐标键（a21-client.md §3.2）。保留后类别坐标、`[booster category num]`、`[booster category name]` 都不变，删空的块在客户端显示为空列表、OK 按钮不可用，和 PVF 里原有的“无”类别一样。保留下来的礼包里共 248 个块被删空，分布在 15 个自选礼包里；没有出现“删了一部分、剩下的不够 `[booster selection num]`”的块。
 - 虽然坐标不变，每个类别里的格子数和内容变了。0x00A0 只带物品 ID，服务端按 (c1,c2) 找条目（#328 第 6 类）。服务端和客户端用的 PVF 不一致时，客户端能选的物品服务端可能不认，所以必须同时换。
 
-### 删完整个礼包变空（95 个）——待你裁定
+## 删掉没有奖励的礼包（103 个）——按你的裁定
 
-清单在 `data/empty-packages.tsv`：自选 50、普通 `[booster]` 18、装扮礼包 24、`[cera booster]` 3（50 + 18 + 24 + 3 = 95）。这些礼包本身没删，只是里面没有奖励了。客户端里能看到、能使用，但开不出东西。可选做法：删掉礼包物品（同时要处理商城、掉落、任务等引用），或另配内容。
+裁定：删完后没有奖励的礼包，从 PVF 删除。清单在 `data/deleted-packages.tsv`。
+
+- **第 1 轮 95 个**：第 10、11 类删空的礼包。自选 50、普通 `[booster]` 18、装扮礼包 24、`[cera booster]` 3（50 + 18 + 24 + 3 = 95）。
+- **级联 8 个**：这些礼包的奖励全是第 1 轮删掉的礼包，删后也没有奖励，按同一规则删除。工具重复判定直到不再有礼包变空：
+
+  | 礼包 | 类型 | 原奖励 | 轮次 |
+  |---|---|---|---|
+  | 10000116 | `[cera booster]` | 10000117、10000119–10000121 | 2 |
+  | 10000357、10012681 | `[booster selection]` | 9 个块，每块是 10000328–10000347 中的两个 | 2 |
+  | 10000614 | `[booster selection]` | 6 个块，每块是 10000606–10000611 中的一个 | 2 |
+  | 10000950 | `[cera package]` | 10000891 | 2 |
+  | 10014763 | `[booster]` | 10014764 | 2 |
+  | 10012682 | `[cera booster]` | 10012681 | 3 |
+  | 10000537 7期稀有装扮套装礼盒 | `[cera booster]` | 10000357 | 3 |
+
+删除做法：
+
+- 从 `stackable/stackable.lst` 删掉这 103 行。客户端和服务端都按列表找物品，列表里没有就不存在。
+- `.stk` 文件本身留在归档里，成为未登记文件。归档里原本就有这类文件（例如 10000422、10001349、10012215、10012231）。删除文件条目要重写文件表和哈希表，超出已验证的追加块写法，所以不删。
+- 其他礼包里引用被删礼包的条目，按第 10 类的规则删除，共 207 条（`[package data]` 190、`[booster info]` 17），原因写 `package … deleted`。
+- 礼包以外的引用：全归档扫描脚本里的整数 token 和 UTF-16 文本里的数字。改了 4 个文件、8 处：
+
+  | 文件 | 删掉的内容 |
+  |---|---|
+  | `etc/iteminfo.dat` | 10000597、10000649、10001567、10014763、10014764 的物品记录（每条 6 个 token：ID、2、等级、名称、说明、图标） |
+  | `event/levelupreward.evt` | `[creator mage]` 2 级奖励 `2 10000155 1` 这一行 |
+  | `event/eventreward/reward_alljob.evt` | 60 级邮寄奖励 `60 10014844 1` |
+  | `event/seriaroomdecoanimation.evt` | `[reward item] 9 10000074 1`，删后 `[reward item]` 是空块 |
+
+- 扫到但不改的引用（写在 `repair-report.json` 的 `RemainingIgnoredReferences`）：
+  - 文件名带 `(r)`、`(f)` 前缀的：`etc/(f)iteminfo.dat`、`etc/(r)iteminfo.dat`、`etc/(f)cerashop.etc`、`etc/(r)cerashop.etc`、`etc/(r)cerashop_first.etc`、`etc/itemdictionary/(r)stackabledictionary.etc` 等。它们是其他地区版本的遗留：名称是韩文，`(r)cerashop.etc` 旁边有服务端实际读取的 `etc/cerashop.etc`（后者不含被删礼包）。本仓服务端只读无前缀的文件，客户端是否读取这些文件未核对。
+  - 4 处 `.xui`：`ui/event/kingofpick/`、`ui/event/chn_event_2015/luckypickevent/` 的活动面板用 `ItemIndex` 显示 10014989、10014991 的图标。服务端没有实现这个活动，改界面文件会动布局，不改。
+  - 8556、8557 在技能、被动对象、任务列表、图像索引、`baseitemdictionarytable.etc` 里出现，是其他编号空间的数，不是物品引用。
+- 客户端影响未实机核对：`seriaroomdecoanimation.evt` 的空 `[reward item]` 块客户端怎么读、`levelupreward.evt` 删行后客户端的显示，都没有看过。这两个活动本仓服务端都不读。
 
 ## 第 11 类：缺宠物种类（25 只）——补回 `creature.lst`
 
@@ -124,10 +158,10 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 
 ## 核对
 
-- 新 PVF 回读：721,185 个条目，299 个被替换（`creature.lst` 1 + 礼包 291 + 过期物品 6 + 490001919 1；490001919 只删残留头），其余条目和原有字符串偏移不变（工具内建校验）。
-- `audit` 新 PVF：缺失奖励 0、缺种类宠物 0、过期奖励 0、待补种类 0、随机池未声明属性 0、残留选择头 0；解析异常剩 10003593 一处（浮点权重，PVF 未改）。第 9 类 PVF 不改，靠 #328 服务端处理。
+- 新 PVF 回读：721,185 个条目，279 个被替换（`creature.lst` 1 + `stackable.lst` 1 + 礼包 266 + 过期物品 6 + 礼包以外的引用 4 + 490001919 1；490001919 只删残留头），其余条目和原有字符串偏移不变（工具内建校验）。
+- `audit` 新 PVF：礼包 13,166 个（源 13,269 个减去删除的 103 个）；缺失奖励 0、缺种类宠物 0、过期奖励 0、待补种类 0、随机池未声明属性 0、残留选择头 0、待删礼包 0；解析异常剩 10003593 一处（浮点权重，PVF 未改）。第 9 类 PVF 不改，靠 #328 服务端处理。
 - 可重复：用最终版工具对同一输入再跑一次，输出 SHA-256 与 `changes.tsv` 逐字节相同。
-- 抽查 `PvfProbe dump` 新旧对比：10014623（`[booster random]`）、10090038（自选，类别删空保留坐标）、10000328（装扮礼包删空）、721（`[package data]` 删 63069）、490001919（删残留头）、`creature/creature.lst`、`stackable/chn_490003449.stk`。
+- 抽查新旧对比（`PvfProbe dump` 或逐 token 导出）：10014623（`[booster random]`）、10157346（自选，35 个块删空保留坐标）、721（`[package data]` 删 63069）、490001919（删残留头）、`creature/creature.lst`、`stackable/chn_490003449.stk`；删除后 `stackable.lst` 少 103 行（86,288 → 86,082 个 token），10000357、10000537 等被删礼包的 ID 在新 PVF 列表中查不到。
 - 服务端带真实 PVF 的测试，新旧 PVF 各跑一遍对比，结果见下节。
 
 ## 服务端测试
@@ -141,10 +175,15 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 | Dfo.Server.Infrastructure.Tests | 1,034 通过、17 失败、2 跳过 | 相同 |
 | Dfo.Server.Host.Tests | 322 通过、1 失败、1 跳过 | 相同 |
 
-表中“新 PVF”一列是第一版输出（`EBF8DDD3…`）的结果；加入二次核对的改动后，Application 与 Infrastructure 两项用 `FBEB8D6B…` 又跑了一遍，结果与表中相同。失败的测试名单新旧完全一致，是这些测试和 0.3.2 修订版 PVF 之间已有的不匹配（例如掉落池、黑暗精灵遗迹、日常补充），与本次改动无关，没有处理。
+表中“新 PVF”一列是第一版输出（`EBF8DDD3…`）的结果。删除空礼包之后，Application 与 Infrastructure 两项用 `A97132DD…` 又跑了一遍：
+
+- Infrastructure：1,034 通过、17 失败、2 跳过，失败名单与旧 PVF 相同。
+- Application：6,829 通过、27 失败、8 跳过。比旧 PVF 多 1 个失败：`PackageOpeningTests.Archive_package_referencing_missing_equipment_is_refused_without_consumption`。它拿 10000606 当“引用了缺失装备的礼包”样本，期望开启时报 `UnsupportedContent`；10000606 正是本次删掉的礼包，新 PVF 里没有这个物品，开启在更早的一步报 `ItemUnusable`。这是删除的预期结果。测试是主干原有的，不在本任务范围，没有改；换新 PVF 后它需要换样本，而新 PVF 里已经没有引用缺失物品的礼包。
+
+其余失败名单新旧完全一致，是这些测试和 0.3.2 修订版 PVF 之间已有的不匹配（例如掉落池、黑暗精灵遗迹、日常补充），与本次改动无关，没有处理。
 
 ## 未覆盖
 
 - 没有实机验证：没开过修订后的礼包，没召唤过补回种类的宠物。
 - 第 9 类的空类别、漏斜杠、重复类型要等 #328 的服务端解析改完才能打开。
-- 95 个空礼包等裁定。
+- 删除的礼包没有查过玩家库里是否已有存货；已有的物品在新 PVF 下找不到定义。
