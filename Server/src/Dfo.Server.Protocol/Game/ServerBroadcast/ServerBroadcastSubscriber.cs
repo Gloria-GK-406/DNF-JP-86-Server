@@ -27,7 +27,6 @@ namespace Dfo.Server.Protocol.Game.ServerBroadcast;
 /// </remarks>
 internal sealed class ServerBroadcastSubscriber(
     IServerBroadcastRuleService rules,
-    IExperienceRuleService experience,
     ICharacterDomainService characters,
     IItemCatalogRuleService items,
     IChatScopeDomainService scopes,
@@ -42,14 +41,10 @@ internal sealed class ServerBroadcastSubscriber(
       IDomainEventSubscriber<DespairTowerFloorAnnounced>,
       IDomainEventSubscriber<AncientDungeonItemAnnounced>
 {
-    /// <summary>The second awakening, in the grow type's awakening nibble.</summary>
-    private const int SecondAwakening = 2;
-
     public ValueTask HandleAsync(DomainEventEnvelope<CharacterLevelChanged> message, CancellationToken ct)
     {
         var change = message.Payload;
-        var top = experience.CharacterScale().TopLevel;
-        return change.Before < top && change.After == top
+        return rules.TopLevelReached(change.Before, change.After) is { } top
             ? TextAsync(ServerBroadcastKind.MaxLevel, change.CharacterId, name => ServerBroadcastTexts.MaxLevel(name, top), ct)
             : ValueTask.CompletedTask;
     }
@@ -57,7 +52,7 @@ internal sealed class ServerBroadcastSubscriber(
     public ValueTask HandleAsync(DomainEventEnvelope<CharacterGrowTypeChanged> message, CancellationToken ct)
     {
         var change = message.Payload;
-        return change.GrowType >> 4 == SecondAwakening
+        return rules.IsSecondAwakening(change.GrowType)
             ? NativeAsync(ServerBroadcastKind.SecondAwakening, change.CharacterId, name => new SecondAwakeningBroadcast(name), ct)
             : ValueTask.CompletedTask;
     }

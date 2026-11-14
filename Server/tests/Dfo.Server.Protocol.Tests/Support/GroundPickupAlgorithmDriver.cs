@@ -41,6 +41,8 @@ internal sealed class NoProjectionOutbox:Dfo.Server.Protocol.Game.IGameCommandOu
 internal sealed class NothingNotable : Dfo.Server.Abstractions.ServerBroadcast.IServerBroadcastRuleService
 {
     public bool Announces(Dfo.Server.Abstractions.ServerBroadcast.ServerBroadcastKind kind) => false;
+    public int? TopLevelReached(int before, int after) => null;
+    public bool IsSecondAwakening(int growType) => false;
     public int ForgingMinimumStage => int.MaxValue;
     public ValueTask<bool> IsNotableLotteryPrizeAsync(int itemId, CancellationToken ct) => ValueTask.FromResult(false);
     public ValueTask<bool> IsNotableAncientFindAsync(int dungeonId, int itemId, CancellationToken ct) => ValueTask.FromResult(false);

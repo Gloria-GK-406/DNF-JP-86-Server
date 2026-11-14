@@ -27,6 +27,8 @@ public interface IDespairTowerRuleService
     bool IsTower(int dungeonId);
     /// <summary>Whether entering this floor presents the character's own APC.</summary>
     bool PresentsFloorApc(int floor);
+    /// <summary>Whether clearing this floor is told to the whole server.</summary>
+    bool AnnouncesClearedFloor(int floor);
     DespairTowerCatalog Catalog { get; }
     DespairTowerFloor? NextFloor(DespairTowerProgress progress);
     IReadOnlyList<DespairTowerReward> Rewards(int floor, int characterLevel, int basisLevel, ulong seed);

@@ -95,8 +95,7 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
             checked((before?.UsedCount ?? 0) + 1)), ct).ConfigureAwait(false);
         await quests.ReportAsync(account, character,
             [new QuestDungeonCleared(run.Layout.DungeonId, run.Difficulty, run.RunId, run.ClearedAt ?? clock.GetUtcNow()), new QuestHoldingsChanged()], ct).ConfigureAwait(false);
-        // The 70 server announced the floors guarded by an APC, every tenth; here the top floor counts too.
-        if (plan.Floor % 10 == 0)
+        if (rules.AnnouncesClearedFloor(plan.Floor))
             await events.EnqueueAsync(new DespairTowerFloorAnnounced(character, plan.Floor), ct).ConfigureAwait(false);
         if (transaction.IsRollbackOnly) throw new InvalidOperationException("Tower clear was rolled back.");
         var elapsed = (run.ClearedAt ?? clock.GetUtcNow()) - run.StartedAt;

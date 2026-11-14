@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.ServerBroadcast;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.DomainEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -11,13 +12,18 @@ namespace Dfo.Server.Application.ServerBroadcast;
 /// <summary>Reads <c>ServerBroadcast:*</c> once; <c>Enabled</c> turns every kind off together.</summary>
 internal sealed class ServerBroadcastRuleService : IServerBroadcastRuleService
 {
+    /// <summary>The second awakening, in the grow type's awakening nibble.</summary>
+    private const int SecondAwakening = 2;
+
     private readonly FrozenSet<ServerBroadcastKind> enabled;
+    private readonly IExperienceRuleService experience;
     private readonly IEquipmentDefinitionSource equipment;
     private readonly IExtraDropContentSource extraDrops;
 
-    public ServerBroadcastRuleService(IServerConfigService settings, IEquipmentDefinitionSource equipment,
-        IExtraDropContentSource extraDrops)
+    public ServerBroadcastRuleService(IServerConfigService settings, IExperienceRuleService experience,
+        IEquipmentDefinitionSource equipment, IExtraDropContentSource extraDrops)
     {
+        this.experience = experience;
         this.equipment = equipment;
         this.extraDrops = extraDrops;
         enabled = settings.GetConfig<bool>("ServerBroadcast:Enabled")
@@ -29,6 +35,11 @@ internal sealed class ServerBroadcastRuleService : IServerBroadcastRuleService
     }
 
     public bool Announces(ServerBroadcastKind kind) => enabled.Contains(kind);
+
+    public int? TopLevelReached(int before, int after) =>
+        experience.CharacterScale().TopLevel is var top && before < top && after == top ? top : null;
+
+    public bool IsSecondAwakening(int growType) => growType >> 4 == SecondAwakening;
 
     public int ForgingMinimumStage { get; }
 

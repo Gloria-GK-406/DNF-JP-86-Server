@@ -111,13 +111,12 @@ public sealed class ServerBroadcastTests
 
     [Theory]
     [InlineData(85, 86, true)]
-    [InlineData(80, 86, true)]
     [InlineData(84, 85, false)]
-    [InlineData(86, 86, false)]
-    public async Task Only_reaching_the_top_level_is_announced(int before, int after, bool told)
+    public async Task A_level_rise_is_announced_when_the_rules_say_it_reached_the_top(int before, int after, bool told)
     {
         var events = new ProjectedNotifications();
-        await Subscriber(events).HandleAsync(Envelope(new CharacterLevelChanged(Actor, before, after)), default);
+        await Subscriber(events, topLevel: (b, a) => b < 86 && a == 86 ? 86 : null)
+            .HandleAsync(Envelope(new CharacterLevelChanged(Actor, before, after)), default);
 
         Assert.Equal(told, events.Projected.Count == 1);
         if (told)
@@ -128,11 +127,11 @@ public sealed class ServerBroadcastTests
     [Theory]
     [InlineData(0x21, true)]
     [InlineData(0x11, false)]
-    [InlineData(0x01, false)]
-    public async Task Only_the_second_awakening_is_announced_and_in_the_native_frame(int growType, bool told)
+    public async Task The_second_awakening_the_rules_name_is_announced_in_the_native_frame(int growType, bool told)
     {
         var events = new ProjectedNotifications();
-        await Subscriber(events).HandleAsync(Envelope(new CharacterGrowTypeChanged(Actor, growType)), default);
+        await Subscriber(events, secondAwakening: grow => grow == 0x21)
+            .HandleAsync(Envelope(new CharacterGrowTypeChanged(Actor, growType)), default);
 
         Assert.Equal(told, events.Projected.Count == 1);
         if (told)
@@ -168,13 +167,15 @@ public sealed class ServerBroadcastTests
 
     private static ServerBroadcastSubscriber Subscriber(ProjectedNotifications events,
         Func<ServerBroadcastKind, bool>? enabled = null, Func<ChatScope, IReadOnlyList<CharacterId>>? members = null,
-        Func<int, string?>? itemName = null)
+        Func<int, string?>? itemName = null, Func<int, int, int?>? topLevel = null, Func<int, bool>? secondAwakening = null)
     {
-        var rules = TestRequired.Absent<IServerBroadcastRuleService>((method, args) =>
-            method.Name == nameof(IServerBroadcastRuleService.Announces) ? (enabled ?? (_ => true))((ServerBroadcastKind)args![0]!) : null);
-        var scale = new CharacterExperienceScale([.. Enumerable.Range(1, 85).Select(level => (uint)level)]);
-        var experience = TestRequired.Absent<IExperienceRuleService>((method, _) =>
-            method.Name == nameof(IExperienceRuleService.CharacterScale) ? scale : null);
+        var rules = TestRequired.Absent<IServerBroadcastRuleService>((method, args) => method.Name switch
+        {
+            nameof(IServerBroadcastRuleService.Announces) => (enabled ?? (_ => true))((ServerBroadcastKind)args![0]!),
+            nameof(IServerBroadcastRuleService.TopLevelReached) => (topLevel ?? ((_, _) => null))((int)args![0]!, (int)args[1]!),
+            nameof(IServerBroadcastRuleService.IsSecondAwakening) => (secondAwakening ?? (_ => false))((int)args![0]!),
+            _ => null,
+        });
         var character = TestRequired.Absent<ICharacter>((method, _) =>
             method.Name == nameof(ICharacter.IdentityAsync)
                 ? ValueTask.FromResult<CharacterIdentityState?>(new(Actor, 0, ProbeName, 0, 0)) : null);
@@ -185,7 +186,7 @@ public sealed class ServerBroadcastTests
                 ? ValueTask.FromResult((itemName ?? (_ => "圣愈光剑"))((int)args![0]!)) : null);
         var scopes = TestRequired.Absent<IChatScopeDomainService>((method, args) =>
             method.Name == nameof(IChatScopeDomainService.MembersOf) ? (members ?? (_ => [Actor]))((ChatScope)args![0]!) : null);
-        return new(rules, experience, characters, items, scopes, events);
+        return new(rules, characters, items, scopes, events);
     }
 
     private static DomainEventEnvelope<TEvent> Envelope<TEvent>(TEvent payload) where TEvent : class, IDomainEvent =>

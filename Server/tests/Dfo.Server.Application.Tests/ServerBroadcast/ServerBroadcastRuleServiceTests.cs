@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.ServerBroadcast;
 using Dfo.Server.Infrastructure.Configuration;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.Configuration;
 
 namespace Dfo.Server.Application.Tests.ServerBroadcast;
@@ -34,6 +35,22 @@ public sealed class ServerBroadcastRuleServiceTests
         Assert.All(Enum.GetValues<ServerBroadcastKind>(), kind => Assert.False(all.Announces(kind)));
     }
 
+    [Theory]
+    [InlineData(85, 86, 86)]
+    [InlineData(80, 86, 86)]
+    [InlineData(84, 85, null)]
+    [InlineData(86, 86, null)]
+    public void Only_a_rise_onto_the_top_level_reaches_it(int before, int after, int? reached) =>
+        Assert.Equal(reached, Rules().TopLevelReached(before, after));
+
+    [Theory]
+    [InlineData(0x21, true)]
+    [InlineData(0x20, true)]
+    [InlineData(0x11, false)]
+    [InlineData(0x01, false)]
+    public void Only_the_second_awakening_nibble_is_the_second_awakening(int growType, bool second) =>
+        Assert.Equal(second, Rules().IsSecondAwakening(growType));
+
     [Fact]
     public void A_threshold_must_be_positive() =>
         Assert.Throws<InvalidOperationException>(() => Rules(new() { ["ServerBroadcast:ForgingMinimumStage"] = "0" }));
@@ -60,7 +77,15 @@ public sealed class ServerBroadcastRuleServiceTests
 
     private static ServerBroadcastRuleService Rules(Dictionary<string, string?>? overrides = null) =>
         new(new ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(overrides ?? []).Build()),
-            new Equipment(), new Dungeons());
+            Experience(), new Equipment(), new Dungeons());
+
+    // The server's 86: thresholds for 85 rises.
+    private static IExperienceRuleService Experience()
+    {
+        var scale = new CharacterExperienceScale([.. Enumerable.Range(1, 85).Select(level => (uint)level)]);
+        return TestRequired.Absent<IExperienceRuleService>((method, _) =>
+            method.Name == nameof(IExperienceRuleService.CharacterScale) ? scale : null);
+    }
 
     private sealed class Equipment : IEquipmentDefinitionSource
     {

@@ -24,6 +24,12 @@ public interface IServerBroadcastRuleService
 {
     bool Announces(ServerBroadcastKind kind);
 
+    /// <summary>The server's top level when this rise reaches it from below; null for any other rise.</summary>
+    int? TopLevelReached(int before, int after);
+
+    /// <summary>Whether a grow type is the second awakening, the stage announced.</summary>
+    bool IsSecondAwakening(int growType);
+
     /// <summary>The lowest forging stage announced; the 70 server announced stages above 5.</summary>
     int ForgingMinimumStage { get; }
 
