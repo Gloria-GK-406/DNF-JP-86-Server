@@ -9,12 +9,12 @@ internal sealed class VendingMachineRuleService(IVendingMachineDefinitionSource 
 
     public long TicketCount(VendingMachineDefinition machine) => machine.Rewards[^1].CumulativeWeight;
 
-    public OpeningReward RewardAt(VendingMachineDefinition machine, long ticket) => Select(machine, ticket);
+    public VendingReward RewardAt(VendingMachineDefinition machine, long ticket) => Select(machine, ticket);
 
-    internal static OpeningReward Select(VendingMachineDefinition definition, long ticket)
+    internal static VendingReward Select(VendingMachineDefinition definition, long ticket)
     {
         if (ticket < 0 || ticket >= definition.Rewards[^1].CumulativeWeight)
             throw new InvalidOperationException("Out-of-range vending random ticket.");
-        return definition.Rewards.First(r => ticket < r.CumulativeWeight).Reward;
+        return definition.Rewards.First(r => ticket < r.CumulativeWeight);
     }
 }

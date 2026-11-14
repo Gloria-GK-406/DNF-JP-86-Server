@@ -9,6 +9,9 @@ public interface IEquipmentUpgradeRuleService
         ValueTask.FromResult(new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None));
     ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(ItemSnapshot core, CancellationToken ct,
         EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
+    /// <summary>The archive table's <c>[notice]</c> level from which an upgrade is announced; null when none is declared.</summary>
+    ValueTask<int?> NoticeLevelAsync(EquipmentUpgradeKind kind, CancellationToken ct) =>
+        ValueTask.FromResult<int?>(null);
     ValueTask<EquipmentOutworldDecision> DecideOutworldAsync(EquipmentOutworldAction action,
         int equipmentItemId, byte amplifyType, byte upgradeLevel, int materialItemId,
         byte selectedOption, int seed, CancellationToken ct);

@@ -9,6 +9,9 @@ internal sealed class DespairTowerRuleService(IDespairTowerContentSource content
     public DespairTowerCatalog Catalog => content.Load();
     public bool IsTower(int dungeonId) => Catalog.Floors.Any(x => x.DungeonId == dungeonId);
     public bool PresentsFloorApc(int floor) => floor is >= 10 and <= 90 && floor % 10 == 0;
+    /// <summary>The 70 server announced the floors guarded by an APC, every tenth; here the top floor counts too.</summary>
+    public bool AnnouncesClearedFloor(int floor) => floor > 0 && floor % AnnouncementInterval == 0;
+    private const int AnnouncementInterval = 10;
     public DespairTowerFloor? NextFloor(DespairTowerProgress progress) => Catalog.Floors.SingleOrDefault(x =>
         x.Floor == (progress.HighestClearedFloor == Catalog.Floors.Count ? 1 : progress.HighestClearedFloor + 1));
     public IReadOnlyList<DespairTowerReward> Rewards(int floor, int characterLevel, int basisLevel, ulong seed)

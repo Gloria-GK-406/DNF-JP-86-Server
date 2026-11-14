@@ -1,5 +1,11 @@
 # 协议清单
 
+## 2026-11-14 全区系统广播 NOTI 0x0056 子类型取证（ClientStatic + ClientVerified）
+
+A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/server-to-client/NOTI-0x0056.md)。
+双客户端实机：九个子类型按客户端文案显示；带 u16 uid 的子类型只在接收方本频道会话中见过当事人时显示，不能做全区广播；
+名字在包内的 6（满级）、0x12（开盒）、0x14（二次觉醒）不受此限。01F7 mode 2 文本同为系统行，`%` 原样显示。
+
 ## 2026-11-14 流浪武士副武器槽（#342，CurrentImplementation，待实机）
 
 [CMD0013](game/client-to-server/0x0013.md) 布局不变。Equipment24 除 `[support weapon]` 外，接受角色转职 `[support weapon sub type]` 列出子类型的 `[weapon]`（修订版 PVF 仅流浪武士＝光剑子类型 5）；背包↔副武器槽、装备栏内 12↔24 的移动与互换按同一规则判定。线上拒绝日志、PVF 与上游参照见协议页。

@@ -52,6 +52,26 @@ public sealed class VendingMachineTests
     private static ValueTask Network(CeraShopFixture f, ushort sequence) =>
         EffectRequestTransport.Send(f.Host, new VendingMachineRequest(new(1, 0x00D7, 0, sequence), 1, 1, 121));
 
+    [Dfo.Server.Testing.PvfTheory]
+    [InlineData(true)] [InlineData(false)]
+    public async Task A_prize_whose_row_is_flagged_records_one_announcement(bool flagged)
+    {
+        long ticket;
+        using (var probe = Fixture())
+        {
+            var rewards = probe.Host.Services.GetRequiredService<IVendingMachineDefinitionSource>().GetRequired(1, 1).Rewards;
+            var index = rewards.ToList().FindIndex(reward => reward.Announce == flagged);
+            Assert.True(index >= 0);
+            ticket = index == 0 ? 0 : rewards[index - 1].CumulativeWeight;
+        }
+        using var f = Fixture(ticket); await f.Host.Seed(121, 7454, 1);
+
+        var result = await Use(f);
+
+        Assert.Equal(flagged ? 1 : 0, f.Host.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='broadcast.vending-prize'"));
+        Assert.True(result.Reward.ItemId > 0);
+    }
+
     [Dfo.Server.Testing.PvfFact]
     public async Task Coin_and_reward_commit_once_and_native_ack_precedes_inventory()
     {
@@ -178,10 +198,10 @@ public sealed class VendingMachineTests
     public void Weighted_intervals_skip_zero_weights_and_respect_boundaries()
     {
         var d=new VendingMachineDefinition(1,1,7454,1,[new(new(10,1),0,false),new(new(20,2),2,false),new(new(30,3),5,false)]);
-        Assert.Equal(20,VendingMachineRuleService.Select(d,0).ItemId);
-        Assert.Equal(20,VendingMachineRuleService.Select(d,1).ItemId);
-        Assert.Equal(30,VendingMachineRuleService.Select(d,2).ItemId);
-        Assert.Equal(30,VendingMachineRuleService.Select(d,4).ItemId);
+        Assert.Equal(20,VendingMachineRuleService.Select(d,0).Reward.ItemId);
+        Assert.Equal(20,VendingMachineRuleService.Select(d,1).Reward.ItemId);
+        Assert.Equal(30,VendingMachineRuleService.Select(d,2).Reward.ItemId);
+        Assert.Equal(30,VendingMachineRuleService.Select(d,4).Reward.ItemId);
         Assert.Throws<InvalidOperationException>(()=>VendingMachineRuleService.Select(d,5));
     }
 }

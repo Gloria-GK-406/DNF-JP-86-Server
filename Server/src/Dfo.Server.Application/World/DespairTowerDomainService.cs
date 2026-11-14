@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -94,6 +95,8 @@ internal sealed class DespairTowerDomainService(IDespairTowerRuleService rules,
             checked((before?.UsedCount ?? 0) + 1)), ct).ConfigureAwait(false);
         await quests.ReportAsync(account, character,
             [new QuestDungeonCleared(run.Layout.DungeonId, run.Difficulty, run.RunId, run.ClearedAt ?? clock.GetUtcNow()), new QuestHoldingsChanged()], ct).ConfigureAwait(false);
+        if (rules.AnnouncesClearedFloor(plan.Floor))
+            await events.EnqueueAsync(new DespairTowerFloorAnnounced(character, plan.Floor), ct).ConfigureAwait(false);
         if (transaction.IsRollbackOnly) throw new InvalidOperationException("Tower clear was rolled back.");
         var elapsed = (run.ClearedAt ?? clock.GetUtcNow()) - run.StartedAt;
         return new(plan.Floor, (uint)Math.Clamp(elapsed.TotalMilliseconds, 0, uint.MaxValue),

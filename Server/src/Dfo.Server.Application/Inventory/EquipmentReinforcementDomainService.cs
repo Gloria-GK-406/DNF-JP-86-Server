@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -20,6 +22,7 @@ internal sealed class EquipmentReinforcementDomainService(
     IInventoryEffectPreflightDomainService preflight,
     ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IEquipmentReinforcementRollSource rolls,
+    IEventService events,
     TimeProvider timeProvider) : IEquipmentReinforcementDomainService
 {
     public async ValueTask<EquipmentReinforcementResult> ReinforceAsync(
@@ -143,7 +146,26 @@ internal sealed class EquipmentReinforcementDomainService(
             decision.Outcome, materialRemaining, applied.Changes<GoldEffectChange>().LastOrDefault()?.Remaining
                 ?? await character.GoldAsync(ct).ConfigureAwait(false),
             changes, Array.AsReadOnly(rewards), context.At);
+        if (await AnnouncedLevelAsync(kind, quote.IsTicket, oldLevel, decision, ct).ConfigureAwait(false) is { } announced)
+            await events.EnqueueAsync(new EquipmentUpgradeAnnounced(session.CharacterId, target.Snapshot.ItemId, kind,
+                announced, decision.Outcome == EquipmentReinforcementOutcome.Succeeded), ct).ConfigureAwait(false);
         return new(EquipmentReinforcementRejection.None, receipt);
+    }
+
+    /// <summary>
+    /// The level an announcement names, or null when the attempt is not announced. A success names its
+    /// new level, a failure the level it started from (the client words a failure as one above it), and
+    /// either is announced once that level reaches the table's <c>[notice]</c>. As on the 70 server, a
+    /// ticket is announced only when it succeeds.
+    /// </summary>
+    private async ValueTask<byte?> AnnouncedLevelAsync(EquipmentUpgradeKind kind, bool ticket, byte oldLevel,
+        EquipmentReinforcementFailureResult decision, CancellationToken ct)
+    {
+        var succeeded = decision.Outcome == EquipmentReinforcementOutcome.Succeeded;
+        if (!succeeded && ticket) return null;
+        var level = succeeded ? decision.NewLevel : oldLevel;
+        return await rules.NoticeLevelAsync(kind, ct).ConfigureAwait(false) is { } notice && level >= notice
+            ? level : null;
     }
 
     private async ValueTask<(BusinessSlot Slot, ItemReference Item,

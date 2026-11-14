@@ -64,6 +64,15 @@ public sealed class DespairTowerTests
         if (commit) await tx.CommitAsync(default);
         return result;
     }
+    [Theory]
+    [InlineData(10, true)]
+    [InlineData(90, true)]
+    [InlineData(100, true)]
+    [InlineData(55, false)]
+    [InlineData(0, false)]
+    public void Every_tenth_cleared_floor_is_announced_the_top_one_included(int floor, bool announced) =>
+        Assert.Equal(announced, new Dfo.Server.Application.World.DespairTowerRuleService(null!, null!, null!).AnnouncesClearedFloor(floor));
+
     [SkippableFact]
     public async Task All_hundred_real_floors_build_and_have_enemy_APCs()
     {

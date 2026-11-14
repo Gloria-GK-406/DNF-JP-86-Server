@@ -21,6 +21,12 @@ public sealed class ServerConfigService : IServerConfigService
         snapshot.TryAdd("Premium:BlackDiamondEnabled", "true");
         snapshot.TryAdd("Premium:BlackDiamondExtraFatigue", "32");
         snapshot.TryAdd("Fatigue:BaseTotal", "156");
+        snapshot.TryAdd("ServerBroadcast:Enabled", "true");
+        foreach (var kind in Enum.GetNames<Dfo.Server.Abstractions.ServerBroadcast.ServerBroadcastKind>())
+            snapshot.TryAdd("ServerBroadcast:" + kind, "true");
+        snapshot.TryAdd("ServerBroadcast:ForgingMinimumStage", "6");
+        snapshot.TryAdd("ServerBroadcast:LotteryMinimumRarity", "3");
+        snapshot.TryAdd("ServerBroadcast:AncientDungeonMinimumRarity", "4");
         values = snapshot;
     }
 

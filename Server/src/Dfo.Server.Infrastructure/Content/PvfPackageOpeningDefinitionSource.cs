@@ -376,6 +376,8 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 if (ns[i] <= 0 || ns[i + 1] < 0 || ns[i + 2] <= 0) errors.Add("Invalid pool row");
                 var reward = new OpeningReward(ns[i], ns[i + 2]);
                 if (stride == 5) reward = AvatarRow(reward, ns[i + 3], ns[i + 4]);
+                // A [broadcast] row's fourth column is its broadcast flag, as in a magic box's [int data].
+                if (stride == 4 && ns[i + 3] == 1) reward = reward with { Announce = true };
                 entries.Add(new(reward, ns[i + 1]));
             }
             if (entries.All(e => e.Weight == 0)) errors.Add("Empty weight pool");
@@ -582,7 +584,9 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 for (var i = start; i < ns.Length; i += stride)
                 {
                     if (ns[i] <= 0 || ns[i + 1] < 0 || ns[i + 2] <= 0) errors.Add("Invalid pool row");
-                    entries.Add(new(new(ns[i], ns[i + 2]), ns[i + 1]));
+                    // The fourth column is the broadcast flag: the magic boxes set it on their rare rows only
+                    // (chn_amazingbox.stk), and the reference archive reader names it so. Any other value is not announced.
+                    entries.Add(new(new(ns[i], ns[i + 2]) { Announce = ns[i + 3] == 1 }, ns[i + 1]));
                 }
                 if (entries.All(e => e.Weight == 0)) errors.Add("Empty weight pool");
                 pools.Add(new(1, entries.ToImmutable()));

@@ -23,7 +23,7 @@ public interface IVendingMachineRuleService
     long TicketCount(VendingMachineDefinition machine);
 
     /// <summary>The reward a ticket lands on, by cumulative weight.</summary>
-    OpeningReward RewardAt(VendingMachineDefinition machine, long ticket);
+    VendingReward RewardAt(VendingMachineDefinition machine, long ticket);
 }
 public sealed record VendingMachineResult(OpeningInventoryReceipt Receipt, BusinessSlot SourceSlot, int Remaining,
     OpeningReward Reward);

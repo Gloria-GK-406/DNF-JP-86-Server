@@ -80,6 +80,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddMail();
         services.AddChat();
+        Dfo.Server.Application.ServerBroadcast.ServerBroadcastRegistration.AddServerBroadcast(services);
         services.AddRelations();
         Dfo.Server.Application.Auction.AuctionRegistration.AddAuction(services, configuration);
         Dfo.Server.Application.PrivateStore.PrivateStoreRegistration.AddPrivateStore(services);

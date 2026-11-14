@@ -51,6 +51,14 @@ internal sealed partial class EquipmentUpgradeRuleService
             new Rule(definitions, logger, core.ItemId, row, oldLevel, canDestroy, goldCost, kind));
     }
 
+    public async ValueTask<int?> NoticeLevelAsync(EquipmentUpgradeKind kind, CancellationToken ct)
+    {
+        var table = kind == EquipmentUpgradeKind.Amplification
+            ? await definitions.GetAmplificationTableAsync(ct).ConfigureAwait(false)
+            : await definitions.GetNormalTableAsync(ct).ConfigureAwait(false);
+        return table?.NoticeLevel;
+    }
+
     private sealed class Rule(IEquipmentReinforcementDefinitionSource definitions,
         ILogger<EquipmentUpgradeRuleService> logger, int itemId,
         EquipmentReinforcementRow row, byte oldLevel, bool canDestroy, int goldCost,
