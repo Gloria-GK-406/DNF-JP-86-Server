@@ -1,0 +1,77 @@
+namespace Dfo.Server.Abstractions.Pvp;
+
+/// <summary>What a duel channel lets a finished battle change.</summary>
+/// <param name="RecordsResult">Whether wins, losses, draws and streaks are kept at all.</param>
+/// <param name="AwardsGradeExperience">Whether the result moves grade experience.</param>
+/// <param name="DailyWinExperienceCap">Wins per game day that still earn experience.</param>
+/// <param name="DailyLossExperienceCap">Losses per game day that still cost experience.</param>
+public sealed record PvpChannelEntitlements(
+    bool RecordsResult,
+    bool AwardsGradeExperience,
+    int DailyWinExperienceCap,
+    int DailyLossExperienceCap);
+
+public enum PvpOutcome : byte
+{
+    Win,
+    Loss,
+    Draw,
+}
+
+/// <summary>Everything one fighter's settlement is decided from.</summary>
+/// <param name="Grade">The stored grade; only read when <paramref name="Experience"/> is null.</param>
+/// <param name="Experience">
+/// Accumulated grade experience, or null for a record that has never had any, which starts at
+/// the lower bound of <paramref name="Grade"/>.
+/// </param>
+/// <param name="Escaped">An escaped fighter settles as a loss whatever the battle's outcome.</param>
+/// <param name="WinsEarlierToday">Wins already counted on this game day, not including this battle.</param>
+/// <param name="LossesEarlierToday">Losses already counted on this game day, not including this battle.</param>
+public sealed record PvpSettlementFacts(
+    byte Grade,
+    long? Experience,
+    PvpOutcome Outcome,
+    bool Escaped,
+    int WinsEarlierToday,
+    int LossesEarlierToday,
+    PvpChannelEntitlements Entitlements);
+
+/// <param name="CountsTowardDaily">Whether this battle adds one to today's win or loss count.</param>
+public sealed record PvpSettlementDecision(
+    byte Grade,
+    long Experience,
+    long ExperienceChange,
+    bool CountsTowardDaily);
+
+/// <summary>One grade of the archive's grade table.</summary>
+/// <param name="LowerBound">The experience at which this grade starts.</param>
+/// <param name="UpperBound">The experience at which the next grade starts; for the top grade, the archive's sentinel.</param>
+/// <param name="LossExperience">Zero or negative.</param>
+public sealed record PvpGradeStep(byte Grade, long LowerBound, long UpperBound, int WinExperience, int LossExperience);
+
+/// <param name="Grades">Every grade from 0 to <paramref name="MaximumGrade"/>, in order.</param>
+public sealed record PvpGradeCatalog(
+    IReadOnlyList<PvpGradeStep> Grades,
+    byte MaximumGrade,
+    TimeSpan NormalBattleTime,
+    TimeSpan RelayBattleTime);
+
+public interface IPvpGradeDefinitionSource { PvpGradeCatalog Load(); }
+
+public interface IPvpSettlementRuleService
+{
+    /// <summary>What the duel channel of this login environment records; throws for any other environment.</summary>
+    PvpChannelEntitlements EntitlementsOf(byte loginEnvironment);
+
+    PvpSettlementDecision Decide(PvpSettlementFacts facts);
+
+    byte GradeOf(long experience);
+    long LowerBound(byte grade);
+    long UpperBound(byte grade);
+
+    /// <summary>How long a battle of this mode runs before the client reports a time-out.</summary>
+    TimeSpan BattleTimeLimit(PvpBattleMode mode);
+
+    /// <summary>The game day a battle started at belongs to; daily counts are kept per game day.</summary>
+    DateOnly GameDayOf(DateTimeOffset startedAt);
+}

@@ -13,6 +13,8 @@ internal static class PvpRegistration
         services.TryAddSingleton<PvpRoomDomainService>();
         services.TryAddSingleton<IPvpRoomDomainService>(sp => sp.GetRequiredService<PvpRoomDomainService>());
         services.TryAddSingleton<IPvpRoomQueryDomainService>(sp => sp.GetRequiredService<PvpRoomDomainService>());
+        services.TryAddSingleton<IPvpSettlementRuleService, PvpSettlementRuleService>();
+        services.TryAddSingleton<IPvpRoomRuleService, PvpRoomRuleService>();
         return services;
     }
 }

@@ -1,0 +1,113 @@
+using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Configuration;
+using Dfo.Server.Application.Pvp;
+using Dfo.Server.Data.Channel;
+
+namespace Dfo.Server.Application.Tests.Pvp;
+
+public sealed class PvpSettlementRuleServiceTests
+{
+    internal static readonly IDailyResetRuleService Days = new DailyResetRuleService(new Settings(TimeSpan.FromHours(6)));
+
+    [Theory]
+    [InlineData((byte)8)]
+    [InlineData((byte)13)]
+    public void Practice_duel_channels_record_nothing(byte environment)
+    {
+        Assert.Equal(new PvpChannelEntitlements(false, false, 0, 0), Unarchived().EntitlementsOf(environment));
+    }
+
+    [Fact]
+    public void The_ranked_duel_channel_records_and_caps_daily_experience()
+    {
+        Assert.Equal(new PvpChannelEntitlements(true, true, 50, 10), Unarchived().EntitlementsOf(24));
+    }
+
+    [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)23)]
+    [InlineData((byte)25)]
+    public void A_login_environment_without_a_duel_channel_has_no_entitlements(byte environment)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Unarchived().EntitlementsOf(environment));
+    }
+
+    [Fact]
+    public async Task Every_environment_classified_as_a_duel_channel_has_entitlements()
+    {
+        var rules = Unarchived();
+        var duelling = new List<byte>();
+        for (var environment = 0; environment <= byte.MaxValue; environment++)
+        {
+            var channel = await Classify((byte)environment);
+            if (!channel.IsPvp) continue;
+            duelling.Add((byte)environment);
+            Assert.NotNull(rules.EntitlementsOf((byte)environment));
+        }
+
+        Assert.Equal(new byte[] { 8, 13, 24 }, duelling);
+    }
+
+    [SkippableFact]
+    public void Battle_time_limits_come_from_the_archive()
+    {
+        var rules = PvpGradeRulesTests.Rules();
+        foreach (var mode in Enum.GetValues<PvpBattleMode>())
+            Assert.Equal(mode == PvpBattleMode.Relay ? TimeSpan.FromSeconds(120) : TimeSpan.FromSeconds(180),
+                rules.BattleTimeLimit(mode));
+    }
+
+    [Theory]
+    [InlineData("2026-09-23T05:59:59+08:00", "2026-09-22")]
+    [InlineData("2026-09-23T06:00:00+08:00", "2026-09-23")]
+    public void A_battle_belongs_to_the_game_day_it_started_in(string startedAt, string day)
+    {
+        Assert.Equal(DateOnly.Parse(day), Unarchived().GameDayOf(DateTimeOffset.Parse(startedAt)));
+    }
+
+    private static PvpSettlementRuleService Unarchived() => new(new NoGrades(), Days);
+
+    private static ValueTask<ChannelEntryIdentity> Classify(byte environment)
+    {
+        const int id = 50;
+        var channels = new ChannelEntryDomainService(
+            new ChannelContentRuleService(
+                new Channels([new ChannelServerInfo(id, "#ch", 100, 0, "127.0.0.1", 10000 + id, environment)]),
+                new NoChannelScript()),
+            ChannelEntryOptions.Legacy, new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false),
+            new NoDeployment());
+        return channels.ResolveAsync(10000 + id, default);
+    }
+
+    private sealed class NoGrades : IPvpGradeDefinitionSource
+    {
+        public PvpGradeCatalog Load() => throw new InvalidOperationException("Entitlements must not read the grade table.");
+    }
+
+    private sealed class Settings(TimeSpan reset) : IServerConfigService
+    {
+        public T GetConfig<T>(string key) => key == "Game:DailyResetTime"
+            ? (T)(object)reset : throw new InvalidOperationException(key);
+    }
+
+    private sealed class Channels(IReadOnlyList<ChannelServerInfo> channels) : IChannelCatalog
+    {
+        public ValueTask<IReadOnlyList<ChannelServerInfo>> GetChannelsAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult(channels);
+    }
+
+    private sealed class NoChannelScript : IChannelScriptSource
+    {
+        public string Version => throw new NotSupportedException();
+        public ValueTask<byte[]> ReadAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+
+    private sealed class NoDeployment : IChannelLoginDeploymentSource
+    {
+        public byte ReadDefaultEnvironment() => throw new NotSupportedException();
+        public Dfo.Server.Data.Configuration.PublicGameLoginEndpoints ReadEndpoints() => throw new NotSupportedException();
+    }
+}
