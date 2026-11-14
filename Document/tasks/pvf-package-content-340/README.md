@@ -1,6 +1,6 @@
 # 礼包 PVF 内容修订（#340）
 
-- 基线：`main` `ef20398a3`（0.3.2）；分支 `task/pvf-package-content-340`。
+- 基线：`main` `edc741684`（0.3.2，含 #346 的礼包开启修复）；分支 `task/pvf-package-content-340`。
 - 输入 PVF：`PvfBuilds/revised-20261113/Script.pvf`，SHA-256 `E1F3A25C93502708D499283CF7A6B8840EDB39C354CEB09CCB9E1133F3C123F2`（线上 0.3.2）。
 - 输出 PVF：`PvfBuilds/revised-20261114/Script.pvf`，SHA-256 **`A97132DDA0970B3E0CE7C3DE8052ACF0BE2664F52E26C819B1D8CB6D427CFCD2`**，74,414,936 字节。
 - 范围：#328 普查的第 9–12 类（零散格式、缺失物品、缺宠物种类、过期奖励），#328 修完解析后二次核对的 6 个礼包（见“#328 二次核对”），以及按你的裁定删掉删完后没有奖励的礼包（见“删掉没有奖励的礼包”）。第 1–8 类是服务端缺陷，归 #328；第 13 类归 #341。
@@ -178,7 +178,8 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 表中“新 PVF”一列是第一版输出（`EBF8DDD3…`）的结果。删除空礼包之后，Application 与 Infrastructure 两项用 `A97132DD…` 又跑了一遍：
 
 - Infrastructure：1,034 通过、17 失败、2 跳过，失败名单与旧 PVF 相同。
-- Application：删除礼包后，主干原有的 `PackageOpeningTests.Archive_package_referencing_missing_equipment_is_refused_without_consumption` 失败。它拿 10000606 当“引用了缺失装备的礼包”样本，而 10000606 已被删，新 PVF 里也不再有引用缺失物品的礼包，所以改写成合成内容（`Package_referencing_missing_equipment_is_refused_without_consumption`，不依赖 PVF），断言不变：报 `UnsupportedContent`（原因为该奖励不存在），礼包不消耗。改写后 `PackageOpeningTests` 在新旧 PVF 下都是 37 个全过；其余失败名单与旧 PVF 相同（26 个）。
+- Application：删除礼包后，主干原有的 `PackageOpeningTests.Archive_package_referencing_missing_equipment_is_refused_without_consumption` 失败。它拿 10000606 当“引用了缺失装备的礼包”样本，而 10000606 已被删，新 PVF 里也不再有引用缺失物品的礼包，所以改写成合成内容（`Package_referencing_missing_equipment_is_refused_without_consumption`，不依赖 PVF），断言不变：报 `UnsupportedContent`（原因为该奖励不存在），礼包不消耗。改写后 `PackageOpeningTests` 在新旧 PVF 下都通过。
+- 礼包开启普查（#346 的 `PackageOpeningArchiveSurveyTests`）：54、490001919 在新 PVF 下已能开，从 `KnownResiduals` 删去它们的登记后，新 PVF 下普查通过（Package 1160/8085、Selection 1/2764、AvatarPackage 0/2317 失败，全部是登记过或可接受的原因）。旧 PVF 下普查会因这两个礼包失败，这是预期的：登记删去后，普查以新 PVF 为准。
 
 其余失败名单新旧完全一致，是这些测试和 0.3.2 修订版 PVF 之间已有的不匹配（例如掉落池、黑暗精灵遗迹、日常补充），与本次改动无关，没有处理。
 
