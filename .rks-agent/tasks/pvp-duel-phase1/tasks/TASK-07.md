@@ -36,3 +36,65 @@
 ### TASK-06 交付的可复用件与移交
 - 复用 `Protocol/Game/PvpRoom/PvpRoomProjection.cs` 的 `PvpRoomProjector.ProjectAsync(changed, ct)`（对 DeadlinePassed、CancelledForShutdown、SettlementAbandoned、ResultAcknowledged 回等待、最后一人离场销毁走通用分支，发 `0x002A`/座位增量）、`PvpRoomLobbyFrames.For`、`Listener`、`BroadcastAsync`、`PvpRoomBroadcast`。
 - 通用分支对 `Released` 立即发座位移除；结果界面期间（AwaitRank/AwaitResult）离开者的移除须按接收者延后（RQ-035），在调用通用分支前过滤并入延后队列；被送回城的离开者保持"先回城帧、后房间帧"的顺序。Fighting 中离场是否发 `0x002B` 由本单元按上游决定。
+
+## Result
+
+- Outcome: done
+- Changed（31 个已有文件 +592/−56，新增 14 个文件约 1800 行；未提交）:
+  - 消息目录 `Data/Networking/NetworkMessages.cs`：C→S `GameCompleteLoadPvp(0x012A)`、`GameConnectP2pPvp(0x012B)`、`GamePvpHeartbeat(0x006E)`、`GameDiePvpCharacter(0x0037)`、`GamePvpTimeOut(0x0038)`、`GamePvpRankResponse(0x003A)`、`GameEndPvpResult(0x0039)`；S→C NOTI `GameDiePvpCharacter(0x002E)`、`GameRequestPvpRank(0x0031)`、`GameEndPvp(0x002F)`、`GamePvpRecord(0x0030)`。
+  - Abstractions（最小补充，不改语义）：`PvpRecords.cs` 加 `PvpRecordView` 与只读领域查询 `IPvpRecordDomainService.ViewAsync`；新 `PvpBattleProjections.cs`：`PvpDepartureEntryId`、`PvpCommittedDeparture`、`IPvpDepartureProjectionDomainService`（离场投影队列）、`IPvpResultScreenDeferralDomainService`（延后座位欠帧）。
+  - Application：新 `Pvp/PvpRecordDomainService.cs`（读战绩 + 规则侧上下界，经验为空取下限）并在 `PvpRegistration` 登记；`Sessions/SelectCharacterLifecycleServices.cs` 的 `DepartRoomAsync` 改为"已提交的离场总交给每个 sink、逐个隔离、最后重抛"；`PvpRoomDomainService` 只改放弃结算的日志措辞（不再断言"无战绩变化"）。
+  - Protocol 新切片 `Game/PvpBattle/`：`Messages.cs`、`PvpBattlePayloadCodec.cs`（7 个 decoder、4 个 encoder）、`PvpBattleCommands.cs`（`GamePvpBattleCommandHandler` 一类七个 CMD、薄 handler）、`PvpBattleProjection.cs`（`PvpBattleProjector`、`PvpDepartureProjectionQueue`、`PvpResultScreenDeferrals`）、`PvpBattleRegistration.cs`；`PvpBattleDeadlines.cs` 删去静态空接缝，`PvpBattleDeadlineCommandHandler` 注入投影依赖并新增 `CapturePvpDeparturesCommand`/`ProjectPvpDepartureCommand`，来源每轮（含停服轮）先认领离场；`ProtocolModule` 一行接线。
+  - `Game/PvpRoom/`：`PvpRoomProjector` 加可选 `deferrals`（开局前补发、对局中座位移除按接收者延后、离房补发、会话结束/房间销毁丢弃、公开 `ReleaseAsync`/`ReleaseFrames`）；`GamePvpRoomCommandHandler` 注入 `IPvpResultScreenDeferralDomainService`（组队接受邀请的构造不变）。
+  - `Game/SelectCharacter/GameSelectCharacterCommand.cs`：注入 `IPvpRecordDomainService`，只读单元 `ReadSelectedCharacterPvpRecord` 读本人战绩，`WithPvpRecord` 把 `0x0030` 插在 HOTKEY_OPTION 之后。
+  - 测试：新 `Protocol.Tests/Game/PvpBattle/`（Codec 21、Command 28、Projection 16 例，`PvpBattleWorld` 替身）与 `SelectCharacter/SelectCharacterPvpRecordTests`；`PvpRoomStandIns` 对局写面改为可脚本；`PvpRoomCommandTests` 补构造参数；Application `PvpBattleDomainTests` +5 例（不确定结算仍交付、sink 隔离、真实队列在回滚/提交下的条目、战绩视图下限）；写入口表登记两个新状态持有者（7 行）；`PvpShutdownServiceTests` 改为断言"先认领离场 → 取消 → 列待结算"；`SelectCharacterLifecycleTests` 允许新只读单元并在 5 处期望帧序加 `0x0030`；`SelectionStageBehaviorDriver`、`Support/ProtocolAlgorithmFixture`（默认"未记过的战绩"）补参数。
+  - 协议页人工区：`0x012A`、`0x012B`、`0x006E`、`0x0037`、`0x0038`、`0x003A`、`0x0039`、`NOTI-0x002E`、`NOTI-0x002F`、`NOTI-0x0030`、`NOTI-0x0031`，以及 `NOTI-0x002B`（对局期间座位移除延后）；`catalog.md` 新增"对局侧"一节并改房间侧一节的指向句。
+- 线上布局：
+  - 入站：`0x012A`/`0x006E`/`0x0039` 只收空体（机器区静态 BodyLength = 0）；`0x012B` 恰 `1 + 2n`、n ≤ 8、seat < 8，状态只记日志；`0x0037` 恰 5 字节 `u16 victim, u16 killer, u8 flag`，victim 须为发送者 user id，killer 按冻结名单的 user id 换角色（0/未知 → 无击杀者），flag 只记日志；`0x0038` 恰 32 字节原样交领域；`0x003A` 长度不校验。畸形与被领域忽略的上报只记日志，无回包。
+  - 出站：`0x002E` `u8 victim, u8 killer/0xFF`；`0x0031` 空体；`0x002F` `26 + 19n`（见下）；`0x0030` 51 字节，不追加 3×26 房间上下文（上游普通房结算与选角都只发 51 字节基本体，尾部只属总力战房）。
+- 结算帧字节基线（`PvpBattleCodecTests`）：
+  - `0x002F` n=2：`00 00000000 01 64000000 02 | 0201 01000000 01 4C040000 00000000 00000000 | 0403 00000000 00 B6030000 00000000 00000000 | FFFF FFFF 00000000 00 FF 00000000 00`（64 字节）；n=4 平局 102 字节，第四人条目与尾部（draw=1）逐字节核对。胜方座位：个人为胜者座位，团队为胜方队伍里仍存活的最小座位（上游 `FindTerminalWinnerSeat`），平局 0xFF。
+  - `0x0030`：`07000000 04000000 DC050000 E8030000 D0070000 03 02 FFFFFFFF 00000000 00000000 00000000 00 00000000 00000000 00000000`；满级哨兵超出 i32 截为 `0x7FFFFFFF`；经验为空取下限由 `PvpRecordDomainService` 给出并在 Application 测试中核对。
+- 帧序：死亡 → 房内成员 `0x002E`，终局随后 `0x0031`；结算写入后逐个在座战斗者 `0x002F` → `0x0030`，再投影房间到结果界面；`0x0039` 被接受时先给本人补欠帧（8 座位 `0x002B` → `0x002A`），全员确认回等待时成员与大厅 `0x002A(1)`；截止判平 `0x0031`、心跳超时 `0x002E(seat,0xFF)`、Loading/PeerLinking 截止取消与放弃结算均为成员与大厅 `0x002A(1)`；停服取消逐房投影，单房投影失败只记 Warning 不中断停服轮。`Death_ranking_results_and_the_room_waiting_again_arrive_in_that_order` 固定整条序列。
+- 延后队列的释放实现：
+  - 状态：`PvpResultScreenDeferrals` 只记"会话 → 欠帧的房间"（锁内字典，写成员全部 `GameplayWriteAssertion`），不存帧；补发时按当时房间现编 `ReleaseFrames`（8 座位一帧 `0x002B` + `0x002A`）。
+  - 入账：`PvpRoomProjector.ChangedAsync` 中，变化有 `Released` 且变化后房间仍在对局阶段（非 Waiting）时，变化后在座、且尚未确认结果界面（`Reports` 不含 `ResultAcknowledged`）的成员记欠帧并从大厅受众中排除，已确认者立即收到座位帧；大厅其余就绪者立即收到座位/房主帧。Fighting 中离场同样延后（上游 `deferCombatDeparture` 以"房间处于开战状态"判定，这是本单元对"Fighting 中离场是否发 0x002B"的决定：成员不发、大厅发）。
+  - 释放：该会话 `0x0039` 被领域接受（`GamePvpBattleCommandHandler` 在投影变化前调用 `ReleaseAsync`）；下一局 `MatchStarted`（`StartedAsync` 先对每个成员按开局前房间补发，再发 `0x002C`/`0x002D`/`0x002A(2)`）；该会话退房或被踢（回城帧与本次房间帧之后补发当前房间）。
+  - 丢弃：该会话以 `Departed` 离座（断线、回选角、被替换）；房间销毁（`DropRoom`）；欠的不是本房。确认超时回等待不释放；迟到 `0x0039` 被领域拒绝，不释放。
+- 两处投影：
+  - 离场 sink：`PvpDepartureProjectionQueue : IPvpRoomDepartureSink` 入队 `(departure, settled)` 并唤醒截止调度；调度轮（`PvpBattleDeadlineSource.RunAsync` 与 `ShutdownAsync`）先 `CapturePvpDeparturesCommand` 再逐条 `ProjectPvpDepartureCommand`（`TryClaim` 只认队头），投影 = 对局帧 + 房间帧 + `settled` 非空时的结算帧。外层事务回滚时队列为空、不唤醒（Application 测试用真实队列核对）。
+  - `PvpBattleDeadlineCommandHandler`：`AdvancePvpRoom`（变化 + 同单元结算）、`SettlePvpMatch`、`AbandonPvpSettlement`（回等待帧）、`CancelPvpBattlesForShutdown` 都在写单元返回后经同一 `PvpBattleProjector` 投影；结算帧所需战绩在提交后另开只读单元经 `IPvpRecordDomainService` 读取。
+- 选角 `0x0030`：所有频道（决斗与否）在状态批里 HOTKEY_OPTION（`0x01C7`）之后紧接一帧本人 `0x0030`，即两次 USERINFO0 与 HOTKEY 之后（上游 `NewCharacterInitSequence`）。工厂批中没有 HOTKEY 时（只有测试替身工厂如此）追加在批尾。
+- Why:
+  - `0x0030` 的上下界需要规则服务，而 CMD 不能注入规则服务（`CommandHandlerArchitectureTests`），故新增只读领域查询 `IPvpRecordDomainService`（Abstractions 接口、Application 实现，无状态）。选角与结算两处共用。
+  - 离场投影与延后欠帧都是进程内状态，接口按 `DomainService` 后缀放 Abstractions（与塔离场队列同一写法）以便 CMD 注入；实现放 Protocol，登记进写入口表，状态普查通过。
+  - 离场投影挂在既有 PvP 截止调度轮的开头，而不是另起扫描服务：保证"离场帧先于同轮截止/结算帧"，停服轮也先清队列；sink 入队时唤醒调度。
+  - `DepartRoomAsync`：离场一步提交失败时不交付（是否提交未知）；离场已提交后，结算普通失败记 Warning、`settled=null`，结算不确定异常同样 `settled=null` 交付后重抛；sink 逐个 try/catch，失败记 Error，无原异常时重抛 sink 失败（单个原样、多个 `AggregateException`），由清理链汇总为 `SelectedSessionCleanupFailure`。
+  - 放弃结算日志措辞：之前断言"no record changed"，但先前一次不确定提交可能已写入，改为只陈述本步所做并提示查 `pvp_matches`。
+  - 没有改变领域语义；领域结果已足够投影，未补字段。
+- Checks（最终源码，`PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf`，`-m:1`，单项目、`MaxParallelThreads=1`）：
+  - `dotnet build Server/86JP.Server.slnx -m:1`：0 警告 0 错误。
+  - Protocol.Tests 全量：2487 通过 0 失败（含新 PvpBattle 64 例；审查后补 1 例，见下、选角 0x0030 1 例）。
+  - Application.Tests 过滤 `Execution|Commands|Notifications|Registr|Architecture|Pvp|Sessions|Census|DependencyGraph|Select|Timer|DomainEvents`：1522 通过、5 失败，5 项均在 `baseline-failed.txt`（`DarkElfRuinsTests.Licensed_star…` 4 例、`GuardianAltarLifecycleTests.Managed_disable…`）。
+  - Networking.Tests `SelectionLifecycleWholeCommandTests|TransportDrain|SelectCharacter`：4 通过、5 失败，5 项均在 `baseline-failed.txt`（`SelectCharacterSuccessCharacterizationTests` 1 例、`SelectCharacterCompensationCharacterizationTests` 4 例；`SelectionLifecycleWholeCommandTests` 与 `TransportDrain` 全过）。
+  - Host.Tests `Opcode|Architecture|Pvp|Startup|ComponentLifecycle|HostShutdownOrder`：57 通过、1 跳过（既有 Sigterm 用例，Windows 不可用）。
+  - 反例：把 `PvpRoomProjector` 大厅受众的欠帧排除去掉后，`PvpBattleProjectionTests` 两例失败；把 `DepartRoomAsync` 对不确定异常的捕获去掉后，`A_departure_whose_settlement_outcome_is_unknown…` 失败。均已还原。
+  - 换行：`git diff --numstat` 与 `--ignore-cr-at-eol` 一致；新文件 LF。
+  - 审查后修正（已确认结果界面的成员不再记欠帧；`ReadRelationsAsync` 注释移回原位）后重跑：构建 0 警告 0 错误；Protocol.Tests 过滤 `PvpBattle|PvpRoom|SelectCharacter` 228 通过 0 失败（含新用例 `A_member_who_closed_its_result_screen_is_shown_a_later_departure_at_once`）；Application.Tests 过滤 `Pvp|Execution` 552 通过 0 失败。反例：去掉该过滤后新用例失败，已还原。
+- 录制转写：`SelectCharacterSuccessCharacterizationTests.Login_create_and_select_produce_the_recorded_transcript` 与四个 `SelectCharacterCompensationCharacterizationTests` 原在基线失败清单；成功用例当前第一处差异即新增的 `0x0030`（帧序位置 27，紧跟 `0x01C7`，48 号长度 51 的 NOTI），录制需在实机抓包后更新。
+- 偏离 Detailed Plan：
+  - 延后范围扩到 Fighting 起的全部对局阶段（计划写 AwaitRank/AwaitResult），依上游且由计划授权"Fighting 中离场是否发 0x002B 按上游决定"；Loading/PeerLinking 离场使整局取消、房间回等待，不延后。
+  - 补发帧用一帧 8 座位 `0x002B`，不像上游逐座位各一帧，也不补发离场者的 USER_LEAVE（本仓等待阶段离场同样不发 USER_LEAVE）。
+  - `0x0037` 不收上游的 2 字节兼容形（Spec RQ-075 只收 5 字节）；flag 不限 0/1（上游拒收 > 1）。
+  - 测试与基线比较之外未新增集成测试；真实 TCP 的完整一局与断线判负留 TASK-08。
+- Remaining:
+  - 实机待验：`0x0037` 实际长度（三方冲突）、`0x0039` 后是否靠 `0x002A` 解除结果等待、8 座位合帧与无 USER_LEAVE 的补发是否足够、`0x002F` 团队胜方座位取值、选角 `0x0030` 位置。
+  - 截止调度把认领离场放在每轮开头：离场到投影之间有一次调度唤醒的延迟（同一 gameplay 执行器，毫秒级）。
+  - 欠帧只在进程内；重启后房间本身也不存在，无需持久化。
+  - 清理路径的结算提交结果不确定、而实际已提交时，sink 收到 `settled=null`，在座者收不到 `0x002F`/`0x0030`，只能等 AwaitResult 截止回等待（概率极低）。
+
+## Result Review
+
+- Verdict: approved（独立快速审查）。审查者在当前源码上跑 Protocol 281 项、Application 915 项全过；结算帧与上游 `BuildEndPvpBody`/`PvpRecordBodyBuilder` 逐字段一致；离场投影接口与塔的 `TowerDepartureProjectionQueue` 同形，归属合规。
+- 提交前修正：已确认 `0x0039` 的成员不再被重新欠帧（新用例 + 反例）；`GameSelectCharacterCommand` 注释归位。主控复核 worker 复跑结果：Protocol PvpBattle/PvpRoom/SelectCharacter 228 项、Application Pvp/Execution 552 项全过。
+- 移交 TASK-08/09：上游补发时附带被扣下的 USER_LEAVE，本仓不发；离场投影晚一轮调度（真实 TCP 留意）；`Owes` 只被测试使用；塔与 PvP 投影状态用 `*DomainService` 后缀的命名可另立技术债统一。

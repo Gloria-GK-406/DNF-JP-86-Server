@@ -72,6 +72,7 @@ internal sealed class GamePvpRoomCommandHandler(
     ICommandWorkUnits units,
     ICommandProjections projections,
     IGameCommandOutbox outbox,
+    IPvpResultScreenDeferralDomainService deferrals,
     ILogger<GamePvpRoomCommandHandler> logger)
     : ICommandHandler<GameMakePvpRoomCommand, bool>,
         ICommandHandler<GameEnterPvpRoomCommand, bool>,
@@ -199,7 +200,7 @@ internal sealed class GamePvpRoomCommandHandler(
     }
 
     private PvpRoomProjector Projector() => new(sessions, lobby, currentViews, online, onlineUsers, endpoints, townAreas, parties,
-        projectionState, weakness, projections, outbox, logger);
+        projectionState, weakness, projections, outbox, logger, deferrals);
 }
 
 public sealed class MakePvpRoomHandler(ICommandBus commands) : ClientMessageHandler<MakePvpRoomRequest>,

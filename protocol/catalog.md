@@ -39,6 +39,25 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 
 [CMD0013](game/client-to-server/0x0013.md) 布局不变。Equipment24 除 `[support weapon]` 外，接受角色转职 `[support weapon sub type]` 列出子类型的 `[weapon]`（修订版 PVF 仅流浪武士＝光剑子类型 5）；背包↔副武器槽、装备栏内 12↔24 的移动与互换按同一规则判定。线上拒绝日志、PVF 与上游参照见协议页。
 
+## 2026-11-14 决斗场一期 对局侧（TASK-07，CurrentImplementation，待实机）
+
+七条对局上报在 `Game/PvpBattle/`，由 `GamePvpBattleCommandHandler` 处理：每条一个写工作单元，名单内无人再等排名时在同一单元结算，
+返回后由 `PvpBattleProjector` 投影（`0x002E` → `0x0031` 给房内成员；结算后逐人 `0x002F` → `0x0030`；房间与大厅帧复用
+`PvpRoomProjector`）。截止调度、结算、停服取消与断线离场（`IPvpRoomDepartureSink` → `PvpDepartureProjectionQueue`，调度轮先认领）
+走同一投影。对局期间离场者的座位移除按接收者延后（`PvpResultScreenDeferrals`，见 [NOTI-0x002B](game/server-to-client/NOTI-0x002B.md)）。
+选角时每个频道在 HOTKEY_OPTION 之后补发本人 `0x0030`。上报均无 CMD 应答；畸形或不在阶段内的上报只记日志。
+布局只有上游转录与静态走图，无 WireCaptured、无 ClientVerified。
+
+| 族 | Type | 实现 | 边界 | 文档 |
+|---|---|---|---|---|
+| `0x01` | `0x012A` `0x006E` `0x0039` | 空体，非空拒收 | 命令与投影测试；待实机 | [0x0039](game/client-to-server/0x0039.md) |
+| `0x01` | `0x012B` | `u8 n + n×2` | 解码测试；待实机 | [0x012B](game/client-to-server/0x012B.md) |
+| `0x01` | `0x0037` | 只收 5 字节，死者须为发送者 | 解码与命令测试；三方布局冲突待抓包 | [0x0037](game/client-to-server/0x0037.md) |
+| `0x01` | `0x0038` | 只收 32 字节，一期判平 | 解码测试；待实机 | [0x0038](game/client-to-server/0x0038.md) |
+| `0x01` | `0x003A` | 长度不校验，作确认 | 命令测试；待实机 | [0x003A](game/client-to-server/0x003A.md) |
+| `0x00` NOTI | `0x002E` `0x0031` | `PvpDeathMessage`、`PvpRankRequestMessage` | 字节与帧序测试；待实机 | [NOTI-0x002E](game/server-to-client/NOTI-0x002E.md) |
+| `0x00` NOTI | `0x002F` `0x0030` | `EndPvpMessage`（26+19n）、`PvpRecordMessage`（51） | 字节基线测试；待实机 | [NOTI-0x002F](game/server-to-client/NOTI-0x002F.md) |
+
 ## 2026-11-14 决斗场一期 房间侧（TASK-06，CurrentImplementation，待实机）
 
 频道信息 `0x00C3` 在 `Game/PvpChannelInfo/`；建房、进房、座位、准备、模式、地图在 `Game/PvpRoom/`，六条 CMD 由同一个
@@ -46,7 +65,7 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 投影：请求者本人的帧直接登记，房内成员与同监听端口大厅就绪者经精确会话通知，进房离城、退房回城复用城镇投影。
 拒绝一律 `00 reason` 挂在原命令号，码表见 [0x0032](game/client-to-server/0x0032.md)。决斗邀请是 `0x000A`/`0x000B` 的 type 2，
 在原组队 CMD 内按 type 分派；组队 type 0 新增与房间互斥的拒绝。NOTI `0x0029` 每座位改为 3 字节（此前多写 1 字节）。
-布局只有上游转录与静态走图，无 WireCaptured、无 ClientVerified；对局帧（`0x002E` 之后）属 TASK-07。
+布局只有上游转录与静态走图，无 WireCaptured、无 ClientVerified；对局帧见下一节。
 
 | 族 | Type | 实现 | 边界 | 文档 |
 |---|---|---|---|---|

@@ -33,9 +33,13 @@ public sealed class PvpShutdownServiceTests
 
         var ran = host.Queue.Ran.ToList();
         var cancel = Assert.Single(ran, x => x.CommandType == "lifecycle:PvpShutdown/rooms/cancel");
-        var listing = Assert.Single(ran, x => x.CommandType == "lifecycle:PvpShutdown/rooms");
-        Assert.True(ran.IndexOf(cancel) < ran.IndexOf(listing));
-        Assert.All([listing, cancel], seen =>
+        // The round's own submissions: the departures still waiting to be projected first, the ended battles last.
+        int[] submissions = [.. ran.Select((seen, index) => (seen, index))
+            .Where(x => x.seen.CommandType == "lifecycle:PvpShutdown/rooms").Select(x => x.index)];
+        Assert.Equal(2, submissions.Length);
+        Assert.True(submissions[0] < ran.IndexOf(cancel));
+        Assert.True(ran.IndexOf(cancel) < submissions[1]);
+        Assert.All([ran[submissions[0]], ran[submissions[1]], cancel], seen =>
         {
             Assert.True(seen.OnExecutor);
             Assert.True(seen.Completed, $"{seen.CommandType} failed on the executor.");

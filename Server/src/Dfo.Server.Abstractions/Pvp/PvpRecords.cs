@@ -115,3 +115,23 @@ public interface IPvpRecordDomainStore
     ValueTask<PvpSettleOutcome> SettleAsync(
         PvpMatchSettlementRecord settlement, CancellationToken cancellationToken);
 }
+
+/// <summary>A character's duel record as the client shows it: the grade's experience band filled in.</summary>
+/// <param name="Experience">The accumulated grade experience; a record no battle has touched reads as its grade's lower bound.</param>
+/// <param name="LowerBound">Where the record's grade starts.</param>
+/// <param name="UpperBound">Where the next grade starts; for the top grade, the archive's sentinel.</param>
+public sealed record PvpRecordView(
+    byte Grade,
+    byte RatingGrade,
+    long Experience,
+    long LowerBound,
+    long UpperBound,
+    int Wins,
+    int Losses);
+
+/// <summary>Duel records as their owners and the client read them.</summary>
+public interface IPvpRecordDomainService
+{
+    /// <summary>The character's record with its grade's band; read-only, inside whatever unit the caller has open.</summary>
+    ValueTask<PvpRecordView> ViewAsync(CharacterId character, CancellationToken cancellationToken);
+}

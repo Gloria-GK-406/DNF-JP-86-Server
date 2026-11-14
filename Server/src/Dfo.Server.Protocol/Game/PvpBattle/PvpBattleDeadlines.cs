@@ -1,6 +1,16 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Pvp;
+using Dfo.Server.Protocol.Game.PvpRoom;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.PvpBattle;
@@ -23,17 +33,38 @@ public sealed record CancelPvpBattlesForShutdownCommand : ICommand<bool>;
 /// <summary>Drops an ended duel battle whose settlement kept failing past the give-up time.</summary>
 public sealed record AbandonPvpSettlementCommand(PvpMatchId Match) : ICommand<bool>;
 
+/// <summary>Lists the committed room departures waiting for their projection.</summary>
+public sealed record CapturePvpDeparturesCommand : ICommand<ImmutableArray<PvpDepartureEntryId>>;
+
+/// <summary>Projects one committed room departure, and the settlement it led to.</summary>
+public sealed record ProjectPvpDepartureCommand(PvpDepartureEntryId Entry) : ICommand<bool>;
+
 /// <summary>What one deadline advance did: the room's change, and the settlement it asked for.</summary>
 public sealed record PvpRoomAdvance(PvpRoomOutcome.Changed? Room, PvpSettlementOutcome? Settlement);
 
 /// <summary>
-/// The duel deadline and shutdown commands. Each one is a single domain step in one write unit; what the
-/// fighters see of it is projected through <see cref="PvpBattleProjection"/> after the unit commits.
+/// The duel deadline, departure and shutdown commands. Each one is a single domain step in one write unit; what the
+/// fighters see of it is projected through <see cref="PvpBattleProjector"/> after the unit returns.
 /// </summary>
 public sealed class PvpBattleDeadlineCommandHandler(
     IPvpRoomDomainService rooms,
     IPvpSettlementDomainService settlements,
+    IPvpRecordDomainService records,
+    IPvpDepartureProjectionDomainService departures,
+    IPvpResultScreenDeferralDomainService deferrals,
+    ISelectedSessionDomainService sessions,
+    IPvpLobbyDomainService lobby,
+    ISelectedCharacterCurrentViewDomainService currentViews,
+    IOnlineCharacterRuntimeDomainService online,
+    IOnlineUserQueryDomainService onlineUsers,
+    IGameSessionEndpointDomainService endpoints,
+    ITownAreaDomainService townAreas,
+    IPartyService parties,
+    IPartyProjectionStateDomainService projectionState,
+    IWeaknessDomainService weakness,
     ICommandWorkUnits units,
+    ICommandProjections projections,
+    IGameCommandOutbox outbox,
     TimeProvider clock,
     ILogger<PvpBattleDeadlineCommandHandler> logger)
     : ICommandHandler<ScanPvpDeadlinesCommand, PvpDeadlineScan>,
@@ -41,7 +72,9 @@ public sealed class PvpBattleDeadlineCommandHandler(
         ICommandHandler<SettlePvpMatchCommand, bool>,
         ICommandHandler<ListPendingPvpSettlementsCommand, IReadOnlyList<PvpMatchId>>,
         ICommandHandler<CancelPvpBattlesForShutdownCommand, bool>,
-        ICommandHandler<AbandonPvpSettlementCommand, bool>
+        ICommandHandler<AbandonPvpSettlementCommand, bool>,
+        ICommandHandler<CapturePvpDeparturesCommand, ImmutableArray<PvpDepartureEntryId>>,
+        ICommandHandler<ProjectPvpDepartureCommand, bool>
 {
     public ValueTask<PvpDeadlineScan> HandleAsync(
         CommandExecutionContext context, ScanPvpDeadlinesCommand command, CancellationToken token) =>
@@ -60,7 +93,7 @@ public sealed class PvpBattleDeadlineCommandHandler(
         if (advance.Room is { } room)
             logger.LogInformation("Duel room {Room} advanced past its deadline: {Before} -> {After}",
                 command.Room.Value, room.Before?.Phase, room.After?.Phase);
-        await PvpBattleProjection.DeadlinePassedAsync(advance, token).ConfigureAwait(false);
+        await ProjectAsync(context, advance.Room, advance.Settlement, token).ConfigureAwait(false);
         return true;
     }
 
@@ -68,7 +101,7 @@ public sealed class PvpBattleDeadlineCommandHandler(
     {
         var settled = await units.WriteAsync(context, new CommandWorkUnitDeclaration("pvp.settlement", []),
             (_, ct) => settlements.SettleAsync(command.Match, ct), token).ConfigureAwait(false);
-        await PvpBattleProjection.SettledAsync(settled, token).ConfigureAwait(false);
+        await ProjectAsync(context, null, settled, token).ConfigureAwait(false);
         return true;
     }
 
@@ -82,7 +115,20 @@ public sealed class PvpBattleDeadlineCommandHandler(
         var cancelled = await units.WriteAsync(context, new CommandWorkUnitDeclaration("pvp.shutdown", []),
             (_, ct) => rooms.CancelForShutdownAsync(ct), token).ConfigureAwait(false);
         if (cancelled.Count > 0) logger.LogInformation("Cancelled {Count} duel battles for shutdown", cancelled.Count);
-        await PvpBattleProjection.CancelledForShutdownAsync(cancelled, token).ConfigureAwait(false);
+        // The connections close next; telling the fighters is a courtesy that must not stop the shutdown round.
+        var projector = Projector();
+        foreach (var change in cancelled)
+        {
+            try
+            {
+                await projector.ChangedAsync(change, token).ConfigureAwait(false);
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                logger.LogWarning(error, "Duel room {Room} cancelled for shutdown could not be projected",
+                    (change.After ?? change.Before)?.Number);
+            }
+        }
         return true;
     }
 
@@ -91,28 +137,39 @@ public sealed class PvpBattleDeadlineCommandHandler(
         var abandoned = await units.WriteAsync(context, new CommandWorkUnitDeclaration("pvp.settlement-abandon", []),
             async (_, ct) => new PvpRoomAdvance(await rooms.AbandonSettlementAsync(command.Match, ct).ConfigureAwait(false), null),
             token).ConfigureAwait(false);
-        await PvpBattleProjection.DeadlinePassedAsync(abandoned, token).ConfigureAwait(false);
+        // The room waits again: its members and the lobby see it as after any return to waiting.
+        await ProjectAsync(context, abandoned.Room, null, token).ConfigureAwait(false);
         return true;
     }
-}
 
-/// <summary>
-/// What the duel rooms show the fighters after a deadline, a settlement or the shutdown cancel committed.
-/// </summary>
-/// <remarks>
-/// The projection seam of these internal commands: the domain results carry everything the frames need
-/// (phases before and after, the frozen end, every fighter's settled result, the seats taken away). The wire
-/// frames belong to the duel protocol slice, which fills these in and passes the handler's registration seams
-/// (<c>IGameCommandOutbox</c>, <c>ICommandProjections</c>) along; until then nothing is projected.
-/// </remarks>
-internal static class PvpBattleProjection
-{
-    public static ValueTask DeadlinePassedAsync(PvpRoomAdvance advance, CancellationToken token) => ValueTask.CompletedTask;
+    public ValueTask<ImmutableArray<PvpDepartureEntryId>> HandleAsync(
+        CommandExecutionContext context, CapturePvpDeparturesCommand command, CancellationToken token) =>
+        ValueTask.FromResult(departures.SnapshotPending());
 
-    public static ValueTask SettledAsync(PvpSettlementOutcome settled, CancellationToken token) => ValueTask.CompletedTask;
+    /// <summary>
+    /// A departure selected-session cleanup committed: the members left behind see it as any other room change of
+    /// the battle (a fighter who fled, the end of the fight, the seat), and the settlement it led to, when the cleanup
+    /// could make one.
+    /// </summary>
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, ProjectPvpDepartureCommand command, CancellationToken token)
+    {
+        if (!departures.TryClaim(command.Entry, out var claimed)) return false;
+        await ProjectAsync(context, claimed!.Departure, claimed.Settled, token).ConfigureAwait(false);
+        return true;
+    }
 
-    public static ValueTask CancelledForShutdownAsync(IReadOnlyList<PvpRoomOutcome.Changed> cancelled, CancellationToken token) =>
-        ValueTask.CompletedTask;
+    private async ValueTask ProjectAsync(CommandExecutionContext context, PvpRoomOutcome.Changed? change,
+        PvpSettlementOutcome? settled, CancellationToken token)
+    {
+        var projector = Projector();
+        if (change is not null) await projector.ChangedAsync(change, token).ConfigureAwait(false);
+        if (settled is PvpSettlementOutcome.Settled written)
+            await projector.SettledAsync(written, await PvpBattleRecords.ReadAsync(units, records, context, written, token)
+                .ConfigureAwait(false), token).ConfigureAwait(false);
+    }
+
+    private PvpBattleProjector Projector() => new(new PvpRoomProjector(sessions, lobby, currentViews, online, onlineUsers, endpoints,
+        townAreas, parties, projectionState, weakness, projections, outbox, logger, deferrals), logger);
 }
 
 /// <summary>
@@ -126,6 +183,8 @@ internal sealed class PvpBattleDeadlineSource : PvpDeadlineSource
 
     public override async ValueTask<DateTimeOffset?> RunAsync(PvpDeadlineRound round, CancellationToken token)
     {
+        // Departures first: what a departure showed the members comes before what the deadlines after it show.
+        await ProjectDeparturesAsync(round, token).ConfigureAwait(false);
         var scan = await round.SubmitAsync(new ScanPvpDeadlinesCommand(), token).ConfigureAwait(false);
         foreach (var room in scan.DueRooms)
             await round.ItemAsync(new AdvancePvpRoomCommand(room), "advance", token).ConfigureAwait(false);
@@ -142,8 +201,15 @@ internal sealed class PvpBattleDeadlineSource : PvpDeadlineSource
     /// </summary>
     public override async ValueTask ShutdownAsync(PvpDeadlineRound round, CancellationToken token)
     {
+        await ProjectDeparturesAsync(round, token).ConfigureAwait(false);
         await round.ItemAsync(new CancelPvpBattlesForShutdownCommand(), "cancel", token).ConfigureAwait(false);
         foreach (var match in await round.SubmitAsync(new ListPendingPvpSettlementsCommand(), token).ConfigureAwait(false))
             await round.ItemAsync(new SettlePvpMatchCommand(match), "settle", token).ConfigureAwait(false);
+    }
+
+    private static async ValueTask ProjectDeparturesAsync(PvpDeadlineRound round, CancellationToken token)
+    {
+        foreach (var entry in await round.SubmitAsync(new CapturePvpDeparturesCommand(), token).ConfigureAwait(false))
+            await round.ItemAsync(new ProjectPvpDepartureCommand(entry), "departure", token).ConfigureAwait(false);
     }
 }

@@ -499,7 +499,10 @@ internal sealed class PvpRoomDomainService(
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AbandonSettlementAsync));
         var pending = Pending;
         if (pending.FindConclusion(match) is not { } conclusion) return ValueTask.FromResult<PvpRoomOutcome.Changed?>(null);
-        logger.LogError("Duel battle {Match} in room {Room} could not be settled since {SettleBy}; dropped unsettled, no record changed",
+        // Whether an earlier attempt wrote the results is not known here (its commit may have been uncertain); the store's
+        // once-per-battle rule keeps a later retry harmless either way, so the log claims only what this step does.
+        logger.LogError("Duel battle {Match} in room {Room} still unsettled since {SettleBy}; no longer retried, and its room, if still on its ranking, waits again. "
+            + "Check pvp_matches for it: an earlier attempt whose outcome was uncertain may have written it",
             match.Value, conclusion.RoomNumber, conclusion.SettleBy);
         pending.PutConclusion(match, null);
         if (pending.Find(conclusion.RoomId) is not { Snapshot: { Phase: PvpRoomPhase.AwaitRank, Match: { } current } } room

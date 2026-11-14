@@ -66,19 +66,52 @@ internal sealed class ScriptedPvpRooms : IPvpRoomDomainService
         LastPeerToken = peerToken;
         return Answer(nameof(AcceptInviteAsync));
     }
-    public ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome> ReportDeathAsync(SelectedSessionIdentity session, CharacterId? killer, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome> ReportTimeoutAsync(SelectedSessionIdentity session, ImmutableArray<byte> clientValues, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome> AcknowledgeRankAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome> AcknowledgeResultAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(ReportLoadedAsync));
+    public ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(ReportPeerLinkedAsync));
+    public ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(HeartbeatAsync));
+
+    /// <summary>The killer the last death report named.</summary>
+    public CharacterId? LastKiller { get; private set; }
+
+    /// <summary>What the last time-out report carried.</summary>
+    public ImmutableArray<byte> LastTimeOut { get; private set; }
+
+    public ValueTask<PvpRoomOutcome> ReportDeathAsync(SelectedSessionIdentity session, CharacterId? killer, CancellationToken cancellationToken)
+    {
+        LastKiller = killer;
+        return Answer(nameof(ReportDeathAsync));
+    }
+    public ValueTask<PvpRoomOutcome> ReportTimeoutAsync(SelectedSessionIdentity session, ImmutableArray<byte> clientValues, CancellationToken cancellationToken)
+    {
+        LastTimeOut = clientValues;
+        return Answer(nameof(ReportTimeoutAsync));
+    }
+    public ValueTask<PvpRoomOutcome> AcknowledgeRankAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(AcknowledgeRankAsync));
+    public ValueTask<PvpRoomOutcome> AcknowledgeResultAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(AcknowledgeResultAsync));
     public ValueTask<PvpRoomOutcome> DepartAsync(SelectedSessionIdentity session, PvpDepartureReason reason, CancellationToken cancellationToken) => throw new NotSupportedException();
     public PvpDeadlineScan Deadlines(DateTimeOffset now) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome.Changed?> AdvanceDueAsync(PvpRoomId room, DateTimeOffset now, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+    /// <summary>What the next deadline advance, settlement drop or shutdown cancel answers.</summary>
+    public PvpRoomOutcome.Changed? NextAdvance { get; set; }
+
+    public IReadOnlyList<PvpRoomOutcome.Changed> NextCancelled { get; set; } = [];
+
+    public ValueTask<PvpRoomOutcome.Changed?> AdvanceDueAsync(PvpRoomId room, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        Calls.Add(nameof(AdvanceDueAsync));
+        return ValueTask.FromResult(NextAdvance);
+    }
     public IReadOnlyList<PvpMatchConclusion> PendingConclusions() => throw new NotSupportedException();
-    public ValueTask<IReadOnlyList<PvpRoomOutcome.Changed>> CancelForShutdownAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<PvpRoomOutcome.Changed?> AbandonSettlementAsync(PvpMatchId match, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<IReadOnlyList<PvpRoomOutcome.Changed>> CancelForShutdownAsync(CancellationToken cancellationToken)
+    {
+        Calls.Add(nameof(CancelForShutdownAsync));
+        return ValueTask.FromResult(NextCancelled);
+    }
+    public ValueTask<PvpRoomOutcome.Changed?> AbandonSettlementAsync(PvpMatchId match, CancellationToken cancellationToken)
+    {
+        Calls.Add(nameof(AbandonSettlementAsync));
+        return ValueTask.FromResult(NextAdvance);
+    }
 }
 
 /// <summary>Town moves already made, with nothing to show for them.</summary>

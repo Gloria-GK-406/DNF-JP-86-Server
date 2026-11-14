@@ -92,8 +92,16 @@ public static class PvpRoomLobbyFrames
 /// Called only after the write unit that made the change has returned, so <see cref="IPvpTownMoves"/> is
 /// filled in and every snapshot it reads is the committed one; it never asks the room owner again. Frame
 /// orders follow design-r1 §4 a and upstream <c>PvpRoomHandler</c> (make, enter, seat, ready, start).
-/// TASK-07 reuses <see cref="ProjectAsync"/> for the rooms its deadline, departure and settlement steps change:
-/// a battle going back to waiting and a room ended by its last member's departure project as here.
+/// The battle projection reuses <see cref="ProjectAsync"/> for the rooms its deadline, departure and settlement steps
+/// change: a battle going back to waiting and a room ended by its last member's departure project as here.
+/// <para>
+/// Seats emptied while a battle runs (Spec RQ-035, upstream <c>PvpRoomHandler.Departures</c>): a member's client keeps
+/// its battle actors until it leaves the result screen, so the room's members are not shown them then. The lobby is
+/// told at once; each member is noted in <c>deferrals</c> as owed the room's seats, and is shown them,
+/// as the room then stands, when its own <c>0x0039</c> is accepted, when the next battle starts, or when it leaves
+/// the room. A member whose session ended, or whose room is gone, is owed nothing any more. Without
+/// <c>deferrals</c> (the party commands' room entry) nothing is owed.
+/// </para>
 /// </remarks>
 internal sealed class PvpRoomProjector(
     ISelectedSessionDomainService sessions,
@@ -108,7 +116,8 @@ internal sealed class PvpRoomProjector(
     IWeaknessDomainService weakness,
     ICommandProjections projections,
     IGameCommandOutbox outbox,
-    ILogger logger)
+    ILogger logger,
+    IPvpResultScreenDeferralDomainService? deferrals = null)
 {
     /// <summary>USER_STATE of a character in a duel room (upstream <c>PvpUserState</c>).</summary>
     public const byte InRoomUserState = 0x02;
@@ -211,6 +220,9 @@ internal sealed class PvpRoomProjector(
         var match = room.Match ?? throw new InvalidOperationException("A started duel room has a battle.");
         var state = PvpRoomStateMessage.Of(PvpRoomLobbyView.Of(room));
         var members = room.Members.Select(x => x.Member.Session).ToArray();
+        // A new battle settles what the last one still owed its members, the room as it waited.
+        foreach (var member in members)
+            await ReleaseAsync(member, change.Before, cancellationToken).ConfigureAwait(false);
         await BroadcastAsync(members,
             [new PvpReadyStateMessage(room.OwnerSeat, true), new StartPvpMessage(checked((byte)match.Map), (byte)room.Mode), state],
             cancellationToken).ConfigureAwait(false);
@@ -241,14 +253,53 @@ internal sealed class PvpRoomProjector(
         // to town, and only then is told the room's change.
         var returning = change.Released.Where(x => x.Reason != PvpSeatReleaseReason.Departed).Select(x => x.Session).ToArray();
         var roomFrames = PvpRoomLobbyFrames.For(change.Before, change.After);
+        // A seat emptied while the room still holds a battle is owed to its members, not shown to them now.
+        SelectedSessionIdentity[] owed = deferrals is not null && change.Released.Count > 0
+            && change.After is { Phase: not PvpRoomPhase.Waiting } fighting
+            // A member who already closed its result screen has left the battle's actors behind: it is shown the seat now.
+            ? [.. fighting.Members.Select(x => x.Member.Session).Where(member => fighting.Match?.FighterOf(member) is not { } index
+                || !fighting.Match.Fighters[index].Reports.HasFlag(PvpFighterReports.ResultAcknowledged))]
+            : [];
+        foreach (var member in owed) deferrals!.Defer(member, change.After!.Id);
         List<IGameServerMessage> lobbyFrames = [];
         lobbyFrames.AddRange(returning.Select(x => (IGameServerMessage)new UserStateNotification(x.WireUserId, InTownUserState)));
         lobbyFrames.AddRange(roomFrames);
         if (lobbyFrames.Count > 0)
-            await BroadcastAsync(Listener(anchor.ListenerPort, except: returning), lobbyFrames, cancellationToken).ConfigureAwait(false);
+            await BroadcastAsync(Listener(anchor.ListenerPort, except: [.. returning, .. owed]), lobbyFrames, cancellationToken)
+                .ConfigureAwait(false);
         await ReturnToTownAsync(change, cancellationToken).ConfigureAwait(false);
         if (returning.Length > 0)
             await BroadcastAsync(returning, roomFrames, cancellationToken).ConfigureAwait(false);
+        if (deferrals is null) return;
+        // Leaving the room settles what it owed: one sent back to the lobby is shown the room as it now stands there,
+        // one whose session ended is owed nothing.
+        foreach (var released in change.Released)
+            await ReleaseAsync(released.Session, released.Reason == PvpSeatReleaseReason.Departed ? null : change.After,
+                cancellationToken).ConfigureAwait(false);
+        if (change is { After: null, Before: { } gone }) deferrals.DropRoom(gone.Id);
+    }
+
+    /// <summary>
+    /// Settles what <paramref name="member"/> is owed of the room's seats: every seat and the room's state, as
+    /// <paramref name="room"/> stands, when that is the room it is owed (upstream <c>FlushDeferredPvpDeparturesAsync</c>).
+    /// A debt of another room, or with no room to show, is dropped.
+    /// </summary>
+    public async ValueTask ReleaseAsync(SelectedSessionIdentity member, PvpRoomSnapshot? room, CancellationToken cancellationToken)
+    {
+        if (deferrals?.Release(member) is not { } owing || room is null || room.Id != owing) return;
+        await BroadcastAsync([member], ReleaseFrames(room), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>All eight seats in one <c>0x002B</c>, then the room's <c>0x002A</c>.</summary>
+    public static IReadOnlyList<IGameServerMessage> ReleaseFrames(PvpRoomSnapshot room)
+    {
+        var view = PvpRoomLobbyView.Of(room);
+        return
+        [
+            new PvpSeatStateMessage(view.RoomNumber, view.BattleMode,
+                [.. Enumerable.Range(0, PvpRoomSnapshot.SeatCount).Select(seat => (seat, view.Seats[seat]))]),
+            PvpRoomStateMessage.Of(view),
+        ];
     }
 
     private async ValueTask DepartTownAsync(PvpRoomOutcome.Changed change, CancellationToken cancellationToken)

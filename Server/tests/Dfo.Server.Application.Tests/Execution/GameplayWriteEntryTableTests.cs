@@ -122,6 +122,8 @@ public sealed class GameplayWriteEntryTableTests
         typeof(PartyClientIdRegistry),
         typeof(BossTowerDepartureProjectionQueue),
         typeof(IllusionTowerDepartureProjectionQueue),
+        typeof(Dfo.Server.Protocol.Game.PvpBattle.PvpDepartureProjectionQueue),
+        typeof(Dfo.Server.Protocol.Game.PvpBattle.PvpResultScreenDeferrals),
         typeof(GameJoustBetCommandHandler),
     ];
 
@@ -570,6 +572,15 @@ public sealed class GameplayWriteEntryTableTests
         ["TowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
         ["TowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
         ["TowerDepartureProjectionQueue.DepartedAsync(TowerActionResult, CancellationToken)"] = W,
+        // PvpDepartureProjectionQueue
+        ["PvpDepartureProjectionQueue.DepartedAsync(Changed, PvpSettlementOutcome, CancellationToken)"] = W,
+        ["PvpDepartureProjectionQueue.SnapshotPending()"] = R,
+        ["PvpDepartureProjectionQueue.TryClaim(PvpDepartureEntryId, PvpCommittedDeparture&)"] = W,
+        // PvpResultScreenDeferrals
+        ["PvpResultScreenDeferrals.Defer(SelectedSessionIdentity, PvpRoomId)"] = W,
+        ["PvpResultScreenDeferrals.DropRoom(PvpRoomId)"] = W,
+        ["PvpResultScreenDeferrals.Owes(SelectedSessionIdentity, PvpRoomId)"] = R,
+        ["PvpResultScreenDeferrals.Release(SelectedSessionIdentity)"] = W,
 
         ["GameJoustBetCommandHandler.HandleAsync(CommandExecutionContext, GameJoustBetCommand, CancellationToken)"] = W,
     };

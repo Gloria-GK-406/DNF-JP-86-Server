@@ -18,6 +18,7 @@ internal static class PvpRegistration
         services.TryAddSingleton<IPvpRoomRuleService, PvpRoomRuleService>();
         services.TryAddSingleton<IPvpStartupVerification, PvpStartupVerification>();
         services.TryAddSingleton<IPvpSettlementDomainService, PvpSettlementDomainService>();
+        services.TryAddSingleton<IPvpRecordDomainService, PvpRecordDomainService>();
         // Published with no subscriber in the first phase; the fact is kept for whoever subscribes later.
         services.AddDomainEvent<PvpMatchSettled>("pvp.match-settled", 1);
         services.AddPvpDeadlineScheduler();

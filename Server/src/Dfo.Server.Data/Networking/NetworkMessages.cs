@@ -321,6 +321,15 @@ public enum ClientMessageType
     GameSetPvpReadyState = 0x0001_0035,
     GameSetPvpTeamMode = 0x0001_0036,
     GameSetPvpMapIndex = 0x0001_003B,
+
+    // A duel battle's reports, from loading to closing the result screen. See Game/PvpBattle.
+    GameCompleteLoadPvp = 0x0001_012A,
+    GameConnectP2pPvp = 0x0001_012B,
+    GamePvpHeartbeat = 0x0001_006E,
+    GameDiePvpCharacter = 0x0001_0037,
+    GamePvpTimeOut = 0x0001_0038,
+    GamePvpRankResponse = 0x0001_003A,
+    GameEndPvpResult = 0x0001_0039,
 }
 
 public enum ServerMessageType
@@ -670,6 +679,12 @@ public enum ServerMessageType
     GamePvpSeatState = 0x0000_002B,
     GamePvpReadyState = 0x0000_002C,
     GameStartPvp = 0x0000_002D,
+
+    // What a duel battle shows its fighters: deaths, the ranking, the results and the record. See Game/PvpBattle.
+    GameDiePvpCharacter = 0x0000_002E,
+    GameRequestPvpRank = 0x0000_0031,
+    GameEndPvp = 0x0000_002F,
+    GamePvpRecord = 0x0000_0030,
 }
 
 public interface IClientNetworkMessage

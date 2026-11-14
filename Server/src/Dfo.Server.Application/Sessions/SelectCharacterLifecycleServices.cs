@@ -310,6 +310,11 @@ internal sealed class SelectedSessionCleanupService(
     /// battle nobody is left to acknowledge is then settled in a step of its own; a failed settlement is left to the
     /// deadline scheduler, which the departure already made it due for. Inside a caller's transaction (a replacing
     /// selection) only the departure joins it, and the scheduler settles right after that commit.
+    /// <para>
+    /// Once the departure has committed it is handed to every sink whatever the settlement did: a settlement whose
+    /// outcome is unknown hands it over as none, and is thrown afterwards. Each sink is on its own, so one that
+    /// fails neither keeps the others from the departure nor hides the settlement's own failure.
+    /// </para>
     /// </remarks>
     private async ValueTask DepartRoomAsync(SelectedSessionIdentity session)
     {
@@ -328,6 +333,7 @@ internal sealed class SelectedSessionCleanupService(
             session, PvpDepartureReason.Disconnected, CancellationToken.None).ConfigureAwait(false) as PvpRoomOutcome.Changed);
         if (departure is null) return;
         PvpSettlementOutcome? settled = null;
+        Exception? unsettled = null;
         if (departure.SettlementDue is { } match)
         {
             try
@@ -338,12 +344,36 @@ internal sealed class SelectedSessionCleanupService(
             catch (Exception error) when (error is not OperationCanceledException
                 && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
             {
+                settled = null;
                 logger.LogWarning(error, "Duel battle {Match} could not be settled when character {Character} left; the deadline scheduler retries it",
                     match.Value, session.CharacterId.Value);
             }
+            catch (Exception error)
+            {
+                // Whether it committed is unknown: the departure goes out as unsettled, and the scheduler finds the
+                // battle settled or still waiting.
+                settled = null;
+                unsettled = error;
+            }
         }
+
+        var failures = new List<Exception>();
         foreach (var sink in pvpDepartures)
-            await sink.DepartedAsync(departure, settled, CancellationToken.None).ConfigureAwait(false);
+        {
+            try
+            {
+                await sink.DepartedAsync(departure, settled, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                logger.LogError(error, "Duel departure sink {Sink} failed for character {Character}", sink.GetType().Name,
+                    session.CharacterId.Value);
+                failures.Add(error);
+            }
+        }
+        if (unsettled is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(unsettled);
+        if (failures.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(failures[0]);
+        if (failures.Count > 1) throw new AggregateException(failures);
     }
 
     /// <summary>The leaver's friends in the world, with its name, or nothing when there is nobody to tell.</summary>

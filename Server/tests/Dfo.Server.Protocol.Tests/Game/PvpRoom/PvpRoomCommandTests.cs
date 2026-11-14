@@ -427,13 +427,15 @@ public sealed class PvpRoomCommandTests
 
         public ITownAreaDomainService? Town { get; set; }
 
+        public Dfo.Server.Protocol.Game.PvpBattle.PvpResultScreenDeferrals Deferrals { get; } = new();
+
         internal GamePvpRoomCommandHandler Handler() => new(Sessions, Rooms, Lobby, Views,
             DefaultAnswers.Create<IOnlineCharacterRuntimeDomainService>(), ProtocolAlgorithmFixture.NoOnline(),
             DefaultAnswers.Create<IGameSessionEndpointDomainService>(), Town ?? ProtocolAlgorithmFixture.Default<ITownAreaDomainService>(),
             ProtocolAlgorithmFixture.Default<IPartyService>(), ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),
             ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
             (Dfo.Server.Abstractions.DomainEvents.ICommandProjections?)Timeline ?? Projections, (IGameCommandOutbox?)Timeline ?? Outbox,
-            NullLogger<GamePvpRoomCommandHandler>.Instance);
+            Deferrals, NullLogger<GamePvpRoomCommandHandler>.Instance);
 
         public async Task<bool> SendAsync<TCommand>(TCommand command) where TCommand : class, IProtocolCommand<bool>
         {

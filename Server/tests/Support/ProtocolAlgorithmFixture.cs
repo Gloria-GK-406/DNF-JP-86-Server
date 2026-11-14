@@ -193,6 +193,7 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(Dfo.Server.Abstractions.Inventory.IEpicBookDomainService)) return new NoEpicPieces();
         if (type == typeof(IWeaknessDomainService)) return new NoWeakness();
         if (type == typeof(ICommandWorkUnits)) return new Units();
+        if (type == typeof(Dfo.Server.Abstractions.Pvp.IPvpRecordDomainService)) return new UntouchedPvpRecord();
         if (type == typeof(ILogger)) return NullLogger.Instance;
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ILogger<>))
             return typeof(NullLogger<>).MakeGenericType(type.GenericTypeArguments).GetField("Instance")!.GetValue(null)!;
@@ -225,6 +226,12 @@ internal static class ProtocolAlgorithmFixture
         public void ScheduleAfterSettlement(SelectedSessionIdentity session, DungeonRunId run) => Calls.Add(("settled", session.CharacterId, run));
         public void ScheduleAutoFlip(SelectedSessionIdentity session, DungeonRunId run) => Calls.Add(("auto", session.CharacterId, run));
         public void Cancel(Dfo.Server.Data.Characters.CharacterId character, DungeonRunId run) => Calls.Add(("cancel", character, run));
+    }
+    /// <summary>A duel record no battle has touched: grade 0 at its lower bound.</summary>
+    internal sealed class UntouchedPvpRecord : Dfo.Server.Abstractions.Pvp.IPvpRecordDomainService
+    {
+        public ValueTask<Dfo.Server.Abstractions.Pvp.PvpRecordView> ViewAsync(Dfo.Server.Data.Characters.CharacterId character,
+            CancellationToken cancellationToken) => ValueTask.FromResult(new Dfo.Server.Abstractions.Pvp.PvpRecordView(0, 0, 0, 0, 100, 0, 0));
     }
     private sealed class NoUsers : IOnlineUserQueryDomainService
     {

@@ -687,8 +687,97 @@ public sealed class PvpBattleDomainTests
         Assert.Null(await f.Commit(rooms => rooms.AbandonSettlementAsync(conclusion.MatchId, default)));
     }
 
+    [Fact]
+    public async Task A_departure_whose_settlement_outcome_is_unknown_still_reaches_every_sink_and_the_failure_is_kept()
+    {
+        var scope = TestRequired.TransactionScope();
+        var f = new PvpRoomFixture(scope) { DuelChannel = Ranked };
+        var (_, fighters) = await f.FightAsync();
+        await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default));
+        await f.Commit(rooms => rooms.AcknowledgeRankAsync(fighters[1], default));
+        var failing = new FailingSink();
+        var sink = new RecordingSink();
+        var cleanup = Cleanup(f, scope, [failing, sink], new UncertainSettlement(f.Settlement));
+
+        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(() => TestGameplay.RunAsync(async () =>
+            await TestEffectFootprints.Run(fighters[0], async footprint =>
+                await cleanup.CleanupAsync(fighters[0], includeOwner: false, footprint, CancellationToken.None))));
+
+        // The departure committed: it reaches the sink after the failing one, as unsettled.
+        var (departure, settled) = Assert.Single(sink.Received);
+        Assert.Equal(PvpRoomChangeKind.Departed, departure.Kind);
+        Assert.Null(settled);
+        Assert.Equal(1, failing.Calls);
+        Assert.Contains(failure.InnerExceptions, error => Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error));
+    }
+
+    [Fact]
+    public async Task A_failing_sink_keeps_no_other_sink_from_the_departure()
+    {
+        var scope = TestRequired.TransactionScope();
+        var f = new PvpRoomFixture(scope) { DuelChannel = Ranked };
+        var (_, fighters) = await f.FightAsync();
+        var failing = new FailingSink();
+        var sink = new RecordingSink();
+        var cleanup = Cleanup(f, scope, [failing, sink]);
+
+        var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(() => TestGameplay.RunAsync(async () =>
+            await TestEffectFootprints.Run(fighters[1], async footprint =>
+                await cleanup.CleanupAsync(fighters[1], includeOwner: false, footprint, CancellationToken.None))));
+
+        Assert.Single(sink.Received);
+        Assert.Contains(failure.InnerExceptions, error => error is InvalidOperationException { Message: FailingSink.Failure });
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task The_departure_queue_holds_a_cleanup_departure_only_once_its_transaction_commits(bool commits)
+    {
+        var scope = TestRequired.TransactionScope();
+        var f = new PvpRoomFixture(scope) { DuelChannel = Ranked };
+        var (_, fighters) = await f.FightAsync();
+        var wake = new CountingWake();
+        var queue = new Dfo.Server.Protocol.Game.PvpBattle.PvpDepartureProjectionQueue(wake);
+        var cleanup = Cleanup(f, scope, [queue]);
+
+        var pending = await TestGameplay.RunAsync(async () =>
+        {
+            await using (var lease = scope.Begin())
+            {
+                await TestEffectFootprints.Run(fighters[1], async footprint =>
+                    await cleanup.CleanupAsync(fighters[1], includeOwner: false, footprint, CancellationToken.None));
+                Assert.Empty(queue.SnapshotPending());
+                if (commits) await lease.CommitAsync(default);
+            }
+            return queue.SnapshotPending();
+        });
+
+        Assert.Equal(commits ? 1 : 0, pending.Length);
+        Assert.Equal(commits ? 1 : 0, wake.Count);
+    }
+
+    [Fact]
+    public async Task A_record_without_experience_is_shown_at_its_grade_lower_bound()
+    {
+        var f = new PvpRoomFixture();
+        var character = new CharacterId(77);
+        f.Records.Records[character] = new PvpRecord(2, 1, null, 4, 3, 0, 0, 0);
+
+        var view = await new PvpRecordDomainService(f.Records, f.BattleRules).ViewAsync(character, default);
+
+        Assert.Equal(new PvpRecordView(2, 1, f.BattleRules.LowerBound(2), f.BattleRules.LowerBound(2), f.BattleRules.UpperBound(2), 4, 3), view);
+        f.Records.Records[character] = new PvpRecord(2, 1, f.BattleRules.LowerBound(2) + 7, 4, 3, 0, 0, 0);
+        Assert.Equal(f.BattleRules.LowerBound(2) + 7, (await new PvpRecordDomainService(f.Records, f.BattleRules).ViewAsync(character, default)).Experience);
+    }
+
     private static SelectedSessionCleanupService Cleanup(
-        PvpRoomFixture f, Dfo.Server.Application.Transactions.DomainTransactionScope scope, IPvpRoomDepartureSink sink)
+        PvpRoomFixture f, Dfo.Server.Application.Transactions.DomainTransactionScope scope, IPvpRoomDepartureSink sink) =>
+        Cleanup(f, scope, [sink]);
+
+    private static SelectedSessionCleanupService Cleanup(
+        PvpRoomFixture f, Dfo.Server.Application.Transactions.DomainTransactionScope scope, IPvpRoomDepartureSink[] sinks,
+        IPvpSettlementDomainService? settlement = null)
     {
         var presence = new SessionPresenceDomainService();
         var parties = TestParties.Create(presence);
@@ -704,8 +793,40 @@ public sealed class PvpBattleDomainTests
             bossTowerDepartures: [],
             conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(),
             relations: new TestCharacterRelations(), identities: new TestCharacterRelations(),
-            pvpRooms: f.Rooms, pvpSettlement: f.Settlement, pvpDepartures: [sink],
+            pvpRooms: f.Rooms, pvpSettlement: settlement ?? f.Settlement, pvpDepartures: sinks,
             logger: NullLogger<SelectedSessionCleanupService>.Instance);
+    }
+
+    private sealed class FailingSink : IPvpRoomDepartureSink
+    {
+        public const string Failure = "The departure sink failed.";
+
+        public int Calls { get; private set; }
+
+        public ValueTask DepartedAsync(PvpRoomOutcome.Changed departure, PvpSettlementOutcome? settled, CancellationToken cancellationToken)
+        {
+            Calls++;
+            throw new InvalidOperationException(Failure);
+        }
+    }
+
+    /// <summary>Settles for real, then reports the outcome as unknown, as a commit whose acknowledgement was lost would.</summary>
+    private sealed class UncertainSettlement(IPvpSettlementDomainService inner) : IPvpSettlementDomainService
+    {
+        public async ValueTask<PvpSettlementOutcome> SettleAsync(PvpMatchId match, CancellationToken cancellationToken)
+        {
+            await inner.SettleAsync(match, cancellationToken);
+            throw new Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException(
+                Dfo.Server.Abstractions.Transactions.TransactionUncertaintyReason.PostCommitPublicationFailure,
+                "The settlement's commit was not acknowledged.", new IOException("lost"));
+        }
+    }
+
+    private sealed class CountingWake : IPvpDeadlineWake
+    {
+        public int Count { get; private set; }
+
+        public void Wake() => Count++;
     }
 
     private sealed class RecordingSink : IPvpRoomDepartureSink

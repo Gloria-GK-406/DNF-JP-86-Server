@@ -97,6 +97,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly ICharacterRelationQueryDomainService relations;
     private readonly ICharacterIdentityQueryDomainService identities;
     private readonly AntonRaidSquadProjection raidSquads;
+    private readonly Dfo.Server.Abstractions.Pvp.IPvpRecordDomainService pvpRecords;
     public GameSelectCharacterCommandHandler(IOnlineUserQueryDomainService users, IChannelEntryDomainService channels,
         ISelectedCharacterStateMessageFactory stateMessages, ISelectedSessionDomainService selectedSessions,
         IGameCommandOutbox outbox, ICommandProjections projections, ICommandConnectionClosures closures,
@@ -112,7 +113,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         ISaoTowerDomainService sao, IEnumerable<OnlineTicketRefillRegistration> ticketRefills,
         IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins,
         ICharacterRelationQueryDomainService relations, ICharacterIdentityQueryDomainService identities,
-        AntonRaidSquadProjection raidSquads)
+        AntonRaidSquadProjection raidSquads,
+        Dfo.Server.Abstractions.Pvp.IPvpRecordDomainService pvpRecords)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -128,6 +130,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.ruins = ruins;
         this.relations = relations; this.identities = identities;
         this.raidSquads = raidSquads;
+        this.pvpRecords = pvpRecords;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -298,7 +301,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         CancellationToken cancellationToken)
     {
         var friends = await ReadRelationsAsync(execution, session, cancellationToken).ConfigureAwait(false);
-        var messages = stateMessages.CreateValidated(prepared, friends);
+        var messages = WithPvpRecord(stateMessages.CreateValidated(prepared, friends),
+            await ReadPvpRecordAsync(execution, session, cancellationToken).ConfigureAwait(false));
         ValidateSupplementalMessages(BuildPrePublicationMessages(session, prepared));
         ValidateSupplementalMessages(
             [new TrailingEquipmentLockSnapshotMessage(
@@ -794,6 +798,26 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await outbox.RegisterNotiAsync(session.ConnectionId, message, ct).ConfigureAwait(false);
         }
     }
+    /// <summary>The character's own duel record, which every channel's entry carries (Spec RQ-055).</summary>
+    private ValueTask<Dfo.Server.Abstractions.Pvp.PvpRecordView> ReadPvpRecordAsync(CommandExecutionContext execution,
+        SelectedSessionIdentity session, CancellationToken ct) =>
+        units.ReadOnlyAsync(execution, new("ReadSelectedCharacterPvpRecord", []),
+            token => pvpRecords.ViewAsync(session.CharacterId, token), ct);
+
+    /// <summary>
+    /// NOTI <c>0x0030</c> right after HOTKEY_OPTION, as upstream <c>NewCharacterInitSequence</c> places it (after both
+    /// USERINFO0 and the hotkeys): without it the client's grade bar reads 0/0. Every channel gets it, a duel lobby or not.
+    /// </summary>
+    internal static IReadOnlyList<IGameServerMessage> WithPvpRecord(
+        IReadOnlyList<IGameServerMessage> messages, Dfo.Server.Abstractions.Pvp.PvpRecordView record)
+    {
+        // A batch without the hotkeys (only a test's factory makes one) carries the record last.
+        var after = messages.Count;
+        for (var index = 0; index < messages.Count; index++)
+            if (messages[index] is HotkeyStateMessage) after = index + 1;
+        return [.. messages.Take(after), new Dfo.Server.Protocol.Game.PvpBattle.PvpRecordMessage(record), .. messages.Skip(after)];
+    }
+
     // The entry batch carries the real friend list and the blacklist behind it (RQ-038). Read here,
     // after preparation committed and before the batch is composed, in a read-only unit of its own:
     // every friend's channel is where that friend is at this moment.

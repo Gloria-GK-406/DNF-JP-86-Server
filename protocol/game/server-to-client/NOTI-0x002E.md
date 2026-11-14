@@ -52,3 +52,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-14 决斗场一期实现（TASK-07，CurrentImplementation，待实机）
+
+2 字节：`u8 死者座位, u8 击杀者座位`，无击杀者为 0xFF（上游 `BuildDeathBody`；机器区下界 2 字节一致，High）。
+发给房内仍在座的成员：`0x0037` 死亡；Fighting 中离场（断线、回选角、被替换）与心跳超时的战斗者按"阵亡、无击杀者"各发一条
+`(座位, 0xFF)`（上游 `OnSessionEndingAsync` 的 combatPackets）。终局时紧接 NOTI `0x0031`。
+
+实机前不标 ClientVerified；无 `.hex` 样本，布局来自上游转录与静态走图，字节由编码/解码测试固定。
