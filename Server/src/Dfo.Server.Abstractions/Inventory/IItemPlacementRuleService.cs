@@ -38,6 +38,18 @@ public interface IItemPlacementRuleService
     ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Whether this item may sit in that worn slot for some wearer: the slot its archive entry
+    /// names, or the second-weapon slot for a weapon that declares a sub type.
+    /// </summary>
+    /// <remarks>
+    /// What a stored row may hold, not whether this character may put it there. A weapon in the
+    /// second-weapon slot is legal storage for every character; only a career that carries one can
+    /// move it there (<see cref="IEquipmentWearDomainService.MayWearAsSupportWeaponAsync"/>).
+    /// </remarks>
+    async ValueTask<bool> MayOccupyWornSlotAsync(int itemId, BusinessSlot slot, CancellationToken cancellationToken) =>
+        await WornSlotForAsync(itemId, cancellationToken).ConfigureAwait(false) == slot;
+
+    /// <summary>
     /// What sort of thing this template is: a pile, or an individual piece of one of three kinds.
     /// </summary>
     /// <remarks>

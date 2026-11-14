@@ -36,7 +36,7 @@ public sealed partial class ContentWarmupTests
         "item-socket-index", "item-usage-index", "item-use-index", "mail-item-index", "npc-shop-index", "recipe-index",
         "stackable-action-index", "teleport-consumable-index", "tutorial-rewards", "lucky-star-rental",
         "equipment-slot-index", "hell-dungeons", "lost-land-drops", "lost-land-consumable-index",
-        "equipment-growth", "equipment-emancipate-index", "auction-item-index",
+        "equipment-growth", "equipment-emancipate-index", "auction-item-index", "character-support-weapons",
     ];
 
     /// <summary>
@@ -100,6 +100,7 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfExperienceItemDefinitionSource")] = Warmed<IExperienceItemDefinitionSource>(),
         [Infra("PvfHellDungeonDefinitionSource")] = Warmed<Abstractions.World.IHellDungeonDefinitionSource>(),
         [Infra("PvfInventorySortKeySource")] = Warmed<Abstractions.Inventory.IInventorySortKeySource>(),
+        [Infra("PvfCharacterSupportWeaponDefinitionSource")] = Warmed<ICharacterSupportWeaponDefinitionSource>(),
         [Infra("PvfItemSaleDefinitionSource")] = Warmed<IItemSaleDefinitionSource>(),
         [Infra("PvfItemSocketDefinitionSource")] = Warmed<IItemSocketDefinitionSource>(),
         [Infra("PvfItemUsageRuleSource")] = Warmed<IItemUsageRuleSource>(),

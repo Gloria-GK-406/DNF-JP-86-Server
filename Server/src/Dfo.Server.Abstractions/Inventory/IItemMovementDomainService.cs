@@ -46,6 +46,14 @@ public interface IItemMovementDomainService
     /// </summary>
     ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Whether this character may wear the item in that worn slot: the slot the item names for
+    /// itself, or the second-weapon slot when the character's career carries that weapon there.
+    /// </summary>
+    async ValueTask<bool> MayWearAtAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId,
+        BusinessSlot slot, CancellationToken cancellationToken) =>
+        await WornSlotForAsync(itemId, cancellationToken).ConfigureAwait(false) == slot;
+
     /// <summary>Whether this item may occupy that slot of that list.</summary>
     /// <remarks>
     /// Asked of a named list rather than of the main one. It was main-only while the main list was

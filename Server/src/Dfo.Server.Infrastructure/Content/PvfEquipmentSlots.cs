@@ -51,6 +51,12 @@ namespace Dfo.Server.Infrastructure.Content;
 /// </remarks>
 internal static class PvfEquipmentSlots
 {
+    /// <summary>The type a weapon template declares; a career with a second weapon also wears it in the support slot.</summary>
+    public const string WeaponTypeName = "[weapon]";
+
+    /// <summary>The type naming the second-weapon slot: a knight's shield, or a 流浪武士's second weapon.</summary>
+    public const string SupportWeaponTypeName = "[support weapon]";
+
     // PVF equipment names designate business positions. This table is deliberately independent
     // of the A21 equipment-list bytes and of legacy item_slots coordinates below.
     public static readonly IReadOnlyDictionary<string, BusinessSlot> BusinessByName =

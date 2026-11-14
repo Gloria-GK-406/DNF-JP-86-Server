@@ -51,6 +51,10 @@ internal sealed class ItemPlacementRuleService(
     public ValueTask<BusinessSlot?> WornSlotForAsync(int itemId, CancellationToken cancellationToken) =>
         equipmentSlots.GetAsync(itemId, cancellationToken);
 
+    public async ValueTask<bool> MayOccupyWornSlotAsync(int itemId, BusinessSlot slot, CancellationToken cancellationToken) =>
+        await equipmentSlots.GetAsync(itemId, cancellationToken).ConfigureAwait(false) == slot
+        || (await equipmentSlots.GetSupportWeaponAsync(itemId, cancellationToken).ConfigureAwait(false))?.Slot == slot;
+
     /// <summary>
     /// The single place a thing is classified.
     /// </summary>

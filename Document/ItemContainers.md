@@ -80,6 +80,12 @@ Main 与 SharedMaterial 不切换。实现及实机边界见 [两塔快捷栏](T
   [装扮栏条目](avatar-container-entry-shape.md)。
 - `PvfEquipmentSlots.BusinessByName` 是业务位置，`ByName` 是兼容槽号；不要把它们与 SQLite
   物理槽号混用。具体边界与未实机确认的宠物／神器偏移见 [槽位坐标边界](inventory-slot-coordinate-boundaries.md)。
+- 副武器槽（wire Equipment24，业务 `WornEquipment[12]`）是唯一可放两类模板的穿戴槽：
+  `[support weapon]`／`[earring]` 本身，以及角色转职 `[support weapon sub type]` 列出子类型的
+  `[weapon]`（修订版 PVF 只有流浪武士，光剑子类型 5）。容器写入只校验“此槽可容纳武器”
+  （`IItemPlacementRuleService.MayOccupyWornSlotAsync`），按转职判定在移动时由
+  `IItemMovementDomainService.MayWearAtAsync` 完成；装备栏内 12↔24 移动也走这条规则。
+  武器 `[sub type]` 按职业解读（5 对格斗家是拳套），只与穿戴者本职业的列表比较。
 - 时装名字对应业务装扮槽 0..10；槽 11 没有本档案模板声明的键。更换档案需重新检查，不能由上游枚举补猜。
   PVF `[equipment type]` 名字后面的数字不是可直接采用的穿戴槽号；槽号需协议／实机证据。
 - `GameMoveItemSpaceCommandHandler` 的日志包含模板、源／目标列表、槽号和拒绝状态。

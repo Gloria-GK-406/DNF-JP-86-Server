@@ -107,6 +107,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
         services.TryAddSingleton<ISkillRuleDefinitionSource, PvfSkillPointDefinitionSource>();
         services.TryAddSingleton<ICharacterStatDefinitionSource, PvfCharacterStatDefinitionSource>();
+        services.TryAddSingleton<ICharacterSupportWeaponDefinitionSource, PvfCharacterSupportWeaponDefinitionSource>();
         services.TryAddSingleton<IDailyActivityDefinitionSource, PvfDailyActivityDefinitionSource>();
         services.TryAddSingleton<ICreatureDefinitionSource, PvfCreatureDefinitionSource>();
         services.TryAddSingleton<ICreatureRuleSource, PvfCreatureRuleSource>();
@@ -260,6 +261,7 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<ITutorialRewardDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Rental.ILuckyStarRentalContentSource>()
         .AddContentWarmup<IEquipmentSlotDefinitionSource>()
+        .AddContentWarmup<ICharacterSupportWeaponDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IHellDungeonDefinitionSource>();
 
     /// <summary>

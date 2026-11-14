@@ -200,6 +200,17 @@ internal sealed class InventoryMoveDomainService(
                         .ConfigureAwait(false);
         }
 
+        if (sourceIsWorn && destinationIsWorn
+            && command.SourceSlot.Space == BusinessInventorySpace.WornEquipment
+            && command.DestinationSlot.Space == BusinessInventorySpace.WornEquipment)
+        {
+            var from = inventory.Find(command.CharacterId, command.SourceSlot);
+            var into = inventory.Find(command.CharacterId, command.DestinationSlot);
+            return from is null || into is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.NoBoundContainer)
+                : await this.RearrangeWornAsync(command, from, into, cancellationToken).ConfigureAwait(false);
+        }
+
         if (!sourceIsCarried || !destinationIsCarried)
             return ItemMoveResult.Refused(ItemMoveStatus.ListNotServed);
 
@@ -290,7 +301,10 @@ internal sealed class InventoryMoveDomainService(
     /// because nothing here judges it, and it is written up as a defect of its own
     /// (<c>Docs/CreatureDomainDesign.md</c>, and its own issue). A judgement was briefly added here
     /// once and taken out again: it reached that case too, and refusing it is a change to a path
-    /// this work was not about.
+    /// this work was not about. The second-weapon slot is the other such slot: it holds a
+    /// <c>[support weapon]</c> or, for a career that carries one, a <c>[weapon]</c>
+    /// (<see cref="IItemMovementDomainService.MayWearAtAsync"/>); either is displaced into the
+    /// bag's equipment band, which admits both.
     /// </para>
     /// </remarks>
     private async ValueTask<ItemMoveResult> PutOnAsync(
@@ -322,7 +336,8 @@ internal sealed class InventoryMoveDomainService(
             .ConfigureAwait(false);
         if (slot is null)
             return ItemMoveResult.Refused(ItemMoveStatus.NotWearable, piece.ItemId);
-        if (slot.Value != command.DestinationSlot)
+        if (!await moves.MayWearAtAsync(command.CharacterId, piece.ItemId, command.DestinationSlot, cancellationToken)
+                .ConfigureAwait(false))
             return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, piece.ItemId);
 
         if (!await moves.CanWearAsync(command.CharacterId, piece.ItemId, cancellationToken).ConfigureAwait(false))
@@ -505,12 +520,10 @@ internal sealed class InventoryMoveDomainService(
 
         if (displaced is not null)
         {
-            var displacedSlot = await moves
-                .WornSlotForAsync(displaced.ItemId, cancellationToken)
-                .ConfigureAwait(false);
             if (!await moves.CanWearAsync(command.CharacterId, displaced.ItemId, cancellationToken).ConfigureAwait(false))
                 return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot, displaced.ItemId);
-            if (displacedSlot != command.SourceSlot)
+            if (!await moves.MayWearAtAsync(command.CharacterId, displaced.ItemId, command.SourceSlot, cancellationToken)
+                    .ConfigureAwait(false))
                 return ItemMoveResult.Refused(
                     ItemMoveStatus.DisplacedCannotOccupySlot, piece.ItemId);
         }
@@ -531,6 +544,59 @@ internal sealed class InventoryMoveDomainService(
         await worn.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
 
         return new ItemMoveResult(ItemMoveStatus.Moved, OnePiece, piece.ItemId);
+    }
+
+    /// <summary>Moving a piece from one worn equipment slot to another, or swapping two.</summary>
+    /// <remarks>
+    /// The only piece with two legal worn slots is a weapon on a career that carries a second one
+    /// (#342), so in practice this is a 流浪武士 dragging between the main and second weapon.
+    /// Online, 2026-11-14: the A21 client sent equipment list 12 -> 24 for that drag. For any other
+    /// piece both ends cannot pass <see cref="IItemMovementDomainService.MayWearAtAsync"/>, which
+    /// is why this path needs no list of its own. Both pieces are already worn, so the level
+    /// requirement is not asked again.
+    /// </remarks>
+    private async ValueTask<ItemMoveResult> RearrangeWornAsync(
+        InventoryMoveRequest command,
+        BoundInventorySlot from,
+        BoundInventorySlot into,
+        CancellationToken cancellationToken)
+    {
+        if (from.Container.StorageId != into.Container.StorageId)
+            return ItemMoveResult.Refused(ItemMoveStatus.ListNotServed);
+        var moving = await from.Container.GetAsync(from.Slot.Index, cancellationToken).ConfigureAwait(false);
+        var displaced = await into.Container.GetAsync(into.Slot.Index, cancellationToken).ConfigureAwait(false);
+
+        if (AlreadyCarriedOut(command.SourceInstanceValue, moving, displaced))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, displaced!.ItemId);
+        if (AlreadyCarriedOut(command.DestinationInstanceValue, displaced, moving))
+            return ItemMoveResult.Refused(ItemMoveStatus.MoveAlreadyMade, moving!.ItemId);
+
+        if (moving is null)
+        {
+            return displaced is null
+                ? ItemMoveResult.Refused(ItemMoveStatus.BothSlotsEmpty)
+                : await this.RearrangeWornAsync(Reversed(command), into, from, cancellationToken)
+                    .ConfigureAwait(false);
+        }
+
+        if (moving.Snapshot.IsMirror || displaced?.Snapshot.IsMirror == true
+            || !await moves.MayWearAtAsync(command.CharacterId, moving.ItemId, into.Slot, cancellationToken)
+                .ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.ItemCannotOccupySlot, moving.ItemId);
+        if (displaced is not null
+            && !await moves.MayWearAtAsync(command.CharacterId, displaced.ItemId, from.Slot, cancellationToken)
+                .ConfigureAwait(false))
+            return ItemMoveResult.Refused(ItemMoveStatus.DisplacedCannotOccupySlot, displaced.ItemId);
+
+        var movedRecord = await from.Container.TakeAsync(moving, null, cancellationToken).ConfigureAwait(false);
+        var displacedRecord = displaced is null ? null
+            : await into.Container.TakeAsync(displaced, null, cancellationToken).ConfigureAwait(false);
+        await into.Container.PutAsync(into.Slot.Index, movedRecord, cancellationToken).ConfigureAwait(false);
+        if (displacedRecord is not null)
+            await from.Container.PutAsync(from.Slot.Index, displacedRecord, cancellationToken).ConfigureAwait(false);
+
+        await from.Container.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return new ItemMoveResult(ItemMoveStatus.Moved, OnePiece, moving.ItemId);
     }
 
     /// <summary>

@@ -144,6 +144,9 @@ public sealed class PremiumContractTests
         public Dfo.Server.Data.Inventory.ItemSnapshot UnsealForEquip(Dfo.Server.Data.Inventory.ItemSnapshot item) => item;
 
         public ValueTask<int?> MinimumLevelAsync(int itemId, CancellationToken cancellationToken) => ValueTask.FromResult<int?>(level);
+
+        public ValueTask<bool> MayCarryAsSupportWeaponAsync(Dfo.Server.Data.Characters.CharacterCareer career, int itemId,
+            Dfo.Server.Data.Inventory.BusinessSlot slot, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
     private sealed class Placement(ItemWorldClass kind) : IItemPlacementRuleService
     {

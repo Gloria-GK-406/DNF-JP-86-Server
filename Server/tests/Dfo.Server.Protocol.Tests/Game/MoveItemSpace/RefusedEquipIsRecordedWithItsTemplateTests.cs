@@ -442,11 +442,14 @@ public sealed class ArchiveContentFixture : IDisposable
         this.services = collection.BuildServiceProvider();
         this.Placements = this.services.GetRequiredService<IItemPlacementDefinitionSource>();
         this.EquipmentSlots = this.services.GetRequiredService<IEquipmentSlotDefinitionSource>();
+        this.SupportWeapons = this.services.GetRequiredService<ICharacterSupportWeaponDefinitionSource>();
     }
 
     public IItemPlacementDefinitionSource Placements { get; }
 
     public IEquipmentSlotDefinitionSource EquipmentSlots { get; }
+
+    public ICharacterSupportWeaponDefinitionSource SupportWeapons { get; }
 
     public void Dispose() => this.services.Dispose();
 
