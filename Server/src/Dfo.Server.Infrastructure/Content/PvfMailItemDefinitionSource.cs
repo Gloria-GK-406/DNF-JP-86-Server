@@ -70,7 +70,7 @@ internal sealed class PvfMailItemDefinitionSource(PvfArchiveProvider provider)
             return null;
 
         var document = PvfDocument.Open(archive, path);
-        var raw = document.TryRead(Fields.AttachTypeField, out var attachType) ? attachType : string.Empty;
+        var raw = document.TryRead(Fields.AttachTypeField, PvfItemFieldRepeats.For(Fields.AttachTypeField), out var attachType) ? attachType : string.Empty;
         int? tradeLimitMax = document.TryRead(Fields.TradeLimitMaxField, out var limit) ? limit : null;
         return new MailItemDefinition(AttachTypeOf(raw), raw, tradeLimitMax);
     }

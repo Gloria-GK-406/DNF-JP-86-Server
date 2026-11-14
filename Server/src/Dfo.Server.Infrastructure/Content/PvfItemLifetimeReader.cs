@@ -28,7 +28,7 @@ internal static class PvfItemLifetimeReader
             }
             else throw new InvalidDataException($"PVF '{path}': malformed [expiration date].");
         }
-        var days = document.TryRead(Period, out var period) ? period : 0;
+        var days = document.TryRead(Period, PvfItemFieldRepeats.For(Period), out var period) ? period : 0;
         var daily = document.TryRead(Daily, out var value) ? value : 0;
         if (days < 0 || daily is not (0 or 1)) throw new InvalidDataException($"PVF '{path}': invalid lifetime policy.");
         return new(absolute, days, daily == 1);

@@ -47,7 +47,7 @@ internal sealed class PvfTeleportConsumableDefinitionSource(PvfArchiveProvider p
             if (paths.TryGetValue(itemId, out var path))
             {
                 var document = PvfDocument.Open(archive, path).AtRoot();
-                if (document.TryRead(Fields.StackableType, out var type) && type.Count > 0
+                if (document.TryRead(Fields.StackableType, PvfItemFieldRepeats.For(Fields.StackableType), out var type) && type.Count > 0
                     && type[0].IsString && archive.ResolveString(type[0].Value) == "[teleport potion]")
                 {
                     // Only town-selection potion variant 0 is implemented.

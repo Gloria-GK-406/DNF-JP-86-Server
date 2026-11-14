@@ -29,7 +29,7 @@
 | 类 | 改动 | 依据 |
 |---|---|---|
 | 1 宠物消耗品误判 | 只有装备类型 `[creature]` 才是宠物；stackable 的 `[creature]`、`[feed]` 归宠物消耗品，按放置规则进消耗品区 | 70 `IsCreatureItem`，两套 C# 一致 |
-| 2 重复字段 | `PvfRepeatedFields`：`[attach type]`、`[stack limit]`、`[usable period]`、`[equipment type]`、`[stackable type]` 在顶层重复时取最后一次；其他字段照旧拒绝重复。`PvfDocument.TryRead` 和各自读顶层的读取器共用这一处 | ClientStatic Confirmed |
+| 2 重复字段 | `[attach type]`、`[stack limit]`、`[usable period]`、`[equipment type]`、`[stackable type]` 在顶层重复时取最后一次；其他字段照旧拒绝重复。`Dfo.Pvf` 只提供通用的重复策略 `PvfRepeats.LastWins`，哪些物品字段用它由 Infrastructure 的 `PvfItemFieldRepeats` 决定，各读取器读这五个字段时显式传入 | ClientStatic Confirmed |
 | 3 时装扩展字段 | 第一个数 → `AvatarTypeRow`，取该时装 `[avatar type select]` 那一行的期限（0 为永久），越界时用时装自己的期限；第二个数 → 时装属性。删除 10007316 的写死特判，三个武器礼盒改由 `UntradeableAvatarBoxes` 加交易锁（裁定 1） | 70 `getAvatarPeriod`；A21 窗口把第一个数当行下标 |
 | 4 服务类奖励 | `IServiceItemRewardRuleService`，商城礼包展开与开礼包共用：有背包使用入口的扩容券（金库、物品栏）当物品发，其余拒绝。补银质、黄金金库升级工具的容量（40、72） | 70 `IsSpecialItem` 表，PVF 说明 |
 | 5 职业池 | `[charactor] \`job\` A B N (id w cnt)*`；只为开启者的职业抽，没有对应职业的奖励时拒绝且不消费；A、B 只记录（裁定 3）；空池跳过 | ClientStatic 解析，两套 C# |

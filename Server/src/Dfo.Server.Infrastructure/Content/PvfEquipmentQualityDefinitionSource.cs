@@ -44,7 +44,7 @@ internal sealed class PvfEquipmentQualityDefinitionSource(PvfArchiveProvider pro
             if (paths.TryGetValue(itemId, out var path))
             {
                 var document = PvfDocument.Open(archive, path).AtRoot();
-                var values = document.Read(Type);
+                var values = document.Read(Type, PvfItemFieldRepeats.For(Type));
                 if (values.Count > 0 && values[0].IsString)
                 {
                     var type = archive.ResolveString(values[0].Value).Trim().Trim('[', ']');

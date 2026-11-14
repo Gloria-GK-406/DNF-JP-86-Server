@@ -48,7 +48,7 @@ internal sealed class PvfCargoItemDefinitionSource(PvfArchiveProvider provider) 
         PathsIndex(archive);
         if (!paths.TryGetValue(itemId, out var path)) return null;
         var document = PvfDocument.Open(archive, path);
-        var attach = document.TryRead(Attach, out var raw) ? Normalize(raw) : string.Empty;
+        var attach = document.TryRead(Attach, PvfItemFieldRepeats.For(Attach), out var raw) ? Normalize(raw) : string.Empty;
         var impossible = document.TryRead(Impossible, out var declarations)
             ? declarations.Select(Normalize).ToFrozenSet(StringComparer.Ordinal) : FrozenSet<string>.Empty;
         return new(attach, impossible);

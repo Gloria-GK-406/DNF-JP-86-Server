@@ -324,7 +324,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             if (matches.Length == 0) return null;
             try
             {
-                var effective = PvfRepeatedFields.Effective(matches, tag.Name) ?? throw new InvalidDataException($"Duplicate {tag.Name}.");
+                var effective = PvfSections.Single(matches, tag, PvfItemFieldRepeats.For(tag), path)!;
                 return tag.Decode(provider.Archive, effective.Values, path).ToLowerInvariant();
             }
             catch (InvalidDataException) { Error("MalformedItem", tag.Name); return null; }
@@ -333,7 +333,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         {
             var found = top.Where(section => tag.Matches(section.Name)).ToArray();
             if (found.Length == 0) return null;
-            var effective = PvfRepeatedFields.Effective(found, tag.Name);
+            var effective = found.Length > 1 && PvfItemFieldRepeats.For(tag) != PvfRepeats.LastWins ? null : found[^1];
             if (effective is null || effective.Values.Count == 0 || !effective.Values[0].IsString ||
                 effective.Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))
             { Error("MalformedItem", tag.Name); return null; }

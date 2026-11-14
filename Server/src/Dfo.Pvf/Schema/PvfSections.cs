@@ -9,6 +9,8 @@ public enum PvfRepeats
     Reject,
     /// <summary>The repeats contradict each other, so the field counts as undeclared.</summary>
     AsUndeclared,
+    /// <summary>Each declaration replaces the one before it; the last one is the field's value.</summary>
+    LastWins,
 }
 
 /// <summary>Single-field reads over a flat section list, with the repeat policy stated by the caller.</summary>
@@ -19,7 +21,8 @@ public static class PvfSections
         ArgumentNullException.ThrowIfNull(sections);
         ArgumentNullException.ThrowIfNull(field);
         if (!Enum.IsDefined(repeats)) throw new ArgumentOutOfRangeException(nameof(repeats));
-        var matches = sections.Where(section => field.Matches(section.Name)).Take(2).ToArray();
+        var matches = sections.Where(section => field.Matches(section.Name)).ToArray();
+        if (matches.Length > 1 && repeats == PvfRepeats.LastWins) return matches[^1];
         if (matches.Length > 1)
         {
             PvfField.Require(repeats != PvfRepeats.Reject, source, field.Name, "duplicate field");

@@ -281,8 +281,8 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             if (blocks.TryPeek(out var expected) && section.Name == expected) { blocks.Pop(); continue; }
             if (blocks.Count == 0 && field.Matches(section.Name))
             {
-                // A repeat of a client-assigned field takes the later declaration (PvfRepeatedFields).
-                var later = PvfRepeatedFields.LaterDeclarationWins(field.Name);
+                // A repeat of a client-assigned field takes the later declaration (PvfItemFieldRepeats).
+                var later = PvfItemFieldRepeats.For(field) == PvfRepeats.LastWins;
                 duplicate |= values is not null && !later;
                 if (values is null || later) { values = section.Values; firstRecord = section.FirstRecord; }
             }

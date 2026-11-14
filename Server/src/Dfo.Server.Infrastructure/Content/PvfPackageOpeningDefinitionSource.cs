@@ -180,7 +180,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         // Catalog purchase restrictions do not restrict rewards. Instance diagnostics still do.
         var sections = (PvfDocument.TryOpen(provider.Archive, item.Source, PvfPreamble.Ignore)?.Sections ?? []);
         var periods = sections.Where(s => s.Name == Fields.UsablePeriodField.Name).ToArray();
-        var periodSection = PvfRepeatedFields.Effective(periods, Fields.UsablePeriodField.Name);
+        var periodSection = PvfSections.Single(periods, Fields.UsablePeriodField, PvfItemFieldRepeats.For(Fields.UsablePeriodField), item.Source);
         var period = periods.Length == 0 ? 0 : periodSection is { Values.Count: 1 }
             && periodSection.Values[0].Kind == PvfTokenKind.Int32 ? periodSection.Values[0].Value : -1;
         var expirations = sections.Where(s => s.Name == Fields.ExpirationDateField.Name).ToArray();
@@ -293,8 +293,8 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         var fixedRewards = ImmutableArray.CreateBuilder<OpeningReward>();
         var pools = ImmutableArray.CreateBuilder<OpeningRewardPool>();
         var categories = new List<OpeningSelectionCategory>();
-        var typeSection = PvfRepeatedFields.Effective(
-            sections.Where(section => section.Name == Fields.StackableTypeField.Name).ToArray(), Fields.StackableTypeField.Name);
+        var typeSection = PvfSections.Single(sections, Fields.StackableTypeField,
+            PvfItemFieldRepeats.For(Fields.StackableTypeField), $"stackable {id}");
         if (typeSection is not null && (typeSection.Values.Count == 0 || !typeSection.Values[0].IsString ||
             typeSection.Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))) errors.Add("Invalid stackable type");
         var typeToken = typeSection?.Values.FirstOrDefault();
