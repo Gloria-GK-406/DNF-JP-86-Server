@@ -120,8 +120,8 @@ public sealed class PvfDocument
         RequireSection(field);
         var found = Sections.Where(section => field.Matches(section.Name)).ToArray();
         if (found.Length == 0) { value = default!; return false; }
-        PvfField.Require(found.Length == 1, source, field.Name, "duplicate field");
-        value = field.Decode(archive, found[0].Values, source);
+        PvfField.Require(found.Length == 1 || PvfRepeatedFields.LaterDeclarationWins(field.Name), source, field.Name, "duplicate field");
+        value = field.Decode(archive, found[^1].Values, source);
         return true;
     }
 

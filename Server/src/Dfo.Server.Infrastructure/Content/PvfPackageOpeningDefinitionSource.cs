@@ -180,8 +180,9 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         // Catalog purchase restrictions do not restrict rewards. Instance diagnostics still do.
         var sections = (PvfDocument.TryOpen(provider.Archive, item.Source, PvfPreamble.Ignore)?.Sections ?? []);
         var periods = sections.Where(s => s.Name == Fields.UsablePeriodField.Name).ToArray();
-        var period = periods.Length == 0 ? 0 : periods.Length == 1 && periods[0].Values.Count == 1
-            && periods[0].Values[0].Kind == PvfTokenKind.Int32 ? periods[0].Values[0].Value : -1;
+        var periodSection = PvfRepeatedFields.Effective(periods, Fields.UsablePeriodField.Name);
+        var period = periods.Length == 0 ? 0 : periodSection is { Values.Count: 1 }
+            && periodSection.Values[0].Kind == PvfTokenKind.Int32 ? periodSection.Values[0].Value : -1;
         var expirations = sections.Where(s => s.Name == Fields.ExpirationDateField.Name).ToArray();
         var expiration = 0;
         if (expirations.Length > 0)
@@ -197,11 +198,16 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             }
             else expiration = -1;
         }
-        var supported = period >= 0 && expiration >= 0 && item.Kind is not (CeraShopItemKind.Unknown or CeraShopItemKind.Service)
+        var supported = period >= 0 && expiration >= 0 && item.Kind is not CeraShopItemKind.Unknown
             && item.Diagnostics.All(d => d.Code is "PurchaseRestriction" or "MalformedPurchaseLevel"
                 || d.Code == "UnsupportedInstanceDeclaration" && (d.Detail == Fields.UsablePeriodField.Name || d.Detail == Fields.ExpirationDateField.Name));
         return new(itemId, placement, item.Durability, item.Sealed,
-            item.Avatar?.SelectableAbilities ?? [], item.Creature?.StartLevel, supported, period, expiration);
+            item.Avatar?.SelectableAbilities ?? [], item.Creature?.StartLevel, supported, period, expiration)
+        {
+            AvatarTypePeriods = item.Avatar?.PriceOptions.Select(row => row.Period).ToImmutableArray() ?? [],
+            IsService = item.Kind == CeraShopItemKind.Service,
+            ExpandsWhenGranted = await GetAsync(itemId, cancellationToken).ConfigureAwait(false) is { ExpandsWhenGranted: true },
+        };
     }
 
     private Dictionary<int, (int Type, TimeSpan Duration)> Premiums()
@@ -257,17 +263,41 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         }
     }
 
+    // [booster info] / [booster select category] category tags, numbered as the A21 client numbers them
+    // (0294F060; Document/tasks/package-opening-328/README.md). Any other tag is the client's "other" category.
+    private static readonly FrozenDictionary<string, int> BoosterCategories = new Dictionary<string, int>
+    {
+        ["[avatar]"] = 0, ["[special avatar]"] = 1, ["[cera]"] = 2, ["[creature]"] = 3, ["[equipment]"] = 4,
+        ["[stackable]"] = 5, ["[etc]"] = 6, ["[special creature]"] = 7, ["[emblem]"] = 8, ["[broadcast]"] = 9, ["[charactor]"] = 10,
+    }.ToFrozenDictionary();
+    private const int AvatarCategory = 0, SpecialAvatarCategory = 1, EquipmentCategory = 4, BroadcastCategory = 9, JobCategory = 10;
+
+    // [charactor] job names in the client's job numbering (table built by 02FE2590); [all] is its fallback entry.
+    private static readonly FrozenDictionary<string, int> JobNames = new Dictionary<string, int>
+    {
+        ["[swordman]"] = 0, ["[fighter]"] = 1, ["[gunner]"] = 2, ["[mage]"] = 3, ["[priest]"] = 4, ["[at gunner]"] = 5,
+        ["[thief]"] = 6, ["[at fighter]"] = 7, ["[at mage]"] = 8, ["[demonic swordman]"] = 9, ["[creator mage]"] = 10,
+        ["[at swordman]"] = 11, ["[knight]"] = 12, ["[demonic lancer]"] = 13, ["[all]"] = 14,
+    }.ToFrozenDictionary();
+    private const int AllJobs = 14;
+    private const int MaxForging = 8;
+
+    // These three weapon avatar boxes promise in their description that the weapon cannot be traded. Their rows
+    // carry no trade fact (3 0 is an avatar type row and an ability) and 70 adds no trade lock; #328 keeps the promise.
+    private static readonly FrozenSet<int> UntradeableAvatarBoxes = FrozenSet.ToFrozenSet([10007316, 10007317, 10007318]);
+
     internal static OpeningPackageDefinition Parse(int id, IReadOnlyList<PvfSection> sections,
         Func<PvfToken, string> text)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         var fixedRewards = ImmutableArray.CreateBuilder<OpeningReward>();
         var pools = ImmutableArray.CreateBuilder<OpeningRewardPool>();
-        var typeSections = sections.Where(section => section.Name == Fields.StackableTypeField.Name).ToArray();
-        if (typeSections.Length > 1) errors.Add("Duplicate stackable type");
-        if (typeSections.Length == 1 && (typeSections[0].Values.Count == 0 || !typeSections[0].Values[0].IsString ||
-            typeSections[0].Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))) errors.Add("Invalid stackable type");
-        var typeToken = typeSections.FirstOrDefault()?.Values.FirstOrDefault();
+        var categories = ImmutableArray.CreateBuilder<OpeningSelectionCategory>();
+        var typeSection = PvfRepeatedFields.Effective(
+            sections.Where(section => section.Name == Fields.StackableTypeField.Name).ToArray(), Fields.StackableTypeField.Name);
+        if (typeSection is not null && (typeSection.Values.Count == 0 || !typeSection.Values[0].IsString ||
+            typeSection.Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))) errors.Add("Invalid stackable type");
+        var typeToken = typeSection?.Values.FirstOrDefault();
         var type = typeToken is { IsString: true } token ? text(token).ToLowerInvariant() : "";
         var kind = type switch
         {
@@ -283,11 +313,159 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (section.Values.Any(t => t.Kind != PvfTokenKind.Int32)) errors.Add("Noninteger " + section.Name);
             return section.Values.Where(t => t.Kind == PvfTokenKind.Int32).Select(t => t.Value).ToArray();
         }
+        // Avatar rows end with two extensions (70 df_game_r booster handler; A21 stores them as u16 and u8):
+        // the avatar's own [avatar type select] row, whose period applies, and the avatar ability.
+        OpeningReward AvatarRow(OpeningReward reward, int row, int ability)
+        {
+            // A negative ability (-1) declares none; the client keeps it in a byte and the window picks one.
+            if (ability > byte.MaxValue) { errors.Add("Invalid avatar ability"); ability = 0; }
+            if (ability < 0) ability = 0;
+            return reward with
+            {
+                Ability = (byte)ability, AvatarTypeRow = row is >= 0 and <= ushort.MaxValue ? row : null,
+                TradeRestriction = UntradeableAvatarBoxes.Contains(id) ? (byte)1 : (byte)0,
+            };
+        }
         var goldCost = 0;
         var costSeen = false;
         var materialSeen = false;
         var material = 0; var materialCount = 0; var sourceCount = 1; var selectionCount = 0;
-        var random = false; var booster = false; var selection = false;
+        var random = false; var booster = false; var purchaseGroups = 0;
+        string? boosterCategory = null;
+        SelectionBlock? block = null;
+        void BoosterSection(PvfSection section, string name)
+        {
+            if (name.StartsWith("[/", StringComparison.Ordinal))
+            {
+                if (boosterCategory is null || name != "[/" + boosterCategory[1..]) errors.Add("Mismatched booster category " + name);
+                boosterCategory = null;
+                return;
+            }
+            if (!BoosterCategories.TryGetValue(name, out var category)) { errors.Add("Unsupported reward pool " + name); return; }
+            if (boosterCategory is not null) errors.Add("Unclosed booster category " + boosterCategory);
+            boosterCategory = name;
+            var values = section.Values;
+            int? job = null;
+            var start = 0;
+            if (category == JobCategory)
+            {
+                if (values.Count == 0 || !values[0].IsString || !JobNames.TryGetValue(text(values[0]).ToLowerInvariant(), out var code))
+                { errors.Add("Invalid job pool"); return; }
+                job = code == AllJobs ? null : code;
+                start = 1;
+            }
+            if (values.Skip(start).Any(t => t.Kind != PvfTokenKind.Int32)) { errors.Add("Noninteger " + name); return; }
+            var ns = values.Skip(start).Select(t => t.Value).ToArray();
+            (int, int)? header = null;
+            if (category == JobCategory)
+            {
+                if (ns.Length < 2) { errors.Add("Invalid job pool"); return; }
+                header = (ns[0], ns[1]);
+                ns = ns[2..];
+            }
+            var stride = category is AvatarCategory or SpecialAvatarCategory ? 5 : category == BroadcastCategory ? 4 : 3;
+            // A pool may declare its draw count and no rows (`[etc] 1 [/etc]`, an empty job pool): the client keeps
+            // the empty category (029A28AD..029A2A52) and it grants nothing.
+            if (ns.Length == 1 && ns[0] > 0) return;
+            if (ns.Length <= 1 || (ns.Length - 1) % stride != 0 || ns[0] <= 0)
+            { errors.Add("Unsupported reward pool " + name); return; }
+            var entries = ImmutableArray.CreateBuilder<OpeningWeightedReward>();
+            for (var i = 1; i < ns.Length; i += stride)
+            {
+                if (ns[i] <= 0 || ns[i + 1] < 0 || ns[i + 2] <= 0) errors.Add("Invalid pool row");
+                var reward = new OpeningReward(ns[i], ns[i + 2]);
+                if (stride == 5) reward = AvatarRow(reward, ns[i + 3], ns[i + 4]);
+                entries.Add(new(reward, ns[i + 1]));
+            }
+            if (entries.All(e => e.Weight == 0)) errors.Add("Empty weight pool");
+            pools.Add(new(ns[0], entries.ToImmutable()) { Job = job, JobHeader = header });
+        }
+        void SelectionSection(SelectionBlock selection, PvfSection section, string name)
+        {
+            switch (name)
+            {
+                case "[booster equipment upgrade]":
+                {
+                    var ns = Numbers(section);
+                    if (ns.Length != 1 || ns[0] is < 0 or > 31 && ns[0] != OpeningReward.RandomUpgrade) errors.Add("Invalid equipment upgrade");
+                    else selection.Upgrade = (byte)ns[0];
+                    return;
+                }
+                // Forging (锻造, the separate-upgrade table) and the quality tier 0..4; 10006048 describes its
+                // +11 / separate 5 weapon as "强化等级为 +11 ... 锻造等级为 +5".
+                case "[booster equipment separate]":
+                {
+                    var ns = Numbers(section);
+                    if (ns.Length != 1 || ns[0] is < 0 or > MaxForging) errors.Add("Invalid " + name);
+                    else selection.Forging = (byte)ns[0];
+                    return;
+                }
+                case "[booster equipment grade]":
+                {
+                    var ns = Numbers(section);
+                    if (ns.Length != 1 || ns[0] is < EquipmentQualityTiers.Lowest or > EquipmentQualityTiers.Highest) errors.Add("Invalid " + name);
+                    else selection.QualityTier = (byte)ns[0];
+                    return;
+                }
+                // Window marks only: preselected and recommended cells. The opener still sends every chosen ID.
+                case "[default select]":
+                case "[recommend]":
+                {
+                    var ns = Numbers(section);
+                    if (ns.Length == 0 || ns[0] != ns.Length - 1) errors.Add("Invalid " + name);
+                    return;
+                }
+                case "[random probability]":
+                {
+                    // The client refuses the whole script unless the block's upgrade is the random marker.
+                    var ns = Numbers(section);
+                    if (selection.Upgrade != OpeningReward.RandomUpgrade) errors.Add("Random probability without random upgrade");
+                    if (ns.Length == 0 || ns.Length % 2 != 0) { errors.Add("Invalid random probability"); return; }
+                    var chances = ImmutableArray.CreateBuilder<OpeningUpgradeChance>();
+                    for (var i = 0; i < ns.Length; i += 2)
+                    {
+                        if (ns[i] is < 0 or > 31 || ns[i + 1] < 0) errors.Add("Invalid random probability");
+                        else chances.Add(new((byte)ns[i], ns[i + 1]));
+                    }
+                    if (chances.Sum(c => (long)c.Weight) <= 0) errors.Add("Empty random probability");
+                    selection.Chances = chances.ToImmutable();
+                    return;
+                }
+                case "[force insert avatar option]":
+                    errors.Add("Unsupported " + name);
+                    return;
+            }
+            if (name.StartsWith("[/", StringComparison.Ordinal)) return;
+            // The client reads any other tag as its "other" category and takes its integers as rows.
+            if (!BoosterCategories.TryGetValue(name, out var category))
+            {
+                if (section.Values.Any(t => t.Kind == PvfTokenKind.Int32)) errors.Add("Unsupported selection declaration " + name);
+                return;
+            }
+            // Rows end at the first non-integer and no closing tag is required, so a closer written without its
+            // slash (`[equipment] id n [equipment]`) or an empty category declares no rows.
+            if (section.Values.Count == 0) return;
+            var stride = category is AvatarCategory or SpecialAvatarCategory ? 4 : category == BroadcastCategory ? 3 : 2;
+            var rows = Numbers(section);
+            if (rows.Length == 0 || rows.Length % stride != 0) { errors.Add("Invalid selection rows " + name); return; }
+            for (var i = 0; i < rows.Length; i += stride)
+            {
+                var reward = new OpeningReward(rows[i], rows[i + 1]);
+                if (category is AvatarCategory or SpecialAvatarCategory) reward = AvatarRow(reward, rows[i + 2], rows[i + 3]);
+                // The block's equipment modifiers reach equipment rows declared after them (client 029A2FA0).
+                if (category == EquipmentCategory)
+                {
+                    if (selection.Upgrade == OpeningReward.RandomUpgrade && selection.Chances.IsEmpty)
+                        errors.Add("Random upgrade without probability");
+                    reward = reward with
+                    {
+                        Upgrade = selection.Upgrade, UpgradeChances = selection.Chances,
+                        Forging = selection.Forging, QualityTier = selection.QualityTier,
+                    };
+                }
+                selection.Rewards.Add(reward);
+            }
+        }
         foreach (var section in sections)
         {
             var name = section.Name.ToLowerInvariant();
@@ -332,15 +510,33 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (name == Fields.RandomboxField.Name) { random = true; continue; }
             if (name == Fields.CloseRandomboxField.Name) { random = false; continue; }
             if (name == Fields.BoosterInfoField.Name) { booster = true; continue; }
-            if (name == Fields.CloseBoosterInfoField.Name) { booster = false; continue; }
-            if (name == Fields.BoosterSelectCategoryField.Name)
+            if (name == Fields.CloseBoosterInfoField.Name)
             {
-                selection = true;
-                var category = Numbers(section);
-                if (category.Length != 2 || category.Any(value => value < 0)) errors.Add("Invalid selection category");
+                if (boosterCategory is not null) errors.Add("Unclosed booster category " + boosterCategory);
+                booster = false; boosterCategory = null;
                 continue;
             }
-            if (name == Fields.CloseBoosterSelectCategoryField.Name) { selection = false; continue; }
+            if (name == Fields.BoosterSelectCategoryField.Name)
+            {
+                if (block is not null) errors.Add("Unclosed selection category");
+                var key = Numbers(section);
+                if (key.Length != 2 || key.Any(value => value is < 0 or > byte.MaxValue)) { errors.Add("Invalid selection category"); key = [0, 0]; }
+                block = new(new((byte)key[0], (byte)key[1]));
+                continue;
+            }
+            if (name == Fields.CloseBoosterSelectCategoryField.Name)
+            {
+                // A stray closing tag outside a block is skipped, as the client skips unknown top-level tags.
+                if (block is null) continue;
+                var rows = block.Rewards.ToImmutable();
+                var previous = categories.FirstOrDefault(c => c.Key == block.Key);
+                if (previous is null) categories.Add(new(block.Key, rows));
+                else if (!previous.Rewards.SequenceEqual(rows)) errors.Add("Conflicting selection category");
+                block = null;
+                continue;
+            }
+            if (block is not null) { SelectionSection(block, section, name); continue; }
+            if (booster) { BoosterSection(section, name); continue; }
             if (name.StartsWith("[/", StringComparison.Ordinal)) continue;
             if ((name == Fields.UsableCountLimitField.Name || name == Fields.UsableCountField.Name || name == Fields.UseCountLimitField.Name)) errors.Add("Unimplemented use restriction " + name);
             if (name == Fields.BoosterSelectionNumField.Name)
@@ -352,10 +548,8 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (random && name == Fields.SealingRemovalItemField.Name)
             {
                 var ns = Numbers(section);
-                var start = name == Fields.SealingRemovalItemField.Name ? 1 : 0;
-                if (ns.Length < start + 2 || (ns.Length - start) % 2 != 0
-                    || start == 1 && ns[0] * 2 + 1 != ns.Length) { errors.Add("Invalid removal declaration"); continue; }
-                for (var i = start; i < ns.Length; i += 2)
+                if (ns.Length < 3 || (ns.Length - 1) % 2 != 0 || ns[0] * 2 + 1 != ns.Length) { errors.Add("Invalid removal declaration"); continue; }
+                for (var i = 1; i < ns.Length; i += 2)
                 {
                     if (ns[i] <= 0 || ns[i + 1] < 0) errors.Add("Invalid removal count");
                     else if (ns[i] == id) sourceCount = ns[i + 1];
@@ -365,53 +559,56 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                     else errors.Add("Multiple required materials");
                 }
             }
-            if ((name == Fields.PackageDataField.Name || name == Fields.PackageDataIncludeUsablePeriodField.Name)
-                || selection)
+            if (name == Fields.PackageDataField.Name || name == Fields.PackageDataIncludeUsablePeriodField.Name)
             {
+                // The client clears the list on each of these two tags: the last declaration is the content.
+                fixedRewards.Clear();
                 var ns = Numbers(section);
-                if (selection && !(name == Fields.AvatarField.Name || name == Fields.EquipmentField.Name || name == Fields.EtcField.Name || name == Fields.CreatureField.Name))
-                { errors.Add("Unsupported selection declaration " + name); continue; }
-                var stride = selection && name == Fields.AvatarField.Name ? 4 : name == Fields.PackageDataIncludeUsablePeriodField.Name ? 3 : 2;
+                var stride = name == Fields.PackageDataIncludeUsablePeriodField.Name ? 3 : 2;
                 if (ns.Length == 0 || ns.Length % stride != 0) errors.Add("Invalid fixed reward " + name);
                 else for (var i = 0; i < ns.Length; i += stride)
-                    // Avatar selection's two trailing fields are UI declaration fields in the reference reader.
-                    // Creation uses the equipment's declared ability and the selected option supplied by the client.
                     fixedRewards.Add(new(ns[i], ns[i + 1], PeriodDays: stride == 3 ? ns[i + 2] : 0));
             }
-            else if (random && name == Fields.IntDataField.Name || booster)
+            else if (random && name == Fields.IntDataField.Name)
             {
                 var ns = Numbers(section);
-                var stride = random || name == Fields.BroadcastField.Name ? 4 : (name == Fields.AvatarField.Name || name == Fields.SpecialAvatarField.Name) ? 5 : 3;
-                var start = random ? 3 : 1;
-                if (ns.Length <= start || (ns.Length - start) % stride != 0 || !random && ns[0] <= 0)
-                { errors.Add("Unsupported reward pool " + name); continue; }
+                const int start = 3, stride = 4;
+                if (ns.Length <= start || (ns.Length - start) % stride != 0) { errors.Add("Unsupported reward pool " + name); continue; }
                 var entries = ImmutableArray.CreateBuilder<OpeningWeightedReward>();
                 for (var i = start; i < ns.Length; i += stride)
                 {
                     if (ns[i] <= 0 || ns[i + 1] < 0 || ns[i + 2] <= 0) errors.Add("Invalid pool row");
-                    var reward = new OpeningReward(ns[i], ns[i + 2]);
-                    // This archive's Dark Repulsor box explicitly promises an untradeable weapon.
-                    // Support its complete observed profile, without assigning an unproven general
-                    // meaning to extension 3. Other nondefault avatar profiles still fail closed.
-                    var darkRepulsor = id == 10007316 && kind == OpeningPackageKind.Package && name == Fields.AvatarField.Name
-                        && stride == 5 && ns.AsSpan().SequenceEqual(new int[] { 1, 101600023, 100000, 1, 3, 0 });
-                    if (darkRepulsor) reward = reward with { TradeRestriction = 1 };
-                    else if (stride == 5 && (id == 10007316 || ns[i + 3] != 0 || ns[i + 4] != 0)) errors.Add("Unsupported avatar pool extension");
-                    entries.Add(new(reward, ns[i + 1]));
+                    entries.Add(new(new(ns[i], ns[i + 2]), ns[i + 1]));
                 }
                 if (entries.All(e => e.Weight == 0)) errors.Add("Empty weight pool");
-                pools.Add(new(random ? 1 : ns[0], entries.ToImmutable()));
+                pools.Add(new(1, entries.ToImmutable()));
             }
+            else if (name == "[package data selection]") purchaseGroups++;
             else if (name.StartsWith(PackageDataFields.Prefix, StringComparison.Ordinal)) errors.Add("Unsupported " + name);
         }
-        if (random || booster || selection) errors.Add("Unclosed reward section");
-        if (kind == OpeningPackageKind.Selection && selectionCount <= 0 && fixedRewards.Count > 1)
-            errors.Add("Category-dependent zero-selection mode requires a separate interpretation");
-        if (fixedRewards.GroupBy(r => r.ItemId).Any(g => g.Count() > 1) && kind == OpeningPackageKind.Selection)
-            errors.Add("Duplicated selection identifier across categories");
+        if (random || booster || block is not null) errors.Add("Unclosed reward section");
+        if (kind == OpeningPackageKind.Selection && categories.Count == 0) errors.Add("No selection categories");
+        if (kind != OpeningPackageKind.Selection && categories.Count > 0) errors.Add("Selection categories outside a selection package");
+        // An empty category is legitimate (a job without that growth type); the window cannot confirm it.
+        if (categories.Any(c => c.Rewards.Any(r => r.ItemId <= 0 || r.Count <= 0)))
+            errors.Add("Invalid selection category rows");
         if (fixedRewards.Any(r => r.ItemId <= 0 || r.Count <= 0 || r.PeriodDays < 0)) errors.Add("Invalid fixed reward");
-        if (fixedRewards.Count == 0 && pools.Count == 0) errors.Add("No rewards");
+        if (fixedRewards.Count == 0 && pools.Count == 0 && categories.Count == 0 && purchaseGroups == 0) errors.Add("No rewards");
         return new(id, kind, fixedRewards.ToImmutable(), pools.ToImmutable(), selectionCount,
-            material, materialCount, sourceCount, id == 2682272, errors.ToImmutable()) { GoldCost = goldCost };
+            material, materialCount, sourceCount, id == 2682272, errors.ToImmutable())
+        {
+            GoldCost = goldCost, Categories = categories.ToImmutable(), PurchaseSelectionGroups = purchaseGroups,
+            ExpandsWhenGranted = type is "[cera package]" or "[cera booster]",
+        };
+    }
+
+    private sealed class SelectionBlock(OpeningCategory key)
+    {
+        public OpeningCategory Key { get; } = key;
+        public byte Upgrade { get; set; }
+        public ImmutableArray<OpeningUpgradeChance> Chances { get; set; } = [];
+        public byte Forging { get; set; }
+        public byte? QualityTier { get; set; }
+        public ImmutableArray<OpeningReward>.Builder Rewards { get; } = ImmutableArray.CreateBuilder<OpeningReward>();
     }
 }

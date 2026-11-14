@@ -347,7 +347,6 @@ public sealed class PvfTypedDungeonAndMagicSealTests
     [Theory]
     [InlineData("type")]
     [InlineData("extra")]
-    [InlineData("duplicate")]
     [InlineData("negative")]
     public void Stack_limit_damage_cannot_become_zero(string defect)
     {
@@ -423,7 +422,6 @@ public sealed class PvfTypedDungeonAndMagicSealTests
     [InlineData("type")]
     [InlineData("extra")]
     [InlineData("empty")]
-    [InlineData("duplicate")]
     public void Bad_stackable_type_does_not_become_the_default_consumable(string defect)
     {
         var builder = new PvfArchiveBuilder();
@@ -438,6 +436,19 @@ public sealed class PvfTypedDungeonAndMagicSealTests
         var error = Assert.Throws<InvalidDataException>(() => ResolveMetadata(file));
         Assert.Contains("[stackable type]", error.Message);
         Assert.Contains("stackable/test.stk", error.Message);
+    }
+
+    [Fact]
+    public void Repeated_stack_limit_and_type_take_the_later_declaration_as_the_client_does()
+    {
+        var builder = new PvfArchiveBuilder();
+        builder.AddScript("stackable", "test.stk").Tag("[stack limit]").Int(1000).Tag("[stackable type]").Quoted("[material]").Int(0)
+            .Tag("[stack limit]").Int(1).Tag("[stackable type]").Quoted("[waste]").Int(1).End();
+        using var file = new BuiltArchive(builder);
+        var single = new PvfArchiveBuilder();
+        single.AddScript("stackable", "test.stk").Tag("[stack limit]").Int(1).Tag("[stackable type]").Quoted("[waste]").Int(1).End();
+        using var expected = new BuiltArchive(single);
+        Assert.Equal(ResolveMetadata(expected), ResolveMetadata(file));
     }
 
     [Fact]

@@ -217,8 +217,7 @@ public sealed class OpeningProtocolCommandFlowTests(ITestOutputHelper output)
     public async Task Package_wire_selection_preserves_the_original_plain_or_avatar_branch(bool avatar)
     {
         using var opening = new OpeningFixture(); var f = opening.Host;
-        opening.Content.Definitions[1001] = OpeningContent.Package(1001, avatar ? [new(39032, 1)] : [new(3, 2), new(6000, 1)])
-            with { Kind = OpeningPackageKind.Selection, SelectionCount = 1 };
+        opening.Content.Definitions[1001] = OpeningContent.Selection(1001, 1, avatar ? [new(39032, 1)] : [new(3, 2), new(6000, 1)]);
         await f.Seed(80, 1001, 1);
         await EffectRequestTransport.Send(f, new PackageOpeningRequest(new(1, 0xA0, 0, 7),
             new(80, [avatar ? 39032 : 6000]), avatar ? new(80, [new(39032, 2)]) : null));

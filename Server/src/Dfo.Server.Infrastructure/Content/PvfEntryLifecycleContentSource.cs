@@ -285,8 +285,8 @@ internal sealed class PvfEntryLifecycleContentSource(
     {
         var found = sections.Where(section => field.Matches(section.Name)).ToArray();
         if (found.Length == 0) { value = default!; return false; }
-        if (found.Length != 1) throw Invalid(path, field, "duplicate field");
-        value = field.Decode(archive, found[0].Values, path);
+        var effective = PvfRepeatedFields.Effective(found, field.Name) ?? throw Invalid(path, field, "duplicate field");
+        value = field.Decode(archive, effective.Values, path);
         return true;
     }
 

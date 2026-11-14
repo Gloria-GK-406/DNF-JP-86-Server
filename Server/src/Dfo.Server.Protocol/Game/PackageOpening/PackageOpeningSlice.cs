@@ -28,7 +28,8 @@ internal sealed class PackageOpeningDecoder : IGameMessageDecoder
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         if (body.Length == 2) return new PackageOpeningRequest(metadata, new(BinaryPrimitives.ReadInt16LittleEndian(body), []));
-        // Selection UI writes slot, two opaque context bytes, selected IDs, then a counted avatar option list.
+        // Selection UI writes slot, the category's two coordinates, selected IDs, then a counted avatar option list.
+        // A whole-category selection may repeat an ID the category declares twice.
         PackageOpeningRequest? candidate = null;
         for (var avatars = 0; avatars <= 32; avatars++)
         {
@@ -38,14 +39,16 @@ internal sealed class PackageOpeningDecoder : IGameMessageDecoder
             if (body[countOffset] != avatars) continue;
             var selected = ImmutableArray.CreateBuilder<int>();
             for (var offset = 4; offset < countOffset; offset += 4) selected.Add(BinaryPrimitives.ReadInt32LittleEndian(body[offset..]));
-            if (selected.Any(id => id <= 0) || selected.Distinct().Count() != selected.Count) continue;
+            if (selected.Any(id => id <= 0)) continue;
             var options = ImmutableArray.CreateBuilder<AvatarPackageChoice>();
             for (var offset = countOffset + 1; offset < body.Length; offset += 5)
                 options.Add(new(BinaryPrimitives.ReadInt32LittleEndian(body[offset..]), body[offset + 4]));
             if (avatars > 0 && (avatars != selected.Count || !options.Select(o => o.ItemId).SequenceEqual(selected))) continue;
             if (candidate is not null) return new PackageOpeningRequest(metadata, null); // ambiguous lengths are not a valid prefix
             var slot = BinaryPrimitives.ReadInt16LittleEndian(body);
-            candidate = new(metadata, new(slot, selected.ToImmutable()), avatars == 0 ? null : new(slot, options.ToImmutable()));
+            var category = new OpeningCategory(body[2], body[3]);
+            candidate = new(metadata, new(slot, selected.ToImmutable()) { Category = category },
+                avatars == 0 ? null : new(slot, options.ToImmutable()) { Category = category });
         }
         return candidate ?? new PackageOpeningRequest(metadata, null);
     }

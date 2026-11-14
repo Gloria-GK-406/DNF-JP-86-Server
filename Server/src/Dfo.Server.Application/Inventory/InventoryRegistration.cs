@@ -85,6 +85,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IRecipeChanceRollSource, RecipeChanceRollSource>();
         services.TryAddSingleton<IRecipeCraftDomainService, RecipeCraftDomainService>();
         services.TryAddSingleton<IPackageOpeningRuleService, PackageOpeningRuleService>();
+        services.TryAddSingleton<IServiceItemRewardRuleService, ServiceItemRewardRuleService>();
         services.TryAddSingleton<IOpeningInventoryDomainService, OpeningInventoryDomainService>();
         services.TryAddSingleton<IOpeningEffectPlanRuleService, OpeningEffectPlanRuleService>();
         services.TryAddSingleton<ISpecialConsumableEffectPlanRuleService, SpecialConsumableEffectPlanRuleService>();

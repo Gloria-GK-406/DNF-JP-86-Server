@@ -105,7 +105,7 @@ public sealed class PackageOpeningTests
     {
         Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
         using var shop = new CeraShopFixture(useArchive: true, configure: services => services.AddSingleton<IPackageOpeningRuleService>(
-            provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>(), provider.GetRequiredService<IItemPlacementRuleService>(), expirationRules: TestRequired.NoExpiration))));
+            provider => new DeterministicOpeningRules(new PackageOpeningRuleService(provider.GetRequiredService<IPackageOpeningDefinitionSource>(), provider.GetRequiredService<IItemPlacementRuleService>(), expirationRules: TestRequired.NoExpiration, services: provider.GetRequiredService<IServiceItemRewardRuleService>()))));
         await shop.Host.Seed(66, 2682272, 60);
         var result = await OpeningDomainTestDriver.Box(shop.Host, shop.Host.Session, new(4, 66, 2682272, -1, -1, 60));
         Assert.NotNull(result.Receipt); Assert.Equal(0, shop.Host.Count(2682272));
@@ -230,12 +230,14 @@ public sealed class PackageOpeningTests
         var content = shop.Host.Services.GetRequiredService<IPackageOpeningDefinitionSource>();
         var package = await content.GetAsync(2660500, default);
         Assert.NotNull(package); Assert.Empty(package.Diagnostics); Assert.Equal(1, package.SelectionCount);
-        var selected = package.FixedRewards[0];
+        var category = package.Categories.First(c => !c.Rewards.IsEmpty);
+        var selected = category.Rewards[0];
         var item = await content.GetRewardAsync(selected.ItemId, default);
         Assert.NotNull(item);
         var ability = checked((byte)(item.Abilities.IsEmpty ? 0 : item.Abilities[0]));
         await shop.Host.Seed(66, 2660500, 1);
-        var result = await OpeningDomainTestDriver.Package(shop.Host, shop.Host.Session, new(66, [selected.ItemId]), new(66, [new(selected.ItemId, ability)]));
+        var result = await OpeningDomainTestDriver.Package(shop.Host, shop.Host.Session, new(66, [selected.ItemId]) { Category = category.Key },
+            new(66, [new(selected.ItemId, ability)]) { Category = category.Key });
         Assert.NotNull(result.Receipt);
         var avatar = Assert.Single(result.Receipt.Updates);
         Assert.Equal(selected.ItemId, avatar.Core.ItemId); Assert.Equal(ability, avatar.Core.Attribute);
@@ -338,8 +340,7 @@ public sealed class PackageOpeningTests
     public async Task Avatar_selection_from_the_booster_protocol_uses_avatar_domain_rules()
     {
         using var opening = new OpeningFixture();
-        opening.Content.Definitions[1001] = OpeningContent.Package(1001, [new(39032, 1)])
-            with { Kind = OpeningPackageKind.Selection, SelectionCount = 1 };
+        opening.Content.Definitions[1001] = OpeningContent.Selection(1001, 1, [new(39032, 1)]);
         await opening.Host.Seed(80, 1001, 1);
         var body = new byte[] { 80, 0, 0, 0, 0x78, 0x98, 0, 0, 1, 0x78, 0x98, 0, 0, 2 };
         var request = Assert.IsType<PackageOpeningRequest>(Decode(opening.Host, 0x00A0, body));
@@ -352,8 +353,7 @@ public sealed class PackageOpeningTests
     public async Task Invalid_selection_and_ability_leave_the_package_and_inventory_untouched()
     {
         using var opening = new OpeningFixture();
-        opening.Content.Definitions[1001] = OpeningContent.Package(1001, [new(3, 2), new(6000, 1)])
-            with { Kind = OpeningPackageKind.Selection, SelectionCount = 1 };
+        opening.Content.Definitions[1001] = OpeningContent.Selection(1001, 1, [new(3, 2), new(6000, 1)]);
         await opening.Host.Seed(80, 1001, 1);
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Package(9999));
         Assert.Equal(OpeningRejection.InvalidChoice, error.Reason); Assert.Equal(1, opening.Host.Count(1001));
@@ -510,8 +510,10 @@ internal sealed class DeterministicOpeningRules(IPackageOpeningRuleService inner
 {
     private int sequence;
     public ValueTask<OpeningPackageDefinition> DefinitionAsync(int itemId, OpeningPackageKind kind, CancellationToken ct) => inner.DefinitionAsync(itemId, kind, ct);
-    public ImmutableArray<OpeningReward> Roll(OpeningPackageDefinition definition, IReadOnlyList<int> choices, int seed) =>
-        inner.Roll(definition, choices, 0x5eed + Interlocked.Increment(ref sequence));
+    public ImmutableArray<OpeningReward> Roll(OpeningPackageDefinition definition, OpeningDraw draw, int seed) =>
+        inner.Roll(definition, draw, 0x5eed + Interlocked.Increment(ref sequence));
+    public ValueTask<ImmutableArray<OpeningReward>> ExpandAsync(IReadOnlyList<OpeningReward> rewards, int job, int seed, CancellationToken ct) =>
+        inner.ExpandAsync(rewards, job, 0x5eed, ct);
     public ValueTask<ImmutableArray<OpeningPreparedGrant>> PrepareAsync(IReadOnlyList<OpeningReward> rewards, DateTimeOffset now, CancellationToken ct) => inner.PrepareAsync(rewards, now, ct);
     public int AdvanceLuck(int value) => inner.AdvanceLuck(value);
     public bool LuckBonus(int value) => inner.LuckBonus(value);
@@ -569,6 +571,9 @@ internal sealed class OpeningContent : IPackageOpeningDefinitionSource, IItemPla
     }
     public static OpeningPackageDefinition Package(int id, ImmutableArray<OpeningReward> rewards) =>
         new(id, OpeningPackageKind.Package, rewards, [], 0, 0, 0, 1, false, []);
+    /// <summary>A selection package whose one category sits at coordinates (0,0).</summary>
+    public static OpeningPackageDefinition Selection(int id, int count, ImmutableArray<OpeningReward> rewards) =>
+        new(id, OpeningPackageKind.Selection, [], [], count, 0, 0, 1, false, []) { Categories = [new(default, rewards)] };
     public ValueTask<OpeningPackageDefinition?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult(Definitions.GetValueOrDefault(id));
     public ValueTask<OpeningRewardItemDefinition?> GetRewardAsync(int id, CancellationToken ct) => ValueTask.FromResult(Items.GetValueOrDefault(id));
     ValueTask<ItemPlacement?> IItemPlacementDefinitionSource.GetAsync(int id, CancellationToken ct) =>

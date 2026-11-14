@@ -19,7 +19,7 @@ public sealed class PvfTypeTailReadingTests
     [InlineData("single-tail", false)]
     [InlineData("extra-int", false)]
     [InlineData("extra-string", false)]
-    [InlineData("duplicate", false)]
+    [InlineData("duplicate", true)]
     [InlineData("negative", false)]
     public async Task Equipment_slot_requires_a_complete_root_type_shape(string shape, bool valid)
     {
@@ -38,7 +38,7 @@ public sealed class PvfTypeTailReadingTests
     [InlineData("single-tail", false)]
     [InlineData("extra-int", false)]
     [InlineData("extra-string", false)]
-    [InlineData("duplicate", false)]
+    [InlineData("duplicate", true)]
     [InlineData("negative", false)]
     public void Extra_drop_avatar_classification_cannot_ignore_a_bad_type_tail(string shape, bool valid)
     {
@@ -64,7 +64,7 @@ public sealed class PvfTypeTailReadingTests
     [InlineData("single-tail", false)]
     [InlineData("extra-int", true)]
     [InlineData("extra-string", false)]
-    [InlineData("duplicate", false)]
+    [InlineData("duplicate", true)]
     [InlineData("negative", false)]
     public async Task Unlimited_use_requires_a_complete_root_type_shape(string shape, bool valid)
     {

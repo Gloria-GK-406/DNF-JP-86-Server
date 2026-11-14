@@ -324,8 +324,8 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             if (matches.Length == 0) return null;
             try
             {
-                if (matches.Length != 1) throw new InvalidDataException($"Duplicate {tag.Name}.");
-                return tag.Decode(provider.Archive, matches[0].Values, path).ToLowerInvariant();
+                var effective = PvfRepeatedFields.Effective(matches, tag.Name) ?? throw new InvalidDataException($"Duplicate {tag.Name}.");
+                return tag.Decode(provider.Archive, effective.Values, path).ToLowerInvariant();
             }
             catch (InvalidDataException) { Error("MalformedItem", tag.Name); return null; }
         }
@@ -333,10 +333,11 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         {
             var found = top.Where(section => tag.Matches(section.Name)).ToArray();
             if (found.Length == 0) return null;
-            if (found.Length != 1 || found[0].Values.Count == 0 || !found[0].Values[0].IsString ||
-                found[0].Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))
+            var effective = PvfRepeatedFields.Effective(found, tag.Name);
+            if (effective is null || effective.Values.Count == 0 || !effective.Values[0].IsString ||
+                effective.Values.Skip(1).Any(value => value.Kind != PvfTokenKind.Int32))
             { Error("MalformedItem", tag.Name); return null; }
-            return provider.Archive.ResolveString(tag.Decode(provider.Archive, found[0].Values, path)[0].Value).ToLowerInvariant();
+            return provider.Archive.ResolveString(tag.Decode(provider.Archive, effective.Values, path)[0].Value).ToLowerInvariant();
         }
         int? Number(PvfField<int> tag)
         {
@@ -349,7 +350,9 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         var type = FirstTypeText(isEquipment ? Fields.EquipmentTypeField : Fields.StackableTypeField);
         var kind = type switch
         {
-            "[creature]" => CeraShopItemKind.Creature,
+            // A pet is equipment of type [creature]. A stackable [creature] or [feed] is a pet consumable such as
+            // a rename card (70 CStackableItem::IsCreatureItem; both C# references); placement keeps it in its band.
+            "[creature]" when isEquipment => CeraShopItemKind.Creature,
             "[artifact red]" or "[artifact blue]" or "[artifact green]" => CeraShopItemKind.CreatureEquipment,
             "[name tag]" => CeraShopItemKind.Service,
             "[cera package]" => CeraShopItemKind.Package,

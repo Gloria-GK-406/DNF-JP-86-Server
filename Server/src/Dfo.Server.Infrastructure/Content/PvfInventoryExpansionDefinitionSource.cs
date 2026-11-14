@@ -67,6 +67,10 @@ internal sealed class PvfInventoryExpansionDefinitionSource(PvfArchiveProvider p
         for (var stage = 1; stage <= 12; stage++)
             paths.Add("cash/safe_upgradekit" + (stage == 1 ? "" : stage.ToString(System.Globalization.CultureInfo.InvariantCulture)) + ".stk",
                 new(InventoryExpansionKind.PersonalCargo, 8 + stage * 16));
+        // Silver and gold kits raise the cargo straight to the stage-2 and stage-4 capacities (70 IsSpecialItem
+        // declares 110 -> (1,40) and 68 -> (1,72); the A21 descriptions name the same 40 and 72).
+        paths.Add("cash/safe_upgradekitsilver.stk", new(InventoryExpansionKind.PersonalCargo, 40));
+        paths.Add("cash/safe_upgradekitgold.stk", new(InventoryExpansionKind.PersonalCargo, 72));
         for (var stage = 1; stage <= 2; stage++)
             paths.Add($"cash/inven_upgradekit{stage}.stk", new(InventoryExpansionKind.Main, stage * 8));
         paths.Add("cash/chn_20140617_new_sales_item/chn_inventory_3rd_expansion_2683675.stk", new(InventoryExpansionKind.Main, 24));

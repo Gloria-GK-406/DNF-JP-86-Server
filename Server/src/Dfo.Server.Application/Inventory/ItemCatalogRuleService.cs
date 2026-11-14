@@ -51,7 +51,8 @@ internal static class PermanentOrdinaryItemRules
     public static bool Allows(ItemCatalogDefinition definition)
     {
         var item = definition.Item; var p = definition.Placement;
-        return item.ItemId == definition.Entry.ItemId && item.Supported && item.DefaultPeriodDays == 0
+        // A [cera package] / [cera booster] is granted as its contents; a configured grant of the wrapper is refused.
+        return item.ItemId == definition.Entry.ItemId && item.Supported && !item.ExpandsWhenGranted && item.DefaultPeriodDays == 0
             && item.AbsoluteExpiration == 0 && item.PremiumType == 0 && p.ItemKind is not (0 or 5 or 6 or 7 or 8)
             && item.Placement.ItemKind == p.ItemKind && item.Placement.WorldClass == p.WorldClass
             && item.Placement.Destination.Space != BusinessInventorySpace.VirtualResource

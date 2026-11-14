@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
@@ -9,7 +10,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService inventory,
-    IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans) : IPackageOpeningDomainService
+    IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans, ICharacterDomainService characters) : IPackageOpeningDomainService
 {
     public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessPackageOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -21,7 +22,9 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Package, ct).ConfigureAwait(false);
         if (definition.MaterialCount != 0) throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "This entry supplies no material.");
         await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition), ct).ConfigureAwait(false);
-        var rolled = rules.Roll(definition, input.SelectedItems, Random.Shared.Next());
+        var job = await OpenerJob.ReadAsync(characters, session, ct).ConfigureAwait(false);
+        var rolled = rules.Roll(definition, new(input.SelectedItems, input.Category, job), Random.Shared.Next());
+        rolled = await rules.ExpandAsync(rolled, job, Random.Shared.Next(), ct).ConfigureAwait(false);
         var grants = await rules.PrepareAsync(rolled, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
             grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, delivery: ItemDeliveryMode.InventoryThenMail);
@@ -30,7 +33,7 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
 }
 
 internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainService inventory,
-    IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans) : IAvatarPackageOpeningDomainService
+    IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans, ICharacterDomainService characters) : IAvatarPackageOpeningDomainService
 {
     public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessAvatarPackageOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -46,8 +49,11 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
         await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition), ct).ConfigureAwait(false);
         var choices = input.Choices.ToDictionary(c => c.ItemId, c => c.Ability);
         var selected = definition.Kind == OpeningPackageKind.Selection
-            ? rules.Roll(definition, input.Choices.Select(c => c.ItemId).ToArray(), Random.Shared.Next()) : definition.FixedRewards;
+            ? rules.Roll(definition, new(input.Choices.Select(c => c.ItemId).ToArray(), input.Category,
+                await OpenerJob.ReadAsync(characters, session, ct).ConfigureAwait(false)), Random.Shared.Next()) : definition.FixedRewards;
         var rewards = selected.Select(r => choices.TryGetValue(r.ItemId, out var ability) ? r with { Ability = ability } : r).ToArray();
+        rewards = [.. await rules.ExpandAsync(rewards, await OpenerJob.ReadAsync(characters, session, ct).ConfigureAwait(false),
+            Random.Shared.Next(), ct).ConfigureAwait(false)];
         var grants = await rules.PrepareAsync(rewards, now, ct).ConfigureAwait(false);
         var avatarIds = grants.Where(g => g.Item.Placement.WorldClass == ItemWorldClass.Avatar).Select(g => g.Reward.ItemId).ToHashSet();
         if (!avatarIds.SetEquals(choices.Keys))
@@ -87,7 +93,7 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
         var bonus = ImmutableArray.CreateBuilder<OpeningReward>();
         for (var i = 0; i < input.Count; i++)
         {
-            var rolled = rules.Roll(definition, [], Random.Shared.Next());
+            var rolled = rules.Roll(definition, OpeningDraw.Plain, Random.Shared.Next());
             primary.AddRange(rolled);
             if (definition.UsesSeriaLuck)
             {
@@ -106,4 +112,11 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
             receipt.Rewards.First(r => r.ItemId == g.Key) with { Count = checked(g.Sum(r => r.Count)) }).ToImmutableArray();
         return new(OpeningRejection.None, receipt, Display(primary), Display(bonus), before, before is null ? null : luck);
     }
+}
+
+internal static class OpenerJob
+{
+    public static async ValueTask<int> ReadAsync(ICharacterDomainService characters, SelectedSessionIdentity session, CancellationToken ct) =>
+        (await characters.Get(session.CharacterId).IdentityAsync(ct).ConfigureAwait(false)
+            ?? throw new OpeningRejectedException(OpeningRejection.NoSession, "Opener has no character identity.")).Job;
 }

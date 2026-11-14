@@ -12,7 +12,7 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
     IItemPlacementRuleService placements, IItemArrivalRuleService arrivals, IAccountWalletRuleService wallets,
     IInventoryExpansionDefinitionSource expansionContent,
-    IItemExpirationRuleService expirationRules) : ICeraShopRuleService
+    IItemExpirationRuleService expirationRules, IServiceItemRewardRuleService services) : ICeraShopRuleService
 {
     public async ValueTask<CeraShopQuoteResult> QuoteAsync(CeraShopPurchaseInput input, int characterLevel,
         DateTimeOffset now, CancellationToken cancellationToken)
@@ -232,7 +232,8 @@ internal sealed class CeraShopRuleService(ICeraShopDefinitionSource content,
         bool packageChoice, Choices choices, HashSet<int> ancestors, ImmutableArray<CeraShopGrant>.Builder grants,
         int level, DateTimeOffset now, CancellationToken cancellationToken)
     {
-        if (count <= 0 || !item.Diagnostics.IsEmpty || item.Kind is CeraShopItemKind.Unknown or CeraShopItemKind.Service)
+        if (count <= 0 || !item.Diagnostics.IsEmpty || item.Kind is CeraShopItemKind.Unknown
+            || item.Kind == CeraShopItemKind.Service && !await services.GrantsAsItemAsync(item.ItemId, cancellationToken).ConfigureAwait(false))
             throw Refuse(CeraShopRejection.UnsupportedProduct, $"Item {item.ItemId}: service or {Diagnostics(item.Diagnostics)}.");
         if (item.MinimumPurchaseLevel is { } minimum && level < minimum)
             throw Refuse(CeraShopRejection.PurchaseLevel, $"Item {item.ItemId} requires purchase level {minimum}.");
