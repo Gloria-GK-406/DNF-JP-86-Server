@@ -1,3 +1,4 @@
+﻿using Dfo.Server.Application.Pvp;
 using Dfo.Server.Application.UsageQuotas;
 using Dfo.Server.Application.Marriage;
 using Dfo.Server.Application.Events;
@@ -124,6 +125,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddInitialization();
         services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<IDailyRefillConfigurationRuleService>());
         services.AddSessions();
+        services.AddPvp();
         services.AddAuthentication(configuration);
         services.AddParties();
         services.TryAddSingleton<AntonRaidRuleService>();

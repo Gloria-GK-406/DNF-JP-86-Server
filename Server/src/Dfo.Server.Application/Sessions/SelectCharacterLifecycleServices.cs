@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
@@ -8,6 +8,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
@@ -370,6 +371,7 @@ internal sealed class SelectCharacterSessionEntryService(
     ISelectedCharacterCurrentViewDomainService currentViews,
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
+    IPvpRoomQueryDomainService pvpRooms,
     IOnlineCharacterRuntimeDomainService runtime,
     ICreatureRuntimeDomainService creatures) : ISelectCharacterSessionEntryDomainService
 {
@@ -436,7 +438,7 @@ internal sealed class SelectCharacterSessionEntryService(
                 continue;
             identities.Add(CreatePvpParticipant(current));
         }
-        var offeredRooms = pvp.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
+        var offeredRooms = pvpRooms.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
         var rooms = lobby.Rooms.Select(room =>
         {
             if (!offeredRooms.TryGetValue(room.RoomId, out var source))

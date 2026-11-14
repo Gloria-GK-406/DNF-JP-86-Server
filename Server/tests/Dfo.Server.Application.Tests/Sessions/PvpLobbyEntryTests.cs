@@ -1,3 +1,5 @@
+﻿using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Application.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Testing;
@@ -85,11 +87,11 @@ public sealed class PvpLobbyEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(2));
-            lobby.Offer(Room(1));
+            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
+            rooms.Offer(Room(2));
+            rooms.Offer(Room(1));
 
-            var result = await Service(lobby)
+            var result = await Service(lobby, rooms)
                 .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
             Assert.Equal([1, 2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
@@ -105,11 +107,11 @@ public sealed class PvpLobbyEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(1, published: false));
-            lobby.Offer(Room(2));
+            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
+            rooms.Offer(Room(1, published: false));
+            rooms.Offer(Room(2));
 
-            var result = await Service(lobby)
+            var result = await Service(lobby, rooms)
                 .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
             Assert.Equal([2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
@@ -121,10 +123,10 @@ public sealed class PvpLobbyEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(1, listenerPort: 10011));
+            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
+            rooms.Offer(Room(1, listenerPort: 10011));
 
-            var result = await Service(lobby)
+            var result = await Service(lobby, rooms)
                 .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
             Assert.Empty(result.PvpLobby!.Rooms);
@@ -136,8 +138,8 @@ public sealed class PvpLobbyEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(new PvpRoom(
+            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
+            rooms.Offer(new PvpRoom(
                 RoomId: 7,
                 OwnerCharacterId: new CharacterId(10),
                 ListenerPort: 10068,
@@ -147,7 +149,7 @@ public sealed class PvpLobbyEntryTests
                 BattleMode: 2,
                 Published: true));
 
-            var result = await Service(lobby)
+            var result = await Service(lobby, rooms)
                 .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
 
             var room = Assert.Single(result.PvpLobby!.Rooms);
@@ -164,12 +166,12 @@ public sealed class PvpLobbyEntryTests
     {
         TestGameplay.Run(() =>
         {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(1));
+            var lobby = new PvpLobbyDomainService(); var rooms = new PvpRoomDomainService();
+            rooms.Offer(Room(1));
 
-            Assert.True(lobby.Withdraw(1));
-            Assert.False(lobby.Withdraw(1));
-            Assert.Empty(lobby.OfferedOn(10068));
+            Assert.True(rooms.Withdraw(1));
+            Assert.False(rooms.Withdraw(1));
+            Assert.Empty(rooms.OfferedOn(10068));
         });
     }
 
@@ -187,12 +189,13 @@ public sealed class PvpLobbyEntryTests
         });
     }
 
-    private static SessionAdjacentEntryDomainService Service(IPvpLobbyDomainService lobby) =>
+    private static SessionAdjacentEntryDomainService Service(IPvpLobbyDomainService lobby, IPvpRoomQueryDomainService? rooms = null) =>
         new(
             new SessionPresenceDomainService(),
             Dfo.Server.Testing.TestSessions.Directory(),
             Stores,
-            lobby);
+            lobby,
+            rooms ?? new PvpRoomDomainService());
 
     private static SessionAdjacentSubject Subject(ChannelEntryIdentity channel) =>
         new(new CharacterId(99), new AccountId(1), channel, TownId: 1, AreaId: 0);

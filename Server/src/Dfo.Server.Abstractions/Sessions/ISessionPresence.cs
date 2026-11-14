@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -149,33 +149,11 @@ public sealed record PvpLobbyParticipant(
     SelectedSessionIdentity? Session = null);
 
 /// <summary>
-/// A duel room the lobby knows about.
-/// </summary>
-/// <param name="Published">
-/// Whether the room has finished being announced. A room still mid-announcement is not
-/// shown, because a character who joined it now would race the announcement.
-/// </param>
-public sealed record PvpRoom(
-    ushort RoomId,
-    CharacterId OwnerCharacterId,
-    int ListenerPort,
-    byte NameType,
-    short MapIndex,
-    bool HasPassword,
-    byte BattleMode,
-    bool Published,
-    byte[]? Name = null,
-    byte RoomState = 0,
-    byte ManagerSeat = 0,
-    IReadOnlyList<PvpRoomSeatState>? Seats = null,
-    int MatchingType = 0);
-
-/// <summary>
-/// The server's record of who is waiting to duel and which rooms are on offer.
+/// The server's record of who is waiting to duel.
 /// </summary>
 /// <remarks>
 /// Like the presence service, this exists for the server's lifetime and always answers.
-/// Its writers belong to the duelling flow, which is not migrated.
+/// Rooms are kept by <c>IPvpRoomDomainService</c>.
 /// </remarks>
 public interface IPvpLobbyDomainService
 {
@@ -187,17 +165,8 @@ public interface IPvpLobbyDomainService
 
     bool ClearReadyExact(SelectedSessionIdentity session);
 
-    /// <summary>Records a room, replacing any earlier record with the same identifier.</summary>
-    void Offer(PvpRoom room);
-
-    /// <summary>Removes a room. Returns false when it was not recorded.</summary>
-    bool Withdraw(ushort roomId);
-
     /// <summary>Everyone else ready on the same listener.</summary>
     IReadOnlyList<PvpLobbyParticipant> ReadyOn(int listenerPort, CharacterId excluding);
-
-    /// <summary>The rooms on the same listener that have finished being announced.</summary>
-    IReadOnlyList<PvpRoom> OfferedOn(int listenerPort);
 }
 
 /// <summary>What the session-adjacent views are being asked about.</summary>

@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
@@ -558,16 +558,16 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public void PvpLobbyDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    public void PvpRoomDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var lobby = new Dfo.Server.Application.Sessions.PvpLobbyDomainService();
+        var rooms = new Dfo.Server.Application.Pvp.PvpRoomDomainService();
         var seen = ViolationCapture.Attach();
 
-        Assert.Throws<GameplayOffExecutorException>(() => lobby.Withdraw(1));
+        Assert.Throws<GameplayOffExecutorException>(() => rooms.Withdraw(1));
 
-        AssertOneViolation(seen, "PvpLobbyDomainService.Withdraw");
-        Assert.Empty(lobby.OfferedOn(10011));
-        Assert.False(TestGameplay.Run(() => lobby.Withdraw(1)));
+        AssertOneViolation(seen, "PvpRoomDomainService.Withdraw");
+        Assert.Empty(rooms.OfferedOn(10011));
+        Assert.False(TestGameplay.Run(() => rooms.Withdraw(1)));
     }
 
     [Fact]

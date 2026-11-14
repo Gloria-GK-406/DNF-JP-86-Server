@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -108,6 +108,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(HousingState),
         typeof(ExpertStoreDomainService),
         typeof(PvpLobbyDomainService),
+        typeof(Dfo.Server.Application.Pvp.PvpRoomDomainService),
         typeof(DungeonEntryIntentDomainService),
         typeof(Dfo.Server.Application.Events.JoustMaintenanceDomainService),
         typeof(Dfo.Server.Application.Sessions.SelectedSessionRefreshDomainService),
@@ -472,10 +473,12 @@ public sealed class GameplayWriteEntryTableTests
         ["PvpLobbyDomainService.ClearReady(CharacterId)"] = W,
         ["PvpLobbyDomainService.ClearReadyExact(SelectedSessionIdentity)"] = W,
         ["PvpLobbyDomainService.MarkReady(PvpLobbyParticipant)"] = W,
-        ["PvpLobbyDomainService.Offer(PvpRoom)"] = W,
-        ["PvpLobbyDomainService.OfferedOn(Int32)"] = R,
         ["PvpLobbyDomainService.ReadyOn(Int32, CharacterId)"] = R,
-        ["PvpLobbyDomainService.Withdraw(UInt16)"] = W,
+
+        // PvpRoomDomainService
+        ["PvpRoomDomainService.Offer(PvpRoom)"] = W,
+        ["PvpRoomDomainService.OfferedOn(Int32)"] = R,
+        ["PvpRoomDomainService.Withdraw(UInt16)"] = W,
 
         // DungeonEntryIntentDomainService
         ["DungeonEntryIntentDomainService.Authorize(SelectedSessionIdentity, Int32, Boolean)"] = R,
