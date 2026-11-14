@@ -36,9 +36,12 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
     private const string EquipmentListPath = "equipment/equipment.lst";
     private const string EquipmentDirectory = "equipment";
 
+    private static readonly PvfField<int> SubTypeField = PvfField.Int32("[sub type]", optional: true);
+
     private readonly PvfArchiveProvider _provider;
     private readonly Lock _gate = new();
     private readonly Dictionary<int, BusinessSlot?> _cache = [];
+    private readonly Dictionary<int, SupportWeaponCandidate?> _supportCache = [];
     private IReadOnlyDictionary<int, string>? _paths;
 
     public string Name => "equipment-slot-index";
@@ -79,24 +82,55 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
         }
     }
 
-    private BusinessSlot? Read(PvfArchive archive, int itemId)
+    public ValueTask<SupportWeaponCandidate?> GetSupportWeaponAsync(int itemId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_gate)
+        {
+            if (_supportCache.TryGetValue(itemId, out var cached))
+                return ValueTask.FromResult(cached);
+
+            var candidate = ReadSupportWeapon(_provider.Archive, itemId);
+            _supportCache[itemId] = candidate;
+            return ValueTask.FromResult(candidate);
+        }
+    }
+
+    private BusinessSlot? Read(PvfArchive archive, int itemId) =>
+        Open(archive, itemId) is { } document && ReadType(document) is { } type
+            && PvfEquipmentSlots.BusinessByName.TryGetValue(type, out var slot) ? slot : null;
+
+    private SupportWeaponCandidate? ReadSupportWeapon(PvfArchive archive, int itemId)
+    {
+        if (Open(archive, itemId) is not { } document
+            || !string.Equals(ReadType(document), PvfEquipmentSlots.WeaponTypeName, StringComparison.OrdinalIgnoreCase))
+            return null;
+        try
+        {
+            return document.TryRead(SubTypeField, out var subType)
+                ? new(PvfEquipmentSlots.BusinessByName[PvfEquipmentSlots.SupportWeaponTypeName], subType)
+                : null;
+        }
+        catch (InvalidDataException) { return null; }
+    }
+
+    private static string? ReadType(PvfDocument document)
+    {
+        try { return document.TryRead(Fields.EquipmentTypeField, out var type) ? type : null; }
+        catch (InvalidDataException) { return null; }
+    }
+
+    private PvfDocument? Open(PvfArchive archive, int itemId)
     {
         PathsIndex(archive);
 
         if (!_paths.TryGetValue(itemId, out var path))
             return null;
 
-        var fileIndex = archive.FindFile($"{EquipmentDirectory}/{path}");
-        if (fileIndex < 0)
+        if (archive.FindFile($"{EquipmentDirectory}/{path}") < 0)
             return null;
 
-        try
-        {
-            var document = PvfDocument.Open(archive, $"{EquipmentDirectory}/{path}").AtRoot();
-            return document.TryRead(Fields.EquipmentTypeField, out var type)
-                && PvfEquipmentSlots.BusinessByName.TryGetValue(type, out var slot) ? slot : null;
-        }
+        try { return PvfDocument.Open(archive, $"{EquipmentDirectory}/{path}").AtRoot(); }
         catch (InvalidDataException) { return null; }
-
     }
 }

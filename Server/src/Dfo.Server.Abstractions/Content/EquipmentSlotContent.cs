@@ -18,4 +18,21 @@ public interface IEquipmentSlotDefinitionSource
     /// that identifier.
     /// </summary>
     ValueTask<BusinessSlot?> GetAsync(int itemId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Where this weapon goes when a career carries it as its second weapon, and the weapon
+    /// <c>[sub type]</c> that career's allowance is written in; null for anything that is not a
+    /// <c>[weapon]</c> with a declared sub type.
+    /// </summary>
+    /// <remarks>
+    /// The slot is the one <c>[support weapon]</c> names. Whether a particular character may use it
+    /// is a career question (<see cref="ICharacterSupportWeaponDefinitionSource"/>); this only says
+    /// what the weapon itself declares.
+    /// </remarks>
+    ValueTask<SupportWeaponCandidate?> GetSupportWeaponAsync(int itemId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult<SupportWeaponCandidate?>(null);
 }
+
+/// <summary>A weapon's second-weapon slot and the sub type a career allowance is matched against.</summary>
+/// <remarks>The sub type is job-relative in the archive: 5 is a beam sword for a swordman and a tonfa for a fighter.</remarks>
+public sealed record SupportWeaponCandidate(BusinessSlot Slot, int SubType);

@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-11-14 流浪武士副武器槽（#342，CurrentImplementation，待实机）
+
+[CMD0013](game/client-to-server/0x0013.md) 布局不变。Equipment24 除 `[support weapon]` 外，接受角色转职 `[support weapon sub type]` 列出子类型的 `[weapon]`（修订版 PVF 仅流浪武士＝光剑子类型 5）；背包↔副武器槽、装备栏内 12↔24 的移动与互换按同一规则判定。线上拒绝日志、PVF 与上游参照见协议页。
+
 ## 2026-11-14 个人商店（#43，CurrentImplementation，开店与上架已实机抓包，其余待实机）
 
 入口是驴子地摊：USERINFO 子类 0 里公会 u32 之后那个字节是个人商店许可（原记为 EventCharacter），置 1 后客户端出现开店入口。

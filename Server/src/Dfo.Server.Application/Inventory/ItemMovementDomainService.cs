@@ -106,6 +106,11 @@ internal sealed class ItemMovementDomainService(
         int itemId, CancellationToken cancellationToken) =>
         placementRules.WornSlotForAsync(itemId, cancellationToken);
 
+    public async ValueTask<bool> MayWearAtAsync(Dfo.Server.Data.Characters.CharacterId characterId, int itemId,
+        BusinessSlot slot, CancellationToken cancellationToken) =>
+        await placementRules.WornSlotForAsync(itemId, cancellationToken).ConfigureAwait(false) == slot
+        || await wearing.MayWearAsSupportWeaponAsync(characterId, itemId, slot, cancellationToken).ConfigureAwait(false);
+
     public async ValueTask<SlotAdmission> MayOccupySlotAsync(
         BusinessSlot slot,
         int itemId,

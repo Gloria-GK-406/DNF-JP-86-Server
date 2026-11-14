@@ -7,13 +7,22 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class EquipmentWearRuleService(IEquipmentRequirementDefinitionSource source) : IEquipmentWearRuleService
+internal sealed class EquipmentWearRuleService(IEquipmentRequirementDefinitionSource source,
+    IEquipmentSlotDefinitionSource slots, ICharacterSupportWeaponDefinitionSource supportWeapons) : IEquipmentWearRuleService
 {
     public ItemSnapshot UnsealForEquip(ItemSnapshot item) =>
         item.LegacyKind is 1 or 6 && item.SealFlag == 1 ? item with { SealFlag = 0 } : item;
 
     public ValueTask<int?> MinimumLevelAsync(int itemId, CancellationToken cancellationToken) =>
         source.MinimumLevelAsync(itemId, cancellationToken);
+
+    // The weapon's [sub type] is job-relative, so it is matched only against the allowance of the
+    // wearer's own job; the main-weapon path does not check [usable job] either, and neither does this.
+    public async ValueTask<bool> MayCarryAsSupportWeaponAsync(CharacterCareer career, int itemId, BusinessSlot slot,
+        CancellationToken cancellationToken) =>
+        await slots.GetSupportWeaponAsync(itemId, cancellationToken).ConfigureAwait(false) is { } candidate
+        && candidate.Slot == slot
+        && (await supportWeapons.SubTypesAsync(career, cancellationToken).ConfigureAwait(false)).Contains(candidate.SubType);
 }
 
 internal sealed class EquipmentWearDomainService(ICharacterTable characters,
@@ -24,6 +33,13 @@ internal sealed class EquipmentWearDomainService(ICharacterTable characters,
 
     public ValueTask<ItemSnapshot> PrepareForWearAsync(ItemSnapshot item, ItemSnapshot? previous, CancellationToken ct) =>
         appearances.PrepareAsync(rules.UnsealForEquip(item), previous, ct);
+
+    public async ValueTask<bool> MayWearAsSupportWeaponAsync(CharacterId characterId, int itemId, BusinessSlot slot,
+        CancellationToken cancellationToken) =>
+        await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is { } standing
+        && await rules.MayCarryAsSupportWeaponAsync(
+            CharacterCareer.FromPacked(checked((byte)standing.Job), standing.GrowType), itemId, slot, cancellationToken)
+            .ConfigureAwait(false);
 
     public async ValueTask<bool> CanWearAsync(CharacterId characterId, int itemId, CancellationToken cancellationToken)
     {
