@@ -9,7 +9,7 @@
 
 ```powershell
  dotnet build Server/86JP.Server.slnx
- python Tool/WireSmoke/capture.py after-change artifacts/wire-after --pvf E:/Project/DNF/DNFClient-A21-protocol/Script.pvf
+ python Tool/WireSmoke/capture.py after-change artifacts/wire-after --pvf E:/Project/DNF/ClientStore/mounts/dev/content/Script.pvf
 ```
 
 也可设置 `PVF_ARCHIVE_PATH`。Bash 入口 `capture.sh` 转发相同参数。

@@ -79,7 +79,7 @@ BodyLength = TotalLength - 14
   的 `[A]`/`[B]` 两节。该归档件摘自 `ServerS4A21` 跑通一整局的 458 帧会话（190 条入站），
   以及本仓服务端经记录型中转产生的双向帧记录；两份原件的哈希写在归档件头部。
 - 本节结论绑定的客户端 SHA-256：`1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`
-  （A21，`DNFClient-A21-protocol/DNF.exe`）。**本页其余各节绑定的是 A12 客户端**，
+  （A21，`ClientStore/versions/content/0.3.2/DNF.exe`）。**本页其余各节绑定的是 A12 客户端**，
   其哈希在各节自行声明。
 - 客户端 `Cipher::Encrypt` 的 body 指针前是 header，并在发送前写入 `bodyLength + headerLength`：`ClientHack/plugins/0100_network_hook/network_hook.c`。
 - 客户端发送链的当前逆向结论：`MakePacket → ISocket::Write* → TCP_SEND → Cipher::Encrypt → flush/send`。

@@ -2,7 +2,7 @@
 
 Client SHA-256 baseline: `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`.
 
-Source dump: `E:\Project\DNF\DNFClient-A21-debug\dumps\dnf-dump-20260831-083553-079-22620\DNF-memory-rva.bin`. Addresses below are RVA; absolute operands retain VA (image base 0x400000). Capstone 5.0.7, x86, copied instruction bytes; bounded ranges may stop inside later instructions.
+Source dump: `E:\Project\DNF\ClientEvidence\dumps\dnf-dump-20260831-083553-079-22620\DNF-memory-rva.bin`. Addresses below are RVA; absolute operands retain VA (image base 0x400000). Capstone 5.0.7, x86, copied instruction bytes; bounded ranges may stop inside later instructions.
 
 ## Batch and single construction
 

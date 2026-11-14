@@ -1,6 +1,6 @@
 # A21 RETURN_SELECT_CHARACTER 证据定位（2026-09-08）
 
-客户端：`E:/Project/DNF/DNFClient-A21-protocol/DNF.unpacked-b1-debug.exe`。
+客户端：`E:/Project/DNF/ClientEvidence/binaries/DNF.unpacked-b1-debug-ca7eca4e.exe`。
 SHA-256：`CA7ECA4E7A3701B7FC8E259115AEB28502778A33DF73EED3D501DDEEAE388D14`。
 ImageBase `0x00400000`，下列地址均为 RVA。使用 Python 3.11 + Capstone 5.0.7 读取 PE `.text`。
 

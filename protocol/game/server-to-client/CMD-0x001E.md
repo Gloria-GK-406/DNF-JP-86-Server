@@ -16,7 +16,7 @@ Game / Server → Client / selector01 / type001E，ClientStatic + CurrentImpleme
 statValue/extra均0，无直接基础属性增量，再通过现有NOTI0025同步经验。错误映射沿用参考服务端，
 不能称为全错误码已实机验证。
 
-证据文件：`DNFClient-A21-protocol/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin`，
+证据文件：`ClientEvidence/dumps/dnf-dump-20260906-224825-165-31384/DNF-memory-rva.bin`，
 SHA256 `6BD2746DA3858E6F29B3E2D386AF4938056269BAD6C9FFF9455E133E7D953507`，imagebase00400000。
 本页地址为VA。静态成功布局、pending释放和服务端测试不等价于原生客户端验收。
 
