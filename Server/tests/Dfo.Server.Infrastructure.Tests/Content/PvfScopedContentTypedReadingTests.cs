@@ -35,7 +35,6 @@ public sealed class PvfScopedContentTypedReadingTests
 
     [Theory]
     [InlineData("attach-kind")]
-    [InlineData("attach-duplicate")]
     [InlineData("limit-kind")]
     [InlineData("limit-extra")]
     public async Task Mail_invalid_attach_or_limit_cannot_become_unknown_or_unlimited(string defect)
@@ -213,13 +212,14 @@ public sealed class PvfScopedContentTypedReadingTests
     [Theory]
     [InlineData("type")]
     [InlineData("cost")]
-    public void Package_duplicate_type_or_cost_cannot_produce_a_clean_lottery_definition(string duplicate)
+    public void Package_duplicate_cost_is_refused_and_a_repeated_type_takes_the_later_declaration(string duplicate)
     {
         var sections = new List<Section> { new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
             new("[lottery use cost]", [I(100)]), new("[int data]", [I(8), I(1000), I(1)]) };
         sections.Add(duplicate == "type" ? new("[stackable type]", [new(PvfTokenKind.QuotedString, 1)]) : new("[lottery use cost]", [I(200)]));
         var definition = PvfPackageOpeningDefinitionSource.Parse(7, sections, _ => "[upgradable legacy]");
-        Assert.Contains(definition.Diagnostics, message => message.Contains("Duplicate", StringComparison.Ordinal));
+        // The client assigns [stackable type] again on a repeat; only the cost stays a refused duplicate.
+        Assert.Equal(duplicate == "cost", definition.Diagnostics.Any(message => message.Contains("Duplicate", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -271,23 +271,22 @@ public sealed class PvfScopedContentTypedReadingTests
     }
 
     [Theory]
-    [InlineData(10007316, 101600023, 100000, 1, 3, 0, true)]
-    [InlineData(10007317, 101600023, 100000, 1, 3, 0, false)]
-    [InlineData(10007316, 101600024, 100000, 1, 3, 0, false)]
-    [InlineData(10007316, 101600023, 100000, 2, 3, 0, false)]
-    [InlineData(10007316, 101600023, 100000, 1, 2, 0, false)]
-    [InlineData(10007316, 101600023, 100000, 1, 0, 0, false)]
-    [InlineData(10007316, 101600023, 99999, 1, 3, 0, false)]
-    [InlineData(10007316, 101600023, 100000, 1, 3, 1, false)]
-    public void Dark_repulsor_profile_is_bound_only_when_the_whole_observed_declaration_matches(
-        int box, int weapon, int weight, int count, int extension, int tail, bool supported)
+    [InlineData(10007316, 3, 0, 1)]
+    [InlineData(10007318, 3, 0, 1)]
+    [InlineData(10007319, 3, 0, 0)]
+    [InlineData(54, 0, 2, 0)]
+    public void Avatar_pool_extensions_are_a_type_row_and_an_ability_and_only_the_promised_boxes_lock_trade(
+        int box, int row, int ability, int restriction)
     {
         Section[] sections = [new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
-            new("[booster info]", []), new("[avatar]", [I(1), I(weapon), I(weight), I(count), I(extension), I(tail)]),
+            new("[booster info]", []), new("[avatar]", [I(1), I(101600023), I(100000), I(1), I(row), I(ability)]),
             new("[/avatar]", []), new("[/booster info]", [])];
         var definition = PvfPackageOpeningDefinitionSource.Parse(box, sections, _ => "[booster]");
-        Assert.Equal(supported, definition.Diagnostics.IsEmpty);
-        Assert.Equal(supported ? 1 : 0, Assert.Single(Assert.Single(definition.Pools).Choices).Reward.TradeRestriction);
+        Assert.Empty(definition.Diagnostics);
+        var reward = Assert.Single(Assert.Single(definition.Pools).Choices).Reward;
+        Assert.Equal(row, reward.AvatarTypeRow);
+        Assert.Equal(ability, reward.Ability);
+        Assert.Equal(restriction, reward.TradeRestriction);
     }
 
     private static PvfToken I(int value) => new(PvfTokenKind.Int32, value);

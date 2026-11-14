@@ -88,7 +88,7 @@ internal sealed class PvfExperienceItemDefinitionSource(
 
         try
         {
-            readable &= document.TryRead(Fields.StackableType, out var stackable)
+            readable &= document.TryRead(Fields.StackableType, PvfItemFieldRepeats.For(Fields.StackableType), out var stackable)
                 && stackable.Count == 2
                 && stackable[0].IsString
                 && archive.ResolveString(stackable[0].Value).Equals("[etc]", StringComparison.OrdinalIgnoreCase)

@@ -55,7 +55,7 @@ internal sealed class PvfInventorySortKeySource(PvfArchiveProvider provider,
                 throw new InvalidDataException($"No PVF sorting metadata for item {itemId}.");
             var document = PvfDocument.Open(provider.Archive, path).AtRoot();
             int Number(PvfField<int> field) => document.TryRead(field, out var value) ? value : 0;
-            var type = document.TryRead(Fields.StackableTypeField, out var stackableType) ? stackableType : "";
+            var type = document.TryRead(Fields.StackableTypeField, PvfItemFieldRepeats.For(Fields.StackableTypeField), out var stackableType) ? stackableType : "";
             result = new(Number(Fields.RarityField), Number(Fields.MinimumLevelField), 0, type);
         }
         var slot = await slots.GetAsync(itemId, ct).ConfigureAwait(false);

@@ -53,7 +53,7 @@ internal sealed class PvfExtraDropContentSource(PvfArchiveProvider provider) : I
             if (!tagged) continue;
             var document = PvfDocument.Open(archive, path).AtRoot();
             if (!document.TryRead(Fields.SpecialMonsterDropField, out var specialDrop)) continue;
-            var typeName = document.TryRead(Fields.EquipmentTypeField, out var declaredType) ? declaredType : null;
+            var typeName = document.TryRead(Fields.EquipmentTypeField, PvfItemFieldRepeats.For(Fields.EquipmentTypeField), out var declaredType) ? declaredType : null;
             var sections = document.Sections.Select(section =>
                 new PvfSection(section.Name, section.Values.ToList())).ToArray();
             int Number(PvfField<int> name, int fallback)

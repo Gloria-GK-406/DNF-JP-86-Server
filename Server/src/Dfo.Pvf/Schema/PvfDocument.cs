@@ -108,20 +108,24 @@ public sealed class PvfDocument
     }
 
     /// <summary>Reads one section. Missing optional fields return the type default; use TryRead to distinguish absence.</summary>
-    public T Read<T>(PvfField<T> field)
+    public T Read<T>(PvfField<T> field) => Read(field, PvfRepeats.Reject);
+
+    public T Read<T>(PvfField<T> field, PvfRepeats repeats)
     {
-        if (TryRead(field, out var value)) return value;
+        if (TryRead(field, repeats, out var value)) return value;
         PvfField.Require(field.Optional, source, field.Name, "required field is missing");
         return default!;
     }
 
-    public bool TryRead<T>(PvfField<T> field, out T value)
+    public bool TryRead<T>(PvfField<T> field, out T value) => TryRead(field, PvfRepeats.Reject, out value);
+
+    /// <summary>Reads one section with the caller's repeat policy (<see cref="PvfRepeats.AsUndeclared"/> reads as absent).</summary>
+    public bool TryRead<T>(PvfField<T> field, PvfRepeats repeats, out T value)
     {
         RequireSection(field);
-        var found = Sections.Where(section => field.Matches(section.Name)).ToArray();
-        if (found.Length == 0) { value = default!; return false; }
-        PvfField.Require(found.Length == 1, source, field.Name, "duplicate field");
-        value = field.Decode(archive, found[0].Values, source);
+        var found = PvfSections.Single(Sections, field, repeats, source);
+        if (found is null) { value = default!; return false; }
+        value = field.Decode(archive, found.Values, source);
         return true;
     }
 

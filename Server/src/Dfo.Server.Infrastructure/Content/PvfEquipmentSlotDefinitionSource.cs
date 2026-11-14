@@ -116,7 +116,7 @@ internal sealed class PvfEquipmentSlotDefinitionSource : IEquipmentSlotDefinitio
 
     private static string? ReadType(PvfDocument document)
     {
-        try { return document.TryRead(Fields.EquipmentTypeField, out var type) ? type : null; }
+        try { return document.TryRead(Fields.EquipmentTypeField, PvfItemFieldRepeats.For(Fields.EquipmentTypeField), out var type) ? type : null; }
         catch (InvalidDataException) { return null; }
     }
 

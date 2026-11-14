@@ -39,8 +39,13 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
                 ? new(grant.Expiration, 0, new byte[30], 0, 0, 0) : null,
             CreatureDetail = grant.Item.Placement.WorldClass == ItemWorldClass.Creature
                 ? new(100, 0, 0, 0, 0, grant.Item.CreatureStartLevel!.Value, [], 0) : null,
-            Attribute = grant.Reward.Ability, Durability = grant.Item.Durability,
+            // One byte: an avatar's ability, or an equipment's reinforcement in the low five bits.
+            Attribute = grant.Item.Placement.WorldClass == ItemWorldClass.Avatar ? grant.Reward.Ability : grant.Reward.Upgrade,
+            Durability = grant.Item.Durability,
             TradeRestriction = grant.Reward.TradeRestriction,
+            GenuineUpgrade = grant.Reward.Forging,
+            // A declared quality tier is the client's fixed seed for that tier; otherwise delivery rolls one.
+            InstanceValue = grant.Reward.QualityTier is { } tier ? EquipmentQualitySeeds.FixedFor(tier) : 0,
             SealFlag = grant.Item.Placement.WorldClass == ItemWorldClass.Creature ? (byte)0 : grant.Item.Sealed ? (byte)1 : (byte)0,
             ExpireTime = grant.Item.Placement.WorldClass == ItemWorldClass.Avatar ? 0 : grant.Expiration,
         };
@@ -64,7 +69,9 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
         ItemArrival.OntoExistingPile pile => (pile.Slot, pile.Added, held[pile.Slot]! with { Count = pile.Total }),
         ItemArrival.IntoEmptySlot empty => (empty.Slot, empty.Count, Baseline(grant) with
         { Count = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? empty.Count : 1,
-            InstanceValue = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? 0 : applying ? Dfo.Server.Application.Inventory.EquipmentQualitySeeds.NewRandom() : 1 }),
+            InstanceValue = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? 0
+                : grant.Reward.QualityTier is { } tier ? EquipmentQualitySeeds.FixedFor(tier)
+                : applying ? EquipmentQualitySeeds.NewRandom() : 1 }),
         _ => throw new InventoryEffectException(InventoryEffectRejection.NoRoom),
     };
     public override async ValueTask PreviewAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, IInventoryEffectPreviewState state, CancellationToken ct)

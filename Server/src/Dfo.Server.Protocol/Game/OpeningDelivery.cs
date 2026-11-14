@@ -140,10 +140,10 @@ internal static class OpeningWireSlots
             input.MaterialSlot < 0 ? null : FromMain(input.MaterialSlot), input.ExpectedMaterialId, input.Count);
 
     public static BusinessPackageOpeningInput Business(PackageOpeningInput input) =>
-        new(FromMain(input.SourceSlot), input.SelectedItems);
+        new(FromMain(input.SourceSlot), input.SelectedItems) { Category = input.Category };
 
     public static BusinessAvatarPackageOpeningInput Business(AvatarPackageOpeningInput input) =>
-        new(FromMain(input.SourceSlot), input.Choices);
+        new(FromMain(input.SourceSlot), input.Choices) { Category = input.Category };
 
     public static GameSlot Project(BusinessSlot slot) =>
         slot.Space == BusinessInventorySpace.VirtualResource

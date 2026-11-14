@@ -16,7 +16,7 @@ public sealed class PvfTypedItemUseTests
     [InlineData("integer-rate", false)]
     [InlineData("infinite-rate", false)]
     [InlineData("invalid-duration-target", false)]
-    [InlineData("duplicate-type", false)]
+    [InlineData("duplicate-type", true)]
     [InlineData("misordered-type", false)]
     [InlineData("mixed-jobs", false)]
     public async Task Production_read_distinguishes_absence_from_invalid_declarations(string shape, bool readable)

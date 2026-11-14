@@ -72,13 +72,13 @@ internal sealed class PvfAuctionItemDefinitionSource(PvfArchiveProvider provider
         var document = PvfDocument.Open(archive, path);
         var packagable = !document.TryRead(Fields.PackagableField, out var flags) || flags.All(flag => flag != 0);
         var cash = document.TryRead(Fields.CashField, out var price) ? price : 0;
-        var timed = document.TryRead(Fields.UsablePeriodField, out _) || document.TryRead(Fields.ExpirationDateField, out _);
+        var timed = document.TryRead(Fields.UsablePeriodField, PvfItemFieldRepeats.For(Fields.UsablePeriodField), out _) || document.TryRead(Fields.ExpirationDateField, out _);
         var rarity = document.TryRead(Fields.RarityField, out var r) ? (byte)Math.Clamp(r, 0, 255) : (byte)0;
         var level = document.TryRead(Fields.MinimumLevelField, out var l) ? (byte)Math.Clamp(l, 0, 255) : (byte)0;
         var family = AuctionItemFamily.Stackable;
         if (equipment)
         {
-            var type = document.TryRead(Fields.EquipmentTypeField, out var tokens) && tokens.Count > 0 && tokens[0].IsString
+            var type = document.TryRead(Fields.EquipmentTypeField, PvfItemFieldRepeats.For(Fields.EquipmentTypeField), out var tokens) && tokens.Count > 0 && tokens[0].IsString
                 ? archive.ResolveString(tokens[0].Value) : string.Empty;
             family = FamilyOf(type);
         }

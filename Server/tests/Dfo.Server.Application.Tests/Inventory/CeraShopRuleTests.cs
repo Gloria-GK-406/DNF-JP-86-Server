@@ -132,7 +132,7 @@ public sealed class CeraShopRuleTests
     [Fact]
     public void Water_purchase_plans_96400_cera_and_one_item_without_mutating_current_stock()
     {
-        var rules = new CeraShopRuleService(null!, null!, new ItemArrivalRuleService(), new Dfo.Server.Application.Accounts.AccountWalletRuleService(), expansionContent: TestRequired.Absent<Dfo.Server.Abstractions.Content.IInventoryExpansionDefinitionSource>(), expirationRules: TestRequired.NoExpiration);
+        var rules = new CeraShopRuleService(null!, null!, new ItemArrivalRuleService(), new Dfo.Server.Application.Accounts.AccountWalletRuleService(), expansionContent: TestRequired.Absent<Dfo.Server.Abstractions.Content.IInventoryExpansionDefinitionSource>(), expirationRules: TestRequired.NoExpiration, services: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IServiceItemRewardRuleService>());
         var item = new CeraShopItemDefinition(3, "stackable/cash/river_lethe.stk", CeraShopItemKind.Stackable,
             0, false, null, [], [], null, null, []);
         var quote = new CeraShopQuote([110000], [new(110000, 0, 3600, CeraShopPaymentMode.Ordinary)],

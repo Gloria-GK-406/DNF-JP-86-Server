@@ -78,7 +78,7 @@ public sealed class ItemExpirationTests
     [InlineData(0, 2)]
     public async Task Prepared_opening_takes_daily_limit_even_with_positive_template_or_package_period(int defaultDays, int rewardDays)
     {
-        var opening = new PackageOpeningRuleService(new OpeningDefinitions(defaultDays), null!, Rules);
+        var opening = new PackageOpeningRuleService(new OpeningDefinitions(defaultDays), null!, Rules, null!);
         var result = await opening.PrepareAsync([new(9001, 1, PeriodDays: rewardDays)], At, default);
         Assert.Equal(At.AddMinutes(1).ToUnixTimeSeconds(), Assert.Single(result).Expiration);
     }
