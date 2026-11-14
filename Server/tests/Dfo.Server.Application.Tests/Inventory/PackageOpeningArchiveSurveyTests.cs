@@ -75,7 +75,7 @@ public sealed class PackageOpeningArchiveSurveyTests(ITestOutputHelper output)
             if (found.Count > 0) Note(id, definition.Kind.ToString(), found.Distinct().ToList(), path);
         }
         foreach (var (kind, (total, failed)) in kinds) output.WriteLine($"{kind}: {failed}/{total} fail");
-        output.WriteLine($"{expanding.Count} packages hold a grant-time package: {string.Join(' ', expanding.Take(30))}");
+        output.WriteLine($"{expanding.Count} packages hold a grant-time package: {string.Join(" ", expanding)}");
         foreach (var (reason, count) in reasons.OrderByDescending(r => r.Value)) output.WriteLine($"{count,6}  {reason}");
         if (Environment.GetEnvironmentVariable("PACKAGE_SURVEY_OUT") is { Length: > 0 } file) File.WriteAllText(file, rows.ToString());
         var stale = KnownResiduals.Keys.Where(id => !failing.Contains(id)).ToArray();
