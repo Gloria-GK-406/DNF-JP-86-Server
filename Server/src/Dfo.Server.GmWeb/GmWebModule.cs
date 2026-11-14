@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.HttpApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
@@ -25,10 +26,32 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
         services.AddAntiforgery(options => { options.HeaderName = "X-GM-CSRF"; options.Cookie.Name = "Dfo.Gm.Csrf"; options.Cookie.SameSite = SameSiteMode.Strict; options.Cookie.HttpOnly = true; });
         services.AddSingleton<GmLoginLimiter>();
+        services.AddKeyedSingleton(GmLoginLimiter.PlayerKey, (provider, _) => new GmLoginLimiter(provider.GetRequiredService<TimeProvider>()));
+        services.AddSingleton<PlayerRequestLimiter>();
         services.AddSingleton<GmIconPackStore>();
         services.AddHostedService<GmBootstrapService>();
     }
-    public void ConfigureMiddleware(IApplicationBuilder application) => application.UseMiddleware<GmAccessBoundary>();
+    public void ConfigureMiddleware(IApplicationBuilder application)
+    {
+        // #305: only with configured proxies, and only on the GmWeb listener, so the gate port and an
+        // unconfigured back office keep the connection's own address and scheme. Runs before the
+        // boundary, so HTTPS, same-origin, cookie Secure and the login limiter see the resolved values.
+        if (options.TrustedProxies.Count != 0)
+        {
+            var forwarded = new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+                ForwardLimit = 1,
+            };
+            // The defaults trust 127.0.0.0/8 and ::1; only the configured addresses may forward.
+            forwarded.KnownIPNetworks.Clear();
+            forwarded.KnownProxies.Clear();
+            foreach (var proxy in options.TrustedProxies) forwarded.KnownProxies.Add(proxy);
+            var port = options.ListenUrl!.Port;
+            application.UseWhen(context => context.Connection.LocalPort == port, branch => branch.UseForwardedHeaders(forwarded));
+        }
+        application.UseMiddleware<GmAccessBoundary>();
+    }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
@@ -46,6 +69,8 @@ public sealed class GmWebModule(IConfiguration configuration) : IHttpApiFeature
         GmEventsEndpoints.Map(group);
         GmServerInfoEndpoints.Map(group, options);
         GmItemEndpoints.Map(group);
+        GmPlayerPortalEndpoints.Map(group);
+        PlayerPortalEndpoints.Map(group);
         group.MapGet("/gm/{**path}", ServePage).WithMetadata(new OutsideGameplay("不碰玩法状态的 HTTP 路由：静态文件"));
     }
 

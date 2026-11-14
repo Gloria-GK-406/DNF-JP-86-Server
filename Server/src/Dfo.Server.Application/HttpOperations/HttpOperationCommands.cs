@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.PlayerPortal;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.HttpOperations;
@@ -92,6 +93,7 @@ public static class HttpOperationCommandRegistration
         services.AddInternalCommandHandler<FailedHttpInputCommand, HttpRouteReply, FailedHttpInputCommandHandler>();
         services.AddAccountHttpCommands();
         services.AddGmAdministrationCommands();
+        services.AddPlayerPortalCommands();
         return services;
     }
 }

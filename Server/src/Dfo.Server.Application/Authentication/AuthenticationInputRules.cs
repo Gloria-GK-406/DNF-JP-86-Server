@@ -8,14 +8,17 @@ internal static class AuthenticationInputRules
     public static IReadOnlyDictionary<string, string> Validate(string loginId, string password, bool registration)
     {
         var errors = new Dictionary<string, string>();
-        if (string.IsNullOrEmpty(loginId) || loginId.Length > 256 || loginId != loginId.Trim()
-            || loginId.Any(c => c < 32 || c >= 127 || c == '?'))
+        if (!ValidLoginId(loginId))
             errors["loginId"] = "账号须为 1 至 256 个 ASCII 字符，不得含问号、控制字符或首尾空白。";
         var count = ScalarCount(password);
         if (count < (registration ? 8 : 1) || count > 128 || (registration && password.Contains('\0')))
             errors["password"] = registration ? "密码须为 8 至 128 个有效字符且不得含 NUL。" : "密码须为 1 至 128 个有效字符。";
         return errors;
     }
+
+    /// <summary>The account naming rule on its own; the player portal uses it to decide what a refused login may record.</summary>
+    public static bool ValidLoginId(string? loginId) => !string.IsNullOrEmpty(loginId) && loginId.Length <= 256
+        && loginId == loginId.Trim() && !loginId.Any(c => c < 32 || c >= 127 || c == '?');
 
     private static int ScalarCount(string? value)
     {

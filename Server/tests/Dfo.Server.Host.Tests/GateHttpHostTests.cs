@@ -178,6 +178,38 @@ public sealed class GateHttpHostTests
         Assert.Single(gate.Host.Logs.Messages, message => message.Contains(UnconfiguredWarning, StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// #305 AC-034: GmWeb's trusted proxies never reach the gate port. The client connects from loopback,
+    /// so were forwarding applied there, trusting 127.0.0.1 would move both the failure count and the
+    /// logged client address; both must come out the same with and without the setting.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Gm_trusted_proxies_leave_the_gate_client_address_and_failure_limit_unchanged(bool trusted)
+    {
+        var token = GateTestToken.New();
+        var settings = new Dictionary<string, string?> { ["LauncherAuth:GateAuthFailureLimit"] = "3" };
+        if (trusted) settings["GmWeb:TrustedProxies:0"] = "127.0.0.1";
+        await using var gate = await GateHost.StartAsync(token, extraSettings: settings);
+
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            using var request = Get(Status, GateTestToken.New());
+            request.Headers.Add("X-Forwarded-For", $"198.51.100.{40 + attempt}");
+            using var response = await gate.Launcher.SendAsync(request);
+            Assert.Equal(attempt < 3 ? HttpStatusCode.Unauthorized : HttpStatusCode.TooManyRequests, response.StatusCode);
+        }
+
+        using (var register = PostCredentials("/api/gate/v1/register", token))
+        {
+            register.Headers.Add("X-Forwarded-For", "198.51.100.7, 203.0.113.9");
+            using var response = await gate.Launcher.SendAsync(register);
+        }
+        Assert.Contains(gate.Host.Logs.Messages, message => message == "Gate register from 203.0.113.9.");
+        Assert.DoesNotContain(gate.Host.Logs.Messages, message => message.StartsWith("Gate register from 198.51.100.7", StringComparison.Ordinal));
+    }
+
     private static HttpRequestMessage Get(string path, string? bearer)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, path);
@@ -201,10 +233,12 @@ public sealed class GateHttpHostTests
         public HttpClient Launcher { get; } = launcher;
 
         /// <summary>A GmWeb Host that also serves LauncherAuth and the game ports, with the token passed through configuration only.</summary>
-        public static async Task<GateHost> StartAsync(string? token, Action<IServiceCollection>? configureServices = null)
+        public static async Task<GateHost> StartAsync(string? token, Action<IServiceCollection>? configureServices = null,
+            IReadOnlyDictionary<string, string?>? extraSettings = null)
         {
             var launcher = LauncherHost.Create();
             var settings = new Dictionary<string, string?>(launcher.Settings) { ["LauncherAuth:GateToken"] = token };
+            foreach (var (key, value) in extraSettings ?? new Dictionary<string, string?>()) settings[key] = value;
             var host = await GmTestHost.StartAsync(directory: launcher.Directory, configuration: settings, configureServices: configureServices);
             return new GateHost(host, new HttpClient { BaseAddress = launcher.Url });
         }

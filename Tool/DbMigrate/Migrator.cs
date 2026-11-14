@@ -24,6 +24,7 @@ public static class Migrator
             [6] = AuctionTablesUpgrade.Apply,
             [7] = PrivateStoreCustodyUpgrade.Apply,
             [8] = AuraSkinSlotUpgrade.Apply,
+            [9] = PlayerPortalUpgrade.Apply,
         };
 
     private static void AddDropDrawMultiplier(SqliteConnection connection)

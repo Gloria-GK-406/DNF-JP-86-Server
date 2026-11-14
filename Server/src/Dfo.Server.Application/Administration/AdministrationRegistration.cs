@@ -23,6 +23,7 @@ internal static class AdministrationRegistration
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraReminderDomainService, Dfo.Server.Application.Administration.GmCeraReminderDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraDomainService, Dfo.Server.Application.Administration.GmCeraDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailRuleService, Dfo.Server.Application.Administration.GmMailRuleService>();
+        services.TryAddSingleton<Dfo.Server.Application.Administration.OfficialMailDelivery>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmOfficialMailDomainService, Dfo.Server.Application.Administration.GmOfficialMailDomainService>();
         services.AddInternalCommandHandler<Dfo.Server.Application.Administration.BootstrapGmAdministratorCommand, bool, Dfo.Server.Application.Administration.BootstrapGmAdministratorCommandHandler>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmDailyRefillDomainService, Dfo.Server.Application.Administration.GmDailyRefillDomainService>();

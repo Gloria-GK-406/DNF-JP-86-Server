@@ -3,6 +3,7 @@ using Dfo.Server.Application.Marriage;
 using Dfo.Server.Application.Events;
 using Dfo.Server.Application.Rental;
 using Dfo.Server.Application.Administration;
+using Dfo.Server.Application.PlayerPortal;
 using Dfo.Server.Application.Initialization;
 using Dfo.Server.Application.Scheduling;
 using Dfo.Server.Abstractions.Mail;
@@ -113,6 +114,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();
         services.AddDomainEvent<ClientAppearanceSettingsChanged>("settings.appearance-changed", 1);
         services.AddAdministration();
+        services.AddPlayerPortal();
         services.AddInitialization();
         services.AddSingleton<IItemCatalogSelectionRuleService>(p => p.GetRequiredService<IDailyRefillConfigurationRuleService>());
         services.AddSessions();

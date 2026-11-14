@@ -56,6 +56,17 @@ describe('中文管理员交互', () => {
     fireEvent.click((await screen.findAllByText('管理活动')).at(-1)!);
     await waitFor(() => expect(mocked).toHaveBeenCalledWith('audit?page=1&pageSize=20&outcome=attention&action=ChangeEvent'));
   });
+  it('审计按"玩家自助"筛选并显示玩家操作者', async () => {
+    setup(); const original = mocked.getMockImplementation()!;
+    mocked.mockImplementation(async path => path.startsWith('audit') ? { items: [{ operationId: 'player-operation', occurredAt: '2026-11-13T00:00:00Z', action: 'PlayerGrantCera',
+      administratorName: 'player01', target: '账号 7', outcome: 'Succeeded', reason: '', actorKind: 'player', accountId: 7 }], total: 1, page: 1, pageSize: 20 } : original(path));
+    open(); expect(await screen.findByText('玩家加点券')).toBeTruthy();
+    const row = screen.getByText('玩家加点券').closest('tr')!;
+    expect(within(row).getByText('玩家')).toBeTruthy(); expect(within(row).getByText('player01')).toBeTruthy(); expect(within(row).getByText('7')).toBeTruthy();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: '操作者' }));
+    fireEvent.click((await screen.findAllByText('玩家自助')).at(-1)!);
+    await waitFor(() => expect(mocked).toHaveBeenCalledWith('audit?page=1&pageSize=20&actor=player'));
+  });
   it('权限不足的直接URL不加载私有审计', async () => {
     setup({ ...operator, permissions: ['QueryPlayers'] }); open('/operations');
     expect(await screen.findByText('没有访问此页面的权限')).toBeTruthy();

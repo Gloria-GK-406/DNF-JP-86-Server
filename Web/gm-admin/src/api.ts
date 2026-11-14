@@ -1,7 +1,8 @@
 export type Permission = 'QueryPlayers' | 'SendMail' | 'GrantCera' | 'ViewAudit';
 export type Identity = { id: number; loginName: string; permissions: Permission[]; expiresAt: string };
 export type AuditOutcome = 'Succeeded' | 'Rejected' | 'RolledBack' | 'Unknown';
-export type AuditRecord = { operationId: string; occurredAt: string; action: string; administratorName: string | null; target: string; outcome: string; reason: string };
+export type AuditRecord = { operationId: string; occurredAt: string; action: string; administratorName: string | null; target: string; outcome: string; reason: string;
+  actorKind?: 'gm' | 'player'; accountId?: number | null };
 export type AuditPage = { items: AuditRecord[]; total: number; page: number; pageSize: number };
 export type Balances = { cera: number; tokenCera: number; happyTokenCera: number };
 export type PlayerPage<T> = { items: T[]; total: number; page: number; pageSize: number; sampledAt: string };
@@ -14,7 +15,8 @@ export type Overview = { networkEnabled: boolean; gameReady: boolean; totalAccou
   channels: { channelId: number; name: string; onlineCharacters: number }[]; unmappedOnlineCharacters: number; sampledAt: string };
 export type ServerInfo = { version: string; networkEnabled: boolean; channelPort: number | null; gamePorts: number[]; gmPort: number; pvfSha256: string | null };
 
-export class ApiError extends Error { constructor(public status: number, message: string, public outcome?: string) { super(message); } }
+/** `code` is set only by the player API (SD-1a); the GM API never reads it. */
+export class ApiError extends Error { constructor(public status: number, message: string, public outcome?: string, public code?: string) { super(message); } }
 
 export async function api<T>(path: string, payload?: unknown, method?: 'PUT' | 'DELETE'): Promise<T> {
   const headers: Record<string, string> = {};

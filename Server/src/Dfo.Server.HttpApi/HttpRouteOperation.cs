@@ -13,5 +13,9 @@ public enum HttpRouteOperation
     MailSaveDraft, MailCreateTemplate, MailUpdateTemplate, MailDeleteTemplate, MailSend,
     Initialization, InitializationAccount, InitializationCharacter, InitializationItems, InitializationItem,
     DailyRefill, DailyRefillChange, DailyRefillItems, DailyRefillItem,
-    Events, WeeklyAttendance, JoustSettings, JoustRound, JoustChampion, JoustChange, EventsChange
+    Events, WeeklyAttendance, JoustSettings, JoustRound, JoustChampion, JoustChange, EventsChange,
+    PlayerPortalSettings, PlayerPortalSettingsChange, PlayerPortalSessions, PlayerPortalKick, PlayerPortalKickAll,
+    PlayerLogin, PlayerLogout, PlayerMe,
+    PlayerGrantCera, PlayerOperations,
+    PlayerSendMail
 }

@@ -15,7 +15,7 @@ dotnet build Server/86JP.Server.slnx -c Release
 dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb:Enabled=true --GmWeb:ListenUrl=http://127.0.0.1:18081
 ```
 
-访问 `http://127.0.0.1:18081/gm/`。前端开发模式 `npm run dev`，Vite 将 `/api/gm` 转发至本机 18081；开发者修改实际后端监听地址时同步修改代理目标。
+访问 `http://127.0.0.1:18081/gm/`。前端开发模式 `npm run dev`，Vite 将 `/api/gm` 与 `/api/player` 转发至本机 18081；开发者修改实际后端监听地址时同步修改代理目标。
 
 `GmWeb:Enabled` 默认 false，`GmWeb:ListenUrl` 默认本机 18081。与 `LauncherAuth:*`、`Networking:*` 开关独立；全部 HTTP 关闭时不启动 Kestrel。启用多个 HTTP 功能时使用不同端口，功能路由只在各自端口提供。Host 与各模块共享同一容器、运行态和数据库。
 
@@ -27,14 +27,30 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 | 路径 | 页面 | 权限 |
 |---|---|---|
-| `/gm/` | 服务概览：关键数字；频道在线（按人数排序）、活动排期、需要处理（拒绝 / 回滚审计按操作与结果合并成组，可展开明细、单组或全部标为已读，已读只记在本浏览器）、最近操作。每块默认 5 行，可展开 / 收起并记住状态；结果未确认的发放以红色横幅固定在顶部 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
+| `/gm/` | 服务概览：关键数字；频道在线（按人数排序）、活动排期、需要处理（拒绝 / 回滚审计按操作与结果合并成组，可展开明细、单组或全部标为已读，已读只记在本浏览器）、最近操作。这两块只取管理员的审计记录（`actor=gm`），玩家记录只在「操作记录」页查看。每块默认 5 行，可展开 / 收起并记住状态；结果未确认的发放以红色横幅固定在顶部 | QueryPlayers（排期需全部权限，审计部分需 ViewAudit） |
 | `/gm/players` | 账号与角色：列表 + 右侧详情；输入纯数字按 ID 查，否则按姓名 / 登录名字面搜索；可勾选账号批量发点券 | QueryPlayers |
 | `/gm/grants` | 发放：邮件记录、点券记录、邮件模板、草稿，以及待确认发放的「查询原编号 / 按原内容安全重试」 | SendMail 或 GrantCera |
 | `/gm/grants/mail`、`/gm/grants/cera` | 写邮件 / 发点券三步页面；写邮件右侧是仿游戏「查看邮件」窗口的预览，核对步骤以服务端预览为准 | SendMail / GrantCera |
 | `/gm/initialization`、`/gm/daily-refill`、`/gm/events` | 初始化配置、每日补给、活动管理 | 全部权限 |
-| `/gm/operations` | 操作记录，按结果和操作类型筛选 | ViewAudit |
+| `/gm/player-portal` | 玩家后台：总开关与两个子开关（切换即保存，限额取已保存的值）、六项限额（0 = 不限，点保存才提交）、在线会话与踢下线；版本冲突或结果未确认时锁定写入，重新读取后才能继续 | 全部权限 |
+| `/gm/operations` | 操作记录，按结果、操作类型和操作者（管理员 / 玩家自助）筛选；玩家记录的操作者显示登录名、"玩家"标记与账号 ID | ViewAudit |
 
 旧地址 `/gm/characters`、`/gm/mail`、`/gm/wallet` 自动跳转到新页面。待确认发放的请求编号与冻结内容仍按管理员保存在 sessionStorage，刷新或换页不丢失、不自动重发；配置类页面遇到版本冲突或结果未确认时锁定写入，重新读取后才能继续。
+
+### 登录与玩家界面
+
+页面启动时先读 `/api/player/v1/auth/status` 与玩家会话：玩家会话有效就进玩家界面（同一浏览器同时有管理员会话时也是玩家优先，玩家退出后若管理员会话仍有效直接回管理台），否则进管理台或登录页。玩家后台开启时登录页有"玩家 / 管理员"切换，默认玩家；关闭（或状态读不到）时只有管理员登录。
+
+| 路径 | 页面 |
+|---|---|
+| `/gm/player` | 我的账号：点券与代币券余额、角色列表（"发邮件"带上该角色进入发邮件页）、加点券（币种切换、快捷 +1 万 / +10 万 / +100 万、加后预览；设置了每日上限时显示今日已用，按单次与剩余额度拦截） |
+| `/gm/player/mail` | 发邮件：收件人只列自己的角色；物品检索内嵌在附件面板（与 GM 邮件同一目录接口与件数规则，装备每件一格、共 10 格，物品只带 ID 与数量）；金币、标题、正文；信件预览（正文留空时显示实际投递的默认正文） |
+| `/gm/player/records` | 记录：全部 / 点券 / 邮件，按时间倒序分页 |
+
+- 玩家接口按 `code` 分支：任一请求得到 `portal_closed` 进入"玩家后台已关闭"页（包括总开关关闭时被拒的登出），`unauthenticated` 回登录页；玩家界面每 60 秒重读一次账号，停在页面上也会切换。首次读取账号失败时显示错误消息、HTTP 状态与"重新读取"。
+- 子开关关闭时对应表单不可提交；邮件子开关关闭时不请求物品目录、图标包、图标与悬停提示。
+- 加点券、发邮件每次提交带新的 `requestId`；结果未确认（`unknown`、无 `code` 的 5xx、网络错误、`outcome` 为 `unknown` / `rolledBack`）时保留原编号与内容并锁定表单（保存在玩家界面这一层，切换页面后回来仍锁定），"用原编号重试"按原内容重发，"放弃"清除；明确被拒后下次提交换新编号。`reminder: "failed"` 与重放都按成功显示。
+- 宽度 ≤ 900px 时左侧导轨换成底部标签（账号 / 发邮件 / 记录）。
 
 ## 管理员首次初始化
 
@@ -46,15 +62,45 @@ dotnet run --project Server/src/Dfo.Server.Host -c Release --no-build -- --GmWeb
 
 ## 访问与审计
 
-默认本机 HTTP；远程管理使用直接 HTTPS 与有效服务证书（Kestrel 的标准证书配置）。服务器采用实际连接判断，不信任请求携带的 `X-Forwarded-*`/`Forwarded`。本阶段没有反向代理信任配置；远程明文管理请求被拒绝。不要用代理头替代 HTTPS。
+默认本机 HTTP；远程管理使用 HTTPS：直接用 Kestrel 的标准证书配置，或放在受信反向代理之后。远程明文管理请求被拒绝；来源是本机回环时视为安全连接。
+
+受信代理由 `GmWeb:TrustedProxies` 配置（IP 列表：JSON 数组，或逗号分隔的单个值；默认空）。每项必须是单个 IP，主机名、网段、端口、作用域与 `0.0.0.0`/`::` 都使启动失败，错误信息含该配置项名；`::ffff:a.b.c.d` 与 `a.b.c.d` 视为同一地址。
+
+- 为空时不信任任何 `X-Forwarded-*`/`Forwarded`，一律按实际连接判断。
+- 非空时，只有直连地址在列表中的后台请求，才采用 `X-Forwarded-For` 的最近一跳与 `X-Forwarded-Proto`（只读一层）。解析结果用于 HTTPS 判断、同源检查、会话 Cookie 的 `Secure` 与登录失败限流；其余来源伪造的转发头不起作用。
+- 代理须保留 `Host`，并改写（而不是透传）这两个头。只带 `X-Forwarded-For`、不带协议头的远程请求按明文处理并被拒；代理自身不带转发头的本机请求视为本机。
+- 转发处理只作用于后台监听端口。启动器网关接口按 [gate 接口](GateApi.md) 的规则取客户端 IP，不受该配置影响。
+
+后台监听端口上的 `/api/gm/v1` 与 `/api/player/v1` 经过同一个访问边界：端口限定、HTTPS 规则、同源检查与防伪令牌是同一段代码，身份按前缀分开——GM 前缀只认 `Dfo.Gm.Session`，玩家前缀只认 `Dfo.Player.Session`，一方的会话在另一方的接口上一律按未登录拒绝。
 
 登录和所有状态写入使用 `X-GM-CSRF` 防护令牌，前端自动取得并提交。令牌来自 `/api/gm/v1/auth/csrf`，与浏览器 Cookie 和当前管理身份匹配；切换身份或重启服务后重新取得。跨站来源及无效令牌返回 403。CSRF 使用进程临时保护密钥，不写操作系统用户默认密钥目录；重启后 GM 会话仍在，旧 CSRF 需刷新。
 
-同来源、同登录名在 15 分钟失败 5 次后限流；同来源累计失败 20 次也限流，防止换登录名绕过。限流窗口与容量有边界，返回 429。登录失败提示不区分账号是否存在。
+GM 登录与玩家登录各有一个限流实例，互不计数（包括来源槽位被占满时）。同来源、同登录名在 15 分钟失败 5 次后限流；同来源累计失败 20 次也限流，防止换登录名绕过。限流窗口与容量有边界，返回 429。登录失败提示不区分账号是否存在。
 
-登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。`GET /api/gm/v1/audit` 除 `page`/`pageSize` 外还接受 `outcome`（`attention` = 除 Succeeded 以外的全部，或 `Succeeded|Rejected|RolledBack|Unknown` 之一）与 `action`（精确操作键：ChangeDailyRefill、ChangeEvent、ChangeJoustParameters、EditMailTemplate、GrantCera、Login、Logout、SaveInitialization、SaveMailDraft、SendOfficialMail、SetJoustChampion）；筛选在 SQLite 查询内完成，`total` 为筛选后的总数。未知取值或重复参数返回 400 `{ message }`。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
+登录成功、凭据失败、正常退出均写审计，审计页显示时间、操作、管理员、对象、结果和操作编号。`GET /api/gm/v1/audit` 除 `page`/`pageSize` 外还接受 `outcome`（`attention` = 除 Succeeded 以外的全部，或 `Succeeded|Rejected|RolledBack|Unknown` 之一）与 `action`（精确操作键：ChangeDailyRefill、ChangeEvent、ChangeJoustParameters、EditMailTemplate、GrantCera、Login、Logout、SaveInitialization、SaveMailDraft、SendOfficialMail、SetJoustChampion、PlayerLogin、PlayerLogout、PlayerGrantCera、PlayerSendMail、ChangePlayerPortal、KickPlayerSessions）与 `actor`（`gm` 或 `player`）；每条记录带 `actorKind` 与 `accountId`，迁移前的记录为 `gm`。玩家记录的操作者名称为账号登录名并带账号 ID；失败登录只在所交登录名对应现有账号时记录该账号，否则记为"（未记录的登录名）"且不带账号，提交的密码从不记录。筛选在 SQLite 查询内完成，`total` 为筛选后的总数。未知取值或重复参数返回 400 `{ message }`。官方邮件与点券的资产变更、成功收据和成功审计共同提交或回滚，拒绝、已确认回滚和未知状态分开记录。匿名私有请求返回 401，权限不足返回 403，分页参数不合法返回 400。
 
 运行的客户端、PVF 和现有游戏服务不受当前隔离构建影响。验证使用临时数据库；本文件的启动示例面向独立部署，验证时须显式传入独立 `Database:Path`。
+
+## 玩家自助后台
+
+玩家用游戏账号登录同一个页面，只能读写自己的账号（#329）。
+
+经反向代理对外开放玩家后台之前，必须先配置 `GmWeb:TrustedProxies`（见「访问与审计」），地址要与代理实际连入的地址一致：代理从 `::1` 回源时写 `::1`，从 `127.0.0.1` 回源时写 `127.0.0.1`。未配置时所有玩家共用代理这一个来源，玩家登录失败限流会把全体玩家一起锁住（#305）。部署前还要核对反向代理对 `/api/player/*` 的 `Origin` 处理：代理如果只对 `/api/gm*` 拦截外站 `Origin` 并去掉该头，玩家接口的 `Origin` 会原样到达服务端，同源检查改用受信代理解析出的协议与 `Host` 比对，任一不符（例如未配置受信代理时协议仍是 http）玩家的登录与写请求都会被拒为 `forbidden`。
+
+接口在 `/api/player/v1`，失败一律为 `{ message, code }`，前端只按 `code` 分支：`portal_closed`（403，玩家后台已关闭）、`feature_disabled`（403）、`unauthenticated`（401，无会话、过期、被踢；登录凭据错误也用它，账号存在与否回答相同）、`not_found`（404）、`limit_exceeded`（409）、`request_conflict`（409）、`invalid`（400）、`rate_limited`（429）、`forbidden`（403，需要 HTTPS、跨站或防伪令牌无效）、`unknown`（500）。
+
+- 公开：`GET auth/status` → `{ enabled }`（总开关关闭时也应答，登录页据此决定是否显示玩家选项）、`GET auth/csrf`、`POST auth/login`（`{ loginName, password }`，与启动器同一套凭据规则，不改写密码记录）。
+- 需玩家会话：`POST auth/logout`、`GET auth/session`、`GET me`（自己的登录名、点券与代币券余额、未删除角色的 ID / 名字 / 职业 / 等级 / 是否在线，以及两个子开关、六项限额与今日用量）。
+- 总开关关闭时，除 `auth/status` 外的玩家接口先于会话判断一律返回 `portal_closed`；关闭的同时所有玩家会话失效。开关、会话与限额在执行器内的命令事务中再判一次，判定与写入不会被其它请求插入。
+- 加点券 `POST cera/grant`：请求体 `{ requestId, currency, amount }`（`requestId` 为非空 UUID；`currency` 只认 `Cera` / `TokenCera`，区分大小写；`amount` 1..2147483647；不接受未声明字段，账号只取自会话）。命令内依次判定写意图、总开关、会话、重放、点券子开关、单次与每日限额，再按 GM 发点券的钱包规则入账。同一账号同一编号同内容只入账一次，重试返回原回执（`replayed: true`），先于子开关与限额判定，所以额度用完或子开关关闭后重试仍返回原结果；同编号不同内容为 `request_conflict`。每日限额只计成功的操作，点券与代币券各自计数，按服务端日切（`Game:DailyResetTime`）换日。成功返回 `{ receipt, replayed, reminder }`，`reminder` 为 `attempted` / `offline` / `failed`（提醒失败不影响已提交的入账）。写操作的失败在 `code` 之外带 `outcome`：`rejected`（未提交）、`rolledBack`、`unknown`（结果未确认，用原编号重试）。
+- 记录 `GET operations?kind=cera|mail&page=&pageSize=`（`pageSize` 1..100，默认 20）：只含自己账号的成功操作，按时间倒序，返回 `{ items, total, page, pageSize }`；每项是存下的回执原样，公共字段为 `requestId`、`kind`、`committedAt`、`summary`、`result`，点券回执另有 `currency`、`amount`、`before` / `after`（`{ cera, tokenCera }`）；邮件回执另有 `characterId`、`characterName`、`title`、`body`（实际投递的正文）、`items`（`{ itemId, count, name, kind }`）、`gold`、`expiresAt`。查看只受总开关与会话约束，不受子开关约束。
+- 发邮件 `POST mail/send`：请求体 `{ requestId, characterId, title, body, items: [{ itemId, count }], gold }`，六个字段都必填、不得为 null，物品只认 `itemId` 与 `count`（装备选项或任何其它字段一律 400 `invalid`），账号只取自会话。正文非空白、有物品或金币 > 0 至少占一样，只有标题不算，这一条在 GM 规则填入默认正文之前判定。命令内依次判定写意图、总开关、会话、内容、重放、邮件子开关、收件角色、单封金币与每日封数，再按 GM 官方邮件的同一套规则与投递代码发出：标题正文长度、附件件数与物品是否可发沿用 GM 规则与拒绝消息，留空正文用 GM 默认正文，装备为固定最上级品质，30 天有效。收件角色不存在、已删除或不属于自己账号时回答完全相同（404 `not_found`"收件角色不存在。"）。重放先于子开关、收件角色与限额判定，所以角色删除、子开关关闭或封数用满后重试原编号仍返回原结果。每日封数只计成功的邮件，与点券分开计数。成功返回 `{ receipt, replayed }`；在线角色的新邮件提醒在提交后由邮箱事件发出，与 GM 邮件相同，重放不再提醒。
+- 发信用的物品目录 `GET mail/items`、`GET mail/items/{id}`（查询参数与结果同 GM `mail/items`，选择规则相同，搜得到的就发得出去）、`GET items/icon-pack`、`GET items/{id}/icon`、`GET items/{id}/tooltip`（与 GM 同一图标包与物品说明）：需玩家会话且邮件子开关开启，子开关关闭时为 403 `feature_disabled`。它们在执行器外只读，GM 的同名接口不对玩家开放。
+- 审计动作 `PlayerGrantCera` / `PlayerSendMail`：成功记 `Succeeded`；识别出玩家后的拒绝（子开关、限额、编号冲突、不合法、钱包上限、收件角色）记 `Rejected`；存储或规则处理失败及执行器确认回滚记 `RolledBack`；提交未确认记 `Unknown`。总开关关闭、未登录、请求解析失败与重放不写审计。失败记录用命令开始时识别到的账号，不再读会话。邮件审计的对象为 `角色 {id}`。
+- 在途上限：每个账号同时最多 2 个在游戏执行器上排队或执行的玩家请求（`auth/logout`、`me`、`cera/grant`、`mail/send`、`operations`）。超出的请求在入队前直接返回 429 `rate_limited`，不执行、不写审计，前端提示"请求过于频繁，请稍后重试"，表单随即解锁；此前"结果未确认"的原编号继续保留。登录（另有失败限流）、`auth/status`、`auth/csrf`、`auth/session` 与物品目录、图标、物品说明不计入。
+- 会话 8 小时、不续期，Cookie `Dfo.Player.Session`（`Path=/api/player`、`HttpOnly`、`SameSite=Strict`，`Secure` 随解析后的协议），库中只存 SHA-256。
+
+管理员接口（全权限，与每日补给同级）在 `/api/gm/v1/player-portal`：`GET/POST settings`（总开关、点券与邮件子开关、六项非负限额 0..2147483647，0 = 不限；全新库与迁移库默认关 / 开 / 开 / 全 0；`revision` 为读到的版本，旧版本保存返回 409）、`GET sessions`（有效会话：账号、登录名、登录与到期时间）、`POST sessions/kick`（`{ accountId }`）、`POST sessions/kick-all`，返回 `{ kicked }`。修改设置与踢人写审计。
 
 ## 服务信息与物品展示
 

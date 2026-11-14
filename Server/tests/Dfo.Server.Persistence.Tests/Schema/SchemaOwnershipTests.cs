@@ -49,7 +49,7 @@ public sealed class SchemaOwnershipTests
 
         // Counted rather than sampled: naming a handful of tables would stay green while forty of
         // the declarations went missing.
-        Assert.Equal(120, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        Assert.Equal(123, shape.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
         Assert.Contains("character_guardian_altar(character_id:INTEGER,revision:INTEGER,state_json:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("guardian_altar_settlements(character_id:INTEGER,round:INTEGER,run_id:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("equipment_rental_instances(character_id:INTEGER,item_uid:INTEGER,template_id:INTEGER)", shape, StringComparison.Ordinal);
@@ -84,7 +84,10 @@ public sealed class SchemaOwnershipTests
         Assert.Contains("initialization_settings(input:TEXT,kind:TEXT,revision:INTEGER,updated_at:INTEGER,updated_by:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_administrators(enabled:INTEGER,id:INTEGER,login_name:TEXT,password_record:TEXT,permissions:INTEGER)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_sessions(administrator_id:INTEGER,expires_at:INTEGER,token_hash:TEXT)", shape, StringComparison.Ordinal);
-        Assert.Contains("gm_audit(action:TEXT,administrator_id:INTEGER,administrator_name:TEXT,occurred_at:INTEGER,operation_id:TEXT,outcome:TEXT,reason:TEXT,target:TEXT)", shape, StringComparison.Ordinal);
+        Assert.Contains("gm_audit(account_id:INTEGER,action:TEXT,actor_kind:TEXT,administrator_id:INTEGER,administrator_name:TEXT,occurred_at:INTEGER,operation_id:TEXT,outcome:TEXT,reason:TEXT,target:TEXT)", shape, StringComparison.Ordinal);
+        Assert.Contains("player_portal_settings(cera_enabled:INTEGER,cera_per_day:INTEGER,cera_per_grant:INTEGER,enabled:INTEGER,id:INTEGER,mail_enabled:INTEGER,mail_gold_per_mail:INTEGER,mails_per_day:INTEGER,revision:INTEGER,token_cera_per_day:INTEGER,token_cera_per_grant:INTEGER)", shape, StringComparison.Ordinal);
+        Assert.Contains("player_portal_sessions(account_id:INTEGER,created_at:INTEGER,expires_at:INTEGER,token_hash:TEXT)", shape, StringComparison.Ordinal);
+        Assert.Contains("player_portal_operations(account_id:INTEGER,amount:INTEGER,committed_at:INTEGER,currency:TEXT,kind:TEXT,payload_hash:TEXT,period_day:TEXT,receipt_json:TEXT,request_id:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_mail_drafts(administrator_id:INTEGER,document:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_mail_templates(administrator_id:INTEGER,document:TEXT,id:TEXT,name:TEXT)", shape, StringComparison.Ordinal);
         Assert.Contains("gm_mail_operations(administrator_id:INTEGER,committed_at:INTEGER,payload_hash:TEXT,receipt:TEXT,request_id:TEXT)", shape, StringComparison.Ordinal);

@@ -10,7 +10,7 @@ public sealed class GmItemIconHttpTests
 {
     private static readonly byte[] Signature = [0x89, (byte)'P', (byte)'N', (byte)'G', 13, 10, 26, 10];
 
-    private static void WritePack(string path, byte marker, bool manifest = true)
+    internal static void WritePack(string path, byte marker, bool manifest = true)
     {
         var temp = path + ".new";
         using (var zip = ZipFile.Open(temp, ZipArchiveMode.Create))

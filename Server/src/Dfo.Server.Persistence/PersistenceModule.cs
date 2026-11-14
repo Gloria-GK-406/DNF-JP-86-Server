@@ -96,6 +96,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmMailPersistence, Dfo.Server.Persistence.Administration.SqliteGmMailPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Initialization.IInitializationPersistence, Dfo.Server.Persistence.Initialization.SqliteInitializationPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Administration.IGmCeraPersistence, Dfo.Server.Persistence.Administration.SqliteGmCeraPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.PlayerPortal.IPlayerPortalPersistence, Dfo.Server.Persistence.PlayerPortal.SqlitePlayerPortalPersistence>();
         services.TryAddSingleton<IClientSettingsTable>(p => new SqliteClientSettingsTable(p.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IAccountSettingsTable>(
             provider => new SqliteAccountSettingsTable(
