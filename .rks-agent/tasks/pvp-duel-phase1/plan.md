@@ -44,3 +44,9 @@ state: ready
 ## Next Planning Boundary
 
 下一个单元：T-003（纯搬迁，无依赖，最小）与 T-001（契约与规则）。先做 T-003 并单独提交，再做 T-001。T-004 的细化等 T-001 的接口与 T-003 的新 owner 落地后再写。
+
+## Amendments
+
+- A1（TASK-02 审查移交）：启动期校验与 FreeDuel 权益归属指派给 T-004。
+  - 权益按频道身份取：`ChannelEntryKind.FreeDuel`（含按频道号配置的自由决斗频道，环境可能为空）一律取"不记录"行；`ChannelEntryKind.Pvp` 按登录环境取（8 不记录、24 记录），表中没有的环境为配置错误。`EntitlementsOf` 的输入随之改为频道身份（`ChannelEntryIdentity`）。
+  - 显式启动检查：在开始接受连接之前，遍历频道目录中被判为决斗频道的每个频道调用 `EntitlementsOf`，并强制加载两份 PvP 内容源；任一失败即终止启动（不依赖只记 Warning 的内容预热）。挂接点沿用宿主现有的启动前检查/就绪机制，T-004 细化时确定。
