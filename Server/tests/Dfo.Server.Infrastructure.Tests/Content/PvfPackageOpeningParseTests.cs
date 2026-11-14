@@ -93,18 +93,29 @@ public sealed class PvfPackageOpeningParseTests
     }
 
     [Fact]
-    public void Repeated_category_coordinates_must_declare_the_same_rows()
+    public void A_later_block_at_the_same_coordinates_replaces_the_earlier_one_even_when_empty()
     {
         Section Block(int item) => new("[equipment]", [I(item), I(1)]);
-        var same = Parse(2, "[booster selection]",
-            new("[booster select category]", [I(0), I(0)]), Block(100), new("[/booster select category]", []),
-            new("[booster select category]", [I(0), I(0)]), Block(100), new("[/booster select category]", []));
-        Assert.Empty(same.Diagnostics);
-        Assert.Single(same.Categories);
-        var conflicting = Parse(2, "[booster selection]",
+        var replaced = Parse(2, "[booster selection]",
             new("[booster select category]", [I(0), I(0)]), Block(100), new("[/booster select category]", []),
             new("[booster select category]", [I(0), I(0)]), Block(101), new("[/booster select category]", []));
-        Assert.Contains("Conflicting selection category", conflicting.Diagnostics);
+        Assert.Empty(replaced.Diagnostics);
+        Assert.Equal([101], Assert.Single(replaced.Categories).Rewards.Select(r => r.ItemId));
+        var emptied = Parse(2, "[booster selection]",
+            new("[booster select category]", [I(0), I(0)]), Block(100), new("[/booster select category]", []),
+            new("[booster select category]", [I(0), I(0)]), new("[/booster select category]", []));
+        Assert.Empty(Assert.Single(emptied.Categories).Rewards);
+    }
+
+    [Fact]
+    public void Fractional_pool_numbers_truncate_toward_zero_as_the_client_reads_them()
+    {
+        var definition = Parse(1, "[booster]",
+            new("[booster info]", []),
+            new("[charactor]", [S(3), I(1), I(85), I(1), I(500), F(252.5f), I(1), I(501), F(4.5f), I(1)]), new("[/charactor]", []),
+            new("[/booster info]", []));
+        Assert.Empty(definition.Diagnostics);
+        Assert.Equal([252, 4], Assert.Single(definition.Pools).Choices.Select(c => c.Weight));
     }
 
     [Fact]
@@ -145,4 +156,5 @@ public sealed class PvfPackageOpeningParseTests
 
     private static PvfToken I(int value) => new(PvfTokenKind.Int32, value);
     private static PvfToken S(int index) => new(PvfTokenKind.QuotedString, index);
+    private static PvfToken F(float value) => new(PvfTokenKind.Single, BitConverter.SingleToInt32Bits(value));
 }

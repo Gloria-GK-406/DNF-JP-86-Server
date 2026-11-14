@@ -292,7 +292,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         var errors = ImmutableArray.CreateBuilder<string>();
         var fixedRewards = ImmutableArray.CreateBuilder<OpeningReward>();
         var pools = ImmutableArray.CreateBuilder<OpeningRewardPool>();
-        var categories = ImmutableArray.CreateBuilder<OpeningSelectionCategory>();
+        var categories = new List<OpeningSelectionCategory>();
         var typeSection = PvfRepeatedFields.Effective(
             sections.Where(section => section.Name == Fields.StackableTypeField.Name).ToArray(), Fields.StackableTypeField.Name);
         if (typeSection is not null && (typeSection.Values.Count == 0 || !typeSection.Values[0].IsString ||
@@ -354,8 +354,9 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
                 job = code == AllJobs ? null : code;
                 start = 1;
             }
-            if (values.Skip(start).Any(t => t.Kind != PvfTokenKind.Int32)) { errors.Add("Noninteger " + name); return; }
-            var ns = values.Skip(start).Select(t => t.Value).ToArray();
+            // The client's strict integer reader (028A9310) truncates a float toward zero: 252.5 is 252.
+            if (values.Skip(start).Any(t => t.Kind is not (PvfTokenKind.Int32 or PvfTokenKind.Single))) { errors.Add("Noninteger " + name); return; }
+            var ns = values.Skip(start).Select(t => t.Kind == PvfTokenKind.Single ? (int)MathF.Truncate(t.AsSingle()) : t.Value).ToArray();
             (int, int)? header = null;
             if (category == JobCategory)
             {
@@ -451,7 +452,9 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             for (var i = 0; i < rows.Length; i += stride)
             {
                 var reward = new OpeningReward(rows[i], rows[i + 1]);
-                if (category is AvatarCategory or SpecialAvatarCategory) reward = AvatarRow(reward, rows[i + 2], rows[i + 3]);
+                // A selection row's ability is only the window's default: the opener picks the ability and the
+                // request carries it, so only the requested one is checked against the avatar's declaration.
+                if (category is AvatarCategory or SpecialAvatarCategory) reward = AvatarRow(reward, rows[i + 2], 0);
                 // The block's equipment modifiers reach equipment rows declared after them (client 029A2FA0).
                 if (category == EquipmentCategory)
                 {
@@ -528,10 +531,11 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             {
                 // A stray closing tag outside a block is skipped, as the client skips unknown top-level tags.
                 if (block is null) continue;
-                var rows = block.Rewards.ToImmutable();
-                var previous = categories.FirstOrDefault(c => c.Key == block.Key);
-                if (previous is null) categories.Add(new(block.Key, rows));
-                else if (!previous.Rewards.SequenceEqual(rows)) errors.Add("Conflicting selection category");
+                // A later block at the same coordinates replaces the earlier one, an empty block included
+                // (client 0296C3D0 map operator[] then 01520AC0 vector assignment).
+                var index = categories.FindIndex(c => c.Key == block.Key);
+                var category = new OpeningSelectionCategory(block.Key, block.Rewards.ToImmutable());
+                if (index < 0) categories.Add(category); else categories[index] = category;
                 block = null;
                 continue;
             }
@@ -597,7 +601,7 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         return new(id, kind, fixedRewards.ToImmutable(), pools.ToImmutable(), selectionCount,
             material, materialCount, sourceCount, id == 2682272, errors.ToImmutable())
         {
-            GoldCost = goldCost, Categories = categories.ToImmutable(), PurchaseSelectionGroups = purchaseGroups,
+            GoldCost = goldCost, Categories = [.. categories], PurchaseSelectionGroups = purchaseGroups,
             ExpandsWhenGranted = type is "[cera package]" or "[cera booster]",
         };
     }
