@@ -8,6 +8,30 @@ internal static class PvpRoomRules
     /// <summary>Design r1 §4.1: the fighters have this long to load before the battle is cancelled.</summary>
     public static readonly TimeSpan LoadingTimeout = TimeSpan.FromSeconds(60);
 
+    /// <summary>Spec phase table: the fighters have this long to reach each other before the battle is cancelled.</summary>
+    public static readonly TimeSpan PeerLinkTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Spec phase table: a fight still running this long past its time limit ends in a draw.</summary>
+    public static readonly TimeSpan FightOverrun = TimeSpan.FromSeconds(30);
+
+    /// <summary>Spec phase table: a fighter silent this long while fighting has left the battle.</summary>
+    public static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Spec phase table: the ranking screen waits this long before the battle is settled anyway.</summary>
+    public static readonly TimeSpan RankTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>Spec phase table: the result screen waits this long before the room waits again anyway.</summary>
+    public static readonly TimeSpan ResultTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>Spec RQ-032: a time-out report is taken this much before the time limit, for clock drift.</summary>
+    public static readonly TimeSpan TimeoutReportLead = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// An ended battle whose settlement still fails this long after it was due is dropped unsettled: a write that
+    /// keeps failing for minutes will not succeed by retrying, and the room should not wait on it for ever.
+    /// </summary>
+    public static readonly TimeSpan SettlementGiveUp = TimeSpan.FromMinutes(5);
+
     /// <summary>Spec RQ-021: an invitation not answered within this is expired.</summary>
     public static readonly TimeSpan InvitationLifetime = TimeSpan.FromSeconds(30);
 

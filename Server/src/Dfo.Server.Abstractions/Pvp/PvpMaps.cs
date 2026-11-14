@@ -26,6 +26,27 @@ public interface IPvpRoomRuleService
     /// <summary>How long the fighters have to finish loading once a battle starts.</summary>
     TimeSpan LoadingTimeout { get; }
 
+    /// <summary>How long the fighters have to reach each other once all have loaded.</summary>
+    TimeSpan PeerLinkTimeout { get; }
+
+    /// <summary>How long past the battle's time limit a fight may run before the server ends it in a draw.</summary>
+    TimeSpan FightOverrun { get; }
+
+    /// <summary>How long a fighting fighter may go without a heartbeat before it has left the battle.</summary>
+    TimeSpan HeartbeatTimeout { get; }
+
+    /// <summary>How long the ranking screen waits for the fighters before the battle is settled.</summary>
+    TimeSpan RankTimeout { get; }
+
+    /// <summary>How long the result screen waits for the fighters before the room waits again.</summary>
+    TimeSpan ResultTimeout { get; }
+
+    /// <summary>How long before the battle's time limit a client's time-out report is already taken.</summary>
+    TimeSpan TimeoutReportLead { get; }
+
+    /// <summary>How long after it was due an ended battle that cannot be settled is given up.</summary>
+    TimeSpan SettlementGiveUp { get; }
+
     /// <summary>How long an invitation into a room stays open.</summary>
     TimeSpan InvitationLifetime { get; }
 

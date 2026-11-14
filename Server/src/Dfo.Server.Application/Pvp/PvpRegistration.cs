@@ -1,4 +1,5 @@
 ﻿using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Application.DomainEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -16,6 +17,9 @@ internal static class PvpRegistration
         services.TryAddSingleton<IPvpSettlementRuleService, PvpSettlementRuleService>();
         services.TryAddSingleton<IPvpRoomRuleService, PvpRoomRuleService>();
         services.TryAddSingleton<IPvpStartupVerification, PvpStartupVerification>();
+        services.TryAddSingleton<IPvpSettlementDomainService, PvpSettlementDomainService>();
+        // Published with no subscriber in the first phase; the fact is kept for whoever subscribes later.
+        services.AddDomainEvent<PvpMatchSettled>("pvp.match-settled", 1);
         services.AddPvpDeadlineScheduler();
         return services;
     }

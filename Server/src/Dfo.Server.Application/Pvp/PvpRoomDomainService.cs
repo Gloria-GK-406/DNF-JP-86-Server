@@ -32,14 +32,24 @@ internal sealed class PvpRoomDomainService(
     ITownTransitDomainService transit,
     IOnlineCharacterRuntimeDomainService online,
     IPvpRoomRuleService rules,
+    IPvpSettlementRuleService battles,
     IPvpDeadlineWake deadlines,
     TimeProvider clock,
     ILogger<PvpRoomDomainService> logger) : IPvpRoomDomainService
 {
+    // A due item still waiting after a failed attempt is retried after a quarter of how long it has been
+    // overdue, within these bounds: neither forgotten nor spun on.
+    private static readonly TimeSpan RetryFloor = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan RetryCeiling = TimeSpan.FromSeconds(30);
+
+    /// <summary>Set when shutdown cancelled the running battles: from then on no battle starts.</summary>
+    private bool closing;
+
     private readonly Lock gate = new();
     private readonly Dictionary<PvpRoomId, Room> rooms = [];
     private readonly Dictionary<CharacterId, PvpRoomId> seated = [];
     private readonly Dictionary<InvitationKey, PvpInvitation> invitations = [];
+    private readonly Dictionary<PvpMatchId, PvpMatchConclusion> conclusions = [];
 
     /// <summary>A committed room and the password only this owner compares.</summary>
     private sealed record Room(PvpRoomSnapshot Snapshot, ImmutableArray<byte>? Password);
@@ -211,6 +221,8 @@ internal sealed class PvpRoomDomainService(
                 PvpRoomChangeKind.ReadyChanged);
 
         var members = snapshot.Members.ToArray();
+        // Spec RQ-042: a battle started after shutdown cancelled the others could not end before the connections go.
+        if (pending.Closing) return Refused(PvpRoomRefusal.ShuttingDown);
         if (rules.RefuseStart(snapshot.Mode, [.. members.Select(x => new PvpRoomMemberFacts(
                 x.Member.Team, x.Member.Ready, x.Seat == snapshot.OwnerSeat))]) is { } refusal)
             return Refused(refusal);
@@ -309,20 +321,420 @@ internal sealed class PvpRoomDomainService(
     }
 
     /// <summary>Takes a member off a seat; the owner's seat passes on, and the last one out ends the room.</summary>
-    private PvpRoomOutcome Release(Changes pending, Room room, int seat, PvpSeatReleaseReason reason)
+    private PvpRoomOutcome Release(Changes pending, Room room, int seat, PvpSeatReleaseReason reason) =>
+        Stage(pending, room, room.Snapshot,
+            reason == PvpSeatReleaseReason.Left ? PvpRoomChangeKind.Left : PvpRoomChangeKind.Kicked, (seat, reason));
+
+    public ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(ReportLoadedAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Report(Pending, session, PvpRoomPhase.Loading, PvpFighterReports.Loaded, PvpRoomChangeKind.Loaded,
+            next => next with
+            {
+                Phase = PvpRoomPhase.PeerLinking,
+                Match = next.Match! with { PhaseDeadline = Now + rules.PeerLinkTimeout },
+            });
+    }
+
+    public ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(ReportPeerLinkedAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Report(Pending, session, PvpRoomPhase.PeerLinking, PvpFighterReports.PeerLinked, PvpRoomChangeKind.PeerLinked,
+            next =>
+            {
+                var now = Now;
+                var match = next.Match!;
+                return next with
+                {
+                    Phase = PvpRoomPhase.Fighting,
+                    Match = match with
+                    {
+                        FightingSince = now,
+                        PhaseDeadline = now + battles.BattleTimeLimit(next.Mode) + rules.FightOverrun,
+                        Fighters = [.. match.Fighters.Select(fighter => fighter with { LastHeartbeat = now })],
+                    },
+                };
+            });
+    }
+
+    public ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(HeartbeatAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(HeartbeatAsync), (pending, room, match, index) =>
+            Stage(pending, room, room.Snapshot with
+            {
+                Match = match with { Fighters = match.Fighters.SetItem(index, match.Fighters[index] with { LastHeartbeat = Now }) },
+            }, PvpRoomChangeKind.Heartbeat));
+    }
+
+    public ValueTask<PvpRoomOutcome> ReportDeathAsync(
+        SelectedSessionIdentity session, CharacterId? killer, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(ReportDeathAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(ReportDeathAsync), (pending, room, match, index) =>
+        {
+            var victim = match.Fighters[index];
+            if (!victim.Alive) return Ignore(nameof(ReportDeathAsync), session, PvpRoomRefusal.NotAlive);
+            var fighters = match.Fighters.SetItem(index, victim with { Alive = false, Deaths = victim.Deaths + 1 });
+            int? credited = null;
+            // Only a live enemy of this battle earns the kill; anything else the client names is a death alone.
+            var by = -1;
+            for (var candidate = 0; candidate < fighters.Length; candidate++)
+                if (killer is { } named && fighters[candidate].CharacterId == named)
+                    by = candidate;
+            if (by >= 0 && by != index && fighters[by] is { Alive: true, Departed: false } scorer
+                && (scorer.Team == PvpTeam.Individual || scorer.Team != victim.Team))
+            {
+                fighters = fighters.SetItem(by, scorer with { Kills = scorer.Kills + 1 });
+                credited = scorer.Seat;
+            }
+            return Stage(pending, room, room.Snapshot with { Match = match with { Fighters = fighters } }, PvpRoomChangeKind.Died)
+                with { Death = new PvpDeath(victim.Seat, credited) };
+        });
+    }
+
+    public ValueTask<PvpRoomOutcome> ReportTimeoutAsync(
+        SelectedSessionIdentity session, ImmutableArray<byte> clientValues, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(ReportTimeoutAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(ReportTimeoutAsync), (pending, room, match, _) =>
+        {
+            var now = Now;
+            if (match.FightingSince is not { } since
+                || now - since < battles.BattleTimeLimit(room.Snapshot.Mode) - rules.TimeoutReportLead)
+                return Ignore(nameof(ReportTimeoutAsync), session, PvpRoomRefusal.TooEarly);
+            // The first phase draws every timed-out battle; what the client counted is kept for the record only.
+            logger.LogInformation("Duel battle {Match} timed out on character {Character}'s report {Values}; drawn",
+                match.Id.Value, session.CharacterId.Value, clientValues.IsDefault ? "" : Convert.ToHexString(clientValues.AsSpan()));
+            return Stage(pending, room, Conclude(room.Snapshot, new PvpMatchTerminal(PvpMatchOutcomeKind.Draw, null, now)),
+                PvpRoomChangeKind.TimedOut);
+        });
+    }
+
+    public ValueTask<PvpRoomOutcome> AcknowledgeRankAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AcknowledgeRankAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Report(Pending, session, PvpRoomPhase.AwaitRank, PvpFighterReports.RankAcknowledged,
+            PvpRoomChangeKind.RankAcknowledged, null);
+    }
+
+    public ValueTask<PvpRoomOutcome> AcknowledgeResultAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AcknowledgeResultAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        return Report(Pending, session, PvpRoomPhase.AwaitResult, PvpFighterReports.ResultAcknowledged,
+            PvpRoomChangeKind.ResultAcknowledged, null);
+    }
+
+    public ValueTask<PvpRoomOutcome> DepartAsync(
+        SelectedSessionIdentity session, PvpDepartureReason reason, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(DepartAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        var pending = Pending;
+        if (pending.FindSeated(session.CharacterId) is not { } room
+            || room.Snapshot.SeatOf(session.CharacterId) is not { } seat
+            || ((PvpSeat.Taken)room.Snapshot.Seats[seat]).Session != session)
+            return Refused(PvpRoomRefusal.NotSeated);
         var snapshot = room.Snapshot;
-        var leaving = (PvpSeat.Taken)snapshot.Seats[seat];
-        var seats = snapshot.Seats.SetItem(seat, PvpSeat.OpenSeat);
-        var remaining = Enumerable.Range(0, seats.Length).Where(index => seats[index] is PvpSeat.Taken).ToArray();
-        var owner = seat == snapshot.OwnerSeat ? rules.Successor(seat, remaining) : snapshot.OwnerSeat;
-        var town = new TownMoves(snapshot.Channel.ChannelId, leaving: [], returning: [leaving.Session]);
-        var after = owner is { } next
-            ? pending.Put(snapshot.Id, room, room with { Snapshot = snapshot with { Seats = seats, OwnerSeat = next } }, town)
-            : pending.Put(snapshot.Id, room, null, town);
-        return new PvpRoomOutcome.Changed(
-            reason == PvpSeatReleaseReason.Left ? PvpRoomChangeKind.Left : PvpRoomChangeKind.Kicked,
-            snapshot, after?.Snapshot, [new PvpSeatRelease(seat, leaving.Session, reason)], town);
+        var keepsSeat = reason == PvpDepartureReason.HeartbeatLost;
+        if (keepsSeat && snapshot.Phase != PvpRoomPhase.Fighting) return Refused(PvpRoomRefusal.WrongPhase);
+        var next = snapshot;
+        if (snapshot.Match is { } match && match.FighterOf(session) is { } index && !match.Fighters[index].Departed)
+        {
+            var fighter = match.Fighters[index];
+            next = snapshot.Phase switch
+            {
+                // Spec RQ-040: a battle still loading or linking cannot go on without one of its fighters.
+                PvpRoomPhase.Loading or PvpRoomPhase.PeerLinking => Waiting(snapshot),
+                PvpRoomPhase.Fighting => snapshot with { Match = match with { Fighters = match.Fighters.SetItem(index, Flee(fighter)) } },
+                // The result is frozen: leaving now only stops the screens from waiting for this fighter.
+                PvpRoomPhase.AwaitRank or PvpRoomPhase.AwaitResult =>
+                    snapshot with { Match = match with { Fighters = match.Fighters.SetItem(index, fighter with { Departed = true }) } },
+                PvpRoomPhase.Waiting => throw new InvalidOperationException("A waiting duel room has no battle."),
+            };
+        }
+        else if (keepsSeat) return Refused(PvpRoomRefusal.NotFighter);
+        return ValueTask.FromResult<PvpRoomOutcome>(keepsSeat
+            ? Stage(pending, room, next, PvpRoomChangeKind.Departed)
+            : Stage(pending, room, next, PvpRoomChangeKind.Departed, (seat, PvpSeatReleaseReason.Departed)));
+    }
+
+    public PvpDeadlineScan Deadlines(DateTimeOffset now)
+    {
+        List<(PvpRoomId Id, DateTimeOffset At)> roomDeadlines;
+        List<PvpMatchConclusion> ended;
+        lock (gate)
+        {
+            roomDeadlines = [.. rooms.Values.Select(room => (room.Snapshot.Id, At: DueOf(room.Snapshot)))
+                .Where(x => x.At is not null).Select(x => (x.Id, x.At!.Value))];
+            ended = [.. conclusions.Values];
+        }
+        var giveUp = rules.SettlementGiveUp;
+        PvpRoomId[] dueRooms = [.. roomDeadlines.Where(x => x.At <= now).Select(x => x.Id)];
+        PvpMatchId[] abandoned = [.. ended.Where(x => x.SettleBy + giveUp <= now).OrderBy(x => x.SettleBy).Select(x => x.MatchId)];
+        PvpMatchId[] dueSettlements = [.. ended.Where(x => x.SettleBy <= now && x.SettleBy + giveUp > now)
+            .OrderBy(x => x.SettleBy).Select(x => x.MatchId)];
+        var ahead = roomDeadlines.Select(x => x.At).Concat(ended.Select(x => x.SettleBy)).Where(at => at > now).ToList();
+        var overdue = roomDeadlines.Select(x => x.At).Concat(ended.Select(x => x.SettleBy)).Where(at => at <= now).ToArray();
+        if (overdue.Length > 0)
+        {
+            var retry = (now - overdue.Min()) / 4;
+            ahead.Add(now + (retry < RetryFloor ? RetryFloor : retry > RetryCeiling ? RetryCeiling : retry));
+        }
+        return new PvpDeadlineScan(dueRooms, dueSettlements, abandoned, ahead.Count == 0 ? null : ahead.Min());
+    }
+
+    public ValueTask<PvpRoomOutcome.Changed?> AbandonSettlementAsync(PvpMatchId match, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AbandonSettlementAsync));
+        var pending = Pending;
+        if (pending.FindConclusion(match) is not { } conclusion) return ValueTask.FromResult<PvpRoomOutcome.Changed?>(null);
+        logger.LogError("Duel battle {Match} in room {Room} could not be settled since {SettleBy}; dropped unsettled, no record changed",
+            match.Value, conclusion.RoomNumber, conclusion.SettleBy);
+        pending.PutConclusion(match, null);
+        if (pending.Find(conclusion.RoomId) is not { Snapshot: { Phase: PvpRoomPhase.AwaitRank, Match: { } current } } room
+            || current.Id != match)
+            return ValueTask.FromResult<PvpRoomOutcome.Changed?>(null);
+        return ValueTask.FromResult<PvpRoomOutcome.Changed?>(
+            Stage(pending, room, Waiting(room.Snapshot), PvpRoomChangeKind.SettlementAbandoned));
+    }
+
+    public ValueTask<PvpRoomOutcome.Changed?> AdvanceDueAsync(PvpRoomId room, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AdvanceDueAsync));
+        var pending = Pending;
+        if (pending.Find(room) is not { Snapshot.Match: { } match } current) return ValueTask.FromResult<PvpRoomOutcome.Changed?>(null);
+        var snapshot = current.Snapshot;
+        PvpRoomOutcome.Changed? Advanced(PvpRoomSnapshot next) => Stage(pending, current, next, PvpRoomChangeKind.DeadlinePassed);
+        var changed = snapshot.Phase switch
+        {
+            PvpRoomPhase.Loading or PvpRoomPhase.PeerLinking or PvpRoomPhase.AwaitResult =>
+                match.PhaseDeadline <= now ? Advanced(Waiting(snapshot)) : null,
+            PvpRoomPhase.Fighting => AdvanceFight(snapshot, match, now) is { } next ? Advanced(next) : null,
+            // A battle waiting for its ranking is due through its conclusion, which settlement takes.
+            PvpRoomPhase.AwaitRank or PvpRoomPhase.Waiting => null,
+        };
+        return ValueTask.FromResult(changed);
+    }
+
+    /// <summary>A fight past its deadlines: the silent fighters have fled, and an overrun fight is drawn.</summary>
+    private PvpRoomSnapshot? AdvanceFight(PvpRoomSnapshot snapshot, PvpMatch match, DateTimeOffset now)
+    {
+        var fighters = match.Fighters;
+        var silent = false;
+        for (var index = 0; index < fighters.Length; index++)
+            if (!fighters[index].Departed && fighters[index].LastHeartbeat + rules.HeartbeatTimeout <= now)
+            {
+                fighters = fighters.SetItem(index, Flee(fighters[index]));
+                silent = true;
+            }
+        var overrun = match.PhaseDeadline <= now;
+        if (!silent && !overrun) return null;
+        var next = snapshot with { Match = match with { Fighters = fighters } };
+        return overrun && TerminalOf(next.Mode, fighters) is null
+            ? Conclude(next, new PvpMatchTerminal(PvpMatchOutcomeKind.Draw, null, Now))
+            : next;
+    }
+
+    public IReadOnlyList<PvpMatchConclusion> PendingConclusions()
+    {
+        if (Staged is { } staged) return staged.Conclusions();
+        lock (gate) return [.. conclusions.Values];
+    }
+
+    public ValueTask<IReadOnlyList<PvpRoomOutcome.Changed>> CancelForShutdownAsync(CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(CancelForShutdownAsync));
+        var pending = Pending;
+        pending.Close();
+        var cancelled = pending.Rooms()
+            .Where(room => room.Snapshot.Match is { Terminal: null })
+            .Select(room => Stage(pending, room, Waiting(room.Snapshot), PvpRoomChangeKind.CancelledForShutdown))
+            .ToArray();
+        return ValueTask.FromResult<IReadOnlyList<PvpRoomOutcome.Changed>>(cancelled);
+    }
+
+    /// <summary>The ended battle waiting for settlement, as this transaction sees it.</summary>
+    internal PvpMatchConclusion? FindConclusion(PvpMatchId match)
+    {
+        if (Staged is { } staged) return staged.FindConclusion(match);
+        lock (gate) return conclusions.GetValueOrDefault(match);
+    }
+
+    /// <summary>
+    /// Settlement wrote the battle: it no longer waits, and its room, when it still stands on that battle, moves to
+    /// the result screen.
+    /// </summary>
+    internal PvpRoomOutcome.Changed? CompleteSettlement(PvpMatchConclusion conclusion, IReadOnlyList<PvpFighterResult> results)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(CompleteSettlement));
+        ArgumentNullException.ThrowIfNull(conclusion);
+        var pending = Pending;
+        pending.PutConclusion(conclusion.MatchId, null);
+        if (pending.Find(conclusion.RoomId) is not { Snapshot: { Phase: PvpRoomPhase.AwaitRank, Match: { } match } } room
+            || match.Id != conclusion.MatchId)
+            return null;
+        return Stage(pending, room, room.Snapshot with
+        {
+            Phase = PvpRoomPhase.AwaitResult,
+            Match = match with { PhaseDeadline = Now + rules.ResultTimeout, Results = [.. results] },
+        }, PvpRoomChangeKind.Settled);
+    }
+
+    /// <summary>A phase report: recorded once per fighter, and <paramref name="whenAll"/> applied once every fighter left in the battle made it.</summary>
+    private ValueTask<PvpRoomOutcome> Report(Changes pending, SelectedSessionIdentity session, PvpRoomPhase phase,
+        PvpFighterReports report, PvpRoomChangeKind kind, Func<PvpRoomSnapshot, PvpRoomSnapshot>? whenAll) =>
+        Battle(pending, session, phase, kind.ToString(), (_, room, match, index) =>
+        {
+            var fighter = match.Fighters[index];
+            if (fighter.Reports.HasFlag(report)) return Ignore(kind.ToString(), session, PvpRoomRefusal.AlreadyReported);
+            var fighters = match.Fighters.SetItem(index, fighter with { Reports = fighter.Reports | report });
+            var next = room.Snapshot with { Match = match with { Fighters = fighters } };
+            if (whenAll is not null && fighters.All(x => x.Departed || x.Reports.HasFlag(report))) next = whenAll(next);
+            return Stage(pending, room, next, kind);
+        });
+
+    /// <summary>
+    /// A report from a fighter of the room's battle in <paramref name="phase"/>; anything else is ignored and logged,
+    /// leaving the room as it is.
+    /// </summary>
+    private ValueTask<PvpRoomOutcome> Battle(Changes pending, SelectedSessionIdentity session, PvpRoomPhase phase, string report,
+        Func<Changes, Room, PvpMatch, int, PvpRoomOutcome> act)
+    {
+        if (pending.FindSeated(session.CharacterId) is not { } room)
+            return ValueTask.FromResult(Ignore(report, session, PvpRoomRefusal.NotFighter));
+        if (room.Snapshot.Match is not { } match || room.Snapshot.Phase != phase)
+            return ValueTask.FromResult(Ignore(report, session, PvpRoomRefusal.WrongPhase));
+        if (match.FighterOf(session) is not { } index || match.Fighters[index].Departed)
+            return ValueTask.FromResult(Ignore(report, session, PvpRoomRefusal.NotFighter));
+        return ValueTask.FromResult(act(pending, room, match, index));
+    }
+
+    private PvpRoomOutcome Ignore(string report, SelectedSessionIdentity session, PvpRoomRefusal reason)
+    {
+        logger.LogInformation("Duel report {Report} from character {Character} ignored: {Reason}",
+            report, session.CharacterId.Value, reason);
+        return Refuse(reason);
+    }
+
+    /// <summary>Spec RQ-040: a fighter leaving a fight counts as dead, killed by nobody, and fled.</summary>
+    private static PvpFighter Flee(PvpFighter fighter) => fighter with
+    {
+        Alive = false,
+        Deaths = fighter.Alive ? fighter.Deaths + 1 : fighter.Deaths,
+        Fled = true,
+        Departed = true,
+    };
+
+    /// <summary>The room waiting again: no battle, and nobody ready.</summary>
+    private static PvpRoomSnapshot Waiting(PvpRoomSnapshot snapshot) => snapshot with
+    {
+        Phase = PvpRoomPhase.Waiting,
+        Match = null,
+        Seats = [.. snapshot.Seats.Select(seat => seat is PvpSeat.Taken taken ? taken with { Ready = false } : seat)],
+    };
+
+    /// <summary>Freezes the battle's end and opens the ranking screen.</summary>
+    private PvpRoomSnapshot Conclude(PvpRoomSnapshot snapshot, PvpMatchTerminal end) => snapshot with
+    {
+        Phase = PvpRoomPhase.AwaitRank,
+        Match = snapshot.Match! with { Terminal = end, PhaseDeadline = Now + rules.RankTimeout },
+    };
+
+    /// <summary>How the battle ends once nobody is left to fight, by the mode's rule; null while it goes on.</summary>
+    private PvpMatchTerminal? TerminalOf(PvpBattleMode mode, ImmutableArray<PvpFighter> fighters)
+    {
+        var alive = fighters.Where(fighter => fighter.Alive);
+        byte[] sides = PvpBattleModeCapabilities.Of(mode).Terminal switch
+        {
+            PvpBattleTerminal.LastFighterStanding => [.. alive.Select(fighter => (byte)fighter.Seat)],
+            PvpBattleTerminal.LastTeamStanding => [.. alive.Select(fighter => (byte)fighter.Team).Distinct()],
+        };
+        return sides.Length switch
+        {
+            0 => new PvpMatchTerminal(PvpMatchOutcomeKind.Draw, null, Now),
+            1 => new PvpMatchTerminal(PvpMatchOutcomeKind.Decided, sides[0], Now),
+            _ => null,
+        };
+    }
+
+    /// <summary>When the server next has to advance the room itself; a battle on its ranking screen is due through its conclusion.</summary>
+    private DateTimeOffset? DueOf(PvpRoomSnapshot? snapshot)
+    {
+        if (snapshot?.Match is not { } match) return null;
+        return snapshot.Phase switch
+        {
+            PvpRoomPhase.Loading or PvpRoomPhase.PeerLinking or PvpRoomPhase.AwaitResult => match.PhaseDeadline,
+            PvpRoomPhase.Fighting => match.Fighters.Where(fighter => !fighter.Departed)
+                .Select(fighter => fighter.LastHeartbeat + rules.HeartbeatTimeout)
+                .Append(match.PhaseDeadline).Min(),
+            PvpRoomPhase.AwaitRank or PvpRoomPhase.Waiting => null,
+        };
+    }
+
+    /// <summary>
+    /// Stages a room's next state and what follows from it: a fight nobody is left to fight ends, an ended battle
+    /// waits for settlement, a ranking nobody waits on asks for it, a result screen nobody waits on closes, and a
+    /// vacated seat passes ownership on or ends the room.
+    /// </summary>
+    private PvpRoomOutcome.Changed Stage(Changes pending, Room room, PvpRoomSnapshot next, PvpRoomChangeKind kind,
+        (int Seat, PvpSeatReleaseReason Reason)? vacate = null)
+    {
+        var before = room.Snapshot;
+        PvpMatchConclusion? concluded = null;
+        PvpMatchId? due = null;
+        if (next.Phase == PvpRoomPhase.Fighting && TerminalOf(next.Mode, next.Match!.Fighters) is { } end)
+            next = Conclude(next, end);
+        if (next.Match is { } match)
+        {
+            if (match.Terminal is { } terminal && before.Match?.Terminal is null)
+            {
+                concluded = new PvpMatchConclusion(match.Id, next.Id, next.Number, next.Channel, next.Mode, match.StartedAt,
+                    terminal, match.Fighters, match.PhaseDeadline);
+                pending.PutConclusion(match.Id, concluded);
+            }
+            if (next.Phase == PvpRoomPhase.AwaitRank
+                && match.Fighters.All(fighter => fighter.Departed || fighter.Reports.HasFlag(PvpFighterReports.RankAcknowledged)))
+            {
+                due = match.Id;
+                // Settled now by the caller, or by the scheduler at once when the caller leaves it.
+                if (pending.FindConclusion(match.Id) is { } waiting && waiting.SettleBy > Now)
+                    pending.PutConclusion(match.Id, waiting with { SettleBy = Now });
+            }
+            if (next.Phase == PvpRoomPhase.AwaitResult
+                && match.Fighters.All(fighter => fighter.Departed || fighter.Reports.HasFlag(PvpFighterReports.ResultAcknowledged)))
+                next = Waiting(next);
+        }
+
+        var releases = new List<PvpSeatRelease>();
+        var returning = new List<SelectedSessionIdentity>();
+        Room? after = room with { Snapshot = next };
+        if (vacate is { } release)
+        {
+            var (seat, reason) = release;
+            var leaving = (PvpSeat.Taken)next.Seats[seat];
+            var seats = next.Seats.SetItem(seat, PvpSeat.OpenSeat);
+            var remaining = Enumerable.Range(0, seats.Length).Where(index => seats[index] is PvpSeat.Taken).ToArray();
+            var owner = seat == next.OwnerSeat ? rules.Successor(seat, remaining) : next.OwnerSeat;
+            after = owner is { } successor ? room with { Snapshot = next with { Seats = seats, OwnerSeat = successor } } : null;
+            releases.Add(new PvpSeatRelease(seat, leaving.Session, reason));
+            // An ended session has no town to go back to.
+            if (reason != PvpSeatReleaseReason.Departed) returning.Add(leaving.Session);
+        }
+        var town = new TownMoves(before.Channel.ChannelId, leaving: [], returning: returning);
+        var staged = pending.Put(before.Id, room, after, town);
+        return new PvpRoomOutcome.Changed(kind, before, staged?.Snapshot, releases, town)
+        {
+            Concluded = concluded,
+            SettlementDue = due,
+        };
     }
 
     private static ValueTask<PvpRoomOutcome> Changed(Changes pending, Room room, PvpRoomSnapshot next, PvpRoomChangeKind kind)
@@ -409,9 +821,23 @@ internal sealed class PvpRoomDomainService(
     {
         private readonly Dictionary<PvpRoomId, (Room? Before, Room? After)> rooms = [];
         private readonly Dictionary<InvitationKey, (PvpInvitation? Before, PvpInvitation? After)> invitations = [];
+        private readonly Dictionary<PvpMatchId, (PvpMatchConclusion? Before, PvpMatchConclusion? After)> conclusions = [];
         private readonly List<TownMoves> towns = [];
+        private bool closing;
 
         public bool CommitCanFail => false;
+
+        /// <summary>Whether shutdown has cancelled the running battles, as this transaction sees it.</summary>
+        public bool Closing
+        {
+            get
+            {
+                if (closing) return true;
+                lock (owner.gate) return owner.closing;
+            }
+        }
+
+        public void Close() => closing = true;
 
         public Room? Find(PvpRoomId id)
         {
@@ -441,13 +867,38 @@ internal sealed class PvpRoomDomainService(
             throw new InvalidOperationException("Every duel room number on this listener is in use.");
         }
 
-        private List<Room> Visible(int listenerPort)
+        private List<Room> Visible(int listenerPort) => [.. Rooms().Where(room => room.Snapshot.ListenerPort == listenerPort)];
+
+        /// <summary>Every room, as this transaction sees them.</summary>
+        public List<Room> Rooms()
         {
             List<Room> visible;
             lock (owner.gate)
                 visible = [.. owner.rooms.Values.Where(room => !rooms.ContainsKey(room.Snapshot.Id))];
             visible.AddRange(rooms.Values.Select(change => change.After).OfType<Room>());
-            return [.. visible.Where(room => room.Snapshot.ListenerPort == listenerPort)];
+            return visible;
+        }
+
+        public PvpMatchConclusion? FindConclusion(PvpMatchId id)
+        {
+            if (conclusions.TryGetValue(id, out var change)) return change.After;
+            lock (owner.gate) return owner.conclusions.GetValueOrDefault(id);
+        }
+
+        /// <summary>Every ended battle waiting for settlement, as this transaction sees them.</summary>
+        public IReadOnlyList<PvpMatchConclusion> Conclusions()
+        {
+            List<PvpMatchConclusion> visible;
+            lock (owner.gate)
+                visible = [.. owner.conclusions.Values.Where(conclusion => !conclusions.ContainsKey(conclusion.MatchId))];
+            visible.AddRange(conclusions.Values.Select(change => change.After).OfType<PvpMatchConclusion>());
+            return visible;
+        }
+
+        public void PutConclusion(PvpMatchId id, PvpMatchConclusion? next)
+        {
+            if (conclusions.TryGetValue(id, out var prior)) conclusions[id] = (prior.Before, next);
+            else lock (owner.gate) conclusions[id] = (owner.conclusions.GetValueOrDefault(id), next);
         }
 
         /// <summary>Stages a room's next state; its version is one past the committed one, however often it is staged.</summary>
@@ -504,6 +955,9 @@ internal sealed class PvpRoomDomainService(
                 foreach (var (key, (before, _)) in invitations)
                     if (!ReferenceEquals(owner.invitations.GetValueOrDefault(key), before))
                         throw new InvalidOperationException("A duel invitation changed before commit.");
+                foreach (var (id, (before, _)) in conclusions)
+                    if (!ReferenceEquals(owner.conclusions.GetValueOrDefault(id), before))
+                        throw new InvalidOperationException("An ended duel battle changed before commit.");
             }
             return ValueTask.CompletedTask;
         }
@@ -526,11 +980,18 @@ internal sealed class PvpRoomDomainService(
                         owner.rooms[id] = after;
                         foreach (var (_, member) in after.Snapshot.Members) owner.seated[member.CharacterId] = id;
                     }
-                    wake |= before?.Snapshot.Match?.PhaseDeadline != after?.Snapshot.Match?.PhaseDeadline;
+                    wake |= Sooner(owner.DueOf(before?.Snapshot), owner.DueOf(after?.Snapshot));
+                }
+                foreach (var (id, (before, after)) in conclusions)
+                {
+                    if (after is null) owner.conclusions.Remove(id);
+                    else owner.conclusions[id] = after;
+                    wake |= Sooner(before?.SettleBy, after?.SettleBy);
                 }
                 foreach (var (key, (_, after)) in invitations)
                     if (after is null) owner.invitations.Remove(key);
                     else owner.invitations[key] = after;
+                owner.closing |= closing;
                 // Expired invitations, and those into rooms that are gone, are tidied whenever anything commits.
                 var now = owner.Now;
                 foreach (var (key, invitation) in owner.invitations.ToArray())
@@ -542,5 +1003,12 @@ internal sealed class PvpRoomDomainService(
         }
 
         public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        /// <summary>
+        /// Whether a deadline came closer: the scheduler already waits for any later one, and finds nothing due
+        /// when it gets there.
+        /// </summary>
+        private static bool Sooner(DateTimeOffset? before, DateTimeOffset? after) =>
+            after is { } next && (before is not { } previous || next < previous);
     }
 }

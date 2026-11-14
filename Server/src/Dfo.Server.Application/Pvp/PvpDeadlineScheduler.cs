@@ -5,6 +5,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Application.Pvp;
@@ -18,6 +19,12 @@ public abstract class PvpDeadlineSource
     /// <summary>The label suffix the source's commands run under; unique among sources.</summary>
     public abstract string Name { get; }
     public abstract ValueTask<DateTimeOffset?> RunAsync(PvpDeadlineRound round, CancellationToken token);
+
+    /// <summary>
+    /// Once, when the server stops normally, after the scheduler's own rounds have drained and before any
+    /// connection is torn down: whatever this source must finish while the fighters are still connected.
+    /// </summary>
+    public virtual ValueTask ShutdownAsync(PvpDeadlineRound round, CancellationToken token) => ValueTask.CompletedTask;
 }
 
 /// <summary>A source's view of one scheduler round: typed submissions only, labelled under the source.</summary>
@@ -87,6 +94,26 @@ internal sealed class PvpDeadlineScheduler : TypedGameplayTimerSource, IPvpDeadl
     internal ValueTask Item(ICommand<bool> command, GameplayCallChain root, string label, CancellationToken token) =>
         ItemAsync(command, root, label, token);
 
+    /// <summary>Gives every source its shutdown round, as a lifecycle root of its own; see <see cref="PvpShutdownService"/>.</summary>
+    internal async ValueTask ShutdownAsync(CancellationToken token)
+    {
+        const string label = "lifecycle:PvpShutdown";
+        foreach (var lane in lanes)
+        {
+            var root = GameplayCallChain.NewRoot(GameplayCallSource.Lifecycle).ForCommand(label);
+            try { await lane.Source.ShutdownAsync(new(this, root, label + "/" + lane.Source.Name), token).ConfigureAwait(false); }
+            catch (Exception error) when (GameplayJob.EndedAJob(error))
+            {
+                logger.LogWarning("Duel deadline source {Source} failed its shutdown round", lane.Source.Name);
+            }
+            // Stopping goes on whatever happened here; the battles left behind are lost with the process.
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                logger.LogError(error, "Duel deadline source {Source} could not run its shutdown round", lane.Source.Name);
+            }
+        }
+    }
+
     protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
     {
         bool wake;
@@ -141,12 +168,39 @@ internal sealed class PvpDeadlineScheduler : TypedGameplayTimerSource, IPvpDeadl
     }
 }
 
+/// <summary>
+/// Spec RQ-042: on a normal stop, ended battles are settled and every other battle is cancelled while the
+/// fighters are still connected, so the disconnects that follow find nothing left to lose.
+/// </summary>
+/// <remarks>
+/// It runs in <see cref="StoppingAsync"/>, which the host calls on every lifecycle service before any hosted
+/// service's <c>StopAsync</c>: the TCP services close their sessions in their own <c>StopAsync</c>, and each closed
+/// session's teardown leaves its duel room, so a producer drain (run from <c>GameplayExecutorLifetime.StoppedAsync</c>,
+/// after every <c>StopAsync</c>) would come too late. The executor still takes work here; it stops only after
+/// every producer has drained.
+/// </remarks>
+internal sealed class PvpShutdownService(PvpDeadlineScheduler scheduler) : IHostedLifecycleService
+{
+    public Task StartingAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StartedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StoppingAsync(CancellationToken cancellationToken) => scheduler.ShutdownAsync(cancellationToken).AsTask();
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task StoppedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+}
+
 public static class PvpDeadlineRegistration
 {
     internal static IServiceCollection AddPvpDeadlineScheduler(this IServiceCollection services)
     {
         services.AddTypedGameplayTimer<PvpDeadlineScheduler>();
         services.TryAddSingleton<IPvpDeadlineWake>(provider => provider.GetRequiredService<PvpDeadlineScheduler>());
+        services.AddSingleton<IHostedService, PvpShutdownService>();
         return services;
     }
 

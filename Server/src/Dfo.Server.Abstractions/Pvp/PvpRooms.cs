@@ -67,8 +67,28 @@ public abstract record PvpSeat
     }
 }
 
-/// <summary>One fighter of a started battle, as frozen when it started.</summary>
-public sealed record PvpFighter(int Seat, CharacterId CharacterId, SelectedSessionIdentity Session, PvpTeam Team);
+/// <summary>One fighter of a started battle.</summary>
+/// <remarks>
+/// Who fights, from which seat, on which side and through which session is frozen when the battle starts. What
+/// the fighter has done since changes with the battle, and stops changing once it ends.
+/// </remarks>
+public sealed record PvpFighter(int Seat, CharacterId CharacterId, SelectedSessionIdentity Session, PvpTeam Team)
+{
+    public bool Alive { get; init; } = true;
+    public int Kills { get; init; }
+    public int Deaths { get; init; }
+
+    /// <summary>Left the battle before it ended; settles as a loss whatever the result.</summary>
+    public bool Fled { get; init; }
+
+    /// <summary>No longer takes part: the battle neither waits for its reports nor reads its heartbeat.</summary>
+    public bool Departed { get; init; }
+
+    public PvpFighterReports Reports { get; init; }
+
+    /// <summary>The last heartbeat the fighter sent while fighting; set when fighting begins.</summary>
+    public DateTimeOffset LastHeartbeat { get; init; }
+}
 
 /// <summary>What a battle mode keeps for itself while a battle runs; the first phase's modes keep nothing.</summary>
 public abstract record PvpMatchModeState;
@@ -83,7 +103,26 @@ public sealed record PvpMatch(
     int Map,
     DateTimeOffset StartedAt,
     DateTimeOffset PhaseDeadline,
-    PvpMatchModeState? ModeState = null);
+    PvpMatchModeState? ModeState = null)
+{
+    /// <summary>When every fighter had linked and the fight began; null before.</summary>
+    public DateTimeOffset? FightingSince { get; init; }
+
+    /// <summary>The battle's result, frozen when it ended; null while it runs.</summary>
+    public PvpMatchTerminal? Terminal { get; init; }
+
+    /// <summary>Every fighter's settled result, once settlement wrote them; empty before.</summary>
+    public ImmutableArray<PvpFighterResult> Results { get; init; } = [];
+
+    /// <summary>The index of this exact session's fighter, if it is one.</summary>
+    public int? FighterOf(SelectedSessionIdentity session)
+    {
+        for (var index = 0; index < Fighters.Length; index++)
+            if (Fighters[index].Session == session)
+                return index;
+        return null;
+    }
+}
 
 /// <summary>A committed duel room, as everyone reads it.</summary>
 /// <param name="Number">The number shown for the room on its listener; it is a label, not the identity.</param>
@@ -166,6 +205,17 @@ public enum PvpRoomRefusal
     Blacklisted,
     InviteMissing,
     InviteExpired,
+    /// <summary>The room is not in the battle phase the report belongs to: a late or early report.</summary>
+    WrongPhase,
+    /// <summary>The session is not a fighter still taking part in the room's battle.</summary>
+    NotFighter,
+    /// <summary>The fighter reporting its death is already dead.</summary>
+    NotAlive,
+    /// <summary>A time-out reported before the battle's time limit, less the allowed lead, had passed.</summary>
+    TooEarly,
+    AlreadyReported,
+    /// <summary>The server is stopping: no battle starts any more.</summary>
+    ShuttingDown,
 }
 
 public enum PvpRoomChangeKind
@@ -183,12 +233,30 @@ public enum PvpRoomChangeKind
     MapChanged,
     ReadyChanged,
     MatchStarted,
+    Loaded,
+    PeerLinked,
+    Heartbeat,
+    Died,
+    TimedOut,
+    RankAcknowledged,
+    /// <summary>The battle's results were written; the fighters wait on the result screen.</summary>
+    Settled,
+    ResultAcknowledged,
+    /// <summary>A member's session ended, or a fighter stopped sending heartbeats.</summary>
+    Departed,
+    /// <summary>The server advanced a phase whose deadline passed.</summary>
+    DeadlinePassed,
+    CancelledForShutdown,
+    /// <summary>Settlement kept failing past the give-up time; the battle is dropped unsettled and the room waits again.</summary>
+    SettlementAbandoned,
 }
 
 public enum PvpSeatReleaseReason
 {
     Left,
     Kicked,
+    /// <summary>The member's session ended; nobody is sent back to town.</summary>
+    Departed,
 }
 
 /// <summary>A member taken off a seat by a change.</summary>
@@ -222,12 +290,29 @@ public abstract record PvpRoomOutcome
     /// <param name="Before">The room before the change; null when the change created it.</param>
     /// <param name="After">The room after the change; null when the change destroyed it.</param>
     /// <param name="Released">Members taken off their seats by this change.</param>
+    /// <remarks>
+    /// Phase changes are read from <see cref="Before"/> and <see cref="After"/>: a battle that started, was
+    /// cancelled, ended or went back to waiting shows as their phases and matches differing.
+    /// </remarks>
     public sealed record Changed(
         PvpRoomChangeKind Kind,
         PvpRoomSnapshot? Before,
         PvpRoomSnapshot? After,
         IReadOnlyList<PvpSeatRelease> Released,
-        IPvpTownMoves Town) : PvpRoomOutcome;
+        IPvpTownMoves Town) : PvpRoomOutcome
+    {
+        /// <summary>The death this change recorded, if it recorded one.</summary>
+        public PvpDeath? Death { get; init; }
+
+        /// <summary>The battle end this change froze; it outlives the room when the room is gone.</summary>
+        public PvpMatchConclusion? Concluded { get; init; }
+
+        /// <summary>
+        /// An ended battle nobody is left to acknowledge: the caller settles it in the same transaction through
+        /// <see cref="IPvpSettlementDomainService"/>. Left unsettled, the deadline scheduler settles it.
+        /// </summary>
+        public PvpMatchId? SettlementDue { get; init; }
+    }
 }
 
 /// <summary>An invitation into a waiting room.</summary>
@@ -325,6 +410,66 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
     /// <summary>The invitee accepts; the room is entered as <see cref="EnterAsync"/> would, without a password.</summary>
     ValueTask<PvpRoomOutcome> AcceptInviteAsync(
         SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken);
+
+    /// <summary>A fighter finished loading; once every fighter has, the fighters link to each other.</summary>
+    ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
+    /// <summary>A fighter reached every other fighter; once every fighter has, the fight begins.</summary>
+    ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
+    ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The reporting fighter died. The kill counts only for a killer of this battle who is alive and on another
+    /// side; the battle ends when its mode says nobody is left to fight.
+    /// </summary>
+    /// <param name="killer">The character the client names as the killer, if any.</param>
+    ValueTask<PvpRoomOutcome> ReportDeathAsync(
+        SelectedSessionIdentity session, CharacterId? killer, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// A fighter's client reports the battle time ran out. The first report once the time limit is close
+    /// enough ends the battle in a draw.
+    /// </summary>
+    /// <param name="clientValues">What the client sent with it; only logged.</param>
+    ValueTask<PvpRoomOutcome> ReportTimeoutAsync(
+        SelectedSessionIdentity session, ImmutableArray<byte> clientValues, CancellationToken cancellationToken);
+
+    /// <summary>A fighter saw the ranking; once nobody is left to see it, the change asks for settlement.</summary>
+    ValueTask<PvpRoomOutcome> AcknowledgeRankAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
+    /// <summary>A fighter closed the result screen; once everyone has, the room waits again.</summary>
+    ValueTask<PvpRoomOutcome> AcknowledgeResultAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// A member leaves, by how its battle stands: a fight counts it dead and fled, loading or linking cancels
+    /// the battle, the ranking and result screens stop waiting for it, a waiting room lets it go. A session
+    /// that ended gives up its seat; a fighter that only stopped sending heartbeats keeps it.
+    /// </summary>
+    ValueTask<PvpRoomOutcome> DepartAsync(
+        SelectedSessionIdentity session, PvpDepartureReason reason, CancellationToken cancellationToken);
+
+    /// <summary>The rooms and settlements whose deadlines have passed, and the next deadline after them.</summary>
+    PvpDeadlineScan Deadlines(DateTimeOffset now);
+
+    /// <summary>Advances one room whose deadline has passed; null when nothing in it is due.</summary>
+    ValueTask<PvpRoomOutcome.Changed?> AdvanceDueAsync(
+        PvpRoomId room, DateTimeOffset now, CancellationToken cancellationToken);
+
+    /// <summary>The ended battles not settled yet, whether or not their rooms still stand.</summary>
+    IReadOnlyList<PvpMatchConclusion> PendingConclusions();
+
+    /// <summary>
+    /// Cancels every battle that has not ended and returns its room to waiting; ended battles are left to
+    /// settlement. Nobody's record changes, and from this commit on no battle starts.
+    /// </summary>
+    ValueTask<IReadOnlyList<PvpRoomOutcome.Changed>> CancelForShutdownAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Drops an ended battle whose settlement kept failing past the give-up time: nobody's record changes, and its
+    /// room, when it still waits on that battle, waits again. Null when the battle is no longer waiting.
+    /// </summary>
+    ValueTask<PvpRoomOutcome.Changed?> AbandonSettlementAsync(PvpMatchId match, CancellationToken cancellationToken);
 }
 
 /// <summary>Wakes the duel deadline scheduler to rescan the rooms' deadlines.</summary>

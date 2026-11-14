@@ -37,12 +37,44 @@ internal sealed class PvpRoomFixture
     private readonly OnlineStateRegistry state;
     private int connections;
 
-    public PvpRoomFixture()
+    /// <param name="scope">
+    /// The real transaction scope, when the test drives code that opens its own transactions on it, such as
+    /// selected-session cleanup; otherwise each use case gets a bare transaction of its own.
+    /// </param>
+    public PvpRoomFixture(DomainTransactionScope? scope = null)
     {
+        Scope = scope;
+        IDomainTransactionAccessor transactions = scope is null ? Transactions : scope;
         Sessions = TestSessions.Directory(out state);
-        Rooms = new PvpRoomDomainService(Transactions, Sessions, new Channels(), Parties, Relations, Lobby, Town,
-            new Positions(), new PvpRoomRuleService(new Maps()), Wake, Clock, NullLogger<PvpRoomDomainService>.Instance);
+        BattleRules = new PvpSettlementRuleService(new FixedGrades(), PvpSettlementRuleServiceTests.Days);
+        Rooms = new PvpRoomDomainService(transactions, Sessions, new Channels(this), Parties, Relations, Lobby, Town,
+            new Positions(), new PvpRoomRuleService(new Maps()), BattleRules, Wake, Clock, NullLogger<PvpRoomDomainService>.Instance);
+        Records = new PvpRecordStore(transactions);
+        Events = new RecordedEvents(transactions);
+        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, Events);
     }
+
+    public DomainTransactionScope? Scope { get; }
+
+    /// <summary>The duel channel rooms on <see cref="Port"/> are opened on; a free-duel channel unless a test says otherwise.</summary>
+    public ChannelEntryIdentity DuelChannel { get; set; } = Channel;
+
+    public IPvpSettlementRuleService BattleRules { get; }
+    public PvpRecordStore Records { get; }
+    public RecordedEvents Events { get; }
+    public PvpSettlementDomainService Settlement { get; }
+
+    /// <summary>The fixture's battle time limit for every first-phase mode.</summary>
+    public static readonly TimeSpan BattleTime = TimeSpan.FromMinutes(3);
+
+    /// <summary>The fixture's grade table: grade 1 from 100, grade 2 from 200, grade 3 (the top) from 600.</summary>
+    public static readonly PvpGradeCatalog Grades = new(
+    [
+        new(0, 0, 100, 50, 0),
+        new(1, 100, 200, 50, -20),
+        new(2, 200, 600, 40, -20),
+        new(3, 600, 1000, 30, -20),
+    ], 3, BattleTime, TimeSpan.FromMinutes(2));
 
     public Ambient Transactions { get; } = new();
     public SelectedSessionDomainService Sessions { get; }
@@ -65,23 +97,7 @@ internal sealed class PvpRoomFixture
     }
 
     /// <summary>Runs one use case and commits it, as the command it stands in for would.</summary>
-    public Task<T> Commit<T>(Func<PvpRoomDomainService, ValueTask<T>> call) =>
-        TestGameplay.RunAsync(async () =>
-        {
-            var transaction = new DomainTransaction();
-            Transactions.Current = transaction;
-            try
-            {
-                var result = await call(Rooms);
-                await transaction.CommitAsync(default);
-                return result;
-            }
-            finally
-            {
-                Transactions.Current = null;
-                await transaction.RollbackAsync();
-            }
-        });
+    public Task<T> Commit<T>(Func<PvpRoomDomainService, ValueTask<T>> call) => Run(() => call(Rooms));
 
     public async Task<PvpRoomSnapshot> CreateAsync(SelectedSessionIdentity owner, PvpBattleMode mode = PvpBattleMode.Individual,
         byte[]? password = null)
@@ -108,6 +124,67 @@ internal sealed class PvpRoomFixture
 
     public PvpRoomSnapshot Committed(PvpRoomSnapshot room) => Rooms.Find(room.Id)!;
 
+    /// <summary>
+    /// Runs one use case in a transaction that also holds <paramref name="failing"/> when given, so a commit
+    /// that fails after every participant prepared can be shown to take everything back.
+    /// </summary>
+    public Task<T> Run<T>(Func<ValueTask<T>> call, ITransactionParticipant? failing = null) =>
+        TestGameplay.RunAsync(async () =>
+        {
+            if (Scope is { } scope)
+            {
+                await using var lease = scope.Begin();
+                if (failing is not null) scope.Current!.Enlist(failing, () => failing);
+                var outcome = await call();
+                await lease.CommitAsync(default);
+                return outcome;
+            }
+            var transaction = new DomainTransaction();
+            Transactions.Current = transaction;
+            try
+            {
+                if (failing is not null) transaction.Enlist(failing, () => failing);
+                var result = await call();
+                await transaction.CommitAsync(default);
+                return result;
+            }
+            finally
+            {
+                Transactions.Current = null;
+                await transaction.RollbackAsync();
+            }
+        });
+
+    /// <summary>A battle that has started on <paramref name="mode"/> and stands in Loading.</summary>
+    public async Task<(PvpRoomSnapshot Room, SelectedSessionIdentity[] Fighters)> StartAsync(
+        int fighters = 2, PvpBattleMode mode = PvpBattleMode.Individual, int first = 1)
+    {
+        var sessions = Enumerable.Range(first, fighters).Select(Join).ToArray();
+        var room = await CreateAsync(sessions[0], mode);
+        foreach (var guest in sessions.Skip(1))
+        {
+            await EnterAsync(guest, room);
+            await ReadyAsync(guest);
+        }
+        var started = Assert.IsType<PvpRoomOutcome.Changed>(await ReadyAsync(sessions[0]));
+        Assert.Equal(PvpRoomPhase.Loading, started.After!.Phase);
+        return (started.After, sessions);
+    }
+
+    /// <summary>A started battle taken through loading and linking into the fight.</summary>
+    public async Task<(PvpRoomSnapshot Room, SelectedSessionIdentity[] Fighters)> FightAsync(
+        int fighters = 2, PvpBattleMode mode = PvpBattleMode.Individual, int first = 1)
+    {
+        var (room, sessions) = await StartAsync(fighters, mode, first);
+        foreach (var session in sessions) await Commit(rooms => rooms.ReportLoadedAsync(session, default));
+        foreach (var session in sessions) await Commit(rooms => rooms.ReportPeerLinkedAsync(session, default));
+        room = Committed(room);
+        Assert.Equal(PvpRoomPhase.Fighting, room.Phase);
+        return (room, sessions);
+    }
+
+    public Task<PvpSettlementOutcome> SettleAsync(PvpMatchId match) => Run(() => Settlement.SettleAsync(match, default));
+
     public sealed class Ambient : IDomainTransactionAccessor
     {
         public IDomainTransaction? Current { get; set; }
@@ -130,10 +207,140 @@ internal sealed class PvpRoomFixture
         public PvpMapCatalog Load() => new([0, 101, 102, 103, 104, 105]);
     }
 
-    private sealed class Channels : IChannelEntryDomainService
+    private sealed class FixedGrades : IPvpGradeDefinitionSource
+    {
+        public PvpGradeCatalog Load() => Grades;
+    }
+
+    /// <summary>
+    /// Duel records in memory, written only when the use case commits -- as the database's are -- and with the
+    /// store's own once-per-battle rule.
+    /// </summary>
+    public sealed class PvpRecordStore(IDomainTransactionAccessor transactions) : IPvpRecordDomainStore
+    {
+        private static readonly PvpRecord Fresh = new(0, 0, null, 0, 0, 0, 0, 0);
+
+        public Dictionary<CharacterId, PvpRecord> Records { get; } = [];
+        public Dictionary<Guid, (PvpMatchSettlementRecord Settlement, PvpFighterResult[] Results)> Matches { get; } = [];
+
+        /// <summary>Makes every settlement write fail, as a database that refuses it would.</summary>
+        public bool Fails { get; set; }
+
+        public PvpRecord Of(SelectedSessionIdentity session) => Records.GetValueOrDefault(session.CharacterId) ?? Fresh;
+
+        public ValueTask<PvpRecord> ReadAsync(CharacterId character, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(Records.GetValueOrDefault(character) ?? Fresh);
+
+        public ValueTask<PvpDailyCounts> DailyCountsAsync(CharacterId character, DateOnly gameDay, CancellationToken cancellationToken)
+        {
+            var counted = Matches.Values.Where(match => match.Settlement.GameDay == gameDay)
+                .SelectMany(match => match.Results).Where(result => result.Character == character && result.CountsTowardDaily).ToArray();
+            return ValueTask.FromResult(new PvpDailyCounts(counted.Count(x => x.Outcome == PvpOutcome.Win),
+                counted.Count(x => x.Outcome == PvpOutcome.Loss)));
+        }
+
+        public ValueTask<PvpSettleOutcome> SettleAsync(PvpMatchSettlementRecord settlement, CancellationToken cancellationToken)
+        {
+            var transaction = transactions.Current ?? throw new InvalidOperationException("Settling needs a transaction.");
+            if (Fails) throw new InvalidOperationException("The settlement write failed.");
+            if (Matches.TryGetValue(settlement.MatchId, out var stored))
+                return ValueTask.FromResult<PvpSettleOutcome>(new PvpSettleOutcome.AlreadySettled(stored.Results));
+            var results = settlement.Fighters.OrderBy(x => x.Seat).Select(fighter =>
+            {
+                var before = Records.GetValueOrDefault(fighter.Character) ?? Fresh;
+                var streak = !settlement.RecordsResult ? before.WinStreak : fighter.Outcome == PvpOutcome.Win ? before.WinStreak + 1 : 0;
+                return new PvpFighterResult(fighter.Character, fighter.Seat, fighter.Team, fighter.Outcome, fighter.Kills,
+                    fighter.Deaths, fighter.Fled, fighter.Decision.CountsTowardDaily, before.Grade, fighter.Decision.Grade,
+                    fighter.Decision.ExperienceChange, fighter.Decision.Experience, streak);
+            }).ToArray();
+            transaction.Enlist(this, () => new Writes(this)).Add(settlement, results);
+            return ValueTask.FromResult<PvpSettleOutcome>(new PvpSettleOutcome.Created(results));
+        }
+
+        private sealed class Writes(PvpRecordStore store) : ITransactionParticipant
+        {
+            private readonly List<(PvpMatchSettlementRecord Settlement, PvpFighterResult[] Results)> pending = [];
+            public bool CommitCanFail => false;
+            public void Add(PvpMatchSettlementRecord settlement, PvpFighterResult[] results) => pending.Add((settlement, results));
+            public ValueTask PrepareAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+            public ValueTask CommitAsync(CancellationToken cancellationToken)
+            {
+                foreach (var (settlement, results) in pending)
+                {
+                    store.Matches[settlement.MatchId] = (settlement, results);
+                    if (!settlement.RecordsResult) continue;
+                    foreach (var result in results)
+                    {
+                        var before = store.Records.GetValueOrDefault(result.Character) ?? Fresh;
+                        store.Records[result.Character] = before with
+                        {
+                            Grade = result.Grade,
+                            Experience = result.Experience,
+                            Wins = before.Wins + (result.Outcome == PvpOutcome.Win ? 1 : 0),
+                            Losses = before.Losses + (result.Outcome == PvpOutcome.Loss ? 1 : 0),
+                            Draws = before.Draws + (result.Outcome == PvpOutcome.Draw ? 1 : 0),
+                            WinStreak = result.WinStreak,
+                            PeakWinStreak = Math.Max(before.PeakWinStreak, result.WinStreak),
+                        };
+                    }
+                }
+                return ValueTask.CompletedTask;
+            }
+        }
+    }
+
+    /// <summary>Events enqueued by committed use cases only, as the event store keeps them.</summary>
+    public sealed class RecordedEvents(IDomainTransactionAccessor transactions) : Dfo.Server.Abstractions.DomainEvents.IEventService
+    {
+        public List<object> Published { get; } = [];
+
+        public ValueTask<Guid> EnqueueAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+            where TEvent : class, Dfo.Server.Abstractions.DomainEvents.IDomainEvent
+        {
+            var transaction = transactions.Current ?? throw new InvalidOperationException("Enqueue needs a transaction.");
+            transaction.Enlist(this, () => new Batch(this)).Pending.Add(payload);
+            return ValueTask.FromResult(Guid.NewGuid());
+        }
+
+        public ValueTask DirectAsync<TEvent>(TEvent payload, CancellationToken cancellationToken = default)
+            where TEvent : class, Dfo.Server.Abstractions.DomainEvents.IDomainEvent => throw new NotSupportedException();
+
+        public ValueTask<Dfo.Server.Abstractions.Notifications.NotificationDelivery> ProjectAsync<TNotification>(
+            Dfo.Server.Abstractions.Notifications.NotificationAudience audience, TNotification notification,
+            CancellationToken cancellationToken = default)
+            where TNotification : class, Dfo.Server.Abstractions.Notifications.INotification<TNotification> =>
+            throw new NotSupportedException();
+
+        private sealed class Batch(RecordedEvents events) : ITransactionParticipant
+        {
+            public List<object> Pending { get; } = [];
+            public bool CommitCanFail => false;
+            public ValueTask PrepareAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+            public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+            public ValueTask CommitAsync(CancellationToken cancellationToken)
+            {
+                events.Published.AddRange(Pending);
+                return ValueTask.CompletedTask;
+            }
+        }
+    }
+
+    /// <summary>A database write that fails at commit, after every other participant prepared.</summary>
+    public sealed class FailingWrite : ITransactionParticipant
+    {
+        public bool CommitCanFail => true;
+        public ValueTask PrepareAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+        public ValueTask CommitAsync(CancellationToken cancellationToken) => throw new InvalidOperationException("The database write failed.");
+        public ValueTask RollbackAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    private sealed class Channels(PvpRoomFixture fixture) : IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(listenerPort == Port ? Channel : new ChannelEntryIdentity(11, listenerPort, ChannelEntryKind.General));
+            ValueTask.FromResult(listenerPort == Port ? fixture.DuelChannel : new ChannelEntryIdentity(11, listenerPort, ChannelEntryKind.General));
 
         public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
 
