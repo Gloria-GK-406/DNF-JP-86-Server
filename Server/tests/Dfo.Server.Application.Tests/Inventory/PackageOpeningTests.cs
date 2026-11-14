@@ -144,16 +144,18 @@ public sealed class PackageOpeningTests
         Assert.Equal(avatarCount, shop.Host.Scalar("SELECT count(*) FROM items WHERE avatar_expire_date IS NOT NULL"));
     }
 
-    [SkippableFact]
-    public async Task Archive_package_referencing_missing_equipment_is_refused_without_consumption()
+    [Fact]
+    public async Task Package_referencing_missing_equipment_is_refused_without_consumption()
     {
-        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
-        using var shop = new CeraShopFixture(useArchive: true);
-        shop.Host.Sql("UPDATE characters SET job=1 WHERE character_id=1");
-        await shop.Host.Seed(66, 10000606, 1);
-        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => OpeningDomainTestDriver.Avatar(shop.Host, shop.Host.Session, new(66, [new(102550441, 0)])));
+        // Synthetic: the #340 PVF repair removed every reward no list declares, so no archive package can serve as the sample.
+        using var opening = new OpeningFixture();
+        opening.Content.Definitions[1003] = OpeningContent.Package(1003, [new(102550441, 1)]) with { Kind = OpeningPackageKind.AvatarPackage };
+        await opening.Host.Seed(80, 1003, 1);
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(() =>
+            OpeningDomainTestDriver.Avatar(opening.Host, opening.Host.Session, new(80, [new(102550441, 0)])));
         Assert.Equal(OpeningRejection.UnsupportedContent, error.Reason);
-        Assert.Equal(1, shop.Host.Count(10000606));
+        Assert.Contains("Unsupported reward 102550441", error.Message, StringComparison.Ordinal);
+        Assert.Equal(1, opening.Host.Count(1003));
     }
 
     [Fact]

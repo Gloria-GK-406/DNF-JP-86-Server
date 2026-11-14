@@ -178,7 +178,7 @@ dotnet run -c Release --project Tool/PvfPackageContentRepair -- repair <source.p
 表中“新 PVF”一列是第一版输出（`EBF8DDD3…`）的结果。删除空礼包之后，Application 与 Infrastructure 两项用 `A97132DD…` 又跑了一遍：
 
 - Infrastructure：1,034 通过、17 失败、2 跳过，失败名单与旧 PVF 相同。
-- Application：6,829 通过、27 失败、8 跳过。比旧 PVF 多 1 个失败：`PackageOpeningTests.Archive_package_referencing_missing_equipment_is_refused_without_consumption`。它拿 10000606 当“引用了缺失装备的礼包”样本，期望开启时报 `UnsupportedContent`；10000606 正是本次删掉的礼包，新 PVF 里没有这个物品，开启在更早的一步报 `ItemUnusable`。这是删除的预期结果。测试是主干原有的，不在本任务范围，没有改；换新 PVF 后它需要换样本，而新 PVF 里已经没有引用缺失物品的礼包。
+- Application：删除礼包后，主干原有的 `PackageOpeningTests.Archive_package_referencing_missing_equipment_is_refused_without_consumption` 失败。它拿 10000606 当“引用了缺失装备的礼包”样本，而 10000606 已被删，新 PVF 里也不再有引用缺失物品的礼包，所以改写成合成内容（`Package_referencing_missing_equipment_is_refused_without_consumption`，不依赖 PVF），断言不变：报 `UnsupportedContent`（原因为该奖励不存在），礼包不消耗。改写后 `PackageOpeningTests` 在新旧 PVF 下都是 37 个全过；其余失败名单与旧 PVF 相同（26 个）。
 
 其余失败名单新旧完全一致，是这些测试和 0.3.2 修订版 PVF 之间已有的不匹配（例如掉落池、黑暗精灵遗迹、日常补充），与本次改动无关，没有处理。
 
