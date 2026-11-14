@@ -10,6 +10,9 @@ public sealed record RecipePlan(ImmutableArray<RecipeAmount> Required, Immutable
 {
     /// <summary>Probabilistic recipes (<c>[success rate]</c>); null for ordinary recipes, which always succeed.</summary>
     public RecipeChance? Chance { get; init; }
+
+    /// <summary><c>[broadcast type]</c> is set: a successful craft is told to the whole server.</summary>
+    public bool Broadcast { get; init; }
 }
 /// <param name="SuccessPerTenThousand"><c>[success rate]</c>, read as parts per ten thousand (user decision 2026-11-07).</param>
 /// <param name="FailOutputs"><c>[fail output]</c>: what a failed attempt yields instead of the products.</param>

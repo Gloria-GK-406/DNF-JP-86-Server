@@ -23,6 +23,7 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
 
     internal const string FailOutputField = "[fail output]";
     internal const string MaintainAbilityField = "[maintain ability]";
+    internal const string BroadcastTypeField = "[broadcast type]";
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, RecipePlan?> cache = [];
@@ -71,16 +72,19 @@ internal sealed class PvfRecipeContentSource(PvfArchiveProvider provider) : IRec
         var input = Rows(Fields.InputItemField.Name); var output = Rows(Fields.OutputItemField.Name);
         if (input.IsDefaultOrEmpty || output.IsDefaultOrEmpty) return null;
         var rate = sections.Where(s => s.Name == Fields.SuccessRateField.Name).ToArray();
+        // Every A21 drawing that declares it gives 1; the client's wording for it is "crafted with a drawing".
+        var broadcast = sections.Any(s => s.Name == BroadcastTypeField
+            && s.Values is [{ Kind: PvfTokenKind.Int32, Value: not 0 }]);
         // [recipe] 1 is only understood in its probabilistic requiem shape: [success rate], [fail output] and
         // [maintain ability] normal together. Any other [recipe] 1 drawing keeps being refused.
-        if (type.Values[1].Value == 0) return rate.Length == 0 ? new(input, output) : null;
+        if (type.Values[1].Value == 0) return rate.Length == 0 ? new(input, output) { Broadcast = broadcast } : null;
         var fail = Rows(FailOutputField);
         var maintain = sections.Where(s => s.Name == MaintainAbilityField).ToArray();
         if (rate is not [{ Values: [{ Kind: PvfTokenKind.Int32 } chance] }] || chance.Value is < 0 or > 10000
             || fail.IsDefaultOrEmpty
             || maintain is not [{ Values: [{ IsString: true } mode] }] || archive.ResolveString(mode.Value) != "normal")
             return null;
-        return new(input, output) { Chance = new(chance.Value, fail, MaintainAbility: true) };
+        return new(input, output) { Chance = new(chance.Value, fail, MaintainAbility: true), Broadcast = broadcast };
         ImmutableArray<RecipeAmount> Rows(string tag)
         {
             var rows = sections.Where(s => s.Name == tag).ToArray();

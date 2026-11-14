@@ -376,6 +376,7 @@ public enum ServerMessageType
     GameAvatarPackageOpening = 0x0001_0207,
     GameGenCeraTicket = 0x0001_0041,
     GameServerNotice = 0x0000_01F7,
+    GameServerBroadcast = 0x0000_0056,
     GameCeraShopPurchase = 0x0001_0040,
     GameBuyItem = 0x0001_0015,
     GameSellItem = 0x0001_0016,

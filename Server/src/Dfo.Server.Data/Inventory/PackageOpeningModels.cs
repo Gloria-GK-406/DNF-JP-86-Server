@@ -48,6 +48,8 @@ public sealed record OpeningReward(int ItemId, int Count, byte Ability = 0, int 
     /// <summary>An avatar row's first extension: the index into the avatar's own [avatar type select] rows,
     /// whose period it takes. Out of range (the client stores it as u16, so -1 is 65535) keeps the avatar's own period.</summary>
     public int? AvatarTypeRow { get; init; }
+    /// <summary>The pool row's broadcast column is 1: drawing this reward is told to the whole server.</summary>
+    public bool Announce { get; init; }
     public const byte RandomUpgrade = 255;
 }
 /// <summary>One [random probability] pair: a reinforcement level and its weight.</summary>

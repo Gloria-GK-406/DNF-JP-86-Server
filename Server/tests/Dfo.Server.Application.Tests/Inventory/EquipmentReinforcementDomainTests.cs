@@ -260,6 +260,31 @@ public sealed class EquipmentReinforcementDomainTests
         });
     }
 
+    /// <summary>
+    /// The table's [notice] is 12 here: a success is announced once its new level reaches it, a failure
+    /// once the level it started from does (the line then names the level it tried for).
+    /// </summary>
+    [Theory]
+    [InlineData(11, 0, 1)]
+    [InlineData(10, 0, 0)]
+    [InlineData(12, 100_000, 1)]
+    [InlineData(11, 100_000, 0)]
+    public async Task An_attempt_at_the_notice_level_records_one_announcement(byte level, int failureWeight, int announced)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture(failureWeight, targetLevel: level + 1);
+            await shop.SeedCore(9, Piece(level));
+            await shop.Seed(121, 1000, 20, 3);
+
+            var result = await Reinforce(shop);
+
+            Assert.Equal(EquipmentReinforcementRejection.None, result.Rejection);
+            Assert.Equal(failureWeight == 0, result.Receipt!.Outcome == EquipmentReinforcementOutcome.Succeeded);
+            Assert.Equal(announced, shop.Scalar("SELECT COUNT(*) FROM domain_events WHERE event_type='broadcast.equipment-upgrade'"));
+        });
+    }
+
     [Fact]
     public async Task Missing_material_refuses_without_any_asset_change()
     {

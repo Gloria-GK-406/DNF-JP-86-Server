@@ -20,7 +20,9 @@ internal sealed class GroundPickupAlgorithmDriver(IDungeonRunDomainService runs,
 {
     private readonly GameGetItemCommandHandler command = ProtocolAlgorithmFixture.Create<GameGetItemCommandHandler>(
         runs, new Dfo.Server.Application.World.GroundPickupDomainService(runs, characters,
-            epicBook ?? ProtocolAlgorithmFixture.Default<IEpicBookDomainService>(), containers, grants, progress),
+            epicBook ?? ProtocolAlgorithmFixture.Default<IEpicBookDomainService>(), containers, grants, progress,
+            new NothingNotable(),
+            ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.DomainEvents.IEventService>()),
         new NoProjectionOutbox());
     internal ValueTask<GroundPickupResult> PickUpAsync(GroundPickupInput input, CancellationToken ct) =>
         command.PickUpAsync(input, ct);
@@ -32,4 +34,13 @@ internal sealed class NoProjectionOutbox:Dfo.Server.Protocol.Game.IGameCommandOu
     public ValueTask RegisterCmdAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameCmdMessage m,CancellationToken ct)=>throw new InvalidOperationException("Algorithm driver cannot project.");
     public ValueTask RegisterNotiAsync(Dfo.Server.Data.Networking.NetworkConnectionId id,Dfo.Server.Protocol.Game.IGameNotiMessage m,CancellationToken ct)=>throw new InvalidOperationException("Algorithm driver cannot project.");
     public ValueTask RegisterBatchAsync(Dfo.Server.Data.Networking.NetworkConnectionContext c,IReadOnlyList<Dfo.Server.Protocol.Game.IGameServerMessage> m,CancellationToken ct)=>throw new InvalidOperationException("Algorithm driver cannot project.");
+}
+
+/// <summary>No pickup is notable, so the algorithm never records an announcement.</summary>
+internal sealed class NothingNotable : Dfo.Server.Abstractions.ServerBroadcast.IServerBroadcastRuleService
+{
+    public bool Announces(Dfo.Server.Abstractions.ServerBroadcast.ServerBroadcastKind kind) => false;
+    public int ForgingMinimumStage => int.MaxValue;
+    public ValueTask<bool> IsNotableLotteryPrizeAsync(int itemId, CancellationToken ct) => ValueTask.FromResult(false);
+    public ValueTask<bool> IsNotableAncientFindAsync(int dungeonId, int itemId, CancellationToken ct) => ValueTask.FromResult(false);
 }

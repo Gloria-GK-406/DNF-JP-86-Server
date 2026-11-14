@@ -2,15 +2,18 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService inventory,
-    IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans, ICharacterDomainService characters) : IPackageOpeningDomainService
+    IPackageOpeningRuleService rules, IOpeningEffectPlanRuleService plans, ICharacterDomainService characters,
+    IEventService events) : IPackageOpeningDomainService
 {
     public async ValueTask<PackageOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessPackageOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -23,12 +26,15 @@ internal sealed class PackageOpeningDomainService(IOpeningInventoryDomainService
         if (definition.MaterialCount != 0) throw new OpeningRejectedException(OpeningRejection.MissingMaterial, "This entry supplies no material.");
         await inventory.RequireRoomAsync(session, rules.RoomBeforeDrawing(definition), ct).ConfigureAwait(false);
         var job = await OpenerJob.ReadAsync(characters, session, ct).ConfigureAwait(false);
-        var rolled = rules.Roll(definition, new(input.SelectedItems, input.Category, job), Random.Shared.Next());
-        rolled = await rules.ExpandAsync(rolled, job, Random.Shared.Next(), ct).ConfigureAwait(false);
+        var drawn = rules.Roll(definition, new(input.SelectedItems, input.Category, job), Random.Shared.Next());
+        var rolled = await rules.ExpandAsync(drawn, job, Random.Shared.Next(), ct).ConfigureAwait(false);
         var grants = await rules.PrepareAsync(rolled, now, ct).ConfigureAwait(false);
         var plan = plans.Build(source.ItemId, useRule, plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount),
             grants, await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, delivery: ItemDeliveryMode.InventoryThenMail);
-        return new(OpeningRejection.None, (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory);
+        var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
+        // The draws carry the pool row's broadcast flag; the contents a shop package expands into do not.
+        await OpeningAnnouncements.EnqueueAsync(events, session, source.ItemId, drawn, ct).ConfigureAwait(false);
+        return new(OpeningRejection.None, receipt);
     }
 }
 
@@ -65,7 +71,8 @@ internal sealed class AvatarPackageOpeningDomainService(IOpeningInventoryDomainS
 }
 
 internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainService inventory,
-    IPackageOpeningRuleService rules, IAccountTable accounts, IOpeningEffectPlanRuleService plans) : IMagicBoxOpeningDomainService
+    IPackageOpeningRuleService rules, IAccountTable accounts, IOpeningEffectPlanRuleService plans,
+    IEventService events) : IMagicBoxOpeningDomainService
 {
     public async ValueTask<MagicBoxOpeningResult> OpenAsync(SelectedSessionIdentity session, BusinessMagicBoxOpeningInput input, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -108,6 +115,8 @@ internal sealed class MagicBoxOpeningDomainService(IOpeningInventoryDomainServic
             await inventory.ReadPremiumsAsync(session, ct).ConfigureAwait(false), now, luckBefore: before, luckAfter: before is null ? null : luck,
             delivery: ItemDeliveryMode.InventoryThenMail);
         var receipt = (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
+        // A lucky opening's extra copies repeat a draw already told; only the draws themselves are announced.
+        await OpeningAnnouncements.EnqueueAsync(events, session, source.ItemId, primary, ct).ConfigureAwait(false);
         ImmutableArray<OpeningRewardDisplay> Display(IEnumerable<OpeningReward> entries) => entries.GroupBy(r => r.ItemId).Select(g =>
             receipt.Rewards.First(r => r.ItemId == g.Key) with { Count = checked(g.Sum(r => r.Count)) }).ToImmutableArray();
         return new(OpeningRejection.None, receipt, Display(primary), Display(bonus), before, before is null ? null : luck);
@@ -119,4 +128,15 @@ internal static class OpenerJob
     public static async ValueTask<int> ReadAsync(ICharacterDomainService characters, SelectedSessionIdentity session, CancellationToken ct) =>
         (await characters.Get(session.CharacterId).IdentityAsync(ct).ConfigureAwait(false)
             ?? throw new OpeningRejectedException(OpeningRejection.NoSession, "Opener has no character identity.")).Job;
+}
+
+/// <summary>Records a server announcement for each drawn reward whose pool row carries the broadcast flag.</summary>
+internal static class OpeningAnnouncements
+{
+    internal static async ValueTask EnqueueAsync(IEventService events, SelectedSessionIdentity session, int boxItemId,
+        IEnumerable<OpeningReward> drawn, CancellationToken ct)
+    {
+        foreach (var reward in drawn.Where(reward => reward.Announce))
+            await events.EnqueueAsync(new BoxRewardAnnounced(session.CharacterId, boxItemId, reward.ItemId), ct).ConfigureAwait(false);
+    }
 }

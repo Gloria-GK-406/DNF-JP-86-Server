@@ -1,7 +1,9 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
@@ -17,6 +19,8 @@ internal sealed class EquipmentForgingDomainService(
     IEquipmentForgingRollSource rolls,
     IApplyEffectsDomainService effects,
     IInventoryEffectPreflightDomainService preflight,
+    IServerBroadcastRuleService broadcasts,
+    IEventService events,
     TimeProvider clock) : IEquipmentForgingDomainService
 {
     public async ValueTask<EquipmentForgingResult> ForgeAsync(SelectedSessionIdentity session,
@@ -77,6 +81,11 @@ internal sealed class EquipmentForgingDomainService(
             ? applied.Changes<EquipmentEffectChange>().Single().After!
             : target.Snapshot;
         var remaining = await materialBound.Container.GetAsync(materialSlot.Index, ct).ConfigureAwait(false);
+        // The stage attempted, announced whether it held or not (the client has wording for both).
+        var stage = checked((byte)(target.Snapshot.GenuineUpgrade + 1));
+        if (stage >= broadcasts.ForgingMinimumStage)
+            await events.EnqueueAsync(new EquipmentForgingAnnounced(session.CharacterId, target.Snapshot.ItemId,
+                changed.ReinforcementLevel, stage, decision.Succeeded), ct).ConfigureAwait(false);
         return new(EquipmentForgingRejection.None, new(session, targetSlot, target.Snapshot.ItemId,
             materialSlot, material.ItemId, remaining?.Count ?? 0,
             changed, target.Snapshot.GenuineUpgrade, decision.NewLevel, decision.Succeeded,

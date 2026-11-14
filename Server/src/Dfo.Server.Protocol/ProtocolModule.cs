@@ -323,6 +323,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSaveHotkeysSlice();
         services.AddSaveQuickChatSlice();
         services.AddSendChatSlice();
+        Dfo.Server.Protocol.Game.ServerBroadcast.ServerBroadcastRegistration.AddServerBroadcastSlice(services);
         services.AddOneToOneChatSlice();
         services.AddBlacklistSlice();
         services.AddUnitedFriendSlice();

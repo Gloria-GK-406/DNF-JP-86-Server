@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -21,7 +23,9 @@ internal sealed class GroundPickupDomainService(
     IEpicBookDomainService epicBook,
     ICharacterContainerDomainService containers,
     IItemGrantDomainService itemGrants,
-    IQuestProgressDomainService questProgress) : IGroundPickupDomainService
+    IQuestProgressDomainService questProgress,
+    IServerBroadcastRuleService broadcasts,
+    IEventService events) : IGroundPickupDomainService
 {
     public ValueTask<GroundPiece?> FindOnFloorAsync(
         DungeonRunState run, ushort groundDropNumber, CancellationToken cancellationToken)
@@ -152,6 +156,9 @@ internal sealed class GroundPickupDomainService(
             var reported = await questProgress.ReportAsync(
                 request.AccountId, request.CharacterId,
                 [new QuestHoldingsChanged()], cancellationToken).ConfigureAwait(false);
+            if (await broadcasts.IsNotableAncientFindAsync(run.Layout.DungeonId, piece.ItemId, cancellationToken).ConfigureAwait(false))
+                await events.EnqueueAsync(new AncientDungeonItemAnnounced(request.CharacterId, run.Layout.DungeonId, piece.ItemId),
+                    cancellationToken).ConfigureAwait(false);
             var staged = runs.StageGroundDrop(itemClaim, DungeonPickupKind.Item);
             if (!staged.IsDeferred && staged.Change is null)
             {

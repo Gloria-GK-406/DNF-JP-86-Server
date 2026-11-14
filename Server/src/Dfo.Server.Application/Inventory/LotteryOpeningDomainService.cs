@@ -2,7 +2,9 @@ using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
@@ -63,7 +65,8 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
     IPackageOpeningRuleService rules, ILotteryRuleService selector, ICharacterDomainService characters,
     IDomainTransactionAccessor transactions, TimeProvider clock,
     IPremiumServiceRuleService premiumRules, IPremiumServiceUsageDomainService usage, IOpeningEffectPlanRuleService plans,
-    ICharacterBusinessInventoryDomainService bags)
+    ICharacterBusinessInventoryDomainService bags,
+    IServerBroadcastRuleService broadcasts, IEventService events)
     : ILotteryOpeningDomainService
 {
     public async ValueTask<LotteryOpeningResult> ExecuteAsync(SelectedSessionIdentity session, BusinessSlot slot,
@@ -116,6 +119,9 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         if (receipt.Rewards.Length != (mode == 1 ? 2 : 1)
             || !goldReward && receipt.Rewards.Any(x => x.Count != 1 || x.Snapshot is null))
             throw Reject("Unexpected lottery receipt layout.");
+        // Pot pools carry no broadcast column; the 70 server announced by the prize's rarity instead.
+        if (!goldReward && await broadcasts.IsNotableLotteryPrizeAsync(reward.ItemId, token).ConfigureAwait(false))
+            await events.EnqueueAsync(new BoxRewardAnnounced(session.CharacterId, source.ItemId, reward.ItemId), token).ConfigureAwait(false);
         return new(receipt, slot, gold);
     }
     private static OpeningRejectedException Reject(string message) => new(OpeningRejection.StateChanged, message);

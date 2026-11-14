@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -52,7 +54,7 @@ internal sealed class RecipeChanceRollSource : IRecipeChanceRollSource
 internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService inventory,
     IRecipeCraftRuleService rules, IPackageOpeningRuleService rewards,
     ICharacterBusinessInventoryDomainService bags, IBusinessInventorySlotDomainService slots, IOpeningEffectPlanRuleService plans,
-    IEquipmentDomainService equipments, IRecipeChanceRollSource rolls) : IRecipeCraftDomainService
+    IEquipmentDomainService equipments, IRecipeChanceRollSource rolls, IEventService events) : IRecipeCraftDomainService
 {
     public async ValueTask<RecipeCraftReceipt> RefreshAsync(RecipeCraftReceipt receipt, CancellationToken ct)
     {
@@ -173,6 +175,9 @@ internal sealed class RecipeCraftDomainService(IOpeningInventoryDomainService in
             Durability = upgrade.OutputMaxDurability ?? transformed.Durability,
         }, ct).ConfigureAwait(false)).Snapshot;
         var display = new OpeningRewardDisplay(pieceSlot, after.ItemId, 1, after.Durability, 0, after.ExpireTime, after);
+        if (plan.Broadcast)
+            await events.EnqueueAsync(new RecipeCraftAnnounced(session.CharacterId, after.ItemId, after.ReinforcementLevel), ct)
+                .ConfigureAwait(false);
         return new(applied with
         {
             Updates = applied.Updates.Add(new(pieceSlot, piece.ItemUid, after)),
