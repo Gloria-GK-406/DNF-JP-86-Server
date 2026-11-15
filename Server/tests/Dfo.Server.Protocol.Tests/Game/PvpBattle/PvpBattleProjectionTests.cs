@@ -93,10 +93,10 @@ public sealed class PvpBattleProjectionTests
             Seats = PvpBattleWorld.RoomOf(PvpRoomPhase.Waiting, world.A, world.B).Seats
                 .SetItem(1, PvpRooms.Taken(world.B, PvpTeam.Individual, ready: true)),
         };
-        var loading = PvpBattleWorld.RoomOf(PvpRoomPhase.Loading, world.A, world.B);
+        var fighting = PvpBattleWorld.RoomOf(PvpRoomPhase.Fighting, world.A, world.B);
         world.Deferrals.Defer(world.A, waiting.Id);
         world.Rooms.Room = waiting;
-        world.Rooms.Next = PvpRooms.Changed(PvpRoomChangeKind.MatchStarted, waiting, loading);
+        world.Rooms.Next = PvpRooms.Changed(PvpRoomChangeKind.MatchStarted, waiting, fighting);
 
         Assert.True(await world.SendAsync(world.Room(), new GameSetPvpReadyStateCommand(PvpBattleWorld.Dispatch(world.A),
             new SetPvpReadyStateRequest(Meta, true, true))));
@@ -253,7 +253,7 @@ public sealed class PvpBattleProjectionTests
     });
 
     [Theory]
-    [InlineData(PvpRoomPhase.Loading, PvpRoomChangeKind.DeadlinePassed)]
+    [InlineData(PvpRoomPhase.AwaitResult, PvpRoomChangeKind.DeadlinePassed)]
     [InlineData(PvpRoomPhase.AwaitRank, PvpRoomChangeKind.SettlementAbandoned)]
     public Task A_battle_cancelled_or_dropped_returns_the_room_and_the_lobby_to_waiting(PvpRoomPhase phase, PvpRoomChangeKind kind) => Run(async world =>
     {

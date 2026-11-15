@@ -5,12 +5,6 @@ namespace Dfo.Server.Application.Pvp;
 /// <summary>How a room's seats, teams and start are decided; read through <see cref="PvpRoomRuleService"/>.</summary>
 internal static class PvpRoomRules
 {
-    /// <summary>Design r1 §4.1: the fighters have this long to load before the battle is cancelled.</summary>
-    public static readonly TimeSpan LoadingTimeout = TimeSpan.FromSeconds(60);
-
-    /// <summary>Spec phase table: the fighters have this long to reach each other before the battle is cancelled.</summary>
-    public static readonly TimeSpan PeerLinkTimeout = TimeSpan.FromSeconds(30);
-
     /// <summary>Spec phase table: a fight still running this long past its time limit ends in a draw.</summary>
     public static readonly TimeSpan FightOverrun = TimeSpan.FromSeconds(30);
 

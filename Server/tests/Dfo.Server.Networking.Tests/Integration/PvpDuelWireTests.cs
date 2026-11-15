@@ -95,13 +95,24 @@ public sealed class PvpDuelWireTests
         Assert.Equal(2, PvpLobbyWireView.Of(c.Frames).StateOf(number));
         await AssertLobbyAsync("battle", server, c, ++probes, ct);
 
-        StepAll("both load and reach each other", a, b, c);
+        // Spec SA-1: fighting from the start; loading and linking reports are only logged and change nothing.
+        var fighting = TestGameplay.Run(server.Services, () => Room(server, a));
+        Assert.Equal(PvpRoomPhase.Fighting, fighting.Phase);
+        var reported = Mark(a, b, c);
+        StepAll("both report loading and linking", a, b, c);
         await a.SendAsync(0x012A, [], ct);
         await b.SendAsync(0x012A, [], ct);
         await a.SendAsync(0x012B, [1, seatB, 1], ct);
         await b.SendAsync(0x012B, [1, seatA, 1], ct);
         await FenceAllAsync(ct, a, b, c);
-        TestGameplay.Run(server.Services, () => Assert.Equal(PvpRoomPhase.Fighting, Room(server, a).Phase));
+        TestGameplay.Run(server.Services, () =>
+        {
+            var room = Room(server, a);
+            Assert.Equal(PvpRoomPhase.Fighting, room.Phase);
+            Assert.Equal(fighting.Version, room.Version);
+        });
+        foreach (var client in new[] { a, b, c })
+            Assert.DoesNotContain(After(client, reported), frame => frame.IsNoti && frame.Type is >= 0x0029 and <= 0x0031);
 
         StepAll("b dies to a", a, b, c);
         await b.SendAsync(0x0037, [.. U16(b.WireUserId), .. U16(a.WireUserId), 0], ct);
@@ -183,6 +194,44 @@ public sealed class PvpDuelWireTests
         await FenceAllAsync(ct, a, b, c);
         Assert.Empty(PvpLobbyWireView.Of(c.Frames).Numbers);
         await AssertLobbyAsync("room gone", server, c, ++probes, ct);
+        Assert.False(a.IsClosed || b.IsClosed || c.IsClosed);
+    }
+
+    /// <summary>
+    /// Spec SA-1 (observed 2026-11-15): an A21 client in an ordinary room sends neither <c>0x012A</c> nor <c>0x012B</c>;
+    /// a KO right after the start must still end the battle and settle it.
+    /// </summary>
+    [PvfFact]
+    public async Task A_ko_without_any_loading_or_linking_report_ends_and_settles_the_battle()
+    {
+        using var timeout = new CancellationTokenSource(Budget);
+        var ct = timeout.Token;
+        await using var server = await StartAsync(ranked: true, ct);
+        using var a = await server.EnterWorldAsync("a", "ko-a", "KoA", ct);
+        using var b = await server.EnterWorldAsync("b", "ko-b", "KoB", ct);
+        using var c = await server.EnterWorldAsync("c", "ko-c", "KoC", ct);
+        await FenceAllAsync(ct, a, b, c);
+        var (_, seatA, seatB) = await FightAsync(a, b, c, ct);
+
+        var battle = Mark(a, b, c);
+        await b.SendAsync(0x0037, [.. U16(b.WireUserId), .. U16(a.WireUserId), 0], ct);
+        await FenceAllAsync(ct, b, a);
+        await a.SendAsync(0x003A, [], ct);
+        await b.SendAsync(0x003A, [], ct);
+        await FenceAllAsync(ct, a, b, c);
+
+        foreach (var fighter in new[] { a, b })
+        {
+            var frames = After(fighter, battle).Where(frame => frame.IsNoti && frame.Type is 0x002E or 0x0031 or 0x002F or 0x0030).ToArray();
+            Assert.Equal(new[] { 0x002E, 0x0031, 0x002F, 0x0030 }, frames.Select(frame => (int)frame.Type));
+            Assert.Equal(new byte[] { seatB, seatA }, frames[0].Body.ToArray());
+            Assert.Equal(seatA, frames[2].Body[0]);
+        }
+        var records = await RecordsAsync(server, ct, a, b);
+        Assert.Equal((1, 0), (records[0].Wins, records[0].Losses));
+        Assert.Equal((0, 1), (records[1].Wins, records[1].Losses));
+        Assert.Equal(1L, await ScalarAsync(server, "SELECT COUNT(*) FROM pvp_matches", ct));
+        TestGameplay.Run(server.Services, () => Assert.Equal(PvpRoomPhase.AwaitResult, Room(server, a).Phase));
         Assert.False(a.IsClosed || b.IsClosed || c.IsClosed);
     }
 
@@ -356,7 +405,7 @@ public sealed class PvpDuelWireTests
         await AssertLobbyAsync("full", server, c, 1, ct);
     }
 
-    /// <summary>A room made by <paramref name="a"/>, entered by <paramref name="b"/>, started, loaded and linked: fighting.</summary>
+    /// <summary>A room made by <paramref name="a"/>, entered by <paramref name="b"/> and started: fighting at once (spec SA-1).</summary>
     private static async Task<(ushort Number, byte SeatA, byte SeatB)> FightAsync(WireClient a, WireClient b, WireClient c,
         CancellationToken ct)
     {
@@ -372,11 +421,6 @@ public sealed class PvpDuelWireTests
         await a.SendAsync(0x0035, [1], ct);
         await FenceAllAsync(ct, a, b, c);
         Assert.Contains(b.Frames, frame => frame.Is(0, 0x002D));
-        await a.SendAsync(0x012A, [], ct);
-        await b.SendAsync(0x012A, [], ct);
-        await a.SendAsync(0x012B, [1, seatB, 1], ct);
-        await b.SendAsync(0x012B, [1, seatA, 1], ct);
-        await FenceAllAsync(ct, a, b, c);
         return (number, seatA, seatB);
     }
 

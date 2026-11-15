@@ -22,8 +22,10 @@ public readonly record struct PvpMatchId(Guid Value)
 public enum PvpRoomPhase : byte
 {
     Waiting,
-    Loading,
-    PeerLinking,
+    /// <summary>
+    /// From the start: 70Reference <c>start_pvp</c> sets every fighter fighting at once, and an A21 client in an
+    /// ordinary room reports neither loading nor linking (spec SA-1).
+    /// </summary>
     Fighting,
     AwaitRank,
     AwaitResult,
@@ -86,7 +88,7 @@ public sealed record PvpFighter(int Seat, CharacterId CharacterId, SelectedSessi
 
     public PvpFighterReports Reports { get; init; }
 
-    /// <summary>The last heartbeat the fighter sent while fighting; set when fighting begins.</summary>
+    /// <summary>The last heartbeat the fighter sent while fighting; set when the battle starts.</summary>
     public DateTimeOffset LastHeartbeat { get; init; }
 }
 
@@ -105,9 +107,6 @@ public sealed record PvpMatch(
     DateTimeOffset PhaseDeadline,
     PvpMatchModeState? ModeState = null)
 {
-    /// <summary>When every fighter had linked and the fight began; null before.</summary>
-    public DateTimeOffset? FightingSince { get; init; }
-
     /// <summary>The battle's result, frozen when it ended; null while it runs.</summary>
     public PvpMatchTerminal? Terminal { get; init; }
 
@@ -233,8 +232,6 @@ public enum PvpRoomChangeKind
     MapChanged,
     ReadyChanged,
     MatchStarted,
-    Loaded,
-    PeerLinked,
     Heartbeat,
     Died,
     TimedOut,
@@ -403,7 +400,7 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
 
     /// <summary>
     /// A member marks themselves ready or not; the owner marking ready starts the battle when the room
-    /// allows it, freezing the fighters and entering <see cref="PvpRoomPhase.Loading"/>.
+    /// allows it, freezing the fighters and entering <see cref="PvpRoomPhase.Fighting"/>.
     /// </summary>
     ValueTask<PvpRoomOutcome> SetReadyAsync(
         SelectedSessionIdentity actor, bool ready, CancellationToken cancellationToken);
@@ -418,12 +415,6 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
     /// </param>
     ValueTask<PvpRoomOutcome> AcceptInviteAsync(
         SelectedSessionIdentity invitee, CharacterId inviter, CancellationToken cancellationToken, int? peerToken = null);
-
-    /// <summary>A fighter finished loading; once every fighter has, the fighters link to each other.</summary>
-    ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
-
-    /// <summary>A fighter reached every other fighter; once every fighter has, the fight begins.</summary>
-    ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
 
     ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
 
@@ -450,8 +441,8 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
     ValueTask<PvpRoomOutcome> AcknowledgeResultAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
 
     /// <summary>
-    /// A member leaves, by how its battle stands: a fight counts it dead and fled, loading or linking cancels
-    /// the battle, the ranking and result screens stop waiting for it, a waiting room lets it go. The member
+    /// A member leaves, by how its battle stands: a fight (from the start on) counts it dead and fled, the
+    /// ranking and result screens stop waiting for it, a waiting room lets it go. The member
     /// gives up its seat; a fighter that only stopped sending heartbeats is the deadline's, not a departure.
     /// </summary>
     ValueTask<PvpRoomOutcome> DepartAsync(

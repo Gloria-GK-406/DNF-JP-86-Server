@@ -23,12 +23,6 @@ public interface IPvpRoomRuleService
     /// <summary>Whether a room may be locked with this password.</summary>
     bool AcceptsPassword(System.Collections.Immutable.ImmutableArray<byte> password);
 
-    /// <summary>How long the fighters have to finish loading once a battle starts.</summary>
-    TimeSpan LoadingTimeout { get; }
-
-    /// <summary>How long the fighters have to reach each other once all have loaded.</summary>
-    TimeSpan PeerLinkTimeout { get; }
-
     /// <summary>How long past the battle's time limit a fight may run before the server ends it in a draw.</summary>
     TimeSpan FightOverrun { get; }
 

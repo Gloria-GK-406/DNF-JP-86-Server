@@ -23,34 +23,37 @@ public sealed class PvpBattleDomainTests
 
     // ---- AC-030: the phases, and reports outside them
 
+    /// <summary>
+    /// Spec SA-1: an A21 client in an ordinary room reports neither loading nor linking, so the fight is on from the
+    /// start, and the first death ends it and leads into settlement with nothing else reported.
+    /// </summary>
     [Fact]
-    public async Task Loading_and_linking_lead_into_the_fight_with_the_spec_deadlines()
+    public async Task A_death_right_after_the_start_ends_the_fight_and_settles_it_without_any_load_or_link_report()
     {
-        var f = new PvpRoomFixture();
-        var (room, fighters) = await f.StartAsync();
+        var f = new PvpRoomFixture { DuelChannel = Ranked };
+        var start = f.Clock.Now;
+        var (room, fighters) = await f.FightAsync();
+        Assert.Equal(start + PvpRoomFixture.BattleTime + TimeSpan.FromSeconds(30), room.Match!.PhaseDeadline);
+        Assert.Equal(start + TimeSpan.FromSeconds(30), f.Rooms.Deadlines(start).Next);
+        f.Clock.Now += TimeSpan.FromSeconds(20);
 
-        Assert.Equal(PvpRoomChangeKind.Loaded, Changed(await f.Commit(rooms => rooms.ReportLoadedAsync(fighters[0], default))).Kind);
-        Assert.Equal(PvpRoomPhase.Loading, f.Committed(room).Phase);
-        Refused(await f.Commit(rooms => rooms.ReportLoadedAsync(fighters[0], default)), PvpRoomRefusal.AlreadyReported);
-        f.Clock.Now += TimeSpan.FromSeconds(5);
-        await f.Commit(rooms => rooms.ReportLoadedAsync(fighters[1], default));
-        var linking = f.Committed(room);
-        Assert.Equal(PvpRoomPhase.PeerLinking, linking.Phase);
-        Assert.Equal(f.Clock.Now + TimeSpan.FromSeconds(30), linking.Match!.PhaseDeadline);
+        var died = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default)));
 
-        foreach (var fighter in fighters) await f.Commit(rooms => rooms.ReportPeerLinkedAsync(fighter, default));
-
-        var fighting = f.Committed(room);
-        Assert.Equal(PvpRoomPhase.Fighting, fighting.Phase);
-        Assert.Equal(f.Clock.Now, fighting.Match!.FightingSince);
-        Assert.Equal(f.Clock.Now + PvpRoomFixture.BattleTime + TimeSpan.FromSeconds(30), fighting.Match.PhaseDeadline);
-        Assert.All(fighting.Match.Fighters, fighter => Assert.Equal(f.Clock.Now, fighter.LastHeartbeat));
+        Assert.Equal(PvpRoomChangeKind.Died, died.Kind);
+        var ended = f.Committed(room);
+        Assert.Equal(PvpRoomPhase.AwaitRank, ended.Phase);
+        Assert.Equal(new PvpMatchTerminal(PvpMatchOutcomeKind.Decided, 0, f.Clock.Now), ended.Match!.Terminal);
+        Assert.Equal(ended.Match.Terminal, died.Concluded!.Terminal);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.AcknowledgeRankAsync(fighter, default));
+        var settled = Assert.IsType<PvpSettlementOutcome.Settled>(await f.SettleAsync(ended.Match.Id));
+        Assert.Equal([PvpOutcome.Win, PvpOutcome.Loss], settled.Stored.Results.Select(x => x.Outcome));
+        Assert.Equal(PvpRoomPhase.AwaitResult, f.Committed(room).Phase);
+        Assert.Equal((1, 0), (f.Records.Of(fighters[0]).Wins, f.Records.Of(fighters[0]).Losses));
+        Assert.Equal((0, 1), (f.Records.Of(fighters[1]).Wins, f.Records.Of(fighters[1]).Losses));
     }
 
     [Theory]
     [InlineData(PvpRoomPhase.Waiting)]
-    [InlineData(PvpRoomPhase.Loading)]
-    [InlineData(PvpRoomPhase.PeerLinking)]
     [InlineData(PvpRoomPhase.Fighting)]
     [InlineData(PvpRoomPhase.AwaitRank)]
     [InlineData(PvpRoomPhase.AwaitResult)]
@@ -61,8 +64,6 @@ public sealed class PvpBattleDomainTests
         var reporter = fighters[^1];
         var reports = new (PvpRoomPhase Phase, Func<PvpRoomDomainService, ValueTask<PvpRoomOutcome>> Call)[]
         {
-            (PvpRoomPhase.Loading, rooms => rooms.ReportLoadedAsync(reporter, default)),
-            (PvpRoomPhase.PeerLinking, rooms => rooms.ReportPeerLinkedAsync(reporter, default)),
             (PvpRoomPhase.Fighting, rooms => rooms.HeartbeatAsync(reporter, default)),
             (PvpRoomPhase.Fighting, rooms => rooms.ReportDeathAsync(reporter, null, default)),
             (PvpRoomPhase.Fighting, rooms => rooms.ReportTimeoutAsync(reporter, [], default)),
@@ -77,31 +78,6 @@ public sealed class PvpBattleDomainTests
 
         Assert.Equal(before, f.Committed(room));
         Assert.Equal(wakes, f.Wake.Count);
-    }
-
-    [Theory]
-    [InlineData(PvpRoomPhase.Loading, 60)]
-    [InlineData(PvpRoomPhase.PeerLinking, 30)]
-    public async Task Loading_or_linking_past_its_deadline_cancels_the_battle_and_records_nothing(PvpRoomPhase phase, int seconds)
-    {
-        var f = new PvpRoomFixture { DuelChannel = Ranked };
-        var (room, _) = await ReachAsync(f, phase);
-        f.Clock.Now += TimeSpan.FromSeconds(seconds) - TimeSpan.FromMilliseconds(1);
-        Assert.Empty(f.Rooms.Deadlines(f.Clock.Now).DueRooms);
-        Assert.Null(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
-
-        f.Clock.Now += TimeSpan.FromMilliseconds(1);
-        Assert.Equal([room.Id], f.Rooms.Deadlines(f.Clock.Now).DueRooms);
-        var cancelled = Assert.IsType<PvpRoomOutcome.Changed>(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
-
-        Assert.Equal(PvpRoomChangeKind.DeadlinePassed, cancelled.Kind);
-        var after = f.Committed(room);
-        Assert.Equal(PvpRoomPhase.Waiting, after.Phase);
-        Assert.Null(after.Match);
-        Assert.All(after.Members, member => Assert.False(member.Member.Ready));
-        Assert.Empty(f.Rooms.PendingConclusions());
-        Assert.Empty(f.Records.Matches);
-        Assert.Empty(f.Records.Records);
     }
 
     // ---- AC-031: deaths and the end of a fight
@@ -249,6 +225,7 @@ public sealed class PvpBattleDomainTests
     public async Task Leaving_a_fight_is_a_fled_loss_and_can_end_it()
     {
         var f = new PvpRoomFixture { DuelChannel = Ranked };
+        // Spec SA-1: right after the start too; no phase before the fight cancels the battle instead.
         var (room, fighters) = await f.FightAsync();
 
         var departed = Changed(await f.Commit(rooms => rooms.DepartAsync(fighters[1], PvpDepartureReason.Disconnected, default)));
@@ -269,24 +246,6 @@ public sealed class PvpBattleDomainTests
         Assert.True(settled.Stored.Results[1].Fled);
         Assert.Equal(1, f.Records.Of(fighters[1]).Losses);
         Assert.Equal(PvpRoomPhase.AwaitResult, f.Committed(room).Phase);
-    }
-
-    [Theory]
-    [InlineData(PvpRoomPhase.Loading)]
-    [InlineData(PvpRoomPhase.PeerLinking)]
-    public async Task Leaving_before_the_fight_cancels_the_battle(PvpRoomPhase phase)
-    {
-        var f = new PvpRoomFixture { DuelChannel = Ranked };
-        var (room, fighters) = await ReachAsync(f, phase);
-
-        Changed(await f.Commit(rooms => rooms.DepartAsync(fighters[1], PvpDepartureReason.Disconnected, default)));
-
-        var after = f.Committed(room);
-        Assert.Equal(PvpRoomPhase.Waiting, after.Phase);
-        Assert.Null(after.Match);
-        Assert.Equal(1, after.MemberCount);
-        Assert.Empty(f.Rooms.PendingConclusions());
-        Assert.Empty(f.Records.Matches);
     }
 
     [Theory]
@@ -912,11 +871,7 @@ public sealed class PvpBattleDomainTests
             await f.EnterAsync(guest, waiting);
             return (waiting, [owner, guest]);
         }
-        var (room, fighters) = await f.StartAsync();
-        if (phase == PvpRoomPhase.Loading) return (room, fighters);
-        foreach (var fighter in fighters) await f.Commit(rooms => rooms.ReportLoadedAsync(fighter, default));
-        if (phase == PvpRoomPhase.PeerLinking) return (room, fighters);
-        foreach (var fighter in fighters) await f.Commit(rooms => rooms.ReportPeerLinkedAsync(fighter, default));
+        var (room, fighters) = await f.FightAsync();
         if (phase == PvpRoomPhase.Fighting) return (room, fighters);
         await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default));
         if (phase == PvpRoomPhase.AwaitRank) return (room, fighters);

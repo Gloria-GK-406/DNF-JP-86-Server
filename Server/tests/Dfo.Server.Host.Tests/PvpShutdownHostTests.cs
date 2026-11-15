@@ -61,8 +61,6 @@ public sealed class PvpShutdownHostTests
             Assert.IsType<PvpRoomOutcome.Changed>(await Write(() => rooms.EnterAsync(fighters[1], created.After.Number, null, default)));
             await Write(() => rooms.SetReadyAsync(fighters[1], true, default));
             await Write(() => rooms.SetReadyAsync(fighters[0], true, default));
-            foreach (var fighter in fighters) await Write(() => rooms.ReportLoadedAsync(fighter, default));
-            foreach (var fighter in fighters) await Write(() => rooms.ReportPeerLinkedAsync(fighter, default));
             Assert.Equal(PvpRoomPhase.Fighting, rooms.Find(room)!.Phase);
             transport.Arm(services, room, fighters);
 

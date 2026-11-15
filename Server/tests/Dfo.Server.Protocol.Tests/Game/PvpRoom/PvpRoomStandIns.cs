@@ -66,8 +66,6 @@ internal sealed class ScriptedPvpRooms : IPvpRoomDomainService
         LastPeerToken = peerToken;
         return Answer(nameof(AcceptInviteAsync));
     }
-    public ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(ReportLoadedAsync));
-    public ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(ReportPeerLinkedAsync));
     public ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(HeartbeatAsync));
 
     /// <summary>The killer the last death report named.</summary>

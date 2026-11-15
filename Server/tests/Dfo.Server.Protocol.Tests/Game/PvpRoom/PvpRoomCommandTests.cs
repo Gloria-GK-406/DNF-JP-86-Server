@@ -246,7 +246,7 @@ public sealed class PvpRoomCommandTests
         var after = before with
         {
             Seats = before.Seats.SetItem(0, PvpRooms.Taken(world.A, PvpTeam.Individual, true)),
-            Phase = PvpRoomPhase.Loading,
+            Phase = PvpRoomPhase.Fighting,
             Match = match,
         };
         world.Rooms.Next = PvpRooms.Changed(PvpRoomChangeKind.MatchStarted, before, after);
@@ -333,7 +333,7 @@ public sealed class PvpRoomCommandTests
             Mode = PvpBattleMode.Individual,
             Seats = mapped.Seats.SetItem(0, PvpRooms.Taken(a, PvpTeam.Individual)).SetItem(1, PvpRooms.Taken(b, PvpTeam.Individual)),
         };
-        var started = individual with { Phase = PvpRoomPhase.Loading };
+        var started = individual with { Phase = PvpRoomPhase.Fighting };
         var waiting = started with { Phase = PvpRoomPhase.Waiting };
         var ownerLeft = waiting with { Seats = waiting.Seats.SetItem(0, PvpSeat.OpenSeat), OwnerSeat = 1 };
         PvpRoomSnapshot?[] steps = [null, created, entered, switched, closed, mapped, individual, started, waiting, ownerLeft, null];

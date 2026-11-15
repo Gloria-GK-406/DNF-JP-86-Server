@@ -109,7 +109,7 @@ public sealed class PvpRoomCodecTests
         Assert.Equal([0x34, 0x12, 1, 2, 3, 0, 1, 0, 0, 0, 0],
             PvpRoomPayloadCodec.Encode(new PvpRoomStateMessage(0x1234, 1, 2, 3, 1)));
         Assert.Equal([9, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0], PvpRoomPayloadCodec.Encode(PvpRoomStateMessage.Destroyed(9)));
-        Assert.Equal([9, 0, 2, 2, 0, 1, 0x64, 0, 3, 0xFF, 0, 0],
+        Assert.Equal([9, 0, 2, 2, 0, 1, 0x64, 0, 3, 0xFF, 0xFF, 0xFF],
             PvpRoomPayloadCodec.Encode(new PvpSeatStateMessage(9, 2, [
                 (0, new PvpRoomSeatState(PvpRoomSeatOccupancy.Taken, 1, 100, true)),
                 (3, new PvpRoomSeatState(PvpRoomSeatOccupancy.Open, 0, 0, false))])));
@@ -124,8 +124,32 @@ public sealed class PvpRoomCodecTests
             seats: [(0, PvpRooms.Taken(PvpRooms.Session(7), PvpTeam.Individual)), (2, PvpSeat.ClosedSeat)]));
         var body = PvpRoomPayloadCodec.Encode(new PvpRoomInfoMessage([room]));
         Assert.Equal([1, 0, 4, 0, 0, 2, 0, 0, 0, 0x41, 0x42, 1, 0, 0, 0, 1], body[..16]);
-        Assert.Equal([0, 7, 0, 0xFF, 0, 0, 0xFE, 0, 0, 0xFF, 0, 0], body[16..28]);
+        Assert.Equal([0, 7, 0, 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], body[16..28]);
         Assert.Equal(2 + 2 + 1 + 4 + 2 + 1 + 1 + 2 + 1 + 24 + 1 + 4, body.Length);
+    }
+
+    /// <summary>
+    /// Spec SA-2: the client counts a seat whose user id is not 0xFFFF as somebody's (b1 VA 0x01A6B970, 0x01A0573C,
+    /// 0x01A070A0), so an open or a closed seat shows 0xFFFF in both the room list and a seat notice, whatever user id
+    /// the state carries; a 0 there showed every room 8/8.
+    /// </summary>
+    [Fact]
+    public void Open_and_closed_seats_show_user_id_0xFFFF_in_the_room_list_and_the_seat_notice()
+    {
+        var taken = new PvpRoomSeatState(PvpRoomSeatOccupancy.Taken, 0, 0x0102, false);
+        var open = new PvpRoomSeatState(PvpRoomSeatOccupancy.Open, 0, 5, false);
+        var closed = new PvpRoomSeatState(PvpRoomSeatOccupancy.Closed, 0, 6, false);
+        PvpRoomSeatState[] seats = [taken, open, closed, open, open, open, open, closed];
+
+        var list = PvpRoomPayloadCodec.Encode(new PvpRoomInfoMessage(
+            [new PvpRoomSnapshotState(4, 1, [], true, 0, 1, 0, seats, false)]));
+        Assert.Equal([0, 2, 1, 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], list[10..22]);
+        Assert.Equal([0xFE, 0xFF, 0xFF], list[31..34]);
+
+        var notice = PvpRoomPayloadCodec.Encode(new PvpSeatStateMessage(4, 0, [.. seats.Select((seat, index) => (index, seat))]));
+        Assert.Equal(4 + 8 * 4, notice.Length);
+        Assert.Equal([0, 0, 2, 1, 1, 0xFF, 0xFF, 0xFF, 2, 0xFE, 0xFF, 0xFF], notice[4..16]);
+        Assert.Equal([7, 0xFE, 0xFF, 0xFF], notice[32..36]);
     }
 
     [Fact]

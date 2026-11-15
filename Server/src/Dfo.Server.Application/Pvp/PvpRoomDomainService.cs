@@ -229,16 +229,19 @@ internal sealed class PvpRoomDomainService(
 
         var match = PvpMatchId.New();
         var startedAt = clock.GetUtcNow();
+        // Spec SA-1: the fight begins at the start (70Reference start_pvp); the time limit and every fighter's
+        // heartbeat count from here, the client reporting neither loading nor linking in an ordinary room.
         return Changed(pending, room, snapshot with
         {
             Seats = snapshot.Seats.SetItem(own, self with { Ready = true }),
-            Phase = PvpRoomPhase.Loading,
+            Phase = PvpRoomPhase.Fighting,
             Match = new PvpMatch(
                 match,
-                [.. members.Select(x => new PvpFighter(x.Seat, x.Member.CharacterId, x.Member.Session, x.Member.Team))],
+                [.. members.Select(x => new PvpFighter(x.Seat, x.Member.CharacterId, x.Member.Session, x.Member.Team)
+                    { LastHeartbeat = startedAt })],
                 rules.StartMap(snapshot.MapIndex, match.Value.GetHashCode()),
                 startedAt,
-                startedAt + rules.LoadingTimeout),
+                startedAt + battles.BattleTimeLimit(snapshot.Mode) + rules.FightOverrun),
         }, PvpRoomChangeKind.MatchStarted);
     }
 
@@ -328,40 +331,6 @@ internal sealed class PvpRoomDomainService(
         Stage(pending, room, room.Snapshot,
             reason == PvpSeatReleaseReason.Left ? PvpRoomChangeKind.Left : PvpRoomChangeKind.Kicked, (seat, reason));
 
-    public ValueTask<PvpRoomOutcome> ReportLoadedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
-    {
-        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(ReportLoadedAsync));
-        ArgumentNullException.ThrowIfNull(session);
-        return Report(Pending, session, PvpRoomPhase.Loading, PvpFighterReports.Loaded, PvpRoomChangeKind.Loaded,
-            next => next with
-            {
-                Phase = PvpRoomPhase.PeerLinking,
-                Match = next.Match! with { PhaseDeadline = Now + rules.PeerLinkTimeout },
-            });
-    }
-
-    public ValueTask<PvpRoomOutcome> ReportPeerLinkedAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
-    {
-        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(ReportPeerLinkedAsync));
-        ArgumentNullException.ThrowIfNull(session);
-        return Report(Pending, session, PvpRoomPhase.PeerLinking, PvpFighterReports.PeerLinked, PvpRoomChangeKind.PeerLinked,
-            next =>
-            {
-                var now = Now;
-                var match = next.Match!;
-                return next with
-                {
-                    Phase = PvpRoomPhase.Fighting,
-                    Match = match with
-                    {
-                        FightingSince = now,
-                        PhaseDeadline = now + battles.BattleTimeLimit(next.Mode) + rules.FightOverrun,
-                        Fighters = [.. match.Fighters.Select(fighter => fighter with { LastHeartbeat = now })],
-                    },
-                };
-            });
-    }
-
     public ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
     {
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(HeartbeatAsync));
@@ -408,8 +377,7 @@ internal sealed class PvpRoomDomainService(
         return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(ReportTimeoutAsync), (pending, room, match, _) =>
         {
             var now = Now;
-            if (match.FightingSince is not { } since
-                || now - since < battles.BattleTimeLimit(room.Snapshot.Mode) - rules.TimeoutReportLead)
+            if (now - match.StartedAt < battles.BattleTimeLimit(room.Snapshot.Mode) - rules.TimeoutReportLead)
                 return Ignore(nameof(ReportTimeoutAsync), session, PvpRoomRefusal.TooEarly);
             // The first phase draws every timed-out battle; what the client counted is kept for the record only.
             logger.LogInformation("Duel battle {Match} timed out on character {Character}'s report {Values}; drawn",
@@ -424,7 +392,7 @@ internal sealed class PvpRoomDomainService(
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AcknowledgeRankAsync));
         ArgumentNullException.ThrowIfNull(session);
         return Report(Pending, session, PvpRoomPhase.AwaitRank, PvpFighterReports.RankAcknowledged,
-            PvpRoomChangeKind.RankAcknowledged, null);
+            PvpRoomChangeKind.RankAcknowledged);
     }
 
     public ValueTask<PvpRoomOutcome> AcknowledgeResultAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
@@ -432,7 +400,7 @@ internal sealed class PvpRoomDomainService(
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(AcknowledgeResultAsync));
         ArgumentNullException.ThrowIfNull(session);
         return Report(Pending, session, PvpRoomPhase.AwaitResult, PvpFighterReports.ResultAcknowledged,
-            PvpRoomChangeKind.ResultAcknowledged, null);
+            PvpRoomChangeKind.ResultAcknowledged);
     }
 
     public ValueTask<PvpRoomOutcome> DepartAsync(
@@ -453,8 +421,7 @@ internal sealed class PvpRoomDomainService(
             var fighter = match.Fighters[index];
             next = snapshot.Phase switch
             {
-                // Spec RQ-040: a battle still loading or linking cannot go on without one of its fighters.
-                PvpRoomPhase.Loading or PvpRoomPhase.PeerLinking => Waiting(snapshot),
+                // Spec SA-1: the fight is on from the start, so leaving at any point before its end is fleeing it.
                 PvpRoomPhase.Fighting => snapshot with { Match = match with { Fighters = match.Fighters.SetItem(index, Flee(fighter)) } },
                 // The result is frozen: leaving now only stops the screens from waiting for this fighter.
                 PvpRoomPhase.AwaitRank or PvpRoomPhase.AwaitResult =>
@@ -518,8 +485,7 @@ internal sealed class PvpRoomDomainService(
         PvpRoomOutcome.Changed? Advanced(PvpRoomSnapshot next) => Stage(pending, current, next, PvpRoomChangeKind.DeadlinePassed);
         var changed = snapshot.Phase switch
         {
-            PvpRoomPhase.Loading or PvpRoomPhase.PeerLinking or PvpRoomPhase.AwaitResult =>
-                match.PhaseDeadline <= now ? Advanced(Waiting(snapshot)) : null,
+            PvpRoomPhase.AwaitResult => match.PhaseDeadline <= now ? Advanced(Waiting(snapshot)) : null,
             PvpRoomPhase.Fighting => AdvanceFight(snapshot, match, now) is { } next ? Advanced(next) : null,
             // A battle waiting for its ranking is due through its conclusion, which settlement takes.
             PvpRoomPhase.AwaitRank or PvpRoomPhase.Waiting => null,
@@ -591,17 +557,18 @@ internal sealed class PvpRoomDomainService(
         }, PvpRoomChangeKind.Settled);
     }
 
-    /// <summary>A phase report: recorded once per fighter, and <paramref name="whenAll"/> applied once every fighter left in the battle made it.</summary>
+    /// <summary>
+    /// A phase report: recorded once per fighter; what follows once every fighter left in the battle made it is
+    /// <see cref="Stage"/>'s.
+    /// </summary>
     private ValueTask<PvpRoomOutcome> Report(Changes pending, SelectedSessionIdentity session, PvpRoomPhase phase,
-        PvpFighterReports report, PvpRoomChangeKind kind, Func<PvpRoomSnapshot, PvpRoomSnapshot>? whenAll) =>
+        PvpFighterReports report, PvpRoomChangeKind kind) =>
         Battle(pending, session, phase, kind.ToString(), (_, room, match, index) =>
         {
             var fighter = match.Fighters[index];
             if (fighter.Reports.HasFlag(report)) return Ignore(kind.ToString(), session, PvpRoomRefusal.AlreadyReported);
             var fighters = match.Fighters.SetItem(index, fighter with { Reports = fighter.Reports | report });
-            var next = room.Snapshot with { Match = match with { Fighters = fighters } };
-            if (whenAll is not null && fighters.All(x => x.Departed || x.Reports.HasFlag(report))) next = whenAll(next);
-            return Stage(pending, room, next, kind);
+            return Stage(pending, room, room.Snapshot with { Match = match with { Fighters = fighters } }, kind);
         });
 
     /// <summary>
@@ -674,7 +641,7 @@ internal sealed class PvpRoomDomainService(
         if (snapshot?.Match is not { } match) return null;
         return snapshot.Phase switch
         {
-            PvpRoomPhase.Loading or PvpRoomPhase.PeerLinking or PvpRoomPhase.AwaitResult => match.PhaseDeadline,
+            PvpRoomPhase.AwaitResult => match.PhaseDeadline,
             PvpRoomPhase.Fighting => match.Fighters.Where(fighter => !fighter.Departed)
                 .Select(fighter => fighter.LastHeartbeat + rules.HeartbeatTimeout)
                 .Append(match.PhaseDeadline).Min(),

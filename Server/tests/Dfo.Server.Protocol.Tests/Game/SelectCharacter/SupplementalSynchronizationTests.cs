@@ -140,7 +140,8 @@ public sealed class SupplementalSynchronizationTests
         // number, name type 1 (no name), state 2 (in battle), owner seat, map, mode, then the seats.
         Assert.Equal([1, 2, 3, 4, 0, 5], roomBody[4..10]);
         // Each seat is a state byte and a user id, nothing more (upstream WriteRoomInfo, A21 reader 0x00D73790).
-        Assert.Equal([2, 100, 0, 0xFE, 0, 0, 0xFF, 0, 0, 0xFF, 0, 0], roomBody[10..22]);
+        // Spec SA-2: an open or a closed seat shows user id 0xFFFF, the client's "nobody".
+        Assert.Equal([2, 100, 0, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], roomBody[10..22]);
         // count, then 2+1+1+1+2+1+8*3+1+4 for the unnamed room and 4+1 more for the one-byte name.
         Assert.Equal(2 + 37 + 42, roomBody.Length);
         Assert.Equal([1, 0, 0, 0, 0], roomBody[34..39]);

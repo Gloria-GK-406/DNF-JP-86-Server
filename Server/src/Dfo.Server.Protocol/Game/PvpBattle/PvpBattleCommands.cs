@@ -70,6 +70,7 @@ internal sealed record PvpBattleStep(PvpRoomOutcome Outcome, PvpSettlementOutcom
 /// <remarks>
 /// No report has a command reply. A report the room owner ignores (a phase it does not belong to, a late or second
 /// one) and a malformed one are logged and change nothing; a malformed one never reaches the room owner.
+/// <c>COMPLETE_LOAD_PVP</c> and <c>CONNECT_P2P_PVP</c> never reach it at all (spec SA-1).
 /// </remarks>
 internal sealed class GamePvpBattleCommandHandler(
     ISelectedSessionDomainService sessions,
@@ -98,20 +99,27 @@ internal sealed class GamePvpBattleCommandHandler(
         ICommandHandler<GamePvpRankResponseCommand, bool>,
         ICommandHandler<GameEndPvpResultCommand, bool>
 {
-    public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameCompleteLoadPvpCommand command, CancellationToken ct) =>
-        RunAsync(execution, command.Dispatch, command.Input.Metadata, "COMPLETE_LOAD_PVP",
-            command.Input.Length == 0 ? null : $"body is {command.Input.Length} bytes, not empty",
-            (actor, token) => rooms.ReportLoadedAsync(actor, token), ct);
+    /// <summary>
+    /// Only logged: the fight is on from the start (spec SA-1, 70Reference <c>start_pvp</c>), and an A21 client in an
+    /// ordinary room was not seen sending it.
+    /// </summary>
+    public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameCompleteLoadPvpCommand command, CancellationToken ct)
+    {
+        var connection = command.Dispatch.Connection.ConnectionId;
+        logger.LogInformation("COMPLETE_LOAD_PVP connection={Connection} character={Character} length={Length}: logged only",
+            connection, sessions.FindByConnection(connection)?.CharacterId.Value, command.Input.Length);
+        return ValueTask.FromResult(false);
+    }
 
+    /// <summary>Only logged, as <c>COMPLETE_LOAD_PVP</c> is.</summary>
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameConnectP2pPvpCommand command, CancellationToken ct)
     {
         var input = command.Input;
-        if (input.WellFormed)
-            logger.LogDebug("CONNECT_P2P_PVP connection={Connection} peers={Peers}", command.Dispatch.Connection.ConnectionId,
-                string.Join(",", input.Peers.Select(peer => $"{peer.Seat}:{peer.Status}")));
-        return RunAsync(execution, command.Dispatch, input.Metadata, "CONNECT_P2P_PVP",
-            input.WellFormed ? null : $"malformed {input.Length}-byte body",
-            (actor, token) => rooms.ReportPeerLinkedAsync(actor, token), ct);
+        var connection = command.Dispatch.Connection.ConnectionId;
+        logger.LogInformation("CONNECT_P2P_PVP connection={Connection} character={Character} peers={Peers}: logged only",
+            connection, sessions.FindByConnection(connection)?.CharacterId.Value,
+            input.WellFormed ? string.Join(",", input.Peers.Select(peer => $"{peer.Seat}:{peer.Status}")) : $"malformed {input.Length}-byte body");
+        return ValueTask.FromResult(false);
     }
 
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GamePvpHeartbeatCommand command, CancellationToken ct) =>

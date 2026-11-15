@@ -74,3 +74,9 @@ BodyLength = 未知（字段集合已知不完整）
 不补发（Spec RQ-035）。Fighting 中离场也延后，依据同上（上游 `deferCombatDeparture` 按房间处于开战状态判定）。
 
 实机前不标 ClientVerified。
+
+## 2026-11-15 修订（Spec SA-1、SA-2，CurrentImplementation）
+
+- 座位 uid：空与关闭座位写 `0xFFFF`（客户端的"无人"），占用座位写会话 uid，规则同 [NOTI-0x0029](NOTI-0x0029.md) 本日修订。
+  大厅增量、结果界面欠帧补发的 8 座位帧、房间销毁前的空座帧都经同一编码器，均按此写。
+- 对局阶段：Loading、PeerLinking 已删除，开局即 Fighting。上一节"对局阶段（Loading 之后到回等待之前）"现为"开局之后到回等待之前"。

@@ -105,7 +105,7 @@ public sealed class PvpRoomDomainServiceTests
         await f.ReadyAsync(guest);
         await f.ReadyAsync(other);
         var started = f.Committed(second);
-        Assert.Equal(PvpRoomPhase.Loading, started.Phase);
+        Assert.Equal(PvpRoomPhase.Fighting, started.Phase);
         var waiting = f.Join(13);
         await AssertUnchanged(f, started, waiting, PvpRoomRefusal.NotWaiting, rooms => rooms.EnterAsync(waiting, second.Number, null, default));
     }
@@ -327,7 +327,7 @@ public sealed class PvpRoomDomainServiceTests
     }
 
     [Fact]
-    public async Task Starting_freezes_the_fighters_and_enters_loading_with_its_deadline()
+    public async Task Starting_freezes_the_fighters_and_begins_the_fight_with_its_deadlines()
     {
         var f = new PvpRoomFixture();
         var (owner, guest) = (f.Join(1), f.Join(2));
@@ -341,11 +341,13 @@ public sealed class PvpRoomDomainServiceTests
 
         var after = started.After!;
         Assert.Equal(PvpRoomChangeKind.MatchStarted, started.Kind);
-        Assert.Equal(PvpRoomPhase.Loading, after.Phase);
+        // Spec SA-1: fighting from the start; the time limit and the heartbeats count from it.
+        Assert.Equal(PvpRoomPhase.Fighting, after.Phase);
         Assert.Equal(before.Version + 1, after.Version);
         var match = Assert.IsType<PvpMatch>(after.Match);
         Assert.Equal(f.Clock.Now, match.StartedAt);
-        Assert.Equal(f.Clock.Now + TimeSpan.FromSeconds(60), match.PhaseDeadline);
+        Assert.Equal(f.Clock.Now + PvpRoomFixture.BattleTime + TimeSpan.FromSeconds(30), match.PhaseDeadline);
+        Assert.All(match.Fighters, fighter => Assert.Equal(f.Clock.Now, fighter.LastHeartbeat));
         Assert.InRange(match.Map, 1, 5);
         Assert.Null(match.ModeState);
         Assert.Equal([(0, owner), (1, guest)], match.Fighters.Select(x => (x.Seat, x.Session)));

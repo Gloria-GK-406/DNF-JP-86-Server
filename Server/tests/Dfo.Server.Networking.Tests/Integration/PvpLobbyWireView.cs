@@ -10,7 +10,9 @@ namespace Dfo.Server.Networking.Tests.Integration;
 /// </summary>
 /// <remarks>
 /// Spec RQ-003: at any moment this view, accumulated from increments, must equal the snapshot a session entering the
-/// lobby now is given. Layouts are the slice codecs' (protocol pages NOTI 0x0029/0x002A/0x002B).
+/// lobby now is given. Layouts are the slice codecs' (protocol pages NOTI 0x0029/0x002A/0x002B). A seat counts as
+/// nobody's by its user id 0xFFFF, as the client's room object does (spec SA-2); an open or closed seat carrying any
+/// other user id fails the view.
 /// </remarks>
 internal sealed class PvpLobbyWireView
 {
@@ -35,7 +37,10 @@ internal sealed class PvpLobbyWireView
 
     /// <summary>The seat holding <paramref name="user"/> in room <paramref name="number"/>.</summary>
     public int SeatOf(ushort number, ushort user) =>
-        Array.FindIndex(rooms[number].Seats, seat => seat.User == user && seat.State is <= 2);
+        Array.FindIndex(rooms[number].Seats, seat => seat.User == user && seat.User != Nobody);
+
+    /// <summary>The user id the client reads as an empty seat.</summary>
+    private const ushort Nobody = 0xFFFF;
 
     public byte StateOf(ushort number) => rooms[number].State;
 
@@ -65,7 +70,7 @@ internal sealed class PvpLobbyWireView
             for (var seat = 0; seat < 8; seat++)
             {
                 var state = body[offset++];
-                room.Seats[seat] = (state, U16(body, ref offset));
+                room.Seats[seat] = Seat(state, U16(body, ref offset));
             }
             room.Password = body[offset++];
             room.Matching = BinaryPrimitives.ReadInt32LittleEndian(body[offset..]);
@@ -102,8 +107,15 @@ internal sealed class PvpLobbyWireView
         for (var index = 0; index < count; index++)
         {
             var offset = 4 + index * 4;
-            room.Seats[body[offset]] = (body[offset + 1], BinaryPrimitives.ReadUInt16LittleEndian(body[(offset + 2)..]));
+            room.Seats[body[offset]] = Seat(body[offset + 1], BinaryPrimitives.ReadUInt16LittleEndian(body[(offset + 2)..]));
         }
+    }
+
+    /// <summary>A seat as read: open (0xFF) and closed (0xFE) seats must show nobody, a taken one somebody.</summary>
+    private static (byte State, ushort User) Seat(byte state, ushort user)
+    {
+        Assert.Equal(state is 0xFF or 0xFE, user == Nobody);
+        return (state, user);
     }
 
     private static ushort U16(ReadOnlySpan<byte> body, ref int offset)

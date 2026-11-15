@@ -322,7 +322,7 @@ public enum ClientMessageType
     GameSetPvpTeamMode = 0x0001_0036,
     GameSetPvpMapIndex = 0x0001_003B,
 
-    // A duel battle's reports, from loading to closing the result screen. See Game/PvpBattle.
+    // A duel battle's reports, from the fight to closing the result screen. See Game/PvpBattle.
     GameCompleteLoadPvp = 0x0001_012A,
     GameConnectP2pPvp = 0x0001_012B,
     GamePvpHeartbeat = 0x0001_006E,

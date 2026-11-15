@@ -15,8 +15,6 @@ internal sealed class PvpRoomRuleService(IPvpMapDefinitionSource maps) : IPvpRoo
 
     public bool AcceptsPassword(System.Collections.Immutable.ImmutableArray<byte> password) =>
         PvpRoomRules.AcceptsPassword(password.IsDefault ? 0 : password.Length);
-    public TimeSpan LoadingTimeout => PvpRoomRules.LoadingTimeout;
-    public TimeSpan PeerLinkTimeout => PvpRoomRules.PeerLinkTimeout;
     public TimeSpan FightOverrun => PvpRoomRules.FightOverrun;
     public TimeSpan HeartbeatTimeout => PvpRoomRules.HeartbeatTimeout;
     public TimeSpan RankTimeout => PvpRoomRules.RankTimeout;

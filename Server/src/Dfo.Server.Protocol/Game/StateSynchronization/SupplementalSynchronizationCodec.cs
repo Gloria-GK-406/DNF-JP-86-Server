@@ -268,9 +268,16 @@ internal static class SupplementalSynchronizationCodec
         _ => throw new InvalidDataException($"PvP seat occupancy {seat.Occupancy} has no wire state."),
     };
 
-    /// <summary>The user id a seat shows: its session's for a taken seat, 0 otherwise.</summary>
+    /// <summary>The user id an unoccupied seat (open or closed) shows: the client's room object reads 0xFFFF as nobody.</summary>
+    /// <remarks>
+    /// The client initialises empty seats with 0xFFFF and counts the seated by it (b1 VA 0x01A6B970, 0x01A0573C,
+    /// 0x01A070A0; Static, High); a 0 there is somebody, and a room shows 8/8 (spec SA-2, observed 2026-11-15).
+    /// </remarks>
+    internal const ushort PvpVacantSeatUserId = 0xFFFF;
+
+    /// <summary>The user id a seat shows: its session's for a taken seat, <see cref="PvpVacantSeatUserId"/> otherwise.</summary>
     internal static ushort PvpSeatUserId(PvpRoomSeatState seat) =>
-        seat.Occupancy == PvpRoomSeatOccupancy.Taken ? seat.UserId : (ushort)0;
+        seat.Occupancy == PvpRoomSeatOccupancy.Taken ? seat.UserId : PvpVacantSeatUserId;
 
     private static void WriteDstr(BinaryWriter writer, byte[]? value)
     {

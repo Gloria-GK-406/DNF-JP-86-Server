@@ -155,8 +155,8 @@ internal sealed class PvpRoomFixture
             }
         });
 
-    /// <summary>A battle that has started on <paramref name="mode"/> and stands in Loading.</summary>
-    public async Task<(PvpRoomSnapshot Room, SelectedSessionIdentity[] Fighters)> StartAsync(
+    /// <summary>A battle that has started on <paramref name="mode"/>: it is fighting from the start (spec SA-1).</summary>
+    public async Task<(PvpRoomSnapshot Room, SelectedSessionIdentity[] Fighters)> FightAsync(
         int fighters = 2, PvpBattleMode mode = PvpBattleMode.Individual, int first = 1)
     {
         var sessions = Enumerable.Range(first, fighters).Select(Join).ToArray();
@@ -167,20 +167,8 @@ internal sealed class PvpRoomFixture
             await ReadyAsync(guest);
         }
         var started = Assert.IsType<PvpRoomOutcome.Changed>(await ReadyAsync(sessions[0]));
-        Assert.Equal(PvpRoomPhase.Loading, started.After!.Phase);
+        Assert.Equal(PvpRoomPhase.Fighting, started.After!.Phase);
         return (started.After, sessions);
-    }
-
-    /// <summary>A started battle taken through loading and linking into the fight.</summary>
-    public async Task<(PvpRoomSnapshot Room, SelectedSessionIdentity[] Fighters)> FightAsync(
-        int fighters = 2, PvpBattleMode mode = PvpBattleMode.Individual, int first = 1)
-    {
-        var (room, sessions) = await StartAsync(fighters, mode, first);
-        foreach (var session in sessions) await Commit(rooms => rooms.ReportLoadedAsync(session, default));
-        foreach (var session in sessions) await Commit(rooms => rooms.ReportPeerLinkedAsync(session, default));
-        room = Committed(room);
-        Assert.Equal(PvpRoomPhase.Fighting, room.Phase);
-        return (room, sessions);
     }
 
     public Task<PvpSettlementOutcome> SettleAsync(PvpMatchId match) => Run(() => Settlement.SettleAsync(match, default));

@@ -37,9 +37,23 @@ public sealed class PvpBattleCommandTests
         Assert.Empty(world.Timeline.Frames);
     });
 
+    /// <summary>Spec SA-1: the fight is on from the start; a loading or linking report is only logged.</summary>
     [Theory]
-    [InlineData("load", nameof(IPvpRoomDomainService.ReportLoadedAsync))]
-    [InlineData("link", nameof(IPvpRoomDomainService.ReportPeerLinkedAsync))]
+    [InlineData("load")]
+    [InlineData("link")]
+    public Task A_loading_or_linking_report_never_reaches_the_room(string report) => Run(async world =>
+    {
+        world.Rooms.Room = PvpBattleWorld.RoomOf(PvpRoomPhase.Fighting, world.A, world.B);
+        world.Rooms.Next = PvpRooms.Changed(PvpRoomChangeKind.Heartbeat, world.Rooms.Room, world.Rooms.Room);
+
+        Assert.False(await SendAsync(world, world.A, report, WellFormed(report, world.A)));
+
+        Assert.Empty(world.Rooms.Calls);
+        Assert.Empty(world.Timeline.Frames);
+        Assert.Empty(world.Settlement.Calls);
+    });
+
+    [Theory]
     [InlineData("heartbeat", nameof(IPvpRoomDomainService.HeartbeatAsync))]
     [InlineData("death", nameof(IPvpRoomDomainService.ReportDeathAsync))]
     [InlineData("timeout", nameof(IPvpRoomDomainService.ReportTimeoutAsync))]

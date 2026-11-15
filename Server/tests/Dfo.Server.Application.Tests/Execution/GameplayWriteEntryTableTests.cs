@@ -497,8 +497,6 @@ public sealed class GameplayWriteEntryTableTests
         ["PvpRoomDomainService.IsSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
         ["PvpRoomDomainService.PendingConclusions()"] = ReadNote(ConditionalEnlist),
         ["PvpRoomDomainService.ReportDeathAsync(SelectedSessionIdentity, CharacterId?, CancellationToken)"] = W,
-        ["PvpRoomDomainService.ReportLoadedAsync(SelectedSessionIdentity, CancellationToken)"] = W,
-        ["PvpRoomDomainService.ReportPeerLinkedAsync(SelectedSessionIdentity, CancellationToken)"] = W,
         ["PvpRoomDomainService.ReportTimeoutAsync(SelectedSessionIdentity, ImmutableArray<Byte>, CancellationToken)"] = W,
         ["PvpRoomDomainService.RoomsOn(Int32)"] = R,
         ["PvpRoomDomainService.SetMapAsync(SelectedSessionIdentity, Int32, CancellationToken)"] = W,

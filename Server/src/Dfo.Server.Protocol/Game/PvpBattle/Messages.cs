@@ -5,14 +5,14 @@ using Dfo.Server.Data.Networking;
 
 namespace Dfo.Server.Protocol.Game.PvpBattle;
 
-/// <summary>CMD <c>0x012A</c> <c>COMPLETE_LOAD_PVP</c>: empty; the fighter finished loading the battle.</summary>
+/// <summary>CMD <c>0x012A</c> <c>COMPLETE_LOAD_PVP</c>: empty; the fighter finished loading the battle. Only logged (spec SA-1).</summary>
 /// <param name="Length">The body's length; anything but 0 is not a report.</param>
 public sealed record CompleteLoadPvpRequest(GameMessageMetadata Metadata, int Length) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameCompleteLoadPvp;
 }
 
-/// <summary>CMD <c>0x012B</c> <c>CONNECT_P2P_PVP</c>: <c>u8 n</c> then <c>n × (u8 seat, u8 status)</c>.</summary>
+/// <summary>CMD <c>0x012B</c> <c>CONNECT_P2P_PVP</c>: <c>u8 n</c> then <c>n × (u8 seat, u8 status)</c>. Only logged (spec SA-1).</summary>
 /// <param name="Peers">The seats the client reports and each one's link status; only logged.</param>
 /// <param name="WellFormed">False for a body that is not exactly <c>1 + 2n</c> bytes with n at most 8 and every seat in range.</param>
 public sealed record ConnectP2pPvpRequest(

@@ -10,10 +10,8 @@ namespace Dfo.Server.Abstractions.Pvp;
 public enum PvpFighterReports : byte
 {
     None = 0,
-    Loaded = 1,
-    PeerLinked = 2,
-    RankAcknowledged = 4,
-    ResultAcknowledged = 8,
+    RankAcknowledged = 1,
+    ResultAcknowledged = 2,
 }
 
 /// <summary>Why a member left its room's battle.</summary>

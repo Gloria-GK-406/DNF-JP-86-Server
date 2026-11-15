@@ -47,11 +47,13 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 走同一投影。对局期间离场者的座位移除按接收者延后（`PvpResultScreenDeferrals`，见 [NOTI-0x002B](game/server-to-client/NOTI-0x002B.md)）。
 选角时每个频道在 HOTKEY_OPTION 之后补发本人 `0x0030`。上报均无 CMD 应答；畸形或不在阶段内的上报只记日志。
 布局只有上游转录与静态走图，无 WireCaptured、无 ClientVerified。
+2026-11-15 修订（Spec SA-1）：普通房间客户端不发 `0x012A`/`0x012B`（实测），开局即 Fighting，两条只记日志、不进领域；
+（SA-2）`0x0029`/`0x002B` 空与关闭座位 uid 写 `0xFFFF`。
 
 | 族 | Type | 实现 | 边界 | 文档 |
 |---|---|---|---|---|
-| `0x01` | `0x012A` `0x006E` `0x0039` | 空体，非空拒收 | 命令与投影测试；待实机 | [0x0039](game/client-to-server/0x0039.md) |
-| `0x01` | `0x012B` | `u8 n + n×2` | 解码测试；待实机 | [0x012B](game/client-to-server/0x012B.md) |
+| `0x01` | `0x006E` `0x0039` | 空体，非空拒收 | 命令与投影测试；待实机 | [0x0039](game/client-to-server/0x0039.md) |
+| `0x01` | `0x012A` `0x012B` | 仍解码，只记日志（SA-1） | 命令测试；实测普通房间不发 | [0x012A](game/client-to-server/0x012A.md)、[0x012B](game/client-to-server/0x012B.md) |
 | `0x01` | `0x0037` | 只收 5 字节，死者须为发送者 | 解码与命令测试；三方布局冲突待抓包 | [0x0037](game/client-to-server/0x0037.md) |
 | `0x01` | `0x0038` | 只收 32 字节，一期判平 | 解码测试；待实机 | [0x0038](game/client-to-server/0x0038.md) |
 | `0x01` | `0x003A` | 长度不校验，作确认 | 命令测试；待实机 | [0x003A](game/client-to-server/0x003A.md) |
