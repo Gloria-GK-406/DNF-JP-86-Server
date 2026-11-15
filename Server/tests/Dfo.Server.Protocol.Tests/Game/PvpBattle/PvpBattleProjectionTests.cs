@@ -255,7 +255,7 @@ public sealed class PvpBattleProjectionTests
     [Theory]
     [InlineData(PvpRoomPhase.AwaitResult, PvpRoomChangeKind.DeadlinePassed)]
     [InlineData(PvpRoomPhase.AwaitRank, PvpRoomChangeKind.SettlementAbandoned)]
-    public Task A_battle_cancelled_or_dropped_returns_the_room_and_the_lobby_to_waiting(PvpRoomPhase phase, PvpRoomChangeKind kind) => Run(async world =>
+    public Task A_result_deadline_or_abandoned_settlement_returns_the_room_and_the_lobby_to_waiting(PvpRoomPhase phase, PvpRoomChangeKind kind) => Run(async world =>
     {
         var battle = PvpBattleWorld.RoomOf(phase, world.A, world.B);
         world.Rooms.NextAdvance = PvpRooms.Changed(kind, battle, PvpBattleWorld.RoomOf(PvpRoomPhase.Waiting, world.A, world.B));
