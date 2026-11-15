@@ -175,5 +175,5 @@ state: ready
 
 ## Amendments
 
-- SA-1（2026-11-15 实测）：普通房间里客户端开局后不向服务端报告加载完成（`0x012A`）与 P2P 连通（`0x012B`）——服务端日志从开局到 60 秒加载截止都没有收到这两条，房间被取消，随后的 KO 上报（`0x0037`）以 WrongPhase 被拒，导致"个人战 KO 后不结算"。70 服务端 `start_pvp` 开局即把玩家置为对战状态并接受死亡与超时上报（70Reference，`PvP_Room::start_pvp` 0x085d8c3a、`die_charac` 0x085d9386）。修订：开局即进入 Fighting；`0x012A`、`0x012B` 收到只记日志，不推进阶段；删除 Loading、PeerLinking 两个阶段及其截止时间。随之 RQ-030 阶段表、RQ-040 中"Loading / PeerLinking 中离场整局取消"不再适用：开局后离场一律按 Fighting 处理（判负、逃离），与 70 `GiveOuterPenalty` 一致。已定规则 6 的第三句与规则 7 的加载/连通截止随之失效，待用户确认。
+- SA-1（2026-11-15 实测）：普通房间里客户端开局后不向服务端报告加载完成（`0x012A`）与 P2P 连通（`0x012B`）——服务端日志从开局到 60 秒加载截止都没有收到这两条，房间被取消，随后的 KO 上报（`0x0037`）以 WrongPhase 被拒，导致"个人战 KO 后不结算"。70 服务端 `start_pvp` 开局即把玩家置为对战状态并接受死亡与超时上报（70Reference，`PvP_Room::start_pvp` 0x085d8c3a、`die_charac` 0x085d9386）。修订：开局即进入 Fighting；`0x012A`、`0x012B` 收到只记日志，不推进阶段；删除 Loading、PeerLinking 两个阶段及其截止时间。随之 RQ-030 阶段表、RQ-040 中"Loading / PeerLinking 中离场整局取消"不再适用：开局后离场一律按 Fighting 处理（判负、逃离），与 70 `GiveOuterPenalty` 一致。已定规则 6 的第三句与规则 7 的加载/连通截止随之失效；用户已确认照 70 执行、不设宽限期（TaskContract revision 3）。
 - SA-2（2026-11-15 实测）：房间人数固定显示 8/8。客户端房间对象把座位 uid `0xFFFF` 当作"无人"（初始化空座 uid=0xFFFF；座位设置函数与空座计数按 0xFFFF 判断，b1 VA 0x01A6B970、0x01A0573C、0x01A070A0，Static/High），服务端对空座与关闭座位写 uid 0 被当作 8 个占用者。修订：`0x0029`、`0x002B` 中非占用座位的 uid 写 `0xFFFF`。
