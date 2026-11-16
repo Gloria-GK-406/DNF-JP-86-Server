@@ -37,6 +37,7 @@ internal static class DungeonDropsRegistration
         // What an occasion drops: the one reader of the three drop tables and the only caller of
         // DropRules. The compensation seam below stays outside it, because what a character is
         // owed is state that crosses runs.
+        services.TryAddSingleton<IDropMaterializationRuleService, DropMaterializationRuleService>();
         services.TryAddSingleton<IDropRuleService, DropRuleService>();
         services.TryAddSingleton<IIndependentDropRuleService, IndependentDropRuleService>();
         services.TryAddSingleton(new IndependentDropOptions

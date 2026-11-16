@@ -26,8 +26,9 @@ internal sealed partial class DungeonRunStore
         private readonly IDungeonRoomMechanismRuleService mechanismRules;
         private readonly ISealedTreasureRuleService sealedTreasureRules;
         private readonly IDungeonDeadlineWake deadlines;
+        private readonly IDropMaterializationRuleService materialization;
 
-        public EntryService(DungeonRunStore store, ILogger<EntryService> logger, IDomainTransactionAccessor transactions, IPartyService parties, IDungeonParticipationDomainService participation, IWeaknessDomainService weakness, ICreatureRuntimeDomainService creatures, TimeProvider clock, IDungeonRoomMechanismRuleService mechanismRules, ISealedTreasureRuleService sealedTreasureRules, IDungeonDeadlineWake deadlines)
+        public EntryService(DungeonRunStore store, ILogger<EntryService> logger, IDomainTransactionAccessor transactions, IPartyService parties, IDungeonParticipationDomainService participation, IWeaknessDomainService weakness, ICreatureRuntimeDomainService creatures, TimeProvider clock, IDungeonRoomMechanismRuleService mechanismRules, ISealedTreasureRuleService sealedTreasureRules, IDungeonDeadlineWake deadlines, IDropMaterializationRuleService materialization)
         {
             this.store = store;
             this.logger = logger;
@@ -40,6 +41,7 @@ internal sealed partial class DungeonRunStore
             this.mechanismRules = mechanismRules;
             this.sealedTreasureRules = sealedTreasureRules;
             this.deadlines = deadlines;
+            this.materialization = materialization;
         }
 
         public DungeonRunState? Find(CharacterId characterId) => this.store.Find(characterId);

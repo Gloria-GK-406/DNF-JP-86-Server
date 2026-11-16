@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.DropMaterialization;
 using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -128,7 +129,7 @@ namespace Dfo.Server.Testing
                 [typeof(IDungeonRunQueryDomainService)] = store,
                 [typeof(IDungeonRunEntryDomainService)] = new DungeonRunStore.EntryService(store,
                     NullLogger<DungeonRunStore.EntryService>.Instance, transactions, parties, participation, weakness, creatures,
-                    clock, mechanismRules, sealedTreasureRules, deadlines),
+                    clock, mechanismRules, sealedTreasureRules, deadlines, new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits)),
                 [typeof(IDungeonRunCombatDomainService)] = new DungeonRunStore.CombatService(store,
                     NullLogger<DungeonRunStore.CombatService>.Instance, transactions, clock, mechanismRules, sealedTreasureRules,
                     deadlines, giantDragons, new LostLandFeverRuleService()),

@@ -73,7 +73,7 @@ internal sealed partial class DungeonRunStore
                 frozen.Select(x => x.CharacterId).ToArray(), new(DungeonParticipationMode.Ordinary, runId.Value)))
                 throw new InvalidOperationException("A dungeon participant is already occupied.");
             var aggregate = new DungeonRunAggregate(
-                runId, partyKey, this.parties, frozen, layout, difficulty, startedAt, initialCell);
+                runId, partyKey, this.parties, frozen, layout, difficulty, startedAt, initialCell, this.materialization.Rule);
 
             lock (this.store.gate)
             {

@@ -26,6 +26,7 @@ internal sealed partial class DungeonRunStore
         private readonly ImmutableDictionary<CharacterId, ParticipantProgress> progressByCharacter;
         private readonly List<DungeonKillRecord> kills = [];
         private int nextGroundItemNumber = 1;
+        private readonly DropMaterializationRule materialization;
 
         public DungeonRunAggregate(
             DungeonRunId runId,
@@ -35,8 +36,9 @@ internal sealed partial class DungeonRunStore
             DungeonLayout layout,
             DungeonDifficulty difficulty,
             DateTimeOffset startedAt,
-            DungeonCellSeed initialCell)
+            DungeonCellSeed initialCell, DropMaterializationRule materialization)
         {
+            this.materialization = materialization;
             this.RunId = runId;
             this.PartyKey = partyKey;
             this.parties = parties;
@@ -61,12 +63,12 @@ internal sealed partial class DungeonRunStore
         // A21 resolves ground objects across retained rooms by number alone.
         // Keep the wire identity unique for this run, even after pickup or a room revisit.
         public DungeonCellAggregate CreateCell(DungeonCellSeed seed) =>
-            new(seed, this.AllocateGroundItemNumbers);
+            new(seed, this.AllocateGroundItemNumbers, this.materialization);
 
-        // Numbers are u16 on the wire. An exhausted run stops materializing rather than failing a kill.
+        // An exhausted run stops materializing rather than failing a kill.
         private (int First, int Granted) AllocateGroundItemNumbers(int count)
         {
-            var granted = Math.Min(count, ushort.MaxValue - this.nextGroundItemNumber + 1);
+            var granted = this.materialization.AdmitGroundItemNumbers(this.nextGroundItemNumber, count);
             var first = this.nextGroundItemNumber;
             this.nextGroundItemNumber += granted;
             return (first, granted);
@@ -264,9 +266,11 @@ internal sealed partial class DungeonRunStore
         private readonly Dictionary<int, DungeonCellHellGroupState> hellGroups;
         private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
         private readonly Func<int, (int First, int Granted)> allocateGroundItemNumbers;
+        private readonly DropMaterializationRule materialization;
 
-        public DungeonCellAggregate(DungeonCellSeed seed, Func<int, (int First, int Granted)> allocateGroundItemNumbers)
+        public DungeonCellAggregate(DungeonCellSeed seed, Func<int, (int First, int Granted)> allocateGroundItemNumbers, DropMaterializationRule materialization)
         {
+            this.materialization = materialization;
             this.MechanismBlocksClear = seed.MechanismBlocksClear;
             this.Mechanisms = seed.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray();
             this.objects = seed.Objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray();
@@ -354,8 +358,10 @@ internal sealed partial class DungeonRunStore
 
         public IReadOnlyList<DungeonGroundItem>? CommitActorDeath(
             ushort sequence,
-            Func<RolledDrop, bool> mayMaterialize, IReadOnlyList<RolledDrop>? resolvedLoot, IReadOnlyList<RolledDrop> bonus)
+            Func<RolledDrop, bool> mayMaterialize, IReadOnlyList<RolledDrop>? resolvedLoot, IReadOnlyList<RolledDrop> bonus,
+            out DropMaterializationCount capacity)
         {
+            capacity = default;
             if (!this.actors.TryGetValue(sequence, out var actor) || actor.IsDead)
                 return null;
 
@@ -365,12 +371,11 @@ internal sealed partial class DungeonRunStore
                     ? group : null;
             var rewards = (resolvedLoot ?? actor.PendingLoot).Concat(completedGroup is not null && actor.EligibleForHellGroupReward
                 ? completedGroup.PendingLoot : []).Concat(bonus);
-            var added = this.AppendGroundItems(rewards
+            var selected = this.materialization.SelectDeath(rewards
                 .Where(rolled => rolled.Delivery == RolledDropDelivery.Ground)
-                .Where(mayMaterialize)
-                // 0x0026 counts its records in one byte; the excess was logged when it was frozen.
-                .Take(byte.MaxValue)
-                .Select(rolled =>
+                .Where(mayMaterialize));
+            capacity = selected.Count;
+            var added = this.AppendGroundItems(selected.Items.Select(rolled =>
                     new DungeonGroundItemDraft(
                         rolled.ItemId,
                         rolled.Count,

@@ -25,11 +25,8 @@ internal sealed partial class MonsterDropDomainService(
     IIndependentDropRuleService independentDrops,
     IPremiumServiceDomainService premiums, ICharacterDomainService characters,
     IDimensionDungeonRuleService dimensions,
-    IDropDrawMultiplierDomainService drawMultipliers) : IMonsterDropDomainService
+    IDropDrawMultiplierDomainService drawMultipliers, IDropMaterializationRuleService materialization) : IMonsterDropDomainService
 {
-    /// <summary>What one 0x0026 can carry; its record count is a single byte.</summary>
-    private const int MaxDropsPerFrame = byte.MaxValue;
-
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
     {
@@ -83,10 +80,11 @@ internal sealed partial class MonsterDropDomainService(
         var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
         var drops = await IndependentAsync(new(monsterId, context), growthBonusPercent, multipliers, cancellationToken)
             .ConfigureAwait(false);
-        if (drops.Count <= MaxDropsPerFrame) return drops;
-        logger.LogWarning("Independent drops of monster {MonsterId} truncated: generated={Generated} kept={Kept}",
-            monsterId, drops.Count, MaxDropsPerFrame);
-        return drops.Take(MaxDropsPerFrame).ToArray();
+        var selected = materialization.Rule.SelectIndependent(drops);
+        if (selected.Count.Discarded > 0)
+            logger.LogWarning("Independent drops of monster {MonsterId} truncated: generated={Generated} kept={Kept}",
+                monsterId, selected.Count.Generated, selected.Count.Kept);
+        return selected.Items;
     }
 
     /// <remarks>
