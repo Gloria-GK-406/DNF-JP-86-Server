@@ -15,7 +15,7 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
     IItemArrivalRuleService arrivals, IItemLifecycleDomainService lifecycle,
     ICharacterBusinessInventoryDomainService inventories, ICharacterTable owners,
     IDomainTransactionAccessor transactions, IMailboxDomainService mailbox,
-    IItemDeliveryRuleService rules) : IItemDeliveryDomainService
+    IItemDeliveryRuleService rules, IEquipmentQualitySeedSource seeds) : IItemDeliveryDomainService
 {
     public async ValueTask<long> PendingQuantityAsync(CharacterId character, int itemId, CancellationToken ct) =>
         (await mailbox.InboxAsync(character, ct).ConfigureAwait(false))
@@ -84,7 +84,7 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
                     var record = grant.Instance ?? await lifecycle.CreateAsync(template with
                     {
                         Count = amount, ItemUid = null,
-                        InstanceValue = template.IsPile ? 0 : template.InstanceValue != 0 ? template.InstanceValue : EquipmentQualitySeeds.NewRandom(),
+                        InstanceValue = template.IsPile ? 0 : template.InstanceValue != 0 ? template.InstanceValue : seeds.Next(),
                     }, ct).ConfigureAwait(false);
                     remaining -= amount;
                     ItemRecord? pending = record;
