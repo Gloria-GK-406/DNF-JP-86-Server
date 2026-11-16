@@ -15,11 +15,8 @@ internal sealed class DungeonCellFactory(
     IQuestEnemyDropDomainService questLoot,
     IQuestHelperGroundBonusDomainService questBonus,
     IHellRewardDomainService hellRewards, ILostLandDropRuleService lostLandDrops,
-    IDropDrawMultiplierDomainService drawMultipliers, ILogger<DungeonCellFactory> logger) : IDungeonCellFactory
+    IDropDrawMultiplierDomainService drawMultipliers, IDropMaterializationRuleService materialization, ILogger<DungeonCellFactory> logger) : IDungeonCellFactory
 {
-    /// <summary>What 0x001D and 0x0026 can carry; both count their drop records in one byte.</summary>
-    private const int MaxDropsPerFrame = byte.MaxValue;
-
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
         CancellationToken cancellationToken)
@@ -46,11 +43,12 @@ internal sealed class DungeonCellFactory(
                     { Code = guardian.Towers[actor.Actor.Code].ResourceId, Level = checked((byte)guardian.Towers[actor.Actor.Code].Level), IsHostile = false }, actor.IsAiCharacter,
                     false, [], IsMonster: false)).ToArray(), []) { MechanismBlocksClear = true };
 
-        if (contents.GroundDrops.Count > MaxDropsPerFrame)
+        var initial = materialization.Rule.SelectInitial(contents.GroundDrops);
+        if (initial.Count.Discarded > 0)
             logger.LogWarning("Object drops of map {MapId} truncated: generated={Generated} kept={Kept}",
-                context.MapId, contents.GroundDrops.Count, MaxDropsPerFrame);
-        var groundItems = new List<DungeonGroundItem>(Math.Min(contents.GroundDrops.Count, MaxDropsPerFrame));
-        foreach (var ground in contents.GroundDrops.Take(MaxDropsPerFrame))
+                context.MapId, initial.Count.Generated, initial.Count.Kept);
+        var groundItems = new List<DungeonGroundItem>(initial.Count.Kept);
+        foreach (var ground in initial.Items)
         {
             groundItems.Add(new DungeonGroundItem(
                 ground.Number,
@@ -115,9 +113,10 @@ internal sealed class DungeonCellFactory(
                     pending = generated;
                 }
                 var landing = pending.Count(drop => drop.Delivery == RolledDropDelivery.Ground);
-                if (landing > MaxDropsPerFrame)
-                    logger.LogWarning("Drops of actor {Sequence} code {Code} exceed one frame and will be truncated at death: generated={Generated} kept={Kept}",
-                        sequence, described.Actor.Code, landing, MaxDropsPerFrame);
+                var capacity = materialization.Rule.InspectFrozenDeath(landing);
+                if (capacity.Discarded > 0)
+                    logger.LogWarning("Drops of actor {Sequence} code {Code} exceed materialization capacity and will be truncated at death: generated={Generated} kept={Kept}",
+                        sequence, described.Actor.Code, capacity.Generated, capacity.Kept);
             }
 
             actors.Add(new DungeonCellActorState(

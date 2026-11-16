@@ -27,12 +27,14 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class MonsterDeathTransactionTests
 {
     [Theory]
-    [InlineData(false, false, false)]
-    [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
-    [InlineData(false, false, true)]
-    [InlineData(true, false, true)]
-    public async Task Party_failure_rolls_back_every_recipient_and_actor_then_retry_commits_once(bool duringFlush, bool cycle, bool lostLand)
+    [InlineData(false, false, false, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(false, false, false, true)]
+    [InlineData(true, false, false, true)]
+    public async Task Party_failure_rolls_back_every_recipient_and_actor_then_retry_commits_once(bool duringFlush, bool cycle, bool lostLand, bool overCapacity)
     {
         using var fixture = new ShopFixture(s =>
         {
@@ -72,7 +74,8 @@ public sealed class MonsterDeathTransactionTests
             TestParties.EnsureEntryParty(runs, roster);
             var run = runs.PreparePartyEntry(roster,
                 layout, DungeonDifficulty.Normal,
-                new(layout.StartCell, layout.StartRoomMapId, 1, [new(1, new(13099, 1, 0), false, false, [])
+                new(layout.StartCell, layout.StartRoomMapId, 1, [new(1, new(13099, 1, 0), false, false,
+                    overCapacity ? Enumerable.Range(0, 300).Select(i => new RolledDrop(1000 + i, 1, DropRarity.Common, DropItemKind.Stackable)).ToArray() : [])
                 { LostLandBonus = lostLand ? new(System.Collections.Immutable.ImmutableHashSet.Create(13099),
                     [new(10092849,50,DropRarity.Rare,DropItemKind.Stackable),new(10092856,3,DropRarity.Rare,DropItemKind.Stackable)]) : null }], []),
                 DungeonRunId.New(), fixture.Clock.GetUtcNow()).Run;
@@ -118,6 +121,8 @@ public sealed class MonsterDeathTransactionTests
         probe.FailMember = false;
         var result = await Settle();
         Assert.NotNull(result.Death?.Change);
+        if (overCapacity)
+            Assert.Equal(Enumerable.Range(1000, 255), result.Death!.Change!.AddedGroundItems.Select(x => x.ItemId));
         if (lostLand)
         {
             Assert.Equal(50, Assert.Single(result.Death!.Change!.AddedGroundItems, item => item.ItemId == 10092849).Count);

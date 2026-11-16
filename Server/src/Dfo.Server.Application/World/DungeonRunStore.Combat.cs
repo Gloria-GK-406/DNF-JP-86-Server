@@ -127,9 +127,12 @@ internal sealed partial class DungeonRunStore
                 var added = cell.CommitActorDeath(
                     claim.Actor.Sequence,
                     rolled => rolled.OwnerCharacterId is not { } owner
-                        || aggregate.IsMember(owner), resolvedLoot, bonus);
+                        || aggregate.IsMember(owner), resolvedLoot, bonus, out var capacity);
                 if (added is null)
                     return null;
+                if (capacity.Discarded > 0)
+                    this.logger.LogWarning("Death drops of actor {Sequence} code {Code} truncated: generated={Generated} kept={Kept}",
+                        claim.Actor.Sequence, killedActor?.Actor.Code, capacity.Generated, capacity.Kept);
                 if (killedActor is { IsMonster: true })
                 {
                     aggregate.RecordKill(new DungeonKillRecord(

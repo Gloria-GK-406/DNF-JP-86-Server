@@ -164,6 +164,7 @@ public sealed class ProtocolModule : IServerModule
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
+        services.TryAddSingleton(Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
         services.AddDarkElfRuinsSlice();
 
         services.AddEventDispatching();

@@ -67,6 +67,8 @@ public sealed class QuestClearVerticalTests
             var parties = TestParties.Create();
             services.AddSingleton<Dfo.Server.Abstractions.Parties.IPartyService>(parties);
             services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
+            services.AddSingleton(Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
+            services.AddSingleton<IDropMaterializationRuleService, DropMaterializationRuleService>();
             services.AddDungeonRuns().AddComposedDungeonRuns();
             services.AddAbsentDungeonRunDependencies();
             services.AddSingleton<IQuestDomainStore>(questStore);

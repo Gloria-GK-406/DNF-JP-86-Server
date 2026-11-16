@@ -374,6 +374,7 @@ internal sealed class LearningFixture : IAsyncDisposable
         new InfrastructureModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
         new ApplicationModule().ConfigureServices(services, configuration);
+        services.AddSingleton(Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
         services.AddSingleton<ISelectedCharacterCurrentViewDomainService, MinimalCurrentView>();
         if (!useArchive)
         {
