@@ -36,6 +36,7 @@ internal static class DungeonClearRewardsRegistration
         });
         services.TryAddSingleton<IDungeonSettlementRuleService, DungeonSettlementRuleService>();
         services.TryAddSingleton<IDungeonClearDomainService, DungeonClearDomainService>();
+        services.TryAddSingleton<IDungeonEntranceDomainService, DungeonEntranceDomainService>();
         services.TryAddSingleton<IDungeonRevivalDomainService, DungeonRevivalDomainService>();
         // What a clear's card face holds: the one reader of the clear-reward rate table and the
         // only caller of ClearRewardRules. It is handed three content sources and a basis, and

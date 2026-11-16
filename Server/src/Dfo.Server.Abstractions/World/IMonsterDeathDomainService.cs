@@ -32,6 +32,11 @@ public sealed record MonsterDeathSettlementResult(IReadOnlyList<MonsterDeathPart
     ICommittedActorDeath? Death = null)
 {
     public TournamentActionResult? Tournament { get; init; }
+    /// <summary>
+    /// Whether this kill hunted the last outstanding target of the run's boss room entrance
+    /// condition, so NOTI 0x0138 is due once it commits.
+    /// </summary>
+    public bool CompletesEntranceCondition { get; init; }
 }
 
 /// <param name="Items">The business slots the grant touched; the protocol projects them to wire slots.</param>

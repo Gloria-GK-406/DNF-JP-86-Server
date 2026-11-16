@@ -191,8 +191,14 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             var death = new MonsterDeathNotification(message.ActorSequence, drops, reporter.WireUserId,
                 GroundDropInstance.ForKill(change.Run, message.ActorSequence), owners);
             var targets = settled.Participants.Where(x => sessions.IsInWorld(x.Session))
-                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, Frames(x, death, change.AutoKilledActorSequences,
-                    settled.Tournament, labelProbe, change.LostLandFeverPercent))).ToArray();
+                .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId,
+                    // The last hunted entrance target: the leader's client now asks for the summon
+                    // its current map declares (A21 0x01193290), so it follows the kill frames.
+                    settled.CompletesEntranceCondition
+                        ? [.. Frames(x, death, change.AutoKilledActorSequences, settled.Tournament, labelProbe, change.LostLandFeverPercent),
+                            new DungeonEntranceConditionPassedNotification()]
+                        : Frames(x, death, change.AutoKilledActorSequences,
+                            settled.Tournament, labelProbe, change.LostLandFeverPercent))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
             // The native LostLand summary collects announced drops before GET_ITEM. Keep the
             // announced identities so a summary can be reconciled with pickup logs independently.

@@ -928,6 +928,11 @@ public sealed class SetPlayResultHandlerTests
         public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
             DungeonClearConditionFacts facts) =>
             new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
+        public bool CompletesEntranceCondition(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> earlierKills,
+            DungeonEntranceKill kill) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().CompletesEntranceCondition(plan, earlierKills, kill);
+        public bool IsEntranceConditionMet(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> kills) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().IsEntranceConditionMet(plan, kills);
         public AccountId? AccountId { get; private set; }
 
         public CharacterId? CharacterId { get; private set; }

@@ -233,6 +233,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                 else
                 {
                     frames.Add(new DungeonInfoNotification(layout, leaderVisit.Run.Difficulty));
+                    if (DungeonEntranceProjection.IconsFor(layout) is { } icons) frames.Add(icons);
                     frames.Add(new StartMapNotification(
                         roster.IsVirtual ? visit.Run with { Participant = null } : visit.Run,
                         FirstEntry: true,

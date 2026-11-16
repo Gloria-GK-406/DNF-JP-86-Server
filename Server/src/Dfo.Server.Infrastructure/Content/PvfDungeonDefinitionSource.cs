@@ -159,6 +159,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         var ignoresDefaultClear = false;
         List<DungeonClearCondition>? clearBlock = null;
         var inTeamClearBlock = false;
+        DungeonBossRoomEntranceCondition? bossRoomEntrance = null;
 
         void Unique(PvfField field)
         {
@@ -167,6 +168,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         }
         foreach (var section in document.Sections)
         {
+            if (section.Name == BossRoomEntranceStart)
+            {
+                Require(bossRoomEntrance is null, archivePath, BossRoomEntranceStart, "declared twice");
+                bossRoomEntrance = ParseBossRoomEntrance(archive, section, archivePath);
+                continue;
+            }
             // [team clear condition] belongs to territory combat, which this server does not run;
             // its sub-tags are skipped whole so they are not mistaken for this maze's conditions.
             if (inTeamClearBlock)
@@ -438,6 +445,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
             }
         }
         Require(clearBlock is null && !inTeamClearBlock, archivePath, ClearConditionStart, "unterminated block");
+
         Close(mazes, draft, archivePath);
         admission = new(dungeonId, archivePath, minimumLevel, consumesFatigue,
             designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []),
@@ -450,7 +458,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
             EventRequiredItems = eventRequiredItems, IsSpiciesDungeon = isSpicies, PartyLimit = partyLimit, ProhibitsPractice = prohibitsPractice,
             HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable(),
             LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath), EntryOnlyFatigue = entryOnlyFatigue,
-            ChampionRates = championRates, IgnoresDefaultClear = ignoresDefaultClear };
+            ChampionRates = championRates, IgnoresDefaultClear = ignoresDefaultClear,
+            BossRoomEntrance = bossRoomEntrance };
     }
 
     private const string ClearConditionStart = "[clear condition]";
@@ -458,6 +467,69 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
     private const string TeamClearConditionStart = "[team clear condition]";
     private const string TeamClearConditionEnd = "[/team clear condition]";
     private const string IgnoreDefaultClear = "[ignore default dungeon clear]";
+    private const string BossRoomEntranceStart = "[boss room entrance condition]";
+
+    /// <summary>
+    /// One <c>[boss room entrance condition]</c>. Its words are tokens inside the one section, read
+    /// in order: <c>[no check enter boss room]</c>, <c>[clear action]</c> followed by its action
+    /// (<c>[summon monster] N code</c>, or another action such as 2005's <c>[time condition] a b</c>,
+    /// kept unexecuted), and <c>[hunt monster] N</c> with N <c>code a b</c> triples.
+    /// </summary>
+    internal static DungeonBossRoomEntranceCondition ParseBossRoomEntrance(PvfArchive archive, PvfSection section, string path)
+    {
+        var values = section.Values;
+        var at = 0;
+        var skipsBossRoomCheck = false;
+        var summonCode = 0;
+        var summonCount = 0;
+        string? unsupported = null;
+        var hunts = new List<DungeonEntranceHuntTarget>();
+        int Int()
+        {
+            Require(at < values.Count && values[at].Kind == PvfTokenKind.Int32, path, BossRoomEntranceStart, "expected an integer");
+            return values[at++].Value;
+        }
+        while (at < values.Count)
+        {
+            Require(values[at].IsString, path, BossRoomEntranceStart, "expected a condition word");
+            var word = archive.ResolveString(values[at++].Value).Trim();
+            switch (word)
+            {
+                case "[no check enter boss room]":
+                    skipsBossRoomCheck = true;
+                    break;
+                case "[clear action]":
+                    break;
+                case "[summon monster]":
+                    summonCount = Int();
+                    summonCode = Int();
+                    Require(summonCount > 0 && summonCode > 0, path, BossRoomEntranceStart,
+                        "expected a positive summon count and monster code");
+                    break;
+                case "[hunt monster]":
+                {
+                    var count = Int();
+                    Require(count > 0, path, BossRoomEntranceStart, "hunt count must be positive");
+                    for (var index = 0; index < count; index++)
+                    {
+                        var code = Int();
+                        Require(code > 0, path, BossRoomEntranceStart, "hunt target code must be positive");
+                        hunts.Add(new(code, Int(), Int()));
+                    }
+                    break;
+                }
+                default:
+                    // An action this server does not run: keep its name, skip its integers.
+                    unsupported ??= word;
+                    while (at < values.Count && !values[at].IsString) at++;
+                    break;
+            }
+        }
+        return new(skipsBossRoomCheck, summonCode, summonCount, hunts.AsReadOnly())
+        {
+            UnsupportedAction = unsupported ?? (summonCode > 0 ? null : "[clear action]"),
+        };
+    }
 
     /// <summary>
     /// One sub-tag of a <c>[clear condition]</c> block: <c>id count</c>, or

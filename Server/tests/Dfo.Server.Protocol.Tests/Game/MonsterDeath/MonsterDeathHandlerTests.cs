@@ -96,7 +96,7 @@ public sealed class MonsterDeathHandlerTests
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestProgressDomainService>(),
             NullLogger<MonsterDeathDomainService>.Instance,
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.World.ITournamentDungeonDomainService>(),
-            new DeathEvents(scope), []);
+            new DeathEvents(scope), [], new Dfo.Server.Application.World.DungeonSettlementRuleService());
         return new DeathAlgorithmDriver(sessions, runs, clear, clearProjection, scope, service, rewards,
             registry, sender, diagnostics, partyRecipients, creatures, safety);
     }
@@ -1322,6 +1322,11 @@ public sealed class MonsterDeathHandlerTests
         public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
             DungeonClearConditionFacts facts) =>
             new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
+        public bool CompletesEntranceCondition(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> earlierKills,
+            DungeonEntranceKill kill) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().CompletesEntranceCondition(plan, earlierKills, kill);
+        public bool IsEntranceConditionMet(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> kills) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().IsEntranceConditionMet(plan, kills);
         public ValueTask<DungeonSettlementRules> ForAsync(
             AccountId accountId,
             CharacterId characterId,
@@ -1822,6 +1827,11 @@ public sealed class MonsterDeathHandlerTests
         public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
             DungeonClearConditionFacts facts) =>
             new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
+        public bool CompletesEntranceCondition(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> earlierKills,
+            DungeonEntranceKill kill) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().CompletesEntranceCondition(plan, earlierKills, kill);
+        public bool IsEntranceConditionMet(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> kills) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().IsEntranceConditionMet(plan, kills);
         public AccountId? AccountId { get; private set; }
         public CharacterId? CharacterId { get; private set; }
 

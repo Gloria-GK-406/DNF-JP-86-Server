@@ -23,8 +23,21 @@ public sealed record DungeonClearConditionFacts(
     IReadOnlyCollection<int> KilledMonsterCodes,
     IReadOnlyCollection<int> ClearedRoomMapIds);
 
+/// <summary>One committed monster kill as a boss room entrance condition sees it: what died, and where.</summary>
+public readonly record struct DungeonEntranceKill(int Code, Dfo.Server.Abstractions.Content.MazeCell Cell);
+
 public interface IDungeonSettlementRuleService
 {
+    /// <summary>
+    /// Whether <paramref name="kill"/>, added to the run's earlier kills, hunts the last outstanding
+    /// target of its boss room entrance condition.
+    /// </summary>
+    bool CompletesEntranceCondition(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> earlierKills,
+        DungeonEntranceKill kill);
+
+    /// <summary>Whether every target of the boss room entrance condition has been hunted.</summary>
+    bool IsEntranceConditionMet(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> kills);
+
     /// <summary>
     /// Whether a maze's counted clear conditions are all met by these facts; false when it has none.
     /// </summary>

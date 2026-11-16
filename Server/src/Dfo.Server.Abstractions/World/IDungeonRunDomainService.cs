@@ -109,8 +109,14 @@ public sealed record DungeonRunState(
     /// rooms it had already emptied, which the game does not allow. The rule is the room's, not the
     /// run's: the boss room has no way back out of it, and a dungeon that later grows a room with
     /// its own answer brings that answer with it rather than adding a case here.
+    /// <para>
+    /// A boss room entrance condition's <c>[no check enter boss room]</c> is such an answer: in 2010
+    /// the marked boss cell is an ordinary room and the run's boss is summoned elsewhere, after the
+    /// residents in other rooms are freed, so walking out of it is the way forward.
+    /// </para>
     /// </remarks>
-    public bool MayLeaveCurrentRoom => CurrentRoomKind != DungeonRoomKind.Boss;
+    public bool MayLeaveCurrentRoom => CurrentRoomKind != DungeonRoomKind.Boss
+        || Layout.BossRoomEntrance is { SkipsBossRoomCheck: true };
 
 }
 

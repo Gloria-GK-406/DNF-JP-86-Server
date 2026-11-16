@@ -113,6 +113,7 @@ using Dfo.Server.Protocol.Game.IllusionTowerReward;
 using Dfo.Server.Protocol.Game.IllusionTowerStage;
 using Dfo.Server.Protocol.Game.CharacterDeath;
 using Dfo.Server.Protocol.Game.StoryPause;
+using Dfo.Server.Protocol.Game.EntranceSummon;
 using Dfo.Server.Protocol.Game.UseStackable;
 using Dfo.Server.Protocol.Game.QuestClearCoupon;
 using Dfo.Server.Protocol.Game.LevelUpTicket;
@@ -249,6 +250,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddQuestCompletionSlice();
         services.AddTaggedIdReportSlice();
         services.AddStoryPauseSlice();
+        services.AddEntranceSummonSlice();
         services.AddMonsterDeathSlice();
         services.AddBossTowerInfoSlice();
         services.AddBossTowerMapSlice();

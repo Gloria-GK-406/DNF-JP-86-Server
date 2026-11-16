@@ -85,6 +85,19 @@ public sealed record DungeonEntryFacts(
     public int PartyMemberCount { get; init; } = 1;
 }
 
+/// <summary>One placed <c>[hunt monster]</c> target: which conditional monster stands in which room.</summary>
+public sealed record DungeonEntranceTarget(int Code, MazeCell Cell, int MapId);
+
+/// <summary>
+/// The rooms a run's <c>[boss room entrance condition]</c> placed its conditional monsters in, and
+/// the monster hunting them all calls in.
+/// </summary>
+public sealed record DungeonEntrancePlan(int SummonCode, IReadOnlyList<DungeonEntranceTarget> Targets)
+{
+    /// <summary>The N of <c>[summon monster] N code</c>.</summary>
+    public int SummonCount { get; init; } = 1;
+}
+
 public sealed record DungeonObjectSpawn(MazeCell Cell, int X, int Y, int ObjectId, int Team, int SpawnMode, bool Regenerate);
 
 /// <summary>
@@ -153,6 +166,10 @@ public sealed record DungeonLayout(
     public IReadOnlyList<DungeonClearCondition> ClearConditions { get; init; } = [];
     /// <summary>The dungeon's <c>[ignore default dungeon clear]</c>, frozen at entry.</summary>
     public bool IgnoresDefaultClear { get; init; }
+    /// <summary>The dungeon's <c>[boss room entrance condition]</c>, frozen at entry.</summary>
+    public DungeonBossRoomEntranceCondition? BossRoomEntrance { get; init; }
+    /// <summary>Where this run placed each hunted conditional monster; null when none is placed.</summary>
+    public DungeonEntrancePlan? EntrancePlan { get; init; }
     /// <summary>Whether this run clears on its conditions alone rather than on its boss room.</summary>
     public bool ClearsOnConditions => this.ClearConditions.Any(condition => condition.IsCounted);
     /// <summary>Rule-declared combatants whose script dummy flag must not make a room skippable.</summary>

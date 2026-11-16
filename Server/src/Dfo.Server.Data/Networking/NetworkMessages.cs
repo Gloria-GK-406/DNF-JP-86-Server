@@ -288,6 +288,9 @@ public enum ClientMessageType
     // Pausing and resuming a scripted moment inside a dungeon. See Game/StoryPause.
     GameStoryPause = 0x0001_00BF,
 
+    // The party leader calling in a boss room entrance condition's monster. See Game/EntranceSummon.
+    GameEntranceSummon = 0x0001_0211,
+
     // Where the character is standing, and where it walks to. See Game/TownProjection.
     GameSetUserPosition = 0x0001_0023,
     GameSetUserArea = 0x0001_0024,
@@ -552,6 +555,12 @@ public enum ServerMessageType
     // Confirms a scripted pause. Answers CMD 0x00BF under a different type.
     // See Game/StoryPause.
     GameStoryPauseState = 0x0000_00AA,
+
+    // A boss room entrance condition: its target icons, its targets all hunted, and the summon
+    // answered. See Game/EntranceSummon.
+    GameEntranceTargetIcons = 0x0000_022F,
+    GameEntranceConditionPassed = 0x0000_0138,
+    GameEntranceSummonResult = 0x0001_0211,
 
     // What the kill was worth, and the kill acknowledged. See Game/MonsterDeath.
     GameExperience = 0x0000_0025,

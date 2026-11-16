@@ -1207,6 +1207,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x01F8` | `InformNoticeSecondDecoder` | 仅证明 decoder 已注册 | [0x01F8](game/client-to-server/0x01F8.md) |
 | `0x01` | `0x0204` | `QuestClearCouponDecoder` | 仅证明 decoder 已注册 | [0x0204](game/client-to-server/0x0204.md) |
 | `0x01` | `0x0207` | `AvatarPackageOpeningDecoder` | 仅证明 decoder 已注册 | [0x0207](game/client-to-server/0x0207.md) |
+| `0x01` | `0x0211` | `EntranceSummonDecoder` | 仅证明 decoder 已注册 | [0x0211](game/client-to-server/0x0211.md) |
 | `0x01` | `0x0218` | `CrystalContractDecoder` | 仅证明 decoder 已注册 | [0x0218](game/client-to-server/0x0218.md) |
 | `0x01` | `0x0239` | `SetTitleAppearanceDecoder` | 仅证明 decoder 已注册 | [0x0239](game/client-to-server/0x0239.md) |
 | `0x01` | `0x0252` | `SecurityStatusDecoder` | 仅证明 decoder 已注册 | [0x0252](game/client-to-server/0x0252.md) |
@@ -1371,6 +1372,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x01E4` | `TutorialLevelUpResponse` | 仅证明 encoder 可产生该 identity | [0x01E4](game/client-to-server/0x01E4.md) |
 | `0x01` CMD | `0x0204` | `QuestClearCouponResponse` | 仅证明 encoder 可产生该 identity | [0x0204](game/client-to-server/0x0204.md) |
 | `0x01` CMD | `0x0207` | `AvatarPackageOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0207](game/client-to-server/0x0207.md) |
+| `0x01` CMD | `0x0211` | `EntranceSummonResponse` | 仅证明 encoder 可产生该 identity | [0x0211](game/client-to-server/0x0211.md) |
 | `0x01` CMD | `0x0218` | `CrystalContractResponse` | 仅证明 encoder 可产生该 identity | [0x0218](game/client-to-server/0x0218.md) |
 | `0x01` CMD | `0x0239` | `CloneTitleStateMessage`、`SetTitleAppearanceResponse` | 仅证明 encoder 可产生该 identity | [0x0239](game/client-to-server/0x0239.md) |
 | `0x01` CMD | `0x0252` | `SecurityStatusAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0252](game/client-to-server/0x0252.md) |
@@ -1508,6 +1510,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x0112` | `FriendPresenceMessage` | 仅证明 encoder 可产生该 identity | [0x0112](game/server-to-client/NOTI-0x0112.md) |
 | `0x00` NOTI | `0x0117` | `SecretShopNpcNotification` | 仅证明 encoder 可产生该 identity | [0x0117](game/server-to-client/NOTI-0x0117.md) |
 | `0x00` NOTI | `0x0129` | `AltarDifficultyPromptMessage`、`AltarDifficultyResolvedMessage` | 仅证明 encoder 可产生该 identity | [0x0129](game/server-to-client/NOTI-0x0129.md) |
+| `0x00` NOTI | `0x0138` | `DungeonEntranceConditionPassedNotification` | 仅证明 encoder 可产生该 identity | [0x0138](game/server-to-client/NOTI-0x0138.md) |
 | `0x00` NOTI | `0x0158` | `PvpMissionStateMessage` | 仅证明 encoder 可产生该 identity | [0x0158](game/server-to-client/NOTI-0x0158.md) |
 | `0x00` NOTI | `0x015B` | `DespairApcInfoNotification` | 仅证明 encoder 可产生该 identity | [0x015B](game/server-to-client/NOTI-0x015B.md) |
 | `0x00` NOTI | `0x015C` | `DespairClearRewardNotification` | 仅证明 encoder 可产生该 identity | [0x015C](game/server-to-client/NOTI-0x015C.md) |
@@ -1536,6 +1539,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x021E` | `ItemUsageCountMessage`、`UsableCountBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x021E](game/server-to-client/NOTI-0x021E.md) |
 | `0x00` NOTI | `0x021F` | `BossTowerBaselineMessage` | 仅证明 encoder 可产生该 identity | [0x021F](game/server-to-client/NOTI-0x021F.md) |
 | `0x00` NOTI | `0x0227` | `DungeonRemainingEntriesMessage` | 仅证明 encoder 可产生该 identity | [0x0227](game/server-to-client/NOTI-0x0227.md) |
+| `0x00` NOTI | `0x022F` | `DungeonEntranceTargetIconsNotification` | 仅证明 encoder 可产生该 identity | [0x022F](game/server-to-client/NOTI-0x022F.md) |
 | `0x00` NOTI | `0x023F` | `AcceptedQuestProgressMessage` | 仅证明 encoder 可产生该 identity | [0x023F](game/server-to-client/NOTI-0x023F.md) |
 | `0x00` NOTI | `0x0245` | `KnightShieldDeckMessage` | 仅证明 encoder 可产生该 identity | [0x0245](game/server-to-client/NOTI-0x0245.md) |
 | `0x00` NOTI | `0x025B` | `ChampionBreakStateMessage` | 仅证明 encoder 可产生该 identity | [0x025B](game/server-to-client/NOTI-0x025B.md) |

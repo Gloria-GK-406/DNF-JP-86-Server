@@ -17,7 +17,8 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService progress,
     ILogger<MonsterDeathDomainService> logger, ITournamentDungeonDomainService tournaments,
-    IEventService events, IEnumerable<IDungeonBossClearHook> clearHooks) : IMonsterDeathDomainService
+    IEventService events, IEnumerable<IDungeonBossClearHook> clearHooks,
+    IDungeonSettlementRuleService settlementRules) : IMonsterDeathDomainService
 {
     private readonly IReadOnlyDictionary<DungeonRunKind, IDungeonBossClearHook> clearHooksByKind =
         clearHooks.ToDictionary(hook => hook.Kind);
@@ -143,7 +144,11 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
             logger.LogDebug("Monster death prepared run={RunId} dungeon={DungeonId} room={RoomId} version={RoomVersion} actor={Actor} participants={Count} clearsMap={ClearsMap} boss={IsBossRoom} cycleQuest={CycleQuestId}",
                 run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId, run.RoomVersion, request.Actor,
                 result.Count, clearsMap, run.IsBossRoom, run.Layout.Purpose.QuestId);
-        return new(result, pending) { Tournament = tournament };
+        var completesEntrance = run.Layout.EntrancePlan is { } plan && kill.IsMonster
+            && settlementRules.CompletesEntranceCondition(plan,
+                [.. run.Kills.Select(earlier => new DungeonEntranceKill(earlier.MonsterCode, earlier.Actor.Cell))],
+                new DungeonEntranceKill(kill.Code, death.Actor.Cell));
+        return new(result, pending) { Tournament = tournament, CompletesEntranceCondition = completesEntrance };
     }
 
     private sealed class DeathCommit(IDungeonRunCombatDomainService runs, DungeonActorDeathClaim death, bool clearsMap)

@@ -69,4 +69,12 @@ public interface IDungeonRoomRuleService
 
     /// <summary>The number this run and Cell identity gives its first actor.</summary>
     ushort FirstActorSequenceFor(DungeonCellCreationContext context);
+
+    /// <summary>
+    /// The <c>[conditional summon monster]</c> rows of <paramref name="mapId"/> for
+    /// <paramref name="code"/>, at the level this layout gives them; empty when the map declares none.
+    /// </summary>
+    ValueTask<IReadOnlyList<DungeonRoomActor>> DescribeConditionalSummonsAsync(
+        DungeonLayout layout, int mapId, int code, CancellationToken cancellationToken) =>
+        ValueTask.FromResult<IReadOnlyList<DungeonRoomActor>>([]);
 }

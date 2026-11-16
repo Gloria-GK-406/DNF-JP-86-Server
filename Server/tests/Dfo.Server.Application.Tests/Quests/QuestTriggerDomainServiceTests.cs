@@ -48,7 +48,7 @@ public sealed class QuestTriggerDomainServiceTests
                     [87, requiredDifficulty, 10199, HuntEnemyTargetTypes.PassiveObject, 1]),
             };
             var service = new QuestTriggerDomainService(
-                fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), runs);
+                fixture.Services.GetRequiredService<ICharacterQuestLogDomainService>(), runs, Structures());
             QuestAdvance result;
             await using (var transaction = ((DomainTransactionScope)fixture.Services
                 .GetRequiredService<IDomainTransactionAccessor>()).Begin())
@@ -74,7 +74,7 @@ public sealed class QuestTriggerDomainServiceTests
             runs.Begin(Character, Layout(DungeonRunPurpose.QuestLinked(
                 1776, DungeonQuestConnectionState.Active)), difficulty: 0);
             var logs = new RecordingLogs();
-            var service = new QuestTriggerDomainService(logs, runs);
+            var service = new QuestTriggerDomainService(logs, runs, Structures());
 
             var result = await service.ApplyClientReportAsync(
                 Account, Character, Quest1776(), 0x10, increment: false, CancellationToken.None);
@@ -92,7 +92,7 @@ public sealed class QuestTriggerDomainServiceTests
             var runs = TestParties.Runs();
             runs.Begin(Character, Layout(DungeonRunPurpose.Ordinary), difficulty: 0);
             var logs = new RecordingLogs();
-            var service = new QuestTriggerDomainService(logs, runs);
+            var service = new QuestTriggerDomainService(logs, runs, Structures());
 
             var result = await service.ApplyClientReportAsync(
                 Account, Character, Quest1776(), 0x10, increment: false, CancellationToken.None);
@@ -100,6 +100,69 @@ public sealed class QuestTriggerDomainServiceTests
             Assert.Equal(QuestAdvanceVerdict.Refused, result.Verdict);
             Assert.Equal(0, logs.AdvanceCalls);
         });
+    }
+
+    [Fact]
+    public async Task A_dungeon_connecting_no_maze_to_the_quest_binds_its_objects_by_standing_in_it()
+    {
+        // 13503 rescues 2010's residents (passive objects) in an ordinary run: 2010 connects no
+        // maze to the quest, so being in 2010 is what makes the report possible.
+        await TestGameplay.RunAsync(async () =>
+        {
+            var runs = TestParties.Runs();
+            runs.Begin(Character, Layout(DungeonRunPurpose.Ordinary) with { DungeonId = 2010 }, difficulty: (Dfo.Server.Data.World.DungeonDifficulty)1);
+            var logs = new RecordingLogs();
+            var service = new QuestTriggerDomainService(logs, runs, Structures());
+            var rescue = Quest1776() with
+            {
+                QuestId = 13503,
+                KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy",
+                    [2010, -1, 19034, HuntEnemyTargetTypes.PassiveObject, 2, 2010, -1, 19036, HuntEnemyTargetTypes.PassiveObject, 2]),
+            };
+
+            Assert.Equal(QuestAdvanceVerdict.Advanced,
+                (await service.ApplyClientReportAsync(Account, Character, rescue, 0x20, increment: false, CancellationToken.None)).Verdict);
+            var elsewhere = rescue with
+            {
+                KillObjectives = QuestKillObjectiveParser.Parse("hunt enemy", [-1, -1, 19034, HuntEnemyTargetTypes.PassiveObject, 2]),
+            };
+            Assert.Equal(QuestAdvanceVerdict.Refused,
+                (await service.ApplyClientReportAsync(Account, Character, elsewhere, 0x10, increment: false, CancellationToken.None)).Verdict);
+            Assert.Equal(1, logs.AdvanceCalls);
+        });
+    }
+
+    /// <summary>144 connects a maze to 1776 and 87 one to the cycle quest 15262; 2010 connects none.</summary>
+    private static DungeonStructureRuleService Structures() =>
+        new(new ConnectedDungeons(), new NoMaps(), TestRequired.NoQuests);
+
+    private sealed class ConnectedDungeons : IDungeonDefinitionSource
+    {
+        public ValueTask<DungeonDefinition?> GetAsync(int dungeonId, CancellationToken cancellationToken)
+        {
+            DungeonQuestConnection? connection = dungeonId switch
+            {
+                144 => new(DungeonQuestConnectionState.Active, 1776, -1),
+                87 => new(DungeonQuestConnectionState.Active, 15262, -1),
+                _ => null,
+            };
+            var cell = new MazeCell(0, 0);
+            return ValueTask.FromResult<DungeonDefinition?>(new(dungeonId, $"dungeon/{dungeonId}.dgn", 1, true,
+            [
+                new MazeDefinition(0, 1, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(1) },
+                    [cell], [cell]),
+                new MazeDefinition(1, 1, 1, new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(1) },
+                    [cell], [cell], connection),
+            ]));
+        }
+    }
+
+    private sealed class NoMaps : IDungeonMapDefinitionSource
+    {
+        public ValueTask<DungeonMapDefinition?> GetAsync(int mapId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<DungeonMapDefinition?>(null);
+        public ValueTask<IReadOnlyList<DungeonMapDefinition>> ListForDungeonAsync(int dungeonId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<DungeonMapDefinition>>([]);
     }
 
     private static QuestDefinition Quest1776() =>
