@@ -14,7 +14,8 @@ namespace Dfo.Server.Application.Tests.Support;
 internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServiceDefinitionSource,
     ITownDefinitionSource, IDespairTowerContentSource, IEpicBookDefinitionSource,
     ICollectionBoxDefinitionSource, IDungeonDefinitionSource, IAltarDungeonContentSource,
-    ITournamentDungeonContentSource, IGoldSilverHornContentSource, IDimensionDungeonContentSource, ILuckyStarRentalContentSource
+    ITournamentDungeonContentSource, IGoldSilverHornContentSource, IDimensionDungeonContentSource, ILuckyStarRentalContentSource,
+    IExtraDropContentSource
 {
     internal static void Register(IServiceCollection services)
     {
@@ -39,6 +40,7 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
         services.AddSingleton<IAltarDungeonContentSource>(content);
         services.AddSingleton<ITournamentDungeonContentSource>(content);
         services.AddSingleton<IGoldSilverHornContentSource>(content);
+        services.AddSingleton<IExtraDropContentSource>(content);
         services.AddSingleton<ICreatureEquipmentLifetimeSource, StubCreatureEquipmentLifetimeSource>();
     }
 
@@ -62,8 +64,13 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
         services.AddSingleton<IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
         services.AddSingleton<ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.AddSingleton<IGoldSilverHornContentSource, PvfGoldSilverHornContentSource>();
+        services.AddSingleton<IExtraDropContentSource, PvfExtraDropContentSource>();
         services.AddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();
     }
+
+    // No dungeon is tagged for extra drops, so pickups and ancient-find announcements stay ordinary.
+    ExtraDropContent IExtraDropContentSource.Load() => new(
+        new Dictionary<(DropItemKind, int, ExtraDropDungeonType), DropItemPool>(), new Dictionary<int, ExtraDropDungeonType>(), 0);
 
     LuckyStarRentalCatalog ILuckyStarRentalContentSource.Load() => new(400, 100_000, 0, new HashSet<int>(), []);
     public ValueTask<int?> RentPointsAsync(int id, CancellationToken ct) => ValueTask.FromResult<int?>(null);

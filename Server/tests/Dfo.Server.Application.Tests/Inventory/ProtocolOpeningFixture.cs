@@ -31,6 +31,7 @@ internal static class ProtocolOpeningFixture
             services.AddSingleton<ILotteryDefinitionCache>(new LotteryCache(content));
             services.AddSingleton<IVendingMachineDefinitionSource, Machine>();
             services.AddSingleton<ILotteryRandomSource, FirstTicket>();
+            services.AddSingleton<IEquipmentDefinitionSource, NoArchiveEquipment>();
             configure(services);
         });
     }
@@ -47,6 +48,13 @@ internal static class ProtocolOpeningFixture
         public VendingMachineDefinition GetRequired(int machine, int group) => machine == 1 && group == 1
             ? new(1, 1, 7454, 1, [new(new(7463, 4), 1, false)])
             : throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Undeclared fixture machine.");
+    }
+    // The prize is a fixture item, so the broadcast rarity read finds no archive template for it.
+    private sealed class NoArchiveEquipment : IEquipmentDefinitionSource
+    {
+        public ValueTask<int> InitializeAsync(CancellationToken cancellationToken) => ValueTask.FromResult(0);
+        public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<EquipmentDefinition?>(null);
     }
     private sealed class FirstTicket : ILotteryRandomSource
     {
