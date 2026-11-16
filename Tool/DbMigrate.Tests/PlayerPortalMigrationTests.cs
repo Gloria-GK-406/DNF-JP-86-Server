@@ -47,7 +47,6 @@ public sealed class PlayerPortalMigrationTests
             var migrated = Migrator.Migrate(path, backup: false);
 
             Assert.Equal((9L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
-            Assert.Equal(10, CharacterDatabaseSchema.Version);
             Assert.Equal(ShapeOf(fresh), ShapeOf(path));
             foreach (var table in new[] { "player_portal_settings", "player_portal_sessions", "player_portal_operations" })
                 Assert.Equal(0, Scalar(path, $"SELECT COUNT(*) FROM {table}"));

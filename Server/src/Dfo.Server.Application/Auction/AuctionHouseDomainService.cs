@@ -123,8 +123,6 @@ internal sealed class AuctionHouseDomainService(
             return await BuyOutAsync(listing, buyer, account, buyout, ct).ConfigureAwait(false);
 
         var change = await purse.CollectAsync(AuctionMarket.Items, buyer, account, amount, ct).ConfigureAwait(false);
-        if (!await store.ReduceAsync(id, listing.QuantityRemaining - quantity, buyout - amount, ct).ConfigureAwait(false))
-            throw Refuse(AuctionRefusal.ListingNotFound);
         var now = clock.GetUtcNow();
         var fee = rules.Fee(amount, listing.FeeRateBasisPoints);
         await lots.DeliverAsync(listing, buyer, quantity, 0, AuctionLetters.Bought, ct).ConfigureAwait(false);

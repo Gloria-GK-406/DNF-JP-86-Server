@@ -14,7 +14,7 @@ using Xunit;
 namespace Dfo.Server.Persistence.Tests.Auction;
 
 /// <summary>Listings and their custody as written to the real schema.</summary>
-public sealed class AuctionCustodyAndStoreTests : IDisposable
+public sealed partial class AuctionCustodyAndStoreTests : IDisposable
 {
     private static readonly ContainerId Bag = new("character:71:Main");
     private static readonly ContainerId BuyerBag = new("character:72:Main");
@@ -66,6 +66,55 @@ public sealed class AuctionCustodyAndStoreTests : IDisposable
         await body(Items().SessionIn(scope.Current!), Listings());
         await transaction.CommitAsync(default);
     });
+
+    [Fact]
+    public async Task Active_reads_follow_custody_and_closed_reads_keep_the_final_quantity()
+    {
+        AuctionListingId id = default;
+        await InTransaction(async (items, store) =>
+        {
+            id = await store.InsertAsync(Listing(3037, 30, new(null, 3000, 100)), default);
+            await ((IAuctionItemCustodySession)items).AcceptAuctionLotAsync(id,
+                await items.CreateAsync(Stones(30), default), default);
+            Assert.True(await store.SetBidAsync(id, 100, new CharacterId(72), new AccountId(2), default));
+        });
+        await InTransaction(async (items, _) =>
+            await items.PutAsync(BuyerBag, 20,
+                await ((IAuctionItemCustodySession)items).TakeAuctionLotAsync(id, 12, default), default));
+        await InTransaction(async (items, store) =>
+        {
+            AuctionListing[] reads = [
+                (await store.FindAsync(id, default))!,
+                Assert.Single(await store.ActiveAsync(AuctionMarket.Items, [3037], At, default)),
+                Assert.Single(await store.ActiveBySellerAsync(new(71), AuctionMarket.Items, 10, default)),
+                Assert.Single(await store.ActiveByTopBidderAsync(new(72), AuctionMarket.Items, 10, default))];
+            Assert.All(reads, listing =>
+            {
+                Assert.Equal(30, listing.QuantityInitial);
+                Assert.Equal(18, listing.QuantityRemaining);
+                Assert.Equal(1800, listing.Pricing.BuyoutPrice);
+            });
+            Assert.True(await store.CloseAsync(id, AuctionListingState.Cancelled, At, default));
+            await items.PutAsync(Bag, 20,
+                await ((IAuctionItemCustodySession)items).TakeAuctionLotAsync(id, null, default), default);
+        });
+        await InTransaction(async (_, store) =>
+        {
+            var closed = (await store.FindAsync(id, default))!;
+            Assert.Equal(18, closed.QuantityRemaining);
+            Assert.Equal(1800, closed.Pricing.BuyoutPrice);
+        });
+    }
+
+    [Fact]
+    public async Task An_active_item_listing_without_custody_is_an_integrity_error()
+    {
+        await InTransaction(async (_, store) =>
+        {
+            var id = await store.InsertAsync(Listing(123, 1, new(null, 5000)), default);
+            await Assert.ThrowsAsync<InvalidDataException>(() => store.FindAsync(id, default).AsTask());
+        });
+    }
 
     [Fact]
     public async Task Equipment_keeps_its_identity_and_bytes_through_custody()
@@ -142,9 +191,10 @@ public sealed class AuctionCustodyAndStoreTests : IDisposable
     public async Task A_listing_reaches_one_final_state_and_leaves_the_due_and_active_reads()
     {
         AuctionListingId id = default;
-        await InTransaction(async (_, store) =>
+        await InTransaction(async (items, store) =>
         {
             id = await store.InsertAsync(Listing(123, 1, new(1000, 5000)), default);
+            await ((IAuctionItemCustodySession)items).AcceptAuctionLotAsync(id, await items.CreateAsync(Sword(), default), default);
             Assert.True(await store.SetBidAsync(id, 1200, new CharacterId(72), new AccountId(2), default));
             Assert.Equal(1, await store.CountActiveAsync(new CharacterId(71), AuctionMarket.Items, default));
             Assert.True(await store.HasActiveObligationsAsync(new CharacterId(72), default));

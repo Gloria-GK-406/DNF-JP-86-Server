@@ -15,9 +15,15 @@ namespace Dfo.Server.Persistence.Auction;
 /// </remarks>
 internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAuctionDomainStore
 {
-    private const string Columns = """
+    // The live item's count belongs to custody. Final listings retain the count at closure;
+    // a gold tier has no item custody and keeps its original quantity.
+    private const string CurrentQuantity = """
+        CASE WHEN state<>0 THEN quantity_at_close WHEN market=1 THEN quantity_initial
+        ELSE (SELECT item_count FROM auction_custody c WHERE c.listing_id=auction_listings.listing_id AND c.item_id=auction_listings.item_id) END
+        """;
+    private static readonly string Columns = $"""
         listing_id,market,state,seller_character_id,seller_account_id,seller_name,item_id,quantity_initial,
-        quantity_remaining,gold_amount,start_price,buyout_price,unit_price,current_bid,top_bidder_character_id,
+        {CurrentQuantity},gold_amount,start_price,buyout_price,unit_price,current_bid,top_bidder_character_id,
         top_bidder_account_id,deposit,fee_rate_bp,created_at,expires_at,display_core
         """;
 
@@ -28,9 +34,9 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
         {
             command.CommandText = """
                 INSERT INTO auction_listings(market,state,seller_character_id,seller_account_id,seller_name,item_id,
-                    quantity_initial,quantity_remaining,gold_amount,start_price,buyout_price,unit_price,deposit,fee_rate_bp,
+                    quantity_initial,gold_amount,start_price,buyout_price,unit_price,deposit,fee_rate_bp,
                     created_at,expires_at,display_core)
-                VALUES(@market,0,@seller,@account,@name,@item,@quantity,@quantity,@gold,@start,@buyout,@unit,@deposit,@fee,
+                VALUES(@market,0,@seller,@account,@name,@item,@quantity,@gold,@start,@buyout,@unit,@deposit,@fee,
                     @created,@expires,@core)
                 RETURNING listing_id;
                 """;
@@ -77,24 +83,12 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
                 p.AddWithValue("@bidder", bidder.Value); p.AddWithValue("@account", bidderAccount.Value);
             }, cancellationToken).ConfigureAwait(false) == 1;
 
-    public async ValueTask<bool> ReduceAsync(AuctionListingId listing, int quantityRemaining, long buyoutPrice,
-        CancellationToken cancellationToken) =>
-        await database.ExecuteAsync("""
-            UPDATE auction_listings SET quantity_remaining=@remaining,buyout_price=@buyout
-            WHERE listing_id=@id AND state=0 AND quantity_remaining>@remaining
-            """,
-            p =>
-            {
-                p.AddWithValue("@id", listing.Value); p.AddWithValue("@remaining", quantityRemaining);
-                p.AddWithValue("@buyout", buyoutPrice);
-            }, cancellationToken).ConfigureAwait(false) == 1;
-
     public async ValueTask<bool> CloseAsync(AuctionListingId listing, AuctionListingState state, DateTimeOffset at,
         CancellationToken cancellationToken)
     {
         if (state == AuctionListingState.Active) throw new ArgumentOutOfRangeException(nameof(state));
         return await database.ExecuteAsync(
-            "UPDATE auction_listings SET state=@state,closed_at=@at WHERE listing_id=@id AND state=0",
+            $"UPDATE auction_listings SET state=@state,closed_at=@at,quantity_at_close=({CurrentQuantity}) WHERE listing_id=@id AND state=0",
             p =>
             {
                 p.AddWithValue("@id", listing.Value); p.AddWithValue("@state", (int)state);
@@ -175,7 +169,13 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
                 AND (seller_character_id=@who OR top_bidder_character_id=@who))
             """, p => p.AddWithValue("@who", character.Value), r => r.GetInt32(0), cancellationToken).ConfigureAwait(false))[0] != 0;
 
-    private static AuctionListing Read(SqliteDataReader r) => new(
+    private static AuctionListing Read(SqliteDataReader r)
+    {
+        if (r.IsDBNull(8)) throw new InvalidDataException($"Auction listing {r.GetInt64(0)} has no authoritative quantity.");
+        var quantity = r.GetInt32(8);
+        var buyout = (AuctionMarket)r.GetInt32(1) == AuctionMarket.Items && Nullable(r, 12) is { } unit
+            ? checked(unit * quantity) : Nullable(r, 11);
+        return new(
         new AuctionListingId(r.GetInt64(0)),
         (AuctionMarket)r.GetInt32(1),
         (AuctionListingState)r.GetInt32(2),
@@ -186,7 +186,7 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
         r.GetInt32(7),
         r.GetInt32(8),
         r.GetInt32(9),
-        new AuctionPricing(Nullable(r, 10), Nullable(r, 11), Nullable(r, 12)),
+        new AuctionPricing(Nullable(r, 10), buyout, Nullable(r, 12)),
         Nullable(r, 13),
         r.IsDBNull(14) ? null : new CharacterId(r.GetInt32(14)),
         r.IsDBNull(15) ? null : new AccountId(r.GetInt32(15)),
@@ -195,6 +195,7 @@ internal sealed class SqliteAuctionDomainStore(SqliteDatabase database) : IAucti
         DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(18)),
         DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(19)),
         r.IsDBNull(20) ? null : Shown(InventoryItemCore.Decode((byte[])r.GetValue(20)), r.GetInt32(7)));
+    }
 
     /// <summary>A pile was stored with its listed count as the core value; equipment keeps its instance value.</summary>
     private static ItemSnapshot Shown(InventoryItemCoreState core, int quantityInitial) =>
