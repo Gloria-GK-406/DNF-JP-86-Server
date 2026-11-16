@@ -37,6 +37,19 @@ public sealed class ContentBoundaryArchitectureTests
     }
 
     [Fact]
+    public void Protocol_types_do_not_inject_rule_services()
+    {
+        var types = LoadableTypes(typeof(Dfo.Server.Protocol.ProtocolModule).Assembly).ToArray();
+        Assert.NotEmpty(types);
+        Assert.Empty(RuleServiceReaders(types).Select(type => type.FullName));
+    }
+
+    [Fact]
+    public void The_protocol_rule_rejects_direct_and_wrapped_rule_dependencies() =>
+        Assert.Equal([typeof(PretendProtocolReader), typeof(PretendProtocolCollectionReader), typeof(PretendProtocolArrayReader), typeof(PretendProtocolValueReader)],
+            RuleServiceReaders([typeof(PretendProtocolReader), typeof(PretendProtocolCollectionReader), typeof(PretendProtocolArrayReader), typeof(PretendProtocolValueReader), typeof(PretendRandomUser)]));
+
+    [Fact]
     public void The_judgements_reject_their_counterexamples()
     {
         Assert.Equal(["PretendRules", "PretendRuleService"],
@@ -77,6 +90,15 @@ public sealed class ContentBoundaryArchitectureTests
     private static bool IsRuleOwner(Type type) =>
         type.Name.EndsWith("RuleService", StringComparison.Ordinal) || type.Name.EndsWith("Policy", StringComparison.Ordinal);
 
+    private static IEnumerable<Type> RuleServiceReaders(IEnumerable<Type> types) => types
+        .Where(type => type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            .Any(constructor => constructor.GetParameters().Any(parameter => ContainsRuleService(parameter.ParameterType))));
+
+    private static bool ContainsRuleService(Type type) =>
+        type.Name.Split('`')[0].EndsWith("RuleService", StringComparison.Ordinal)
+        || type.HasElementType && ContainsRuleService(type.GetElementType()!)
+        || type.IsGenericType && type.GetGenericArguments().Any(ContainsRuleService);
+
     private static IEnumerable<Type> LoadableTypes(Assembly assembly)
     {
         try { return assembly.GetTypes(); }
@@ -91,6 +113,12 @@ public sealed class ContentBoundaryArchitectureTests
     public sealed class PretendDomainService(IPretendContentSource content) { public IPretendContentSource Content => content; }
     public sealed class PretendRuleService(IPretendContentSource content) { public IPretendContentSource Content => content; }
     public sealed class PretendRandomUser(IPretendRandomSource random) { public IPretendRandomSource Random => random; }
+    public interface IPretendRuleService;
+    public sealed class PretendProtocolReader(IPretendRuleService rules) { public IPretendRuleService Rules => rules; }
+    public sealed class PretendProtocolCollectionReader(IEnumerable<IPretendRuleService> rules)
+    { public IEnumerable<IPretendRuleService> Rules => rules; }
+    public sealed class PretendProtocolArrayReader(IPretendRuleService[] rules) { public IPretendRuleService[] Rules => rules; }
+    public readonly record struct PretendProtocolValueReader(IPretendRuleService Rules);
     public static class PretendRules;
     public sealed record PretendDataRules(int Limit);
     public interface IPretendContract { int Value(); }

@@ -3,9 +3,6 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.ServerBroadcast;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.DomainEvents;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dfo.Server.Application.ServerBroadcast;
 
@@ -63,20 +60,4 @@ internal sealed class ServerBroadcastRuleService : IServerBroadcastRuleService
     private static int Positive(IServerConfigService settings, string key) =>
         settings.GetConfig<int>(key) is var value and > 0
             ? value : throw new InvalidOperationException($"{key} must be positive.");
-}
-
-internal static class ServerBroadcastRegistration
-{
-    internal static IServiceCollection AddServerBroadcast(this IServiceCollection services)
-    {
-        services.TryAddSingleton<IServerBroadcastRuleService, ServerBroadcastRuleService>();
-        services.AddDomainEvent<EquipmentUpgradeAnnounced>("broadcast.equipment-upgrade", 1);
-        services.AddDomainEvent<VendingPrizeAnnounced>("broadcast.vending-prize", 1);
-        services.AddDomainEvent<BoxRewardAnnounced>("broadcast.box-reward", 1);
-        services.AddDomainEvent<EquipmentForgingAnnounced>("broadcast.equipment-forging", 1);
-        services.AddDomainEvent<RecipeCraftAnnounced>("broadcast.recipe-craft", 1);
-        services.AddDomainEvent<DespairTowerFloorAnnounced>("broadcast.despair-tower-floor", 1);
-        services.AddDomainEvent<AncientDungeonItemAnnounced>("broadcast.ancient-dungeon-item", 1);
-        return services;
-    }
 }

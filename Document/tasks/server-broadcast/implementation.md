@@ -48,10 +48,13 @@
 - **规则**：`IServerBroadcastRuleService`（Application `ServerBroadcastRuleService`）。
   - 负责开关和 PVF 未声明的阈值。
   - 稀有度与远古地下城的判定也放在这里，因为内容源只能注入规则服务（`ContentBoundaryArchitectureTests`）。
-- **投递**：Protocol `Game/ServerBroadcast/` 切片。
+- **广播决定**：Application `ServerBroadcast/`。
   - `ServerBroadcastSubscriber` 以 LiveOnly 订阅九种事实：提交后只投给在线会话，错过不补播。
-  - 受众是 `IChatScopeDomainService.MembersOf(ChatScope.Server)`。
-  - 投递经 `ServerBroadcastPosted` 通知，每个收件人收到同一帧。
+  - 询问规则、读取角色与物品名字，受众是 `IChatScopeDomainService.MembersOf(ChatScope.Server)` 返回的角色人群。
+  - 经 Abstractions 的 `ServerBroadcastPosted` 交付复制后的不可变角色名与具名业务内容，不携带协议消息；订阅 ID 保持稳定。
+- **协议投影**：Protocol `Game/ServerBroadcast/` 切片。
+  - `ServerBroadcastPostedHandler` 消费已决定内容，负责文案、原生帧／系统行选择和逐收件人组装，收件人得到相同的公告内容。
+  - 角色名的客户端字节长度上限在协议边界检查，不进入领域规则；编码器保留原生报文布局。
 - **PVF 解析补充**：
   - `OpeningReward.Announce`：奖池行第 4 列。
   - `RecipePlan.Broadcast`：`[broadcast type]`。
