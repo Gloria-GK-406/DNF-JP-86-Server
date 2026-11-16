@@ -78,7 +78,7 @@ internal sealed class EquipmentEmancipateDomainService(
     IEquipmentEmancipateRuleService rules,
     IOpeningEffectPlanRuleService plans,
     IMaterialConsumptionDomainService materials,
-    IDungeonRunQueryDomainService runs,
+    IDungeonParticipationDomainService participation,
     TimeProvider clock) : IEquipmentEmancipateDomainService
 {
     // Requiem stones (10000204) are quest-bag items; colorless and elemental crystals live in the account bag.
@@ -101,7 +101,7 @@ internal sealed class EquipmentEmancipateDomainService(
             or BusinessInventorySpace.QuickSlot)
             return new(EquipmentEmancipateRejection.InUse);
         if (targetSlot.Space != BusinessInventorySpace.CarriedEquipment) return new(EquipmentEmancipateRejection.InvalidRequest);
-        if (runs.Find(session.CharacterId) is not null) return new(EquipmentEmancipateRejection.NotInTown);
+        if (participation.Find(session.CharacterId) is not null) return new(EquipmentEmancipateRejection.NotInTown);
         var at = clock.GetUtcNow();
 
         var ticketBound = slots.Find(session.CharacterId, ticketSlot);
