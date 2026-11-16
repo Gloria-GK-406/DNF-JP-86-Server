@@ -32,6 +32,8 @@ LiveOnly 只处理本进程的新鲜事件：发送前提交一次消费决定�
 失败不补播；崩溃窗口允许漏提示。邮件每封记录 MailCreated，提醒按 BatchId/角色合并，
 不以合并提醒丢失事实。GM 活动配置在领域事务记录变化，HTTP 不负责广播。
 
+全区广播的规则、受众与协议表达边界见[全区广播结构](tasks/server-broadcast/implementation.md#结构)。
+
 协议即时投影在 CMD 内按原阶段登记。领域动作完成及所属事务落定之后，CMD 将具名结果交给
 `ICommandProjections.ProjectAsync`，最后由作业发件箱统一交付；不在薄 handler 中再次调用总线或 sender。
 选角的 PVP 发布、精确清理等流程保自己的受众和顺序，不能为了统一写法移动事务点。
