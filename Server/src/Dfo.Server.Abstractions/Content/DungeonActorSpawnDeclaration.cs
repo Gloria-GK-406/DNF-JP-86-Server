@@ -46,4 +46,18 @@ public sealed record DungeonActorDeclarationSupplement(
 
 public sealed record DungeonMapActorDeclarations(
     IReadOnlyList<DungeonActorSpawnDeclaration> Actors,
-    IReadOnlyList<DungeonActorDeclarationSupplement> Supplements);
+    IReadOnlyList<DungeonActorDeclarationSupplement> Supplements)
+{
+    /// <summary>The map's file-scope champion declarations.</summary>
+    public MapChampionDeclaration Champions { get; init; }
+}
+
+/// <summary>
+/// A map's file-scope <c>[champion] N</c> and <c>[fix champion]</c>.
+/// </summary>
+/// <param name="FixedCount">Champions this room always promotes, before the dungeon's random one.</param>
+/// <param name="SuppressesRandom">
+/// <c>[fix champion]</c>: the room takes only its fixed count and never the dungeon's random extra
+/// (70 <c>CBattle_Field::getAddChampionMobCnt</c> @ 0x083010EE reads CMap+0x12C before rolling).
+/// </param>
+public readonly record struct MapChampionDeclaration(int FixedCount, bool SuppressesRandom);

@@ -58,6 +58,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         internal static readonly PvfField<int> TournamentField = PvfField.Int32("[tournament dungeon]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> NamedMonsterField = PvfField.Int32List("[named monster]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> RevengeField = PvfField.Int32List("[village attack revenge dungeon]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> ChampionField = PvfField.Int32List("[champion]", optional: true);
     }
 
     private const string ListPath = "dungeon/dungeon.lst";
@@ -154,6 +155,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         var prohibitsPractice = false;
         var hasStoryMode = false;
         var namedMonsterCodes = ImmutableHashSet.CreateBuilder<int>();
+        IReadOnlyList<int> championRates = [];
 
         void Unique(PvfField field)
         {
@@ -168,6 +170,17 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
                 var value = Fields.EntryOnlyFatigueField.Decode(archive, section.Values, archivePath);
                 Require(value is > 0 and <= ushort.MaxValue, archivePath, Fields.EntryOnlyFatigueField, "expected positive UInt16 fatigue");
                 entryOnlyFatigue = (ushort)value;
+                continue;
+            }
+            if (Fields.ChampionField.Matches(section.Name))
+            {
+                // 70 ImportDungeonScript @ 0x088E7BD8 stores five per-difficulty ints at
+                // STDungeonScript+0xB4; CDungeon::set_dungeon copies them for SelectDungeon.
+                Unique(Fields.ChampionField);
+                var values = Fields.ChampionField.Decode(archive, section.Values, archivePath);
+                Require(values.Count <= 5 && values.All(value => value >= 0), archivePath, Fields.ChampionField,
+                    "expected at most five non-negative per-difficulty rates");
+                championRates = values;
                 continue;
             }
             if (Fields.NamedMonsterField.Matches(section.Name))
@@ -392,7 +405,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         { RecommendedLevels = document.Read(PvfField.Int32List("[recommended level]", optional: true)) ?? [], RequiredItems = requiredItems,
             EventRequiredItems = eventRequiredItems, IsSpiciesDungeon = isSpicies, PartyLimit = partyLimit, ProhibitsPractice = prohibitsPractice,
             HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable(),
-            LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath), EntryOnlyFatigue = entryOnlyFatigue };
+            LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath), EntryOnlyFatigue = entryOnlyFatigue,
+            ChampionRates = championRates };
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)

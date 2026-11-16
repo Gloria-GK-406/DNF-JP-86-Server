@@ -128,7 +128,7 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             definition.BasisLevel,
             definition.ExperienceWeight,
             purpose, definition.ConsumesFatigue) { NamedMonsterCodes = definition.NamedMonsterCodes, NoGiveupPenalty = definition.NoGiveupPenalty,
-                EntryOnlyFatigue = definition.EntryOnlyFatigue };
+                EntryOnlyFatigue = definition.EntryOnlyFatigue, ChampionRates = definition.ChampionRates };
     }
 
     public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)

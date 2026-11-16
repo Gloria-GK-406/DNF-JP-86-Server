@@ -19,6 +19,7 @@ internal static class PvfMapActorDeclarationParser
         var indexes = new Dictionary<DungeonActorSpawnSource, int>();
         var parentIndex = 0;
         var teams = new List<int>();
+        var champions = default(MapChampionDeclaration);
         foreach (var section in sections)
         {
             var name = section.Name.ToLowerInvariant();
@@ -55,6 +56,17 @@ internal static class PvfMapActorDeclarationParser
                     indexes[DungeonActorSpawnSource.SpecialPassiveObject] =
                         actors.Count(actor => actor.Source == DungeonActorSpawnSource.SpecialPassiveObject);
                     supplements.Add(Supplement(section, resolve, path));
+                    break;
+                case "[champion]":
+                    // File scope only: a rank word inside [monster] is a token, not a section.
+                    // 70 ImportMapScript @ 0x089E096F -> CMap+0x80, the room's fixed champion count.
+                    champions = champions with { FixedCount = cursor.NonnegativeInt("champion count") };
+                    cursor.Require(cursor.End, "champion count takes one integer");
+                    break;
+                case "[fix champion]":
+                    // 70 ImportMapScript @ 0x089E399D -> CMap+0x12C, a bare marker.
+                    cursor.Require(cursor.End, "fix champion marker must not have values");
+                    champions = champions with { SuppressesRandom = true };
                     break;
                 case "[monster team]":
                     while (!cursor.End) teams.Add(cursor.Int());
@@ -99,7 +111,7 @@ internal static class PvfMapActorDeclarationParser
             var team = teams[actor.RecordIndex];
             actors[index] = actor with { MonsterTeam = team };
         }
-        return new(actors.AsReadOnly(), supplements.AsReadOnly());
+        return new(actors.AsReadOnly(), supplements.AsReadOnly()) { Champions = champions };
     }
 
     private static DungeonActorSpawnDeclaration ParseMonster(Cursor cursor, DungeonActorSpawnSource source)

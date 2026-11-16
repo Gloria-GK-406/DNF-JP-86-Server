@@ -141,6 +141,12 @@ public sealed record DungeonLayout(
     /// </summary>
     public byte? FixedMonsterLevel { get; init; }
     public ImmutableHashSet<int> NamedMonsterCodes { get; init; } = [];
+    /// <summary>
+    /// The dungeon's per-difficulty <c>[champion]</c> rates, frozen at entry. Null means rooms of
+    /// this run promote no champions at all -- neither the dungeon's random one nor the map's fixed
+    /// count -- which is what layouts built outside the maze structure (tournament, guardian) keep.
+    /// </summary>
+    public IReadOnlyList<int>? ChampionRates { get; init; }
     /// <summary>Rule-declared combatants whose script dummy flag must not make a room skippable.</summary>
     public ImmutableHashSet<int> RequiredCombatantCodes { get; init; } = [];
     public ImmutableArray<DungeonObjectSpawn> RandomObjects { get; init; } = [];

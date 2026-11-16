@@ -157,6 +157,11 @@ public sealed record DungeonDefinition(
     public LinkedDungeonDefinition? LinkedDungeon { get; init; }
     /// <summary>When declared, charge this amount only on entry instead of per new room.</summary>
     public ushort? EntryOnlyFatigue { get; init; }
+    /// <summary>
+    /// <c>[champion]</c>: one value per difficulty (0..4), the base of the chance that a room gains
+    /// one random champion. Empty when the file does not declare it, which 70 reads as zero.
+    /// </summary>
+    public IReadOnlyList<int> ChampionRates { get; init; } = [];
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>

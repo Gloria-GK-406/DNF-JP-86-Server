@@ -218,6 +218,44 @@ public sealed class PvfMapActorDeclarationParserTests
         Assert.True(failures.Count == 0, string.Join(Environment.NewLine, failures.Take(20)));
     }
 
+    [Fact]
+    public void File_scope_champion_count_and_fix_marker_are_read_apart_from_monster_ranks()
+    {
+        var input = new Input();
+        input.Add("[monster]", [.. Monster(11, "[champion]", 0), .. Monster(12, "[normal]")]);
+        input.Add("[champion]", 2);
+        input.Add("[fix champion]");
+        var result = input.Parse();
+        Assert.Equal(new MapChampionDeclaration(2, true), result.Champions);
+        Assert.Equal(new byte[] { 1, 0 }, result.Actors.Select(actor => actor.Rank));
+
+        var plain = new Input();
+        plain.Add("[monster]", [.. Monster(12, "[normal]")]);
+        Assert.Equal(default, plain.Parse().Champions);
+    }
+
+    [Fact]
+    public void Fix_champion_marker_with_values_is_rejected()
+    {
+        var input = new Input();
+        input.Add("[fix champion]", 1);
+        Assert.Throws<InvalidDataException>(() => input.Parse());
+    }
+
+    [SkippableTheory]
+    [InlineData("map/MirkwoodFrost/h1401.map", 2, false)]
+    [InlineData("map/MirkwoodFrost/h1405.map", 1, false)]
+    [InlineData("map/epidemic/maze_15344(1,3)iris.map", 0, true)]
+    [InlineData("map/CounterAttack_r/22036_2227(7,1).map", 0, false)]
+    public void Real_maps_declare_their_fixed_champions(string path, int count, bool suppresses)
+    {
+        Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
+        using var provider = ContentArchive.CreateProvider();
+        var archive = provider.Archive;
+        var result = PvfMapActorDeclarationParser.Parse(archive, PvfDocument.Open(archive, path), path);
+        Assert.Equal(new MapChampionDeclaration(count, suppresses), result.Champions);
+    }
+
     [SkippableFact]
     public void Real_counterattack_and_defence_boss_declarations_preserve_source_identity()
     {
