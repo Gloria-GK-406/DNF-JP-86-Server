@@ -17,13 +17,9 @@ using Dfo.Server.Testing;
 namespace Dfo.Server.Protocol.Tests.Game;
 
 /// <summary>
-/// A departure has two audiences, and they leave by different routes now.
+/// Cleanup stages preserve their registration and delivery order in the real outbox.
 /// </summary>
 /// <remarks>
-/// The owner's notices go down the connection the departure is happening on; the peers are a
-/// fan-out named in exact selected sessions. Six places deliver one of these plans -- four inside a
-/// catch (OnlineUserConnectionObserver.cs:102, SelectCharacterHandler.cs:136, :156, :162) -- so
-/// the rule that the owner hears first lives here rather than in six hand-written sequences.
 /// The delivery runs as a job against the real outbox (T-006): the cases read the entries it registered,
 /// in one ordered group (XO-5), the owner's first and Required (DR-10).
 /// </remarks>
@@ -55,7 +51,7 @@ public sealed class CleanupNotificationDeliveryTests
     }
 
     [Fact]
-    public async Task Existing_owner_and_town_notices_finish_before_party_projection()
+    public async Task Cleanup_stages_register_owner_town_party_conversation_then_friends()
     {
         var partyMember = SelectedSessionIdentity.Create(
             new AccountId(9),
@@ -71,10 +67,14 @@ public sealed class CleanupNotificationDeliveryTests
             10011);
         await using var outbound = Outbound(Peer(9), partyMember, townObserver);
         var notifications = outbound.Projections;
-        var partyDelivery = global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(notifications, new PartyProjectionStreamRegistry(), new FixedSelectedSessions(partyMember, townObserver), new FixedPresence(partyMember, townObserver), outbound.Ordering);
+        var owner = SelectedSessionIdentity.Create(new AccountId(42), new CharacterId(42), Owner, 1, 10011);
+        var conversation = new Dfo.Server.Data.Chat.ChatConversationDeparture(new(5),
+            new(owner, "a"u8.ToArray()), new(townObserver, "b"u8.ToArray()));
+        var friendDeparture = new SelectedSessionFriendDeparture(owner.CharacterId, "a"u8.ToArray(), [townObserver.CharacterId]);
 
         await outbound.RunAsync(async () =>
-        await global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.StateSynchronization.CleanupNotificationDelivery>(outbound.Game, notifications, partyDelivery, outbound.Ordering).DeliverAsync(
+        await ProtocolAlgorithmFixture.Create<CleanupNotificationDelivery>(outbound.Game, notifications,
+            new PartyProjectionStreamRegistry(), new FixedPresence(partyMember, townObserver), outbound.Ordering).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
                 Owner,
                 [StoreClosed],
@@ -92,15 +92,71 @@ public sealed class CleanupNotificationDeliveryTests
                     [partyMember],
                     [new PartyDirectoryRecipientGroup(
                         new PartyDirectoryScope(11, 1, 1),
-                        [partyMember, townObserver])])),
+                        [partyMember, townObserver])]))
+            {
+                ConversationDepartures = [conversation],
+                FriendDeparture = friendDeparture,
+            },
             CancellationToken.None));
 
-        Assert.Equal(["owner", "peers", "party", "party"], Order(outbound));
+        Assert.Equal(["owner", "peers", "party", "party", "peers"], Order(outbound));
         var published = notifications.Published.ToArray();
+        Assert.Equal(5, published.Length);
         Assert.IsType<SessionCleanupAnnounced>(published[0].Notification);
         Assert.IsType<PartyRosterChanged>(published[1].Notification);
         Assert.IsType<PartyRosterChanged>(published[2].Notification);
-        Assert.Equal([1, 2, 3, 4], outbound.Recorder.Entries.Select(entry => entry.Order!.Value.Sequence));
+        Assert.Same(conversation, Assert.IsType<ChatConversationLeft>(published[3].Notification).Departure);
+        Assert.Equal([townObserver], Assert.IsType<NotificationAudience.TheseSessions>(published[3].Audience).Sessions);
+        Assert.IsType<FriendWentOffline>(published[4].Notification);
+        Assert.Equal([townObserver.CharacterId], Assert.IsType<NotificationAudience.TheseCharacters>(published[4].Audience).CharacterIds);
+        Assert.Equal([1, 2, 3, 4, 5], outbound.Recorder.Entries.Select(entry => entry.Order!.Value.Sequence));
+    }
+
+    [Fact]
+    public async Task An_empty_plan_remains_harmless_with_a_cancelled_token()
+    {
+        await using var outbound = Outbound();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await outbound.RunAsync(async () => await Delivery(outbound).DeliverAsync(
+            new SelectedSessionCleanupNotificationPlan(Owner, [], [], []), cancellation.Token));
+
+        Assert.Empty(outbound.Recorder.Entries);
+        Assert.Empty(outbound.Projections.Published);
+    }
+
+    [Fact]
+    public async Task A_cancelled_owner_registration_propagates_the_token_and_stops_later_stages()
+    {
+        await using var outbound = Outbound(Peer(9));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await outbound.RunAsync(async () =>
+        {
+            var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await Delivery(outbound).DeliverAsync(
+                    new SelectedSessionCleanupNotificationPlan(Owner, [StoreClosed], [Peer(9)], [Departed]), cancellation.Token));
+            Assert.Equal(cancellation.Token, error.CancellationToken);
+        });
+
+        Assert.Empty(outbound.Recorder.Entries);
+        Assert.Empty(outbound.Projections.Published);
+    }
+
+    [Fact]
+    public async Task An_owner_mapping_failure_propagates_without_projecting_later_stages()
+    {
+        await using var outbound = Outbound(Peer(9));
+        await outbound.RunAsync(async () =>
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await Delivery(outbound).DeliverAsync(
+                new SelectedSessionCleanupNotificationPlan(Owner,
+                    [new SelectedSessionCleanupNotice((SelectedSessionCleanupNoticeKind)99, 42)], [Peer(9)], [Departed]),
+                CancellationToken.None)));
+
+        Assert.Empty(outbound.Recorder.Entries);
+        Assert.Empty(outbound.Projections.Published);
     }
 
     /// <summary>What each half becomes, and that town peers keep their sampled sessions.</summary>
@@ -299,7 +355,8 @@ public sealed class CleanupNotificationDeliveryTests
     }
 
     private static CleanupNotificationDelivery Delivery(XoDelivery outbound) =>
-        global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.StateSynchronization.CleanupNotificationDelivery>(outbound.Game, outbound.Projections, global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery>(outbound.Projections), outbound.Ordering);
+        ProtocolAlgorithmFixture.Create<CleanupNotificationDelivery>(
+            outbound.Game, outbound.Projections, new PartyProjectionStreamRegistry(), outbound.Ordering);
 
     /// <summary>What was registered, in registration order, as owner / peers / party.</summary>
     private static IReadOnlyList<string> Order(XoDelivery outbound) =>
@@ -315,68 +372,6 @@ public sealed class CleanupNotificationDeliveryTests
             new NetworkConnectionId($"Game:peer-{characterId}"),
             1,
             10011);
-
-    private sealed class FixedSelectedSessions(params SelectedSessionIdentity[] values)
-        : ISelectedSessionDomainService
-    {
-        // Test double: the current selection counts as being in the world, and
-        // remembers which sessions were fenced.
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<
-            Dfo.Server.Data.World.SelectedSessionIdentity, bool> testDoubleFences = new();
-        void Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.EnterWorld(
-            Dfo.Server.Data.World.SelectedSessionIdentity session) { }
-        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.Fence(
-            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
-            && testDoubleFences.TryAdd(session, true) | true;
-        Dfo.Server.Data.World.SelectedSessionStanding? Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.StandingOf(
-            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).Find(session.AccountId) == session
-                ? new(Dfo.Server.Data.World.SelectedSessionPhase.InWorld, testDoubleFences.ContainsKey(session), false)
-                : null;
-        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsInWorld(
-            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session)
-                is { Phase: Dfo.Server.Data.World.SelectedSessionPhase.InWorld };
-        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.IsSelected(
-            Dfo.Server.Data.World.SelectedSessionIdentity session) =>
-            ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).StandingOf(session) is { ConnectionRevoked: false };
-        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
-            Dfo.Server.Data.Characters.CharacterId characterId,
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
-        {
-            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByCharacter(characterId);
-            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
-            return session is not null;
-        }
-        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
-            ushort wireUserId,
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
-        {
-            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByWireUserId(wireUserId);
-            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
-            return session is not null;
-        }
-        bool Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService.TryGetInWorld(
-            Dfo.Server.Data.Networking.NetworkConnectionId connectionId,
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Dfo.Server.Data.World.SelectedSessionIdentity? session)
-        {
-            session = ((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).FindByConnection(connectionId);
-            if (session is not null && !((Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService)this).IsInWorld(session)) session = null;
-            return session is not null;
-        }
-
-        public SelectedSessionIdentity? Select(SelectedSessionIdentity session) => null;
-        public bool ReleaseExact(SelectedSessionIdentity session) => false;
-        public SelectedSessionIdentity? Find(AccountId accountId) =>
-            values.SingleOrDefault(value => value.AccountId == accountId);
-        public SelectedSessionIdentity? FindByCharacter(CharacterId characterId) =>
-            values.SingleOrDefault(value => value.CharacterId == characterId);
-        public SelectedSessionIdentity? FindByWireUserId(ushort wireUserId) =>
-            values.SingleOrDefault(value => value.WireUserId == wireUserId);
-        public SelectedSessionIdentity? FindByConnection(NetworkConnectionId connectionId) =>
-            values.SingleOrDefault(value => value.ConnectionId == connectionId);
-    }
 
     private sealed class FixedPresence(params SelectedSessionIdentity[] sessions)
         : ISessionPresenceDomainService

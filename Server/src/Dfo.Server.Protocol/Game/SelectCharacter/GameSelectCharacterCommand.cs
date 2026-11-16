@@ -766,22 +766,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         try { return await cleanup.CleanupAsync(execution, session, includeOwner: true, cancellationToken: ct).ConfigureAwait(false); }
         finally { selectedSessions.ReleaseExact(session); }
     }
-    private async ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct)
-    {
-        using var order = ordering.Begin("XO-5 session cleanup",
-            plan.RequiredOwnerNotices.Count > 0 ? OutboundDelivery.Required : OutboundDelivery.BestEffort);
-        if (plan.RequiredOwnerNotices.Count > 0)
-            await outbox.RegisterExplicitAsync(plan.OwnerConnectionId,
-                new([.. plan.RequiredOwnerNotices.Select(CleanupNoticeMessages.ToMessage)], []), ct).ConfigureAwait(false);
-        order.Delivery = OutboundDelivery.BestEffort;
-        if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
-            await projections.ProjectAsync(new NotificationAudience.TheseSessions(plan.PeerAudience), new SessionCleanupAnnounced(plan.PeerNotices), ct).ConfigureAwait(false);
-        await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering, plan.PartyNotifications, plan.PartyRecipients, ct).ConfigureAwait(false);
-        foreach (var (audience, left) in Dfo.Server.Protocol.Game.ConversationDepartureNotices.For(plan))
-            await projections.ProjectAsync(audience, left, ct).ConfigureAwait(false);
-        foreach (var (audience, offline) in Dfo.Server.Protocol.Game.FriendDepartureNotices.For(plan))
-            await projections.ProjectAsync(audience, offline, ct).ConfigureAwait(false);
-    }
+    private ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) =>
+        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, ct);
     private async ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity session, TownParticipantPublicationPlan publication, CancellationToken ct)
     {
         if (!selectedSessions.IsInWorld(session)) return;

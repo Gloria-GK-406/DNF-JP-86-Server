@@ -95,9 +95,8 @@ public sealed class ChatConversationLeftHandler : INotificationHandler<ChatConve
 
 /// <summary>What a session cleanup has to project for the 1:1 conversations it ended.</summary>
 /// <remarks>
-/// A cleanup plan is delivered from more than one place -- disconnect, return to selection and a
-/// selection that replaces an older session -- and each of them must tell the members left behind.
-/// Each place projects these after its party notices, so the rule of who hears what lives here once.
+/// CleanupNotificationStages projects these after the party notices. The remaining member is
+/// addressed by the exact session sampled when the conversation ended.
 /// </remarks>
 internal static class ConversationDepartureNotices
 {

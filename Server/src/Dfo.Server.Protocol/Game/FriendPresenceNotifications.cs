@@ -138,9 +138,8 @@ internal static class FriendObservers
 
 /// <summary>What a session cleanup has to project for the friends of the character that left.</summary>
 /// <remarks>
-/// A cleanup plan is delivered from three places -- disconnect, return to selection and a selection
-/// that replaces an older session -- and each of them must tell the friends, or they keep showing the
-/// character online. Each place projects this after its conversation notices, so the rule lives here once.
+/// CleanupNotificationStages projects this after the conversation notices so observers stop showing
+/// the departed character online. The plan carries the observers sampled during cleanup.
 /// </remarks>
 internal static class FriendDepartureNotices
 {

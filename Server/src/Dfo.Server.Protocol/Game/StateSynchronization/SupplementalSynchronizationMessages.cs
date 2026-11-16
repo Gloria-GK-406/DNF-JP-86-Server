@@ -1,10 +1,11 @@
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
@@ -220,16 +221,7 @@ internal static class CleanupNoticeMessages
         };
 }
 
-/// <summary>Delivers a disconnect's cleanup plan, in the order its parts have to go out in.</summary>
-/// <remarks>
-/// The plan leaves by five routes -- the owner's notices down the connection this code already
-/// holds, town peers through their notification, the independently addressed party projection, the
-/// members left behind in the 1:1 conversations the departure ended, and last the characters keeping
-/// the leaver as a friend. This service is the disconnect's sequence. Return to selection and a
-/// selection that replaces an older session deliver their plans with their own copies of it, inside
-/// their commands, so a part added to the plan has to be added to all three; the conversation and
-/// friend parts are shared through ConversationDepartureNotices and FriendDepartureNotices.
-/// </remarks>
+/// <summary>Delivers a disconnect's cleanup plan through the shared cleanup stages.</summary>
 public interface ICleanupNotificationDelivery
 {
     ValueTask DeliverAsync(
@@ -237,50 +229,14 @@ public interface ICleanupNotificationDelivery
 }
 
 internal sealed class CleanupNotificationDelivery(
-    IGameMessageSender sender,
-    IEventService notifications,
-    PartyNotificationDelivery partyNotifications,
+    IGameCommandOutbox outbox,
+    ICommandProjections projections,
+    IPartyProjectionStateDomainService projectionState,
+    IPartyService parties,
     IOutboundOrdering ordering) : ICleanupNotificationDelivery
 {
 
-    public async ValueTask DeliverAsync(
-        SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(plan);
-        // XO-5 / DR-10: the owner's notices first and Required, so a failed owner skips the rest;
-        // the town peers and the party projection follow in that order, BestEffort.
-        using var order = ordering.Begin("XO-5 session cleanup",
-            plan.RequiredOwnerNotices.Count > 0 ? OutboundDelivery.Required : OutboundDelivery.BestEffort);
-        if (plan.RequiredOwnerNotices.Count > 0)
-        {
-            await sender.SendExplicitAsync(
-                plan.OwnerConnectionId,
-                new GameExplicitMessageDelivery(
-                    [.. plan.RequiredOwnerNotices.Select(CleanupNoticeMessages.ToMessage)],
-                    []),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        if (order is not null)
-            order.Delivery = OutboundDelivery.BestEffort;
-
-        if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
-        {
-            await notifications.ProjectAsync(
-                new NotificationAudience.TheseSessions(plan.PeerAudience),
-                new SessionCleanupAnnounced(plan.PeerNotices),
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        await partyNotifications.DeliverAsync(
-            plan.PartyNotifications,
-            plan.PartyRecipients,
-            cancellationToken).ConfigureAwait(false);
-
-        foreach (var (audience, left) in Dfo.Server.Protocol.Game.ConversationDepartureNotices.For(plan))
-            await notifications.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);
-
-        foreach (var (audience, offline) in Dfo.Server.Protocol.Game.FriendDepartureNotices.For(plan))
-            await notifications.ProjectAsync(audience, offline, cancellationToken).ConfigureAwait(false);
-    }
+    public ValueTask DeliverAsync(
+        SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken) =>
+        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, cancellationToken);
 }
