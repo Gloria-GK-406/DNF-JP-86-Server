@@ -38,6 +38,11 @@ LiveOnly 只处理本进程的新鲜事件：发送前提交一次消费决定�
 `ICommandProjections.ProjectAsync`，最后由作业发件箱统一交付；不在薄 handler 中再次调用总线或 sender。
 选角的 PVP 发布、精确清理等流程保自己的受众和顺序，不能为了统一写法移动事务点。
 
+会话清理计划由 `CleanupNotificationStages.DeliverAsync` 统一登记：属主 Required 通知 → 城镇精确会话人群 →
+队伍投影 → 私聊离场 → 好友离线。外层保持 XO-5 / DR-10，队伍阶段继续使用原 XO-6 顺序、修订水位与采样受众。
+断线的 `ICleanupNotificationDelivery` 和回选、选角 CMD 均转调该实现，共用发件箱及即时投影能力。
+调用点仍负责取消 token、部分失败计划、补偿及异常处理；共享阶段不捕获异常或增加取消检查，空计划不会因 token 已取消而报错。
+
 ## 通知受众与处理器
 
 - **人群以角色表达，不是连接。** `NotificationAudience` 是一个封闭层级的值；

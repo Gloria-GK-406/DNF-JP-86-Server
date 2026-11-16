@@ -254,7 +254,7 @@ public sealed partial class SelectCharacterLifecycleTests
             new AccountId(777), new CharacterId(4243), new NetworkConnectionId("Game:peer"), 1, 10011);
         var cleanupDelivery = ProtocolAlgorithmFixture.Create<CleanupNotificationDelivery>(
             outbound.Game, outbound.Projections,
-            ProtocolAlgorithmFixture.Create<PartyNotificationDelivery>(outbound.Projections));
+            new PartyProjectionStreamRegistry(), outbound.Ordering);
         var fixture = await Fixture.CreateAsync(failQuest: true,
             gameSender: outbound.Game, connectionCloser: outbound.Closer, cleanupDelivery: cleanupDelivery);
         fixture.Cleanup.Plan = session => new SelectedSessionCleanupNotificationPlan(
@@ -1107,8 +1107,9 @@ public sealed partial class SelectCharacterLifecycleTests
     {
         public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken ct = default)
             where T : class, INotification<T> =>
-            (notification is SessionCleanupAnnounced && cleanupDelivery is not NoopCleanupDelivery
-                ? ProtocolAlgorithmFixture.Field<IEventService>(cleanupDelivery) : events).ProjectAsync(audience, notification, ct);
+            notification is SessionCleanupAnnounced && cleanupDelivery is not NoopCleanupDelivery
+                ? ProtocolAlgorithmFixture.Field<ICommandProjections>(cleanupDelivery).ProjectAsync(audience, notification, ct)
+                : events.ProjectAsync(audience, notification, ct);
     }
     private sealed class TestGameOutbox(IGameMessageSender sender) : IGameCommandOutbox
     {
