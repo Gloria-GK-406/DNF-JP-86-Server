@@ -11,7 +11,14 @@ public sealed record DungeonMapDefinition(
     IReadOnlyList<int> DungeonIds,
     DungeonMapKind Kind,
     IReadOnlyList<DungeonMapConnection> Connections,
-    bool HasStartArea);
+    bool HasStartArea)
+{
+    /// <summary>
+    /// Codes of the map's <c>[monster condition]</c> rows: the conditional monsters a dungeon's
+    /// <c>[boss room entrance condition]</c> may place in this room.
+    /// </summary>
+    public IReadOnlyList<int> ConditionalMonsterCodes { get; init; } = [];
+}
 
 public interface IDungeonMapDefinitionSource
 {

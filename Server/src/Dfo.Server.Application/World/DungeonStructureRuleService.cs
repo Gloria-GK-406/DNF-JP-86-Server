@@ -131,7 +131,8 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             definition.ExperienceWeight,
             purpose, definition.ConsumesFatigue) { NamedMonsterCodes = definition.NamedMonsterCodes, NoGiveupPenalty = definition.NoGiveupPenalty,
                 EntryOnlyFatigue = definition.EntryOnlyFatigue, ChampionRates = definition.ChampionRates,
-                ClearConditions = maze.ClearConditions, IgnoresDefaultClear = definition.IgnoresDefaultClear };
+                ClearConditions = maze.ClearConditions, IgnoresDefaultClear = definition.IgnoresDefaultClear,
+                BossRoomEntrance = definition.BossRoomEntrance };
     }
 
     public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)
@@ -161,7 +162,47 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             return layout;
         }
         await ValidateReachableMapsAsync(layout, cancellationToken).ConfigureAwait(false);
-        return layout;
+        return layout with { EntrancePlan = await PlanEntranceAsync(layout, cancellationToken).ConfigureAwait(false) };
+    }
+
+    /// <summary>
+    /// Places each <c>[hunt monster]</c> target of the dungeon's boss room entrance condition in its
+    /// own room, drawn from the run's seed.
+    /// </summary>
+    /// <remarks>
+    /// The reference server's rule (ServerS4A21 <c>SpecialDungeonRunCoordinator</c> 558-619, no A21
+    /// capture yet): a candidate is an ordinary room -- neither the start nor the boss cell -- whose
+    /// map declares the target in <c>[monster condition]</c>, and each target takes a different room.
+    /// 2010 places its three residents in three of the rooms that all declare all three; 2016's four
+    /// identical targets fill exactly the four rooms declaring them, which are the four cells its
+    /// fixed minimap <c>[grid]</c> marks. Only cells with one explicit map are candidates, so the
+    /// room a target is placed in is the room the run later builds there.
+    /// </remarks>
+    private async ValueTask<DungeonEntrancePlan?> PlanEntranceAsync(DungeonLayout layout, CancellationToken cancellationToken)
+    {
+        if (layout.BossRoomEntrance is not { IsExecutable: true } entrance)
+            return null;
+        var candidates = new List<(MazeCell Cell, int MapId, IReadOnlyList<int> Codes)>();
+        foreach (var (cell, definition) in layout.Cells.OrderBy(pair => pair.Key.Y).ThenBy(pair => pair.Key.X))
+        {
+            if (cell == layout.StartCell || cell == layout.BossCell || definition.MapCandidates.Count != 1)
+                continue;
+            var map = await maps.GetAsync(definition.MapCandidates[0], cancellationToken).ConfigureAwait(false);
+            if (map is { Kind: DungeonMapKind.Normal, ConditionalMonsterCodes.Count: > 0 })
+                candidates.Add((cell, map.MapId, map.ConditionalMonsterCodes));
+        }
+        var targets = new List<DungeonEntranceTarget>();
+        for (var index = 0; index < entrance.Hunts.Count; index++)
+        {
+            var code = entrance.Hunts[index].Code;
+            var fitting = candidates.Where(candidate => candidate.Codes.Contains(code)).ToArray();
+            if (fitting.Length == 0)
+                return null;
+            var picked = fitting[(int)(Mix(layout.Seed, salt: 0x45_4E_54 + index) % (uint)fitting.Length)];
+            candidates.Remove(picked);
+            targets.Add(new(code, picked.Cell, picked.MapId));
+        }
+        return new DungeonEntrancePlan(entrance.SummonCode, targets.AsReadOnly()) { SummonCount = entrance.SummonCount };
     }
 
     /// <summary>Content syntax is read globally; run semantics belong only to the selected maze.</summary>

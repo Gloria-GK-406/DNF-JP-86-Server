@@ -52,6 +52,31 @@ public sealed record DungeonClearCondition(DungeonClearConditionKind Kind, IRead
     public bool IsCounted => this.Kind != DungeonClearConditionKind.LimitTime;
 }
 
+/// <summary>One <c>[hunt monster]</c> target of a <c>[boss room entrance condition]</c>.</summary>
+/// <param name="Code">The conditional monster to hunt; one entry is one placed instance.</param>
+/// <param name="First">Second integer of the triple, kept as declared (2010: 1, 2016: 1, 2005: 0).</param>
+/// <param name="Second">Third integer of the triple, kept as declared (2010: 1, 2016: 4, 2005: 2).</param>
+public sealed record DungeonEntranceHuntTarget(int Code, int First, int Second);
+
+/// <summary>
+/// <c>[boss room entrance condition]</c>: conditional monsters spread over the maze and what happens
+/// once all are hunted. Only the summon action is run; any other action (2005's
+/// <c>[time condition]</c>) is kept as <see cref="UnsupportedAction"/> and the whole condition is
+/// left unexecuted.
+/// </summary>
+/// <param name="SkipsBossRoomCheck"><c>[no check enter boss room]</c>.</param>
+/// <param name="SummonCode">The monster <c>[clear action] [summon monster] N code</c> calls in.</param>
+/// <param name="SummonCount">The N of the summon action.</param>
+public sealed record DungeonBossRoomEntranceCondition(
+    bool SkipsBossRoomCheck,
+    int SummonCode,
+    int SummonCount,
+    IReadOnlyList<DungeonEntranceHuntTarget> Hunts)
+{
+    public string? UnsupportedAction { get; init; }
+    public bool IsExecutable => this.UnsupportedAction is null && this.SummonCode > 0 && this.Hunts.Count > 0;
+}
+
 /// <summary>
 /// One maze a dungeon can be run as: its grid, the rooms on it, and where a run may start and
 /// where its boss may stand.
@@ -202,6 +227,8 @@ public sealed record DungeonDefinition(
     /// so its meaning is the server's.
     /// </summary>
     public bool IgnoresDefaultClear { get; init; }
+    /// <summary><c>[boss room entrance condition]</c>, when the dungeon declares one.</summary>
+    public DungeonBossRoomEntranceCondition? BossRoomEntrance { get; init; }
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>

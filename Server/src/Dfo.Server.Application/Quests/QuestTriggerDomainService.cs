@@ -12,9 +12,10 @@ namespace Dfo.Server.Application.Quests;
 /// </summary>
 internal sealed class QuestTriggerDomainService(
     ICharacterQuestLogDomainService logs,
-    IDungeonRunQueryDomainService runs) : IQuestTriggerDomainService
+    IDungeonRunQueryDomainService runs,
+    IDungeonStructureRuleService structures) : IQuestTriggerDomainService
 {
-    public ValueTask<QuestAdvance> ApplyClientReportAsync(
+    public async ValueTask<QuestAdvance> ApplyClientReportAsync(
         AccountId accountId,
         CharacterId characterId,
         QuestDefinition definition,
@@ -26,26 +27,39 @@ internal sealed class QuestTriggerDomainService(
         var authority = QuestObjectives.AuthorityOver(definition, selector);
         if (authority == QuestObjectiveAuthority.Client
             && IsHuntEnemy(definition)
-            && !MatchesCurrentQuestRun(characterId, definition, selector))
+            && !await MatchesCurrentQuestRunAsync(characterId, definition, selector, cancellationToken).ConfigureAwait(false))
         {
-            return ValueTask.FromResult(QuestAdvance.Refused);
+            return QuestAdvance.Refused;
         }
 
-        return logs.LogOf(accountId, characterId)
-            .AdvanceAsync(definition, selector, increment, cancellationToken);
+        return await logs.LogOf(accountId, characterId)
+            .AdvanceAsync(definition, selector, increment, cancellationToken).ConfigureAwait(false);
     }
 
-    private bool MatchesCurrentQuestRun(
+    /// <remarks>
+    /// The run that makes a passive-object report possible is the quest's own maze when the dungeon
+    /// connects one to the quest -- quest 1776's object exists only in its story maze of 144, so an
+    /// ordinary 144 run reporting it is refused. A dungeon connecting no maze to the quest holds the
+    /// objects in its ordinary play (13503 rescues its residents in 2010's only maze), so standing in
+    /// that named dungeon is the binding there.
+    /// </remarks>
+    private async ValueTask<bool> MatchesCurrentQuestRunAsync(
         CharacterId characterId,
         QuestDefinition definition,
-        byte selector)
+        byte selector,
+        CancellationToken cancellationToken)
     {
         var run = runs.Find(characterId);
-        if (run is null
-            || run.Layout.Purpose.QuestId != definition.QuestId
-            || run.Layout.Purpose.QuestState != DungeonQuestConnectionState.Active)
-        {
+        if (run is null)
             return false;
+        var questBound = run.Layout.Purpose.QuestId == definition.QuestId
+            && run.Layout.Purpose.QuestState == DungeonQuestConnectionState.Active;
+        if (!questBound)
+        {
+            var dungeon = await structures.GetDefinitionAsync(run.Layout.DungeonId, cancellationToken).ConfigureAwait(false);
+            if (dungeon is null || dungeon.QuestConnection?.QuestId == definition.QuestId
+                || dungeon.Mazes.Any(maze => maze.QuestConnection?.QuestId == definition.QuestId))
+                return false;
         }
 
         var targets = QuestKillObjectiveRules.Select(definition.KillObjectives, selector);
@@ -53,9 +67,15 @@ internal sealed class QuestTriggerDomainService(
             return false;
         foreach (var target in targets)
         {
+            var inScope = target.Scope.Kind switch
+            {
+                QuestKillScopeKind.Dungeon => target.Scope.Id == run.Layout.DungeonId,
+                // Valid in any dungeon: only the quest's own maze binds it.
+                QuestKillScopeKind.AnyDungeon => questBound,
+                _ => false,
+            };
             if (target.Target.EnemyType != HuntEnemyTargetTypes.PassiveObject
-                || (target.Scope.Kind == QuestKillScopeKind.Dungeon && target.Scope.Id != run.Layout.DungeonId)
-                || target.Scope.Kind is not (QuestKillScopeKind.Dungeon or QuestKillScopeKind.AnyDungeon)
+                || !inScope
                 || !QuestKillObjectiveRules.MatchesDifficulty(target, (int)run.Difficulty))
             {
                 return false;

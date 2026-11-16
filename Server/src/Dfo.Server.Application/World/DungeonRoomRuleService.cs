@@ -37,6 +37,7 @@ internal sealed class DungeonRoomRuleService(
 
         var declared = await roomActors.GetAsync(context.MapId, cancellationToken)
             .ConfigureAwait(false);
+        declared = await this.WithEntranceTargetsAsync(context, declared, cancellationToken).ConfigureAwait(false);
         var resolved = declared.Select(actor => actor.ActorType < FirstAiCharacterActorType
             ? actor with
             {
@@ -75,6 +76,59 @@ internal sealed class DungeonRoomRuleService(
                 .Distinct().Select(kind => (mechanisms).Define(kind)).ToArray(),
         };
     }
+
+    /// <summary>
+    /// Adds the conditional monsters this run's boss room entrance plan placed in this room, from
+    /// the map's own <c>[monster condition]</c> rows, after the map's monsters and before its AI
+    /// characters.
+    /// </summary>
+    /// <remarks>
+    /// The rows are skipped by ordinary room generation; only a placed target brings one in. It is
+    /// hostile and blocks the room's clear like any ordinary monster (ServerS4A21
+    /// <c>SpecialDungeonRunCoordinator</c> 489-520). Unlike the reference, no hidden summon template
+    /// is added to the start-map frame: the A21 client reads 0x001D's flag pair as a createMap group
+    /// binding (0x01745F85) and summons from its own copy of the map instead (0x01193290).
+    /// </remarks>
+    private async ValueTask<IReadOnlyList<DungeonRoomActor>> WithEntranceTargetsAsync(
+        DungeonCellCreationContext context, IReadOnlyList<DungeonRoomActor> declared, CancellationToken cancellationToken)
+    {
+        if (context.Layout.EntrancePlan is not { } plan || plan.Targets.All(target => target.Cell != context.Cell))
+            return declared;
+        var rows = (await roomActors.GetDeclarationsAsync(context.MapId, cancellationToken).ConfigureAwait(false)).Actors
+            .Where(row => row.Source == DungeonActorSpawnSource.ConditionalMonster).ToArray();
+        var placed = new List<DungeonRoomActor>();
+        foreach (var target in plan.Targets.Where(target => target.Cell == context.Cell))
+        {
+            var row = rows.FirstOrDefault(row => row.Code == target.Code)
+                ?? throw new InvalidDataException($"Map {context.MapId} does not declare entrance target {target.Code}.");
+            placed.Add(FromDeclaration(row));
+        }
+        var monsters = declared.TakeWhile(actor => actor.ActorType < FirstAiCharacterActorType).Count();
+        return [.. declared.Take(monsters), .. placed, .. declared.Skip(monsters)];
+    }
+
+    public async ValueTask<IReadOnlyList<DungeonRoomActor>> DescribeConditionalSummonsAsync(
+        DungeonLayout layout, int mapId, int code, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        var rows = (await roomActors.GetDeclarationsAsync(mapId, cancellationToken).ConfigureAwait(false)).Actors
+            .Where(row => row.Source == DungeonActorSpawnSource.ConditionalSummon && row.Code == code);
+        return [.. rows.Select(FromDeclaration).Select(actor => actor with
+        {
+            Level = ResolveMonsterLevel(layout, actor),
+            BasisLevelOffset = null,
+        })];
+    }
+
+    /// <summary>A declared row as a room actor, the way the map source adapts its unconditional rows.</summary>
+    private static DungeonRoomActor FromDeclaration(DungeonActorSpawnDeclaration row) =>
+        new(row.Code, !row.RelativeLevel && row.LevelValue > 0 ? (byte)Math.Min(row.LevelValue, byte.MaxValue) : (byte)0,
+            checked((byte)(row.Rank + (row.Source == DungeonActorSpawnSource.AiCharacter ? FirstAiCharacterActorType : 0))),
+            row.RelativeLevel ? row.LevelValue : null, row.RandomDropCount)
+        {
+            Declaration = row,
+            IsHostile = !row.IsDummy && row.Faction == DungeonActorFaction.Monster,
+        };
 
     private static byte ResolveMonsterLevel(DungeonLayout layout, DungeonRoomActor actor)
     {

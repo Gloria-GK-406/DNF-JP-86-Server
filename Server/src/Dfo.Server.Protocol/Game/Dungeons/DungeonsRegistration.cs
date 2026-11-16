@@ -20,6 +20,8 @@ internal static class DungeonsRegistration
         services.TryAddSingleton<IDungeonRunParticipantDepartureSink>(provider =>
             provider.GetRequiredService<DungeonRunDeliveryRegistry>());
         services.AddGameNotiMessageEncoder<HellPartyMonsterInfoNotification, HellPartyMonsterInfoEncoder>();
+        services.AddGameNotiMessageEncoder<DungeonEntranceTargetIconsNotification, DungeonEntranceTargetIconsEncoder>();
+        services.AddGameNotiMessageEncoder<DungeonEntranceConditionPassedNotification, DungeonEntranceConditionPassedEncoder>();
         return services;
     }
 }

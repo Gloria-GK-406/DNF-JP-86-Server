@@ -1920,6 +1920,26 @@ public sealed partial class DungeonRunDomainServiceTests
         });
     }
 
+    /// <summary>A dungeon whose entrance condition skips the boss room check lets its boss cell be left (2010).</summary>
+    [Fact]
+    public void A_boss_cell_that_is_not_the_end_may_be_left()
+    {
+        TestGameplay.Run(() =>
+        {
+            var service = TestParties.Runs();
+            var layout = Tutorial with
+            {
+                StartCell = Tutorial.BossCell,
+                StartRoomMapId = Tutorial.Cells[Tutorial.BossCell].MapCandidates[0],
+                BossRoomEntrance = new(SkipsBossRoomCheck: true, SummonCode: 69264, SummonCount: 1,
+                    [new(56611, 1, 1)]),
+            };
+            var boss = service.Begin(Character, layout, difficulty: 0);
+            Assert.True(boss.IsBossRoom);
+            Assert.True(boss.MayLeaveCurrentRoom);
+        });
+    }
+
     /// <summary>A run ends, and the character is no longer in one.</summary>
     /// <remarks>
     /// Nothing called this until 2026-08-26. A character who had walked back to town was still, as

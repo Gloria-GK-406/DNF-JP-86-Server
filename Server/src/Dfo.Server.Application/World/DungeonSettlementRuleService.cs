@@ -7,6 +7,13 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonSettlementRuleService
     : IDungeonSettlementRuleService
 {
+    public bool CompletesEntranceCondition(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> earlierKills,
+        DungeonEntranceKill kill) =>
+        DungeonEntranceConditionRules.IsCompletedBy(plan, earlierKills, kill);
+
+    public bool IsEntranceConditionMet(DungeonEntrancePlan plan, IReadOnlyCollection<DungeonEntranceKill> kills) =>
+        DungeonEntranceConditionRules.AreMet(plan, kills);
+
     public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
         DungeonClearConditionFacts facts) =>
         DungeonClearConditionRules.AreMet(conditions, facts);

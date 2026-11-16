@@ -99,7 +99,13 @@ internal sealed class PvfDungeonMapDefinitionSource(PvfArchiveProvider provider)
                 && StartArea.Decode(provider.Archive, section.Values, path).Count > 0
             || DungeonStartArea.Matches(section.Name)
                 && DungeonStartArea.Decode(provider.Archive, section.Values, path).Count >= 4);
-        var result = new DungeonMapDefinition(mapId, owners, kind, connections.AsReadOnly(), hasStart);
+        var conditional = PvfMapActorDeclarationParser.ParseSections(sections, provider.Archive.ResolveString, path).Actors
+            .Where(actor => actor.Source == DungeonActorSpawnSource.ConditionalMonster)
+            .Select(actor => actor.Code).Distinct().ToArray();
+        var result = new DungeonMapDefinition(mapId, owners, kind, connections.AsReadOnly(), hasStart)
+        {
+            ConditionalMonsterCodes = conditional,
+        };
         cache.Add(mapId, result);
         return result;
     }
