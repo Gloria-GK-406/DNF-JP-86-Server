@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Application.Transactions;
@@ -57,6 +58,47 @@ public sealed class EquipmentEmancipateDomainTests
             await shop.SeedCore(9, Piece());
             Assert.Equal(EquipmentEmancipateRejection.MaterialUnavailable, (await Apply(shop)).Rejection);
             AssertUntouched(shop, await Read(shop), soul: 1);
+        });
+    }
+
+    [Theory]
+    [InlineData(DungeonParticipationMode.Ordinary)]
+    [InlineData(DungeonParticipationMode.BossTower)]
+    [InlineData(DungeonParticipationMode.IllusionTower)]
+    public async Task Dungeon_occupancy_refuses_conversion_without_spending_and_departure_allows_it(
+        DungeonParticipationMode mode)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = await Seeded();
+            var original = Piece();
+            await shop.SeedCore(9, original);
+            var uid = TargetUid(shop);
+            var participation = shop.Services.GetRequiredService<IDungeonParticipationDomainService>();
+            var owner = new DungeonParticipationOwner(mode, Guid.NewGuid());
+            Assert.True(shop.InTransaction(() => participation.TryClaim([shop.Session.CharacterId], owner)));
+
+            var result = await Apply(shop);
+
+            Assert.Equal(EquipmentEmancipateRejection.NotInTown, result.Rejection);
+            Assert.Null(result.Receipt);
+            Assert.Equal(original, await Read(shop));
+            Assert.Equal(uid, TargetUid(shop));
+            AssertUntouched(shop, await Read(shop));
+            Assert.Equal(owner, participation.Find(shop.Session.CharacterId));
+
+            shop.InTransaction(() =>
+            {
+                participation.Release(shop.Session.CharacterId, owner);
+                return true;
+            });
+            Assert.Equal(EquipmentEmancipateRejection.None, (await Apply(shop)).Rejection);
+            Assert.Equal(original with { ItemId = Liberated, Durability = 60 }, await Read(shop));
+            Assert.Equal(uid, TargetUid(shop));
+            Assert.Equal(1, shop.Count(Book));
+            Assert.Equal(2, shop.Count(Stone));
+            Assert.Equal(0, shop.Count(Soul));
+            Assert.Equal(100000, shop.Gold);
         });
     }
 
@@ -195,7 +237,7 @@ public sealed class EquipmentEmancipateDomainTests
         await using var tx = scope.Begin();
         var result = await TestEffectFootprints.Run(shop.Session, cap => shop.Services.GetRequiredService<IEquipmentEmancipateDomainService>()
             .EmancipateAsync(shop.Session, ticketSlot ?? Ticket, ticketId, targetSlot ?? Target, targetId, cap, default));
-        if (result.Rejection == EquipmentEmancipateRejection.None) await tx.CommitAsync(default);
+        await tx.CommitAsync(default);
         return result;
     }
 
