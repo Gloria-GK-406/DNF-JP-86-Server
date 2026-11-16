@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -166,7 +167,7 @@ public sealed class DungeonStructureSelectionTests
     private static DungeonMapDefinition Map(int id, DungeonPathDirection pattern, DungeonPathDirection entrance,
         DungeonMapKind kind = DungeonMapKind.Normal, int dungeonId = 1) => new(id, [dungeonId], kind, [new(pattern, entrance)], false);
 
-    private static DungeonStructureRuleService Rules(Maps maps) => new(new Definitions(), maps);
+    private static DungeonStructureRuleService Rules(Maps maps) => new(new Definitions(), maps, TestRequired.NoQuests);
     private sealed class Definitions : IDungeonDefinitionSource
     {
         public ValueTask<DungeonDefinition?> GetAsync(int dungeonId, CancellationToken cancellationToken) => ValueTask.FromResult<DungeonDefinition?>(null);

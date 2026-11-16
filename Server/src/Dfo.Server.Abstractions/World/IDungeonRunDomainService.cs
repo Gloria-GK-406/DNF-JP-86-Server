@@ -41,6 +41,10 @@ public sealed record DungeonRunState(
 {
     public DateTimeOffset? ClearedAt { get; init; }
     public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
+    /// <summary>Codes of every room object this run has destroyed, once per destruction.</summary>
+    public ImmutableArray<int> DestroyedObjectCodes { get; init; } = [];
+    /// <summary>Map ids of the rooms this run has cleared.</summary>
+    public ImmutableHashSet<int> ClearedRoomMapIds { get; init; } = [];
     /// <summary>The runtime state of this run's kind of play, when the kind keeps any.</summary>
     public DungeonRunModeState? ModeState { get; init; }
 

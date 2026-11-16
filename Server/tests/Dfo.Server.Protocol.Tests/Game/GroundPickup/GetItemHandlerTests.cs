@@ -164,7 +164,7 @@ public sealed class GetItemHandlerTests
             var sender = new ThrowingSender();
             var clear = new DungeonClearDomainService(
                 runs,
-                new ClearedRoom());
+                new ClearedRoom(), new DungeonSettlementRuleService());
             var projection = new PickupProjectionDriver(
                 sessions, runs, run, registry, sender, TimeProvider.System);
             var postCommit = new PickupClearDriver(
@@ -599,6 +599,9 @@ public sealed class GetItemHandlerTests
 
     private sealed class CompleteSettlement : IDungeonSettlementRuleService
     {
+        public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
+            DungeonClearConditionFacts facts) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
         public ValueTask<DungeonSettlementRules> ForAsync(
             AccountId accountId,
             CharacterId characterId,

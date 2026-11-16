@@ -25,6 +25,33 @@ public sealed record DungeonQuestConnection(
     int QuestId,
     int MinimumDifficulty);
 
+/// <summary>The kind of one <c>[clear condition]</c> entry, numbered as A21 and 70 both number it.</summary>
+/// <remarks>
+/// A21 client 0x02AA0886..0x02AA09AF and 70 <c>ImportDungeonScript</c> @ 0x088E8764 agree on 0..4;
+/// <see cref="LimitTime"/> is A21-only and has no evidenced meaning, so it is read and not run.
+/// </remarks>
+public enum DungeonClearConditionKind : byte
+{
+    DestroyObject = 0,
+    ClearMap = 1,
+    HuntMonster = 2,
+    HuntApc = 3,
+    HuntBoss = 4,
+    LimitTime = 5,
+}
+
+/// <summary>One entry of a maze's <c>[clear condition]</c>.</summary>
+/// <param name="Targets">
+/// The object, map or monster codes the entry counts. More than one only for the
+/// <c>list N a b ...</c> form, which any one of them satisfies.
+/// </param>
+/// <param name="Count">How many times the targets must be met; a clear map entry is always 1.</param>
+public sealed record DungeonClearCondition(DungeonClearConditionKind Kind, IReadOnlyList<int> Targets, int Count)
+{
+    /// <summary>Whether the server counts this entry. Limit time has no evidenced rule.</summary>
+    public bool IsCounted => this.Kind != DungeonClearConditionKind.LimitTime;
+}
+
 /// <summary>
 /// One maze a dungeon can be run as: its grid, the rooms on it, and where a run may start and
 /// where its boss may stand.
@@ -52,6 +79,13 @@ public sealed record MazeDefinition(
 {
     /// <summary>A parsed maze's semantic error, checked only if this maze is selected.</summary>
     public string? ConfigurationError { get; init; }
+
+    /// <summary>
+    /// <c>[clear condition]</c> blocks of this maze, one entry per block. When any is counted, the
+    /// maze clears on them alone and a cleared boss room no longer counts (70
+    /// <c>IsClearDungeon</c> @ 0x0822D08C).
+    /// </summary>
+    public IReadOnlyList<DungeonClearCondition> ClearConditions { get; init; } = [];
 }
 
 [Flags]
@@ -162,6 +196,12 @@ public sealed record DungeonDefinition(
     /// one random champion. Empty when the file does not declare it, which 70 reads as zero.
     /// </summary>
     public IReadOnlyList<int> ChampionRates { get; init; } = [];
+    /// <summary>
+    /// <c>[ignore default dungeon clear]</c>: a cleared boss room does not clear this dungeon. The
+    /// A21 client only stores the flag (0x02AB8810 -> +0xA10) and never reads it in plain code,
+    /// so its meaning is the server's.
+    /// </summary>
+    public bool IgnoresDefaultClear { get; init; }
 }
 
 /// <summary>All requirements must be held; only those marked Consume are debited on admission.</summary>

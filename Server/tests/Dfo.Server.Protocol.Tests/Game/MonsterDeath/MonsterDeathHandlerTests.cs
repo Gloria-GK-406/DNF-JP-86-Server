@@ -523,7 +523,7 @@ public sealed class MonsterDeathHandlerTests
                 new PartyCharacters([leader.CharacterId, member.CharacterId]),
                 run,
                 killRules,
-                new DungeonClearDomainService(run, killRules),
+                new DungeonClearDomainService(run, killRules, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
@@ -588,7 +588,7 @@ public sealed class MonsterDeathHandlerTests
             });
             var handler = CreateHandler(sessions, new PartyRuntimeSessions([leader, member]),
                 new PartyCharacters([leader.CharacterId, member.CharacterId]), run, kills,
-                new DungeonClearDomainService(run, kills),
+                new DungeonClearDomainService(run, kills, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender), bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),
                     new RecordingQuestLogs(), CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()), registry, sender,
@@ -667,7 +667,7 @@ public sealed class MonsterDeathHandlerTests
                 new PartyCharacters([leader.CharacterId, frozenMember.CharacterId]),
                 run,
                 killRules,
-                new DungeonClearDomainService(run, killRules),
+                new DungeonClearDomainService(run, killRules, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
@@ -721,7 +721,7 @@ public sealed class MonsterDeathHandlerTests
                 new PartyCharacters([member.CharacterId]),
                 run,
                 killRules,
-                new DungeonClearDomainService(run, killRules),
+                new DungeonClearDomainService(run, killRules, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
@@ -833,7 +833,7 @@ public sealed class MonsterDeathHandlerTests
                 new PartyCharacters([leader.CharacterId, member.CharacterId]),
                 run,
                 killRules,
-                new DungeonClearDomainService(run, killRules),
+                new DungeonClearDomainService(run, killRules, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
@@ -994,7 +994,7 @@ public sealed class MonsterDeathHandlerTests
                 new PartyRuntimeSessions([leader, member]),
                 new PartyCharacters([leader.CharacterId, member.CharacterId]),
                 runs, killRules,
-                new DungeonClearDomainService(runs, killRules),
+                new DungeonClearDomainService(runs, killRules, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender),
                 bus,
                 new QuestOfferRefreshDomainService(
@@ -1067,7 +1067,7 @@ public sealed class MonsterDeathHandlerTests
                 new OnePlayingCharacter(new SkillPointLedger()),
                 runs,
                 killRules,
-                new DungeonClearDomainService(runs, killRules),
+                new DungeonClearDomainService(runs, killRules, new DungeonSettlementRuleService()),
                 global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, runs, registry, sender),
                 new FixedKillAward(leveledUp: false),
                 new QuestOfferRefreshDomainService(
@@ -1130,7 +1130,7 @@ public sealed class MonsterDeathHandlerTests
         await TestGameplay.RunAsync(provider, async () =>
         {
             var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
-                run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),bus,
+                run,killRules,new DungeonClearDomainService(run,killRules, new DungeonSettlementRuleService()),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, sender),bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,sender,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
             await Assert.ThrowsAsync<Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException>(async () =>
@@ -1171,7 +1171,7 @@ public sealed class MonsterDeathHandlerTests
         await outbound.RunFromAsync(leader.ConnectionId, async () =>
         {
             var handler = CreateHandler(sessions,new PartyRuntimeSessions([leader,member]),new PartyCharacters([leader.CharacterId,member.CharacterId]),
-                run,killRules,new DungeonClearDomainService(run,killRules),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, outbound.Game),bus,
+                run,killRules,new DungeonClearDomainService(run,killRules, new DungeonSettlementRuleService()),global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, run, registry, outbound.Game),bus,
                 new QuestOfferRefreshDomainService(new StubWorldContentEntryRuleService(),new RecordingQuestLogs(),CurrentCharacterStub.Domain(), query: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestQueryDomainService>(), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>()),
                 registry,outbound.Game,ExperienceDiagnostics.None,NullLogger<MonsterDeathHandler>.Instance,safety:safety);
             await handler.HandleAsync(new(users.Connections[leader.ConnectionId]),new MonsterDeathRequest(GameMessageMetadata.Empty,DeadActor,leader.WireUserId),default);
@@ -1248,7 +1248,7 @@ public sealed class MonsterDeathHandlerTests
             new OnePlayingCharacter(ledger ?? new SkillPointLedger(withLedger)),
             effectiveRun,
             effectiveKills,
-            new DungeonClearDomainService(effectiveRun, effectiveKills),
+            new DungeonClearDomainService(effectiveRun, effectiveKills, new DungeonSettlementRuleService()),
             global::Dfo.Server.Testing.ProtocolAlgorithmFixture.Create<global::Dfo.Server.Protocol.Game.DungeonClear.DungeonClearProjectionDriver>(sessions, effectiveRun, registry, sender),
             bus ?? new FixedKillAward(leveledUp),
             new QuestOfferRefreshDomainService(
@@ -1319,6 +1319,9 @@ public sealed class MonsterDeathHandlerTests
 
     private sealed class AlwaysCompleteSettlementRules : IDungeonSettlementRuleService
     {
+        public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
+            DungeonClearConditionFacts facts) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
         public ValueTask<DungeonSettlementRules> ForAsync(
             AccountId accountId,
             CharacterId characterId,
@@ -1816,6 +1819,9 @@ public sealed class MonsterDeathHandlerTests
 
     private sealed class RecordingSettlementRules : IDungeonSettlementRuleService
     {
+        public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
+            DungeonClearConditionFacts facts) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
         public AccountId? AccountId { get; private set; }
         public CharacterId? CharacterId { get; private set; }
 

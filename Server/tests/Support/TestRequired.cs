@@ -25,6 +25,9 @@ internal static class TestRequired
     /// <summary>Records no inventory contents event; for stores whose test does not observe them.</summary>
     public static IInventoryContentsEventDomainService NoContentsEvents { get; } = new IgnoredContentsEvents();
 
+    /// <summary>An archive that declares no quests; no quest maze is restricted to a solo entry.</summary>
+    public static IQuestDefinitionSource NoQuests { get; } = new EmptyQuests();
+
     /// <summary>An archive that declares no dungeon admission data; difficulty falls back to the character's maximum.</summary>
     public static IDungeonAdmissionDefinitionSource NoDungeonAdmissions { get; } = new NoAdmissions();
 
@@ -49,6 +52,16 @@ internal static class TestRequired
         public async ValueTask<DungeonAdmissionDefinition?> GetAsync(int dungeonId, CancellationToken ct) =>
             await structures.GetDefinitionAsync(dungeonId, ct).ConfigureAwait(false) is { } definition
                 ? DungeonAdmissionDefinition.From(definition) : null;
+    }
+
+    private sealed class EmptyQuests : IQuestDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<QuestDefinition>>([]);
+        public ValueTask<QuestDefinition?> GetAsync(int questId, CancellationToken ct) =>
+            ValueTask.FromResult<QuestDefinition?>(null);
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(CancellationToken ct) =>
+            ValueTask.FromResult<IReadOnlyList<TrainingQuestAvailability>>([]);
     }
 
     private sealed class NoAdmissions : IDungeonAdmissionDefinitionSource

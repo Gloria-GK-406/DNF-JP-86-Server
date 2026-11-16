@@ -81,6 +81,8 @@ public sealed record DungeonEntryFacts(
     public static DungeonEntryFacts None { get; } = new(0, [], [], DungeonEntryIntent.Interactive);
     /// <summary>Specialized rules may constrain maze choice without duplicating topology validation.</summary>
     public int? RequiredMazeIndex { get; init; }
+    /// <summary>How many characters enter together; a solo-only quest maze is skipped above one.</summary>
+    public int PartyMemberCount { get; init; } = 1;
 }
 
 public sealed record DungeonObjectSpawn(MazeCell Cell, int X, int Y, int ObjectId, int Team, int SpawnMode, bool Regenerate);
@@ -147,6 +149,12 @@ public sealed record DungeonLayout(
     /// count -- which is what layouts built outside the maze structure (tournament, guardian) keep.
     /// </summary>
     public IReadOnlyList<int>? ChampionRates { get; init; }
+    /// <summary>The selected maze's <c>[clear condition]</c> entries, frozen at entry.</summary>
+    public IReadOnlyList<DungeonClearCondition> ClearConditions { get; init; } = [];
+    /// <summary>The dungeon's <c>[ignore default dungeon clear]</c>, frozen at entry.</summary>
+    public bool IgnoresDefaultClear { get; init; }
+    /// <summary>Whether this run clears on its conditions alone rather than on its boss room.</summary>
+    public bool ClearsOnConditions => this.ClearConditions.Any(condition => condition.IsCounted);
     /// <summary>Rule-declared combatants whose script dummy flag must not make a room skippable.</summary>
     public ImmutableHashSet<int> RequiredCombatantCodes { get; init; } = [];
     public ImmutableArray<DungeonObjectSpawn> RandomObjects { get; init; } = [];

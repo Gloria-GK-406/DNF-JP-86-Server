@@ -158,7 +158,7 @@ public sealed class QuestClearVerticalTests
                 var afterDeath = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
                 var clear = new DungeonClearDomainService(
                     runs,
-                    new ClearedBossRoom());
+                    new ClearedBossRoom(), new DungeonSettlementRuleService());
                 var bossClear = Assert.IsType<DungeonClearChange>(await clear.TryOpenClearAsync(
                     LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
                 return (run, afterDeath, clear, bossClear);

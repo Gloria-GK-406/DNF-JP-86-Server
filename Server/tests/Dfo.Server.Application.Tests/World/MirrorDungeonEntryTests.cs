@@ -27,7 +27,7 @@ public sealed class MirrorDungeonEntryTests
         using var content = ContentArchive.CreateContentProvider();
         var definitions = content.GetRequiredService<IDungeonDefinitionSource>();
         var structures = new DungeonStructureRuleService(definitions,
-            content.GetRequiredService<IDungeonMapDefinitionSource>());
+            content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var definition = await definitions.GetAsync(dungeonId, default);
         Assert.NotNull(definition);
         var mazes = definition.Mazes.Where(maze => maze.QuestConnection is null).ToArray();
@@ -55,7 +55,7 @@ public sealed class MirrorDungeonEntryTests
         Assert.Null(await rules.ResolveAsync(32, 13801, default));
         Assert.Null(await rules.ResolveAsync(8000, 14299, default));
         var structures = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
-            content.GetRequiredService<IDungeonMapDefinitionSource>());
+            content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var layout = await structures.ResolveAsync(32, DungeonEntryFacts.None with { Difficulty = rule.Difficulty }, 42, default);
         Assert.NotNull(layout);
         Assert.Equal(32, layout.DungeonId);

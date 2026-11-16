@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -42,7 +43,7 @@ public sealed class DungeonStructureRuleServiceTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateContentProvider();
         var rules = new DungeonStructureRuleService(provider.GetRequiredService<IDungeonDefinitionSource>(),
-            provider.GetRequiredService<IDungeonMapDefinitionSource>());
+            provider.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var facts = new DungeonEntryFacts(DungeonDifficulty.Adventure, [], [], DungeonEntryIntent.Interactive);
         var original = await rules.ResolveAsync(92, facts, 3, default);
         var retried = await rules.ResolveAsync(92,
@@ -62,7 +63,7 @@ public sealed class DungeonStructureRuleServiceTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateContentProvider();
         var rules = new DungeonStructureRuleService(provider.GetRequiredService<IDungeonDefinitionSource>(),
-            provider.GetRequiredService<IDungeonMapDefinitionSource>());
+            provider.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var before = await rules.ResolveAsync(148, new(0, [1787], [], DungeonEntryIntent.Directed(148)), 3, default);
         var after = await rules.ResolveAsync(148, new(0, [1788], [1787], DungeonEntryIntent.Directed(148)), 3, default);
         Assert.NotNull(before);
@@ -278,16 +279,16 @@ public sealed class DungeonStructureRuleServiceTests
         }, [start], [boss]);
         var definitions = new StubDungeonSource(new(1, "dungeon/preflight.dgn", 1, false, [maze]));
         var maps = new PreflightMaps(ordinaryAcceptsLeft: false, bossPresent: true);
-        var rules = new DungeonStructureRuleService(definitions, maps);
+        var rules = new DungeonStructureRuleService(definitions, maps, TestRequired.NoQuests);
         var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default));
         Assert.Contains("(1,0)", error.Message);
 
-        rules = new DungeonStructureRuleService(definitions, new PreflightMaps(true, false));
+        rules = new DungeonStructureRuleService(definitions, new PreflightMaps(true, false), TestRequired.NoQuests);
         error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
             await rules.ResolveAsync(1, DungeonEntryFacts.None, 1, default));
         Assert.Contains("(2,0)", error.Message);
-        Assert.NotNull(await new DungeonStructureRuleService(definitions, new PreflightMaps(true, true))
+        Assert.NotNull(await new DungeonStructureRuleService(definitions, new PreflightMaps(true, true), TestRequired.NoQuests)
             .ResolveAsync(1, DungeonEntryFacts.None, 1, default));
     }
 
@@ -306,7 +307,7 @@ public sealed class DungeonStructureRuleServiceTests
             [boss] = new(DungeonPathDirection.Left, [], [12]),
         }, [start], [boss]);
         var rules = new DungeonStructureRuleService(new StubDungeonSource(new(1, "test", 1, false, [maze])),
-            new PreflightMaps(true, true, startAcceptsReturn: false, startPresent));
+            new PreflightMaps(true, true, startAcceptsReturn: false, startPresent), TestRequired.NoQuests);
         if (!startPresent)
         {
             var error = await Assert.ThrowsAsync<InvalidDataException>(async () =>
@@ -354,7 +355,7 @@ public sealed class DungeonStructureRuleServiceTests
         }, [start], [boss]);
         IDungeonStructureRuleService rules = new DungeonStructureRuleService(
             new StubDungeonSource(new(1, "dungeon/replacement.dgn", 1, false, [maze])),
-            new ReplacementMaps(replaceStart, "valid"));
+            new ReplacementMaps(replaceStart, "valid"), TestRequired.NoQuests);
         var topology = Assert.IsType<DungeonLayout>(await rules.ResolveTopologyAsync(1, DungeonEntryFacts.None, 1, default));
         Assert.Equal(0, topology.StartRoomMapId);
         var prepared = await rules.PrepareLayoutAsync(topology with
@@ -384,7 +385,7 @@ public sealed class DungeonStructureRuleServiceTests
                 [boss] = new(DungeonPathDirection.Left, [], [11]),
             }) { Mode = new DungeonRunMode.Hell(new(0, boss, 900, [])) };
         IDungeonStructureRuleService rules = new DungeonStructureRuleService(
-            new StubDungeonSource(Tutorial()), new ReplacementMaps(false, failure));
+            new StubDungeonSource(Tutorial()), new ReplacementMaps(false, failure), TestRequired.NoQuests);
         var selected = await rules.SelectMapAsync(layout, start, boss, default);
         Assert.Null(selected.MapId);
         Assert.Equal(DungeonMapSelectionFailure.NoCompatibleMap, selected.Failure);
@@ -472,8 +473,58 @@ public sealed class DungeonStructureRuleServiceTests
         Assert.Null(await service.ResolveAsync(144, facts, seed: 1, default));
     }
 
+    [Fact]
+    public async Task An_in_progress_quest_maze_is_chosen_before_a_cleared_quest_maze()
+    {
+        // 70 GetAppropriateMaze @ 0x082FF128 tries quest-connection type 0 before type 1.
+        var service = Service(MixedQuestMazes());
+        var facts = new DungeonEntryFacts(0, [1776], [1776], DungeonEntryIntent.Directed(144));
+        for (var seed = 0; seed < 16; seed++)
+            Assert.Equal(1, (await service.ResolveAsync(144, facts, seed, default))!.MazeIndex);
+        Assert.Equal(2, (await service.ResolveAsync(144, facts with { ActiveQuestIds = [] }, 0, default))!.MazeIndex);
+    }
+
+    [Fact]
+    public async Task The_selected_maze_freezes_its_clear_conditions_and_the_dungeon_ignore_flag()
+    {
+        DungeonClearCondition destroy = new(DungeonClearConditionKind.DestroyObject, [10601], 1);
+        var definition = MixedQuestMazes() is var mixed
+            ? mixed with
+            {
+                IgnoresDefaultClear = true,
+                Mazes = [.. mixed.Mazes.Select(maze => maze.Index == 1 ? maze with { ClearConditions = [destroy] } : maze)],
+            }
+            : throw new InvalidOperationException();
+        var layout = await Service(definition).ResolveAsync(144,
+            new DungeonEntryFacts(0, [1776], [], DungeonEntryIntent.Directed(144)), 0, default);
+        Assert.Equal(destroy, Assert.Single(layout!.ClearConditions));
+        Assert.True(layout.ClearsOnConditions);
+        Assert.True(layout.IgnoresDefaultClear);
+    }
+
+    [Fact]
+    public async Task A_cant_giveup_one_quest_maze_is_taken_alone_but_not_by_a_party()
+    {
+        // 70 GetAppropriateMaze skips a [cant giveup] 1 quest's maze for a party of more than one.
+        var service = new DungeonStructureRuleService(new StubDungeonSource(MixedQuestMazes()), new StubMaps(),
+            new SoloQuests(1776));
+        var alone = new DungeonEntryFacts(0, [1776], [], DungeonEntryIntent.Directed(144));
+        Assert.Equal(1, (await service.ResolveAsync(144, alone, 0, default))!.MazeIndex);
+        Assert.Null(await service.ResolveAsync(144, alone with { PartyMemberCount = 2 }, 0, default));
+    }
+
+    private sealed class SoloQuests(int questId) : IQuestDefinitionSource
+    {
+        public ValueTask<IReadOnlyList<QuestDefinition>> GetAllAsync(CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<QuestDefinition?> GetAsync(int id, CancellationToken ct) => ValueTask.FromResult<QuestDefinition?>(
+            new(id, "", QuestGrade.Epic, null, new(17, 99), null, null, null, [], "condition under clear", "", true, false,
+                null, null, null, null, null, [], [], [], []) { GiveUpRestriction = id == questId ? 1 : 2 });
+        public ValueTask<IReadOnlyList<TrainingQuestAvailability>> GetTrainingAvailabilityAsync(CancellationToken ct) =>
+            throw new NotSupportedException();
+    }
+
     private static IDungeonStructureRuleService Service(DungeonDefinition definition) =>
-        new DungeonStructureRuleService(new StubDungeonSource(definition), new StubMaps());
+        new DungeonStructureRuleService(new StubDungeonSource(definition), new StubMaps(), TestRequired.NoQuests);
 
     [Theory]
     [InlineData(DungeonEntryMode.Tournament)]

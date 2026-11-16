@@ -925,6 +925,9 @@ public sealed class SetPlayResultHandlerTests
 
     private sealed class PurposeSettlementRules(bool canComplete) : IDungeonSettlementRuleService
     {
+        public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
+            DungeonClearConditionFacts facts) =>
+            new Dfo.Server.Application.World.DungeonSettlementRuleService().AreClearConditionsMet(conditions, facts);
         public AccountId? AccountId { get; private set; }
 
         public CharacterId? CharacterId { get; private set; }

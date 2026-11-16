@@ -140,7 +140,7 @@ public sealed class HellDungeonEntryTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var content = ContentArchive.CreateContentProvider();
         var structures = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
-            content.GetRequiredService<IDungeonMapDefinitionSource>());
+            content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var rules = new HellDungeonEntryRuleService(content.GetRequiredService<IHellDungeonDefinitionSource>(),
             content.GetRequiredService<IDungeonRoomActorSource>());
         var declarations = (await rules.GetRulesAsync(dungeonId, default))!;

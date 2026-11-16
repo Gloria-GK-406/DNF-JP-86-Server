@@ -156,6 +156,9 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         var hasStoryMode = false;
         var namedMonsterCodes = ImmutableHashSet.CreateBuilder<int>();
         IReadOnlyList<int> championRates = [];
+        var ignoresDefaultClear = false;
+        List<DungeonClearCondition>? clearBlock = null;
+        var inTeamClearBlock = false;
 
         void Unique(PvfField field)
         {
@@ -164,6 +167,46 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         }
         foreach (var section in document.Sections)
         {
+            // [team clear condition] belongs to territory combat, which this server does not run;
+            // its sub-tags are skipped whole so they are not mistaken for this maze's conditions.
+            if (inTeamClearBlock)
+            {
+                inTeamClearBlock = section.Name != TeamClearConditionEnd;
+                continue;
+            }
+            if (section.Name == TeamClearConditionStart)
+            {
+                inTeamClearBlock = true;
+                continue;
+            }
+            if (clearBlock is not null)
+            {
+                if (section.Name == ClearConditionEnd)
+                {
+                    // A21 client 0x02AA0770 keeps one entry per block (a later sub-tag overwrites
+                    // an earlier one); every A21 block declares exactly one, and anything else is
+                    // refused rather than silently reduced to its last entry.
+                    Require(clearBlock.Count == 1, archivePath, ClearConditionStart, "expected exactly one entry per block");
+                    draft!.ClearConditions.AddRange(clearBlock);
+                    clearBlock = null;
+                }
+                else
+                    clearBlock.Add(ParseClearCondition(archive, section, archivePath));
+                continue;
+            }
+            if (section.Name == ClearConditionStart)
+            {
+                Require(draft is not null && section.Values.Count == 0, archivePath, ClearConditionStart,
+                    "expected an empty block opener inside a maze");
+                clearBlock = [];
+                continue;
+            }
+            if (section.Name == IgnoreDefaultClear)
+            {
+                Require(section.Values.Count == 0, archivePath, IgnoreDefaultClear, "expected a bare marker");
+                ignoresDefaultClear = true;
+                continue;
+            }
             if (Fields.EntryOnlyFatigueField.Matches(section.Name))
             {
                 Unique(Fields.EntryOnlyFatigueField);
@@ -394,6 +437,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
                 }
             }
         }
+        Require(clearBlock is null && !inTeamClearBlock, archivePath, ClearConditionStart, "unterminated block");
         Close(mazes, draft, archivePath);
         admission = new(dungeonId, archivePath, minimumLevel, consumesFatigue,
             designatedDifficulties ?? difficultyLevels ?? (fixedDifficulty is >= 0 ? [(byte)fixedDifficulty.Value] : []),
@@ -406,7 +450,57 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
             EventRequiredItems = eventRequiredItems, IsSpiciesDungeon = isSpicies, PartyLimit = partyLimit, ProhibitsPractice = prohibitsPractice,
             HasStoryMode = hasStoryMode, NoGiveupPenalty = noGiveupPenalty, NamedMonsterCodes = namedMonsterCodes.ToImmutable(),
             LinkedDungeon = PvfLinkedDungeonParser.Parse(document.Sections, archivePath), EntryOnlyFatigue = entryOnlyFatigue,
-            ChampionRates = championRates };
+            ChampionRates = championRates, IgnoresDefaultClear = ignoresDefaultClear };
+    }
+
+    private const string ClearConditionStart = "[clear condition]";
+    private const string ClearConditionEnd = "[/clear condition]";
+    private const string TeamClearConditionStart = "[team clear condition]";
+    private const string TeamClearConditionEnd = "[/team clear condition]";
+    private const string IgnoreDefaultClear = "[ignore default dungeon clear]";
+
+    /// <summary>
+    /// One sub-tag of a <c>[clear condition]</c> block: <c>id count</c>, or
+    /// <c>list N id1 .. idN count</c> (A21 client 0x02AA0770 reads the "list" word, N, then N ids).
+    /// </summary>
+    internal static DungeonClearCondition ParseClearCondition(PvfArchive archive, PvfSection section, string path)
+    {
+        var kind = section.Name switch
+        {
+            "[destroy object]" => DungeonClearConditionKind.DestroyObject,
+            "[clear map]" => DungeonClearConditionKind.ClearMap,
+            "[hunt monster]" => DungeonClearConditionKind.HuntMonster,
+            "[hunt apc]" => DungeonClearConditionKind.HuntApc,
+            "[hunt boss]" => DungeonClearConditionKind.HuntBoss,
+            "[limit time]" => DungeonClearConditionKind.LimitTime,
+            _ => throw new InvalidDataException($"PVF '{path}', field '{ClearConditionStart}': unknown entry '{section.Name}'."),
+        };
+        var values = section.Values;
+        var at = 0;
+        int Int()
+        {
+            Require(at < values.Count && values[at].Kind == PvfTokenKind.Int32, path, ClearConditionStart,
+                $"expected an integer in {section.Name}");
+            return values[at++].Value;
+        }
+        List<int> targets = [];
+        if (at < values.Count && values[at].IsString)
+        {
+            Require(string.Equals(archive.ResolveString(values[at++].Value), "list", StringComparison.OrdinalIgnoreCase),
+                path, ClearConditionStart, $"expected 'list' in {section.Name}");
+            var length = Int();
+            Require(length > 0, path, ClearConditionStart, "list length must be positive");
+            for (var index = 0; index < length; index++) targets.Add(Int());
+        }
+        else
+            targets.Add(Int());
+        var count = Int();
+        Require(at == values.Count, path, ClearConditionStart, $"trailing values in {section.Name}");
+        if (kind != DungeonClearConditionKind.LimitTime)
+            Require(targets.All(target => target > 0) && count > 0, path, ClearConditionStart,
+                $"{section.Name} needs positive targets and count");
+        // Both A21 (0x02AA0B37) and 70 force a clear map entry's count to one.
+        return new(kind, targets.AsReadOnly(), kind == DungeonClearConditionKind.ClearMap ? 1 : count);
     }
 
     private static byte CellCoordinate(int value, string path, PvfField field)
@@ -418,6 +512,12 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
     private static void Require(bool valid, string path, PvfField field, string reason)
     {
         if (!valid) throw new InvalidDataException($"PVF '{path}', field '{field}': {reason}.");
+    }
+
+    /// <summary>For block tags read by sequence rather than through a typed field.</summary>
+    private static void Require(bool valid, string path, string tag, string reason)
+    {
+        if (!valid) throw new InvalidDataException($"PVF '{path}', field '{tag}': {reason}.");
     }
 
     private static void Close(List<MazeDefinition> mazes, MazeDraft? draft, string path)
@@ -463,6 +563,7 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         mazes.Add(new MazeDefinition(draft.Index, draft.Width, draft.Height,
             new System.Collections.ObjectModel.ReadOnlyDictionary<MazeCell, DungeonCellDefinition>(cells),
             draft.StartCandidates.AsReadOnly(), draft.BossCandidates.AsReadOnly(), draft.QuestConnection) {
+            ClearConditions = draft.ClearConditions.ToArray(),
             ConfigurationError = configurationErrors.Count == 0 ? null
                 : $"PVF '{path}', maze '{draft.Index}': {string.Join("; ", configurationErrors)}.",
         });
@@ -498,6 +599,8 @@ internal sealed class PvfDungeonDefinitionSource : IDungeonDefinitionSource, IDu
         public List<MazeCell> BossCandidates { get; } = [];
 
         public DungeonQuestConnection? QuestConnection { get; set; }
+
+        public List<DungeonClearCondition> ClearConditions { get; } = [];
     }
 
 }

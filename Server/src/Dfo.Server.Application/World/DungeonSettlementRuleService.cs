@@ -7,6 +7,10 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonSettlementRuleService
     : IDungeonSettlementRuleService
 {
+    public bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
+        DungeonClearConditionFacts facts) =>
+        DungeonClearConditionRules.AreMet(conditions, facts);
+
     public ValueTask<DungeonSettlementRules> ForAsync(
         AccountId accountId,
         CharacterId characterId,

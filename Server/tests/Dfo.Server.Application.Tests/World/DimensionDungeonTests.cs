@@ -68,7 +68,7 @@ public sealed class DimensionDungeonTests
         Assert.False(rules.IsDimension(144));
         Assert.Equal(5, rules.Snapshot(new(2026, 10, 10), 0).Remaining);
         var structures = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
-            content.GetRequiredService<IDungeonMapDefinitionSource>());
+            content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var layout = await structures.ResolveAsync(7100, DungeonEntryFacts.None, 42, default);
         Assert.NotNull(layout);
         Assert.Equal(6, layout.Cells.Count);

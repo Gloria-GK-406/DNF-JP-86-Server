@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Pvf.Tests.Support;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -76,7 +77,7 @@ public sealed class PvfCycleDungeonTests
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         using var provider = ContentArchive.CreateProvider();
         var source = new PvfDungeonDefinitionSource(provider);
-        var rules = new DungeonStructureRuleService(source, new PvfDungeonMapDefinitionSource(provider));
+        var rules = new DungeonStructureRuleService(source, new PvfDungeonMapDefinitionSource(provider), TestRequired.NoQuests);
         var facts = new DungeonEntryFacts(DungeonDifficulty.Normal, [14825], [], DungeonEntryIntent.Cycle(92, 14825));
         var route = new MazeCell[] { new(0, 4), new(1, 4), new(1, 3), new(2, 3),
             new(2, 2), new(2, 1), new(2, 0), new(3, 0) };

@@ -230,7 +230,11 @@ internal sealed partial class DungeonRunStore
                 return Refused("GroundDropPending", aggregate);
             if (aggregate.Claims.PreparedGroundDrops.Any(key => key.Drop.Cell == aggregate.CurrentCell))
                 return Refused("GroundDropPrepared", aggregate);
-            var warp = aggregate.Layout.IsWarp(aggregate.CurrentCell, target);
+            // 70 move_map @ 0x085A8FF5 refuses every move once the clear conditions are met: the
+            // run ends where its clear opened.
+            if (aggregate.Layout.ClearsOnConditions && aggregate.ClearedAt is not null)
+                return Refused("ClearConditionsMet", aggregate);
+            var warp =aggregate.Layout.IsWarp(aggregate.CurrentCell, target);
             if (warp && !aggregate.Cells[aggregate.CurrentCell].IsCleared)
                 return Refused("WarpRoomNotCleared", aggregate);
             if (!warp && aggregate.Layout.Mode is not DungeonRunMode.LostLand && Math.Abs(target.X - aggregate.CurrentCell.X)
