@@ -170,7 +170,8 @@ internal sealed class PackageOpeningRuleService(IPackageOpeningDefinitionSource 
             if (declared > 0) expiration = expiration == 0 ? declared : Math.Min(expiration, declared);
             if (expiration != 0 && expiration <= now.ToUnixTimeSeconds())
                 throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, $"Reward {reward.ItemId} has already expired.");
-            result.Add(new(reward, item, expiration));
+            int? fixedInstanceValue = reward.QualityTier is { } tier ? EquipmentQualitySeeds.FixedFor(tier) : null;
+            result.Add(new(reward with { QualityTier = null }, item, expiration, fixedInstanceValue));
         }
         return result.ToImmutable();
     }

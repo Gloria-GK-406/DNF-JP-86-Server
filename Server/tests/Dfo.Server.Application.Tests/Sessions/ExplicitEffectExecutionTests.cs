@@ -285,7 +285,7 @@ public sealed class ExplicitEffectExecutionTests
     {
         using var f = Fixture(new Witness(), new Replay());
         var placement = new ItemPlacement(5, 1, new(BusinessInventorySpace.CreatureInventory, 0, 1));
-        var prepared = new OpeningPreparedGrant(new(3000, 1), new(3000, placement, 1, false, [], null, true), 0);
+        var prepared = new OpeningPreparedGrant(new(3000, 1), new(3000, placement, 1, false, [], null, true), 0, null);
         var townBefore = new CharacterPositionState(1, 2, 3, 4, 5);
         var townAfter = new CharacterPositionState(2, 3, 4, 5, 6);
         var sourceArea = new TownAreaKey(1, 1, 2);

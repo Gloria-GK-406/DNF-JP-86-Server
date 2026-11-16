@@ -44,8 +44,8 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
             Durability = grant.Item.Durability,
             TradeRestriction = grant.Reward.TradeRestriction,
             GenuineUpgrade = grant.Reward.Forging,
-            // A declared quality tier is the client's fixed seed for that tier; otherwise delivery rolls one.
-            InstanceValue = grant.Reward.QualityTier is { } tier ? EquipmentQualitySeeds.FixedFor(tier) : 0,
+            // The opening rules resolve fixed quality; zero leaves generation to actual delivery.
+            InstanceValue = grant.FixedInstanceValue ?? 0,
             SealFlag = grant.Item.Placement.WorldClass == ItemWorldClass.Creature ? (byte)0 : grant.Item.Sealed ? (byte)1 : (byte)0,
             ExpireTime = grant.Item.Placement.WorldClass == ItemWorldClass.Avatar ? 0 : grant.Expiration,
         };
@@ -63,15 +63,14 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
             && item.CanStackWith(Baseline(grant)))
             .Select(s => new ItemPile(s, held[s]!.Count)).ToArray(), remaining, grant.Item.Placement,
             candidates.Where(s => held[s] is not null).ToHashSet());
-    private static (BusinessSlot Slot, int Added, ItemSnapshot Core) Next(
-        ItemArrival arrival, OpeningPreparedGrant grant, Dictionary<BusinessSlot, ItemSnapshot?> held, bool applying = true) => arrival switch
+    private static (BusinessSlot Slot, int Added, ItemSnapshot Core) PreviewNext(
+        ItemArrival arrival, OpeningPreparedGrant grant, Dictionary<BusinessSlot, ItemSnapshot?> held) => arrival switch
     {
         ItemArrival.OntoExistingPile pile => (pile.Slot, pile.Added, held[pile.Slot]! with { Count = pile.Total }),
         ItemArrival.IntoEmptySlot empty => (empty.Slot, empty.Count, Baseline(grant) with
         { Count = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? empty.Count : 1,
             InstanceValue = grant.Item.Placement.WorldClass == ItemWorldClass.Interchangeable ? 0
-                : grant.Reward.QualityTier is { } tier ? EquipmentQualitySeeds.FixedFor(tier)
-                : applying ? EquipmentQualitySeeds.NewRandom() : 1 }),
+                : grant.FixedInstanceValue ?? 1 }),
         _ => throw new InventoryEffectException(InventoryEffectRejection.NoRoom),
     };
     public override async ValueTask PreviewAsync(EffectExecutionContext context, GrantPreparedItemEffect effect, IInventoryEffectPreviewState state, CancellationToken ct)
@@ -94,7 +93,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
         {
             var arrival = Arrival(effect.Grant, candidates, held, remaining);
             if (arrival is ItemArrival.NoRoom && effect.DeliveryMode == ItemDeliveryMode.InventoryThenMail) return;
-            var (slot, added, core) = Next(arrival, effect.Grant, held, applying: false);
+            var (slot, added, core) = PreviewNext(arrival, effect.Grant, held);
             if (added <= 0 || added > remaining) throw new InvalidDataException("Nonprogressing prepared grant.");
             var item = core;
             held[slot] = item; state.SetSlot(slot, item); state.AddedRewardEntries(1); remaining -= added;

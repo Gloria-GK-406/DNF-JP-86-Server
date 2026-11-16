@@ -69,6 +69,13 @@ Main 与 SharedMaterial 不切换。实现及实机边界见 [两塔快捷栏](T
 起始装备和地面掉落的这个兼容值不再参与数量判断，也不等同于 `ItemUid`。
 移动和对调通过 Take/Put 保留原 UID，耐久等属性通过 Update 修改。
 
+开盒奖励的固定品级由 `PackageOpeningRuleService.PrepareAsync` 映射为
+`OpeningPreparedGrant.FixedInstanceValue`，准备结果清除已解释的 `Reward.QualityTier`。
+预览与执行都消费同一固定值；未指定品级时保留空值，预览只使用占位实例值，
+实际交付通过既有 `IEquipmentQualitySeedSource` 为每件需要随机实例值的独立物品取值一次（默认算法不变）。
+入包、溢出转邮件及仅邮件发放均交付已创建的物品记录，不在邮件阶段重新解释品级或重新抽样。
+失败回滚物品、来源消耗和邮件，不回退已消耗的随机序列。非装备奖励仍在规则准备时清除装备修饰。
+
 ## 装备修理与修理券
 
 修理业务归 `IEquipmentRepairDomainService`，NPC收费、契约自动修理及修理券各有明确入口。
