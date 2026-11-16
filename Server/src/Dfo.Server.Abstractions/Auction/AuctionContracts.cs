@@ -75,7 +75,8 @@ public abstract record AuctionLotSource
 public sealed record AuctionListingRequest(AuctionMarket Market, AuctionLotSource Lot, AuctionPricing Pricing, uint Hours = 24);
 
 /// <summary>One listing as the house knows it.</summary>
-/// <param name="Item">The item as it was handed over, for showing and searching it; never used to deliver it.</param>
+/// <param name="QuantityRemaining">For active items, projected from custody; after closure, the count captured at closure. Gold tiers keep their own quantity.</param>
+/// <param name="Item">The original display snapshot, never used to deliver the item; its pile count is not the live holding.</param>
 public sealed record AuctionListing(
     AuctionListingId Id,
     AuctionMarket Market,
@@ -295,9 +296,6 @@ public interface IAuctionDomainStore
 
     /// <summary>Records a new top bid on an active listing; false when it is no longer active.</summary>
     ValueTask<bool> SetBidAsync(AuctionListingId listing, long amount, CharacterId bidder, AccountId bidderAccount, CancellationToken cancellationToken);
-
-    /// <summary>Lowers what an active listing still offers after a part of it was bought.</summary>
-    ValueTask<bool> ReduceAsync(AuctionListingId listing, int quantityRemaining, long buyoutPrice, CancellationToken cancellationToken);
 
     /// <summary>Moves an active listing to a final state; false when it was not active.</summary>
     ValueTask<bool> CloseAsync(AuctionListingId listing, AuctionListingState state, DateTimeOffset at, CancellationToken cancellationToken);

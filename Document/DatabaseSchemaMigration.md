@@ -38,6 +38,10 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
 - 版本 7 → 8（`PrivateStoreCustodyUpgrade.cs`）：新增个人商店托管表 `private_store_custody`（摊位上陈列的物品，按卖家与陈列格），既有数据不变。
 - 版本 8 → 9（`AuraSkinSlotUpgrade.cs`）：新增 `characters.aura_skin_slot`，记录角色是否已用扩展券开启光环幻化栏，既有角色一律为 0（未开启）。见 #327。
 - 版本 9 → 10（`PlayerPortalUpgrade.cs`）：新增玩家后台设置 `player_portal_settings`、玩家会话 `player_portal_sessions`、玩家操作记录 `player_portal_operations` 三张表及其索引；`gm_audit` 增加 `actor_kind`（缺省 `gm`，既有审计记录归为管理员操作）与 `account_id`，已有该列时跳过。不写设置行，表中无行即缺省值：玩家后台关闭、点券与邮件子开关开启、限额全 0。其它数据不变。迁移后只认表结构版本 9 的服务端无法再打开该库。见 #329。
+- 版本 10 → 11（`AuctionQuantityOwnershipUpgrade.cs`）：活跃物品拍卖的当前数量改从托管读取；
+  将关闭挂单原余量保留到 `quantity_at_close`，删除 `quantity_remaining`，按件挂单的持久总价归一为初始报价。
+  初始数量、成交记录、金币寄售及托管物品不变。迁移前检查活跃物品挂单与托管的数量、模板和物品保存形态，
+  不一致时报出挂单 ID 并中止，不自动修补或选一边覆盖。列操作保留扩展列、索引及编号水位。
 - 迁移工具不认识的表和列原样保留。
 
 ## 修改表结构时
