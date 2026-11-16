@@ -51,6 +51,12 @@ internal sealed class DungeonRoomRuleService(
                 IsNamedMonster = actor.IsNamedMonster || context.Layout.NamedMonsterCodes.Contains(actor.Actor.Code),
                 RequiredCombatant = context.Layout.RequiredCombatantCodes.Contains(actor.Actor.Code),
             }).ToArray();
+        // Before the hell party rows join, as in 70, where they are appended after the candidates.
+        if (context.Layout.ChampionRates is not null)
+        {
+            var map = await roomActors.GetDeclarationsAsync(context.MapId, cancellationToken).ConfigureAwait(false);
+            described = ChampionPromotionRules.Promote(described, map.Champions, context);
+        }
         if (context.Layout.Mode is DungeonRunMode.Hell { Plan: var hell } && context.Cell == hell.Cell)
             described = described.Concat(hell.Actors.Select(actor => new RoomActorDescription(actor.Actor,
                 actor.Actor.ActorType >= FirstAiCharacterActorType)
