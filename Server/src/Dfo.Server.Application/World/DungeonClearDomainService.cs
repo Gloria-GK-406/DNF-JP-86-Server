@@ -25,10 +25,22 @@ public sealed class DungeonClearDomainService(
             || run.RunId != expectedRunId
             || run.RoomVersion != expectedRoomVersion
             || !run.Layout.Mode.Capabilities.EndsOnBossClear
-            || run.ClearOpen
+            || run.ClearOpen)
+        {
+            return null;
+        }
+
+        // 70 IsClearDungeon @ 0x0822D08C: a maze with clear conditions clears on them alone, in
+        // whatever room the last one is met, and only once; otherwise the boss room does, unless
+        // the dungeon ignores that default.
+        if (run.Layout.ClearsOnConditions)
+        {
+            if (run.ClearedAt is not null || !DungeonClearConditionRules.AreMet(run))
+                return null;
+        }
+        else if (run.Layout.IgnoresDefaultClear
             || !run.IsBossRoom
-            || !await rooms.IsCurrentRoomClearedAsync(run, cancellationToken)
-                .ConfigureAwait(false))
+            || !await rooms.IsCurrentRoomClearedAsync(run, cancellationToken).ConfigureAwait(false))
         {
             return null;
         }

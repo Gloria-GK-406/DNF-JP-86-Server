@@ -154,6 +154,17 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             var targets = objects.Rewards.Where(x => sessions.IsInWorld(x.Session))
                 .Select(x => new GameExplicitMessageTarget(x.Session.ConnectionId, MonsterQuestFrames.Of(x.Effects))).ToArray();
             await DeliverAsync(reporter, targets, ct).ConfigureAwait(false);
+            // A destroyed object may be the maze's last [destroy object] condition (70
+            // DestroyPassiveObject @ 0x085B6540 -> ClearDungeon); 1842's boss room has no other way out.
+            // Only a condition maze can be cleared by an object; the boss-room default never is.
+            var objectClear = run.Layout.ClearsOnConditions
+                ? await clearEvaluator.TryOpenClearAsync(reporter.AccountId, reporter.CharacterId,
+                    run.RunId, run.RoomVersion, ct).ConfigureAwait(false)
+                : null;
+            if (objectClear is not null) await ProjectClearAsync(reporter, objectClear, ct).ConfigureAwait(false);
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Object destroyed connection={ConnectionId} run={RunId} dungeon={DungeonId} room={RoomId} object={ObjectCode} clearProjected={ClearProjected}",
+                    reporter.ConnectionId, run.RunId, run.Layout.DungeonId, run.CurrentRoomMapId, code, objectClear is not null);
             return;
         }
         var settled = await SettleDeathAsync(execution, new(reporter, participants,

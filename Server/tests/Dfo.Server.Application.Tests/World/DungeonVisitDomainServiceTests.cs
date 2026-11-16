@@ -26,7 +26,7 @@ public sealed class DungeonVisitDomainServiceTests
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             using var content = ContentArchive.CreateContentProvider();
             var definitions = content.GetRequiredService<IDungeonDefinitionSource>();
-            var structures = new DungeonStructureRuleService(definitions, content.GetRequiredService<IDungeonMapDefinitionSource>());
+            var structures = new DungeonStructureRuleService(definitions, content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
             var fatigue = new TestFatigue();
             var admission = new DungeonAdmissionDomainService(new MaximumDifficulty(),
                 new DungeonDifficultyRuleService(TestRequired.Admissions(definitions)), fatigue, transactions: TestRequired.TransactionScope(), characters: Dfo.Server.Application.Tests.Support.CurrentCharacterStub.Domain(new() { Progress = new(85, 0) }), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(structures), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), materials: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonEntryMaterialsDomainService>());
@@ -74,7 +74,7 @@ public sealed class DungeonVisitDomainServiceTests
             using var content = ContentArchive.CreateContentProvider();
             var definitions = content.GetRequiredService<IDungeonDefinitionSource>();
             var structures = new DungeonStructureRuleService(definitions,
-                content.GetRequiredService<IDungeonMapDefinitionSource>());
+                content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
             var fatigue = new TestFatigue();
             var runs = TestParties.Runs();
             var visits = DungeonVisitTestFactory.Create(structures, runs, new ImmediateSelection(),
@@ -267,7 +267,7 @@ public sealed class DungeonVisitDomainServiceTests
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             using var content = ContentArchive.CreateContentProvider();
             var rules = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
-                content.GetRequiredService<IDungeonMapDefinitionSource>());
+                content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
             foreach (var seed in new[] { 0, 42, -777, int.MaxValue })
             {
                 var layout = await rules.ResolveAsync(82, DungeonEntryFacts.None, seed, default);
@@ -310,7 +310,7 @@ public sealed class DungeonVisitDomainServiceTests
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             using var content = ContentArchive.CreateContentProvider();
             var rules = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
-                content.GetRequiredService<IDungeonMapDefinitionSource>());
+                content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
             var layout = (await rules.ResolveAsync(77, DungeonEntryFacts.None, 42, default))!;
             var maze = (await rules.GetDefinitionAsync(77, default))!.Mazes[0];
             // Freeze one of the declared starts so this reproduces the user's actual route.
@@ -360,7 +360,7 @@ public sealed class DungeonVisitDomainServiceTests
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             using var content = ContentArchive.CreateContentProvider();
             var rules = new DungeonStructureRuleService(content.GetRequiredService<IDungeonDefinitionSource>(),
-                content.GetRequiredService<IDungeonMapDefinitionSource>());
+                content.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
             var layout = TwoRoomLayout with { Cells = new Dictionary<MazeCell, DungeonCellDefinition>
                 { [new(0, 0)] = DungeonCellDefinition.Fixed(61000),
                     [new(1, 0)] = DungeonCellDefinition.Fixed(999999) with { BossMapCandidates = [999999] } } };

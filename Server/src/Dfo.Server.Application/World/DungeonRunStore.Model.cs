@@ -215,6 +215,8 @@ internal sealed partial class DungeonRunStore
                 Kills = this.kills.ToImmutableArray(),
                 ClearedAt = this.ClearedAt,
                 ClearedCells = this.Cells.Where(x => x.Value.IsCleared).Select(x => x.Key).ToImmutableHashSet(),
+                DestroyedObjectCodes = this.Cells.Values.SelectMany(cell => cell.DestroyedObjectCodes).ToImmutableArray(),
+                ClearedRoomMapIds = this.Cells.Values.Where(cell => cell.IsCleared).Select(cell => cell.MapId).ToImmutableHashSet(),
                 KillExperience = this.KillExperiences.GetValueOrDefault(characterId) ?? new(),
                 ModeState = this.ModeState,
             };
@@ -304,6 +306,8 @@ internal sealed partial class DungeonRunStore
         public ushort FirstActorSequence { get; }
         public long Revision { get; set; }
         public bool ClearOpen { get; set; }
+        public IEnumerable<int> DestroyedObjectCodes =>
+            this.objects.Where(state => state.IsConsumed).Select(state => state.Object.Code);
         public bool IsCleared => !this.MechanismBlocksClear && this.actors.Values.Where(x => x.BlocksClear).All(x => x.IsDead);
         public bool WillClearAfterDeath(ushort sequence, IReadOnlyList<ushort> suppressed) =>
             !this.MechanismBlocksClear && this.actors.Values.All(actor => !actor.BlocksClear || actor.IsDead

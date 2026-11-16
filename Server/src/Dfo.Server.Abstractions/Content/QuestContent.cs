@@ -233,6 +233,14 @@ public sealed record QuestDefinition(
 {
     /// <summary>A quest offered regardless of grow type.</summary>
     public int? ObjectiveSubType { get; init; }
+    /// <summary>
+    /// <c>[cant giveup]</c>. 70 copies it to Quest+0x120 (<c>Quest::set_quest</c> @ 0x08352991):
+    /// <c>giveup_quest</c> refuses abandoning on 1 or 2, and only 1 also keeps the quest's maze from
+    /// a party of more than one (<c>GetAppropriateMaze</c> / <c>setQuestMazeInfo</c>).
+    /// </summary>
+    public int? GiveUpRestriction { get; init; }
+    /// <summary>Whether this quest's dungeon maze is entered only alone.</summary>
+    public bool RestrictsQuestMazeToSolo => this.GiveUpRestriction == 1;
     public IReadOnlyList<int> ObjectiveArguments { get; init; } = [];
     public int? WeddingTrialCount => Grade == QuestGrade.Wedding && ObjectiveTypeCode == "condition under clear"
         && ObjectiveSubType == 22 && ObjectiveArguments.Count == 3

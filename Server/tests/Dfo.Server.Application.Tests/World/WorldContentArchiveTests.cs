@@ -109,7 +109,7 @@ public sealed class WorldContentArchiveTests
                 scope.GetRequiredService<IGoldDropTableSource>(), scope.GetRequiredService<IDropItemPoolSource>(), new()),
             scope.GetRequiredService<IDungeonRoomObjectSource>(), mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
         var structures = new DungeonStructureRuleService(scope.GetRequiredService<IDungeonDefinitionSource>(),
-            scope.GetRequiredService<IDungeonMapDefinitionSource>());
+            scope.GetRequiredService<IDungeonMapDefinitionSource>(), TestRequired.NoQuests);
         var original = Assert.IsType<DungeonLayout>(await structures.ResolveAsync(
             dungeonId, DungeonEntryFacts.None, 42, default));
         var layout = original with { BasisLevel = 86, FixedMonsterLevel = 86, Mode = new DungeonRunMode.Mirror(new(8000, 31, 14299)) };

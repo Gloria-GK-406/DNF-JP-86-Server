@@ -31,6 +31,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
         internal static readonly PvfField<int> GoldMultipleField = PvfField.Int32("[gold multiple]", optional: true);
         internal static readonly PvfField<int> ExposedByNpcField = PvfField.Int32("[exposed by npc]", optional: true);
         internal static readonly PvfField<int> EventField = PvfField.Int32("[event]", optional: true);
+        internal static readonly PvfField<int> CantGiveUpField = PvfField.Int32("[cant giveup]", optional: true);
         internal static readonly PvfField<int> CreatureKindField = PvfField.Int32("[creature kind]", optional: true);
         internal static readonly PvfField<int> CreatureLevelField = PvfField.Int32("[creature level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> ExpertjobLevelField = PvfField.Int32List("[expertjob level]", optional: true);
@@ -257,6 +258,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
         var completeNpcValues = new List<int>();
         var exposureValues = new List<int>();
         var eventValues = new List<int>();
+        var cantGiveUpValues = new List<int>();
         var creatureKindValues = new List<int>();
         var creatureLevelValues = new List<int>();
         var expertJobValues = new List<int>();
@@ -309,7 +311,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
             Fields.CollisionQuestField,
             Fields.AccountCollisionQuestField,
             Fields.SpecialRewardStatusField,
-            Fields.IgnoreQuestLevel4ExpField);
+            Fields.IgnoreQuestLevel4ExpField,
+            Fields.CantGiveUpField);
         var reader = archive.OpenScript(fileIndex);
         var section = -1;
         while (reader.Read(out var token))
@@ -409,6 +412,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
                 AddInteger(exposureValues, token, questId, "exposed by npc");
             else if (section == tags.Event)
                 AddInteger(eventValues, token, questId, "event");
+            else if (section == tags.CantGiveUp)
+                AddInteger(cantGiveUpValues, token, questId, "cant giveup");
             else if (section == tags.CreatureKind)
                 AddInteger(creatureKindValues, token, questId, "creature kind");
             else if (section == tags.CreatureLevel)
@@ -492,7 +497,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
             enemyRewards,
             ProjectClearedQuestRequirements(objectiveType, objectiveIntData),
             ProjectDungeonClearRequirement(objectiveType, objectiveSubType, objectiveIntData))
-        { ObjectiveSubType = objectiveSubType.Count == 1 ? objectiveSubType[0] : null, ObjectiveArguments = objectiveIntData.ToArray() };
+        { ObjectiveSubType = objectiveSubType.Count == 1 ? objectiveSubType[0] : null, ObjectiveArguments = objectiveIntData.ToArray(),
+            GiveUpRestriction = OptionalSingle(cantGiveUpValues, questId, "cant giveup") };
 
         return new RawQuestDefinition(
             definition,
@@ -1104,6 +1110,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
             GoldMultiplier = Offset(archive, Fields.GoldMultipleField);
             ExposedByNpc = Offset(archive, Fields.ExposedByNpcField);
             Event = Offset(archive, Fields.EventField);
+            CantGiveUp = Offset(archive, Fields.CantGiveUpField);
             CreatureKind = Offset(archive, Fields.CreatureKindField);
             CreatureLevel = Offset(archive, Fields.CreatureLevelField);
             ExpertJobLevel = Offset(archive, Fields.ExpertjobLevelField);
@@ -1139,6 +1146,7 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
         public int GoldMultiplier { get; }
         public int ExposedByNpc { get; }
         public int Event { get; }
+        public int CantGiveUp { get; }
         public int CreatureKind { get; }
         public int CreatureLevel { get; }
         public int ExpertJobLevel { get; }

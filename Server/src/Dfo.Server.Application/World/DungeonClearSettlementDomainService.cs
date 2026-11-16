@@ -148,10 +148,12 @@ internal sealed class DungeonClearSettlementDomainService(
                 .SettleAsync(accountId, characterId, new(runId), cancellationToken).ConfigureAwait(false);
             if (tower is null) return new(null, 0, 0);
         }
-        if (runs.Find(characterId) is { Layout.Mode: DungeonRunMode.Mirror } mirror
-            && mirror.RunId.Value == runId && mirror.ClearOpen)
+        // Mirror runs and condition-cleared mazes have no boss kill that reports the dungeon clear,
+        // so the opened clear is reported here, once per settling participant.
+        if (runs.Find(characterId) is { } settling && settling.RunId.Value == runId && settling.ClearOpen
+            && (settling.Layout.Mode is DungeonRunMode.Mirror || settling.Layout.ClearsOnConditions))
             await quests.ReportAsync(accountId, characterId,
-                [new QuestDungeonCleared(dungeonId, mirror.Difficulty, mirror.RunId, mirror.ClearedAt ?? now)], cancellationToken).ConfigureAwait(false);
+                [new QuestDungeonCleared(dungeonId, settling.Difficulty, settling.RunId, settling.ClearedAt ?? now)], cancellationToken).ConfigureAwait(false);
         if (runId != Guid.Empty)
             await luckyStars.GrantForClearAsync(accountId, characterId, new(runId), cancellationToken).ConfigureAwait(false);
         var award = await experience.AwardAsync(new ClearExperienceContext(

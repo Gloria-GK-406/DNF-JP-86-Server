@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Application.World;
@@ -43,7 +44,7 @@ public sealed class PvfDarkElfRuinsContentSourceTests
         var content = new PvfDarkElfRuinsContentSource(provider);
         var dungeons = new PvfDungeonDefinitionSource(provider);
         var rules = new DarkElfRuinsRuleService(content, dungeons);
-        var layouts = new DungeonStructureRuleService(dungeons, new PvfDungeonMapDefinitionSource(provider));
+        var layouts = new DungeonStructureRuleService(dungeons, new PvfDungeonMapDefinitionSource(provider), TestRequired.NoQuests);
         foreach (var entry in content.Load().Dungeons)
         {
             var openDay = content.Load().OpenDungeons.First(x => x.Value.Contains(entry.DungeonId)).Key;

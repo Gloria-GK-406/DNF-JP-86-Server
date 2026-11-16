@@ -69,21 +69,6 @@ internal sealed partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        // Gathered here and handed over, so the rule stays a function of what it is given. They
-        // are asked of the character's own log rather than read out of the session, because the
-        // session's copy is whatever the entry batch put there and nothing refreshes it: a quest
-        // taken on or handed in since the character entered the world would leave the maze chosen
-        // against the state the player has already moved on from. Which quests they are is still
-        // decided once, here, and the layout stays fixed to the run it opens.
-        var questLog = questLogs.LogOf(session.AccountId, session.CharacterId);
-        var carried = await questLog.CarriedAsync(cancellationToken).ConfigureAwait(false);
-        var cleared = await questLog.ClearedAsync(cancellationToken).ConfigureAwait(false);
-        var facts = new DungeonEntryFacts(
-            message.Difficulty,
-            carried.Select(quest => quest.QuestId).ToArray(),
-            cleared.Select(quest => quest.QuestId).ToArray(),
-            intent.Value);
-
         // The entry intent decides how the selected dungeon is validated and resolved; it does
         // not decide whether the character belongs to a party. The selection-screen handler has
         // already moved the whole party into one selection context for both interactive gates and
@@ -91,6 +76,28 @@ internal sealed partial class GameSelectDungeonCommandHandler
         // one shared run instead of silently turning an interactive party into parallel solo runs.
         var roster = parties.FindParty(new PartyCharacterSnapshot(
             session.AccountId, session.CharacterId, session.WireUserId, null));
+        // Gathered here and handed over, so the rule stays a function of what it is given. They
+        // are asked of the characters' own logs rather than read out of the session, because the
+        // session's copy is whatever the entry batch put there and nothing refreshes it: a quest
+        // taken on or handed in since the character entered the world would leave the maze chosen
+        // against the state the player has already moved on from. Which quests they are is still
+        // decided once, here, and the layout stays fixed to the run it opens.
+        // 70 CheckQuestConnection @ 0x085B6478 accepts a quest maze when any valid member of the
+        // party is doing (or has cleared) the quest, so every member's log is read.
+        var carriedIds = new HashSet<int>();
+        var clearedIds = new HashSet<int>();
+        foreach (var member in roster.Members)
+        {
+            var questLog = questLogs.LogOf(member.Character.AccountId, member.CharacterId);
+            carriedIds.UnionWith((await questLog.CarriedAsync(cancellationToken).ConfigureAwait(false)).Select(quest => quest.QuestId));
+            clearedIds.UnionWith((await questLog.ClearedAsync(cancellationToken).ConfigureAwait(false)).Select(quest => quest.QuestId));
+        }
+        var facts = new DungeonEntryFacts(
+            message.Difficulty,
+            carriedIds.Order().ToArray(),
+            clearedIds.Order().ToArray(),
+            intent.Value) { PartyMemberCount = roster.Members.Length };
+
         if (roster.LeaderWireUserId != session.WireUserId)
         {
             await RefuseAsync(

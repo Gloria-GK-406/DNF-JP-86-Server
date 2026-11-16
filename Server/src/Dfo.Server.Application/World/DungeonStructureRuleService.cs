@@ -17,7 +17,8 @@ namespace Dfo.Server.Application.World;
 /// to provide.
 /// </para>
 /// </remarks>
-internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dungeons, IDungeonMapDefinitionSource maps)
+internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dungeons, IDungeonMapDefinitionSource maps,
+    IQuestDefinitionSource quests)
     : IDungeonStructureRuleService
 {
     public ValueTask<DungeonDefinition?> GetDefinitionAsync(int dungeonId, CancellationToken cancellationToken) =>
@@ -107,7 +108,8 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         if (definition is null || definition.EntryMode != DungeonEntryMode.Maze)
             return null;
 
-        var candidate = SelectMaze(definition, facts, seed);
+        var soloQuests = await SoloQuestsAsync(definition, facts, cancellationToken).ConfigureAwait(false);
+        var candidate = SelectMaze(definition, facts, seed, soloQuests);
         if (candidate is null)
             return null;
         var (maze, purpose) = candidate.Value;
@@ -128,7 +130,8 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
             definition.BasisLevel,
             definition.ExperienceWeight,
             purpose, definition.ConsumesFatigue) { NamedMonsterCodes = definition.NamedMonsterCodes, NoGiveupPenalty = definition.NoGiveupPenalty,
-                EntryOnlyFatigue = definition.EntryOnlyFatigue, ChampionRates = definition.ChampionRates };
+                EntryOnlyFatigue = definition.EntryOnlyFatigue, ChampionRates = definition.ChampionRates,
+                ClearConditions = maze.ClearConditions, IgnoresDefaultClear = definition.IgnoresDefaultClear };
     }
 
     public async ValueTask<DungeonLayout> PrepareLayoutAsync(DungeonLayout layout, CancellationToken cancellationToken)
@@ -242,11 +245,31 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
     /// varies a layout only inside one semantic candidate set and
     /// cannot turn an ordinary entry into a quest run.
     /// </remarks>
+    /// <summary>
+    /// The connected quests whose maze a party of more than one may not take (70
+    /// <c>GetAppropriateMaze</c> @ 0x082FF128 skips <c>[cant giveup]</c> 1 quests for a party).
+    /// </summary>
+    private async ValueTask<IReadOnlySet<int>> SoloQuestsAsync(
+        DungeonDefinition definition, DungeonEntryFacts facts, CancellationToken cancellationToken)
+    {
+        if (facts.PartyMemberCount <= 1)
+            return new HashSet<int>();
+        var solo = new HashSet<int>();
+        var connected = definition.Mazes.Select(maze => maze.QuestConnection).Append(definition.QuestConnection)
+            .OfType<DungeonQuestConnection>().Select(connection => connection.QuestId).Distinct();
+        foreach (var questId in connected)
+            if ((await quests.GetAsync(questId, cancellationToken).ConfigureAwait(false))?.RestrictsQuestMazeToSolo == true)
+                solo.Add(questId);
+        return solo;
+    }
+
     private static (MazeDefinition Maze, DungeonRunPurpose Purpose)? SelectMaze(
         DungeonDefinition definition,
         DungeonEntryFacts facts,
-        int seed)
+        int seed,
+        IReadOnlySet<int>? soloQuests = null)
     {
+        soloQuests ??= new HashSet<int>();
         if (facts.RequiredMazeIndex is { } required)
         {
             var requiredMaze = definition.Mazes.SingleOrDefault(x => x.Index == required);
@@ -286,9 +309,14 @@ internal sealed class DungeonStructureRuleService(IDungeonDefinitionSource dunge
         if (connected.Length == 0)
             return ChooseMaze(definition.Mazes, seed, DungeonRunPurpose.Ordinary);
 
+        // 70 GetAppropriateMaze @ 0x082FF128 looks for an in-progress quest's maze first and only
+        // then for a cleared quest's, so a quest being done is never pre-empted by an older one.
         var eligible = connected
-            .Where(candidate => IsEligible(candidate.Connection!, facts))
+            .Where(candidate => IsEligible(candidate.Connection!, facts)
+                && !soloQuests.Contains(candidate.Connection!.QuestId))
             .ToArray();
+        if (eligible.Any(candidate => candidate.Connection!.State == DungeonQuestConnectionState.Active))
+            eligible = eligible.Where(candidate => candidate.Connection!.State == DungeonQuestConnectionState.Active).ToArray();
         if (eligible.Length == 0)
             return null;
 
