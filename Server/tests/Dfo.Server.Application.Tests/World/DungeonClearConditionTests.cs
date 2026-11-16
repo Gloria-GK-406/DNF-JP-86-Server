@@ -30,7 +30,7 @@ public sealed class DungeonClearConditionTests
             var runs = TestParties.Runs(scope);
             var layout = Layout([new(DungeonClearConditionKind.DestroyObject, [10601], 1)]);
             var run = Enter(runs, layout, Start, objects: [Object(10601)]);
-            var service = new DungeonClearDomainService(runs, new RoomCleared(true));
+            var service = new DungeonClearDomainService(runs, new RoomCleared(true), new DungeonSettlementRuleService());
 
             // The room is empty and cleared, but with conditions declared that is not a clear.
             Assert.Null(await service.TryOpenClearAsync(Account, Character, run.RunId, run.RoomVersion, default));
@@ -56,7 +56,7 @@ public sealed class DungeonClearConditionTests
             var runs = TestParties.Runs();
             var layout = Layout([new(DungeonClearConditionKind.DestroyObject, [10601], 1)]);
             var run = Enter(runs, layout, Boss);
-            var service = new DungeonClearDomainService(runs, new RoomCleared(true));
+            var service = new DungeonClearDomainService(runs, new RoomCleared(true), new DungeonSettlementRuleService());
             Assert.True(runs.Find(Character)!.IsBossRoom);
             Assert.Null(await service.TryOpenClearAsync(Account, Character, run.RunId, run.RoomVersion, default));
         });
@@ -70,7 +70,7 @@ public sealed class DungeonClearConditionTests
             var runs = TestParties.Runs();
             var layout = Layout([new(DungeonClearConditionKind.HuntBoss, [69257], 1)]);
             var run = Enter(runs, layout, Start, actors: [Monster(100, 61000, 0), Monster(101, 69257, 3)]);
-            var service = new DungeonClearDomainService(runs, new RoomCleared(false));
+            var service = new DungeonClearDomainService(runs, new RoomCleared(false), new DungeonSettlementRuleService());
 
             Assert.NotNull(runs.CommitActorDeathChange(runs.TryClaimActorDeath(Character, 100)!));
             Assert.Null(await service.TryOpenClearAsync(Account, Character, run.RunId, run.RoomVersion, default));
@@ -87,7 +87,7 @@ public sealed class DungeonClearConditionTests
             var runs = TestParties.Runs();
             var layout = Layout([new(DungeonClearConditionKind.ClearMap, [12, 11], 1)]);
             var run = Enter(runs, layout, Start, actors: [Monster(100, 61000, 0)]);
-            var service = new DungeonClearDomainService(runs, new RoomCleared(false));
+            var service = new DungeonClearDomainService(runs, new RoomCleared(false), new DungeonSettlementRuleService());
             Assert.Null(await service.TryOpenClearAsync(Account, Character, run.RunId, run.RoomVersion, default));
 
             var moved = runs.TryMove(Character, run.RunId, run.RoomVersion, Boss,
@@ -104,7 +104,7 @@ public sealed class DungeonClearConditionTests
         {
             var runs = TestParties.Runs();
             var run = Enter(runs, Layout([]) with { IgnoresDefaultClear = true }, Boss);
-            var service = new DungeonClearDomainService(runs, new RoomCleared(true));
+            var service = new DungeonClearDomainService(runs, new RoomCleared(true), new DungeonSettlementRuleService());
             Assert.Null(await service.TryOpenClearAsync(Account, Character, run.RunId, run.RoomVersion, default));
         });
     }
@@ -118,7 +118,7 @@ public sealed class DungeonClearConditionTests
             var layout = Layout([new(DungeonClearConditionKind.LimitTime, [600], 1200)]);
             Assert.False(layout.ClearsOnConditions);
             var run = Enter(runs, layout, Boss);
-            var service = new DungeonClearDomainService(runs, new RoomCleared(true));
+            var service = new DungeonClearDomainService(runs, new RoomCleared(true), new DungeonSettlementRuleService());
             Assert.NotNull(await service.TryOpenClearAsync(Account, Character, run.RunId, run.RoomVersion, default));
         });
     }

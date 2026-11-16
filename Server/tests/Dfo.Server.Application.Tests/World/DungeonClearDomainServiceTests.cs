@@ -24,7 +24,7 @@ public sealed class DungeonClearDomainServiceTests
             var layout = BossLayout() with { Mode = new DungeonRunMode.Tournament(new(definition, [], [], 1)) };
             var runs = TestParties.Runs();
             var run = runs.Begin(Leader, layout, difficulty: 0);
-            var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true });
+            var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
             Assert.Null(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
             Assert.False(runs.Find(Leader)!.ClearOpen);
         });
@@ -47,7 +47,7 @@ public sealed class DungeonClearDomainServiceTests
             ], []) { HellGroups = [new(1, [104], [])] };
             var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
                 seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService());
+            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService(), new DungeonSettlementRuleService());
             Assert.False(run.IsCleared);
             var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
             Assert.NotNull(first);
@@ -77,7 +77,7 @@ public sealed class DungeonClearDomainServiceTests
                 new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
                 [Apc(100, 14003, 8, true), Apc(101, 14003, 8, true), Apc(102, 10610, 5, true)], []),
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService());
+            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService(), new DungeonSettlementRuleService());
             var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
             Assert.NotNull(first);
             Assert.Empty(first.AutoKilledActorSequences);
@@ -122,7 +122,7 @@ public sealed class DungeonClearDomainServiceTests
                 },
                 difficulty: 0);
             var service = new DungeonClearDomainService(
-                runs, new MutableRoomCleared { Cleared = true });
+                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
 
             var opened = await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
@@ -140,7 +140,7 @@ public sealed class DungeonClearDomainServiceTests
             var runs = TestParties.Runs();
             var run = runs.Begin(Leader, BossLayout(), difficulty: 0);
             var room = new MutableRoomCleared();
-            var service = new DungeonClearDomainService(runs, room);
+            var service = new DungeonClearDomainService(runs, room, new DungeonSettlementRuleService());
 
             Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
@@ -170,7 +170,7 @@ public sealed class DungeonClearDomainServiceTests
                 BossLayout(),
                 difficulty: 0);
             var service = new DungeonClearDomainService(
-                runs, new MutableRoomCleared { Cleared = true });
+                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
 
             var opened = await service.TryOpenClearAsync(
                 HelperAccount, Helper, run.RunId, run.RoomVersion, default);
@@ -188,7 +188,7 @@ public sealed class DungeonClearDomainServiceTests
             var runs = TestParties.Runs();
             var ordinary = runs.Begin(Leader, OrdinaryLayout(), difficulty: 0);
             var service = new DungeonClearDomainService(
-                runs, new MutableRoomCleared { Cleared = true });
+                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
 
             Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion, default));

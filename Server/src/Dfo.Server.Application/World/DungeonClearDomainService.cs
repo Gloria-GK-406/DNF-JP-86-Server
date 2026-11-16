@@ -9,7 +9,8 @@ namespace Dfo.Server.Application.World;
 /// </summary>
 public sealed class DungeonClearDomainService(
     IDungeonRunSettlementDomainService runs,
-    IMonsterKillDomainService rooms) : IDungeonClearDomainService
+    IMonsterKillDomainService rooms,
+    IDungeonSettlementRuleService settlementRules) : IDungeonClearDomainService
 {
     public async ValueTask<DungeonClearChange?> TryOpenClearAsync(
         AccountId accountId,
@@ -35,7 +36,9 @@ public sealed class DungeonClearDomainService(
         // the dungeon ignores that default.
         if (run.Layout.ClearsOnConditions)
         {
-            if (run.ClearedAt is not null || !DungeonClearConditionRules.AreMet(run))
+            if (run.ClearedAt is not null || !settlementRules.AreClearConditionsMet(run.Layout.ClearConditions,
+                    new DungeonClearConditionFacts(run.DestroyedObjectCodes,
+                        run.Kills.Select(kill => kill.MonsterCode).ToArray(), run.ClearedRoomMapIds)))
                 return null;
         }
         else if (run.Layout.IgnoresDefaultClear

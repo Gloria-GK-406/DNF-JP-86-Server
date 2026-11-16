@@ -4,7 +4,7 @@ using Dfo.Server.Abstractions.World;
 namespace Dfo.Server.Application.World;
 
 /// <summary>
-/// Whether a run's maze-level <c>[clear condition]</c> entries are met, read off the run's own
+/// Whether a maze's <c>[clear condition]</c> entries are met, measured against the run's own
 /// committed facts rather than a second counter that could drift from them.
 /// </summary>
 /// <remarks>
@@ -19,22 +19,24 @@ namespace Dfo.Server.Application.World;
 /// comparing codes (0x017DE621), but that copy only drives the finale cutscene; the clear is the
 /// server's. Kills are monster kills only, so a hunt apc entry cannot be met -- A21 declares none.
 /// </para>
+/// Called only through <see cref="IDungeonSettlementRuleService"/>.
 /// </remarks>
 internal static class DungeonClearConditionRules
 {
-    public static bool AreMet(DungeonRunState run)
+    public static bool AreMet(IReadOnlyList<DungeonClearCondition> conditions, DungeonClearConditionFacts facts)
     {
-        ArgumentNullException.ThrowIfNull(run);
-        var conditions = run.Layout.ClearConditions.Where(condition => condition.IsCounted).ToArray();
-        return conditions.Length > 0 && conditions.All(condition => Progress(run, condition) >= condition.Count);
+        ArgumentNullException.ThrowIfNull(conditions);
+        ArgumentNullException.ThrowIfNull(facts);
+        var counted = conditions.Where(condition => condition.IsCounted).ToArray();
+        return counted.Length > 0 && counted.All(condition => Progress(condition, facts) >= condition.Count);
     }
 
-    public static int Progress(DungeonRunState run, DungeonClearCondition condition) => condition.Kind switch
+    public static int Progress(DungeonClearCondition condition, DungeonClearConditionFacts facts) => condition.Kind switch
     {
-        DungeonClearConditionKind.DestroyObject => run.DestroyedObjectCodes.Count(condition.Targets.Contains),
-        DungeonClearConditionKind.ClearMap => run.ClearedRoomMapIds.Any(condition.Targets.Contains) ? 1 : 0,
+        DungeonClearConditionKind.DestroyObject => facts.DestroyedObjectCodes.Count(condition.Targets.Contains),
+        DungeonClearConditionKind.ClearMap => facts.ClearedRoomMapIds.Any(condition.Targets.Contains) ? 1 : 0,
         DungeonClearConditionKind.HuntMonster or DungeonClearConditionKind.HuntApc or DungeonClearConditionKind.HuntBoss
-            => run.Kills.Count(kill => condition.Targets.Contains(kill.MonsterCode)),
+            => facts.KilledMonsterCodes.Count(condition.Targets.Contains),
         _ => 0,
     };
 }

@@ -14,8 +14,23 @@ namespace Dfo.Server.Abstractions.World;
 /// </param>
 public readonly record struct DungeonSettlementRules(bool CanComplete, bool QuestMaze);
 
+/// <summary>The committed run facts a maze's clear conditions are measured against.</summary>
+/// <param name="DestroyedObjectCodes">Every room object the run destroyed, once per destruction.</param>
+/// <param name="KilledMonsterCodes">Every monster the run killed, once per kill.</param>
+/// <param name="ClearedRoomMapIds">Map ids of the rooms the run cleared.</param>
+public sealed record DungeonClearConditionFacts(
+    IReadOnlyCollection<int> DestroyedObjectCodes,
+    IReadOnlyCollection<int> KilledMonsterCodes,
+    IReadOnlyCollection<int> ClearedRoomMapIds);
+
 public interface IDungeonSettlementRuleService
 {
+    /// <summary>
+    /// Whether a maze's counted clear conditions are all met by these facts; false when it has none.
+    /// </summary>
+    bool AreClearConditionsMet(IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonClearCondition> conditions,
+        DungeonClearConditionFacts facts);
+
     ValueTask<DungeonSettlementRules> ForAsync(
         AccountId accountId,
         CharacterId characterId,
