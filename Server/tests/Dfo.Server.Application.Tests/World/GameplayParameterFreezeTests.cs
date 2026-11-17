@@ -68,7 +68,6 @@ public sealed partial class DungeonCellFactoryTests
     }
 }
 
-[Trait("Category", "Unit")]
 public sealed class FatigueBatchPolicyTests
 {
     [Fact]

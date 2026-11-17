@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Events;
 
-[Trait("Category", "Unit")]
 public sealed class GameplayParameterBoundaryTests
 {
     [Fact]
