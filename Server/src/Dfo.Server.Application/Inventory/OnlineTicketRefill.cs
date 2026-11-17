@@ -48,16 +48,22 @@ internal sealed class OnlineTicketRefillJob<TRefill>(ISelectedSessionSnapshotQue
     }
 }
 
-internal static class OnlineTicketRefillRegistration
+internal static class OnlineTicketRefillExtensions
 {
     /// <summary>
-    /// Schedules the mode's online refill at the reset and declares its ticket to the refill rules in
-    /// the same call, so neither can be registered without the other.
+    /// Declares the reset job, post-publication selection refill and independent ticket period together.
+    /// Selection order is explicit because the scheduler's registration order is a different boundary.
     /// </summary>
-    internal static void AddOnlineTicketRefill<TRefill, TRule>(this IServiceCollection services, string taskId)
+    internal static void AddOnlineTicketRefill<TRefill, TRule>(this IServiceCollection services, string taskId,
+        int selectionOrder, string selectionWorkUnitName)
         where TRefill : class, IOnlineTicketRefillDomainService
         where TRule : class, IOnlineRefilledTicketRule
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(selectionWorkUnitName);
+        ArgumentOutOfRangeException.ThrowIfNegative(selectionOrder);
+        services.AddSingleton<OnlineTicketRefillRegistration>(sp =>
+            new(taskId, selectionOrder, selectionWorkUnitName, sp.GetRequiredService<TRefill>()));
         services.AddSingleton<IOnlineRefilledTicketRule>(sp => sp.GetRequiredService<TRule>());
         services.AddScoped<OnlineTicketRefillJob<TRefill>>();
         services.AddScheduledTaskFactory(sp => new(taskId,

@@ -36,6 +36,8 @@ public sealed class CommandHandlerArchitectureTests
         new Dictionary<Type, string>
         {
             [typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl)] = "仅原翻牌生产者的固定两阶段与精确取消，不提供world或任意调度能力。",
+            [typeof(IEnumerable<Dfo.Server.Abstractions.Inventory.OnlineTicketRefillRegistration>)] =
+                "仅选角发布后的已注册补票能力及顺序；CMD继续逐项拥有事务、精确收件人与失败处理，不提供动态解析或任意委托。",
             [typeof(TimeProvider)] =
                 "环境时钟。它不是这个游戏知道的任何东西，注入它是为了让时间在测试里可控。",
             [typeof(Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink)] = "仅Joust首次成功在独立当前态读取后登记Inventory与Joust快照；不嵌套派发或授raw。",
@@ -150,11 +152,15 @@ public sealed class CommandHandlerArchitectureTests
     [InlineData(typeof(Dfo.Server.Abstractions.World.IDungeonDeadlineWake))]
     [InlineData(typeof(Dfo.Server.Application.World.DungeonDeadlineScheduler))]
     [InlineData(typeof(Dfo.Server.Protocol.Game.Party.PartyNotificationDelivery))]
+    [InlineData(typeof(IEnumerable<IServiceProvider>))]
+    [InlineData(typeof(IEnumerable<Dfo.Server.Abstractions.Persistence.ICharacterTable>))]
+    [InlineData(typeof(IEnumerable<IPretendScheduledDispatch>))]
     [InlineData(typeof(string))]
     public void ATypeOutsideTheVocabularyIsRefused(Type type) => Assert.False(IsPermitted(type));
 
     [Theory]
     [InlineData(typeof(Dfo.Server.Abstractions.World.IDungeonCardPresentationControl))]
+    [InlineData(typeof(IEnumerable<Dfo.Server.Abstractions.Inventory.OnlineTicketRefillRegistration>))]
     [InlineData(typeof(ICharacterDomainService))]
     [InlineData(typeof(IPartyService))]
     [InlineData(typeof(Dfo.Server.Abstractions.Inventory.IItemDomainStore))]

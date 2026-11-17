@@ -32,6 +32,9 @@ public sealed class OnlineTicketRefillRegistrationTests
         services.AddLogging();
         new ApplicationModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         services.AddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>(new Scheduling.OnlineExpiredItemScheduleTests.SixOClock());
+        services.AddSingleton(Unused<IBossTowerTicketDomainService>());
+        services.AddSingleton(Unused<ISouthernDaleDomainService>());
+        services.AddSingleton(Unused<ITauKingdomDomainService>());
         services.AddSingleton(Unused<IBossTowerContentSource>());
         services.AddSingleton(Unused<ISouthernDaleContentSource>());
         services.AddSingleton(Unused<ITauKingdomContentSource>());
@@ -47,7 +50,13 @@ public sealed class OnlineTicketRefillRegistrationTests
             ["tau-kingdom.ticket-refill.online"] = typeof(ITauKingdomDomainService),
         }, jobs);
 
-        // The same three ids the batch used to name itself; every other item keeps the ordinary period.
+        var selection = provider.GetServices<OnlineTicketRefillRegistration>().OrderBy(x => x.SelectionOrder).ToArray();
+        Assert.Equal(new[] { "tau-kingdom.ticket-refill.online", "southern-dale.ticket-refill.online", "boss-tower.ticket-refill.online" },
+            selection.Select(x => x.TaskId));
+        Assert.Equal(jobs.Keys.Order(), selection.Select(x => x.TaskId).Order());
+        Assert.All(selection, entry => Assert.IsAssignableFrom(jobs[entry.TaskId], entry.Service));
+
+        // Every other item keeps the ordinary period.
         var rules = provider.GetRequiredService<IDailyRefillRuleService>();
         Assert.True(rules.UsesIndependentPeriod(Tau));
         Assert.True(rules.UsesIndependentPeriod(SouthernDale));
@@ -67,6 +76,28 @@ public sealed class OnlineTicketRefillRegistrationTests
         var declared = new DailyRefillRuleService(reset, [new Ticket(9001)]);
         Assert.True(declared.UsesIndependentPeriod(Rule(9001)));
         Assert.False(declared.UsesIndependentPeriod(BossTower));
+    }
+
+    [Fact]
+    public async Task An_added_mode_gets_a_reset_job_a_selection_capability_and_an_independent_period_from_one_registration()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<AddedMode>();
+        services.AddSingleton<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>(new Scheduling.OnlineExpiredItemScheduleTests.SixOClock());
+        services.AddOnlineTicketRefill<AddedMode, AddedMode>("added.ticket-refill.online", 3, "RefillAddedTicket");
+        await using var provider = services.BuildServiceProvider();
+        var selection = Assert.Single(provider.GetServices<OnlineTicketRefillRegistration>());
+        var job = Assert.Single(provider.GetServices<ScheduledTaskRegistration>());
+        Assert.Equal(selection.TaskId, job.Id);
+        Assert.Equal(typeof(OnlineTicketRefillJob<AddedMode>), job.HandlerType);
+        Assert.Same(provider.GetRequiredService<AddedMode>(), selection.Service);
+        Assert.Equal(9001, Assert.Single(provider.GetServices<IOnlineRefilledTicketRule>()).TicketItemId);
+    }
+
+    private sealed class AddedMode : IOnlineTicketRefillDomainService, IOnlineRefilledTicketRule
+    {
+        public int TicketItemId => 9001;
+        public ValueTask<bool> RefillOnlineTicketAsync(Dfo.Server.Data.World.SelectedSessionIdentity session, CancellationToken ct) => throw new NotSupportedException();
     }
 
     private static DailyRefillRule Rule(int itemId) =>

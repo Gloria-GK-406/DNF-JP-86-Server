@@ -46,7 +46,7 @@ internal static class DungeonContentsRegistration
         services.TryAddSingleton<IBossTowerRuleService, BossTowerRuleService>();
         services.TryAddSingleton<IBossTowerTicketDomainService, BossTowerTicketDomainService>();
         services.AddDomainEvent<BossTowerTicketRefilled>("boss-tower.ticket-refilled", 1);
-        services.AddOnlineTicketRefill<IBossTowerTicketDomainService, IBossTowerRuleService>("boss-tower.ticket-refill.online");
+        services.AddOnlineTicketRefill<IBossTowerTicketDomainService, IBossTowerRuleService>("boss-tower.ticket-refill.online", 2, "RefillOnlineBossTowerTicket");
         services.TryAddSingleton<IGoldSilverHornDomainService, GoldSilverHornDomainService>();
         services.TryAddSingleton<ISealedTreasureDomainService, SealedTreasureDomainService>();
         services.TryAddSingleton<ISouthernDaleDomainService, SouthernDaleDomainService>();
@@ -54,11 +54,11 @@ internal static class DungeonContentsRegistration
         services.TryAddSingleton<ISouthernDaleQuestDomainService, SouthernDaleQuestDomainService>();
         services.AddDomainEvent<SouthernDaleInventoryChanged>("southern-dale.inventory-changed", 1);
         services.AddDomainEvent<SouthernDaleDailyRefillCompleted>("southern-dale.daily-refill-completed", 1);
-        services.AddOnlineTicketRefill<ISouthernDaleDomainService, ISouthernDaleRuleService>("southern-dale.ticket-refill.online");
+        services.AddOnlineTicketRefill<ISouthernDaleDomainService, ISouthernDaleRuleService>("southern-dale.ticket-refill.online", 1, "RefillOnlineSouthernTicket");
         services.TryAddSingleton<ITauKingdomRuleService, TauKingdomRuleService>();
         services.TryAddSingleton<ITauKingdomDomainService, TauKingdomDomainService>();
         services.AddDomainEvent<TauKingdomTicketRefilled>("tau-kingdom.ticket-refilled", 1);
-        services.AddOnlineTicketRefill<ITauKingdomDomainService, ITauKingdomRuleService>("tau-kingdom.ticket-refill.online");
+        services.AddOnlineTicketRefill<ITauKingdomDomainService, ITauKingdomRuleService>("tau-kingdom.ticket-refill.online", 0, "RefillOnlineTauTicket");
         services.TryAddSingleton<ISaoTowerRuleService, SaoTowerRuleService>();
         services.TryAddSingleton<ISaoTowerDomainService, SaoTowerDomainService>();
         services.AddSingleton<IDungeonBossClearHook>(sp => sp.GetRequiredService<ISaoTowerDomainService>());

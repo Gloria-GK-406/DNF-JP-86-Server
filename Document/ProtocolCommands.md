@@ -26,7 +26,7 @@ handler 实现同一 `ICommandHandler<TCommand,TResult>`；内部命令使用 `I
 业务依赖只允许 Abstractions 中的 `*DomainService`、`*DomainStore` 和既有具名 `IPartyService`。
 角色／任务簿／容器实例从领域服务取得，事实值从命令输入传入。
 机制能力限定为显式工作单元、作业发件箱／关闭／投影、出站顺序、固定槽位换算、时钟和日志；
-选角、翻牌、祭坛、Joust、HTTP 审计、生命周期、事件和调度的特殊能力须有具名理由。精确注入表由
+选角、翻牌、祭坛、Joust、HTTP 审计、生命周期、事件和调度的特殊能力须有具名理由。选角补票可注入 `IEnumerable<OnlineTicketRefillRegistration>`，仅承载已注册的补票能力与阶段元数据；选角仍拥有各项事务和精确会话边界，规则见 [每日补给](DailyRefillSettings.md#在线补票的注册与触发)。精确注入表由
 [CommandHandlerArchitectureTests](../Server/tests/Dfo.Server.Application.Tests/Commands/CommandHandlerArchitectureTests.cs)
 维护。禁止总线、queue、executor、传输 sender／closer、内容源／规则服务、行网关和 service locator。
 机制能力不因为有相似名称就自动获准。

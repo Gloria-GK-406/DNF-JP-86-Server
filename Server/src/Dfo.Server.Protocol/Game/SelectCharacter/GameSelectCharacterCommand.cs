@@ -90,9 +90,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly IItemUsageDomainService itemUsage;
     private readonly IClientSettingsDomainService clientSettings;
     private readonly ISaoTowerDomainService sao;
-    private readonly ITauKingdomDomainService tau;
-    private readonly ISouthernDaleDomainService southern;
-    private readonly IBossTowerTicketDomainService bossTickets;
+    private readonly OnlineTicketRefillRegistration[] ticketRefills;
     private readonly IOutboundOrdering ordering;
     private readonly IDarkElfRuinsDomainService ruins;
     private readonly ICharacterRelationQueryDomainService relations;
@@ -109,8 +107,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         SelectCharacterDeliveryOptions delivery, TimeProvider clock, LotteryCounterExperimentOptions lotteryCounterExperiment,
         IWeaknessDomainService weaknessState, IItemUsageDomainService itemUsage,
         IClientSettingsDomainService clientSettings,
-        ISaoTowerDomainService sao, ITauKingdomDomainService tau,
-        ISouthernDaleDomainService southern, IBossTowerTicketDomainService bossTickets,
+        ISaoTowerDomainService sao, IEnumerable<OnlineTicketRefillRegistration> ticketRefills,
         IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins,
         ICharacterRelationQueryDomainService relations, ICharacterIdentityQueryDomainService identities)
 
@@ -121,8 +118,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.inventoryEntry=inventoryEntry; this.sessionEntry=sessionEntry; this.questEntry=questEntry; this.petEntry=petEntry;
         this.expiredItems=expiredItems; this.puppets=puppets; this.housingEntry=housingEntry; this.delivery=delivery;
         this.lotteryCounterExperiment=lotteryCounterExperiment; this.weaknessState=weaknessState; this.itemUsage=itemUsage;
-        this.clientSettings=clientSettings; this.sao=sao; this.tau=tau;
-        this.southern=southern; this.bossTickets=bossTickets; this.ordering=ordering;
+        this.clientSettings=clientSettings; this.sao=sao; this.ordering=ordering;
+        this.ticketRefills = ticketRefills.OrderBy(refill => refill.SelectionOrder).ToArray();
+        if (this.ticketRefills.Select(refill => refill.SelectionOrder).Distinct().Count() != this.ticketRefills.Length)
+            throw new InvalidOperationException("Selected-character ticket refill orders must be unique.");
         this.ruins = ruins;
         this.relations = relations; this.identities = identities;
     }
@@ -364,11 +363,9 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         }
         // Selection can straddle 06:00 while the scheduled snapshot sees it as unpublished.
         // Recheck the current period after publication using the same durable ticket claim.
-            await RefillTauAsync(execution, session, cancellationToken)
-                .ConfigureAwait(false);
-            await RefillSouthernAsync(execution, session, cancellationToken)
-                .ConfigureAwait(false);
-            await RefillBossAsync(execution, session, cancellationToken).ConfigureAwait(false);
+        foreach (var refill in ticketRefills)
+            await units.WriteAsync(execution, new(refill.SelectionWorkUnitName, [TicketRecipient(execution, session)]),
+                (_, token) => refill.Service.RefillOnlineTicketAsync(session, token), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         {
             if (!users.TryGetByConnection(session.ConnectionId, out var current) || current is null)
@@ -727,12 +724,6 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         var connection = users.TryGetByConnection(session.ConnectionId, out var user) ? user?.Connection : null;
         return new(session, connection, ((ProtocolFrameMetadata.Game)request.Metadata).Value);
     }
-    private ValueTask<bool> RefillTauAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
-        units.WriteAsync(execution, new("RefillOnlineTauTicket", [TicketRecipient(execution, session)]), (_, token) => tau.RefillOnlineTicketAsync(session, token), ct);
-    private ValueTask<bool> RefillSouthernAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
-        units.WriteAsync(execution, new("RefillOnlineSouthernTicket", [TicketRecipient(execution, session)]), (_, token) => southern.RefillOnlineTicketAsync(session, token), ct);
-    private ValueTask<bool> RefillBossAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct) =>
-        units.WriteAsync(execution, new("RefillOnlineBossTowerTicket", [TicketRecipient(execution, session)]), (_, token) => bossTickets.RefillOnlineTicketAsync(session, token), ct);
     private ValueTask<bool> ActivateHotkeysAsync(CommandExecutionContext execution, ClientSettingsOrigin origin, byte keyType, CancellationToken ct)
     {
         execution.Request!.DemandCurrent();
