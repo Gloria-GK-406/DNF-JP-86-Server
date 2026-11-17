@@ -19,7 +19,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
     IDungeonAdmissionDomainService admission, IDungeonStructureRuleService layouts, IDungeonVisitDomainService visits,
     IDungeonRunCombatDomainService runs, IUsageQuotaDomainService quotas, ICharacterDomainService characters,
-    ISelectedSessionDomainService sessions, IMonsterDropDomainService loot, IItemDeliveryDomainService delivery,
+    ISelectedSessionDomainService sessions, IMonsterDropDomainService loot, IDropDrawMultiplierDomainService drawMultipliers, IItemDeliveryDomainService delivery,
     IDailyResetRuleService daily, IEventService events, IDomainTransactionAccessor transactions, TimeProvider clock,
     ICharacterGameplayFactDomainService gameplay)
 {
@@ -286,13 +286,15 @@ internal sealed class AltarDungeonEngine(IAltarDungeonRuleService rules,
             run.CurrentRoomMapId, run.RoomVersion, now, run.Participants.ToImmutableArray()), ct);
     private async ValueTask<IReadOnlyList<DungeonCellActorState>> CreateActorsAsync(DungeonRunState run, IReadOnlyList<AltarSpawn> spawns, CancellationToken ct)
     {
+        if (spawns.Count == 0) return [];
         var participants = run.Participants.Select(x => new MonsterDropParticipant(x.AccountId, x.CharacterId)).ToImmutableArray();
         var owner = run.Participants.First(x => x.IsLeader).CharacterId;
+        var multipliers = await drawMultipliers.CurrentAsync(ct).ConfigureAwait(false);
         var actors = new List<DungeonCellActorState>();
         foreach (var spawn in spawns)
         {
             var dropContext = new MonsterDropContext(run.RunId, run.Layout.DungeonId, run.Layout.Seed, run.CurrentCell,
-                run.CurrentRoomMapId, run.Difficulty, spawn.Sequence, spawn.Level, spawn.ActorType, owner, participants) { RandomDropCount = 0 };
+                run.CurrentRoomMapId, run.Difficulty, spawn.Sequence, spawn.Level, spawn.ActorType, owner, participants, multipliers) { RandomDropCount = 0 };
             var pending = new List<RolledDrop>(await loot.GenerateGroundAsync(spawn.MonsterCode, dropContext, ct).ConfigureAwait(false));
             foreach (var participant in participants)
                 pending.AddRange(await loot.GeneratePersonalAsync(spawn.MonsterCode, participant.CharacterId, dropContext, ct).ConfigureAwait(false));

@@ -84,7 +84,6 @@ internal static class CharactersRegistration
         // Configured allowance plus persistent, business-day usage accounting.
         services.TryAddSingleton<CharacterFatigueDomainService>();
         services.TryAddSingleton<ICharacterFatigueDomainService>(sp => sp.GetRequiredService<CharacterFatigueDomainService>());
-        services.TryAddSingleton<IFatigueConsumptionControlDomainService>(sp => sp.GetRequiredService<CharacterFatigueDomainService>());
         // The character entity sits below the world and the effects; the roster, which creates and draws
         // characters, sits above initialization and appearance, which both reach the entity.
         services.TryAddSingleton<ICharacterDomainService, CharacterDomainService>();

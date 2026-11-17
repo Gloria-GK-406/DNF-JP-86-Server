@@ -18,7 +18,7 @@ internal sealed class DungeonEntranceDomainService(
     IDungeonRunCombatDomainService runs,
     IDungeonSettlementRuleService settlementRules,
     IDungeonRoomRuleService rooms,
-    IMonsterDropDomainService loot,
+    IMonsterDropDomainService loot, IDropDrawMultiplierDomainService drawMultipliers,
     ILogger<DungeonEntranceDomainService> logger) : IDungeonEntranceDomainService
 {
     public async ValueTask<DungeonEntranceSummonResult> SummonAsync(SelectedSessionIdentity requester,
@@ -55,6 +55,7 @@ internal sealed class DungeonEntranceDomainService(
         var next = (ushort)(used.Count == 0 ? run.CurrentCellState.FirstActorSequence : used.Max());
         var participants = run.Participants.Select(member => new MonsterDropParticipant(member.AccountId, member.CharacterId))
             .ToImmutableArray();
+        var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
         var actors = new List<DungeonCellActorState>();
         foreach (var template in templates.Take(count))
         {
@@ -62,7 +63,7 @@ internal sealed class DungeonEntranceDomainService(
             used.Add(next);
             var context = new MonsterDropContext(run.RunId, run.Layout.DungeonId, run.Layout.Seed, run.CurrentCell,
                 run.CurrentRoomMapId, run.Difficulty, next, template.Level, template.ActorType, requester.CharacterId,
-                participants) { RandomDropCount = template.RandomDropCount };
+                participants, multipliers) { RandomDropCount = template.RandomDropCount };
             var pending = new List<RolledDrop>(await loot.GenerateGroundAsync(template.Code, context, cancellationToken)
                 .ConfigureAwait(false));
             foreach (var participant in participants)

@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Events;
 /// The GM switch of one dungeon entrance activity: configuration, open period and its EVENT_INFO projection.
 /// An entrance only differs in its identity, its initial configuration and what it projects while open.
 /// </summary>
-internal abstract class EntranceEventDomainService(IEventPersistence store) : IManagedEventDomainService
+internal abstract class EntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods) : IManagedEventDomainService
 {
     public abstract int EventId { get; }
     /// <summary>The GM page key of this entrance.</summary>
@@ -27,8 +27,7 @@ internal abstract class EntranceEventDomainService(IEventPersistence store) : IM
         c.StartNotice, c.EndNotice, c.StartsAt!.Value, c.EndsAt!.Value, link);
 
     private async ValueTask<EventConfiguration> Configuration(CancellationToken ct) => await store.ConfigurationAsync(EventId, ct) ?? Initial;
-    private static bool Active(EventConfiguration c, DateTimeOffset now) => c.Enabled && c.StartsAt <= now && c.EndsAt > now;
-    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => Active(await Configuration(ct), now);
+    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => periods.IsActive(await Configuration(ct), now);
 
     public async ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct)
     {
@@ -42,7 +41,7 @@ internal abstract class EntranceEventDomainService(IEventPersistence store) : IM
     public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
     {
         var c = await Configuration(ct);
-        return account.Value > 0 && Active(c, now) ? Project(c) : [];
+        return account.Value > 0 && periods.IsActive(c, now) ? Project(c) : [];
     }
 
     public async ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct)

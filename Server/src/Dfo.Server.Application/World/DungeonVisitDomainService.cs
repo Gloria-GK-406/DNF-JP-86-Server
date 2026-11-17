@@ -112,8 +112,8 @@ internal sealed class DungeonVisitDomainService(
         if (!tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
         if (layout.ConsumesFatigue)
-            foreach (var participant in participants)
-                await fatigue.SpendAsync(participant.CharacterId, layout.EntryOnlyFatigue ?? 1, cancellationToken).ConfigureAwait(false);
+            await fatigue.SpendBatchAsync(participants.Select(participant => participant.CharacterId).ToArray(),
+                layout.EntryOnlyFatigue ?? 1, cancellationToken).ConfigureAwait(false);
         var change = runs.PreparePartyEntry(
             participants, layout, difficulty, initialCell, runId, startedAt);
         var createdVisits = participants.ToDictionary(
@@ -202,8 +202,8 @@ internal sealed class DungeonVisitDomainService(
                 characterId, entered.RunId, entered.Layout.DungeonId, entered.CurrentRoomMapId, entered.RoomVersion,
                 firstEntry, entered.CurrentCellState.Actors.Count, entered.CurrentCellState.Objects.Count);
         if (firstEntry && entered.Layout.ConsumesFatigue && entered.Layout.EntryOnlyFatigue is null)
-            foreach (var participant in entered.Participants)
-                await fatigue.SpendAsync(participant.CharacterId, 1, cancellationToken).ConfigureAwait(false);
+            await fatigue.SpendBatchAsync(entered.Participants.Select(participant => participant.CharacterId).ToArray(),
+                1, cancellationToken).ConfigureAwait(false);
         return new(this.DescribeCreatedCell(entered, firstEntry), null);
     }
 

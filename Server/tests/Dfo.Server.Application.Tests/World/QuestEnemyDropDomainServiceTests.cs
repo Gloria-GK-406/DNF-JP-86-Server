@@ -387,7 +387,7 @@ public sealed class QuestEnemyDropDomainServiceTests
             run.RunId, run.Layout.DungeonId, run.Layout.Seed, run.Cell, run.MapId,
             run.Difficulty, 30001, 5, 0, Leader,
             run.Participants.Select(participant => new MonsterDropParticipant(
-                participant.AccountId, participant.CharacterId)).ToImmutableArray()));
+                participant.AccountId, participant.CharacterId)).ToImmutableArray(), DropDrawMultipliers.Default));
 
     private static QuestDefinition Definition(
         int rewardCount, int maxStack, int rewardDifficulty) =>

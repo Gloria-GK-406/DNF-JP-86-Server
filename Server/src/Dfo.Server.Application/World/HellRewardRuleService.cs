@@ -53,9 +53,9 @@ internal sealed class HellRewardRuleService(IHellRewardDefinitionSource source,
                     drops.Add(new(definition.EpicPieces[item.ItemId], 1, DropRarity.Epic, DropItemKind.Stackable));
         }
         DrawPieces(random);
-        for (var round = 1; round < context.DrawMultipliers.For(DropDrawEntry.HellEquipment); round++)
+        for (var round = 1; round < context.Drop.DrawMultipliers.For(DropDrawEntry.HellEquipment); round++)
             DrawEquipment(new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.HellEquipment, round))));
-        for (var round = 1; round < context.DrawMultipliers.For(DropDrawEntry.HellEpicPiece); round++)
+        for (var round = 1; round < context.Drop.DrawMultipliers.For(DropDrawEntry.HellEpicPiece); round++)
             DrawPieces(new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.HellEpicPiece, round))));
         return drops.ToArray();
     }

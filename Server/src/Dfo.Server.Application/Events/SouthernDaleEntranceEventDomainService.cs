@@ -5,7 +5,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // Southern Dale shares the native 69/75 gate with Tau Kingdom.
-internal sealed class SouthernDaleEntranceEventDomainService(IEventPersistence store, ISouthernDaleRuleService rules) : EntranceEventDomainService(store)
+internal sealed class SouthernDaleEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, ISouthernDaleRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "southern-dale-entrance";

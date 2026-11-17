@@ -19,10 +19,7 @@ public interface IHellRewardDefinitionSource
 public sealed record HellActorReward(IReadOnlyList<RolledDrop> Loot, bool EligibleForGroupReward);
 
 public sealed record HellGroupRewardContext(MonsterDropContext Drop, byte HellDifficulty,
-    int GroupIndex, int BasisLevel)
-{
-    public DropDrawMultipliers DrawMultipliers { get; init; } = DropDrawMultipliers.Default;
-}
+    int GroupIndex, int BasisLevel);
 
 public interface IHellRewardRuleService
 {

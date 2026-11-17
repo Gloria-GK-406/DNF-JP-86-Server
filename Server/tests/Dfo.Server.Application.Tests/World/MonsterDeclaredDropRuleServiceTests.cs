@@ -45,7 +45,7 @@ public sealed class MonsterDeclaredDropRuleServiceTests
         MonsterDropParticipant first = new(new Dfo.Server.Data.Accounts.AccountId(1), character);
         MonsterDropParticipant second = new(new Dfo.Server.Data.Accounts.AccountId(2), new(2));
         var context = new MonsterDropContext(DungeonRunId.New(), 1, 123, new MazeCell(0, 0), 1,
-            0, 30001, 20, 0, character, [first]);
+            0, 30001, 20, 0, character, [first], DropDrawMultipliers.Default);
         Assert.Throws<InvalidOperationException>(() => service.Draw(new(1, context)));
         service.Initialize();
         service.Initialize();

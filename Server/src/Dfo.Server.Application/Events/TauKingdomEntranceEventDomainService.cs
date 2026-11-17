@@ -5,7 +5,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // A21 checks 2215 for dungeon 3700 and 69/75 for the earlier generic entry gate.
-internal sealed class TauKingdomEntranceEventDomainService(IEventPersistence store, ITauKingdomRuleService rules) : EntranceEventDomainService(store)
+internal sealed class TauKingdomEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, ITauKingdomRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "tau-kingdom-entrance";

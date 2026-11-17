@@ -269,7 +269,7 @@ public sealed class DimensionDungeonTests
 
     private static MonsterDropRequest Request(int dungeon = 7100, int monster = 61809, int rank = 3, int tier = 0) =>
         new(monster, new(DungeonRunId.New(), dungeon, 42, new(0, 0), 53075, (DungeonDifficulty)tier, 1, 86, rank,
-            new(71), ImmutableArray.Create(new MonsterDropParticipant(new(1), new(71)))));
+            new(71), ImmutableArray.Create(new MonsterDropParticipant(new(1), new(71))), DropDrawMultipliers.Default));
 
     private sealed class FixedSource(DimensionDungeonContent content) : IDimensionDungeonContentSource
     {

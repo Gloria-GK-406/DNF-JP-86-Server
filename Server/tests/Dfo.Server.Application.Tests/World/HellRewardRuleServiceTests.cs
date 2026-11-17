@@ -45,11 +45,11 @@ public sealed class HellRewardRuleServiceTests
         var plain = await rules.DrawGroupAsync(Context(1), default);
         var multiplied = await rules.DrawGroupAsync(Context(1) with
         {
-            DrawMultipliers = new(new Dictionary<DropDrawEntry, int>
+            Drop = Context(1).Drop with { DrawMultipliers = new(new Dictionary<DropDrawEntry, int>
             {
                 [DropDrawEntry.HellEquipment] = 3,
                 [DropDrawEntry.HellEpicPiece] = 2,
-            }),
+            }) },
         }, default);
         Assert.Equal(plain, multiplied.Take(plain.Count));
         Assert.Equal(24, multiplied.Count(x => x.Kind == DropItemKind.Equipment));
@@ -66,7 +66,7 @@ public sealed class HellRewardRuleServiceTests
     }
 
     private static HellGroupRewardContext Context(byte difficulty) => new(new(DungeonRunId.New(), 77, 123,
-        new(3, 1), 60064, DungeonDifficulty.Normal, 100, 75, 5, new(10), [new(new(1), new(10))]), difficulty, 136, 75);
+        new(3, 1), 60064, DungeonDifficulty.Normal, 100, 75, 5, new(10), [new(new(1), new(10))], DropDrawMultipliers.Default), difficulty, 136, 75);
 
     private sealed class Content(int rate) : IHellRewardDefinitionSource
     {

@@ -24,11 +24,11 @@ public sealed class UnlimitedFatigueEventTests
     {
         var clock = new Clock { Now = DateTimeOffset.UtcNow };
         var observed = new Observed { FailActivation = true };
-        await using var f = new LearningFixture(configure: s =>
+        await using var f = CreateFixture(configure: s =>
         {
             s.AddSingleton<TimeProvider>(clock);
             s.AddSingleton(observed);
-            s.AddRuntimeEventSubscriber<ManagedEventActivationChanged, Observer>();
+            Observe(s, observed);
             s.AddSingleton<IManagedEventDomainService>(new LaterActivity());
         });
         await TestGameplay.RunAsync(async () =>
@@ -38,7 +38,7 @@ public sealed class UnlimitedFatigueEventTests
         });
         clock.Now = clock.Now.AddHours(1);
         await Assert.ThrowsAsync<AggregateException>(async () => await Scheduled(f, clock.Now));
-        Assert.False(await Suspended(f));
+        Assert.True(await Suspended(f));
         var lifecycle = f.Services.GetRequiredService<IManagedEventLifecycleDomainService>();
         Assert.False((await lifecycle.AppliedAsync(ActivityId, default))!.Active);
         Assert.True((await lifecycle.AppliedAsync(LaterActivity.Id, default))!.Active);
@@ -69,21 +69,11 @@ public sealed class UnlimitedFatigueEventTests
     }
 
     [Fact]
-    public void Fatigue_policy_has_one_production_writer_and_no_gm_control_consumer()
-    {
-        var consumers = typeof(ApplicationModule).Assembly.GetTypes()
-            .Where(type => !type.IsAbstract && type.GetConstructors()
-                .SelectMany(c => c.GetParameters()).Any(p => p.ParameterType == typeof(IFatigueConsumptionControlDomainService)))
-            .ToArray();
-        Assert.Equal(typeof(UnlimitedFatigueActivationSubscriber), Assert.Single(consumers));
-    }
-
-    [Fact]
     public async Task Zero_balance_is_admissible_only_while_the_activity_effect_is_applied()
     {
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             await f.SeedAsync();
             var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
             await using (var tx = f.Scope.Begin())
@@ -115,10 +105,10 @@ public sealed class UnlimitedFatigueEventTests
         await TestGameplay.RunAsync(async () =>
         {
             var observed = new Observed();
-            await using var f = new LearningFixture(configure: s =>
+            await using var f = CreateFixture(configure: s =>
             {
                 s.AddSingleton(observed);
-                s.AddRuntimeEventSubscriber<ManagedEventActivationChanged, Observer>();
+                Observe(s, observed);
             });
             var start = DateTimeOffset.UtcNow.AddHours(1);
             var end = start.AddHours(1);
@@ -152,15 +142,15 @@ public sealed class UnlimitedFatigueEventTests
     }
 
     [Fact]
-    public async Task Subscriber_failure_rolls_back_configuration_policy_and_watermark_then_retry_succeeds()
+    public async Task Coordination_failure_rolls_back_configuration_and_watermark_then_retry_succeeds()
     {
         await TestGameplay.RunAsync(async () =>
         {
             var observed = new Observed { FailActivation = true };
-            await using var f = new LearningFixture(configure: s =>
+            await using var f = CreateFixture(configure: s =>
             {
                 s.AddSingleton(observed);
-                s.AddRuntimeEventSubscriber<ManagedEventActivationChanged, Observer>();
+                Observe(s, observed);
             });
             var now = DateTimeOffset.UtcNow;
             await Configure(f, now, now.AddHours(-1), now.AddHours(1));
@@ -182,7 +172,7 @@ public sealed class UnlimitedFatigueEventTests
     public async Task Persisted_effect_is_restored_or_expired_by_the_real_startup_command()
     {
         var clock = new Clock { Now = DateTimeOffset.UtcNow };
-        await using var f = new LearningFixture(configure: s => s.AddSingleton<TimeProvider>(clock));
+        await using var f = CreateFixture(configure: s => s.AddSingleton<TimeProvider>(clock));
         await TestGameplay.RunAsync(async () =>
         {
             await Configure(f, clock.Now, clock.Now.AddHours(-1), clock.Now.AddHours(1));
@@ -195,7 +185,7 @@ public sealed class UnlimitedFatigueEventTests
         }
         clock.Now = clock.Now.AddHours(2);
         await using var expired = new LearningFixture(existing: f.Path, configure: s => s.AddSingleton<TimeProvider>(clock));
-        Assert.True(await Suspended(expired));
+        Assert.False(await Suspended(expired));
         await Initialize(expired);
         Assert.False(await Suspended(expired));
     }
@@ -206,10 +196,10 @@ public sealed class UnlimitedFatigueEventTests
         await TestGameplay.RunAsync(async () =>
         {
             var observed = new Observed();
-            await using var f = new LearningFixture(configure: s =>
+            await using var f = CreateFixture(configure: s =>
             {
                 s.AddSingleton(observed);
-                s.AddRuntimeEventSubscriber<ManagedEventActivationChanged, Observer>();
+                Observe(s, observed);
             });
             var now = DateTimeOffset.UtcNow;
             await Configure(f, now, now.AddHours(1), now.AddHours(2));
@@ -225,8 +215,15 @@ public sealed class UnlimitedFatigueEventTests
         });
     }
 
+    private static LearningFixture CreateFixture(Action<IServiceCollection>? configure = null) => new(configure: services =>
+    {
+        services.AddSingleton<TimeProvider>(new Clock { Now = DateTimeOffset.UtcNow });
+        configure?.Invoke(services);
+    });
+
     private static async Task Configure(LearningFixture f, DateTimeOffset now, DateTimeOffset start, DateTimeOffset end)
     {
+        if (f.Services.GetRequiredService<TimeProvider>() is Clock clock) clock.Now = now;
         await using var tx = f.Scope.Begin();
         await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(new(ActivityId, 0, "configure",
             "无限疲劳", "免疲劳", "测试", "", "", start, end), "test", now, default);
@@ -235,6 +232,7 @@ public sealed class UnlimitedFatigueEventTests
 
     private static async Task Change(LearningFixture f, long revision, string action, DateTimeOffset now)
     {
+        if (f.Services.GetRequiredService<TimeProvider>() is Clock clock) clock.Now = now;
         await using var tx = f.Scope.Begin();
         await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(new(ActivityId, revision, action), "test", now, default);
         await tx.CommitAsync(default);
@@ -242,14 +240,15 @@ public sealed class UnlimitedFatigueEventTests
 
     private static async Task<bool> Reconcile(LearningFixture f, DateTimeOffset now)
     {
+        if (f.Services.GetRequiredService<TimeProvider>() is Clock clock) clock.Now = now;
         await using var tx = f.Scope.Begin();
         var result = await f.Services.GetRequiredService<IManagedEventLifecycleDomainService>().ReconcileAsync(ActivityId, now, default);
         await tx.CommitAsync(default);
         return result;
     }
 
-    private static ValueTask<bool> Suspended(LearningFixture f) =>
-        f.Services.GetRequiredService<IFatigueConsumptionControlDomainService>().IsSuspendedAsync(default);
+    private static async ValueTask<bool> Suspended(LearningFixture f) =>
+        !await f.Services.GetRequiredService<IFatigueConsumptionQuery>().ShouldConsumeAsync(default);
 
     private static ValueTask<bool> Initialize(LearningFixture f) => f.Services.GetRequiredService<ICommandBus>()
         .SendInternalAsync(new InitializeManagedEventsCommand(), new(GameplayCallSource.StartupRecovery,
@@ -267,23 +266,22 @@ public sealed class UnlimitedFatigueEventTests
         public List<ManagedEventActivationChanged> Changes { get; } = [];
     }
 
-    private sealed class Observer(Observed observed) : IDomainEventSubscriber<ManagedEventActivationChanged>
-    {
-        public ValueTask HandleAsync(DomainEventEnvelope<ManagedEventActivationChanged> message, CancellationToken ct)
+    private static void Observe(IServiceCollection services, Observed observed) =>
+        ActivationStoreProbe.Install(services, (id, state) =>
         {
-            if (message.Payload.EventId != ActivityId) return ValueTask.CompletedTask;
-            if (message.Payload.Active && observed.FailActivation) throw new InvalidOperationException("Injected activation failure.");
-            observed.Changes.Add(message.Payload);
-            return ValueTask.CompletedTask;
-        }
-    }
+            if (id == ActivityId && state.Active && observed.FailActivation)
+                throw new InvalidOperationException("Injected coordination failure.");
+        }, (id, state) =>
+        {
+            if (id == ActivityId) observed.Changes.Add(new(id, state.Active, state.ConfigurationRevision, state.AppliedAt));
+        });
 
     [Fact]
     public async Task Activity_preserves_real_usage_and_disabling_restores_spending()
     {
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             await f.SeedAsync();
             var fatigue = f.Services.GetRequiredService<ICharacterFatigueDomainService>();
             var events = f.Services.GetRequiredService<IEventManagementDomainService>();

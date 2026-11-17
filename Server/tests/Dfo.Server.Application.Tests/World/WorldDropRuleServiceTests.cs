@@ -37,7 +37,7 @@ public sealed class WorldDropRuleServiceTests
         var service = new WorldDropRuleService(source, new WorldDropOptions { ProbabilityBasis = 10 });
         var character = new CharacterId(1);
         var context = new MonsterDropContext(DungeonRunId.New(), 1, 123, new MazeCell(0, 0), 1,
-            0, 30001, 20, 0, character, [new(new AccountId(1), character)]);
+            0, 30001, 20, 0, character, [new(new AccountId(1), character)], DropDrawMultipliers.Default);
         var request = new MonsterDropRequest(17, context);
         Assert.Throws<InvalidOperationException>(() => service.Draw(request));
         Assert.Equal(1, service.Initialize());
@@ -61,7 +61,7 @@ public sealed class WorldDropRuleServiceTests
         debug.Initialize();
         var character = new CharacterId(1);
         var context = new MonsterDropContext(DungeonRunId.New(), 1, 0, new MazeCell(0, 0), 1,
-            0, 30001, 20, 0, character, [new(new AccountId(1), character)]);
+            0, 30001, 20, 0, character, [new(new AccountId(1), character)], DropDrawMultipliers.Default);
         var hits = 0;
         var misses = 0;
         for (var seed = 0; seed < 100; seed++)

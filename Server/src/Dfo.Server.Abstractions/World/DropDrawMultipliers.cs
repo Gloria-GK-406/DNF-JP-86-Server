@@ -93,17 +93,3 @@ public interface IDropDrawMultiplierDomainService
 {
     ValueTask<DropDrawMultipliers> CurrentAsync(CancellationToken cancellationToken);
 }
-
-/// <summary>Sets the multipliers; the drop rate activity is its only production consumer.</summary>
-public interface IDropDrawMultiplierControlDomainService
-{
-    /// <summary>Sets one entry; a value outside 1..100 is rejected.</summary>
-    ValueTask SetAsync(DropDrawEntry entry, int multiplier, CancellationToken cancellationToken);
-}
-
-public interface IDropDrawMultiplierPersistence
-{
-    ValueTask<IReadOnlyList<(string Key, int Multiplier)>> ReadAllAsync(CancellationToken cancellationToken);
-
-    ValueTask SaveAsync(string key, int multiplier, CancellationToken cancellationToken);
-}

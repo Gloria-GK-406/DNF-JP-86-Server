@@ -6,7 +6,7 @@ namespace Dfo.Server.Application.Events;
 
 // A21 filters [tower of despair sao] entrances unless EVENT_INFO contains the SAO activity.
 // This service owns that activity switch only; tower admission, progress and rewards are separate work.
-internal sealed class SaoTowerEntranceEventDomainService(IEventPersistence store, ISaoTowerRuleService rules) : EntranceEventDomainService(store)
+internal sealed class SaoTowerEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, ISaoTowerRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "sao-tower-entrance";

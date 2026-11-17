@@ -25,7 +25,7 @@ internal sealed class BossTowerDomainService(
     ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionRuleService materialRules,
     IDungeonAdmissionDomainService admission, IEventManagementDomainService activities,
-    IMonsterDropDomainService monsterDrops, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
+    IMonsterDropDomainService monsterDrops, IDropDrawMultiplierDomainService drawMultipliers, IItemDeliveryDomainService delivery, IQuestProgressDomainService quests,
     IDungeonRunQueryDomainService ordinary, DomainTransactionScope scope, TimeProvider clock,
     IBossTowerRewardDomainService rewards,
     IEventService events, IDungeonParticipationDomainService participation,
@@ -358,7 +358,7 @@ internal sealed class BossTowerDomainService(
                 var dropContext = new MonsterDropContext(new(next.RunId), next.DungeonId, unchecked((int)next.Seed),
                     new(checked((byte)(next.Room.State.Level % 2)), 0), next.Room.State.MapId, DungeonDifficulty.Normal,
                     killed.Uid, killed.Seed.Level, killed.Seed.ActorType, leader.Session.CharacterId,
-                    next.Members.Select(x => new MonsterDropParticipant(x.Session.AccountId, x.Session.CharacterId)).ToImmutableArray())
+                    next.Members.Select(x => new MonsterDropParticipant(x.Session.AccountId, x.Session.CharacterId)).ToImmutableArray(), await drawMultipliers.CurrentAsync(token).ConfigureAwait(false))
                     { SourceType = killed.Seed.ActorType is >= 5 and <= 8 ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster };
                 var drops = await monsterDrops.GenerateIndependentAsync(killed.Seed.TemplateId, dropContext, 0, token).ConfigureAwait(false);
                 var definition = await rules.DefinitionAsync(token).ConfigureAwait(false);

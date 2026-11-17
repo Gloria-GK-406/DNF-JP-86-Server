@@ -9,17 +9,10 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
     IPremiumServiceDomainService premiums, IServerConfigService settings, ICharacterFatigueTable table,
     IDailyResetRuleService days, TimeProvider clock, IDomainTransactionAccessor transactions,
-    IFatigueConsumptionSettingsPersistence consumption) : ICharacterFatigueDomainService, IFatigueConsumptionControlDomainService
+    IFatigueConsumptionQuery consumption) : ICharacterFatigueDomainService
 {
-    public ValueTask<bool> IsSuspendedAsync(CancellationToken ct) => consumption.IsSuspendedAsync(ct);
-    public ValueTask SetSuspendedAsync(bool suspended, CancellationToken ct)
-    {
-        if (transactions.Current is null || transactions.Current.IsReadOnly)
-            throw new InvalidOperationException("Fatigue policy changes require a writable command transaction.");
-        return consumption.SetSuspendedAsync(suspended, ct);
-    }
     public async ValueTask<bool> CanEnterDungeonAsync(CharacterId id, CancellationToken ct) =>
-        await IsSuspendedAsync(ct).ConfigureAwait(false) || (await BalanceOfAsync(id, ct).ConfigureAwait(false)).Remaining > 0;
+        !await consumption.ShouldConsumeAsync(ct).ConfigureAwait(false) || (await BalanceOfAsync(id, ct).ConfigureAwait(false)).Remaining > 0;
     private readonly ushort baseTotal = settings.GetConfig<ushort>("Fatigue:BaseTotal");
     private async ValueTask<ushort> TotalAsync(CharacterId id, CancellationToken token)
     {
@@ -40,12 +33,19 @@ internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
     public async ValueTask<int> ConsumedOnAsync(CharacterId id, DateOnly day, CancellationToken token) =>
         await table.ReadAsync(id, token).ConfigureAwait(false) is { } row && days.PeriodDay(row.UpdatedAt) == day
             ? row.ConsumedToday : 0;
-    public ValueTask SpendAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, false, token);
+    public ValueTask SpendAsync(CharacterId id, ushort points, CancellationToken token) => SpendBatchAsync([id], points, token);
+    public async ValueTask SpendBatchAsync(IReadOnlyList<CharacterId> characters, ushort points, CancellationToken token)
+    {
+        if (transactions.Current is null || transactions.Current.IsReadOnly)
+            throw new InvalidOperationException("Fatigue changes require a writable transaction.");
+        if (!await consumption.ShouldConsumeAsync(token).ConfigureAwait(false)) return;
+        foreach (var character in characters)
+            await ChangeAsync(character, points, false, token).ConfigureAwait(false);
+    }
     public ValueTask RefundAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, true, token);
     private async ValueTask ChangeAsync(CharacterId id, ushort points, bool restore, CancellationToken token)
     {
         if (transactions.Current is null || transactions.Current.IsReadOnly) throw new InvalidOperationException("Fatigue changes require a writable transaction.");
-        if (!restore && await IsSuspendedAsync(token).ConfigureAwait(false)) return;
         var total = await TotalAsync(id, token).ConfigureAwait(false);
         var old = await table.ReadAsync(id, token).ConfigureAwait(false);
         var now = clock.GetUtcNow();

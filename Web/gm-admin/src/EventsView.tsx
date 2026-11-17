@@ -103,10 +103,10 @@ export function EventsView(access: Access) {
           { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{e.type === 'unlimited-fatigue' ? '无限疲劳' : e.type === 'drop-rate' ? '爆率提升' : activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
             <span className="faint small"> v{e.revision}</span></span> },
           { title: '状态', key: 's', width: 120, render: (_, e) => <span><Pill kind={statuses[e.status][1]}>{statuses[e.status][0]}</Pill>
-            {e.type === 'unlimited-fatigue' && <div className="faint small">{e.appliedRevision !== e.revision || e.appliedActive !== (e.status === 'active')
-              ? '效果待同步' : e.appliedActive ? '已暂停扣除疲劳' : '正常扣除疲劳'}</div>}
-            {e.type === 'drop-rate' && <div className="faint small">{e.appliedRevision !== e.revision || e.appliedActive !== (e.status === 'active')
-              ? '效果待同步' : e.appliedActive ? '倍率已应用' : '倍率为 1'}</div>}
+            {e.type === 'unlimited-fatigue' && <div className="faint small">{e.status === 'active' ? '已暂停扣除疲劳' : '正常扣除疲劳'}</div>}
+            {e.type === 'drop-rate' && <div className="faint small">{e.status === 'active' ? '使用配置倍率' : '倍率为 1'}</div>}
+            {(e.type === 'unlimited-fatigue' || e.type === 'drop-rate') && <div className="faint small">{e.appliedRevision !== e.revision || e.appliedActive !== (e.status === 'active')
+              ? '通知状态待协调' : '通知状态已协调'}</div>}
             {!e.available && <div className="faint small">{e.unavailableReason ?? '活动规则暂不可用'}</div>}</span> },
           { title: '有效期（北京时间）', key: 'p', render: (_, e) => e.startsAt ? <span className="mono small">{bjTime(e.startsAt)} → {bjTime(e.endsAt)}</span> : <span className="faint small">配置有效期后才能启用</span> },
           { title: '', key: 'op', align: 'end', width: 270, fixed: 'right', render: (_, e) => <span style={{ display: 'inline-flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
