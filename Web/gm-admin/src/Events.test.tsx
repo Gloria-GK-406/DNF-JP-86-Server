@@ -47,11 +47,12 @@ beforeEach(() => {
   });
 });
 
-it('无限疲劳仅通过活动启停，并展示已应用效果及同步缺口', async () => {
+it('无限疲劳当前效果与通知协调状态分别展示', async () => {
   data.entries[0] = { ...data.entries[0], eventId: 1, type: 'unlimited-fatigue', title: '无限疲劳值', shortName: '免疲劳',
     enabled: true, status: 'active', appliedActive: false, appliedRevision: 7 };
   open();
-  expect(await screen.findByText('效果待同步')).toBeTruthy();
+  expect(await screen.findByText('通知状态待协调')).toBeTruthy();
+  expect(screen.getByText('已暂停扣除疲劳')).toBeTruthy();
   expect(screen.queryByRole('button', { name: '设置活动' })).toBeNull();
   expect(screen.queryByRole('button', { name: '更多' })).toBeNull();
   fireEvent.click(await screen.findByRole('button', { name: '停用' }));
@@ -64,7 +65,7 @@ it('爆率活动在配置中提交全部入口倍率', async () => {
   data.entries[0] = { ...data.entries[0], eventId: 7, type: 'drop-rate', title: '爆率提升', shortName: '爆率', drawMultipliers: { world: 5 },
     startsAt: '2030-01-01T00:00:00+00:00', endsAt: '2030-01-02T00:00:00+00:00' };
   open();
-  expect(await screen.findByText('效果待同步')).toBeTruthy();
+  expect(await screen.findByText('通知状态待协调')).toBeTruthy();
   expect(screen.queryByRole('button', { name: '更多' })).toBeNull();
   fireEvent.click(await screen.findByRole('button', { name: '通用配置' }));
   expect((await screen.findByLabelText('独立与世界世界倍率') as HTMLInputElement).value).toBe('5');

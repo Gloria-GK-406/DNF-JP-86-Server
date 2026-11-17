@@ -5,7 +5,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // Heras has no confirmed detail-string parser; project only its event identity.
-internal sealed class HerasEntranceEventDomainService(IEventPersistence store, IHerasRuleService rules) : EntranceEventDomainService(store)
+internal sealed class HerasEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, IHerasRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "heras-entrance";

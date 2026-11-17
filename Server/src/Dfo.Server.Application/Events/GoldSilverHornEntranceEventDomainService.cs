@@ -5,7 +5,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // Server configuration uses schedule 2332; A21 scheduled-dungeon projection uses dungeon 4123.
-internal sealed class GoldSilverHornEntranceEventDomainService(IEventPersistence store, IGoldSilverHornRuleService rules) : EntranceEventDomainService(store)
+internal sealed class GoldSilverHornEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, IGoldSilverHornRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "gold-silver-horn-entrance";

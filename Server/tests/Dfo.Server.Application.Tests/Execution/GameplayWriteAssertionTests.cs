@@ -304,7 +304,7 @@ public sealed class GameplayWriteAssertionTests
     {
         var scope = TestRequired.TransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
+            null!, null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 
@@ -372,7 +372,7 @@ public sealed class GameplayWriteAssertionTests
     public void AltarDungeonEngine_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
         var engine = new AltarDungeonEngine(null!, null!, null!, null!, TestParties.Runs(), null!, null!,
-            null!, null!, null!, null!, null!, new NoTransactions(), TimeProvider.System, null!);
+            null!, null!, null!, null!, null!, null!, new NoTransactions(), TimeProvider.System, null!);
         var store = new AltarStateStore(new NoDeadlineWake());
         var runId = DungeonRunId.New();
         var seen = ViolationCapture.Attach();
@@ -464,7 +464,7 @@ public sealed class GameplayWriteAssertionTests
         // report names the member rather than the missing transaction.
         var scope = TestRequired.TransactionScope();
         var towers = new BossTowerDomainService(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
+            null!, null!, scope, TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.BossTower.BossTowerDomainService>.Instance, rewards: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var context = new TowerActionContext(Session(), Guid.NewGuid(), 1);
         var seen = ViolationCapture.Attach();
 

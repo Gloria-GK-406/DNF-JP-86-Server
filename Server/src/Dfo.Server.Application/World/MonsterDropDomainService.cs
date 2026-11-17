@@ -25,7 +25,7 @@ internal sealed partial class MonsterDropDomainService(
     IIndependentDropRuleService independentDrops,
     IPremiumServiceDomainService premiums, ICharacterDomainService characters,
     IDimensionDungeonRuleService dimensions,
-    IDropDrawMultiplierDomainService drawMultipliers, IDropMaterializationRuleService materialization) : IMonsterDropDomainService
+    IDropMaterializationRuleService materialization) : IMonsterDropDomainService
 {
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(
         int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
@@ -33,7 +33,7 @@ internal sealed partial class MonsterDropDomainService(
         Validate(context, cancellationToken);
         var request = new MonsterDropRequest(monsterId, context);
         var result = new List<RolledDrop>();
-        var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        var multipliers = context.DrawMultipliers;
         if (context.SourceType == IndependentDropSourceType.APC)
             return await IndependentAsync(request, 0, multipliers, cancellationToken).ConfigureAwait(false);
         result.AddRange(this.GenerateRandomDrops(request, multipliers));
@@ -62,7 +62,7 @@ internal sealed partial class MonsterDropDomainService(
         {
             var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence)
                 ^ unchecked((ulong)characterId.Value * 0x9E3779B97F4A7C15UL) ^ 0x44494D454E53494FUL;
-            var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
+            var multipliers = context.DrawMultipliers;
             var request = new MonsterDropRequest(monsterId, context);
             IReadOnlyList<RolledDrop> Draw(MonsterDropRequest round) => dimensions.DrawMonster(round, seed);
             // Round zero draws equipment and material together, as a multiplier of one always has.
@@ -77,7 +77,7 @@ internal sealed partial class MonsterDropDomainService(
         int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken cancellationToken)
     {
         Validate(context, cancellationToken);
-        var multipliers = await drawMultipliers.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        var multipliers = context.DrawMultipliers;
         var drops = await IndependentAsync(new(monsterId, context), growthBonusPercent, multipliers, cancellationToken)
             .ConfigureAwait(false);
         var selected = materialization.Rule.SelectIndependent(drops);

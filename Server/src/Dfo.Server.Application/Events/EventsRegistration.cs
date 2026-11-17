@@ -17,13 +17,12 @@ internal static class EventsRegistration
 {
     internal static IServiceCollection AddEvents(this IServiceCollection services, IConfiguration configuration)
     {
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.IEventPeriodRuleService, EventPeriodRuleService>();
         services.AddDomainEvent<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged>("activity.activation-changed", 1);
-        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, UnlimitedFatigueActivationSubscriber>();
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, EventsActivationNotificationSubscriber>(
             "activity.activation-refresh", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly,
             fact => fact.EventId.ToString(System.Globalization.CultureInfo.InvariantCulture));
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, UnlimitedFatigueEventDomainService>();
-        services.AddRuntimeEventSubscriber<Dfo.Server.Abstractions.Events.ManagedEventActivationChanged, DropRateActivationSubscriber>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, DropRateEventDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IManagedEventLifecycleDomainService, ManagedEventLifecycleDomainService>();
         services.AddInternalCommandHandler<InitializeManagedEventsCommand, bool, InitializeManagedEventsCommandHandler>();

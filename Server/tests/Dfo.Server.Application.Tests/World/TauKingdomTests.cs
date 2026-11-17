@@ -143,7 +143,7 @@ public sealed class TauKingdomTests
         using var content = ContentArchive.CreateContentProvider();
         var drops = new IndependentDropRuleService(content.GetRequiredService<IIndependentDropTableSource>(), NullLogger<IndependentDropRuleService>.Instance, options: new Dfo.Server.Abstractions.Content.IndependentDropOptions());
         var request = new MonsterDropRequest(62040, new(DungeonRunId.New(), 3700, 123,
-            new(2, 0), 26009, DungeonDifficulty.Normal, 101, 70, 3, new CharacterId(71), [new(new(1), new(71))]));
+            new(2, 0), 26009, DungeonDifficulty.Normal, 101, 70, 3, new CharacterId(71), [new(new(1), new(71))], DropDrawMultipliers.Default));
         Assert.Equal(3, drops.Draw(request, 70).Where(x => x.ItemId == 690001555).Sum(x => x.Count));
         Assert.Equal(3, drops.Draw(request, 85).Where(x => x.ItemId == 690001555).Sum(x => x.Count));
         Assert.DoesNotContain(drops.Draw(request, 86), x => x.ItemId == 690001555);

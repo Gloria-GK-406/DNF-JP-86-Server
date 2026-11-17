@@ -28,7 +28,7 @@ public sealed class HerasDropTests
         for (var seed = 1; seed <= 100; seed++)
         {
             var context = new MonsterDropContext(DungeonRunId.New(), 3900, seed, new(1, 1), 27116,
-                (DungeonDifficulty)1, 1, 85, 3, new(71), [new(new(1), new(71))]);
+                (DungeonDifficulty)1, 1, 85, 3, new(71), [new(new(1), new(71))], DropDrawMultipliers.Default);
             var items = await monsterDrops.GenerateIndependentAsync(monster, context, 0, default);
             var count = items.Where(x => x.ItemId == 490002846).Sum(x => x.Count);
             Assert.InRange(count, guaranteed, guaranteed + 1);

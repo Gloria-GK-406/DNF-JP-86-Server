@@ -61,14 +61,14 @@ public sealed class GmEventsHttpTests
             Assert.True(entry.AppliedActive);
             Assert.Equal(entry.Revision, entry.AppliedRevision);
         }
-        var effect = host.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.IFatigueConsumptionControlDomainService>();
-        Assert.True(await effect.IsSuspendedAsync(default));
+        var effect = host.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.IFatigueConsumptionQuery>();
+        Assert.False(await effect.ShouldConsumeAsync(default));
         using (var stale = await host.PostAsync(Url, csrf, new EventChange(1, 1, "disable")))
             Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
-        Assert.True(await effect.IsSuspendedAsync(default));
+        Assert.False(await effect.ShouldConsumeAsync(default));
         using (var disabled = await host.PostAsync(Url, csrf, new EventChange(1, 2, "disable")))
             Assert.Equal(HttpStatusCode.OK, disabled.StatusCode);
-        Assert.False(await effect.IsSuspendedAsync(default));
+        Assert.True(await effect.ShouldConsumeAsync(default));
     }
 
     private const string Url="/api/gm/v1/events";

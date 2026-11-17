@@ -6,7 +6,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // Identity 7 is the drop ratio slot of the 70 server (CItemDropRatioEvent); A21 is only known to list it.
-internal sealed class DropRateEventDomainService(IEventPersistence store) : EntranceEventDomainService(store)
+internal sealed class DropRateEventDomainService(IEventPersistence store, IEventPeriodRuleService periods) : EntranceEventDomainService(store, periods)
 {
     internal const int ActivityId = 7;
     public override int EventId => ActivityId;
@@ -37,26 +37,5 @@ internal sealed class DropRateEventDomainService(IEventPersistence store) : Entr
             if (!DropDrawEntries.TryParse(key, out _) || !DropDrawMultipliers.IsValid(multiplier))
                 throw new ArgumentException($"掉落倍率无效：{key}={multiplier}。");
         return c with { DrawMultipliers = values };
-    }
-}
-
-/// <remarks>
-/// Writes every entry to its target state, so reapplying is harmless and an entry dropped from the
-/// configuration returns to one. Like the 70 server's EndEvent, the end of the activity restores one.
-/// </remarks>
-internal sealed class DropRateActivationSubscriber(IDropDrawMultiplierControlDomainService multipliers, IEventPersistence store)
-    : IDomainEventSubscriber<ManagedEventActivationChanged>
-{
-    public async ValueTask HandleAsync(DomainEventEnvelope<ManagedEventActivationChanged> message, CancellationToken ct)
-    {
-        if (message.Payload.EventId != DropRateEventDomainService.ActivityId) return;
-        var configured = message.Payload.Active
-            ? (await store.ConfigurationAsync(DropRateEventDomainService.ActivityId, ct).ConfigureAwait(false))?.DrawMultipliers
-            : null;
-        foreach (var entry in DropDrawEntries.All)
-        {
-            var target = configured?.GetValueOrDefault(DropDrawEntries.KeyOf(entry), DropDrawMultipliers.Minimum) ?? DropDrawMultipliers.Minimum;
-            await multipliers.SetAsync(entry, target, ct).ConfigureAwait(false);
-        }
     }
 }

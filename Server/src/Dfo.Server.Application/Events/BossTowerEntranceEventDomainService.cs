@@ -5,7 +5,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // Server configuration uses schedule 2329; A21 scheduled-dungeon projection uses dungeon 3505.
-internal sealed class BossTowerEntranceEventDomainService(IEventPersistence store, IBossTowerRuleService rules) : EntranceEventDomainService(store)
+internal sealed class BossTowerEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, IBossTowerRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "boss-tower-entrance";

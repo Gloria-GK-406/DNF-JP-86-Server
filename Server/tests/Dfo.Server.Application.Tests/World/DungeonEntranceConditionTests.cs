@@ -79,7 +79,7 @@ public sealed class DungeonEntranceConditionTests
             var run = runs.PreparePartyEntry([new(Account, Leader, 0, true)], Layout(), DungeonDifficulty.Normal, seed,
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
             var service = new DungeonEntranceDomainService(runs, new DungeonSettlementRuleService(),
-                Rooms(new EntranceRoomSource()), new NoLoot(), NullLogger<DungeonEntranceDomainService>.Instance);
+                Rooms(new EntranceRoomSource()), new NoLoot(), new FixedDrawMultipliers(), NullLogger<DungeonEntranceDomainService>.Instance);
             var leader = SelectedSessionIdentity.Create(Account, Leader, new Dfo.Server.Data.Networking.NetworkConnectionId("entrance"), 1, 10011);
             var request = new DungeonEntranceSummonRequest(0, Queen, 7, MapId, 0, 0, 1);
 

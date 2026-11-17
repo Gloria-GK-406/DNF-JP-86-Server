@@ -20,20 +20,10 @@ public sealed class DropRateEventTests
     };
 
     [Fact]
-    public void Multipliers_have_one_production_writer()
-    {
-        var consumers = typeof(ApplicationModule).Assembly.GetTypes()
-            .Where(type => !type.IsAbstract && type.GetConstructors()
-                .SelectMany(c => c.GetParameters()).Any(p => p.ParameterType == typeof(IDropDrawMultiplierControlDomainService)))
-            .ToArray();
-        Assert.Equal(typeof(DropRateActivationSubscriber), Assert.Single(consumers));
-    }
-
-    [Fact]
     public async Task Period_applies_the_configured_entries_and_its_end_restores_one() =>
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             var now = DateTimeOffset.UtcNow;
             await Configure(f, 0, now, now.AddHours(1), now.AddHours(2), Configured);
             await Change(f, 1, "enable", now);
@@ -54,7 +44,7 @@ public sealed class DropRateEventTests
     public async Task Changing_a_running_activity_reapplies_and_a_removed_entry_returns_to_one() =>
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             var now = DateTimeOffset.UtcNow;
             await Configure(f, 0, now, now.AddHours(-1), now.AddHours(1), Configured);
             await Change(f, 1, "enable", now);
@@ -68,20 +58,6 @@ public sealed class DropRateEventTests
             Assert.Equal(1, await Multiplier(f, DropDrawEntry.World));
         });
 
-    [Fact]
-    public async Task First_reconciliation_restores_one_when_the_activity_is_not_running() =>
-        await TestGameplay.RunAsync(async () =>
-        {
-            await using var f = new LearningFixture();
-            await using (var tx = f.Scope.Begin())
-            {
-                await f.Services.GetRequiredService<IDropDrawMultiplierControlDomainService>().SetAsync(DropDrawEntry.World, 20, default);
-                await tx.CommitAsync(default);
-            }
-            Assert.True(await Reconcile(f, DateTimeOffset.UtcNow));
-            Assert.Equal(1, await Multiplier(f, DropDrawEntry.World));
-        });
-
     [Theory]
     [InlineData("world", 0)]
     [InlineData("world", 101)]
@@ -89,7 +65,7 @@ public sealed class DropRateEventTests
     public async Task Invalid_multipliers_are_refused_and_leave_the_configuration_unchanged(string key, int multiplier) =>
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             var now = DateTimeOffset.UtcNow;
             await Assert.ThrowsAsync<ArgumentException>(async () =>
                 await Configure(f, 0, now, now.AddHours(-1), now.AddHours(1), new Dictionary<string, int> { [key] = multiplier }));
@@ -104,7 +80,7 @@ public sealed class DropRateEventTests
     public async Task Multiplier_bounds_are_accepted(int multiplier) =>
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             var now = DateTimeOffset.UtcNow;
             await Configure(f, 0, now, now.AddHours(-1), now.AddHours(1), new Dictionary<string, int> { ["world"] = multiplier });
             Assert.Equal(multiplier, (await Describe(f, now)).DrawMultipliers!["world"]);
@@ -114,7 +90,7 @@ public sealed class DropRateEventTests
     public async Task A_configure_needs_multipliers_and_other_activities_refuse_them() =>
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             var now = DateTimeOffset.UtcNow;
             await Assert.ThrowsAsync<ArgumentException>(async () => await Configure(f, 0, now, now.AddHours(-1), now.AddHours(1), null));
             await using var tx = f.Scope.Begin();
@@ -127,10 +103,10 @@ public sealed class DropRateEventTests
         await TestGameplay.RunAsync(async () =>
         {
             var failing = new Failing();
-            await using var f = new LearningFixture(configure: s =>
+            await using var f = CreateFixture(configure: s =>
             {
                 s.AddSingleton(failing);
-                s.AddRuntimeEventSubscriber<ManagedEventActivationChanged, FailingObserver>();
+                ActivationStoreProbe.Install(s, (_, _) => { if (failing.Armed) throw new InvalidOperationException("coordination failed"); });
             });
             var now = DateTimeOffset.UtcNow;
             await Configure(f, 0, now, now.AddHours(-1), now.AddHours(1), Configured);
@@ -148,7 +124,7 @@ public sealed class DropRateEventTests
     public async Task Player_information_lists_the_activity_only_while_it_runs() =>
         await TestGameplay.RunAsync(async () =>
         {
-            await using var f = new LearningFixture();
+            await using var f = CreateFixture();
             var now = DateTimeOffset.UtcNow;
             await Configure(f, 0, now, now.AddHours(1), now.AddHours(2), Configured);
             await Change(f, 1, "enable", now);
@@ -171,9 +147,16 @@ public sealed class DropRateEventTests
             Assert.Equal("测试", plain.Description);
         });
 
+    private static LearningFixture CreateFixture(Action<IServiceCollection>? configure = null) => new(configure: services =>
+    {
+        services.AddSingleton<TimeProvider>(new Clock { Now = DateTimeOffset.UtcNow });
+        configure?.Invoke(services);
+    });
+
     private static async Task Configure(LearningFixture f, long revision, DateTimeOffset now, DateTimeOffset start, DateTimeOffset end,
         IReadOnlyDictionary<string, int>? multipliers)
     {
+        if (f.Services.GetRequiredService<TimeProvider>() is Clock clock) clock.Now = now;
         await using var tx = f.Scope.Begin();
         await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(new(ActivityId, revision, "configure",
             "爆率", "爆率", "测试", "", "", start, end, multipliers), "test", now, default);
@@ -182,6 +165,7 @@ public sealed class DropRateEventTests
 
     private static async Task Change(LearningFixture f, long revision, string action, DateTimeOffset now)
     {
+        if (f.Services.GetRequiredService<TimeProvider>() is Clock clock) clock.Now = now;
         await using var tx = f.Scope.Begin();
         await f.Services.GetRequiredService<IEventManagementDomainService>().ChangeAsync(new(ActivityId, revision, action), "test", now, default);
         await tx.CommitAsync(default);
@@ -189,6 +173,7 @@ public sealed class DropRateEventTests
 
     private static async Task<bool> Reconcile(LearningFixture f, DateTimeOffset now)
     {
+        if (f.Services.GetRequiredService<TimeProvider>() is Clock clock) clock.Now = now;
         await using var tx = f.Scope.Begin();
         var result = await f.Services.GetRequiredService<IManagedEventLifecycleDomainService>().ReconcileAsync(ActivityId, now, default);
         await tx.CommitAsync(default);
@@ -201,11 +186,12 @@ public sealed class DropRateEventTests
     private static async Task<ManagedEventEntry> Describe(LearningFixture f, DateTimeOffset now) =>
         await Assert.Single(f.Services.GetServices<IManagedEventDomainService>(), e => e.EventId == ActivityId).DescribeAsync(now, default);
 
+    private sealed class Clock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; }
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
     private sealed class Failing { public bool Armed { get; set; } }
 
-    private sealed class FailingObserver(Failing failing) : IDomainEventSubscriber<ManagedEventActivationChanged>
-    {
-        public ValueTask HandleAsync(DomainEventEnvelope<ManagedEventActivationChanged> message, CancellationToken ct) =>
-            failing.Armed ? throw new InvalidOperationException("subscriber failed") : ValueTask.CompletedTask;
-    }
 }

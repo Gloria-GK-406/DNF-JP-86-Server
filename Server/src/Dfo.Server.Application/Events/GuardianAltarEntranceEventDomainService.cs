@@ -5,7 +5,7 @@ using Dfo.Server.Data.Events;
 namespace Dfo.Server.Application.Events;
 
 // Managed event 119 owns enablement; A21 entrance projection uses common schedule category 4, content 10.
-internal sealed class GuardianAltarEntranceEventDomainService(IEventPersistence store, IGuardianAltarRuleService rules) : EntranceEventDomainService(store)
+internal sealed class GuardianAltarEntranceEventDomainService(IEventPersistence store, IEventPeriodRuleService periods, IGuardianAltarRuleService rules) : EntranceEventDomainService(store, periods)
 {
     public override int EventId => rules.EventId;
     protected override string Key => "guardian-altar-entrance";

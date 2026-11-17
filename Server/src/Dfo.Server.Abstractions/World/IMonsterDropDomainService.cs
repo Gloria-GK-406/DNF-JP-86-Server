@@ -63,7 +63,7 @@ public readonly record struct MonsterDropParticipant(AccountId AccountId, Charac
 
 /// <summary>
 /// Values that identify this generation occasion. Mutable character facts are read inside the
-/// domain service. Participants are the run's members when the drop is generated, not the town party.
+/// domain service. Draw multipliers are an explicit immutable input shared by the generation batch. Participants are the run's members when the drop is generated, not the town party.
 /// </summary>
 public sealed record MonsterDropContext(
     DungeonRunId RunId,
@@ -76,7 +76,8 @@ public sealed record MonsterDropContext(
     int MonsterLevel,
     int MonsterRank,
     CharacterId CharacterId,
-    ImmutableArray<MonsterDropParticipant> Participants)
+    ImmutableArray<MonsterDropParticipant> Participants,
+    DropDrawMultipliers DrawMultipliers)
 {
     /// <summary>Map monster's seventh integer; zero disables both random channels.</summary>
     public int RandomDropCount { get; init; } = 1;

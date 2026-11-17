@@ -85,7 +85,7 @@ internal sealed class DungeonCellFactory(
                     context.Layout.LevelOf(described.Actor.Level),
                     described.Actor.ActorType,
                     leader.CharacterId,
-                    participants)
+                    participants, context.DrawMultipliers)
                 {
                     RandomDropCount = described.Actor.RandomDropCount,
                     SourceType = described.IsAiCharacter
@@ -137,10 +137,9 @@ internal sealed class DungeonCellFactory(
             var hell = (context.Layout.Mode as DungeonRunMode.Hell)?.Plan ?? throw new InvalidDataException("Hell actors require a frozen entry plan.");
             var drop = new MonsterDropContext(context.RunId, context.Layout.DungeonId, context.Layout.Seed,
                 context.Cell, context.MapId, context.Difficulty, group.First().Sequence,
-                context.Layout.BasisLevel, 0, leader.CharacterId, participants);
+                context.Layout.BasisLevel, 0, leader.CharacterId, participants, context.DrawMultipliers);
             var pending = group.Any(x => x.EligibleForHellGroupReward)
-                ? await hellRewards.FreezeGroupAsync(new(drop, hell.Difficulty, group.Key, context.Layout.BasisLevel)
-                    { DrawMultipliers = context.DrawMultipliers }, cancellationToken).ConfigureAwait(false)
+                ? await hellRewards.FreezeGroupAsync(new(drop, hell.Difficulty, group.Key, context.Layout.BasisLevel), cancellationToken).ConfigureAwait(false)
                 : [];
             hellGroups.Add(new(group.Key, group.Select(x => x.Sequence).ToArray(), pending.ToArray()));
         }

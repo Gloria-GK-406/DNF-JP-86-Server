@@ -94,7 +94,7 @@ public sealed class IndependentDropRuleServiceTests
     private static MonsterDropRequest Request(int party = 1, IndependentDropSourceType type = IndependentDropSourceType.Monster) =>
         new(17, new(DungeonRunId.New(), 144, 123, new(1, 2), 555, DungeonDifficulty.Adventure,
             101, 99, 0, new CharacterId(1), Enumerable.Range(1, party)
-                .Select(i => new MonsterDropParticipant(new AccountId(i), new CharacterId(i))).ToImmutableArray())
+                .Select(i => new MonsterDropParticipant(new AccountId(i), new CharacterId(i))).ToImmutableArray(), DropDrawMultipliers.Default)
             { SourceType = type });
     private sealed class Source(params IndependentDropRow[] rows) : IIndependentDropTableSource
     {

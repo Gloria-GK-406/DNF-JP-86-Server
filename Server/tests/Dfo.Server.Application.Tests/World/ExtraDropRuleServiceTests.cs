@@ -11,7 +11,7 @@ public sealed class ExtraDropRuleServiceTests
 {
     private static MonsterDropRequest Request() => new(1, new(DungeonRunId.New(), 144, 23,
         new MazeCell(0, 0), 8153, DungeonDifficulty.Normal, 1, 20, 0, new CharacterId(1),
-        [new(new AccountId(1), new CharacterId(1))]));
+        [new(new AccountId(1), new CharacterId(1))], DropDrawMultipliers.Default));
     private static ExtraDropContent Content() => new(
         new Dictionary<(DropItemKind, int, ExtraDropDungeonType), DropItemPool> {
             [(DropItemKind.Equipment, 0, ExtraDropDungeonType.Normal)] = new(DropItemFamily.Equipment,

@@ -4,10 +4,6 @@
 
 ## 范围
 
-用户授权：按已讨论方案在新的 worktree 实现；竞技地下城也免扣，GM 不提供独立开关。
-交付边界：用户随后明确本轮只完成实现，暂不准备实机环境；不迁移玩家库、不切换服务、不创建功能 PR。
-基线为 `origin/main@1bc7d38b7`；分支 `task/230-unlimited-fatigue-20261030`。功能分支不修改产品版本号。
-
 无限疲劳活动身份为 `1`（70 `CEventManager` 槽位 1 是 `CUnlimitFatigueEvent`，70Reference），类型 `unlimited-fatigue`，以带详情的 EVENT_INFO 显示在客户端活动页。A21 上编号 1 的其他含义未取证，以实机显示为准。
 活动开启时，普通地下城入场、首次换房及竞技地下城每轮均不扣疲劳；零余额可通过疲劳准入。
 活动结束不补满、不追扣；其他准入条件、材料、金币、次数和奖励保持原有规则。
@@ -15,17 +11,15 @@
 
 ## 所有权与事务
 
-- `ManagedEventLifecycleDomainService` 统一扫描注册活动。按活动自身判定取得目标状态，并比较配置修订号与已应用状态。
-- `ManagedEventActivationChanged` 是目标状态事实。同步订阅在当前可写事务执行；应用记录和异步通知记录同事务提交。
-- `UnlimitedFatigueActivationSubscriber` 是免扣设置的唯一生产控制方；疲劳服务拥有设置和行为，不反向查询活动框架。
-- `CharacterFatigueDomainService.SpendAsync` 在免扣时不写角色疲劳行，真实余额与累计值保持不变。
-- 准入准备与最终消费两处都通过 `CanEnterDungeonAsync` 判断，最终消费重新读取当前设置。
-- 注册表启动校验拒绝重复活动身份和重复运行时订阅；架构测试限制免扣控制接口的生产消费方。
+- 疲劳业务经中立的 `IFatigueConsumptionQuery` 查询是否消费，不识别活动编号或排期。
+- `GameplayParametersDomainService` 在内部读取唯一活动配置，并由规则服务计算查询时刻的有效值；不存储免扣副本。
+- 免扣时 `CharacterFatigueDomainService.SpendAsync` 不写角色疲劳行，真实余额与累计值保持不变。
+- 普通副本入场及首次换房的批量扣除共用一次策略结果；准入及最终消费保留各自的查询阶段。
+- 通知协调记录只表示处理进度，不控制玩法效果。GM 页面分别展示当前效果与通知协调状态。
 
-GM 修改通过 `EventManagementDomainService.ChangeAsync` 同事务对账；关键订阅失败连同配置修改回滚。
-分钟任务按活动分别开工作单元，失败活动回滚，健康完成的其他活动保留，下一轮重试。
-时间到点通常约一分钟内应用，另加执行器排队时间；失败不承诺一分钟内恢复，保留失败日志和页面同步差异。
-活动进行中改配置会以新修订号重新应用。启停可能使用相同配置修订号，去重键必须包含 Active。
+GM 配置、协调记录和通知登记仍在原事务中提交或回滚。分钟任务按活动分别开工作单元，
+失败活动回滚，健康完成的其他活动保留，下一轮重试。活动效果在到点后的下一次业务查询生效，
+不等待对账；通知刷新仍可能晚于效果变化。活动进行中改配置对后续查询生效，既有账本不追溯重算。
 
 `InitializeManagedEventsCommand` 在 `GameServerStartupService.StartingAsync` 中被等待，先于所有监听开放，
 且不放进“存在 PVF 才执行”的分支。`RunOnce` 只作为调度兜底，不能替代启动屏障。
@@ -33,9 +27,8 @@ GM 修改通过 `EventManagementDomainService.ChangeAsync` 同事务对账；关
 
 ## 数据兼容
 
-结构版本从 2 升至 3：新增 `event_activation_state` 与 `fatigue_consumption_settings`。
-旧库必须停服后经 `DbMigrate` 升级。新库与迁移后结构由形状测试对照，迁移不更改角色疲劳数据。
-未存储设置时为正常扣除；启动对账应用当前活动状态。回到旧程序需使用迁移前备份，不直接复用 v3 库。
+升级入口见 [数据库结构版本与迁移](../../DatabaseSchemaMigration.md)。疲劳免扣派生表已退役，
+活动配置、通知协调记录和角色疲劳账本保留。旧派生值不迁回配置；旧库需停服、备份后经迁移工具升级。
 
 ## 证据与限制
 

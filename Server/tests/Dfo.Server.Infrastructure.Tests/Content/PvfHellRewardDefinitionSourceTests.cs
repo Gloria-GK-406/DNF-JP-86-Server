@@ -31,7 +31,7 @@ public sealed class PvfHellRewardDefinitionSourceTests
         var pools = new PvfDropItemPoolSource(provider);
         var rules = new HellRewardRuleService(source, parties, pools, new());
         var result = await rules.DrawGroupAsync(new(new(DungeonRunId.New(), 77, 123, new(3, 1), 60064,
-            DungeonDifficulty.Tier3, 12951, level, 5, new(1123), [new(new(1), new(1123))]), 1, 136, level), default);
+            DungeonDifficulty.Tier3, 12951, level, 5, new(1123), [new(new(1), new(1123))], DropDrawMultipliers.Default), 1, 136, level), default);
         Assert.NotEmpty(result);
         Assert.All(result, drop => Assert.True(drop.ItemId > 0 && drop.Count > 0));
         Assert.Contains(result, drop => drop.Kind == DropItemKind.Equipment);

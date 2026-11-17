@@ -23,7 +23,6 @@ internal sealed class ManagedEventLifecycleDomainService(IEnumerable<IManagedEve
         if (previous is not null && previous.Active == active && previous.ConfigurationRevision == description.Revision)
             return false;
         var change = new ManagedEventActivationChanged(eventId, active, description.Revision, now);
-        await facts.DirectAsync(change, ct).ConfigureAwait(false);
         await store.SaveAsync(eventId, new(active, description.Revision, now), ct).ConfigureAwait(false);
         // Configuration edits already enqueue their own refresh; clock transitions need this one.
         if (notifyClients && previous?.Active != active && (previous is not null || active))

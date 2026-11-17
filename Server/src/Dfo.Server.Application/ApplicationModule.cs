@@ -85,6 +85,7 @@ public sealed class ApplicationModule : IServerModule
         Dfo.Server.Application.Auction.AuctionRegistration.AddAuction(services, configuration);
         Dfo.Server.Application.PrivateStore.PrivateStoreRegistration.AddPrivateStore(services);
         services.AddEvents(configuration);
+        Dfo.Server.Application.GameplayParameters.GameplayParametersRegistration.AddGameplayParameters(services);
         services.TryAddSingleton(new ChannelListenerOptions(
             configuration.GetSection("Networking:GamePorts")
                 .GetChildren()

@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 11;
+    public const int Version = 12;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -328,7 +328,6 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS player_portal_settings(id INTEGER PRIMARY KEY CHECK(id=1),enabled INTEGER NOT NULL CHECK(enabled IN(0,1)),cera_enabled INTEGER NOT NULL CHECK(cera_enabled IN(0,1)),mail_enabled INTEGER NOT NULL CHECK(mail_enabled IN(0,1)),cera_per_grant INTEGER NOT NULL CHECK(cera_per_grant>=0),cera_per_day INTEGER NOT NULL CHECK(cera_per_day>=0),token_cera_per_grant INTEGER NOT NULL CHECK(token_cera_per_grant>=0),token_cera_per_day INTEGER NOT NULL CHECK(token_cera_per_day>=0),mail_gold_per_mail INTEGER NOT NULL CHECK(mail_gold_per_mail>=0),mails_per_day INTEGER NOT NULL CHECK(mails_per_day>=0),revision INTEGER NOT NULL CHECK(revision>=1));
         CREATE TABLE IF NOT EXISTS player_portal_sessions(token_hash TEXT PRIMARY KEY,account_id INTEGER NOT NULL,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS player_portal_operations(account_id INTEGER NOT NULL,request_id TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN('cera','mail')),currency TEXT,amount INTEGER NOT NULL CHECK(amount>=0),payload_hash TEXT NOT NULL,receipt_json TEXT NOT NULL,period_day TEXT NOT NULL,committed_at INTEGER NOT NULL,PRIMARY KEY(account_id,request_id));
-        CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));
         CREATE TABLE IF NOT EXISTS character_relations(owner_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,target_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,kind INTEGER NOT NULL CHECK(kind BETWEEN 1 AND 255),created_at INTEGER NOT NULL,PRIMARY KEY(owner_id,kind,target_id),CHECK(owner_id<>target_id));
         CREATE INDEX IF NOT EXISTS ix_character_relations_target ON character_relations(target_id,kind);
         CREATE TABLE IF NOT EXISTS auction_listings(listing_id INTEGER PRIMARY KEY AUTOINCREMENT,market INTEGER NOT NULL CHECK(market IN(0,1)),state INTEGER NOT NULL CHECK(state BETWEEN 0 AND 3),seller_character_id INTEGER NOT NULL,seller_account_id INTEGER NOT NULL,seller_name BLOB NOT NULL,item_id INTEGER NOT NULL CHECK(item_id>0),quantity_initial INTEGER NOT NULL CHECK(quantity_initial>0),gold_amount INTEGER NOT NULL DEFAULT 0 CHECK(gold_amount>=0),start_price INTEGER CHECK(start_price>0),buyout_price INTEGER CHECK(buyout_price>0),unit_price INTEGER CHECK(unit_price>0),current_bid INTEGER CHECK(current_bid>0),top_bidder_character_id INTEGER,top_bidder_account_id INTEGER,deposit INTEGER NOT NULL DEFAULT 0 CHECK(deposit>=0),fee_rate_bp INTEGER NOT NULL CHECK(fee_rate_bp BETWEEN 0 AND 10000),created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,closed_at INTEGER,display_core BLOB,quantity_at_close INTEGER CHECK(quantity_at_close>=0 AND quantity_at_close<=quantity_initial AND (state<>0 OR quantity_at_close IS NULL)),CHECK(start_price IS NOT NULL OR buyout_price IS NOT NULL),CHECK((current_bid IS NULL)=(top_bidder_character_id IS NULL)));
@@ -344,7 +343,6 @@ internal static class CharacterDatabaseSchema
         CREATE UNIQUE INDEX IF NOT EXISTS ux_private_store_custody_equipment ON private_store_custody(item_uid) WHERE kind='equipment';
         CREATE TABLE IF NOT EXISTS event_configuration(event_id INTEGER PRIMARY KEY,revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_activation_state(event_id INTEGER PRIMARY KEY,active INTEGER NOT NULL CHECK(active IN(0,1)),configuration_revision INTEGER NOT NULL,applied_at INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS fatigue_consumption_settings(id INTEGER PRIMARY KEY CHECK(id=1),suspended INTEGER NOT NULL CHECK(suspended IN(0,1)));
         CREATE TABLE IF NOT EXISTS event_joust_schedule(id INTEGER PRIMARY KEY CHECK(id=1),revision INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS event_joust_round(round_id TEXT PRIMARY KEY,starts_at INTEGER NOT NULL,ends_at INTEGER NOT NULL,settled INTEGER NOT NULL,input TEXT NOT NULL);
         CREATE INDEX IF NOT EXISTS ix_joust_round_time ON event_joust_round(starts_at DESC);

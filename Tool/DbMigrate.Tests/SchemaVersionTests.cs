@@ -14,7 +14,7 @@ public sealed class SchemaVersionTests
             _ = Unversioned.Open(path);
             Execute(path, """
                 DROP TABLE event_activation_state;
-                DROP TABLE fatigue_consumption_settings;
+                DROP TABLE IF EXISTS fatigue_consumption_settings;
                 PRAGMA user_version=2;
                 INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
                 INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp) VALUES(71,7,'kept',0,0,1,0);
@@ -26,7 +26,7 @@ public sealed class SchemaVersionTests
             Assert.Equal(25, Scalar(path, "SELECT used FROM character_fatigue WHERE character_id=71"));
             Assert.Equal(40, Scalar(path, "SELECT consumed_today FROM character_fatigue WHERE character_id=71"));
             Assert.Equal(123456, Scalar(path, "SELECT updated_at FROM character_fatigue WHERE character_id=71"));
-            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM fatigue_consumption_settings"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM sqlite_master WHERE name='fatigue_consumption_settings'"));
             Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM event_activation_state"));
             _ = Unversioned.Open(path);
             Assert.Null(Migrator.Migrate(path, backup: false).Backup);

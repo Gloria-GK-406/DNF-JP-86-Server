@@ -25,5 +25,11 @@ public interface ICharacterFatigueDomainService
         ValueTask.FromException<int>(new NotSupportedException("Per-day fatigue read is unavailable."));
     ValueTask<CharacterFatigueBalance> BalanceOfAsync(CharacterId characterId, CancellationToken cancellationToken);
     ValueTask SpendAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);
+    /// <summary>A batch shares one effective consumption decision; each ledger keeps its existing write semantics.</summary>
+    async ValueTask SpendBatchAsync(IReadOnlyList<CharacterId> characters, ushort points, CancellationToken cancellationToken)
+    {
+        foreach (var character in characters)
+            await SpendAsync(character, points, cancellationToken).ConfigureAwait(false);
+    }
     ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);
 }
