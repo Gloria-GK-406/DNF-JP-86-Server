@@ -822,7 +822,8 @@ public sealed partial class SelectCharacterLifecycleTests
             ICleanupNotificationDelivery? cleanupDelivery = null,
             IDarkElfRuinsDomainService? ruins = null,
             Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService? relations = null,
-            ICharacterIdentityQueryDomainService? identities = null)
+            ICharacterIdentityQueryDomainService? identities = null,
+            IReadOnlyList<OnlineTicketRefillRegistration>? ticketRefills = null)
         {
             return await TestGameplay.RunAsync(async () =>
             {
@@ -908,7 +909,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 var stateMessages = new StubStateMessageFactory();
                 bus.Workflow = new LifecycleWorkflow(users, new TestEntryChannel(), stateMessages, directory,
                     gameSender ?? sender, notifications, connectionCloser ?? closer, bus,
-                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger, ruins, relations, identities);
+                    cleanupDelivery ?? new NoopCleanupDelivery(), townAreaProjection, tau, ledger, ruins, relations, identities, ticketRefills);
                 var handler = new SelectCharacterHandler(bus);
                 var command = new SelectCharacterRequest(GameMessageMetadata.Empty, 3);
                 return new Fixture(
@@ -1005,7 +1006,8 @@ public sealed partial class SelectCharacterLifecycleTests
             ICleanupNotificationDelivery cleanupDelivery, TownAreaProjectionDelivery town, ITauKingdomDomainService? tau,
             List<string> ledger, IDarkElfRuinsDomainService? ruins,
             Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService? relations = null,
-            ICharacterIdentityQueryDomainService? identities = null)
+            ICharacterIdentityQueryDomainService? identities = null,
+            IReadOnlyList<OnlineTicketRefillRegistration>? ticketRefills = null)
         {
             var dependencies = stages.Dependencies.ToList();
             if (ruins is not null) dependencies.Add(ruins);
@@ -1032,15 +1034,19 @@ public sealed partial class SelectCharacterLifecycleTests
                     ledger.Add($"party:{character.Value}");
                 return (false, null);
             }));
+            var refills = ticketRefills ?? new OnlineTicketRefillRegistration[]
+            {
+                new("tau-kingdom.ticket-refill.online", 0, "RefillOnlineTauTicket", tau ?? FixtureMethod<ITauKingdomDomainService>(nameof(ITauKingdomDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false))),
+                new("southern-dale.ticket-refill.online", 1, "RefillOnlineSouthernTicket", FixtureMethod<ISouthernDaleDomainService>(nameof(ISouthernDaleDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false))),
+                new("boss-tower.ticket-refill.online", 2, "RefillOnlineBossTowerTicket", FixtureMethod<IBossTowerTicketDomainService>(nameof(IBossTowerTicketDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false))),
+            };
             dependencies.AddRange(new object[]
             {
                 users, channels, factory, new TestGameOutbox(sender), new TestClosures(closer),
-                new SelectionUnits(stages, tau is not null), new SelectionProjections(events, cleanupDelivery),
+                new SelectionUnits(stages, tau is not null, refills.Select(refill => refill.SelectionWorkUnitName).ToHashSet()), new SelectionProjections(events, cleanupDelivery),
                 FixtureMethod<IQuestHelperPuppetDomainService>(nameof(IQuestHelperPuppetDomainService.EnsureDailyAsync), ValueTask.FromResult(false)),
                 FixtureMethod<IMarriageHousingDomainService>(nameof(IMarriageHousingDomainService.InitializeAsync), ValueTask.CompletedTask),
-                tau ?? new TauMarker(),
-                FixtureMethod<ISouthernDaleDomainService>(nameof(ISouthernDaleDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false)),
-                FixtureMethod<IBossTowerTicketDomainService>(nameof(IBossTowerTicketDomainService.RefillOnlineTicketAsync), ValueTask.FromResult(false)),
+                refills,
                 FixtureMethod<IClientSettingsDomainService>(nameof(IClientSettingsDomainService.ActivateHotkeyProfile), true),
                 FixtureMethod<IItemUsageDomainService>(nameof(IItemUsageDomainService.GetSnapshotAtAsync), ValueTask.FromResult<IReadOnlyList<ItemUsageState>>([])),
                 // Nobody keeps the selected character, and it keeps nobody, unless a case supplies relations.
@@ -1065,7 +1071,7 @@ public sealed partial class SelectCharacterLifecycleTests
             ProtocolAlgorithmFixture.Decorate(ProtocolAlgorithmFixture.Default<T>(), (method, args) =>
                 method.Name == name ? (true, result) : (false, null));
     }
-    private sealed class SelectionUnits(RecordingCommandBus stages, bool observeTau) : ICommandWorkUnits
+    private sealed class SelectionUnits(RecordingCommandBus stages, bool observeTau, IReadOnlySet<string> refillUnits) : ICommandWorkUnits
     {
         private readonly ProtocolAlgorithmFixture.Units actual = new();
         public async ValueTask<T> WriteAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
@@ -1083,6 +1089,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 "RefillOnlineSouthernTicket" or "RefillOnlineBossTowerTicket" or "RecoverDarkElfRuinsRewards" => null,
                 "SynchronizeSelectedCharacterQuests" => typeof(SynchronizeSelectedCharacterQuestsStage),
                 "ReviveSelectedCharacterPet" => typeof(ReviveSelectedCharacterPetStage),
+                _ when refillUnits.Contains(declaration.Name) => null,
                 _ => throw new InvalidOperationException($"Unexpected selection unit {declaration.Name}."),
             };
             if (stage is not null) stages.DispatchedCommands.Add(stage);
