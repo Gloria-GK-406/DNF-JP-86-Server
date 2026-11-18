@@ -1,8 +1,8 @@
 # 协议清单
 
-## 2026-11-18 梦幻装扮合成器 10007247（#367、#372，A21 实机入站采样）
+## 2026-11-18 梦幻装扮合成器 10007247（#367、#372，A21 成功路径 ClientVerified）
 
-右键打开合成界面，实机确认后发送 [CMD0447](game/client-to-server/0x0447.md)，包体 145 字节，合成器槽位在偏移 14。服务端实现 `10007247` 的原子扣料和定向产出，按 A21 读取长度发送 55 字节成功包或两字节拒绝包。实机请求样本已覆盖服务端成功、拒绝和重放。其他合成器模板待取证。
+右键打开合成界面，实机确认后发送 [CMD0447](game/client-to-server/0x0447.md)，包体 145 字节，合成器槽位在偏移 14。已实测成功回包关窗、产物显示和穿戴，隔离库确认扣掉一件合成器和八件材料。自动测试覆盖拒绝和重放，拒绝界面及其他合成器模板待实测。
 
 ## 2026-11-14 全区系统广播 NOTI 0x0056 子类型取证（ClientStatic + ClientVerified）
 
@@ -1696,7 +1696,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 |---|---|---|---|---|
 | NOTI | 0x042D | WeeklyAttendanceStateMessage | ClientStatic 450B及偏移；CurrentImplementation 状态刷新，未ClientVerified | [042D](game/server-to-client/NOTI-0x042D.md) |
 | CMD | 0x0441 | WeeklyAttendanceRequest / WeeklyAttendanceResponse | ClientStatic 请求14B opaque / 响应4B；CurrentImplementation 原子奖励，未ClientVerified | [0441](game/client-to-server/0x0441.md) |
-| CMD | 0x0447 | AvatarCompoundPlusRequest / AvatarCompoundPlusResponse | WireCaptured 请求145B；ClientStatic 响应布局；CurrentImplementation 覆盖 10007247 | [0447](game/client-to-server/0x0447.md) |
+| CMD | 0x0447 | AvatarCompoundPlusRequest / AvatarCompoundPlusResponse | WireCaptured 请求145B；ClientStatic 响应布局；10007247 成功路径 ClientVerified | [0447](game/client-to-server/0x0447.md) |
 
 ## 2026-10-10 配额职责与镜像次数同步
 
