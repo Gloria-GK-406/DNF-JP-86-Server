@@ -46,7 +46,7 @@ internal sealed class CharacterSkillDomainService(
 
     public async ValueTask<IReadOnlyList<CharacterSkillState>?> GetHotkeySkillsAsync(CancellationToken ct) =>
         (await GetLearnedSkillsAsync(ct).ConfigureAwait(false))
-            ?.Where(skill => SkillHotkeySlots.Contains(skill.Slot)).ToArray();
+            ?.Where(skill => rules.IsHotkeySlot(skill.Slot)).ToArray();
 
     public async ValueTask<CharacterSkillPagePoints?> GetPointsAsync(CancellationToken ct)
     {
@@ -63,7 +63,7 @@ internal sealed class CharacterSkillDomainService(
     {
         if (transactions.Current is null)
             throw new InvalidOperationException("Skill slot changes require a transaction.");
-        if (first is < 0 or >= SkillHotkeySlots.SecondRowEnd || second is < 0 or >= SkillHotkeySlots.SecondRowEnd
+        if (!rules.IsSkillSwapSlot(first) || !rules.IsSkillSwapSlot(second)
             || !await factsReader.CanEditAsync(characterId, group, build, ct).ConfigureAwait(false))
             return false;
 

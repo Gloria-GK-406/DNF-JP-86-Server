@@ -296,6 +296,8 @@ public sealed class RemainingSkillPointTests
     {
         public ICharacterSkillRule? Get(byte job, int skillId) => throw new NotSupportedException();
         public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => throw new NotSupportedException();
+        public bool IsHotkeySlot(int slot) => throw new NotSupportedException();
+        public bool IsSkillSwapSlot(int slot) => throw new NotSupportedException();
         public CharacterSkillPointBudget GetTotalPoints(byte job, int level) => throw new NotSupportedException();
         public CharacterSkillPointBudget GetTotalPoints(byte job, int level, CharacterSkillPointBasisState basis) =>
             throw new NotSupportedException();

@@ -33,6 +33,12 @@ internal sealed class CharacterSkillRuleService(ISkillRuleDefinitionSource sourc
 
     public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => For(job).All;
 
+    public bool IsHotkeySlot(int slot) =>
+        slot is >= 0 and < SkillHotkeySlots.FirstRowEnd
+            or >= SkillHotkeySlots.SecondRowStart and < SkillHotkeySlots.SecondRowEnd;
+
+    public bool IsSkillSwapSlot(int slot) => slot is >= 0 and < SkillHotkeySlots.SecondRowEnd;
+
     public CharacterSkillPointBudget GetTotalPoints(byte job, int characterLevel)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(characterLevel);
@@ -79,6 +85,13 @@ internal sealed class CharacterSkillRuleService(ISkillRuleDefinitionSource sourc
 
     internal static bool Applies(SkillFreeGrant grant, CharacterCareer career) =>
         grant.IsInitial || grant.GrowType == career.GrowType && grant.Awakening <= career.Awakening;
+}
+
+internal static class SkillHotkeySlots
+{
+    internal const int FirstRowEnd = 6;
+    internal const int SecondRowStart = 198;
+    internal const int SecondRowEnd = 204;
 }
 
 internal sealed class CharacterSkillRule : ICharacterSkillRule
