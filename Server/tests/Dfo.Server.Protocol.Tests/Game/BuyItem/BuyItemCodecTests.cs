@@ -6,6 +6,7 @@ using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.BuyItem;
 using Dfo.Server.Protocol.Game;
@@ -46,6 +47,52 @@ public sealed class BuyItemCodecTests
             Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(15, 4)));
             Assert.Equal((ushort)2001, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(19, 2)));
             Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(21, 4)));
+        });
+    }
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData(0)]
+    [InlineData(17)]
+    public async Task Housing_purchase_projects_the_buyers_balance_before_the_ack_and_only_storage_to_the_partner(int points)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            const int furnitureItemId = 10002688;
+            var sessions = TestSessions.Directory(out var state);
+            var buyer = sessions.InWorld(state, new(1), new(71), "furniture-buyer");
+            var partner = sessions.InWorld(state, new(2), new(72), "furniture-partner");
+            var room = new HousingSnapshot(Guid.NewGuid(), 1, [new(3, furnitureItemId, 4)], [], null);
+            var receipt = new NpcShopPurchaseReceipt(buyer, furnitureItemId, 1, 5, 0, 0, false, [], [], DateTimeOffset.UnixEpoch)
+            {
+                Housing = room,
+                HousingAudience = [buyer.CharacterId, partner.CharacterId],
+                HousingItem = new ItemSnapshot { ItemId = furnitureItemId, Count = 1, IsPile = true, LegacyKind = 2 },
+                LovePoints = points,
+            };
+            var handler = new NpcShopPurchaseCompletedHandler(sessions);
+            var purchase = new NpcShopPurchaseCompleted(receipt);
+
+            var buyerMessages = await handler.ComposeAsync(new(buyer.CharacterId, buyer.ConnectionId), purchase, CancellationToken.None);
+            var partnerMessages = await handler.ComposeAsync(new(partner.CharacterId, partner.ConnectionId), purchase, CancellationToken.None);
+            var staleBuyerMessages = await handler.ComposeAsync(new(buyer.CharacterId, new("stale-buyer")), purchase, CancellationToken.None);
+
+            Assert.Collection(buyerMessages,
+                message => Assert.Equal(room, Assert.IsType<HousingStorageMessage>(message).Snapshot),
+                message =>
+                {
+                    var balance = Assert.IsType<WeddingLovePointNotification>(message);
+                    Assert.Equal(buyer.CharacterId.Value, balance.Character);
+                    Assert.Equal(points, balance.Points);
+                },
+                message =>
+                {
+                    var ack = Assert.IsType<BuyItemResponse>(message);
+                    Assert.Same(receipt, ack.Receipt);
+                    Assert.True(ack.InventoryAlreadyProjected);
+                });
+            Assert.Equal(room, Assert.IsType<HousingStorageMessage>(Assert.Single(partnerMessages)).Snapshot);
+            Assert.Empty(staleBuyerMessages);
         });
     }
 

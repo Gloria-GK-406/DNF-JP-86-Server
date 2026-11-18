@@ -39,7 +39,7 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
                 group.Select(grant => new InventoryItemState(null, A21InventoryLayout.ToGameSlot(grant.Slot).Index,
                     grant.Core.ToCore())).ToArray(), receipt.PreparedAt))).ToArray();
         if (receipt.Housing is { } housing) messages.Add(new HousingStorageMessage(housing));
-        if (receipt.LovePoints is { } points) messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(receipt.Session.CharacterId.Value, points));
+        if (receipt.LovePoints is { } points) messages.Add(new WeddingLovePointNotification(receipt.Session.CharacterId.Value, points));
         var projectedStack = receipt.Housing is not null || receipt.GrantedSlots.Count > 0 && receipt.GrantedSlots[0].Core.IsPile;
         // Apply the absolute stack once while the client still has the pre-purchase count, so
         // 000E reports exactly the gain. The subsequent ACK confirms without incrementing again.
