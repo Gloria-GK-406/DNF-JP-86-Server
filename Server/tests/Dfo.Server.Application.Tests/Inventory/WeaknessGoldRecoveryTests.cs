@@ -11,6 +11,7 @@ using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.RecoverStamina;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Weakness;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

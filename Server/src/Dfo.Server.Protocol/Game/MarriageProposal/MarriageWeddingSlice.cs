@@ -18,19 +18,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MarriageProposal;
 
-internal sealed record WeddingAvatarNotification(MarriageChurchSnapshot Church, bool Restore = false) : IGameNotiMessage
-{ public ServerMessageType MessageType => ServerMessageType.GameWeddingAvatar; }
-internal sealed class WeddingAvatarEncoder : GameNotiMessageEncoder<WeddingAvatarNotification>
-{
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingAvatarNotification m)
-    {
-        var b = new byte[67]; b[0] = m.Restore ? (byte)1 : (byte)0;
-        MarriageChurchPayload.CopyName(m.Church.ApplicantName, b.AsSpan(2, 30));
-        MarriageChurchPayload.CopyName(m.Church.PartnerName, b.AsSpan(32, 30));
-        BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(62), m.Church.Room.AreaId);
-        return OnePayload(m, b);
-    }
-}
 internal sealed record WeddingBeginNotification(MarriageChurchSnapshot Church) : IGameNotiMessage
 { public ServerMessageType MessageType => ServerMessageType.GameWeddingBegin; }
 internal sealed record WeddingLetterNotification(MarriageChurchSnapshot Church, uint Key, bool Paid = false) : IGameNotiMessage
@@ -42,8 +29,8 @@ internal sealed class WeddingBeginEncoder : GameNotiMessageEncoder<WeddingBeginN
         var b = new byte[68];
         BinaryPrimitives.WriteUInt32LittleEndian(b, checked((uint)m.Church.Peer.Value));
         BinaryPrimitives.WriteUInt32LittleEndian(b.AsSpan(4), m.Church.Room.AreaId);
-        MarriageChurchPayload.CopyName(m.Church.ApplicantName, b.AsSpan(8, 30));
-        MarriageChurchPayload.CopyName(m.Church.PartnerName, b.AsSpan(38, 30));
+        WeddingWireName.Copy(m.Church.ApplicantName, b.AsSpan(8, 30));
+        WeddingWireName.Copy(m.Church.PartnerName, b.AsSpan(38, 30));
         return OnePayload(m, b);
     }
 }

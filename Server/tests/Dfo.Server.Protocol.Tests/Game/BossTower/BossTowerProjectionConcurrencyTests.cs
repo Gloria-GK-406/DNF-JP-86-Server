@@ -627,7 +627,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
             Assert.Equal(0, party.Commands.PartyCalls);
             Assert.Collection(sender.Sent,
                 message => Assert.IsType<GiveUpGameResponse>(message),
-                message => Assert.Equal((byte)0, Assert.IsType<Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification>(message).Value),
+                message => Assert.Equal((byte)0, Assert.IsType<WeaknessProjectionNotification>(message).Value),
                 message =>
                 {
                     var state = Assert.IsType<Dfo.Server.Protocol.Game.DungeonSelection.UserStateNotification>(message);
@@ -660,7 +660,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
         public ValueTask SendCmdAsync(NetworkConnectionId target, IGameCmdMessage message, CancellationToken ct)
         { Assert.Equal(owner, target); return actual.SendCmdAsync(target, message, ct); }
         public ValueTask SendNotiAsync(NetworkConnectionId target, IGameNotiMessage message, CancellationToken ct)
-        { Assert.Equal(owner, target); Assert.IsType<Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification>(message); return actual.SendNotiAsync(target, message, ct); }
+        { Assert.Equal(owner, target); Assert.IsType<WeaknessProjectionNotification>(message); return actual.SendNotiAsync(target, message, ct); }
         public ValueTask SendExplicitAsync(NetworkConnectionId target, GameExplicitMessageDelivery delivery, CancellationToken ct)
         { Assert.Equal(owner, target); Assert.Empty(delivery.BestEffortTargets); return actual.SendExplicitAsync(target, delivery, ct); }
     }

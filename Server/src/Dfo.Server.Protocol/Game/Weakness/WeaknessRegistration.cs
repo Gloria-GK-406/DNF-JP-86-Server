@@ -18,7 +18,6 @@ internal static class WeaknessRegistration
             provider.GetRequiredService<TimeProvider>(), provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<WeaknessRecoveryService>>()));
         services.AddTypedGameplayTimer<WeaknessRecoveryService>();
         services.AddInternalCommandHandler<RecoverWeaknessTickCommand, bool, RecoverWeaknessTickCommandHandler>();
-        services.AddGameNotiMessageEncoder<WeaknessProjectionNotification, WeaknessProjectionEncoder>();
         return services;
     }
 }

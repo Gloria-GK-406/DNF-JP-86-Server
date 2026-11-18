@@ -3,6 +3,7 @@ using System.Text;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Marriage;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 
 namespace Dfo.Server.Protocol.Tests;

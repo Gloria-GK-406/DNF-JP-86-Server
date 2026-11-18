@@ -772,7 +772,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await PartyTownProjection.PartyTownRefreshObservedPartiesAsync(townAreas, projections, projectionState, parties, registered.Registered, ct).ConfigureAwait(false);
     }
     private ValueTask ProjectWeaknessAsync(SelectedSessionIdentity session, CancellationToken ct) => selectedSessions.IsInWorld(session)
-        ? outbox.RegisterNotiAsync(session.ConnectionId, new Weakness.WeaknessProjectionNotification(weaknessState.For(session.CharacterId).Value), ct)
+        ? outbox.RegisterNotiAsync(session.ConnectionId, new WeaknessProjectionNotification(weaknessState.For(session.CharacterId).Value), ct)
         : ValueTask.CompletedTask;
     private async ValueTask ProjectItemUsageAsync(CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct)
     {

@@ -183,6 +183,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddRecoverStaminaSlice();
         services.AddFatigueSlice();
         services.AddWeaknessSlice();
+        services.AddGameNotiMessageEncoder<WeaknessProjectionNotification, WeaknessProjectionEncoder>();
         services.AddCreaturesSlice();
         services.AddSelectedSessionRefresh();
         services.AddStateSynchronizationSlice(configuration);
@@ -193,6 +194,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddTournamentSlice();
         services.AddMarriageProposalSlice();
         services.AddMarriageHousingSlice();
+        services.AddGameNotiMessageEncoder<WeddingAvatarNotification, WeddingAvatarEncoder>();
         services.AddGameNotiMessageEncoder<WeddingLovePointNotification, WeddingLovePointNotificationEncoder>();
         services.AddRentalSlice();
         services.AddUseStackableSlice();

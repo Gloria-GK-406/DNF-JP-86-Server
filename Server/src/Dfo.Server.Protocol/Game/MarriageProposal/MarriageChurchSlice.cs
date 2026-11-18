@@ -42,19 +42,12 @@ internal static class MarriageChurchPayload
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(4), snapshot.Room.AreaId);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(8), checked((uint)snapshot.Room.ReadyUntil.ToUnixTimeSeconds()));
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(12), checked((uint)snapshot.Room.ChannelId));
-        CopyName(snapshot.ApplicantName, bytes.AsSpan(17, 30));
-        CopyName(snapshot.PartnerName, bytes.AsSpan(47, 30));
+        WeddingWireName.Copy(snapshot.ApplicantName, bytes.AsSpan(17, 30));
+        WeddingWireName.Copy(snapshot.PartnerName, bytes.AsSpan(47, 30));
         // Native dstr11CE2 formats raw12 as the wedding channel; tier16 is ordinary zero.
         // In particular, bytes77..78 are not part of the second 30-byte name.
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(77), remaining);
         return bytes;
-    }
-
-    internal static void CopyName(byte[] name, Span<byte> destination)
-    {
-        var count = Math.Min(name.Length, destination.Length - 1);
-        if (count < name.Length) while (count > 0 && (name[count] & 0xC0) == 0x80) count--;
-        name.AsSpan(0, count).CopyTo(destination);
     }
 }
 

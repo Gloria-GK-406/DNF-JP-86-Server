@@ -42,7 +42,6 @@ internal static class MarriageProposalRegistration
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingCommentCommand>(ClientMessageType.GameWeddingCommentRead);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingCommentEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingBeginEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterEncoder>();
         services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingInvitedGuestsNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingInvitedGuestsEncoder>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLetterDecoder>(ClientMessageType.GameWeddingSendLetter);

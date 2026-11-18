@@ -1347,7 +1347,7 @@ public sealed class PartySelectDungeonHandlerTests
             // The real selection CMD also projects current weakness as a single NOTI.
             // Every unrelated non-explicit send still fails at registration.
             outbound.Encoder.FailAny(message => outbound.ExplicitInFlight is null
-                && message is not Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification,
+                && message is not WeaknessProjectionNotification,
                 () => new NotSupportedException());
             if (failRequiredConnection is { } connection)
                 outbound.FailDirect(connection, () => new InvalidOperationException("required delivery failed"));
