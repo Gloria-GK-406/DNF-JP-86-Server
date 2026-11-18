@@ -1535,7 +1535,7 @@ public sealed partial class SelectCharacterLifecycleTests
             _ = failPvpTarget;
         }
 
-        public List<(NetworkConnectionId Target, Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification Message)> Weakness { get; } = [];
+        public List<(NetworkConnectionId Target, WeaknessProjectionNotification Message)> Weakness { get; } = [];
         public List<(NetworkConnectionId Target, IGameServerMessage Message)> DirectMessages { get; } = [];
         public bool FailStatic { get; set; }
         private readonly TaskCompletionSource staticRelease = new(
@@ -1574,7 +1574,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     }
                 }
             }
-            else if (message is Dfo.Server.Protocol.Game.Weakness.WeaknessProjectionNotification weakness)
+            else if (message is WeaknessProjectionNotification weakness)
             {
                 Weakness.Add((target, weakness));
                 ledger.Add("weakness");

@@ -210,7 +210,7 @@ internal sealed partial class GameTownMovementCommandHandler :
             && (message.TownId != weddingAppearance.Room.TownId || message.AreaId != weddingAppearance.Room.AreaId)
             && await marriage!.WeddingPhaseAsync(weddingAppearance.Room.CeremonyId, cancellationToken).ConfigureAwait(false)
                 != Dfo.Server.Data.Marriage.MarriageWeddingPhase.Preparing)
-            await outbox.RegisterExplicitAsync(session.ConnectionId, new([new Dfo.Server.Protocol.Game.MarriageProposal.WeddingAvatarNotification(weddingAppearance, true)], []), cancellationToken).ConfigureAwait(false);
+            await outbox.RegisterExplicitAsync(session.ConnectionId, new([new WeddingAvatarNotification(weddingAppearance, true)], []), cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Set user area {ConnectionId} user={WireUserId}: {FromTown}:{FromArea} -> "

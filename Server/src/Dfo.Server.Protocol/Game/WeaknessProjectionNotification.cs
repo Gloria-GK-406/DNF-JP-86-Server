@@ -1,6 +1,6 @@
 using Dfo.Server.Data.Networking;
 
-namespace Dfo.Server.Protocol.Game.Weakness;
+namespace Dfo.Server.Protocol.Game;
 
 internal sealed record WeaknessProjectionNotification(byte Value) : IGameNotiMessage
 {

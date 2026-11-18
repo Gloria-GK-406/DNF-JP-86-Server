@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
-using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Application.Execution;
 using Microsoft.Extensions.Hosting;

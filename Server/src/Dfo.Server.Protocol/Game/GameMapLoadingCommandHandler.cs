@@ -183,7 +183,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
     }
     private ValueTask RegisterNotiAsync(NetworkConnectionId id, IGameNotiMessage message, CancellationToken token) => mapOutbox.RegisterNotiAsync(id, message, token);
     private ValueTask LoadingWeaknessAsync(SelectedSessionIdentity session, CancellationToken token) => sessions.IsInWorld(session)
-        ? RegisterNotiAsync(session.ConnectionId, new Weakness.WeaknessProjectionNotification(weaknessState.For(session.CharacterId).Value), token)
+        ? RegisterNotiAsync(session.ConnectionId, new WeaknessProjectionNotification(weaknessState.For(session.CharacterId).Value), token)
         : ValueTask.CompletedTask;
     private ValueTask<NotificationDelivery> LoadingQuotaAsync(SelectedSessionIdentity session, UsageQuotaFamily family, CancellationToken token) =>
         projections.ProjectAsync(new NotificationAudience.TheseSessions([session]), new UsageQuotaViewChanged(session.CharacterId, family), token);

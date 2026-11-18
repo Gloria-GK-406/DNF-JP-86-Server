@@ -1,4 +1,4 @@
-namespace Dfo.Server.Protocol.Game.Mailbox;
+namespace Dfo.Server.Protocol.Game;
 
 internal static class MailboxIds
 {

@@ -1,4 +1,3 @@
-using Dfo.Server.Protocol.Game.Mailbox;
 using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;

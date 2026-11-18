@@ -64,7 +64,7 @@ internal sealed class WeddingCommentEncoder : GameCmdMessageEncoder<WeddingComme
                 w.Write(m.Result.Comments.Count);
                 foreach (var item in m.Result.Comments)
                 {
-                    w.Write(item.Id); var name = new byte[30]; MarriageChurchPayload.CopyName(item.AuthorName, name);
+                    w.Write(item.Id); var name = new byte[30]; WeddingWireName.Copy(item.AuthorName, name);
                     w.Write(name); w.Write(item.SortKey); w.Write(item.Text.Length); w.Write(item.Text);
                 }
             }
