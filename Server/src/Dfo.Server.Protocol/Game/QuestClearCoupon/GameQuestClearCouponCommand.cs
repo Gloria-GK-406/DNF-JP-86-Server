@@ -39,7 +39,8 @@ public sealed class GameQuestClearCouponCommandHandler(
     IItemUsageDomainService usage, TimeProvider clock,
     ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
     ILogger<GameQuestClearCouponCommandHandler> logger, IMirrorAradQuestDomainService mirror,
-    ILostLandConsumableDomainService lostLandItems)
+    ILostLandConsumableDomainService lostLandItems, IItemUseEffectDomainService itemUseEffects,
+    IAuraSkinSlotDomainService auraSlots)
     : ICommandHandler<GameQuestClearCouponCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, GameQuestClearCouponCommand command, CancellationToken ct)
@@ -61,13 +62,20 @@ public sealed class GameQuestClearCouponCommandHandler(
             throw new InvalidOperationException("Stackable action requires its originally selected actor.");
 
         Branch branch;
+        int? sourceItemId;
         try
         {
             var slot = OpeningWireSlots.FromMain(message.SourceSlot);
             var source = await slots.Get(session.CharacterId, slot).Container.GetAsync(slot.Index, ct).ConfigureAwait(false);
-            branch = source is not null && message.Action is 99 or 101 && await lostLandItems.SupportsAsync(source.ItemId, ct).ConfigureAwait(false) ? Branch.LostLand
-                : source is not null && entryAllowances.Supports(source.ItemId) ? Branch.Entry
-                : message.IsFatiguePotion ? Branch.Fatigue : Branch.Coupon;
+            sourceItemId = source?.ItemId;
+            branch = message.Action switch
+            {
+                QuestClearCouponRequest.LuckyStarAction => Branch.LuckyStar,
+                QuestClearCouponRequest.AuraSkinSlotAction => Branch.AuraSkinSlot,
+                _ => source is not null && message.Action is 99 or 101 && await lostLandItems.SupportsAsync(source.ItemId, ct).ConfigureAwait(false) ? Branch.LostLand
+                    : source is not null && entryAllowances.Supports(source.ItemId) ? Branch.Entry
+                    : message.IsFatiguePotion ? Branch.Fatigue : Branch.Coupon,
+            };
         }
         catch (Exception failure) when (CanRefuse(failure))
         {
@@ -102,6 +110,16 @@ public sealed class GameQuestClearCouponCommandHandler(
                     }
                     if (branch == Branch.Fatigue)
                         return new ActionOutcome(await potions.UseAsync(session, slot, clock.GetUtcNow(), footprint, token).ConfigureAwait(false), null, null);
+                    if (branch == Branch.LuckyStar)
+                        return new ActionOutcome(await itemUseEffects.UseLuckyStarActionAsync(session, slot,
+                            clock.GetUtcNow(), footprint, token).ConfigureAwait(false), null, null);
+                    if (branch == Branch.AuraSkinSlot)
+                    {
+                        var opened = await auraSlots.OpenWithActionTicketAsync(session, slot, clock.GetUtcNow(), footprint, token)
+                            .ConfigureAwait(false);
+                        return new ActionOutcome(opened.Inventory
+                            ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Aura skin slot is already open."), null, null);
+                    }
                     var result = await coupons.UseAsync(session, slot, clock.GetUtcNow(), footprint, token).ConfigureAwait(false);
                     return new ActionOutcome(result.Inventory, result, null);
                 }
@@ -135,10 +153,21 @@ public sealed class GameQuestClearCouponCommandHandler(
                     logger.LogInformation("Fatigue potion refused character={CharacterId} slot={Slot}: {Reason}", session.CharacterId, message.SourceSlot, rejected.Message);
                 else logger.LogError(actionFailure, "Fatigue potion failed character={CharacterId} slot={Slot}", session.CharacterId, message.SourceSlot);
             }
+            else if (branch is Branch.LuckyStar or Branch.AuraSkinSlot)
+            {
+                if (actionFailure is OpeningRejectedException refusal)
+                    logger.LogInformation("Stackable action refused character={CharacterId} slot={Slot} item={ItemId} action={Action}: {Reason}",
+                        session.CharacterId, message.SourceSlot, sourceItemId, message.Action, refusal.Message);
+                else
+                    logger.LogError(actionFailure, "Stackable action failed character={CharacterId} slot={Slot} item={ItemId} action={Action}",
+                        session.CharacterId, message.SourceSlot, sourceItemId, message.Action);
+            }
             else if (actionFailure is OpeningRejectedException rejected)
                 logger.LogInformation("Quest clear coupon rejected character={CharacterId} slot={Slot}: {Reason}", session.CharacterId, message.SourceSlot, rejected.Reason);
             else logger.LogError(actionFailure, "Quest clear coupon failed character={CharacterId} slot={Slot}", session.CharacterId, message.SourceSlot);
-            await RefuseAsync(connection, message, branch == Branch.Coupon, ct).ConfigureAwait(false);
+            var error = branch == Branch.AuraSkinSlot && actionFailure is OpeningRejectedException { Reason: OpeningRejection.MissingMaterial }
+                ? QuestClearCouponPayloadCodec.MissingMaterial : QuestClearCouponPayloadCodec.SilentFailure;
+            await RefuseAsync(connection, message, branch == Branch.Coupon, ct, error).ConfigureAwait(false);
             if (branch == Branch.Fatigue && actionFailure is OpeningRejectedException)
                 await SendItemUsageAsync(context, session, ct).ConfigureAwait(false);
             return false;
@@ -168,8 +197,32 @@ public sealed class GameQuestClearCouponCommandHandler(
             await SendItemUsageAsync(context, session, ct).ConfigureAwait(false);
             logger.LogInformation("Fatigue potion used character={CharacterId} slot={Slot} remaining={Remaining}", session.CharacterId, message.SourceSlot, balance.Remaining);
         }
+        else if (branch is Branch.LuckyStar or Branch.AuraSkinSlot)
+        {
+            var following = branch == Branch.AuraSkinSlot
+                ? await ProjectAuraSkinSlotAsync(session, receipt.PreparedAt, ct).ConfigureAwait(false)
+                : [];
+            await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
+                new OpeningCompleted(receipt, [new QuestClearCouponResponse(true, message.SourceSlot, message.Container) { Action = message.Action }],
+                    FollowingMessages: following), ct).ConfigureAwait(false);
+        }
         else await ProjectCouponAsync(session, message, action.Coupon!, ct).ConfigureAwait(false);
         return true;
+    }
+
+    private async ValueTask<IReadOnlyList<IServerNetworkMessage>> ProjectAuraSkinSlotAsync(
+        SelectedSessionIdentity session, DateTimeOffset at, CancellationToken ct)
+    {
+        try
+        {
+            var current = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
+            return current is null ? [] : [ExtendedUserStateMessage.FromCurrent(current, at)];
+        }
+        catch (Exception failure) when (CanRefuse(failure))
+        {
+            logger.LogError(failure, "Aura skin slot committed but the USERINFO projection failed character={CharacterId}", session.CharacterId);
+            return [];
+        }
     }
 
     private async ValueTask SendItemUsageAsync(CommandExecutionContext context, SelectedSessionIdentity session, CancellationToken ct)
@@ -232,10 +285,12 @@ public sealed class GameQuestClearCouponCommandHandler(
                 FollowingMessages: following), ct).ConfigureAwait(false);
     }
 
-    private ValueTask RefuseAsync(NetworkConnectionId connection, QuestClearCouponRequest request, bool sanitize, CancellationToken ct) =>
+    private ValueTask RefuseAsync(NetworkConnectionId connection, QuestClearCouponRequest request, bool sanitize, CancellationToken ct,
+        byte error = QuestClearCouponPayloadCodec.SilentFailure) =>
         outbox.RegisterCmdAsync(connection, new QuestClearCouponResponse(false,
-            sanitize && request.SourceSlot < 0 ? (short)0 : request.SourceSlot, sanitize && request.Container != 0 ? (byte)0 : request.Container) { Action = request.Action }, ct);
+            sanitize && request.SourceSlot < 0 ? (short)0 : request.SourceSlot, sanitize && request.Container != 0 ? (byte)0 : request.Container)
+        { Action = request.Action, ErrorCode = error }, ct);
     private static bool CanRefuse(Exception failure) => failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure);
-    private enum Branch { Entry, Fatigue, Coupon, LostLand }
+    private enum Branch { Entry, Fatigue, Coupon, LostLand, LuckyStar, AuraSkinSlot }
     private sealed record ActionOutcome(OpeningInventoryReceipt? Inventory, QuestClearCouponResult? Coupon, Exception? Failure, DungeonRoomVisit? Movement = null);
 }

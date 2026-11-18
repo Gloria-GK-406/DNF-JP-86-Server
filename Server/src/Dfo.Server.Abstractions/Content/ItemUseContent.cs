@@ -95,6 +95,7 @@ public sealed record ItemUseRule(
     public bool SummonsApc { get; init; }
     public IReadOnlyList<int> AllowedDungeonIds { get; init; } = [];
     public byte? SharedEffectSelector { get; init; }
+    public (int ItemId, int Count)? AuraSkinSlotMaterial { get; init; }
     public bool IsReadable => Jobs.IsValid && Places.IsValid && !HasUnreadableDeclaration;
 }
 

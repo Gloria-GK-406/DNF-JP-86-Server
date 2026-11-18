@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -86,6 +87,10 @@ internal sealed record ExtendedUserStateMessage(
     internal override ushort Type => 0x0002;
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeExtendedUserState(
         Character, Public, Skills, Equipment, PreparedAt, RoutingWireUserId);
+
+    internal static ExtendedUserStateMessage FromCurrent(SelectCharacterResult current, DateTimeOffset at) =>
+        new(current.Character, current.CharacterEntry.Public, current.CharacterEntry.Skills,
+            current.CharacterInventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items, at);
 }
 
 internal sealed record KnightShieldDeckMessage(

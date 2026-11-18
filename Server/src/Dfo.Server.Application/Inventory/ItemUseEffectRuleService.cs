@@ -8,16 +8,23 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : IItemUseEffectRuleService
 {
+    internal const string RentPointAction = "[rent point]";
+
     public async ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken ct)
     {
         var rule = await judgement.RuleForAsync(itemId, ct).ConfigureAwait(false);
         if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]" or "[repair coupon]")
             rule = rule with { HasUnreadableDeclaration = true };
-        // A shop-listed MLA upgrade coupon must not fall through to a bare consumption.
-        if (itemId == 490002848 && rule is not null)
+        // These tickets have dedicated settlement; ordinary use would only spend them.
+        if (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId && rule is not null)
             rule = rule with { HasUnreadableDeclaration = true };
         return rule;
     }
+
+    public async ValueTask<ItemUseRule?> LuckyStarActionRuleAsync(int itemId, CancellationToken ct) =>
+        itemId == 10002998 && await RuleForAsync(itemId, ct).ConfigureAwait(false) is { Action: RentPointAction } rule
+            ? rule : null;
+
     public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule) => judgement.CooldownKeyFor(itemId, rule);
     public ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
         ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at)
