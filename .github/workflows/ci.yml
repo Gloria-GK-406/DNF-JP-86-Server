@@ -39,6 +39,10 @@ jobs:
         run: python -m unittest discover -s Tool/Release -p test_summary.py
       - name: Restore
         run: dotnet restore Server/86JP.Server.slnx
+      - name: Check production project dependencies
+        run: |
+          python -B -m unittest discover -s Tool/ProjectReferences
+          python -B Tool/ProjectReferences/check.py
       - name: Build
         run: dotnet build Server/86JP.Server.slnx -c Release --no-restore -p:ContinuousIntegrationBuild=true
       - name: Test units
