@@ -52,7 +52,8 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                     new AccountId(3), new CharacterId(7), empty, token)));
             Assert.Equal([100], profile.Pages[0].Skills.Select(value => (int)value.SkillId));
             Assert.Equal([200], profile.Pages[1].Skills.Select(value => (int)value.SkillId));
-            Assert.Equal(ushort.MaxValue, profile.ProtocolMirror!.Page0Sp);
+            Assert.Equal([1, 2], Assert.Single(profile.Pages[0].Skills).ExtraValues);
+            Assert.Null(profile.ProtocolMirror);
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }

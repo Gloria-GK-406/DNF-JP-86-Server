@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Content;
@@ -13,6 +14,7 @@ using Dfo.Server.Application.Effects;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Tests.Inventory;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -214,6 +216,35 @@ public sealed class ReplayStateSnapshotTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await fixture.Services
             .GetRequiredService<IReplayStateDomainService>().ReadAsync(fixture.Session,
                 new(ReplayProjectionNeeds.Inventory, []), null, default));
+    }
+
+    [Theory]
+    [InlineData(false, 7, 975)]
+    [InlineData(true, 4, 995)]
+    public async Task Replay_reads_skills_and_points_for_the_listener_group(bool duel, int slot, int remainingSp)
+    {
+        var channel = duel ? StubChannelEntryPolicy.FreeDuelChannel : StubChannelEntryPolicy.GeneralChannel;
+        await using var fixture = new LearningFixture(configure: services =>
+            services.AddSingleton<IChannelEntryDomainService>(TestRequired.Absent<IChannelEntryDomainService>(
+                (method, _) => method.Name == nameof(IChannelEntryDomainService.ResolveAsync)
+                    ? ValueTask.FromResult(channel with { ListenerPort = 10011 }) : null)));
+        await fixture.SeedAsync();
+        fixture.Sql("""
+            INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0);
+            INSERT INTO character_stats(character_id) VALUES(71);
+            INSERT INTO character_pvp(character_id,skills_initialized) VALUES(71,1);
+            INSERT INTO character_settings(character_id) VALUES(71);
+            INSERT INTO character_expert_job(character_id) VALUES(71);
+            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level) VALUES(71,'pvp',0,4,1,1);
+            """);
+
+        var snapshot = await new ReplayFixture(fixture.Services).ReadAsync(fixture.Session,
+            new(ReplayProjectionNeeds.Skills, []), null);
+        var skills = Assert.IsType<ReplaySkillState>(snapshot.Skills).ToState();
+        Assert.Equal(slot, Assert.Single(skills.Pages[0].Skills).Slot);
+        var points = Assert.IsType<CharacterSkillProtocolMirrorState>(skills.ProtocolMirror);
+        Assert.Equal(remainingSp, points.Page0Sp);
+        Assert.Equal((ushort)39, points.Page0Tp);
     }
 
     [Fact]

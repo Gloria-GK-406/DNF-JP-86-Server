@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Accounts;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillStateDomainService(
-    ICharacterTable characters, ICharacterSkillTable skills, CharacterSkillDomainService skillDomain,
+    ICharacterTable characters, ICharacterSkillTable skills, CharacterSkillFactsReader skillFacts,
     ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds,
     IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules)
     : ICharacterSkillStateDomainService
@@ -167,6 +167,7 @@ internal sealed class CharacterSkillStateDomainService(
         }
     }
 
-    public ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken) =>
-        skillDomain.ReadOrdinaryFactsAsync(characterId, cancellationToken);
+    public ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve) =>
+        skillFacts.ReadAsync(characterId, group, cancellationToken);
 }

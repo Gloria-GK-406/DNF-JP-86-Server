@@ -226,7 +226,8 @@ public sealed class ExperienceItemUseTests
 
         public ValueTask<CharacterSkillPointLedger?> LedgerAsync(
             CharacterId characterId,
-            CancellationToken cancellationToken) => ValueTask.FromResult<CharacterSkillPointLedger?>(Ledger);
+            CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) =>
+            ValueTask.FromResult<CharacterSkillPointLedger?>(Ledger);
 
         public ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(
             CharacterId characterId,

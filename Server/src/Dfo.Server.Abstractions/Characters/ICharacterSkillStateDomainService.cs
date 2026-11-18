@@ -13,5 +13,6 @@ public interface ICharacterSkillStateDomainService
 
     ValueTask ReconcileAsync(CharacterId characterId, CancellationToken cancellationToken);
 
-    ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken);
+    ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve);
 }

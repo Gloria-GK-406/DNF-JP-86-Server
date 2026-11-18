@@ -1,93 +1,165 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Characters;
 
-internal sealed class CharacterSkillDomainService(
-    ICharacterTable characters,
+internal sealed class CharacterSkillDomainStoreService(
+    CharacterSkillFactsReader facts,
     ICharacterSkillTable skills,
-    ICharacterSkillBuildTable builds,
-    ICharacterEntryTable entries,
-    ICharacterSkillRuleService rules) : ICharacterSkillDomainService
+    ICharacterSkillRuleService rules,
+    IDomainTransactionAccessor transactions,
+    IPremiumServiceDomainService premiums,
+    IPremiumServiceRuleService premiumRules,
+    CharacterSkillRefundService refunds) : ICharacterSkillDomainStoreService
 {
-    public ValueTask<CharacterSkillPageSnapshot?> GetAsync(CharacterId characterId, SkillGroup group,
-        SkillBuildId build, CancellationToken cancellationToken) => group switch
+    public ICharacterSkillDomainService Get(CharacterId characterId, SkillGroup group, SkillBuildId build)
     {
-        SkillGroup.Pve => GetOrdinaryPageAsync(characterId, build, cancellationToken),
-        SkillGroup.Duel => GetDuelPageAsync(characterId, build, cancellationToken),
-        _ => throw new ArgumentOutOfRangeException(nameof(group), group, null),
-    };
+        if (group is not (SkillGroup.Pve or SkillGroup.Duel))
+            throw new ArgumentOutOfRangeException(nameof(group), group, null);
+        return new CharacterSkillDomainService(characterId, group, build, facts, skills, rules,
+            transactions, premiums, premiumRules, refunds);
+    }
+}
 
-    private async ValueTask<CharacterSkillPageSnapshot?> GetOrdinaryPageAsync(
-        CharacterId characterId, SkillBuildId build, CancellationToken ct)
+internal sealed class CharacterSkillDomainService(
+    CharacterId characterId,
+    SkillGroup group,
+    SkillBuildId build,
+    CharacterSkillFactsReader factsReader,
+    ICharacterSkillTable skills,
+    ICharacterSkillRuleService rules,
+    IDomainTransactionAccessor transactions,
+    IPremiumServiceDomainService premiums,
+    IPremiumServiceRuleService premiumRules,
+    CharacterSkillRefundService refunds) : ICharacterSkillDomainService
+{
+    private CharacterSkillPageState? FindPage(CharacterSkillFacts? facts) =>
+        facts?.Pages.SingleOrDefault(page => page.PageIndex == build.Value);
+
+    public async ValueTask<IReadOnlyList<CharacterSkillState>?> GetLearnedSkillsAsync(CancellationToken ct) =>
+        FindPage(await factsReader.ReadAsync(characterId, group, ct).ConfigureAwait(false))?.Skills;
+
+    public async ValueTask<IReadOnlyList<CharacterSkillState>?> GetHotkeySkillsAsync(CancellationToken ct) =>
+        (await GetLearnedSkillsAsync(ct).ConfigureAwait(false))
+            ?.Where(skill => SkillHotkeySlots.Contains(skill.Slot)).ToArray();
+
+    public async ValueTask<CharacterSkillPagePoints?> GetPointsAsync(CancellationToken ct)
     {
-        var facts = await ReadOrdinaryFactsAsync(characterId, ct).ConfigureAwait(false);
-        if (facts?.Pages.SingleOrDefault(page => page.PageIndex == build.Value) is not { } selected)
+        var facts = await factsReader.ReadAsync(characterId, group, ct).ConfigureAwait(false);
+        if (facts is null || FindPage(facts) is not { } page)
             return null;
 
-        var ledger = rules.GetLedger(facts.Career, facts.Level, [selected], facts.PointBasis);
+        var ledger = rules.GetLedger(facts.Career, facts.Level, [page], facts.PointBasis);
         var total = rules.GetTotalPoints(facts.Career.Job, facts.Level, facts.PointBasis);
-        return Snapshot(selected, new(total, ledger.For(build), ledger.MissingSkillIds));
+        return new(total, ledger.For(build), ledger.MissingSkillIds);
     }
 
-    private async ValueTask<CharacterSkillPageSnapshot?> GetDuelPageAsync(
-        CharacterId characterId, SkillBuildId build, CancellationToken ct)
+    public async ValueTask<bool> SwapSlotsAsync(int first, int second, CancellationToken ct)
     {
-        if (build.Value > 1 || await characters.FindStandingAsync(characterId, ct).ConfigureAwait(false) is null)
-            return null;
+        if (transactions.Current is null)
+            throw new InvalidOperationException("Skill slot changes require a transaction.");
+        if (first is < 0 or >= SkillHotkeySlots.SecondRowEnd || second is < 0 or >= SkillHotkeySlots.SecondRowEnd
+            || !await factsReader.CanEditAsync(characterId, group, build, ct).ConfigureAwait(false))
+            return false;
 
-        var pages = await ReadDuelPagesAsync(characterId, ct).ConfigureAwait(false);
-        return Snapshot(pages[build.Value], points: null);
+        var rows = await skills.ReadLevelsAsync(characterId, ct, group).ConfigureAwait(false);
+        var pageRows = rows.Where(row => row.PageIndex == build.Value);
+        if (pageRows.Any(row => row.Slot < 0)
+            || !pageRows.Any(row => row.Slot == first || row.Slot == second))
+            return false;
+
+        await skills.SwapSlotsAsync(characterId, build.Value, first, second, ct, group).ConfigureAwait(false);
+        return true;
     }
 
-    private static CharacterSkillPageSnapshot Snapshot(CharacterSkillPageState page, CharacterSkillPagePoints? points) =>
-        new(page, page.Skills.Where(skill => SkillHotkeySlots.Contains(skill.Slot)).ToArray(), points);
+    internal static bool IsValidLearningRequest(IReadOnlyList<CharacterSkillLearningChange> changes) =>
+        changes.Count is > 0 and <= byte.MaxValue
+        && changes.All(change => change.SkillId != 0 && change.Refund <= 1 && change.Increment != 0)
+        && changes.Select(change => change.SkillId).Distinct().Count() == changes.Count;
 
-    internal async ValueTask<CharacterSkillPointLedger?> ReadOrdinaryLedgerAsync(
-        CharacterId characterId, CancellationToken ct)
+    public async ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session,
+        IReadOnlyList<CharacterSkillLearningChange> changes, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        var facts = await ReadOrdinaryFactsAsync(characterId, ct).ConfigureAwait(false);
-        return facts is null ? null : rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
-    }
+        if (session.CharacterId != characterId)
+            throw new InvalidOperationException("Skill learning actor does not own the bound character.");
+        footprint.DemandEffects(new(session.AccountId, characterId, session));
+        if (transactions.Current is null)
+            throw new InvalidOperationException("Skill learning requires a domain transaction.");
+        if (!IsValidLearningRequest(changes))
+            return new(CharacterSkillLearningRejection.InvalidRequest);
+        var facts = await factsReader.ReadAsync(characterId, group, ct).ConfigureAwait(false);
+        if (facts is null)
+            return new(CharacterSkillLearningRejection.NoSession);
+        if (FindPage(facts) is not { } page
+            || !await factsReader.CanEditAsync(characterId, group, build, ct).ConfigureAwait(false))
+            return new(CharacterSkillLearningRejection.PageUnavailable);
 
-    internal async ValueTask<CharacterSkillFacts?> ReadOrdinaryFactsAsync(
-        CharacterId characterId, CancellationToken cancellationToken)
-    {
-        if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
-            return null;
-        var stored = CharacterSkillPages.Pages(CharacterSkillPages.Rows(
-            await skills.ReadEntryAsync(characterId, cancellationToken).ConfigureAwait(false)));
-        var configurations = await builds.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
-        var pages = configurations.Builds.Select(build => stored.SingleOrDefault(page => page.PageIndex == build.Id.Value)
-            ?? new CharacterSkillPageState(build.Id.Value, [])).ToArray();
-        if (stored.Any(page => configurations.Builds.All(build => build.Id.Value != page.PageIndex)))
-            throw new InvalidDataException("Skill rows reference an unknown build.");
-        var bonus = await entries.FindBonusPointsAsync(characterId, cancellationToken).ConfigureAwait(false);
-        return new CharacterSkillFacts(
-            CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)),
-            standing.Level, pages, new CharacterSkillPointBasisState(bonus?.BonusSp ?? 0, bonus?.BonusTp ?? 0));
-    }
+        var current = page.Skills;
+        if (current.Select(skill => skill.SkillId).Distinct().Count() != current.Count)
+            return new(CharacterSkillLearningRejection.IncompleteLedger);
+        var learningLevel = facts.Level;
+        if (await premiums.For(session.AccountId).HasBenefitAsync(PremiumBenefit.LearnSkillsEarly, ct).ConfigureAwait(false))
+            learningLevel = checked(learningLevel + premiumRules.LevelAllowance(PremiumBenefit.LearnSkillsEarly));
+        if (changes.Any(change => change.Refund != 0))
+            return await refunds.ApplyAsync(session, group, build, changes, facts, current, learningLevel, footprint, ct)
+                .ConfigureAwait(false);
 
-    internal async ValueTask<IReadOnlyList<CharacterSkillPageState>> ReadDuelPagesAsync(
-        CharacterId characterId, CancellationToken cancellationToken)
-    {
-        var pages = new[] { new List<CharacterSkillState>(), new List<CharacterSkillState>() };
-        foreach (var row in await skills.ReadDuelSkillsAsync(characterId, cancellationToken).ConfigureAwait(false))
+        var target = current.ToDictionary(skill => checked((int)skill.SkillId));
+        var occupied = current.Select(skill => (int)skill.Slot).ToHashSet();
+        var changed = new List<CharacterSkillState>(changes.Count);
+        foreach (var change in changes)
         {
-            if (row.PageIndex is < 0 or > 1
-                || row.Slot is < short.MinValue or > short.MaxValue
-                || row.SkillId is < 0 or > ushort.MaxValue
-                || row.Level is < 0 or > byte.MaxValue)
-            {
-                throw new InvalidDataException("PvP skill profile contains an out-of-range row.");
-            }
-
-            pages[row.PageIndex].Add(new CharacterSkillState(
-                checked((short)row.Slot), checked((ushort)row.SkillId),
-                checked((byte)row.Level), row.ExtraValues));
+            var rule = rules.Get(facts.Career.Job, change.SkillId);
+            if (rule is null)
+                return new(CharacterSkillLearningRejection.SkillUnavailable);
+            var existing = target.GetValueOrDefault(change.SkillId);
+            var level = (existing?.Level ?? 0) + change.Increment;
+            if (level > byte.MaxValue)
+                return new(CharacterSkillLearningRejection.SkillUnavailable);
+            var slot = existing?.Slot ?? rule.FindAvailableSlot(occupied);
+            if (slot is null)
+                return new(CharacterSkillLearningRejection.NoSlot);
+            if (slot is < 0 or >= byte.MaxValue || existing?.ExtraValues.Count > byte.MaxValue)
+                return new(CharacterSkillLearningRejection.InvalidRequest);
+            var learned = new CharacterSkillState(slot.Value, change.SkillId, (byte)level, existing?.ExtraValues ?? []);
+            occupied.Add(slot.Value);
+            target[change.SkillId] = learned;
+            changed.Add(learned);
         }
 
-        return [new(0, pages[0]), new(1, pages[1])];
+        var finalLevels = target.ToDictionary(pair => pair.Key, pair => (int)pair.Value.Level);
+        foreach (var learned in changed)
+            if (!rules.Get(facts.Career.Job, (int)learned.SkillId)!
+                .CanLearn(facts.Career, learningLevel, learned.Level, finalLevels))
+                return new(CharacterSkillLearningRejection.SkillUnavailable);
+        var pages = facts.Pages.Where(value => value.PageIndex != build.Value)
+            .Append(new CharacterSkillPageState(build.Value, target.Values.OrderBy(skill => skill.Slot).ToArray()))
+            .ToArray();
+        var ledger = rules.GetLedger(facts.Career, facts.Level, pages, facts.PointBasis);
+        if (!ledger.IsComplete)
+            return new(CharacterSkillLearningRejection.IncompleteLedger);
+        if (ledger.For(build) is { Sp: < 0 } or { Tp: < 0 })
+            return new(CharacterSkillLearningRejection.InsufficientPoints);
+
+        // Storage failures must roll back the entire accepted batch.
+        foreach (var learned in changed)
+        {
+            footprint.DemandEffects(new(session.AccountId, characterId, session));
+            if (current.Any(skill => skill.SkillId == learned.SkillId))
+            {
+                if (await skills.SetLevelAsync(characterId, build.Value, learned.Slot, learned.Level, ct, group)
+                    .ConfigureAwait(false) != 1)
+                    throw new InvalidOperationException("The learned skill row changed during its transaction.");
+            }
+            else
+                await skills.InsertAsync(characterId, build.Value, learned.Slot, (int)learned.SkillId, learned.Level, ct, group)
+                    .ConfigureAwait(false);
+        }
+        return new(CharacterSkillLearningRejection.None, new(session, build.Value, changed.AsReadOnly(), ledger));
     }
 }

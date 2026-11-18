@@ -116,7 +116,7 @@ internal sealed class CharacterSide
         this.Characters,
         this.Skills,
         new SqliteCharacterPvpTable(this.database),
-        new CharacterSkillDomainService(this.Characters, this.Skills,
+        new CharacterSkillFactsReader(this.Characters, this.Skills,
             new SqliteCharacterSkillBuildTable(this.database), new SqliteCharacterEntryTable(this.database), null!));
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(

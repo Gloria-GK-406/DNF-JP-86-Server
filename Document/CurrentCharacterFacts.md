@@ -29,7 +29,7 @@ PVF 表索引 84。数据库 `level` 仅为 SQL 兼容投影，启动时归一�
 `SkillPointLedgerAsync` 保留四个 long 余额及未知技能诊断，`RemainingSkillPointsAsync` 仅为旧协议
 夹取到 ushort 的兼容读法。未知已学技能仍保留，并以零投入兼容处理、标记不完整和记录警告。
 已学事实只含页号、技能 ID 和等级；slot、extra_values、`SkillTreeIndex` 属于动态配置/表现边界，
-沿用现有存储与技能页投影。普通页账本不代表自由决斗频道的无限点数策略。
+沿用现有存储与技能页投影。按技能组和页查询时使用 [技能领域服务](CharacterSkillRules.md)。
 
 选角基础属性以及副本选择界面的基础属性/身份/进度/技能/余额投影由领域服务刷新。
 `CharacterDerivedStatsStorageRecord` 的历史基础列不是当前基础属性真源，Progress1/2、百分比、

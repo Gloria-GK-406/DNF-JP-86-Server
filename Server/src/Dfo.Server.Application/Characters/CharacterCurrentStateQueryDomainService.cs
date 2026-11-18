@@ -102,12 +102,11 @@ internal sealed class CharacterCurrentStateQueryDomainService(
                 session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
             characterEntry = characterEntry with
             {
-                Skills = CharacterStateProjection.MergePvpProfile(characterEntry.Skills, profile),
+                Skills = characterEntry.Skills with { Pages = profile.Pages },
             };
         }
-        else
-            characterEntry = await CharacterStateProjection.CompleteSkillProjectionAsync(
-                character, characterEntry, rules, cancellationToken).ConfigureAwait(false);
+        characterEntry = await CharacterStateProjection.CompleteSkillProjectionAsync(
+            character, characterEntry, rules, cancellationToken).ConfigureAwait(false);
         var adjacentState = await adjacent.LoadAsync(
             new SessionAdjacentSubject(session.CharacterId, session.AccountId, channel,
                 position.TownId, position.AreaId), cancellationToken).ConfigureAwait(false);

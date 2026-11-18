@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 namespace Dfo.Server.Application.Characters;
 
@@ -15,9 +16,10 @@ internal sealed class CharacterStateProjectionDomainService(
             ?? throw new InvalidDataException("Character progression is unavailable.");
         var stats = await character.BaseStatsAsync(cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidDataException("Character base stats are unavailable.");
-        var facts = await skills.ReadAsync(character.Id, cancellationToken).ConfigureAwait(false)
+        var group = result.World.Channel.PvpSkillProfileApplies ? SkillGroup.Duel : SkillGroup.Pve;
+        var facts = await skills.ReadAsync(character.Id, cancellationToken, group).ConfigureAwait(false)
             ?? throw new InvalidDataException("Character skills are unavailable.");
-        var ledger = await points.LedgerAsync(character.Id, cancellationToken).ConfigureAwait(false)
+        var ledger = await points.LedgerAsync(character.Id, cancellationToken, group).ConfigureAwait(false)
             ?? throw new InvalidDataException("Character skill ledger is unavailable.");
         var builds = await skills.BuildsAsync(character.Id, cancellationToken).ConfigureAwait(false);
         var refreshed = result with

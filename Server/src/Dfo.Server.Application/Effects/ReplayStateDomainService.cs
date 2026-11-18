@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
@@ -32,6 +33,7 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
     ICharacterRosterDomainService rosters,
     ICharacterSkillPointDomainService skillPoints,
     ICharacterSkillStateDomainService skillStates,
+    IChannelEntryDomainService channels,
     ICreatureDomainService creatures,
     IEquippedCreatureQuery equippedCreatures,
     Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService giantDragonCrystals,
@@ -104,16 +106,21 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
                     ?? throw new InvalidDataException("Current character identity is unavailable.");
         }
         CharacterSkillProtocolMirrorState? points = null;
+        var skillGroup = SkillGroup.Pve;
         if (needs.HasFlag(ReplayProjectionNeeds.Skills) || needs.HasFlag(ReplayProjectionNeeds.Experience) || appearanceNeeded)
-            points = (await skillPoints.LedgerAsync(session.CharacterId, ct).ConfigureAwait(false)
+        {
+            var channel = await channels.ResolveAsync(session.ListenerPort, ct).ConfigureAwait(false);
+            skillGroup = channel.IsPvp ? SkillGroup.Duel : SkillGroup.Pve;
+            points = (await skillPoints.LedgerAsync(session.CharacterId, ct, skillGroup).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Current skill point ledger is unavailable.")).ToProtocolMirror();
+        }
 
         ReplaySkillState? skills = null;
         CharacterSkillBuilds? builds = null;
         if (needs.HasFlag(ReplayProjectionNeeds.Skills) || appearanceNeeded)
         {
             var state = skillStates;
-            var facts = await state.ReadAsync(session.CharacterId, ct).ConfigureAwait(false)
+            var facts = await state.ReadAsync(session.CharacterId, ct, skillGroup).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Current skills are unavailable.");
             builds = await state.BuildsAsync(session.CharacterId, ct).ConfigureAwait(false);
             skills = new(entry!.Skills with { Pages = facts.Pages, SkillPointBasis = facts.PointBasis, ProtocolMirror = points });

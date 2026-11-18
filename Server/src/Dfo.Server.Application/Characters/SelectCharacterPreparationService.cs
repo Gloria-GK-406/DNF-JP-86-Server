@@ -185,13 +185,11 @@ public sealed class SelectCharacterPreparationService(
                 accountId, character.Identity.CharacterId, initial, cancellationToken).ConfigureAwait(false);
             characterEntry = characterEntry with
             {
-                Skills = CharacterStateProjection.MergePvpProfile(characterEntry.Skills, profile),
+                Skills = characterEntry.Skills with { Pages = profile.Pages },
             };
         }
-        else
-            characterEntry = await CharacterStateProjection.CompleteSkillProjectionAsync(
-                character, characterEntry, preparationRules, cancellationToken)
-                .ConfigureAwait(false);
+        characterEntry = await CharacterStateProjection.CompleteSkillProjectionAsync(
+            character, characterEntry, preparationRules, cancellationToken).ConfigureAwait(false);
         var adjacent = await sessionAdjacent.LoadAsync(
             new SessionAdjacentSubject(
                 character.Identity.CharacterId,
@@ -273,9 +271,7 @@ public sealed class SelectCharacterPreparationService(
         }
         return new CharacterSkillsEntryState(
             [new CharacterSkillPageState(0, skills), new CharacterSkillPageState(1, skills)], [],
-            basis.SkillPointBasis, basis.DarkKnightCombos, basis.KnightShieldDeck,
-            new CharacterSkillProtocolMirrorState(
-                ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+            basis.SkillPointBasis, basis.DarkKnightCombos, basis.KnightShieldDeck);
 
         int FirstFree(int start, int end)
         { for (var index = start; index < end; index++) if (!occupied.Contains(index)) return index; return -1; }

@@ -49,7 +49,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         return task with { Effects = consumption.AddRange(task.Effects) };
     }
 
-    public async ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, int page,
+    public async ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, SkillGroup group, int page,
         IReadOnlyList<CharacterSkillState> before, IReadOnlyList<CharacterSkillState> changed, CancellationToken ct)
     {
         var result = (await ConsumptionAsync(source, water, ct).ConfigureAwait(false)).ToBuilder();
@@ -57,7 +57,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         {
             var previous = before.SingleOrDefault(x => x.SkillId == skill.SkillId);
             result.Add(new SetLearnedSkillEffect(page, skill.Slot, checked((int)skill.SkillId), previous?.Level,
-                skill.Level == 0 ? null : skill.Level));
+                skill.Level == 0 ? null : skill.Level, group));
         }
         return result.ToImmutable();
     }

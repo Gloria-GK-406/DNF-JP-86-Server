@@ -264,9 +264,12 @@ public sealed class CharacterEntryInventoryTests
             accountId, 2, StubChannelEntryPolicy.FreeDuelChannel, CancellationToken.None);
 
         Assert.Equal((ushort)777, Assert.Single(ordinary.CharacterEntry.Skills.Pages[0].Skills).SkillId);
-        Assert.NotNull(ordinary.CharacterEntry.Skills.ProtocolMirror);
+        var ordinaryPoints = Assert.IsType<CharacterSkillProtocolMirrorState>(ordinary.CharacterEntry.Skills.ProtocolMirror);
         Assert.Equal((ushort)888, Assert.Single(duel.CharacterEntry.Skills.Pages[0].Skills).SkillId);
-        Assert.Equal(ushort.MaxValue, duel.CharacterEntry.Skills.ProtocolMirror!.Page0Sp);
+        var duelPoints = Assert.IsType<CharacterSkillProtocolMirrorState>(duel.CharacterEntry.Skills.ProtocolMirror);
+        Assert.Equal(ordinaryPoints.Page0Sp - 20, duelPoints.Page0Sp);
+        Assert.Equal((ushort)106, duelPoints.Page1Sp);
+        Assert.Equal((ushort)17, duelPoints.Page0Tp);
         Assert.Equal(normal.Skills.SkillPointSlots, duel.CharacterEntry.Skills.SkillPointSlots);
         Assert.Equal(normal.Skills.SkillPointBasis, duel.CharacterEntry.Skills.SkillPointBasis);
         Assert.Equal(normal.Skills.DarkKnightCombos, duel.CharacterEntry.Skills.DarkKnightCombos);

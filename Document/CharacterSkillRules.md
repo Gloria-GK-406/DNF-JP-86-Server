@@ -10,6 +10,8 @@
 
 `GetSP(level)` 与 `GetTP(level)` 返回从零到目标等级的累计费用，费用表用完后重复末项。实际投入是累计已学费用减去累计免费费用，最低为零；免费等级取初始、转职、觉醒赠送和自动成长中的最高值。`[fixed level skill]` 即使没有直接整数也表示自动成长声明，其子块提供成长间隔和增量。缺失 base 保持 0，依据参照服务端 `ServerS4A21` 提交 `2db3a135` 的 `SkillStaticData.GetFixedLevel`，属于代码推导。TP 总预算沿用同一参照的 `SkillPointLedger`：50 级起每级一点。
 
-`GetLedger(career, level, pages, basis)` 接收当前已学页和奖励事实，返回两页的完整 `long` 余额。`ToProtocolMirror()` 仅在输出协议时将数值限制到 ushort 范围。找不到费用定义时保留已学事实及既有零投入表现，但结果的 `MissingSkillIds` 和 `IsComplete` 会明确表明账本不完整；现有余额投影记录警告。未知职业组合明确拒绝查询，不自动迁移历史数据。
+`ICharacterSkillDomainStoreService.Get(characterId, group, build)` 返回绑定到指定技能页的服务。页号从零开始。查询、学习和换槽使用该页，当前使用的页由调用方管理。技能写入在调用方的玩法事务内执行，决斗页在首次选角初始化后可由领域服务写入。
+
+`GetLedger(career, level, pages, basis)` 接收指定组的已学页和角色的奖励事实，返回各页的完整 `long` 余额。普通组和决斗组使用同一套总量、免费等级和扣点规则，额外 SP/TP 由角色共享。`ToProtocolMirror()` 仅在输出协议时将数值限制到 ushort 范围。找不到费用定义时保留已学事实及既有零投入表现，结果的 `MissingSkillIds` 和 `IsComplete` 表明账本不完整，现有余额投影记录警告。未知职业组合明确拒绝查询。
 
 PVF 内容源仅缓存有界的职业静态目录，规则服务共享目录中的规则实例；角色等级、已学集合和余额不进入缓存。现有入场对账需要的 `ISkillPointDefinitionSource` 保留为 Application 规则服务的兼容投影，生产投影携带同一个规则实例。选角、角色余额和新账本入口共用 `SkillPointLedgerRules`，不保存第二份算术。

@@ -5,16 +5,6 @@ using Dfo.Server.Persistence.Database;
 namespace Dfo.Server.Persistence.Characters;
 
 /// <summary>The <c>character_skills</c> table.</summary>
-/// <remarks>
-/// Both sets of pages are rows of this table, told apart by <c>mode</c>. Every statement names the
-/// mode it means -- there is no statement here that works on both, because no caller wants both:
-/// spending a skill point is about the ordinary pages and seeding a duel channel is about the duel
-/// pages, and a statement that served both would hand one of them rows it never asked for.
-///
-/// The column that says which is not a discriminator in the sense the red line forbids. Every other
-/// column means exactly the same thing in either mode; <c>mode</c> selects a set of rows, not a
-/// reading of its neighbours.
-/// </remarks>
 internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : ICharacterSkillTable
 {
     /// <summary>How big a skill's extra values may be before the row is refused.</summary>
@@ -25,7 +15,8 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
     private const int ExtraValuesBound = 1024;
 
     // Called under the command transaction. UPDATE preserves level and custom command bytes.
-    public async ValueTask SwapSlotsAsync(CharacterId characterId, int pageIndex, int first, int second, CancellationToken ct)
+    public async ValueTask SwapSlotsAsync(CharacterId characterId, int pageIndex, int first, int second,
+        CancellationToken ct, SkillGroup group = SkillGroup.Pve)
     {
         if (first == second) return;
         if (first is < 0 or > 203 || second is < 0 or > 203) throw new ArgumentOutOfRangeException(nameof(first));
@@ -34,56 +25,75 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
         await Move(second, first);
         await Move(-1, second);
         async ValueTask Move(int from, int to) => _ = await database.ExecuteAsync(
-            "UPDATE character_skills SET slot=@to WHERE character_id=@cid AND mode='pve' AND page_index=@page AND slot=@from",
-            p => { p.AddWithValue("@cid", characterId.Value); p.AddWithValue("@page", pageIndex); p.AddWithValue("@from", from); p.AddWithValue("@to", to); }, ct);
+            "UPDATE character_skills SET slot=@to WHERE character_id=@cid AND mode=@mode AND page_index=@page AND slot=@from",
+            p =>
+            {
+                p.AddWithValue("@cid", characterId.Value);
+                p.AddWithValue("@mode", Mode(group));
+                p.AddWithValue("@page", pageIndex);
+                p.AddWithValue("@from", from);
+                p.AddWithValue("@to", to);
+            }, ct);
     }
 
 
     public ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
+        CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) =>
         database.ReadAllAsync(
             "SELECT page_index,slot,skill_id,level FROM character_skills "
-            + "WHERE character_id=@cid AND mode='pve'",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            + "WHERE character_id=@cid AND mode=@mode",
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@mode", Mode(group));
+            },
             reader => new CharacterSkillLevelRow(
                 reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
             cancellationToken);
 
     public ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadEntryAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
+        CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) =>
         database.ReadAllAsync(
             "SELECT page_index, slot, skill_id, level, extra_values FROM character_skills "
-            + "WHERE character_id=@cid AND mode='pve' ORDER BY page_index, slot",
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
+            + "WHERE character_id=@cid AND mode=@mode ORDER BY page_index, slot",
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@mode", Mode(group));
+            },
             Skill,
             cancellationToken);
 
     public async ValueTask InsertAsync(
         CharacterId characterId, int pageIndex, int slot, int skillId, int level,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve, byte[]? extraValues = null) =>
         _ = await database.ExecuteAsync(
             """
             INSERT INTO character_skills (character_id, mode, page_index, slot, skill_id, level, extra_values)
-            VALUES (@cid, 'pve', @page, @slot, @skill, @level, NULL);
+            VALUES (@cid, @mode, @page, @slot, @skill, @level, @extra);
             """,
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@mode", Mode(group));
                 parameters.AddWithValue("@page", pageIndex);
                 parameters.AddWithValue("@slot", slot);
                 parameters.AddWithValue("@skill", skillId);
                 parameters.AddWithValue("@level", level);
+                parameters.AddWithValue("@extra", extraValues is { Length: > 0 } ? extraValues : DBNull.Value);
             },
             cancellationToken).ConfigureAwait(false);
 
     public ValueTask<int> SetLevelAsync(
-        CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken) =>
+        CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve) =>
         database.ExecuteAsync(
             "UPDATE character_skills SET level=@level "
-            + "WHERE character_id=@cid AND mode='pve' AND page_index=@page AND slot=@slot",
+            + "WHERE character_id=@cid AND mode=@mode AND page_index=@page AND slot=@slot",
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@mode", Mode(group));
                 parameters.AddWithValue("@page", pageIndex);
                 parameters.AddWithValue("@slot", slot);
                 parameters.AddWithValue("@level", level);
@@ -91,56 +101,26 @@ internal sealed class SqliteCharacterSkillTable(SqliteDatabase database) : IChar
             cancellationToken);
 
     public ValueTask<int> RemoveAsync(
-        CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken) =>
+        CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve) =>
         database.ExecuteAsync(
             "DELETE FROM character_skills "
-            + "WHERE character_id=@cid AND mode='pve' AND page_index=@page AND slot=@slot",
+            + "WHERE character_id=@cid AND mode=@mode AND page_index=@page AND slot=@slot",
             parameters =>
             {
                 parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@mode", Mode(group));
                 parameters.AddWithValue("@page", pageIndex);
                 parameters.AddWithValue("@slot", slot);
             },
             cancellationToken);
 
-    public ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadDuelSkillsAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            """
-            SELECT page_index, slot, skill_id, level, extra_values FROM character_skills
-            WHERE character_id=@cid AND mode='pvp' ORDER BY page_index, slot
-            """,
-            parameters => parameters.AddWithValue("@cid", characterId.Value),
-            Skill,
-            cancellationToken);
-
-    public async ValueTask InsertDuelSkillAsync(
-        CharacterId characterId,
-        int pageIndex,
-        int slot,
-        int skillId,
-        int level,
-        byte[] extraValues,
-        CancellationToken cancellationToken)
+    private static string Mode(SkillGroup group) => group switch
     {
-        ArgumentNullException.ThrowIfNull(extraValues);
-        _ = await database.ExecuteAsync(
-            """
-            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
-            VALUES(@cid,'pvp',@page,@slot,@skill,@level,@extra)
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@cid", characterId.Value);
-                parameters.AddWithValue("@page", pageIndex);
-                parameters.AddWithValue("@slot", slot);
-                parameters.AddWithValue("@skill", skillId);
-                parameters.AddWithValue("@level", level);
-                parameters.AddWithValue(
-                    "@extra", extraValues.Length > 0 ? extraValues : DBNull.Value);
-            },
-            cancellationToken).ConfigureAwait(false);
-    }
+        SkillGroup.Pve => "pve",
+        SkillGroup.Duel => "pvp",
+        _ => throw new ArgumentOutOfRangeException(nameof(group), group, null),
+    };
 
     /// <summary>One row, however the caller means to use it.</summary>
     /// <remarks>

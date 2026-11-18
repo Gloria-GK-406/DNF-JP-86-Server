@@ -19,7 +19,7 @@ internal sealed class PvpSkillProfileService(
     ICharacterTable characters,
     ICharacterSkillTable skills,
     ICharacterPvpTable pvp,
-    CharacterSkillDomainService skillDomain) : ICharacterPvpSkillProfileRepository
+    CharacterSkillFactsReader skillFacts) : ICharacterPvpSkillProfileRepository
 {
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
         AccountId accountId,
@@ -44,9 +44,9 @@ internal sealed class PvpSkillProfileService(
             {
                 foreach (var skill in page.Skills)
                 {
-                    await skills.InsertDuelSkillAsync(
+                    await skills.InsertAsync(
                         characterId, page.PageIndex, skill.Slot, (int)skill.SkillId, skill.Level,
-                        [.. skill.ExtraValues], cancellationToken).ConfigureAwait(false);
+                        cancellationToken, SkillGroup.Duel, [.. skill.ExtraValues]).ConfigureAwait(false);
                 }
             }
 
@@ -62,12 +62,10 @@ internal sealed class PvpSkillProfileService(
     {
         if (await characters.FindOwnerAsync(characterId, cancellationToken).ConfigureAwait(false) != accountId)
             throw new InvalidDataException("PvP skill profile owner does not match the account.");
-        var pages = await skillDomain.ReadDuelPagesAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var pages = await skillFacts.ReadDuelPagesAsync(characterId, cancellationToken).ConfigureAwait(false);
         return new CharacterSkillsEntryState(
             pages,
-            [], new CharacterSkillPointBasisState(0, 0), [], null,
-            new CharacterSkillProtocolMirrorState(
-                ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+            [], new CharacterSkillPointBasisState(0, 0), [], null);
     }
 }
 

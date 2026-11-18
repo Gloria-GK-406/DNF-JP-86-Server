@@ -60,8 +60,9 @@ internal static class CharactersRegistration
         services.TryAddSingleton<IWeaknessDomainService, WeaknessDomainService>();
         services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         services.TryAddSingleton<ITutorialCompletionDomainService, TutorialCompletionDomainService>();
-        services.TryAddSingleton<CharacterSkillDomainService>();
-        services.TryAddSingleton<ICharacterSkillDomainService>(sp => sp.GetRequiredService<CharacterSkillDomainService>());
+        services.TryAddSingleton<CharacterSkillFactsReader>();
+        services.TryAddSingleton<CharacterSkillRefundService>();
+        services.TryAddSingleton<ICharacterSkillDomainStoreService, CharacterSkillDomainStoreService>();
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
         services.TryAddSingleton<ICharacterSkillResetRuleService, CharacterSkillResetRuleService>();
         services.TryAddSingleton<ICharacterAppearanceRuleService, CharacterAppearanceRuleService>();
