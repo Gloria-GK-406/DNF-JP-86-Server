@@ -29,17 +29,29 @@ internal sealed class CharacterSkillLearningDomainService(
             .SwapSlotsAsync(first, second, ct).ConfigureAwait(false);
     }
 
-    public async ValueTask<int?> SwitchAsync(SelectedSessionIdentity session, int expectedCurrent, int target, CancellationToken ct)
+    public ValueTask<int?> SwitchAsync(SelectedSessionIdentity session, int expectedCurrent, int target, CancellationToken ct) =>
+        SwitchCoreAsync(session, expectedCurrent, target, ct);
+
+    public ValueTask<int?> ToggleAsync(SelectedSessionIdentity session, int? expectedCurrent, CancellationToken ct) =>
+        SwitchCoreAsync(session, expectedCurrent, null, ct);
+
+    private async ValueTask<int?> SwitchCoreAsync(SelectedSessionIdentity session, int? expectedCurrent, int? target,
+        CancellationToken ct)
     {
         if (transactions.Current is null) throw new InvalidOperationException("Skill switching requires a transaction.");
-        if (target < 0 || !sessions.IsInWorld(session) || onlineCharacters.StandingOf(session) is null)
+        if (target is < 0 || !sessions.IsInWorld(session) || onlineCharacters.StandingOf(session) is null)
             return null;
         var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
         if (view is null || view.World.Channel.PvpSkillProfileApplies) return null;
         var builds = await state.BuildsAsync(session.CharacterId, ct).ConfigureAwait(false);
-        if (builds.Active.Value != expectedCurrent || !builds.IsUnlocked(new(target))) return null;
-        await state.ActivateAsync(session.CharacterId, new(target), ct).ConfigureAwait(false);
-        return target;
+        var current = builds.Active.Value;
+        if (expectedCurrent is { } expected && expected != current)
+            return null;
+        var next = target ?? (current is 0 or 1 ? 1 - current : -1);
+        if (next < 0 || !builds.IsUnlocked(new(next)))
+            return null;
+        await state.ActivateAsync(session.CharacterId, new(next), ct).ConfigureAwait(false);
+        return next;
     }
 
     public async ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session, int pageIndex,

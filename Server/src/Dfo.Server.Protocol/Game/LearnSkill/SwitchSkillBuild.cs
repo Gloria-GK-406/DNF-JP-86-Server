@@ -9,15 +9,20 @@ using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 namespace Dfo.Server.Protocol.Game.LearnSkill;
 
-public sealed record SwitchSkillBuildRequest(GameMessageMetadata Metadata, byte Current) : IClientNetworkMessage
+public sealed record SwitchSkillBuildRequest(GameMessageMetadata Metadata, byte? Current) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameSwitchSkillBuild;
 }
 internal sealed class SwitchSkillBuildDecoder : IGameMessageDecoder
 {
-    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        body.Length == 1 && body[0] <= 1 ? new SwitchSkillBuildRequest(metadata, body[0])
-        : throw new InvalidDataException("A21 skill build switch requires a current page 0 or 1.");
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) => body.Length switch
+    {
+        1 when body[0] <= 1 => new SwitchSkillBuildRequest(metadata, body[0]),
+        // The live A21 form has five bytes. The reference resolves the current page from storage
+        // for this form. The other bytes have no established meaning at this layer.
+        5 => new SwitchSkillBuildRequest(metadata, null),
+        _ => throw new InvalidDataException("Invalid A21 skill build switch body."),
+    };
 }
 public sealed record SwitchSkillBuildResponse(int? Active) : IGameCmdMessage
 {

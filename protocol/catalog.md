@@ -393,7 +393,7 @@ action1求婚、接受、拒绝与客户端超时已接入；action2婚礼预约
 
 ## 2026-11-18 A21 第二技能页状态（CurrentImplementation，待实机验收）
 
-[USERINFO](game/server-to-client/NOTI-0x0002.md) 子类型 0 的 64 字节尾部 `+61` 和子类型 1 使用同一技能页投影。包级测试验证锁定 `0xFF`、当前第 1 页 `0` 和当前第 2 页 `1`。
+[USERINFO](game/server-to-client/NOTI-0x0002.md) 子类型 0 的 64 字节尾部 `+61` 和子类型 1 使用同一技能页投影。包级测试验证锁定 `0xFF`、当前第 1 页 `0` 和当前第 2 页 `1`。A21 普通频道实测 [切页请求 0x0104](game/client-to-server/0x0104.md) 有 5 字节，服务端以已保存的当前页为准切换。
 
 ## 2026-10-14 职业外观与显示设置（CurrentImplementation，待实机验收）
 

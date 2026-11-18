@@ -91,6 +91,33 @@ public sealed class SkillBuildResetTests
     }
 
     [Fact]
+    public async Task Toggle_uses_the_saved_build_when_the_request_has_no_page()
+    {
+        await using var fixture = new LearningFixture();
+        await fixture.SeedAsync();
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await using var transaction = fixture.Scope.Begin();
+            var learning = fixture.Services.GetRequiredService<ICharacterSkillLearningDomainService>();
+            Assert.Null(await learning.ToggleAsync(fixture.Session, null, default));
+            await fixture.State.UnlockAsync(fixture.Session.CharacterId, new(1), default);
+            Assert.Equal(1, await learning.ToggleAsync(fixture.Session, null, default));
+            Assert.Null(await learning.ToggleAsync(fixture.Session, 0, default));
+            await transaction.CommitAsync(default);
+        });
+
+        Assert.Equal(new SkillBuildId(1), (await fixture.State.BuildsAsync(fixture.Session.CharacterId, default)).Active);
+        await TestGameplay.RunAsync(fixture.Services, async () =>
+        {
+            await using var transaction = fixture.Scope.Begin();
+            var learning = fixture.Services.GetRequiredService<ICharacterSkillLearningDomainService>();
+            Assert.Equal(0, await learning.ToggleAsync(fixture.Session, null, default));
+            await transaction.CommitAsync(default);
+        });
+        Assert.Equal(new SkillBuildId(0), (await fixture.State.BuildsAsync(fixture.Session.CharacterId, default)).Active);
+    }
+
+    [Fact]
     public async Task Refund_requires_water_and_does_not_change_state_without_it()
     {
         await using var f = new LearningFixture(); await f.SeedAsync();
