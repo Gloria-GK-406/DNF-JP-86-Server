@@ -96,14 +96,14 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             StackablesIndex(archive);
 
             var rule = stackables.TryGetValue(itemId, out var entry)
-                ? Read(archive, "stackable/" + entry.RelativePath)
+                ? Read(archive, "stackable/" + entry.RelativePath, itemId)
                 : null;
             cache[itemId] = rule;
             return ValueTask.FromResult(rule);
         }
     }
 
-    private static ItemUseRule Read(PvfArchive archive, string path)
+    private static ItemUseRule Read(PvfArchive archive, string path, int itemId)
     {
         var reader = archive.OpenScript(path);
 
@@ -129,6 +129,11 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         if (expBonusRate > 0 && effectDuration <= 0)
             unreadable = true;
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
+        // The verified converter lists this unsupported job separately from its playable jobs.
+        // Drop exactly that entry; the remaining archive declarations still gate the converter.
+        if (itemId == Dfo.Server.Data.Inventory.AvatarCompoundPlusInput.ConverterItemId
+            && action == "[absolute bind cube]" && jobText is not null)
+            jobText = jobText.Where(job => job != "[creator mage]").ToArray();
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
         // Random fatigue recovery already requires town presence. The assault exclusion grants no place.
         if (action == "[random recovery fatigue]" && placeText is not null)

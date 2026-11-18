@@ -2,7 +2,7 @@
 
 ## 2026-11-18 梦幻装扮合成器 10007247（#367、#372，A21 实机入站采样）
 
-右键打开合成界面，实机确认后发送 [CMD0447](game/client-to-server/0x0447.md)，包体 145 字节。确认前的入站记录未出现单独的道具使用或合成请求。任务隔离服缺少该请求的解码器，客户端等待结果，合成器与 8 件材料均保留。响应、合成器定位字段和其他模板待取证。
+右键打开合成界面，实机确认后发送 [CMD0447](game/client-to-server/0x0447.md)，包体 145 字节，合成器槽位在偏移 14。服务端实现 `10007247` 的原子扣料和定向产出，按 A21 读取长度发送 55 字节成功包或两字节拒绝包。实机请求样本已覆盖服务端成功、拒绝和重放。其他合成器模板待取证。
 
 ## 2026-11-14 全区系统广播 NOTI 0x0056 子类型取证（ClientStatic + ClientVerified）
 
@@ -1283,6 +1283,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0405` | `CapsuleGiveDecoder` | 仅证明 decoder 已注册 | [0x0405](game/client-to-server/0x0405.md) |
 | `0x01` | `0x0406` | `CapsuleTakeDecoder` | 仅证明 decoder 已注册 | [0x0406](game/client-to-server/0x0406.md) |
 | `0x01` | `0x0441` | `WeeklyAttendanceDecoder` | 仅证明 decoder 已注册 | [0x0441](game/client-to-server/0x0441.md) |
+| `0x01` | `0x0447` | `AvatarCompoundPlusDecoder` | 仅证明 decoder 已注册 | [0x0447](game/client-to-server/0x0447.md) |
 | `0x01` | `0x0450` | `MagicBoxBatchOpeningDecoder` | 仅证明 decoder 已注册 | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` | `0x045C` | `FrameLagPerDungeonDecoder` | 仅证明 decoder 已注册 | [0x045C](game/client-to-server/0x045C.md) |
 | `0x01` | `0x04D7` | `LogConnectProcessDecoder` | 仅证明 decoder 已注册 | [0x04D7](game/client-to-server/0x04D7.md) |
@@ -1442,6 +1443,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0405` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0405](game/client-to-server/0x0405.md) |
 | `0x01` CMD | `0x0406` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0406](game/client-to-server/0x0406.md) |
 | `0x01` CMD | `0x0441` | `WeeklyAttendanceResponse` | 仅证明 encoder 可产生该 identity | [0x0441](game/client-to-server/0x0441.md) |
+| `0x01` CMD | `0x0447` | `AvatarCompoundPlusResponse` | 仅证明 encoder 可产生该 identity | [0x0447](game/client-to-server/0x0447.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
 | `0x01` CMD | `0x04E6` | `JoustResponse` | 仅证明 encoder 可产生该 identity | [0x04E6](game/client-to-server/0x04E6.md) |
@@ -1694,6 +1696,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 |---|---|---|---|---|
 | NOTI | 0x042D | WeeklyAttendanceStateMessage | ClientStatic 450B及偏移；CurrentImplementation 状态刷新，未ClientVerified | [042D](game/server-to-client/NOTI-0x042D.md) |
 | CMD | 0x0441 | WeeklyAttendanceRequest / WeeklyAttendanceResponse | ClientStatic 请求14B opaque / 响应4B；CurrentImplementation 原子奖励，未ClientVerified | [0441](game/client-to-server/0x0441.md) |
+| CMD | 0x0447 | AvatarCompoundPlusRequest / AvatarCompoundPlusResponse | WireCaptured 请求145B；ClientStatic 响应布局；CurrentImplementation 覆盖 10007247 | [0447](game/client-to-server/0x0447.md) |
 
 ## 2026-10-10 配额职责与镜像次数同步
 

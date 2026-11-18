@@ -18,4 +18,6 @@ public interface IAvatarCompoundDefinitionSource
 {
     ValueTask<AvatarCompoundDefinition?> ForJobAsync(byte job, CancellationToken ct);
     ValueTask<AvatarCompoundItemDefinition?> ItemAsync(int itemId, CancellationToken ct);
+    ValueTask<IReadOnlyDictionary<string, int>?> PlusTargetsAsync(QuestJobRequirement job, CancellationToken ct) =>
+        ValueTask.FromResult<IReadOnlyDictionary<string, int>?>(null);
 }

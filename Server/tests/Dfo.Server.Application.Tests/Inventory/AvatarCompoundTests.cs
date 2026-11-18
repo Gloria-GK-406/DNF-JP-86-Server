@@ -100,6 +100,47 @@ public sealed class AvatarCompoundTests
                 yield return frame[15..];
         }
     }
+    [SkippableFact]
+    public async Task Bind_plus_uses_the_captured_a21_layout_and_only_settles_a_valid_eight_avatar_request()
+    {
+        using var f = Fixture();
+        int[] materials = [101550539, 101550540, 101550541, 101550542, 101550555, 101550556, 101550557, 101550558];
+        await f.Seed(3, 10007247, 2);
+        for (var index = 0; index < materials.Length; index++)
+            await f.SeedCore(index, StackableItemCore.Create(8, materials[index], 12345 + index), InventoryContainerType.Avatar);
+        var body = Convert.FromHexString(
+            "FFFFFFFF40F71A0040F71A0074A5030000F6890D06010008000000CB890D060100CC890D060200CD890D060300CE890D060400DB890D060500DC890D060600DD890D060700DE890D0600000044F71A00D8220C770C2F243E5CF71A0039F66E01934485CF04000000320000000058CC3A5CF71A000032842E60F71A00708FEE00781AAD415CF71A00010000000CF81A00DA");
+        var decoder = new AvatarCompoundPlusDecoder();
+        var invalid = (byte[])body.Clone();
+        invalid[14] = 4;
+        await EffectRequestTransport.SendRaw(f, new(1, 0x447, 0, 7), invalid);
+        Assert.Equal(new byte[] { 0, 0x16 }, Assert.Single(Bodies(f)));
+        Assert.Equal(2, f.Count(10007247));
+        Assert.All(materials, item => Assert.Equal(1, f.Count(item)));
+        Assert.Equal(0, f.Count(101550582));
+
+        var request = (AvatarCompoundPlusRequest)decoder.Decode(new(1, 0x447, 0, 8), body);
+        Assert.Equal(new BusinessSlot(BusinessInventorySpace.QuickSlot, 0), request.Input!.Material);
+        Assert.Equal(materials, request.Input.Ingredients.Select(item => item.ItemId));
+        await EffectRequestTransport.SendRaw(f, request.Metadata, body);
+        var encoded = Bodies(f).ToArray();
+        Assert.Equal(4, encoded.Length);
+        var success = encoded[1];
+        Assert.Equal(55, success.Length);
+        Assert.Equal(1, success[0]);
+        Assert.Equal(101550582, BinaryPrimitives.ReadInt32LittleEndian(success.AsSpan(7)));
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(success.AsSpan(11)));
+        for (var index = 0; index < materials.Length; index++)
+            Assert.Equal(index, BinaryPrimitives.ReadInt16LittleEndian(success.AsSpan(15 + 2 * index)));
+        Assert.Equal(1, f.Count(10007247));
+        Assert.All(materials, item => Assert.Equal(0, f.Count(item)));
+        Assert.Equal(1, f.Count(101550582));
+
+        await EffectRequestTransport.SendRaw(f, request.Metadata, body);
+        Assert.Equal(1, f.Count(10007247));
+        Assert.Equal(1, f.Count(101550582));
+    }
+
     [SkippableTheory]
     [InlineData(false)]
     [InlineData(true)]

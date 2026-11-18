@@ -4,6 +4,7 @@ using Dfo.Pvf.Schema;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Content;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -18,6 +19,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
     private readonly Dictionary<byte, AvatarCompoundDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? jobPaths;
     private readonly Dictionary<int, AvatarCompoundItemDefinition?> itemCache = [];
+    private IReadOnlyDictionary<QuestJobRequirement, IReadOnlyDictionary<string, int>>? plusTargets;
 
     public string Name => "avatar-compound";
 
@@ -52,6 +54,68 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
             cache[job] = found;
             return ValueTask.FromResult(found);
         }
+    }
+
+    public ValueTask<IReadOnlyDictionary<string, int>?> PlusTargetsAsync(QuestJobRequirement job, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            plusTargets ??= ReadPlusTargets();
+            return ValueTask.FromResult(plusTargets.GetValueOrDefault(job));
+        }
+    }
+
+    private Dictionary<QuestJobRequirement, IReadOnlyDictionary<string, int>> ReadPlusTargets()
+    {
+        var archive = provider.Archive;
+        var targets = new Dictionary<QuestJobRequirement, IReadOnlyDictionary<string, int>>();
+        var stackables = PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
+        if (!stackables.TryGetValue(AvatarCompoundPlusInput.ConverterItemId, out var path))
+            return targets;
+        var action = PvfDocument.TryOpen(archive, path, PvfPreamble.Ignore)?.AtRoot()
+            .Read(PvfField.Tokens("[action type]", optional: true));
+        if (action is not { Count: 6 } || !action[0].IsString
+            || archive.ResolveString(action[0].Value) != "[absolute bind cube]"
+            || action.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32)
+            || action[2].Value != AvatarCompoundPlusInput.IngredientCount || action[3].Value != 1
+            || action[4].Value != 0 || action[5].Value != 0)
+            return targets;
+
+        var index = archive.FindFile("etc/chn_absolute_bind_cube.etc");
+        if (index < 0 || !archive.GetEntry(index).IsScript)
+            return targets;
+        var reader = archive.OpenScript(index);
+        while (reader.Read(out var token))
+        {
+            if (!Is(token, "[absolute bind cube]") || !reader.Read(out var key)
+                || key.Kind != PvfTokenKind.Int32 || key.Value != action[1].Value)
+                continue;
+            if (!reader.Read(out var kind) || !Is(kind, "[absolute bind plus rare]"))
+                return [];
+            while (reader.Read(out var job) && !Is(job, "[/absolute bind plus rare]") && !Is(job, "[/absolute bind cube]"))
+            {
+                if (!job.IsString)
+                    return [];
+                var family = ArchiveJobFamilyTokens.Resolve(archive.ResolveString(job.Value));
+                var parts = new Dictionary<string, int>();
+                for (var i = 0; i < Parts.Length; i++)
+                {
+                    if (!reader.Read(out var part) || !part.IsString || !reader.Read(out var id)
+                        || id.Kind != PvfTokenKind.Int32 || id.Value <= 0)
+                        return [];
+                    var equipment = Array.Find(Parts, row => row.Pool == archive.ResolveString(part.Value)).Equipment;
+                    if (equipment is null || !parts.TryAdd(equipment, id.Value))
+                        return [];
+                }
+                if (family is not (QuestJobRequirement.Unrecognized or QuestJobRequirement.Any) && !targets.TryAdd(family, parts))
+                    return [];
+            }
+            return targets;
+        }
+        return targets;
+
+        bool Is(PvfToken token, string value) => token.IsString && archive.ResolveString(token.Value) == value;
     }
 
     private AvatarCompoundDefinition? Parse(string path)
