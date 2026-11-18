@@ -59,7 +59,6 @@ internal static class MarriageProposalRegistration
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointDecoder>(ClientMessageType.GameWeddingLovePoint);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointRequest, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingLovePointCommand>(ClientMessageType.GameWeddingLovePoint);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointAckEncoder>();
-        services.AddGameNotiMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification, Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotificationEncoder>();
         services.AddGameCmdMessageDecoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerDecoder>(ClientMessageType.GameWeddingPartnerQuery);
         services.RegisterProtocolMessageHandler<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerHandler, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerQuery, Dfo.Server.Protocol.Game.MarriageProposal.GameWeddingPartnerCommand>(ClientMessageType.GameWeddingPartnerQuery);
         services.AddGameCmdMessageEncoder<Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerAck, Dfo.Server.Protocol.Game.MarriageProposal.WeddingPartnerEncoder>();

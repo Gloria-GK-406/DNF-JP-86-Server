@@ -33,17 +33,6 @@ internal sealed class WeddingLovePointAckEncoder : GameCmdMessageEncoder<Wedding
         return OnePayload(m, b);
     }
 }
-internal sealed record WeddingLovePointNotification(int Character, int Points) : IGameNotiMessage
-{ public ServerMessageType MessageType => ServerMessageType.GameWeddingLovePointNotification; }
-internal sealed class WeddingLovePointNotificationEncoder : GameNotiMessageEncoder<WeddingLovePointNotification>
-{
-    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(WeddingLovePointNotification m)
-    {
-        var b = new byte[8]; BinaryPrimitives.WriteInt32LittleEndian(b, m.Character); BinaryPrimitives.WriteInt32LittleEndian(b.AsSpan(4), m.Points);
-        return OnePayload(m, b);
-    }
-}
-
 internal sealed class WeddingLovePointHandler(ICommandBus commands) : ClientMessageHandler<WeddingLovePointRequest>, Dfo.Server.Application.Dispatching.IProtocolCommandMessageHandler<GameWeddingLovePointCommand>
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, WeddingLovePointRequest message, CancellationToken ct) =>

@@ -193,6 +193,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddTournamentSlice();
         services.AddMarriageProposalSlice();
         services.AddMarriageHousingSlice();
+        services.AddGameNotiMessageEncoder<WeddingLovePointNotification, WeddingLovePointNotificationEncoder>();
         services.AddRentalSlice();
         services.AddUseStackableSlice();
         services.AddCollectionBoxSlice();

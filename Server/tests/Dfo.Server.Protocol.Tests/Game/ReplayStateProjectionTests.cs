@@ -52,8 +52,13 @@ public sealed class ReplayStateProjectionTests
     {
         var state = State(ReplayProjectionNeeds.MarriageLovePoints) with { LovePoints = 23 };
         var messages = ReplayStateProjectionDelivery.Create(state);
-        var message = Assert.IsType<Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification>(Assert.Single(messages));
+        var message = Assert.IsType<WeddingLovePointNotification>(Assert.Single(messages));
         Assert.Equal(state.Session.CharacterId.Value, message.Character); Assert.Equal(23, message.Points);
+        var frame = Encode(message);
+        Assert.Equal(0, frame[0]);
+        Assert.Equal(0x03D3, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal(state.Session.CharacterId.Value, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(15)));
+        Assert.Equal(23, BinaryPrimitives.ReadInt32LittleEndian(frame.AsSpan(19)));
         Assert.False(ReplayProjectionNeeds.All.HasFlag(ReplayProjectionNeeds.MarriageLovePoints));
         Assert.Throws<InvalidDataException>(() => ReplayStateProjectionDelivery.Create(state with { LovePoints = null }));
     }

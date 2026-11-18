@@ -159,7 +159,7 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
             messages.Add(new EpicBookStateMessage(0, state.EpicPieces.IsDefault ? throw Missing("Epic book") : state.EpicPieces));
         if (needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules)) messages.Add(new Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage(state.Capsules ?? throw Missing("Couple capsules")));
         if (needs.HasFlag(ReplayProjectionNeeds.MarriageLovePoints))
-            messages.Add(new Dfo.Server.Protocol.Game.MarriageProposal.WeddingLovePointNotification(state.Session.CharacterId.Value, state.LovePoints ?? throw Missing("Love points")));
+            messages.Add(new WeddingLovePointNotification(state.Session.CharacterId.Value, state.LovePoints ?? throw Missing("Love points")));
         if (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || needs.HasFlag(ReplayProjectionNeeds.CharacterAppearance))
         {
             if (state.Housing is { } housing)

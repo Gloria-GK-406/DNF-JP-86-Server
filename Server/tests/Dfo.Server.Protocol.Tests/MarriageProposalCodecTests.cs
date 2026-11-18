@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Effects;
 using System.Buffers.Binary;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.MarriageProposal;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Marriage;
