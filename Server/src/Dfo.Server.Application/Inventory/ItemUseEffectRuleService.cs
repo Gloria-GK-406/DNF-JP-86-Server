@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
@@ -16,7 +17,8 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : 
         if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]" or "[repair coupon]")
             rule = rule with { HasUnreadableDeclaration = true };
         // These tickets have dedicated settlement; ordinary use would only spend them.
-        if (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId && rule is not null)
+        if (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId or AbyssQuestClearTicketRuleService.ItemId
+            && rule is not null)
             rule = rule with { HasUnreadableDeclaration = true };
         return rule;
     }

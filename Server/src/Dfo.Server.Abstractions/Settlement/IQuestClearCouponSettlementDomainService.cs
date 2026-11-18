@@ -10,4 +10,6 @@ public interface IQuestClearCouponSettlementDomainService
 {
     ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session, BusinessSlot sourceSlot,
         DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
+    ValueTask<QuestClearCouponResult> UseAbyssTicketAsync(SelectedSessionIdentity session, BusinessSlot sourceSlot,
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

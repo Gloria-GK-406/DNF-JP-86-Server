@@ -27,12 +27,14 @@ public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short
 {
     internal const uint LuckyStarAction = 105;
     internal const uint AuraSkinSlotAction = 123;
+    internal const uint AbyssQuestClearAction = 126;
 
     public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.ItemUsage | (Action switch
     {
         58 => ReplayProjectionNeeds.Fatigue,
         LuckyStarAction => ReplayProjectionNeeds.Rental,
         AuraSkinSlotAction => ReplayProjectionNeeds.CharacterAppearance,
+        AbyssQuestClearAction => ReplayProjectionNeeds.Quests,
         _ => ReplayProjectionNeeds.None,
     });
     public ClientMessageType MessageType => ClientMessageType.GameQuestClearCoupon;

@@ -72,6 +72,7 @@ public sealed class GameQuestClearCouponCommandHandler(
             {
                 QuestClearCouponRequest.LuckyStarAction => Branch.LuckyStar,
                 QuestClearCouponRequest.AuraSkinSlotAction => Branch.AuraSkinSlot,
+                QuestClearCouponRequest.AbyssQuestClearAction => Branch.AbyssTicket,
                 _ => source is not null && message.Action is 99 or 101 && await lostLandItems.SupportsAsync(source.ItemId, ct).ConfigureAwait(false) ? Branch.LostLand
                     : source is not null && entryAllowances.Supports(source.ItemId) ? Branch.Entry
                     : message.IsFatiguePotion ? Branch.Fatigue : Branch.Coupon,
@@ -120,7 +121,10 @@ public sealed class GameQuestClearCouponCommandHandler(
                         return new ActionOutcome(opened.Inventory
                             ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Aura skin slot is already open."), null, null);
                     }
-                    var result = await coupons.UseAsync(session, slot, clock.GetUtcNow(), footprint, token).ConfigureAwait(false);
+                    var at = clock.GetUtcNow();
+                    var result = branch == Branch.AbyssTicket
+                        ? await coupons.UseAbyssTicketAsync(session, slot, at, footprint, token).ConfigureAwait(false)
+                        : await coupons.UseAsync(session, slot, at, footprint, token).ConfigureAwait(false);
                     return new ActionOutcome(result.Inventory, result, null);
                 }
                 catch (Exception failure) when (CanRefuse(failure))
@@ -165,7 +169,8 @@ public sealed class GameQuestClearCouponCommandHandler(
             else if (actionFailure is OpeningRejectedException rejected)
                 logger.LogInformation("Quest clear coupon rejected character={CharacterId} slot={Slot}: {Reason}", session.CharacterId, message.SourceSlot, rejected.Reason);
             else logger.LogError(actionFailure, "Quest clear coupon failed character={CharacterId} slot={Slot}", session.CharacterId, message.SourceSlot);
-            var error = branch == Branch.AuraSkinSlot && actionFailure is OpeningRejectedException { Reason: OpeningRejection.MissingMaterial }
+            var error = branch is Branch.AuraSkinSlot or Branch.AbyssTicket
+                && actionFailure is OpeningRejectedException { Reason: OpeningRejection.MissingMaterial }
                 ? QuestClearCouponPayloadCodec.MissingMaterial : QuestClearCouponPayloadCodec.SilentFailure;
             await RefuseAsync(connection, message, branch == Branch.Coupon, ct, error).ConfigureAwait(false);
             if (branch == Branch.Fatigue && actionFailure is OpeningRejectedException)
@@ -281,7 +286,7 @@ public sealed class GameQuestClearCouponCommandHandler(
         }
         await projections.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new OpeningCompleted(result.Inventory,
-                [new QuestClearCouponResponse(true, message.SourceSlot, message.Container)],
+                [new QuestClearCouponResponse(true, message.SourceSlot, message.Container) { Action = message.Action }],
                 FollowingMessages: following), ct).ConfigureAwait(false);
     }
 
@@ -291,6 +296,6 @@ public sealed class GameQuestClearCouponCommandHandler(
             sanitize && request.SourceSlot < 0 ? (short)0 : request.SourceSlot, sanitize && request.Container != 0 ? (byte)0 : request.Container)
         { Action = request.Action, ErrorCode = error }, ct);
     private static bool CanRefuse(Exception failure) => failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure);
-    private enum Branch { Entry, Fatigue, Coupon, LostLand, LuckyStar, AuraSkinSlot }
+    private enum Branch { Entry, Fatigue, Coupon, LostLand, LuckyStar, AuraSkinSlot, AbyssTicket }
     private sealed record ActionOutcome(OpeningInventoryReceipt? Inventory, QuestClearCouponResult? Coupon, Exception? Failure, DungeonRoomVisit? Movement = null);
 }

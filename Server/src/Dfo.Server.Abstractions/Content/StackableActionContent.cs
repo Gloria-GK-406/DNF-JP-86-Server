@@ -9,7 +9,10 @@ public sealed record StackableActionDefinition(
     public int EntryIncrease { get; init; }
     public int LevelIncrease { get; init; } = 1;
     public bool BlockedInHardcore { get; init; }
+    public ListedQuestClearDefinition? ListedQuestClear { get; init; }
 }
+
+public sealed record ListedQuestClearDefinition(IReadOnlyList<int> QuestIds, int MaterialItemId, int MaterialCount);
 
 public interface IStackableActionDefinitionSource
 {
