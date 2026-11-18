@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Application.Quests;
@@ -14,7 +15,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
     IQuestClearCouponRuleService rules, ISpecialConsumableEffectPlanRuleService plans,
     AbyssQuestClearTicketRuleService abyssTickets, IQuestFactsDomainService questFacts,
     IItemPlacementRuleService placements, ICharacterBusinessInventoryDomainService bags,
-    IOpeningEffectPlanRuleService openingPlans) : IQuestClearCouponSettlementDomainService
+    IOpeningEffectPlanRuleService openingPlans, ICharacterConditionTable conditions) : IQuestClearCouponSettlementDomainService
 {
     public ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session,
         BusinessSlot sourceSlot, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct) =>
@@ -47,7 +48,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         }
         else
         {
-            var selected = await SelectStoryQuestsAsync(session, source.ItemId, state, now, ct).ConfigureAwait(false);
+            var selected = await SelectGradeQuestsAsync(session, source.ItemId, state, now, ct).ConfigureAwait(false);
             if (selected is null || selected.Count == 0)
                 throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "No eligible quests remain for this coupon.");
             plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
@@ -56,7 +57,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         return new(result.Inventory, plan.Completed);
     }
 
-    private async ValueTask<IReadOnlyList<int>> SelectStoryQuestsAsync(SelectedSessionIdentity session, int itemId,
+    private async ValueTask<IReadOnlyList<int>> SelectGradeQuestsAsync(SelectedSessionIdentity session, int itemId,
         QuestStateFacts state, DateTimeOffset now, CancellationToken ct)
     {
         var character = characters.Get(session.CharacterId);
@@ -64,6 +65,9 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         if (identity is null || progress is null || identity.CharacterId != session.CharacterId)
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Character identity or progress unavailable.");
+        if (itemId == QuestClearCouponRuleService.SideCouponItemId
+            && await conditions.FindAsync(session.CharacterId, ct).ConfigureAwait(false) is not { HardcoreMode: 0 })
+            throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Side quest coupon requires a non-hardcore character.");
         var cleared = state.Cleared.Where(x => x.Mark != 0).Select(x => new ClearedQuest(x.QuestId, x.Mark)).ToArray();
         return await rules.SelectAsync(itemId, progress.Level, identity.Job, identity.GrowType, cleared, now, ct).ConfigureAwait(false);
     }

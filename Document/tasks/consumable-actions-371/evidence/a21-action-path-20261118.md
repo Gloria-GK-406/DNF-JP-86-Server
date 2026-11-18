@@ -155,3 +155,17 @@ Application 定向回归 90 项、Protocol 定向回归 47 项通过。任务券
 第二张截图收录于同目录 `a21-371-incomplete-side-quests.png`，SHA-256 `56eac775914922db39037f6e172a04152a015e9eae9c6eebc236de034bd8b92b`。普通外传也有准入任务链，例如暗精灵遗迹第 2 步 `2656` 是现有副本入场条件。两张图共核对 11 条 UI 分类样本。
 
 **UpstreamReference / High（候选任务类型）**。参照服的 `QuestCompletionTicketService` 将这套券归到 `[side]`。现行 PVF 的 `[side]` 任务同时包含物品和永久属性奖励，例如 `13513` 声明 `[special reward status]`。A21 的目标筛选及用券奖励仍待取证。同标签模板有各自等级、文案和奖励限制，本轮协议实帧只覆盖 `10157196`。
+
+### 外传范围、奖励与实现
+
+**UpstreamReference / Confirmed（限参照服）**。在 `ServerS4A21/Server/DfoServer/Game/Quests/QuestCompletionTicketService.cs`，`EnumerateGradeQuestIds` 按 `[side]`、任务最低等级筛选，排除 `[play only]`。它遍历任务目录，覆盖尚未接取的后续步骤，且逐条调用 `MarkQuestClearedWithoutReward`，不走普通任务的奖励或特殊奖励结算。该筛法还会选中符合等级的个性技能任务，如 `13511 → 13512 → 13513`。参照服的 `QuestCompletionTicketSelfTest.VerifyGradeTicket` 也声明了无 FinishResult、无成就奖励的预期。
+
+**CurrentImplementation / Confirmed**。本仓的 `CharacterEntryStateDomainService.LoadAsync` 会将已完成且有 `[special reward status]` 的任务 ID 加入 USERINFO。因为个性技能链的原版兑付行为尚未确认，`10157196` 暂保留这些任务，以及通过 PVF 前置关系与特殊奖励任务相连的外传步骤。实际接入普通 `[side]`，按角色的等级下限、职业和成长类型筛选，排除 `[play only]`，现有完成标记保留。普通外传后续步骤只要符合相同条件，就会在同一张券内一并完成。范围以券本身为界，其他种类任务的前置不纳入。
+
+使用限于真人实帧已确认的 `10157196`、动作 `77` 且符合 PVF 等级 5～86 的普通角色。用券复用原子任务结算，扣券与写入完成标记在同一笔事务，奖励仅为完成状态与由其解锁的普通内容，无金币、经验或物品结算。无合格任务或通过 `0x002C` 请求时保留券。其他同标签券，以及 A21 原版对个性技能、永久属性和普通奖励的兑付，继续保留为待确认。
+
+真实 dev PVF 的 Application 定向回归 92 项、Protocol 定向回归 47 项通过，覆盖实际请求、`2655 → 2656`、个性技能链、主线范围、硬核模式限制、使用失败、重放和奖励余额。额外运行的暗精灵遗迹测试有 7 项失败，与修改前提交 `6ac4ebbe3` 用同一 PVF 复跑的失败用例和错误一致。
+
+**ClientVerified（限本服实现）**。Lv.86 的 `pv` 在原版 A21 Client-10 用券后，用户确认普通外传消失，个性技能相关外传仍在。客户端请求 seq `27`，服务端结算 79 条任务。对换服前备份与 `14:59:48 +08:00` 的隔离库，唯一背包数量变化是券 `1 → 0`，79 条标记从未完成变为已完成。暗精灵遗迹 `2655～2660` 六步和亡者峡谷 `62 → 63` 均在其中。PVF 查证的 33 条个性技能外传标记均未改变，已接主线 `1016`、经验和金币一致。
+
+入站与结算日志收录于 `ClientEvidence/traces/20261118-371-A21-10157196-verified/a21-371-10157196-verified-20261118.log`，SHA-256 `2cda6c14da1bce5cb35f8e300ff12c69454259832927760e25ca755eccf90be1`。原版 A21 服务端的个性技能及奖励口径、S→C 原始 ACK 和用券后的真实副本入场仍待确认。

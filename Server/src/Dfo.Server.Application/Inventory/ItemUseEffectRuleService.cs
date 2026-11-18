@@ -18,6 +18,7 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : 
             rule = rule with { HasUnreadableDeclaration = true };
         // These tickets have dedicated settlement; ordinary use would only spend them.
         if (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId or AbyssQuestClearTicketRuleService.ItemId
+            or QuestClearCouponRuleService.SideCouponItemId
             && rule is not null)
             rule = rule with { HasUnreadableDeclaration = true };
         return rule;

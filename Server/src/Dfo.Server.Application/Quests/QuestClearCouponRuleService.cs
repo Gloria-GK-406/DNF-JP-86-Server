@@ -5,13 +5,14 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Quests;
 
-/// <summary>Catch-up policy for the verified no-reward story coupon, not an official-server algorithm.</summary>
+/// <summary>Quest catch-up rules for the supported story and side quest coupons.</summary>
 internal sealed class QuestClearCouponRuleService(
     IStackableActionDefinitionSource items, IQuestContentRuleService quests) : IQuestClearCouponRuleService
 {
     private const int StoryCoupon = 10_006_007;
+    internal const int SideCouponItemId = 10_157_196;
 
-    public bool IsCoupon(int itemId) => itemId == StoryCoupon;
+    public bool IsCoupon(int itemId) => itemId is StoryCoupon or SideCouponItemId;
 
     public async ValueTask<IReadOnlyList<int>> SelectAsync(int itemId, byte level, byte job,
         byte growType, IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now, CancellationToken cancellationToken)
@@ -23,21 +24,26 @@ internal sealed class QuestClearCouponRuleService(
         if (level < Math.Max(1, item.MinimumLevel) || level > item.MaximumLevel
             || item.ExpiresAtUnixSeconds != 0 && now.ToUnixTimeSeconds() >= item.ExpiresAtUnixSeconds)
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Coupon level or expiration limit.");
-        return Select(await quests.AllAsync(cancellationToken).ConfigureAwait(false), level, job, growType, cleared);
+        var grade = itemId == SideCouponItemId ? QuestGrade.Side : QuestGrade.Epic;
+        return Select(await quests.AllAsync(cancellationToken).ConfigureAwait(false), level, job, growType, cleared, grade);
     }
 
     internal static IReadOnlyList<int> Select(IReadOnlyList<QuestDefinition> definitions,
-        byte level, byte job, byte growType, IReadOnlyList<ClearedQuest> cleared)
+        byte level, byte job, byte growType, IReadOnlyList<ClearedQuest> cleared, QuestGrade grade = QuestGrade.Epic)
     {
         var completed = cleared.Where(q => q.Mark != 0).Select(q => q.QuestId).ToHashSet();
         var family = CharacterJobFamilies.Resolve(job);
-        // A catch-up coupon completes eligible stories directly, not by accepting each quest.
-        // Dialogue choices and prerequisite branches must not leave old stories behind.
+        var side = grade == QuestGrade.Side;
+        var reserved = side ? SideQuestIdsInSpecialRewardChains(definitions) : [];
+        // Grade tickets catch up all qualifying stages in one pass, including stages with
+        // prerequisites inside that grade. Quest logs still handle ordinary acceptance separately.
         return definitions.Where(Eligible).Select(q => q.QuestId).Distinct().Order().ToArray();
 
         bool Eligible(QuestDefinition quest) => quest.QuestId is > 0 and < 30_000
             && !completed.Contains(quest.QuestId)
-            && quest.Grade == QuestGrade.Epic
+            && quest.Grade == grade
+            && (!side || !reserved.Contains(quest.QuestId)
+                && !quest.ObjectiveTypeCode.Equals("play only", StringComparison.OrdinalIgnoreCase))
             && quest.RequiredLevel is { Minimum: >= 0 } range && range.Minimum <= level
             // Old offer-level ceilings do not exclude historical stories.
             && range.Maximum >= range.Minimum
@@ -46,5 +52,31 @@ internal sealed class QuestClearCouponRuleService(
             && (quest.TargetCharacterRestriction is null || quest.TargetCharacterRestriction.IsValid
                 && quest.TargetCharacterRestriction.JobFamilies.Contains(family))
             && (quest.GrowTypeRequirement is null || quest.GrowTypeRequirement == growType);
+    }
+
+    private static HashSet<int> SideQuestIdsInSpecialRewardChains(IReadOnlyList<QuestDefinition> definitions)
+    {
+        var sideQuests = definitions.Where(quest => quest.Grade == QuestGrade.Side).ToArray();
+        var sideIds = sideQuests.Select(quest => quest.QuestId).ToHashSet();
+        var prerequisites = (from quest in sideQuests
+            from requirementGroup in quest.CompletedQuestPrerequisiteGroups
+            from prerequisite in requirementGroup
+            where sideIds.Contains(prerequisite)
+            select (Quest: quest.QuestId, Related: prerequisite)).ToArray();
+        var links = prerequisites.Concat(prerequisites.Select(link => (Quest: link.Related, Related: link.Quest)))
+            .ToLookup(link => link.Quest, link => link.Related);
+
+        // A clear flag for a permanent-stat quest feeds character entry. Preserve the whole
+        // side quest chain until the coupon's special reward behavior is established.
+        var reserved = sideQuests.Where(quest => quest.HasSpecialRewardStatus
+                || quest.Rewards.Any(reward => reward.Kind != QuestRewardKind.Item))
+            .Select(quest => quest.QuestId).ToHashSet();
+        var pending = new Queue<int>(reserved);
+        while (pending.TryDequeue(out var questId))
+        {
+            foreach (var related in links[questId])
+                if (reserved.Add(related)) pending.Enqueue(related);
+        }
+        return reserved;
     }
 }

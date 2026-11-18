@@ -11,7 +11,7 @@ public sealed record QuestClearCouponResult(
 /// <summary>Selects eligible quests from content and current character facts.</summary>
 public interface IQuestClearCouponRuleService
 {
-    /// <summary>Whether the item is the one coupon grade whose quest-clear policy is supported.</summary>
+    /// <summary>Whether the item has a supported grade-based quest-clear policy.</summary>
     bool IsCoupon(int itemId);
 
     ValueTask<IReadOnlyList<int>> SelectAsync(

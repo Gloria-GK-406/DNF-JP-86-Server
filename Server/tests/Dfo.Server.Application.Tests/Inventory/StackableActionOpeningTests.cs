@@ -16,9 +16,76 @@ public sealed class StackableActionOpeningTests
     private const int AuraMaterial = 10157157;
     private const int AbyssTicket = 10005122;
     private const int AbyssCoin = 10005117;
+    private const int SideTicket = 10157196;
     private static readonly byte[] LuckyStarRequest = Convert.FromHexString("03000000000000690000000000000000000000");
     private static readonly byte[] AuraTicketRequest = Convert.FromHexString("040000000000007B0000000000000000000000");
     private static readonly byte[] AbyssTicketRequest = Convert.FromHexString("080000000000007E0000000000000000000000");
+    private static readonly byte[] SideTicketRequest = Convert.FromHexString("030000000000004D0000000000000000000000");
+
+    [PvfFact]
+    public async Task Captured_side_ticket_catches_up_ordinary_chains_and_preserves_individual_skill_quests()
+    {
+        using var shop = CreateQuestFixture();
+        var host = shop.Host;
+        host.SetLevel(86);
+        host.Sql("INSERT INTO character_active_quests VALUES(1,0,2655,0),(1,1,13511,0),(1,2,1016,0);");
+        await host.Seed(3, SideTicket, 1);
+
+        await Send(host, 1, SideTicketRequest);
+        AssertAck(host, 3, 77, succeeded: true);
+        Assert.Equal(0, host.Count(SideTicket));
+        Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1 AND slot_index IN (2655,2656) AND flag_value=1"));
+        Assert.Equal(0, host.Scalar("""
+            SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1
+                AND (slot_index BETWEEN 13501 AND 13513 OR slot_index BETWEEN 12680 AND 12694
+                    OR slot_index IN (1016,2510,2513,3041,3042,3043))
+            """));
+        Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1 AND quest_id IN (1016,13511)"));
+        Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1 AND quest_id=2655"));
+        Assert.Equal(100000, host.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
+        Assert.Equal(checked((int)host.ExperienceForLevel(86)), host.Scalar("SELECT exp FROM characters WHERE character_id=1"));
+        Assert.Equal(0, host.Count(10088439));
+        Assert.Contains(host.Sender.Messages, message => message is InventoryDeltaMessage);
+        Assert.Contains(host.Sender.Messages, message => message is QuestVisibilityMessage visibility
+            && visibility.Flags[2655] == 1 && visibility.Flags[2656] == 1 && visibility.Flags[13513] == 0);
+
+        host.Sender.Messages.Clear();
+        await Send(host, 1, SideTicketRequest);
+        Assert.DoesNotContain(host.Sender.Messages, message => message is QuestClearCouponResponse);
+        Assert.Contains(host.Sender.Messages, message => message is QuestVisibilityMessage visibility && visibility.Flags[2656] == 1);
+
+        await host.Seed(3, SideTicket, 1);
+        host.Sender.Messages.Clear();
+        await Send(host, 2, SideTicketRequest);
+        AssertAck(host, 3, 77, succeeded: false);
+        Assert.Equal(1, host.Count(SideTicket));
+    }
+
+    [PvfFact]
+    public async Task Side_ticket_rejects_ordinary_use_and_disallowed_character_conditions()
+    {
+        using var shop = CreateQuestFixture();
+        var host = shop.Host;
+        host.SetLevel(86);
+        await host.Seed(3, SideTicket, 1);
+
+        await EffectRequestTransport.SendRaw(host, new(1, 0x002C, 0, 1), Convert.FromHexString("03000000000000"));
+        Assert.Equal(1, host.Count(SideTicket));
+
+        host.Sql("UPDATE character_condition SET is_hardcore_mode=1 WHERE character_id=1;");
+        host.Sender.Messages.Clear();
+        await Send(host, 2, SideTicketRequest);
+        AssertAck(host, 3, 77, succeeded: false);
+        Assert.Equal(1, host.Count(SideTicket));
+
+        host.Sql("UPDATE character_condition SET is_hardcore_mode=0 WHERE character_id=1;");
+        host.SetLevel(4);
+        host.Sender.Messages.Clear();
+        await Send(host, 3, SideTicketRequest);
+        AssertAck(host, 3, 77, succeeded: false);
+        Assert.Equal(1, host.Count(SideTicket));
+        Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1"));
+    }
 
     [PvfFact]
     public async Task Captured_abyss_ticket_clears_listed_quests_and_spends_material_once()
