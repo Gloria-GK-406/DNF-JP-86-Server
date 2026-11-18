@@ -80,7 +80,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
             return new(AvatarCompoundRejection.MissingMaterial);
         var now = clock.GetUtcNow();
         var box = await material.Container.GetAsync(input.Material.Index, ct).ConfigureAwait(false);
-        if (box is not { ItemId: AvatarCompoundPlusInput.ConverterItemId, IsPile: true, Count: > 0 }
+        if (box is not { IsPile: true, Count: > 0 } || !AvatarCompoundPlusInput.SupportsConverter(box.ItemId)
             || box.Snapshot.IsMirror || box.Snapshot.Lifetime.IsExpired(now))
             return new(AvatarCompoundRejection.MissingMaterial);
         if (Locked(box.Snapshot))
@@ -109,7 +109,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         if (identity is null || progress is null)
             return new(AvatarCompoundRejection.NoSession);
-        var plan = await rules.PlanPlusAsync(identity.Job, progress.Level, input, ct).ConfigureAwait(false);
+        var plan = await rules.PlanPlusAsync(identity.Job, progress.Level, box.ItemId, input, ct).ConfigureAwait(false);
         return await SettleAsync(session, avatar.Container, ingredients, material, box, plan, now, footprint, ct)
             .ConfigureAwait(false);
     }

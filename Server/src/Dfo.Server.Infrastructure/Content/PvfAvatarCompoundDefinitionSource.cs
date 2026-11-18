@@ -19,7 +19,7 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
     private readonly Dictionary<byte, AvatarCompoundDefinition?> cache = [];
     private IReadOnlyDictionary<int, string>? jobPaths;
     private readonly Dictionary<int, AvatarCompoundItemDefinition?> itemCache = [];
-    private IReadOnlyDictionary<QuestJobRequirement, IReadOnlyDictionary<string, int>>? plusTargets;
+    private readonly Dictionary<int, IReadOnlyDictionary<QuestJobRequirement, AvatarCompoundPlusDefinition>> plusRecipes = [];
 
     public string Name => "avatar-compound";
 
@@ -56,29 +56,35 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
         }
     }
 
-    public ValueTask<IReadOnlyDictionary<string, int>?> PlusTargetsAsync(QuestJobRequirement job, CancellationToken ct)
+    public ValueTask<AvatarCompoundPlusDefinition?> PlusForJobAsync(int converterId, QuestJobRequirement job, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        if (!AvatarCompoundPlusInput.SupportsConverter(converterId))
+            return ValueTask.FromResult<AvatarCompoundPlusDefinition?>(null);
         lock (gate)
         {
-            plusTargets ??= ReadPlusTargets();
-            return ValueTask.FromResult(plusTargets.GetValueOrDefault(job));
+            if (!plusRecipes.TryGetValue(converterId, out var recipes))
+            {
+                recipes = ReadPlusRecipes(converterId);
+                plusRecipes.Add(converterId, recipes);
+            }
+            return ValueTask.FromResult(recipes.GetValueOrDefault(job));
         }
     }
 
-    private Dictionary<QuestJobRequirement, IReadOnlyDictionary<string, int>> ReadPlusTargets()
+    private Dictionary<QuestJobRequirement, AvatarCompoundPlusDefinition> ReadPlusRecipes(int converterId)
     {
         var archive = provider.Archive;
-        var targets = new Dictionary<QuestJobRequirement, IReadOnlyDictionary<string, int>>();
+        var targets = new Dictionary<QuestJobRequirement, AvatarCompoundPlusDefinition>();
         var stackables = PvfListFile.Paths(archive, "stackable/stackable.lst", prefix: "stackable/");
-        if (!stackables.TryGetValue(AvatarCompoundPlusInput.ConverterItemId, out var path))
+        if (!stackables.TryGetValue(converterId, out var path))
             return targets;
         var action = PvfDocument.TryOpen(archive, path, PvfPreamble.Ignore)?.AtRoot()
             .Read(PvfField.Tokens("[action type]", optional: true));
         if (action is not { Count: 6 } || !action[0].IsString
             || archive.ResolveString(action[0].Value) != "[absolute bind cube]"
             || action.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32)
-            || action[2].Value != AvatarCompoundPlusInput.IngredientCount || action[3].Value != 1
+            || action[2].Value != AvatarCompoundPlusInput.IngredientCount || action[3].Value is not (1 or 2)
             || action[4].Value != 0 || action[5].Value != 0)
             return targets;
 
@@ -108,7 +114,8 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
                     if (equipment is null || !parts.TryAdd(equipment, id.Value))
                         return [];
                 }
-                if (family is not (QuestJobRequirement.Unrecognized or QuestJobRequirement.Any) && !targets.TryAdd(family, parts))
+                if (family is not (QuestJobRequirement.Unrecognized or QuestJobRequirement.Any)
+                    && !targets.TryAdd(family, new(action[3].Value, parts)))
                     return [];
             }
             return targets;

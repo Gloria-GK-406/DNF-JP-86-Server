@@ -100,22 +100,46 @@ public sealed class AvatarCompoundTests
                 yield return frame[15..];
         }
     }
-    [SkippableFact]
-    public async Task Bind_plus_uses_the_captured_a21_layout_and_only_settles_a_valid_eight_avatar_request()
+    [SkippableTheory]
+    [InlineData(10007247, false, true)]
+    [InlineData(10007246, true, true)]
+    [InlineData(10007247, true, false)]
+    [InlineData(10007246, false, false)]
+    public async Task Bind_plus_uses_the_captured_a21_layout_and_requires_the_converters_grade(
+        int converter, bool advancedIngredients, bool expectedSuccess)
     {
         using var f = Fixture();
-        int[] materials = [101550539, 101550540, 101550541, 101550542, 101550555, 101550556, 101550557, 101550558];
-        await f.Seed(3, 10007247, 2);
+        int[] materials = advancedIngredients
+            ? [101550513, 101550512, 101550514, 101550515, 101550543, 101550544, 101550545, 101550546]
+            : [101550539, 101550540, 101550541, 101550542, 101550555, 101550556, 101550557, 101550558];
+        await f.Seed(3, converter, 2);
         for (var index = 0; index < materials.Length; index++)
             await f.SeedCore(index, StackableItemCore.Create(8, materials[index], 12345 + index), InventoryContainerType.Avatar);
         var body = Convert.FromHexString(
             "FFFFFFFF40F71A0040F71A0074A5030000F6890D06010008000000CB890D060100CC890D060200CD890D060300CE890D060400DB890D060500DC890D060600DD890D060700DE890D0600000044F71A00D8220C770C2F243E5CF71A0039F66E01934485CF04000000320000000058CC3A5CF71A000032842E60F71A00708FEE00781AAD415CF71A00010000000CF81A00DA");
+        if (advancedIngredients)
+        {
+            // This sample captured exactly the meaningful bytes of the Dream converter request.
+            Convert.FromHexString("030000F6890D0601000800"
+                + "0000B1890D060100B0890D060200B2890D060300B3890D06"
+                + "0400CF890D060500D0890D060600D1890D060700D2890D06").CopyTo(body, 14);
+        }
         var decoder = new AvatarCompoundPlusDecoder();
+        if (!expectedSuccess)
+        {
+            await EffectRequestTransport.SendRaw(f, new(1, 0x447, 0, 7), body);
+            Assert.Equal(new byte[] { 0, 0x16 }, Assert.Single(Bodies(f)));
+            Assert.Equal(2, f.Count(converter));
+            Assert.All(materials, item => Assert.Equal(1, f.Count(item)));
+            Assert.Equal(0, f.Count(101550582));
+            return;
+        }
+
         var invalid = (byte[])body.Clone();
         invalid[14] = 4;
         await EffectRequestTransport.SendRaw(f, new(1, 0x447, 0, 7), invalid);
         Assert.Equal(new byte[] { 0, 0x16 }, Assert.Single(Bodies(f)));
-        Assert.Equal(2, f.Count(10007247));
+        Assert.Equal(2, f.Count(converter));
         Assert.All(materials, item => Assert.Equal(1, f.Count(item)));
         Assert.Equal(0, f.Count(101550582));
 
@@ -132,12 +156,12 @@ public sealed class AvatarCompoundTests
         Assert.Equal(1, BinaryPrimitives.ReadUInt16LittleEndian(success.AsSpan(11)));
         for (var index = 0; index < materials.Length; index++)
             Assert.Equal(index, BinaryPrimitives.ReadInt16LittleEndian(success.AsSpan(15 + 2 * index)));
-        Assert.Equal(1, f.Count(10007247));
+        Assert.Equal(1, f.Count(converter));
         Assert.All(materials, item => Assert.Equal(0, f.Count(item)));
         Assert.Equal(1, f.Count(101550582));
 
         await EffectRequestTransport.SendRaw(f, request.Metadata, body);
-        Assert.Equal(1, f.Count(10007247));
+        Assert.Equal(1, f.Count(converter));
         Assert.Equal(1, f.Count(101550582));
     }
 

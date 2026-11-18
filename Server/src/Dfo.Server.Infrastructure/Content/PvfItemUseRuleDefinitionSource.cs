@@ -129,9 +129,9 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         if (expBonusRate > 0 && effectDuration <= 0)
             unreadable = true;
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
-        // The verified converter lists this unsupported job separately from its playable jobs.
+        // These converters list this unsupported job separately from their playable jobs.
         // Drop exactly that entry; the remaining archive declarations still gate the converter.
-        if (itemId == Dfo.Server.Data.Inventory.AvatarCompoundPlusInput.ConverterItemId
+        if (Dfo.Server.Data.Inventory.AvatarCompoundPlusInput.SupportsConverter(itemId)
             && action == "[absolute bind cube]" && jobText is not null)
             jobText = jobText.Where(job => job != "[creator mage]").ToArray();
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);

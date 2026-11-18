@@ -52,7 +52,8 @@ internal sealed class AvatarCompoundRuleService(IAvatarCompoundDefinitionSource 
         bool Usable(AvatarCompoundItemDefinition item) => level >= item.MinimumLevel
             && item.Jobs.IsValid && item.Jobs.Allows(CharacterJobFamilies.Resolve(job));
     }
-    public async ValueTask<AvatarCompoundPlan> PlanPlusAsync(byte job, byte level, AvatarCompoundPlusInput input, CancellationToken ct)
+    public async ValueTask<AvatarCompoundPlan> PlanPlusAsync(byte job, byte level, int converterId,
+        AvatarCompoundPlusInput input, CancellationToken ct)
     {
         var jobFamily = CharacterJobFamilies.Resolve(job);
         var target = await content.ItemAsync(input.TargetItemId, ct).ConfigureAwait(false);
@@ -60,14 +61,14 @@ internal sealed class AvatarCompoundRuleService(IAvatarCompoundDefinitionSource 
             || input.Ability > byte.MaxValue || !Ability(target, input.Ability))
             return new(AvatarCompoundRejection.InvalidChoice);
 
-        var targets = await content.PlusTargetsAsync(jobFamily, ct).ConfigureAwait(false);
-        if (targets is null || !targets.TryGetValue(target.EquipmentType, out var itemId) || target.ItemId != itemId)
+        var definition = await content.PlusForJobAsync(converterId, jobFamily, ct).ConfigureAwait(false);
+        if (definition is null || !definition.Targets.TryGetValue(target.EquipmentType, out var itemId) || target.ItemId != itemId)
             return new(AvatarCompoundRejection.InvalidChoice);
 
         foreach (var ingredient in input.Ingredients)
         {
             var item = await content.ItemAsync(ingredient.ItemId, ct).ConfigureAwait(false);
-            if (item is not { Grade: 1 } || item.EquipmentType != target.EquipmentType || !Usable(item))
+            if (item is null || item.Grade != definition.IngredientGrade || item.EquipmentType != target.EquipmentType || !Usable(item))
                 return new(AvatarCompoundRejection.InvalidAvatar);
             if (!item.Permanent)
                 return new(AvatarCompoundRejection.UnsupportedLifetime);
