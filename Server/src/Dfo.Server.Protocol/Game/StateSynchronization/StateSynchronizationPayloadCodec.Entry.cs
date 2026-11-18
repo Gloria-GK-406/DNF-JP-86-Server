@@ -770,7 +770,7 @@ internal static partial class StateSynchronizationPayloadCodec
         // A21 reads it at 013E75A3 and builds the stall object a player clicks to open a store (01784A50).
         writer.Write(entry.HasPrivateStorePermission ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility));
+        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex));
         return stream.ToArray();
     }
 
@@ -882,6 +882,7 @@ internal static partial class StateSynchronizationPayloadCodec
     private const int SubtypeZeroTailExpertJobExperienceOffset = 24;
     private const int SubtypeZeroTailVisibilityOffset = 47;
     private const int SubtypeZeroTailChannelOffset = 59;
+    private const int SubtypeZeroTailSkillTreeIndexOffset = 61;
 
     /// <summary>The channel value the reference carries, and the upstream default.</summary>
     /// <remarks>
@@ -893,7 +894,8 @@ internal static partial class StateSynchronizationPayloadCodec
     /// </remarks>
     private const ushort SubtypeZeroTailChannel = 2;
 
-    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job, bool hasBlackDiamond, byte visibilityBits)
+    private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job, bool hasBlackDiamond,
+        byte visibilityBits, int skillTreeIndex)
     {
         var tail = SubtypeZeroFixedTail.ToArray();
         // A21 read at VA013E2DB0 -> user info +0x2E8; name renderer selects diamond frame 3.
@@ -910,6 +912,7 @@ internal static partial class StateSynchronizationPayloadCodec
             tail.AsSpan(SubtypeZeroTailExpertJobExperienceOffset), experience);
         BinaryPrimitives.WriteUInt16LittleEndian(
             tail.AsSpan(SubtypeZeroTailChannelOffset), SubtypeZeroTailChannel);
+        tail[SubtypeZeroTailSkillTreeIndexOffset] = SkillTreeIndexOnTheWire(skillTreeIndex);
         return tail;
     }
 

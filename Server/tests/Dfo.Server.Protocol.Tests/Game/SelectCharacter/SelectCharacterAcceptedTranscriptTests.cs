@@ -260,10 +260,11 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         };
 
         var frames = CaptureCurrentTranscript(result);
-        // USERINFO0 visibility at tail+47 is now authoritative, rather than the old literal zero.
-        // Assert it before normalizing only that known patch point for the historical byte baseline.
+        // Check the live fields before restoring the two historical literals for the byte baseline.
         Assert.Equal(checked((byte)result.CharacterEntry.Public.VisibilityBits), frames[1][^17]);
+        Assert.Equal(checked((byte)result.CharacterEntry.Public.Extras.SkillTreeIndex), frames[1][^3]);
         frames[1][^17] = 0;
+        frames[1][^3] = 0xFF;
         var hashes = frames.Select(WithoutReferenceOnlyTitleExtension).Select(Sha256).ToArray();
 
         Assert.Equal(AcceptedKnightFrameSha256.Length, hashes.Length);
