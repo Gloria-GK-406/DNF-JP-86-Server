@@ -7,7 +7,7 @@ namespace Dfo.Server.Protocol.Tests.Game.Dungeons;
 /// The thirteen dungeon-owned commands share one shape: the command's route method drops a stale
 /// frame, locates the requester once through <c>DungeonLocator</c>, and hands the fresh frame to one
 /// channel. Protocol production sources keep that shape:
-/// the stale judgement sits only in the route methods and the 0x009F / 0x0010 entries; the two
+/// the stale judgement sits only in the route methods and the individually listed entries; the two
 /// tower services and the occupancy registry are asked "who owns this session" only by the
 /// locator, apart from the listed checks that serve the work itself; and a place is located only
 /// by the route methods, the 0x000F route doing it once.
@@ -73,6 +73,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
             "0x0392-0x039A guardian actions: the single activity entry rejects stale frames before any owned mutation"),
         new(Rule.Stale, "Game/RepairItem/GameRepairItemCommand.cs", "HandleAsync", 1,
             "0x0017 coupon repair: rejects stale consumable requests in town or dungeon without routing by dungeon owner"),
+        new(Rule.Stale, "Game/LearnSkill/GameSwitchSkillBuildCommand.cs", "HandleAsync", 1,
+            "0x0104 A21 skill page toggle: rejects a stale frame before it can toggle the saved page again"),
 
         .. Routes.Select(route => new Site(Rule.Locate, route.Path, route.Member, 1, route.Commands + ": the one locate")),
         new(Rule.Locate, PartyStages, "LocatePartyOf", 1,

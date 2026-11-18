@@ -33,6 +33,12 @@ internal sealed class CharacterSkillRuleService(ISkillRuleDefinitionSource sourc
 
     public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => For(job).All;
 
+    public bool IsHotkeySlot(int slot) =>
+        slot is >= 0 and < SkillHotkeySlots.FirstRowEnd
+            or >= SkillHotkeySlots.SecondRowStart and < SkillHotkeySlots.SecondRowEnd;
+
+    public bool IsSkillSwapSlot(int slot) => slot is >= 0 and < SkillHotkeySlots.SecondRowEnd;
+
     public CharacterSkillPointBudget GetTotalPoints(byte job, int characterLevel)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(characterLevel);
@@ -42,6 +48,9 @@ internal sealed class CharacterSkillRuleService(ISkillRuleDefinitionSource sourc
             throw new ArgumentException($"Unsupported skill job: {job}.", nameof(job));
         return rules.Budgets[characterLevel];
     }
+
+    public CharacterSkillPointBudget GetTotalPoints(byte job, int characterLevel, CharacterSkillPointBasisState basis) =>
+        SkillPointLedgerRules.AddBonus(GetTotalPoints(job, characterLevel), basis);
 
     public CharacterSkillPointLedger GetLedger(CharacterCareer career, int characterLevel,
         IReadOnlyList<CharacterSkillPageState> pages, CharacterSkillPointBasisState basis) =>
@@ -76,6 +85,13 @@ internal sealed class CharacterSkillRuleService(ISkillRuleDefinitionSource sourc
 
     internal static bool Applies(SkillFreeGrant grant, CharacterCareer career) =>
         grant.IsInitial || grant.GrowType == career.GrowType && grant.Awakening <= career.Awakening;
+}
+
+internal static class SkillHotkeySlots
+{
+    internal const int FirstRowEnd = 6;
+    internal const int SecondRowStart = 198;
+    internal const int SecondRowEnd = 204;
 }
 
 internal sealed class CharacterSkillRule : ICharacterSkillRule
@@ -147,7 +163,8 @@ internal sealed class CharacterSkillRule : ICharacterSkillRule
         }
         if (definition.IsActive && Job != 9)
         {
-            var hotkey = Free(0, 6) ?? Free(198, 204);
+            var hotkey = Free(0, SkillHotkeySlots.FirstRowEnd)
+                ?? Free(SkillHotkeySlots.SecondRowStart, SkillHotkeySlots.SecondRowEnd);
             if (hotkey is not null) return hotkey;
         }
         var group = definition.IsActive ? 3
@@ -203,6 +220,9 @@ internal sealed class CharacterSkillRule : ICharacterSkillRule
 
 internal static class SkillPointLedgerRules
 {
+    internal static CharacterSkillPointBudget AddBonus(CharacterSkillPointBudget budget, CharacterSkillPointBasisState basis) =>
+        new(checked(budget.Sp + basis.BonusSp), checked(budget.Tp + basis.BonusTp));
+
     internal static int FreeLevel(SkillPointCostDefinition value, int granted, int level) =>
         Math.Max(granted, (value.Rule ?? CharacterSkillRule.FromProjection(value))
             .GetFreeLevel(value.Career, level));
@@ -213,10 +233,11 @@ internal static class SkillPointLedgerRules
         var grants = definitions.FreeGrants.GroupBy(grant => grant.SkillId)
             .ToDictionary(group => group.Key, group => (int)group.Max(grant => grant.Level));
         var missing = new HashSet<int>();
+        var total = AddBonus(new(definitions.TotalSp, definitions.TotalTp), basis);
         CharacterSkillPointBudget Balance(int pageIndex)
         {
-            long sp = (long)definitions.TotalSp + basis.BonusSp;
-            long tp = (long)definitions.TotalTp + basis.BonusTp;
+            long sp = total.Sp;
+            long tp = total.Tp;
             foreach (var learned in pages.SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills ?? [])
             {
                 var skillId = checked((int)learned.SkillId);

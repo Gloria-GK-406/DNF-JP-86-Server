@@ -148,8 +148,8 @@ public sealed class RemainingSkillPointTests
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes()), new BuildTable(), null!, null!),
-            archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterSkillPointDomainService>.Instance);
+            new CharacterSkillFactsReader(row, new OneLearnedSkill(), new BuildTable(), new StoredBonusPoints(), null!), archive,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
                 points, null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!),
@@ -243,36 +243,28 @@ public sealed class RemainingSkillPointTests
     /// </remarks>
     private sealed class OneLearnedSkill : ICharacterSkillTable
     {
-        public ValueTask SwapSlotsAsync(CharacterId c, int p, int a, int b, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask SwapSlotsAsync(CharacterId c, int p, int a, int b, CancellationToken ct,
+            SkillGroup group = SkillGroup.Pve) => throw new NotSupportedException();
 
         public ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadEntryAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
+            CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) =>
             ValueTask.FromResult<IReadOnlyList<CharacterSkillEntryRow>>(
                 [new CharacterSkillEntryRow(0, 0, LearnedSkill, LearnedTo, [])]);
 
-        public ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadDuelSkillsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<CharacterSkillEntryRow>>(
-                [new CharacterSkillEntryRow(0, 0, LearnedSkill, 1, [])]);
-
         public ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
-            CharacterId characterId, CancellationToken cancellationToken) => throw Unneeded();
+            CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) => throw Unneeded();
 
         public ValueTask InsertAsync(
             CharacterId characterId, int pageIndex, int slot, int skillId, int level,
-            CancellationToken cancellationToken) => throw Unneeded();
+            CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve, byte[]? extraValues = null) => throw Unneeded();
 
         public ValueTask<int> SetLevelAsync(
             CharacterId characterId, int pageIndex, int slot, int level,
-            CancellationToken cancellationToken) => throw Unneeded();
+            CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) => throw Unneeded();
 
         public ValueTask<int> RemoveAsync(
             CharacterId characterId, int pageIndex, int slot,
-            CancellationToken cancellationToken) => throw Unneeded();
-
-        public ValueTask InsertDuelSkillAsync(
-            CharacterId characterId, int pageIndex, int slot, int skillId, int level,
-            byte[] extraValues, CancellationToken cancellationToken) => throw Unneeded();
+            CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) => throw Unneeded();
 
         private static NotSupportedException Unneeded() =>
             new("This double answers a character's learned skills and nothing else.");
@@ -304,7 +296,11 @@ public sealed class RemainingSkillPointTests
     {
         public ICharacterSkillRule? Get(byte job, int skillId) => throw new NotSupportedException();
         public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => throw new NotSupportedException();
+        public bool IsHotkeySlot(int slot) => throw new NotSupportedException();
+        public bool IsSkillSwapSlot(int slot) => throw new NotSupportedException();
         public CharacterSkillPointBudget GetTotalPoints(byte job, int level) => throw new NotSupportedException();
+        public CharacterSkillPointBudget GetTotalPoints(byte job, int level, CharacterSkillPointBasisState basis) =>
+            throw new NotSupportedException();
         public CharacterSkillPointLedger GetLedger(CharacterCareer career, int level, IReadOnlyList<CharacterSkillPageState> pages, CharacterSkillPointBasisState basis) =>
             SkillPointLedgerRules.Calculate(GetAsync(career.Job, career.PackedGrowType, checked((byte)level),
                 pages.SelectMany(page => page.Skills).Select(skill => checked((int)skill.SkillId)).ToArray(), default).Result,

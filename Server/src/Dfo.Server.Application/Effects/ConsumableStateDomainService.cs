@@ -62,18 +62,20 @@ internal sealed class ConsumableStateDomainService(ICharacterFatigueDomainServic
     public async ValueTask SetSkillAsync(CharacterId id, SetLearnedSkillEffect effect, CancellationToken ct)
     {
         _ = Transaction;
-        var row = (await skills.ReadLevelsAsync(id, ct).ConfigureAwait(false)).SingleOrDefault(x => x.PageIndex == effect.Page && x.Slot == effect.Slot);
+        var row = (await skills.ReadLevelsAsync(id, ct, effect.Group).ConfigureAwait(false))
+            .SingleOrDefault(x => x.PageIndex == effect.Page && x.Slot == effect.Slot);
         if (effect.ExpectedLevel is null)
         {
             if (row is not null || effect.Level is null) throw Changed();
-            await skills.InsertAsync(id, effect.Page, effect.Slot, effect.SkillId, effect.Level.Value, ct).ConfigureAwait(false);
+            await skills.InsertAsync(id, effect.Page, effect.Slot, effect.SkillId, effect.Level.Value, ct, effect.Group)
+                .ConfigureAwait(false);
         }
         else
         {
             if (row is null || row.SkillId != effect.SkillId || row.Level != effect.ExpectedLevel) throw Changed();
             var count = effect.Level is { } level
-                ? await skills.SetLevelAsync(id, effect.Page, effect.Slot, level, ct).ConfigureAwait(false)
-                : await skills.RemoveAsync(id, effect.Page, effect.Slot, ct).ConfigureAwait(false);
+                ? await skills.SetLevelAsync(id, effect.Page, effect.Slot, level, ct, effect.Group).ConfigureAwait(false)
+                : await skills.RemoveAsync(id, effect.Page, effect.Slot, ct, effect.Group).ConfigureAwait(false);
             if (count != 1) throw Changed();
         }
     }

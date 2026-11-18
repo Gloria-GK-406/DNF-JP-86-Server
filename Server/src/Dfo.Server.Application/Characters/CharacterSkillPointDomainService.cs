@@ -3,14 +3,14 @@ using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
 namespace Dfo.Server.Application.Characters;
 
-// Ordinary PVE pages only. Free-duel unlimited points remain a separate entry policy.
 internal sealed class CharacterSkillPointDomainService(
-    ICharacterSkillStateDomainService state, ICharacterSkillRuleService rules,
+    CharacterSkillFactsReader skills, ICharacterSkillRuleService rules,
     ILogger<CharacterSkillPointDomainService> logger) : ICharacterSkillPointDomainService
 {
-    public async ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken)
+    public async ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve)
     {
-        if (await state.ReadAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } facts)
+        if (await skills.ReadAsync(characterId, group, cancellationToken).ConfigureAwait(false) is not { } facts)
             return null;
         var ledger = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
         if (!ledger.IsComplete)

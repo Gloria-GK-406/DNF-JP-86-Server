@@ -23,7 +23,10 @@ public interface ICharacterSkillRuleService
 {
     ICharacterSkillRule? Get(byte job, int skillId);
     IReadOnlyList<ICharacterSkillRule> GetAll(byte job);
+    bool IsHotkeySlot(int slot);
+    bool IsSkillSwapSlot(int slot);
     CharacterSkillPointBudget GetTotalPoints(byte job, int characterLevel);
+    CharacterSkillPointBudget GetTotalPoints(byte job, int characterLevel, CharacterSkillPointBasisState basis);
     CharacterSkillPointLedger GetLedger(CharacterCareer career, int characterLevel,
         IReadOnlyList<CharacterSkillPageState> pages, CharacterSkillPointBasisState basis);
 }

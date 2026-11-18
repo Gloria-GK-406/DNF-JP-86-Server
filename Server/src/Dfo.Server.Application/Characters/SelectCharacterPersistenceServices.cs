@@ -18,7 +18,8 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class PvpSkillProfileService(
     ICharacterTable characters,
     ICharacterSkillTable skills,
-    ICharacterPvpTable pvp) : ICharacterPvpSkillProfileRepository
+    ICharacterPvpTable pvp,
+    CharacterSkillFactsReader skillFacts) : ICharacterPvpSkillProfileRepository
 {
     public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
         AccountId accountId,
@@ -43,9 +44,9 @@ internal sealed class PvpSkillProfileService(
             {
                 foreach (var skill in page.Skills)
                 {
-                    await skills.InsertDuelSkillAsync(
+                    await skills.InsertAsync(
                         characterId, page.PageIndex, skill.Slot, (int)skill.SkillId, skill.Level,
-                        [.. skill.ExtraValues], cancellationToken).ConfigureAwait(false);
+                        cancellationToken, SkillGroup.Duel, [.. skill.ExtraValues]).ConfigureAwait(false);
                 }
             }
 
@@ -61,28 +62,10 @@ internal sealed class PvpSkillProfileService(
     {
         if (await characters.FindOwnerAsync(characterId, cancellationToken).ConfigureAwait(false) != accountId)
             throw new InvalidDataException("PvP skill profile owner does not match the account.");
-        var pages = new[] { new List<CharacterSkillState>(), new List<CharacterSkillState>() };
-        foreach (var row in await skills.ReadDuelSkillsAsync(characterId, cancellationToken)
-                     .ConfigureAwait(false))
-        {
-            if (row.PageIndex is < 0 or > 1
-                || row.Slot is < short.MinValue or > short.MaxValue
-                || row.SkillId is < 0 or > ushort.MaxValue
-                || row.Level is < 0 or > byte.MaxValue)
-            {
-                throw new InvalidDataException("PvP skill profile contains an out-of-range row.");
-            }
-
-            pages[row.PageIndex].Add(new CharacterSkillState(
-                checked((short)row.Slot), checked((ushort)row.SkillId),
-                checked((byte)row.Level), row.ExtraValues));
-        }
-
+        var pages = await skillFacts.ReadDuelPagesAsync(characterId, cancellationToken).ConfigureAwait(false);
         return new CharacterSkillsEntryState(
-            [new CharacterSkillPageState(0, pages[0]), new CharacterSkillPageState(1, pages[1])],
-            [], new CharacterSkillPointBasisState(0, 0), [], null,
-            new CharacterSkillProtocolMirrorState(
-                ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue));
+            pages,
+            [], new CharacterSkillPointBasisState(0, 0), [], null);
     }
 }
 

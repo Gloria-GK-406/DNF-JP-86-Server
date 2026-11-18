@@ -115,25 +115,33 @@ public sealed class SpecialConsumableEffectTests
         Assert.Equal(100,f.Scalar("SELECT used FROM character_fatigue WHERE character_id=71"));
     }
 
-    [Fact]
-    public async Task Sequential_skill_effects_use_prior_effect_state_and_replaced_identity_rolls_back_the_batch()
+    [Theory]
+    [InlineData(SkillGroup.Pve, "pve", "pvp")]
+    [InlineData(SkillGroup.Duel, "pvp", "pve")]
+    public async Task Sequential_skill_effects_use_prior_effect_state_and_replaced_identity_rolls_back_the_batch(
+        SkillGroup group, string mode, string otherMode)
     {
         await TestGameplay.RunAsync(async () =>
         {
             await using var f=new LearningFixture();await f.SeedAsync();
+            f.Sql("INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level) VALUES(71,'pvp',0,7,1,2)");
+            int Level(string storedMode) => f.Scalar(
+                $"SELECT level FROM character_skills WHERE character_id=71 AND mode='{storedMode}' AND page_index=0 AND slot=7");
             var apply=f.Services.GetRequiredService<IApplyEffectsDomainService>();
             using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(f.Session);
             var context=new EffectExecutionContext(f.Session.AccountId,f.Session.CharacterId,DateTimeOffset.UtcNow,footprint,f.Session);
             await using(var tx=f.Scope.Begin())
             {
-                await apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,2,3),new SetLearnedSkillEffect(0,7,1,3,4)],default);
+                await apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,2,3,group),new SetLearnedSkillEffect(0,7,1,3,4,group)],default);
                 await tx.CommitAsync(default);
             }
-            Assert.Equal(4,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND slot=7"));
+            Assert.Equal(4,Level(mode));
+            Assert.Equal(2,Level(otherMode));
             await using(f.Scope.Begin())
-                await Assert.ThrowsAsync<InvalidOperationException>(()=>apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,4,5),
-                    new SetLearnedSkillEffect(0,7,2,5,6)],default).AsTask());
-            Assert.Equal(4,f.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND slot=7"));
+                await Assert.ThrowsAsync<InvalidOperationException>(()=>apply.ApplyAsync(context,[new SetLearnedSkillEffect(0,7,1,4,5,group),
+                    new SetLearnedSkillEffect(0,7,2,5,6,group)],default).AsTask());
+            Assert.Equal(4,Level(mode));
+            Assert.Equal(2,Level(otherMode));
         });
     }
 

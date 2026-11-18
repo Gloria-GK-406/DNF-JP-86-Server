@@ -193,21 +193,20 @@ public sealed record CharacterSkillEntryRow(
 /// <summary>The <c>character_skills</c> table.</summary>
 /// <remarks>
 /// One table with two sets of pages in it, and one interface over it. Which set a row belongs to is
-/// a column, not a table, and the two sets never share a row: the ordinary pages are written by
-/// spending skill points, the duel pages by seeding them when a duel channel asks. Every method
-/// here names the set it works on, because a read that forgot would hand one set the other's rows.
+/// a column, and each operation is scoped to one group.
 /// </remarks>
 public interface ICharacterSkillTable
 {
-    ValueTask SwapSlotsAsync(CharacterId characterId, int pageIndex, int first, int second, CancellationToken cancellationToken);
+    ValueTask SwapSlotsAsync(CharacterId characterId, int pageIndex, int first, int second,
+        CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve);
 
-    /// <summary>Every ordinary skill the character has, and at what level.</summary>
+    /// <summary>Every skill the character has in the group, and at what level.</summary>
     ValueTask<IReadOnlyList<CharacterSkillLevelRow>> ReadLevelsAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
+        CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve);
 
     /// <summary>The same skills with everything an entry needs, in the order it reads them.</summary>
     ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadEntryAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
+        CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve);
 
     /// <param name="pageIndex">
     /// Which skill tree the row belongs to. A character is created holding two, and while the
@@ -215,27 +214,15 @@ public interface ICharacterSkillTable
     /// </param>
     ValueTask InsertAsync(
         CharacterId characterId, int pageIndex, int slot, int skillId, int level,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve, byte[]? extraValues = null);
 
-    /// <summary>Puts one ordinary skill at that level. Says how many rows that touched.</summary>
+    /// <summary>Puts one skill at that level. Says how many rows that touched.</summary>
     ValueTask<int> SetLevelAsync(
-        CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken);
+        CharacterId characterId, int pageIndex, int slot, int level, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve);
 
-    /// <summary>Takes one ordinary skill away. Says how many rows that touched.</summary>
+    /// <summary>Takes one skill away. Says how many rows that touched.</summary>
     ValueTask<int> RemoveAsync(
-        CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken);
-
-    /// <summary>The duel pages, in the order they are read.</summary>
-    ValueTask<IReadOnlyList<CharacterSkillEntryRow>> ReadDuelSkillsAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-
-    /// <summary>Puts one skill on a duel page.</summary>
-    ValueTask InsertDuelSkillAsync(
-        CharacterId characterId,
-        int pageIndex,
-        int slot,
-        int skillId,
-        int level,
-        byte[] extraValues,
-        CancellationToken cancellationToken);
+        CharacterId characterId, int pageIndex, int slot, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve);
 }

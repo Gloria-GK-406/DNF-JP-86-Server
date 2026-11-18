@@ -566,7 +566,8 @@ internal sealed class ShopFixture : IDisposable
 
     private sealed class SkillPoints : ICharacterSkillPointDomainService
     {
-    public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve) => throw new NotSupportedException();
 
         public ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(CharacterId id, CancellationToken ct) =>
             ValueTask.FromResult<CharacterSkillProtocolMirrorState?>(new(321, 0, 0, 0));

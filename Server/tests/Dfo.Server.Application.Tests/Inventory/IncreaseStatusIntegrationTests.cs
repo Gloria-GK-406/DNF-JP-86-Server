@@ -175,7 +175,7 @@ public sealed class IncreaseStatusIntegrationTests
     private sealed class Points : ICharacterSkillPointDomainService
     {
         private static readonly CharacterSkillPointLedger Ledger = new(321, 0, 0, 0, []);
-        public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId id, CancellationToken ct) => ValueTask.FromResult<CharacterSkillPointLedger?>(Ledger);
+        public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId id, CancellationToken ct, SkillGroup group = SkillGroup.Pve) => ValueTask.FromResult<CharacterSkillPointLedger?>(Ledger);
         public ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(CharacterId id, CancellationToken ct) => ValueTask.FromResult<CharacterSkillProtocolMirrorState?>(Ledger.ToProtocolMirror());
     }
 }

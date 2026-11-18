@@ -113,9 +113,11 @@ internal sealed class CharacterSide
     public ICharacterTable Characters => new SqliteCharacterTable(this.database);
 
     public ICharacterPvpSkillProfileRepository PvpProfile => new PvpSkillProfileService(
-        new SqliteCharacterTable(this.database),
-        new SqliteCharacterSkillTable(this.database),
-        new SqliteCharacterPvpTable(this.database));
+        this.Characters,
+        this.Skills,
+        new SqliteCharacterPvpTable(this.database),
+        new CharacterSkillFactsReader(this.Characters, this.Skills,
+            new SqliteCharacterSkillBuildTable(this.database), new SqliteCharacterEntryTable(this.database), null!));
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>

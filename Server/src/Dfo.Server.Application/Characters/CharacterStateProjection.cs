@@ -38,14 +38,6 @@ internal static class CharacterStateProjection
         return entry with { Public = entry.Public with { Display = display, CloneTitleItemId = display.TitleAppearanceItemId } };
     }
 
-    internal static CharacterSkillsEntryState MergePvpProfile(
-        CharacterSkillsEntryState normal, CharacterSkillsEntryState pvp) => normal with
-    {
-        Pages = pvp.Pages,
-        ProtocolMirror = pvp.ProtocolMirror
-            ?? throw new InvalidDataException("PvP skill protocol mirror is unavailable."),
-    };
-
     internal static async ValueTask<CharacterRosterEntryState> BuildRosterEntryAsync(
         AccountId accountId,
         AccountCharacterRoster roster,

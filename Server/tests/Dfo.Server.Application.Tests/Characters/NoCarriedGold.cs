@@ -173,7 +173,7 @@ internal sealed class CharacterRow : ICharacterTable
 /// </remarks>
 internal sealed class NoSkillPointLedger : ICharacterSkillPointDomainService
 {
-    public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    public ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken, SkillGroup group = SkillGroup.Pve) => throw new NotSupportedException();
 
     public ValueTask<CharacterSkillProtocolMirrorState?> RemainingAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>

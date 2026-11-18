@@ -20,7 +20,8 @@ namespace Dfo.Server.Abstractions.Characters;
 /// </remarks>
 public interface ICharacterSkillPointDomainService
 {
-    ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken);
+    ValueTask<CharacterSkillPointLedger?> LedgerAsync(CharacterId characterId, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve);
 
     /// <summary>
     /// What this character has left to spend on each page, or nothing when there is no such

@@ -15,13 +15,17 @@ public sealed class GameSwitchSkillBuildCommandHandler(ISelectedSessionDomainSer
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context,GameSwitchSkillBuildCommand command,CancellationToken ct)
     {
-        var message=command.Input;
-        var session=sessions.FindByConnection(command.Dispatch.Connection.ConnectionId);
-        int? active=null;
-        if(session is not null && users.TryGetByConnection(command.Dispatch.Connection.ConnectionId,out var user) && user is not null)
-            active=(await units.WriteAsync(context,new("SwitchSkillBuild",[]),async (_,token)=>new SwitchSkillBuildResponse(await learning.SwitchAsync(session, message.Current, 1 - message.Current, token).ConfigureAwait(false)),ct).ConfigureAwait(false)).Active;
-        if(session is not null && !sessions.IsInWorld(session)) return true;
-        await outbox.RegisterCmdAsync(command.Dispatch.Connection.ConnectionId,new SwitchSkillBuildResponse(active),ct).ConfigureAwait(false);
+        var message = command.Input;
+        var connection = command.Dispatch.Connection.ConnectionId;
+        var session = sessions.FindByConnection(connection);
+        var staleToggle = message.Current is null && GameRequestFreshness.IsStale(message.Metadata);
+        var response = new SwitchSkillBuildResponse(null);
+        if (!staleToggle && session is not null && users.TryGetByConnection(connection, out var user) && user is not null)
+            response = await units.WriteAsync(context, new("SwitchSkillBuild", []),
+                async (_, token) => new SwitchSkillBuildResponse(
+                    await learning.ToggleAsync(session, message.Current, token).ConfigureAwait(false)), ct).ConfigureAwait(false);
+        if (session is not null && !sessions.IsInWorld(session)) return true;
+        await outbox.RegisterCmdAsync(connection, response, ct).ConfigureAwait(false);
         return true;
     }
 }

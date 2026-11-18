@@ -18,7 +18,8 @@ public sealed record SetItemUsageStateEffect(int ItemId, ConsumableUsageRow? Exp
 public sealed record SetCarriedQuestEffect(StoredActiveQuest Expected, StoredActiveQuest? Value) : DomainEffect;
 public sealed record RemoveTrackedQuestEffect(StoredTrackedQuest Expected) : DomainEffect;
 public sealed record SetClearedQuestEffect(int QuestId, byte? ExpectedMark, byte Mark) : DomainEffect;
-public sealed record SetLearnedSkillEffect(int Page, int Slot, int SkillId, byte? ExpectedLevel, byte? Level) : DomainEffect;
+public sealed record SetLearnedSkillEffect(int Page, int Slot, int SkillId, byte? ExpectedLevel, byte? Level,
+    SkillGroup Group = SkillGroup.Pve) : DomainEffect;
 public sealed record RenamePetEffect(int ItemUid, int ExpectedTemplateId, ImmutableArray<byte> Name) : DomainEffect;
 public sealed record FatigueStateChange(CharacterFatigueRow Value) : EffectChange;
 public sealed record ItemUsageStateChange(int ItemId, ConsumableUsageRow Value) : EffectChange;
@@ -38,7 +39,7 @@ public interface ISpecialConsumableEffectPlanRuleService
     ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts facts, CancellationToken ct);
     ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,
         IReadOnlyList<int> selected, DateTimeOffset at, CancellationToken ct);
-    ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, int page,
+    ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, SkillGroup group, int page,
         IReadOnlyList<CharacterSkillState> before, IReadOnlyList<CharacterSkillState> changed, CancellationToken ct);
     RefundSkillPlan RefundSkills(CharacterSkillFacts facts, int page, IReadOnlyList<CharacterSkillLearningChange> changes, int learningLevel);
     ImmutableArray<DomainEffect> Rename(PetNameFacts facts);
