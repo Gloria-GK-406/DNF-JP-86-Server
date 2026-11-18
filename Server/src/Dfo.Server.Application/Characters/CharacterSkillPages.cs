@@ -4,6 +4,16 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Characters;
 
+internal static class SkillHotkeySlots
+{
+    internal const int FirstRowEnd = 6;
+    internal const int SecondRowStart = 198;
+    internal const int SecondRowEnd = 204;
+
+    internal static bool Contains(int slot) =>
+        slot is >= 0 and < FirstRowEnd or >= SecondRowStart and < SecondRowEnd;
+}
+
 /// <summary>
 /// The stored skill rows, read into the pages everything above reasons about.
 /// </summary>

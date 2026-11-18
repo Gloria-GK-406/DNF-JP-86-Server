@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Accounts;
 namespace Dfo.Server.Application.Characters;
 
 internal sealed class CharacterSkillStateDomainService(
-    ICharacterTable characters, ICharacterSkillTable skills, ICharacterEntryTable entries,
+    ICharacterTable characters, ICharacterSkillTable skills, CharacterSkillDomainService skillDomain,
     ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds,
     IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules)
     : ICharacterSkillStateDomainService
@@ -167,20 +167,6 @@ internal sealed class CharacterSkillStateDomainService(
         }
     }
 
-    public async ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken)
-    {
-        if (await characters.FindStandingAsync(characterId, cancellationToken).ConfigureAwait(false) is not { } standing)
-            return null;
-        var stored = CharacterSkillPages.Pages(CharacterSkillPages.Rows(
-            await skills.ReadEntryAsync(characterId, cancellationToken).ConfigureAwait(false)));
-        var configurations = await builds.ReadAsync(characterId, cancellationToken);
-        var pages = configurations.Builds.Select(build => stored.SingleOrDefault(page => page.PageIndex == build.Id.Value)
-            ?? new CharacterSkillPageState(build.Id.Value, [])).ToArray();
-        if (stored.Any(page => configurations.Builds.All(build => build.Id.Value != page.PageIndex)))
-            throw new InvalidDataException("Skill rows reference an unknown build.");
-        var bonus = await entries.FindBonusPointsAsync(characterId, cancellationToken).ConfigureAwait(false);
-        return new CharacterSkillFacts(
-            CharacterCareer.FromPacked(checked((byte)standing.Job), checked((byte)standing.GrowType)),
-            standing.Level, pages, new CharacterSkillPointBasisState(bonus?.BonusSp ?? 0, bonus?.BonusTp ?? 0));
-    }
+    public ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken) =>
+        skillDomain.ReadOrdinaryFactsAsync(characterId, cancellationToken);
 }

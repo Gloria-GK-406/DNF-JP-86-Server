@@ -60,8 +60,8 @@ internal static class CharactersRegistration
         services.TryAddSingleton<IWeaknessDomainService, WeaknessDomainService>();
         services.TryAddSingleton<ICharacterDungeonDifficultyDomainService, CharacterDungeonDifficultyDomainService>();
         services.TryAddSingleton<ITutorialCompletionDomainService, TutorialCompletionDomainService>();
-        // What a character has left to spend, asked by identifier and worked out on the spot. The
-        // arithmetic belongs to the shared skill rules; the state service supplies current facts.
+        services.TryAddSingleton<CharacterSkillDomainService>();
+        services.TryAddSingleton<ICharacterSkillDomainService>(sp => sp.GetRequiredService<CharacterSkillDomainService>());
         services.TryAddSingleton<ICharacterSkillStateDomainService, CharacterSkillStateDomainService>();
         services.TryAddSingleton<ICharacterSkillResetRuleService, CharacterSkillResetRuleService>();
         services.TryAddSingleton<ICharacterAppearanceRuleService, CharacterAppearanceRuleService>();

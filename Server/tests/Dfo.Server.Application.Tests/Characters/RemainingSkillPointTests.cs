@@ -148,8 +148,8 @@ public sealed class RemainingSkillPointTests
     {
         var archive = new LevelPricedArchive();
         var points = new CharacterSkillPointDomainService(
-            new CharacterSkillStateDomainService(row, new OneLearnedSkill(), new StoredBonusPoints(), archive, new Dfo.Server.Application.Transactions.DomainTransactionScope(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes()), new BuildTable(), null!, null!),
-            archive, Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterSkillPointDomainService>.Instance);
+            new CharacterSkillDomainService(row, new OneLearnedSkill(), new BuildTable(), new StoredBonusPoints(), archive),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
                 points, null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!),
@@ -305,6 +305,8 @@ public sealed class RemainingSkillPointTests
         public ICharacterSkillRule? Get(byte job, int skillId) => throw new NotSupportedException();
         public IReadOnlyList<ICharacterSkillRule> GetAll(byte job) => throw new NotSupportedException();
         public CharacterSkillPointBudget GetTotalPoints(byte job, int level) => throw new NotSupportedException();
+        public CharacterSkillPointBudget GetTotalPoints(byte job, int level, CharacterSkillPointBasisState basis) =>
+            throw new NotSupportedException();
         public CharacterSkillPointLedger GetLedger(CharacterCareer career, int level, IReadOnlyList<CharacterSkillPageState> pages, CharacterSkillPointBasisState basis) =>
             SkillPointLedgerRules.Calculate(GetAsync(career.Job, career.PackedGrowType, checked((byte)level),
                 pages.SelectMany(page => page.Skills).Select(skill => checked((int)skill.SkillId)).ToArray(), default).Result,

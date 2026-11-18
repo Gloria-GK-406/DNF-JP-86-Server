@@ -343,6 +343,39 @@ public sealed class CharacterSkillLearningTests
         });
     }
 
+    [Fact]
+    public async Task Skill_page_query_reads_the_requested_group_and_build_with_its_own_points_and_hotkeys()
+    {
+        await using var fixture = new LearningFixture();
+        await fixture.SeedAsync();
+        fixture.Sql("""
+            UPDATE characters SET active_skill_build=0 WHERE character_id=71;
+            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level)
+            VALUES(71,'pve',1,199,6,1),(71,'pvp',1,2,1,3);
+            """);
+        var skills = fixture.Services.GetRequiredService<ICharacterSkillDomainService>();
+        var ordinary = Assert.IsType<CharacterSkillPageSnapshot>(
+            await skills.GetAsync(new(71), SkillGroup.Pve, new(1), default));
+        Assert.Equal(1, ordinary.Page.PageIndex);
+        Assert.Equal(new[] { (15, 1u, 1), (199, 6u, 1) },
+            ordinary.Page.Skills.Select(skill => ((int)skill.Slot, skill.SkillId, (int)skill.Level)));
+        Assert.Equal((short)199, Assert.Single(ordinary.HotkeySkills).Slot);
+        var points = Assert.IsType<CharacterSkillPagePoints>(ordinary.Points);
+        Assert.Equal(new CharacterSkillPointBudget(1005, 39), points.Total);
+        Assert.Equal(new CharacterSkillPointBudget(995, 38), points.Remaining);
+        Assert.Empty(points.MissingSkillIds);
+
+        var duel = Assert.IsType<CharacterSkillPageSnapshot>(
+            await skills.GetAsync(new(71), SkillGroup.Duel, new(1), default));
+        var duelSkill = Assert.Single(duel.Page.Skills);
+        Assert.Equal(((short)2, 1u, (byte)3), (duelSkill.Slot, duelSkill.SkillId, duelSkill.Level));
+        Assert.Equal(duelSkill, Assert.Single(duel.HotkeySkills));
+        Assert.Null(duel.Points);
+        Assert.Null(await skills.GetAsync(new(71), SkillGroup.Duel, new(2), default));
+        Assert.Null(await skills.GetAsync(new(999), SkillGroup.Pve, new(0), default));
+        Assert.Equal(0, fixture.Scalar("SELECT active_skill_build FROM characters WHERE character_id=71"));
+    }
+
     private static void AssertBaseline(LearningFixture fixture)
     {
         Assert.Equal(2, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND page_index=0 AND skill_id=1"));
