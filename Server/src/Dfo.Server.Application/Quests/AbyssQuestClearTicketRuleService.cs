@@ -8,12 +8,14 @@ namespace Dfo.Server.Application.Quests;
 internal sealed class AbyssQuestClearTicketRuleService(IStackableActionDefinitionSource items,
     IQuestContentRuleService quests, IQuestAvailabilityRuleService availability)
 {
-    internal const int ItemId = 10005122;
+    private const int ItemId = 10005122;
+
+    public static bool IsTicket(int itemId) => itemId == ItemId;
 
     public async ValueTask<IReadOnlyList<int>> SelectAsync(
         int itemId, WorldContentSubject subject, DateTimeOffset now, CancellationToken ct)
     {
-        if (itemId != ItemId || await items.GetAsync(itemId, ct).ConfigureAwait(false) is not
+        if (!IsTicket(itemId) || await items.GetAsync(itemId, ct).ConfigureAwait(false) is not
             { Action: "[any quest clear]", IsReadable: true, ListedQuestClear: { Count: > 0 } questIds } item)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Not a supported abyss quest-clear ticket.");
         if (subject.Level < item.MinimumLevel || subject.Level > item.MaximumLevel

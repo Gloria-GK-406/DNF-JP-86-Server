@@ -17,9 +17,8 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : 
         if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]" or "[repair coupon]" or "[repair equipment]")
             rule = rule with { HasUnreadableDeclaration = true };
         // These tickets have dedicated settlement; ordinary use would only spend them.
-        if (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId or AbyssQuestClearTicketRuleService.ItemId
-            or QuestClearCouponRuleService.SideCouponItemId
-            && rule is not null)
+        if (rule is not null && (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId
+            or QuestClearCouponRuleService.SideCouponItemId || AbyssQuestClearTicketRuleService.IsTicket(itemId)))
             rule = rule with { HasUnreadableDeclaration = true };
         return rule;
     }

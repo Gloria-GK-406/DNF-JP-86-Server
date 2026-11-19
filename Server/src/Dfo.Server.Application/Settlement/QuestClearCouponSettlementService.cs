@@ -30,7 +30,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         ArgumentNullException.ThrowIfNull(session);
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
-        if (!(abyssTicket ? source.ItemId == AbyssQuestClearTicketRuleService.ItemId : rules.IsCoupon(source.ItemId)))
+        if (!(abyssTicket ? AbyssQuestClearTicketRuleService.IsTicket(source.ItemId) : rules.IsCoupon(source.ItemId)))
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Not a quest-clear coupon.");
 
         var state = await states.QuestsAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
