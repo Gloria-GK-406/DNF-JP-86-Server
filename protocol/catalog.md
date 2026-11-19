@@ -612,7 +612,7 @@ P01–P10由用户确认通过；实例重构及常规事务回归已交付。�
 
 ## 2026-09-30 异界气息与异次元属性候选实现
 
-[净化 `0x00CC`](game/client-to-server/0x00CC.md) 的 A21 静态普通分支为 12B；[属性赋予/扭转 `0x00CD`](game/client-to-server/0x00CD.md) 的 action0/1 为 14B，action2 另有未闭合动态尾。本服按真实 PVF `etc/amplifyitem.etc` 接入已闭合的净化、清除、赋予和扭转材料路径，装备/材料同事务，[00CC 结果](game/server-to-client/CMD-0x00CC.md)、[00CD 结果](game/server-to-client/CMD-0x00CD.md)与两槽刷新；action2 隔离，普通强化继续拒绝非零 `AmplifyType`。证据状态仅 `70Reference + UpstreamReference + ClientStatic + ContentStatic + CurrentImplementation`；污染装备自然生成路径、实际 S2C 帧与 GUI/重登效果仍待[人工验收](../Document/tasks/equipment-development/attempts/spec-004-outworld-amplify/Human-Test-List.md)，不标 `ClientVerified`。
+[净化 `0x00CC`](game/client-to-server/0x00CC.md) 的 A21 静态普通分支为 12B，异界气息清除卷轴 `10000704` 的实机请求也是 12B。该成功路径已核对客户端显示、卷轴扣量与装备原槽保留，标记 `WireCaptured + ClientVerified`。[属性赋予/扭转 `0x00CD`](game/client-to-server/0x00CD.md) 的 action0/1 为 14B，action2 的动态尾待确认。本服按 PVF `etc/amplifyitem.etc` 接入净化、清除、赋予和扭转的材料规则，装备和材料同事务结算，随后发送 [00CC 结果](game/server-to-client/CMD-0x00CC.md)或 [00CD 结果](game/server-to-client/CMD-0x00CD.md)并刷新两槽。普通强化继续拒绝非零 `AmplifyType`。其他材料和玩法路径按[人工验收](../Document/tasks/equipment-development/attempts/spec-004-outworld-amplify/Human-Test-List.md)逐项验证。
 
 ## 2026-09-30 魔法封印装备候选实现
 
