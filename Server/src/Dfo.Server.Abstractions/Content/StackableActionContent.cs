@@ -5,6 +5,7 @@ public sealed record StackableActionDefinition(
     string Action, int MinimumLevel, int MaximumLevel, long ExpiresAtUnixSeconds, bool IsReadable)
 {
     public int FatigueRecovery { get; init; }
+    public int RandomFatigueDefaultRecovery { get; init; }
     public IReadOnlyList<FatigueRecoveryTier> RandomFatigueRecovery { get; init; } = [];
     public int EntryDungeonId { get; init; }
     public int EntryIncrease { get; init; }

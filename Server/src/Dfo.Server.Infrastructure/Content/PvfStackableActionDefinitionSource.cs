@@ -72,12 +72,13 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
                 unreadable = true;
         }
         var recovery = 0;
+        var randomDefaultRecovery = 0;
         IReadOnlyList<FatigueRecoveryTier> randomRecovery = [];
         if (actionName == "[random recovery fatigue]")
         {
             var operands = document.Read(Fields.ActionTypeField);
             if (operands.Count == 1 && document.TryRead(Fields.RandomFatigueDataField, out var data))
-                randomRecovery = ReadRandomFatigueRecovery(data);
+                (randomDefaultRecovery, randomRecovery) = ReadRandomFatigueRecovery(data);
             if (randomRecovery.Count == 0) unreadable = true;
         }
         var entryDungeon = 0;
@@ -137,30 +138,31 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         return new(actionName, min, max, expiry,
             !unreadable && min >= 0 && max >= min
                 && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
-        { FatigueRecovery = recovery, RandomFatigueRecovery = randomRecovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
-            EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease, ListedQuestClear = listedQuestClear };
+        {
+            FatigueRecovery = recovery, RandomFatigueDefaultRecovery = randomDefaultRecovery, RandomFatigueRecovery = randomRecovery,
+            LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
+            EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease, ListedQuestClear = listedQuestClear,
+        };
     }
 
-    private static IReadOnlyList<FatigueRecoveryTier> ReadRandomFatigueRecovery(IReadOnlyList<int> data)
+    private static (int DefaultRecovery, IReadOnlyList<FatigueRecoveryTier> WeightedRecovery)
+        ReadRandomFatigueRecovery(IReadOnlyList<int> data)
     {
-        // Server rule for A079: [0, default amount] then [0, weight, amount] rows out of 100,000.
+        // The archive gives [0, default amount] followed by [0, weight, amount] rows.
         if (data.Count < 5 || (data.Count - 2) % 3 != 0 || data[0] != 0 || data[1] is <= 0 or > ushort.MaxValue)
-            return [];
-        var defaultWeight = 100_000;
+            return (0, []);
         var previousAmount = data[1];
-        var tiers = new FatigueRecoveryTier[1 + (data.Count - 2) / 3];
-        for (var i = 1; i < tiers.Length; i++)
+        var tiers = new FatigueRecoveryTier[(data.Count - 2) / 3];
+        for (var i = 0; i < tiers.Length; i++)
         {
-            var at = 2 + (i - 1) * 3;
+            var at = 2 + i * 3;
             var weight = data[at + 1];
             var amount = data[at + 2];
-            if (data[at] != 0 || weight <= 0 || weight >= defaultWeight || amount <= previousAmount || amount > ushort.MaxValue)
-                return [];
+            if (data[at] != 0 || weight <= 0 || amount <= previousAmount || amount > ushort.MaxValue)
+                return (0, []);
             tiers[i] = new(amount, weight);
             previousAmount = amount;
-            defaultWeight -= weight;
         }
-        tiers[0] = new(data[1], defaultWeight);
-        return tiers;
+        return (data[1], tiers);
     }
 }

@@ -129,14 +129,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         if (expBonusRate > 0 && effectDuration <= 0)
             unreadable = true;
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
-        // Absolute bind declarations list creator mage alongside the supported job families.
-        // Project the remaining job tokens so each playable family's restriction still applies.
-        if (action == "[absolute bind cube]" && jobText is not null)
-            jobText = jobText.Where(job => job != "[creator mage]").ToArray();
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
-        // Random fatigue recovery already requires town presence. The assault exclusion grants no place.
-        if (action == "[random recovery fatigue]" && placeText is not null)
-            placeText = placeText.Where(place => !place.Equals("[dont use assult]", StringComparison.OrdinalIgnoreCase)).ToArray();
         var dungeons = RootSectionValues(archive, ref reader, Fields.ActionUsableDungeonField, out var duplicateDungeons, out _);
         if (action == "[repair coupon]"
             && RootSectionValues(archive, ref reader, Fields.ActionTypeField, out _, out _) is { Count: not 1 })
@@ -202,7 +195,12 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             .Where(family => family is not QuestJobRequirement.Any)
             .Distinct()
             .ToArray();
-        return new ItemJobRestriction(IsExactAll: false, families);
+        return new ItemJobRestriction(IsExactAll: false, families)
+        {
+            UnrecognizedTokens = families.Contains(QuestJobRequirement.Unrecognized)
+                ? tokens.Where(token => ArchiveJobFamilyTokens.Resolve(token) == QuestJobRequirement.Unrecognized).ToArray()
+                : [],
+        };
     }
 
     /// <inheritdoc cref="ProjectJobs" path="/param[@name='tokens']"/>
@@ -215,7 +213,12 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             .Select(token => PlaceTokens.TryGetValue(token, out var place) ? place : ItemUsePlace.Unrecognized)
             .Distinct()
             .ToArray();
-        return new ItemPlaceRestriction(IsUnrestricted: false, places);
+        return new ItemPlaceRestriction(IsUnrestricted: false, places)
+        {
+            UnrecognizedTokens = places.Contains(ItemUsePlace.Unrecognized)
+                ? tokens.Where(token => !PlaceTokens.ContainsKey(token)).ToArray()
+                : [],
+        };
     }
 
     /// <summary>

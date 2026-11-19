@@ -30,10 +30,16 @@ public sealed class FatiguePotionTests
         var potion = await source.GetAsync(2683466, default);
         Assert.NotNull(potion);
         Assert.True(potion.IsReadable);
-        var use = await fixture.Host.Services.GetRequiredService<IItemUseRuleDefinitionSource>().GetAsync(2683466, default);
+        var declaration = await fixture.Host.Services.GetRequiredService<IItemUseRuleDefinitionSource>().GetAsync(2683466, default);
+        Assert.NotNull(declaration);
+        Assert.Contains("[dont use assult]", declaration.Places.UnrecognizedTokens);
+        Assert.False(declaration.IsReadable);
+        var use = await fixture.Host.Services.GetRequiredService<IItemUseRuleService>().RuleForAsync(2683466, default);
         Assert.NotNull(use);
         Assert.True(use.IsReadable);
-        var tiers = potion.RandomFatigueRecovery;
+        Assert.Equal(20, potion.RandomFatigueDefaultRecovery);
+        Assert.Equal(4, potion.RandomFatigueRecovery.Count);
+        var tiers = SpecialConsumableEffectPlanRuleService.RandomFatigueTiers(potion);
         Assert.Equal(new FatigueRecoveryTier[]
         {
             new(20, 38_999), new(25, 50_000), new(30, 10_000), new(40, 1_000), new(50, 1)

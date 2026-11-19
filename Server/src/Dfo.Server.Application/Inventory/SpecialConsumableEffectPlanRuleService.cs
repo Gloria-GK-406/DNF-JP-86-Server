@@ -17,6 +17,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
     private readonly IQuestClearancePlanRuleService clearance = clearance;
     private const int RandomFatiguePotionId = 2683466;
     private const int RandomFatigueExclusiveLimit = 106;
+    private const int RandomFatigueRollRange = 100_000;
 
     public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, CancellationToken ct)
     {
@@ -42,9 +43,8 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         if (f.Usage?.LastUsedAt?.AddMilliseconds(usage.CooldownMilliseconds) > f.At)
             throw Reject(nameof(ItemUsageRejection.CoolingDown));
         var result = await ConsumptionAsync(f.Source, f.Item, ct).ConfigureAwait(false);
-        var tiers = action.RandomFatigueRecovery;
         var recovery = random
-            ? Math.Min(used, SelectRandomFatigueRecovery(tiers, Random.Shared.Next(tiers.Sum(tier => tier.Weight))))
+            ? Math.Min(used, SelectRandomFatigueRecovery(RandomFatigueTiers(action), Random.Shared.Next(RandomFatigueRollRange)))
             : action.FatigueRecovery;
         return result.Add(new SetFatigueStateEffect(f.Fatigue.Raw,
                 new(used - recovery, effective.ConsumedToday, f.At)))
@@ -55,9 +55,18 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
     {
         FatiguePotionKind.Fixed => definition is { Action: "[add fatigue]", FatigueRecovery: > 0 and <= ushort.MaxValue },
         FatiguePotionKind.Random => facts.Item.ItemId == RandomFatiguePotionId
-            && definition is { Action: "[random recovery fatigue]", RandomFatigueRecovery.Count: > 0 },
+            && definition is { Action: "[random recovery fatigue]", RandomFatigueDefaultRecovery: > 0, RandomFatigueRecovery.Count: > 0 },
         _ => false,
     };
+
+    internal static IReadOnlyList<FatigueRecoveryTier> RandomFatigueTiers(StackableActionDefinition action)
+    {
+        // The server assigns the unallocated weight to the default recovery amount.
+        var defaultWeight = RandomFatigueRollRange - action.RandomFatigueRecovery.Sum(tier => (long)tier.Weight);
+        if (defaultWeight <= 0)
+            throw Reject("Random fatigue weights leave no weight for the default amount.");
+        return [new(action.RandomFatigueDefaultRecovery, (int)defaultWeight), .. action.RandomFatigueRecovery];
+    }
 
     internal static int SelectRandomFatigueRecovery(IReadOnlyList<FatigueRecoveryTier> tiers, int roll)
     {
