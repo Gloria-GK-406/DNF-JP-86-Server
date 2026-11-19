@@ -183,6 +183,8 @@ public enum ClientMessageType
     GameRequestPeer = 0x0001_000A,
     GameRequestAntonRaidPeer = 0x010A_000A,
     GameRespondAntonRaidPeer = 0x010A_000B,
+    GameFinishAntonRaidMovie = 0x0001_0294,
+    GameSelectAntonRaidReward = 0x0001_0295,
     GameCreateAntonRaid = 0x0001_0299,
     GameLeaveAntonRaid = 0x0001_029A,
     GameStartAntonRaid = 0x0001_029B,
@@ -497,6 +499,8 @@ public enum ServerMessageType
     // Native town-party NOTI payloads. These keys are type zero because they are server push
     // notifications rather than direct replies to the C2S command keys.
     GamePartyInviteRequest = 0x0000_0007,
+    GameFinishAntonRaidMovieReply = 0x0001_0294,
+    GameSelectAntonRaidRewardReply = 0x0001_0295,
     GameCreateAntonRaidReply = 0x0001_0299,
     GameLeaveAntonRaidReply = 0x0001_029A,
     GameStartAntonRaidReply = 0x0001_029B,
@@ -517,6 +521,9 @@ public enum ServerMessageType
     GameAntonRaidBuffStatus = 0x0000_027A,
     GameAntonRaidMonsterStatus = 0x0000_027B,
     GameAntonRaidRejoinOffer = 0x0000_0328,
+    GameAntonRaidMoviePrompt = 0x0000_0258,
+    GameAntonRaidRewardList = 0x0000_0259,
+    GameAntonRaidResult = 0x0000_025A,
     GameAntonRaidTownLoaded = 0x0000_04BD,
     GamePartyInviteAccepted = 0x0000_0008,
     GamePartyRoster = 0x0000_0009,

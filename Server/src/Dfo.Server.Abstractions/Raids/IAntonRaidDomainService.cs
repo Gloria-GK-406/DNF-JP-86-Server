@@ -58,6 +58,13 @@ public interface IAntonRaidDomainService : IDungeonBossClearHook
     ValueTask<AntonRaidStart> FinishIntermissionAsync(AntonRaidCombatDeadline deadline, CancellationToken ct);
     IReadOnlyList<Guid> PendingRunReturns();
     bool CompleteRunReturn(Guid run);
+    void QueueMemberDeparture(AntonRaidMemberDeparture departure);
+    IReadOnlyList<AntonRaidMemberDeparture> PendingMemberDepartures();
+    bool CompleteMemberDeparture(AntonRaidMemberDeparture departure);
     AntonRaidPhaseOutcome? PhaseOutcome(Guid instance, byte phase);
+    (Guid Instance, byte Phase)? SettlementOf(SelectedSessionIdentity session);
+    DateTimeOffset? StageDeadline(SelectedSessionIdentity session);
+    bool HasTerminalRaidCleanup();
+    IReadOnlyList<AntonRaidRecruitmentChange> CleanTerminalRaids();
     AntonRaidRecruitmentChange? CompletePhaseSettlement(Guid instance, byte phase);
 }

@@ -74,12 +74,15 @@ internal sealed class AntonRaidPhaseRuntime
 
     internal IEnumerable<AntonRaidCombatDeadline> Deadlines => timers.Values.Select(timer => timer.Deadline);
 
+    internal bool AttackOpenAt(DateTimeOffset now) => Succeeded is null
+        && timers.TryGetValue((AntonRaidCombatDeadlineKind.Attack, 0, 0), out var attack) && now < attack.Deadline.At;
+
     internal AntonRaidCombatSnapshot Snapshot() => new AntonRaidCombatSnapshot(Instance, Number, Phase, StartedAt, InfectedMap,
         maps.ToDictionary(item => item.Key, item => item.Value.Status), new Dictionary<uint, uint>(symbols),
         Deadlines.Where(timer => timer.Kind is AntonRaidCombatDeadlineKind.Attack or AntonRaidCombatDeadlineKind.MapTimer)
             .OrderBy(timer => timer.At).ToArray(),
         Sorties.Values.Select(sortie => new AntonRaidSortieSnapshot(sortie.Run.Value, sortie.DungeonId, sortie.Squad,
-            sortie.Participants.Values.ToArray(), sortie.Cleared, sortie.UsedCoins, sortie.HitPoints)).ToArray())
+            sortie.Participants.Keys.ToArray(), sortie.Cleared, sortie.UsedCoins, sortie.HitPoints)).ToArray())
     {
         Buffs = rules.Buffs.Select(buff => new AntonRaidBuffGroup(buff.Type,
             buffs.TryGetValue(buff.Type, out var target) ? [target] : [])).ToArray(),
@@ -93,7 +96,7 @@ internal sealed class AntonRaidPhaseRuntime
 
     internal bool Clear(Sortie sortie, IReadOnlyCollection<CharacterId> atClear, DateTimeOffset now, int seed)
     {
-        if (Succeeded is not null || sortie.Cleared || !maps.TryGetValue(sortie.DungeonId, out var map)
+        if (!AttackOpenAt(now) || sortie.Cleared || !maps.TryGetValue(sortie.DungeonId, out var map)
             || map.Status != AntonRaidMapStatus.Open || atClear.Count == 0)
             return false;
         Sorties[sortie.Squad] = sortie with { Cleared = true };

@@ -233,6 +233,8 @@ internal sealed partial class AntonRaidDomainService
 
     private IReadOnlyList<PartyNotificationPlan> ReplaceSquads(Recruitment raid)
     {
+        if (raid.LeaseReturned)
+            return [];
         var squads = raid.Members.Where(member => member.RejoinUntil is null
                 && !raid.DeferredSquadMembers.Contains(member.Session.CharacterId) && raid.PreparedSquads.Contains(member.Squad))
             .GroupBy(member => member.Squad).Select(squad => new PartyLeaseSquad(squad.Key,

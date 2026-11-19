@@ -221,10 +221,13 @@ internal sealed partial class AntonRaidDomainService(
         if (raid.Members.Count == 0)
         {
             raids.Remove(raid.Number);
-            if (run is { } active)
-                retiringLeases.Add(active, raid.Lease);
-            else
-                ReturnLease(raid.Lease);
+            if (!raid.LeaseReturned)
+            {
+                if (run is { } active)
+                    retiringLeases.Add(active, raid.Lease);
+                else
+                    ReturnLease(raid.Lease);
+            }
         }
 
         return Change(raid) with { Squads = squadChanges };
@@ -265,6 +268,7 @@ internal sealed partial class AntonRaidDomainService(
         public CharacterId LeaderId { get; set; } = leader.Session.CharacterId;
         public AntonRaidMember Leader => Members.First(member => member.Session.CharacterId == LeaderId);
         public PartyLease Lease { get; } = lease;
+        public bool LeaseReturned { get; set; }
         public AntonRaidStage Stage { get; set; }
         public byte Phase { get; set; }
         public bool CanEdit => Stage is AntonRaidStage.Recruiting or AntonRaidStage.Break;

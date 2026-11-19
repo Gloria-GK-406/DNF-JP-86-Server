@@ -79,6 +79,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddDungeonContents(configuration);
         services.AddMapClearQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidRewardGrantDomainService, Dfo.Server.Application.Raids.AntonRaidRewardGrantDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidRewardSettlementDomainService, Dfo.Server.Application.Raids.AntonRaidRewardSettlementDomainService>();
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddMail();
         services.AddChat();

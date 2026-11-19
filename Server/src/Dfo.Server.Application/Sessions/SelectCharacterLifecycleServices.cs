@@ -193,6 +193,9 @@ internal sealed class SelectedSessionCleanupService(
             // the run ends, or the whole run when nobody else is left in it.
             if (run is not null)
             {
+                var raidRun = run.Layout.Mode is DungeonRunMode.AntonRaid ? new AntonRaidMemberDeparture(run.RunId, session) : null;
+                if (raidRun is not null)
+                    Run(() => { raids.QueueMemberDeparture(raidRun); return true; });
                 var ended = false;
                 await RunAsync(() => SettleStepAsync(async () => { ended = await dungeonRuns.EndAsync(session.CharacterId, run.RunId).ConfigureAwait(false); }));
                 if (ended)
@@ -205,6 +208,8 @@ internal sealed class SelectedSessionCleanupService(
                             return true;
                         });
                     }
+                    if (raidRun is not null)
+                        Run(() => raids.CompleteMemberDeparture(raidRun));
                 }
             }
         }

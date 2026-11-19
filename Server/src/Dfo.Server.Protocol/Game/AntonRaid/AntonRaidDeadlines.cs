@@ -19,22 +19,25 @@ namespace Dfo.Server.Protocol.Game.AntonRaid;
 internal sealed record MaintainAntonRaidCommand : ICommand<AntonRaidDeadlineScan>;
 internal sealed record AdvanceAntonRaidCommand(AntonRaidDeadline Deadline) : ICommand<bool>;
 internal sealed record AdvanceAntonRaidCombatCommand(AntonRaidCombatDeadline Deadline) : ICommand<bool>;
-internal sealed record ReturnAntonRaidRunCommand(DungeonRunId Run) : ICommand<AntonRaidRunReturn>;
+internal sealed record ReturnAntonRaidRunCommand(DungeonRunId Run) : ICommand<bool>;
 internal sealed record ExpireAntonRaidRejoinCommand(AntonRaidRejoinExpiry Expiry) : ICommand<bool>;
 internal sealed record RestoreAntonRaidSquadsCommand : ICommand<bool>;
-internal sealed record AntonRaidRunReturn(bool Cleared, IReadOnlyList<SelectedSessionIdentity> Participants);
+internal sealed record CleanTerminalAntonRaidsCommand : ICommand<bool>;
+internal sealed record DepartAntonRaidMemberCommand(AntonRaidMemberDeparture Departure) : ICommand<bool>;
 internal sealed record AntonRaidDeadlineScan(DateTimeOffset? Next, IReadOnlyList<AntonRaidDeadline> Due,
     IReadOnlyList<AntonRaidCombatDeadline> Combat, IReadOnlyList<Guid> Returns, IReadOnlyList<AntonRaidRejoinExpiry> Expired,
-    bool RestoreSquads);
+    bool RestoreSquads, bool CleanTerminal, IReadOnlyList<AntonRaidMemberDeparture> Departures);
 
 internal sealed class AntonRaidDeadlineHandler(IAntonRaidDomainService raids, ICommandWorkUnits units,
     IOnlineUserQueryDomainService users, AntonRaidSquadProjection squads, ICommandProjections projections,
     TimeProvider clock, ILogger<AntonRaidDeadlineHandler> logger,
     IDungeonRunDepartureDomainService runDeparture, IDungeonRunProjectionDomainService runProjection,
+    DungeonTownReturnProjection townReturn,
     Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions)
     : ICommandHandler<MaintainAntonRaidCommand, AntonRaidDeadlineScan>, ICommandHandler<AdvanceAntonRaidCommand, bool>,
-      ICommandHandler<AdvanceAntonRaidCombatCommand, bool>, ICommandHandler<ReturnAntonRaidRunCommand, AntonRaidRunReturn>,
-      ICommandHandler<ExpireAntonRaidRejoinCommand, bool>, ICommandHandler<RestoreAntonRaidSquadsCommand, bool>
+      ICommandHandler<AdvanceAntonRaidCombatCommand, bool>, ICommandHandler<ReturnAntonRaidRunCommand, bool>,
+      ICommandHandler<ExpireAntonRaidRejoinCommand, bool>, ICommandHandler<RestoreAntonRaidSquadsCommand, bool>,
+      ICommandHandler<CleanTerminalAntonRaidsCommand, bool>, ICommandHandler<DepartAntonRaidMemberCommand, bool>
 {
     public ValueTask<AntonRaidDeadlineScan> HandleAsync(CommandExecutionContext context,
         MaintainAntonRaidCommand command, CancellationToken ct)
@@ -48,13 +51,15 @@ internal sealed class AntonRaidDeadlineHandler(IAntonRaidDomainService raids, IC
             .Concat(combat.Select(deadline => (DateTimeOffset?)deadline.At))
             .Concat(rejoins.Select(expiry => (DateTimeOffset?)expiry.At)).Min();
         var restoreSquads = raids.HasSquadRestorations();
-        if (returns.Count > 0 || restoreSquads)
+        var cleanTerminal = raids.HasTerminalRaidCleanup();
+        var departures = raids.PendingMemberDepartures();
+        if (returns.Count > 0 || restoreSquads || cleanTerminal || departures.Count > 0)
             next = now;
         if (next <= now)
             next = now.AddMilliseconds(100);
         return ValueTask.FromResult(new AntonRaidDeadlineScan(next, pending.Where(deadline => deadline.At <= now).ToArray(),
             combat.Where(deadline => deadline.At <= now).OrderBy(deadline => deadline.At).ThenBy(deadline => deadline.Generation).ToArray(),
-            returns, rejoins.Where(expiry => expiry.At <= now).ToArray(), restoreSquads));
+            returns, rejoins.Where(expiry => expiry.At <= now).ToArray(), restoreSquads, cleanTerminal, departures));
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceAntonRaidCombatCommand command, CancellationToken ct)
@@ -81,29 +86,21 @@ internal sealed class AntonRaidDeadlineHandler(IAntonRaidDomainService raids, IC
         return true;
     }
 
-    public async ValueTask<AntonRaidRunReturn> HandleAsync(CommandExecutionContext context,
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context,
         ReturnAntonRaidRunCommand command, CancellationToken ct)
     {
         if (!raids.PendingRunReturns().Contains(command.Run.Value))
-            return new(false, []);
+            return false;
         var current = runDeparture.Find(command.Run);
         if (current?.Layout.Mode is not DungeonRunMode.AntonRaid)
-        {
-            raids.CompleteRunReturn(command.Run.Value);
-            return new(false, []);
-        }
+            return raids.CompleteRunReturn(command.Run.Value);
         var frozen = runProjection.Find(command.Run).ToArray();
-        var ended = await units.WriteAsync(context, new("anton-raid.force-return",
+        foreach (var member in frozen)
+            raids.QueueMemberDeparture(new(command.Run, member, EnableClear: true));
+        await units.WriteAsync(context, new("anton-raid.force-return",
                 frozen.Where(sessions.IsInWorld).Select(member => new SelectedSessionRecipient(member, null)).ToArray()),
             (_, _) => runDeparture.EndRunAsync(command.Run), ct).ConfigureAwait(false);
-        raids.CompleteRunReturn(command.Run.Value);
-        foreach (var member in frozen)
-            runProjection.ParticipantDeparted(command.Run, member.CharacterId);
-        var recipients = frozen.Where(member => ended.Contains(member.CharacterId) && sessions.IsInWorld(member)).ToArray();
-        if (recipients.Length > 0)
-            await AntonRaidRuntimeProjection.SendAsync(projections, recipients,
-                [new Dfo.Server.Protocol.Game.DungeonClear.EnableClearDungeonNotification()], ct).ConfigureAwait(false);
-        return new(current.ClearOpen, recipients);
+        return raids.CompleteRunReturn(command.Run.Value);
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, ExpireAntonRaidRejoinCommand command, CancellationToken ct)
@@ -119,6 +116,38 @@ internal sealed class AntonRaidDeadlineHandler(IAntonRaidDomainService raids, IC
     {
         await squads.DeliverAsync(raids.RestoreAvailableSquads(), ct).ConfigureAwait(false);
         return true;
+    }
+
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, CleanTerminalAntonRaidsCommand command, CancellationToken ct)
+    {
+        await squads.DeliverChangesAsync(raids.CleanTerminalRaids(), ct).ConfigureAwait(false);
+        return true;
+    }
+
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, DepartAntonRaidMemberCommand command, CancellationToken ct)
+    {
+        var departure = command.Departure;
+        if (!raids.PendingMemberDepartures().Contains(departure))
+            return false;
+        var session = departure.Session;
+        if (departure.EnableClear && raids.PendingRunReturns().Contains(departure.Run.Value))
+            return false;
+        if (runDeparture.Find(departure.Run)?.Layout.Mode is DungeonRunMode.AntonRaid)
+        {
+            IReadOnlyList<SelectedSessionIdentity> audience = sessions.IsInWorld(session) ? [session] : [];
+            await units.WriteAsync(context, new("anton-raid.member-departure", TimerRecipientCapture.Capture(audience, users)),
+                (_, _) => runDeparture.EndAsync(session.CharacterId, departure.Run), ct).ConfigureAwait(false);
+        }
+        runProjection.ParticipantDeparted(departure.Run, session.CharacterId);
+        if (sessions.IsInWorld(session) && runDeparture.Find(session.CharacterId) is null)
+        {
+            if (departure.EnableClear)
+                await AntonRaidRuntimeProjection.SendAsync(projections, [session],
+                    [new Dfo.Server.Protocol.Game.DungeonClear.EnableClearDungeonNotification()], ct).ConfigureAwait(false);
+            if (!await townReturn.ReturnAsync(session, ct, replayExistingTown: true).ConfigureAwait(false))
+                return false;
+        }
+        return raids.CompleteMemberDeparture(departure);
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceAntonRaidCommand command, CancellationToken ct)
@@ -200,18 +229,16 @@ internal sealed class AntonRaidDeadlineSource : DungeonDeadlineSource
             await round.ItemAsync(new AdvanceAntonRaidCommand(deadline), "preparation deadline", ct).ConfigureAwait(false);
         foreach (var deadline in scan.Combat)
             await round.ItemAsync(new AdvanceAntonRaidCombatCommand(deadline), "combat deadline", ct).ConfigureAwait(false);
+        foreach (var departure in scan.Departures)
+            await round.ItemAsync(new DepartAntonRaidMemberCommand(departure), "depart raid member", ct).ConfigureAwait(false);
         foreach (var run in scan.Returns)
-        {
-            var runId = new DungeonRunId(run);
-            var result = await round.SubmitAsync(new ReturnAntonRaidRunCommand(runId), "end raid run", ct).ConfigureAwait(false);
-            foreach (var session in result.Participants)
-                await round.ItemAsync(new ProjectDungeonReturnCommand(session, runId, result.Cleared), "return raid member", ct)
-                    .ConfigureAwait(false);
-        }
+            await round.ItemAsync(new ReturnAntonRaidRunCommand(new DungeonRunId(run)), "end raid run", ct).ConfigureAwait(false);
         foreach (var expiry in scan.Expired)
             await round.ItemAsync(new ExpireAntonRaidRejoinCommand(expiry), "rejoin expiry", ct).ConfigureAwait(false);
         if (scan.RestoreSquads)
             await round.ItemAsync(new RestoreAntonRaidSquadsCommand(), "restore rejoined raid squads", ct).ConfigureAwait(false);
+        if (scan.CleanTerminal)
+            await round.ItemAsync(new CleanTerminalAntonRaidsCommand(), "clean terminal raids", ct).ConfigureAwait(false);
         return (await round.SubmitAsync(new MaintainAntonRaidCommand(), ct).ConfigureAwait(false)).Next;
     }
 }

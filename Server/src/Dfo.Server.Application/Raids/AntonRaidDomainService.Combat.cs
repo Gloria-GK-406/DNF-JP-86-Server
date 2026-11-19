@@ -13,6 +13,7 @@ namespace Dfo.Server.Application.Raids;
 internal sealed partial class AntonRaidDomainService
 {
     private readonly HashSet<Guid> pendingReturns = [];
+    private readonly Dictionary<(DungeonRunId Run, SelectedSessionIdentity Session), AntonRaidMemberDeparture> pendingMemberDepartures = [];
 
     public DungeonRunKind Kind => DungeonRunKind.AntonRaid;
 
@@ -22,7 +23,7 @@ internal sealed partial class AntonRaidDomainService
     public DungeonEntryIntent? Selection(SelectedSessionIdentity leader, int selection)
     {
         if (Of(leader) is not { Stage: AntonRaidStage.Attacking, Combat: { } combat } raid
-            || RecruitmentChannel(leader) != raid.Channel)
+            || RecruitmentChannel(leader) != raid.Channel || !combat.AttackOpenAt(clock.GetUtcNow()))
             return null;
         var squad = raid.Members.Single(member => member.Session == leader).Squad;
         if (squad == 0 || parties.FindByKey(raid.Lease.Keys[squad - 1])?.LeaderCharacterId != leader.CharacterId
@@ -35,7 +36,8 @@ internal sealed partial class AntonRaidDomainService
     public DungeonEntryIntent? HatcherySelection(SelectedSessionIdentity leader, int dungeonId)
     {
         if (dungeonRuns.Find(leader.CharacterId) is not { Layout.DungeonId: 218, Layout.Mode: DungeonRunMode.AntonRaid { Identity: var identity } } run
-            || RaidSortie(run) is not { } owned || Of(leader) != owned.Raid || !sessions.IsInWorld(leader)
+            || RaidSortie(run) is not { } owned || !owned.Combat.AttackOpenAt(clock.GetUtcNow())
+            || Of(leader) != owned.Raid || !sessions.IsInWorld(leader)
             || owned.Sortie.Participants.GetValueOrDefault(leader.CharacterId) != leader
             || parties.FindByKey(owned.Raid.Lease.Keys[owned.Sortie.Squad - 1])?.LeaderCharacterId != leader.CharacterId
             || HatcheryAt(run.CurrentRoomMapId) != dungeonId || !owned.Combat.HasCapacity(dungeonId, owned.Sortie.Squad, run.RunId))
@@ -59,13 +61,15 @@ internal sealed partial class AntonRaidDomainService
             || context.RequestMode != 0 && (context.RequestMode != 2 || source is null)
             || context.PracticeMode != 0 || context.MirrorQuestId is not null
             || CurrentCombat(identity) is not { Combat: { } live } raid
+            || !live.AttackOpenAt(clock.GetUtcNow())
             || content.Load().Hatcheries.Contains(context.DungeonId) != source.HasValue)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
 
         var combat = WithoutAbortedEntries(live);
         if (!combat.HasCapacity(context.DungeonId, identity.Squad, source))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
-        var roster = raid.Members.Where(member => member.Squad == identity.Squad).ToArray();
+        var roster = SquadOrder(raid, identity.Squad, raid.Members.Where(member => member.Squad == identity.Squad
+            && member.RejoinUntil is null && !raid.DeferredSquadMembers.Contains(member.Session.CharacterId))).ToArray();
         var party = parties.FindByKey(raid.Lease.Keys[identity.Squad - 1]);
         if (roster.Length == 0 || party is null || roster.Any(member => !sessions.IsInWorld(member.Session))
             || !context.Participants.OrderBy(member => member.Slot).Select(member => member.CharacterId)
@@ -233,7 +237,7 @@ internal sealed partial class AntonRaidDomainService
         CancellationToken ct)
     {
         if (hitPoints.Count is < 1 or > 5 || dungeonRuns.Find(session.CharacterId) is not { } run
-            || RaidSortie(run) is not { } owned || !sessions.IsInWorld(session)
+            || RaidSortie(run) is not { } owned || !owned.Combat.AttackOpenAt(clock.GetUtcNow()) || !sessions.IsInWorld(session)
             || owned.Sortie.Participants.GetValueOrDefault(session.CharacterId) != session)
             return false;
         var next = owned.Combat.Copy();
@@ -284,9 +288,72 @@ internal sealed partial class AntonRaidDomainService
     public AntonRaidPhaseOutcome? PhaseOutcome(Guid instance, byte phase) =>
         raids.Values.FirstOrDefault(raid => raid.Lease.Owner == instance)?.Outcomes.GetValueOrDefault(phase);
 
+    public (Guid Instance, byte Phase)? SettlementOf(SelectedSessionIdentity session) =>
+        Of(session) is { Stage: AntonRaidStage.Settling } raid ? (raid.Lease.Owner, raid.Phase) : null;
+
+    public DateTimeOffset? StageDeadline(SelectedSessionIdentity session) => Of(session)?.Deadline;
+
+    public bool HasTerminalRaidCleanup() => raids.Values.Any(TerminalRaidHasReturned);
+
+    public IReadOnlyList<AntonRaidRecruitmentChange> CleanTerminalRaids()
+    {
+        GameplayWriteAssertion.Writing(nameof(CleanTerminalRaids));
+        var changes = new List<AntonRaidRecruitmentChange>();
+        foreach (var raid in raids.Values.Where(TerminalRaidHasReturned).ToArray())
+        {
+            if (raid.Stage == AntonRaidStage.Failed)
+            {
+                foreach (var member in raid.Members)
+                {
+                    memberships.Remove(member.Session.CharacterId);
+                    InvalidateApprovals(member.Session);
+                }
+                raid.Members.Clear();
+                raids.Remove(raid.Number);
+            }
+            raid.PreparedSquads.Clear();
+            raid.DeferredSquadMembers.Clear();
+            var squads = ReplaceSquads(raid);
+            ReturnLease(raid.Lease);
+            raid.LeaseReturned = true;
+            changes.Add(Change(raid) with { Squads = squads });
+        }
+        return changes;
+    }
+
+    private bool TerminalRaidHasReturned(Recruitment raid) =>
+        raid.Stage is AntonRaidStage.Failed or AntonRaidStage.Completed && !raid.LeaseReturned && (raid.Combat is not { } combat
+            || combat.Ends.All(run => !pendingReturns.Contains(run.Value) && dungeonRuns.Find(run) is null
+                && pendingMemberDepartures.Keys.All(departure => departure.Run != run)));
+
     public IReadOnlyList<Guid> PendingRunReturns() => pendingReturns.ToArray();
 
     public bool CompleteRunReturn(Guid run) => pendingReturns.Remove(run);
+
+    public void QueueMemberDeparture(AntonRaidMemberDeparture departure)
+    {
+        GameplayWriteAssertion.Writing(nameof(QueueMemberDeparture));
+        var key = (departure.Run, departure.Session);
+        if (!pendingMemberDepartures.TryGetValue(key, out var previous) || departure.EnableClear && !previous.EnableClear)
+        {
+            pendingMemberDepartures[key] = departure;
+            deadlines.Wake(DungeonDeadlineKind.AntonRaid);
+        }
+    }
+
+    public IReadOnlyList<AntonRaidMemberDeparture> PendingMemberDepartures() => pendingMemberDepartures.Values.ToArray();
+
+    public bool CompleteMemberDeparture(AntonRaidMemberDeparture departure)
+    {
+        GameplayWriteAssertion.Writing(nameof(CompleteMemberDeparture));
+        var key = (departure.Run, departure.Session);
+        if (pendingMemberDepartures.GetValueOrDefault(key) != departure)
+            return false;
+        pendingMemberDepartures.Remove(key);
+        if (dungeonRuns.Find(departure.Run) is null)
+            OnRaidRunEnded(departure.Run);
+        return true;
+    }
 
     public AntonRaidRecruitmentChange? CompletePhaseSettlement(Guid instance, byte phase)
     {
@@ -301,6 +368,8 @@ internal sealed partial class AntonRaidDomainService
         {
             raid.Stage = stage;
             raid.Deadline = stage == AntonRaidStage.Break ? clock.GetUtcNow() + content.Load().IntermissionTime : null;
+            if (raid.Combat is { } combat)
+                pendingReturns.UnionWith(combat.Ends.Select(run => run.Value));
             deadlines.Wake(DungeonDeadlineKind.AntonRaid);
         });
         return change;
@@ -357,7 +426,7 @@ internal sealed partial class AntonRaidDomainService
                     && SquadOrder(raid, member.Squad, raid.Members.Where(candidate => candidate.Squad == member.Squad)).First() == member
                         ? (byte)1 : (byte)2)).ToArray();
             outcome = new(next.Instance, next.Number, next.Phase, success, next.DeathCount,
-                next.StartedAt, now, Array.AsReadOnly(members), Audience(raid));
+                next.StartedAt, now, Array.AsReadOnly(members), Audience(raid).Select(member => member.CharacterId).ToArray());
         }
         await PublishCombatAsync(raid, next, ct, participation).ConfigureAwait(false);
         if (outcome is not null)
@@ -368,7 +437,8 @@ internal sealed partial class AntonRaidDomainService
     private async ValueTask PublishCombatAsync(Recruitment raid, AntonRaidPhaseRuntime next, CancellationToken ct,
         bool participation = false, bool full = false, ushort life = 0, byte lifeState = 0, bool buffsChanged = false)
     {
-        var change = new AntonRaidCombatChanged(next.Snapshot(), Audience(raid), next.MapChanges.ToArray(),
+        var change = new AntonRaidCombatChanged(next.Snapshot(), Audience(raid).Select(member => member.CharacterId).ToArray(),
+            next.MapChanges.ToArray(),
             next.SymbolUpdates.ToArray(), next.TimerChanges.ToArray(), next.Ends.Select(run => run.Value).Distinct().ToArray(),
             participation, full, life, lifeState)
         {
@@ -412,8 +482,11 @@ internal sealed partial class AntonRaidDomainService
         StageAdmission(raid, () =>
         {
             raid.Combat = next;
-            pendingReturns.UnionWith(next.Ends.Select(run => run.Value));
-            if (outcome is not null)
+            if (outcome is null)
+            {
+                pendingReturns.UnionWith(next.Ends.Select(run => run.Value));
+            }
+            else
             {
                 raid.Stage = AntonRaidStage.Settling;
                 raid.Outcomes.Add(outcome.Phase, outcome);

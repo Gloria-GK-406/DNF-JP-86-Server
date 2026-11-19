@@ -70,7 +70,7 @@ internal sealed class AntonRaidRequestDecoder : IGameMessageDecoder
     }
 }
 
-internal sealed record AntonRaidReply(ServerMessageType MessageType, bool Accepted, uint Value = 0)
+internal sealed record AntonRaidReply(ServerMessageType MessageType, bool Accepted, uint Value = 0, byte Error = 1)
     : IGameCmdMessage;
 
 internal sealed class AntonRaidReplyEncoder : GameCmdMessageEncoder<AntonRaidReply>
@@ -80,7 +80,7 @@ internal sealed class AntonRaidReplyEncoder : GameCmdMessageEncoder<AntonRaidRep
         byte[] body;
         if (!message.Accepted)
         {
-            body = [0, 1];
+            body = [0, message.Error];
         }
         else if (message.MessageType is ServerMessageType.GameCreateAntonRaidReply or ServerMessageType.GameCheckAntonRaidUserReply)
         {

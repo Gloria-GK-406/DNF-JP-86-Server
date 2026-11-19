@@ -82,6 +82,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaStore, LegacyUsageQuotaStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.ITitleBookPersistence, Dfo.Server.Persistence.Achievements.SqliteAchievementPersistence>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidRewardLedger, Dfo.Server.Persistence.Raids.SqliteAntonRaidRewardLedger>();
         services.TryAddSingleton<ICharacterExperienceStoragePolicy, Dfo.Server.Persistence.Schema.CharacterExperienceStoragePolicy>();
         services.TryAddSingleton<INoticeStateTable, Dfo.Server.Persistence.Notices.NoticeStateTable>();
         services.TryAddSingleton<IAccountTable>(

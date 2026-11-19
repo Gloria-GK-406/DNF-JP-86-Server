@@ -1,6 +1,9 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
@@ -13,6 +16,8 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.AntonRaid;
+using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 using Dfo.Server.Testing;
 
@@ -47,7 +52,18 @@ public sealed class AntonRaidPeerCommandTests
         var projections = new ApprovalProjection();
         var workUnits = TestRequired.Absent<ICommandWorkUnits>((method, _) =>
             throw new InvalidOperationException($"Application unexpectedly opened a command work unit via {method.Name}."));
-        var handler = ProtocolAlgorithmFixture.Create<GameAntonRaidCommandHandler>(sessions, raids, channels, views, workUnits, projections);
+        var order = TestRequired.Absent<IOutboundOrdering>();
+        var partyProjection = new PartyProjectionStreamRegistry();
+        var squadProjection = new AntonRaidSquadProjection(new PartyClientIdRegistry(), projections, partyProjection,
+            parties, order, sessions, town);
+        var outbox = TestRequired.Absent<IGameCommandOutbox>();
+        var returnProjection = new DungeonTownReturnProjection(sessions, TestRequired.Absent<IDungeonRunQueryDomainService>(),
+            views, runtime, TestRequired.Absent<ITownTransitDomainService>(), town, outbox, TestRequired.Absent<IWeaknessDomainService>(),
+            projections, parties, partyProjection);
+        var rewards = new AntonRaidRewardProjection(TestRequired.Absent<IAntonRaidRewardSettlementDomainService>(),
+            TestRequired.Absent<IAntonRaidRewardPhaseBridge>(), sessions, views, outbox, TimeProvider.System);
+        var handler = ProtocolAlgorithmFixture.Create<GameAntonRaidCommandHandler>(sessions, raids, channels, views, workUnits,
+            projections, parties, order, partyProjection, outbox, squadProjection, returnProjection, rewards);
         var command = new GameAntonRaidCommand(new(new(applicant.ConnectionId, NetworkEndpointKind.Game, 10200)),
             new(GameMessageMetadata.Empty, ClientMessageType.GameRequestAntonRaidPeer, Target: leader.WireUserId));
         var request = new CommandRequestContext.ProtocolNonEffect(command.Dispatch, command.Message, command.Frame, () => true);

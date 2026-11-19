@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Networking;
-using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
@@ -49,9 +48,9 @@ internal sealed class GameAntonRaidCommandHandler(
     IOutboundOrdering ordering,
     AntonRaidSquadProjection squads,
     IDungeonRunDepartureDomainService raidDepartures,
-    IDungeonRunProjectionDomainService raidRunProjection,
-    IOnlineUserQueryDomainService users,
+    IDungeonEntryIntentDomainService entryIntents,
     DungeonTownReturnProjection dungeonReturn,
+    AntonRaidRewardProjection rewards,
     TimeProvider clock) : ICommandHandler<GameAntonRaidCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameAntonRaidCommand command, CancellationToken ct)
@@ -104,13 +103,13 @@ internal sealed class GameAntonRaidCommandHandler(
                 var run = departing is null ? null : raidDepartures.Find(departing.CharacterId);
                 var departure = raids.Leave(session, (ushort)input.Target);
                 var returnAfterLeave = false;
-                if (departure.Succeeded && departing is not null && run is not null)
+                if (departure.Succeeded && departing is not null && run is { Layout.Mode: DungeonRunMode.AntonRaid })
+                    raids.QueueMemberDeparture(new(run.RunId, departing));
+                if (departure.Succeeded && departing is not null
+                    && entryIntents.Find(departing) is { Kind: DungeonEntryIntentKind.AntonRaid })
                 {
-                    returnAfterLeave = await units.WriteAsync(execution,
-                        new("AntonRaidLeaveRun", TimerRecipientCapture.Capture([departing], users)),
-                        (_, _) => raidDepartures.EndAsync(departing.CharacterId, run.RunId), ct).ConfigureAwait(false);
-                    if (returnAfterLeave)
-                        raidRunProjection.ParticipantDeparted(run.RunId, departing.CharacterId);
+                    entryIntents.ClearExact(departing);
+                    returnAfterLeave = run is null && towns.Find(departing.CharacterId) is null;
                 }
                 if (!departure.Succeeded || input.Target == session.WireUserId)
                     await SendReplyAsync(ServerMessageType.GameLeaveAntonRaidReply, departure.Succeeded).ConfigureAwait(false);
@@ -175,11 +174,20 @@ internal sealed class GameAntonRaidCommandHandler(
                 {
                     var readiness = await units.WriteAsync(execution, new("AntonRaidRejoinTickets", []),
                         (_, token) => raids.TicketsAsync(session, token), ct).ConfigureAwait(false);
-                    IReadOnlyList<IGameServerMessage> battle = raids.CombatSnapshot(session) is { } resumedCombat
-                        ? AntonRaidCombatFrames.Snapshot(resumedCombat, clock.GetUtcNow()) : [];
+                    var now = clock.GetUtcNow();
+                    IReadOnlyList<IGameServerMessage> battle = resumed.Stage switch
+                    {
+                        AntonRaidStage.Attacking when raids.CombatSnapshot(session) is { } resumedCombat =>
+                            AntonRaidCombatFrames.Snapshot(resumedCombat, now),
+                        AntonRaidStage.Break when raids.StageDeadline(session) is { } breakEnds =>
+                            AntonRaidRuntimeNotice.Timer(breakEnds, now, kind: 1),
+                        _ => [],
+                    };
                     await AntonRaidRuntimeProjection.SendAsync(projections, [session],
                         [AntonRaidRuntimeNotice.Tickets(readiness), AntonRaidRuntimeNotice.State(resumed.Stage, resumed.Phase), .. battle],
                         ct).ConfigureAwait(false);
+                    if (resumed.Stage == AntonRaidStage.Settling)
+                        await rewards.ReplayAsync(session, ct).ConfigureAwait(false);
                 }
                 return rejoin.Succeeded;
 

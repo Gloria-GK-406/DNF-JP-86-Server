@@ -4,6 +4,8 @@
 
 A21 实机完成了进频道、建团、申请、批准和编入第 6 队，其余招募分支见[验收记录](../Document/tasks/anton-raid/recruitment/acceptance.md)。阶段业务、实机场景和保留项见[攻坚服务设计](../Document/tasks/anton-raid/design.md#82-a21-实机取证)。
 
+`feature/anton-raid` 已接开团、门票、实际小队、两阶段出战、断线重入和两阶段结算。上线与 A21 的进一步观察按[集中验收记录](../Document/tasks/anton-raid/delivery/acceptance.md)登记。表中同列还收录研究页，见各页的证据标签与保留项。
+
 [活动列表 `0x006C`](game/server-to-client/NOTI-0x006C.md) 的无详情身份 `181` 启用 A21 的团队频道入口。
 
 | 范围 | CMD 交换页 | NOTI |

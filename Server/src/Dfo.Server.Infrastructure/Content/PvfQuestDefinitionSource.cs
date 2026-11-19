@@ -532,6 +532,8 @@ internal sealed class PvfQuestDefinitionSource : IQuestDefinitionSource, Dfo.Ser
                     && intData.All(id => id > 0)
                     && intData.Distinct().Count() == intData.Count
                     => QuestTrigger.FromRemainingCounts([(0, intData.Count)]).PackedValue,
+                RaidPhaseClearObjectives.Type => QuestTrigger.FromRemainingCounts(
+                    RaidPhaseClearObjectives.Read(intData).Select(goal => (goal.Channel, goal.Required))).PackedValue,
                 "normal clear" => QuestTrigger.FromRemainingCounts([(0, 1), (1, 1)]).PackedValue,
                 _ => DefaultInitialTrigger,
             };

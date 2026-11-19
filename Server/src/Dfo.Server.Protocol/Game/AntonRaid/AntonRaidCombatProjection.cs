@@ -1,21 +1,30 @@
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Raids;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Raids;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.AntonRaid;
 
-internal sealed class AntonRaidCombatNotificationSubscriber(IEventService events, TimeProvider clock)
+internal sealed class AntonRaidCombatNotificationSubscriber(IEventService events, IAntonRaidDomainService raids,
+    ISelectedSessionDomainService sessions, TimeProvider clock)
     : IDomainEventSubscriber<AntonRaidCombatChanged>
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<AntonRaidCombatChanged> message, CancellationToken ct)
     {
         var change = message.Payload;
-        if (change.Audience.Count == 0) return;
+        var recipients = change.Audience.Select(character => sessions.TryGetInWorld(character, out var session) ? session : null)
+            .OfType<SelectedSessionIdentity>()
+            .Where(session => raids.CombatSnapshot(session) is { } current
+                && current.Instance == change.Snapshot.Instance && current.Phase == change.Snapshot.Phase)
+            .ToArray();
+        if (recipients.Length == 0)
+            return;
         var notices = AntonRaidCombatFrames.Change(change, clock.GetUtcNow());
         if (notices.Count > 0)
-            _ = await events.ProjectAsync(new NotificationAudience.TheseSessions(change.Audience),
+            _ = await events.ProjectAsync(new NotificationAudience.TheseSessions(recipients),
                 new AntonRaidRuntimeChanged(notices), ct).ConfigureAwait(false);
     }
 }
@@ -73,7 +82,7 @@ internal static class AntonRaidCombatFrames
             frames.Add(Remaining(wholePhase.At, now, wholePhase.Kind == AntonRaidCombatDeadlineKind.Intermission ? (byte)1 : (byte)0));
         var groups = snapshot.Sorties.Where(sortie => sortie.Participants.Count > 0).SelectMany(sortie =>
         {
-            var users = sortie.Participants.Select(member => member.WireUserId).ToArray();
+            var users = sortie.Participants.Select(SelectedSessionIdentity.ToWireUserId).ToArray();
             return new AntonRaidParticipationGroup[] { new(sortie.DungeonId, 0, users), new(sortie.DungeonId, (byte)(sortie.Cleared ? 4 : 1), users) };
         }).ToArray();
         if (groups.Length > 0)
@@ -162,7 +171,7 @@ internal static class AntonRaidCombatFrames
             {
                 writer.Write((ushort)sortie.Squad);
                 writer.Write(checked((byte)sortie.Participants.Count));
-                foreach (var member in sortie.Participants) writer.Write(member.WireUserId);
+                foreach (var member in sortie.Participants) writer.Write(SelectedSessionIdentity.ToWireUserId(member));
                 writer.Write(checked((uint)sortie.UsedCoins));
                 writer.Write(checked((byte)sortie.MonsterHitPoints.Count));
                 foreach (var hp in sortie.MonsterHitPoints) writer.Write(hp);

@@ -254,7 +254,10 @@ public sealed class QuestProgressDomainServiceTests
         RecordingQuestLogs logs,
         IQuestTriggerDomainService clientReports,
         ISeekingQuestProgressDomainService? seeking = null) =>
-        new(new FixedDefinitions(), logs, clientReports, seeking ?? new NoSeekingProgress(), mirror: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>());
+        new(new FixedDefinitions(), logs, clientReports, seeking ?? new NoSeekingProgress(),
+            mirror: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>(),
+            raidLedger: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidRewardLedger>(),
+            daily: TestRequired.Absent<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>());
 
     private sealed class FixedDefinitions : IQuestDefinitionDomainService
     {

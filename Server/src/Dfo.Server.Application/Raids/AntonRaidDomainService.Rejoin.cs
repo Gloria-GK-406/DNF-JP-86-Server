@@ -57,7 +57,7 @@ internal sealed partial class AntonRaidDomainService
             return AntonRaidRecruitmentResult.Refused;
         var returning = raid.Members[index] with { Session = session, DisconnectedAt = null, RejoinUntil = null };
         raid.Members[index] = returning;
-        if (returning.Squad != 0 && raid.Stage == AntonRaidStage.Attacking
+        if (returning.Squad != 0 && raid.Stage is AntonRaidStage.Attacking or AntonRaidStage.Settling
             && raid.Members.Any(member => member != returning && member.Squad == returning.Squad
                 && dungeonRuns.Find(member.Session.CharacterId) is { } run
                 && run.PartyKey == raid.Lease.Keys[returning.Squad - 1]))

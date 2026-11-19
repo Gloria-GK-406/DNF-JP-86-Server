@@ -67,7 +67,7 @@ internal static class QuestObjectives
         "meet secret npc", "turn gold card", "ui click", "assault count", "mobile",
         "accumulate play", "powerwar win", "belong to winning power", "powerwar point",
         "clear quest by grade", "clear a dungeon", "use skill", "pvp quest", "pvp match",
-        "pvp rank", "raid phase clear", "level up", "first grow", "awakening",
+        "pvp rank", "level up", "first grow", "awakening",
         "get item check index", "quest accept",
     ];
 

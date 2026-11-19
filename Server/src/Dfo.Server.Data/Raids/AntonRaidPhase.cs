@@ -25,7 +25,7 @@ public sealed record AntonRaidPhaseParticipant(AccountId AccountId, CharacterId 
 
 public sealed record AntonRaidPhaseOutcome(Guid Instance, uint Number, byte Phase, bool Succeeded, int DeathCount,
     DateTimeOffset StartedAt, DateTimeOffset EndedAt, IReadOnlyList<AntonRaidPhaseParticipant> Eligible,
-    IReadOnlyList<SelectedSessionIdentity> Audience);
+    IReadOnlyList<CharacterId> Audience);
 
 public enum AntonRaidCombatDeadlineKind : byte { Attack, MapTimer, ReservedMap, Intermission, Rejoin, ShieldRecovery }
 
@@ -40,7 +40,7 @@ public sealed record AntonRaidCombatSnapshot(Guid Instance, uint Number, byte Ph
 }
 
 public sealed record AntonRaidSortieSnapshot(Guid Run, int DungeonId, byte Squad,
-    IReadOnlyList<SelectedSessionIdentity> Participants, bool Cleared, int UsedCoins, IReadOnlyList<uint> MonsterHitPoints);
+    IReadOnlyList<CharacterId> Participants, bool Cleared, int UsedCoins, IReadOnlyList<uint> MonsterHitPoints);
 
 public readonly record struct AntonRaidEntryIdentity(Guid Instance, uint Number, byte Phase, long Generation, byte Squad);
 

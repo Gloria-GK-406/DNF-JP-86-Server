@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 12;
+    public const int Version = 13;
 
     private static readonly string[] Tables = TableDeclarations
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -69,8 +69,28 @@ internal static class CharacterDatabaseSchema
     internal static void DeclareTables(SqliteConnection connection, SqliteTransaction? transaction)
     {
         Apply(connection, transaction, Tables);
+        DeclareAntonRaidRewards(connection, transaction);
         Apply(connection, transaction,
             ["CREATE TRIGGER IF NOT EXISTS equipment_rental_item_deleted AFTER DELETE ON items BEGIN DELETE FROM equipment_rental_instances WHERE item_uid=OLD.item_uid; END"]);
+    }
+
+    internal static void DeclareAntonRaidRewards(SqliteConnection connection, SqliteTransaction? transaction = null)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS anton_raid_reward_ledger (
+                instance TEXT NOT NULL, phase INTEGER NOT NULL,
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                kind INTEGER NOT NULL, PRIMARY KEY(instance, phase, character_id, kind))
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS anton_raid_quest_periods (
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                quest_id INTEGER NOT NULL, phase INTEGER NOT NULL, period INTEGER NOT NULL,
+                PRIMARY KEY(character_id, quest_id, phase, period))
+            """,
+        ]);
     }
 
     /// <summary>Creates every declared index that does not exist yet.</summary>

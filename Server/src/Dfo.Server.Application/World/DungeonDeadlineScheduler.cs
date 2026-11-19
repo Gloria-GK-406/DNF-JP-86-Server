@@ -98,6 +98,7 @@ internal sealed class DungeonDeadlineScheduler : TypedGameplayTimerSource, IDung
         DungeonDeadlineKind.LostLandCompletion => "timer:DungeonDeadlineScheduler/lost-land-completion",
         DungeonDeadlineKind.LostLandFever => "timer:DungeonDeadlineScheduler/lost-land-fever",
         DungeonDeadlineKind.AntonRaid => "timer:DungeonDeadlineScheduler/anton-raid",
+        DungeonDeadlineKind.AntonRaidRewards => "timer:DungeonDeadlineScheduler/anton-raid-rewards",
     };
 
     protected override async Task RunRoundAsync(GameplayCallChain root, CancellationToken token)
