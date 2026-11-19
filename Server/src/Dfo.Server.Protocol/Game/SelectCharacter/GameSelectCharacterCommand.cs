@@ -48,6 +48,7 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
@@ -185,7 +186,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await InitializeHousingAsync(execution, session, cancellationToken).ConfigureAwait(false);
             var state = await PrepareStateAsync(execution, session, prepared.Selected, prepared.Channel, cancellationToken)
                 .ConfigureAwait(false);
-            await ExecuteAcceptedWorkflowAsync(execution, session, state, cancellationToken)
+            await ExecuteAcceptedWorkflowAsync(execution, session, state, prepared.Channel, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (ChannelAdmissionRefusedException refusal)
@@ -290,7 +291,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
 
     private async ValueTask ExecuteAcceptedWorkflowAsync(
         CommandExecutionContext execution, SelectedSessionIdentity session,
-        SelectCharacterResult prepared,
+        SelectCharacterResult prepared, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)
     {
         var friends = await ReadRelationsAsync(execution, session, cancellationToken).ConfigureAwait(false);
@@ -382,6 +383,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await PublishCommittedEntryAsync(
                 session, town, cancellationToken).ConfigureAwait(false);
         }
+        EnsureCurrent(session);
+        if (SendsFramesAfterTheCompletionMarker && channel.Kind == ChannelEntryKind.Raid)
+            await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
+                new AntonRaidTownArrived(session), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         await AnnounceToFriendsAsync(execution, session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);

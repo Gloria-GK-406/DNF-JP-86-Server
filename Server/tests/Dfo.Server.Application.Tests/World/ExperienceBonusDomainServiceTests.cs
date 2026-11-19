@@ -367,6 +367,9 @@ public sealed class ExperienceBonusDomainServiceTests
             ValueTask.FromResult(new ChannelEntryIdentity(
                 channelId, listenerPort, ChannelEntryKind.General));
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
     }
 }

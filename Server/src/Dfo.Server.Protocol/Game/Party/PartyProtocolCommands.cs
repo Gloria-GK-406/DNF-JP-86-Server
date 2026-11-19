@@ -36,6 +36,7 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -150,7 +151,7 @@ internal sealed class GameSetUdpIpPortCommandHandler(IOnlineUserQueryDomainServi
 internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties, IPartyMemberStatusDomainService memberStatus,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, ILogger<GameRequestPeerCommandHandler> logger)
+    IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameRequestPeerCommandHandler> logger)
     :
       ICommandHandler<GameRequestPeerCommand, bool>
 {
@@ -208,12 +209,15 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
             result.Succeeded, result.Failure);
         return result.Succeeded;
 
-        async ValueTask<PartyOperationResult> InviteAsync(PartyCharacterSnapshot inviter, PartyCharacterSnapshot target)
+        async ValueTask<PartyOperationResult> InviteAsync(PartyCharacterSnapshot inviterCharacter, PartyCharacterSnapshot targetCharacter)
         {
-            var display = await memberStatus.InvitationOfAsync(inviter, cancellationToken).ConfigureAwait(false);
+            if (raids.IsRecruitingMember(inviter) || raids.IsRecruitingMember(target))
+                return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
+
+            var display = await memberStatus.InvitationOfAsync(inviterCharacter, cancellationToken).ConfigureAwait(false);
             request.DemandCurrent();
-            return PartyRunAdmission.Refusal(runs, inviter, target)
-                ?? parties.RequestInvite(inviter, target, display);
+            return PartyRunAdmission.Refusal(runs, inviterCharacter, targetCharacter)
+                ?? parties.RequestInvite(inviterCharacter, targetCharacter, display);
         }
 
         ValueTask RefuseAsync(PartyFailureReason failure) => outbox.RegisterExplicitAsync(
@@ -228,7 +232,7 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
 internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IDungeonRunQueryDomainService runs, IGameCommandOutbox outbox, ILogger<GameResponsePeerCommandHandler> logger)
+    IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameResponsePeerCommandHandler> logger)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -267,6 +271,8 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
 
         var result = await (!sessions.IsInWorld(invitee) || !sessions.IsInWorld(inviter)
                 ? ValueTask.FromResult(PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent))
+                : raids.IsRecruitingMember(invitee) || raids.IsRecruitingMember(inviter)
+                    ? ValueTask.FromResult(PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting))
                 : PartyCharacterProjection.TryCapture(invitee, townAreas, out var inviteeCharacter)
                     && PartyCharacterProjection.TryCapture(inviter, townAreas, out var inviterCharacter)
                     ? ValueTask.FromResult(PartyRunAdmission.Refusal(runs, inviteeCharacter, inviterCharacter)
@@ -314,7 +320,7 @@ internal static class PartyRunAdmission
 internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
-    IGameCommandOutbox outbox, ILogger<GameSetPartyInfoCommandHandler> logger)
+    IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameSetPartyInfoCommandHandler> logger)
     :
       ICommandHandler<GameSetPartyInfoCommand, bool>
 {
@@ -335,11 +341,11 @@ internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDom
             return false;
         }
 
-        var result = await ( sessions.IsInWorld(session)
-                && PartyCharacterProjection.TryCapture(session, townAreas, out var character)
-                ? ValueTask.FromResult(parties.CreateOrUpdateSettings(character, message.Settings, message.Title))
-                : ValueTask.FromResult(PartyOperationResult.Reject(
-                    PartyFailureReason.CallerNotCurrent))).ConfigureAwait(false);
+        var result = raids.IsRecruitingMember(session)
+            ? PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting)
+            : sessions.IsInWorld(session) && PartyCharacterProjection.TryCapture(session, townAreas, out var character)
+                ? parties.CreateOrUpdateSettings(character, message.Settings, message.Title)
+                : PartyOperationResult.Reject(PartyFailureReason.CallerNotCurrent);
         var recipients = PartyNotificationRecipientCapture.Capture(result.Notifications, sessions, townAreas);
         if (result.Succeeded)
         {

@@ -11,6 +11,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
@@ -126,6 +127,9 @@ internal sealed class RequestPeerDecoder : IGameMessageDecoder
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         PartyCommandBody.RequireLength("REQUEST_PEER", body, 7, 9);
+        if (body[2] == 10)
+            return body.Length == 9 ? new AntonRaidRequest(metadata, ClientMessageType.GameRequestAntonRaidPeer,
+                BinaryPrimitives.ReadUInt32LittleEndian(body[3..]), BinaryPrimitives.ReadUInt16LittleEndian(body)) : null;
         return new RequestPeerRequest(
             metadata,
             BinaryPrimitives.ReadUInt16LittleEndian(body),
@@ -140,6 +144,9 @@ internal sealed class ResponsePeerDecoder : IGameMessageDecoder
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         PartyCommandBody.RequireLength("RESPONSE_PEER", body, 7, 16);
+        if (body[2] == 10)
+            return body.Length == 7 ? new AntonRaidRequest(metadata, ClientMessageType.GameRespondAntonRaidPeer,
+                BinaryPrimitives.ReadUInt32LittleEndian(body[3..]), BinaryPrimitives.ReadUInt16LittleEndian(body)) : null;
         return new ResponsePeerRequest(
             metadata,
             BinaryPrimitives.ReadUInt16LittleEndian(body),

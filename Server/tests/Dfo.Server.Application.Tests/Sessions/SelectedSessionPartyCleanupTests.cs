@@ -293,7 +293,10 @@ public sealed class SelectedSessionPartyCleanupTests
                 new StubChannelEntryPolicy(),
                 Parties.Service,
                 TestParties.Runs(),
-                [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations, relations: Friends, identities: Friends, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance);
+                [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations, relations: Friends, identities: Friends, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
+                raids: new Dfo.Server.Application.Raids.AntonRaidDomainService(sessions,
+                    TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>(), Parties.Service,
+                    Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy, TimeProvider.System));
         }
 
         public PartyServiceTestAdapter Parties { get; }

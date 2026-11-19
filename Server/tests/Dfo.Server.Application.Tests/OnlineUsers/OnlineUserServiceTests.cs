@@ -93,7 +93,10 @@ public sealed class UserServiceTests
             new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
             [new KeptPositions()], runtime, new StubChannelEntryPolicy(),
             parties,
-            TestParties.Runs(parties: parties), [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance);
+            TestParties.Runs(parties: parties), [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
+                raids: new Dfo.Server.Application.Raids.AntonRaidDomainService(service.Sessions,
+                    TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>(), parties,
+                    Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy, TimeProvider.System));
 
         TestGameplay.Run(() =>
         {
@@ -672,9 +675,10 @@ public sealed class UserServiceTests
             CancellationToken cancellationToken) =>
             ValueTask.FromResult(channel with { ListenerPort = listenerPort });
 
-        public ChannelAdmissionRefusal? Refuse(
-            ChannelEntryIdentity channel,
-            int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
     }
 
     /// <summary>

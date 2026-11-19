@@ -181,6 +181,14 @@ public enum ClientMessageType
     // Native town-party lifecycle commands. REQUEST/RESPONSE type zero is the party branch;
     // other peer-request types remain deliberately outside this implementation.
     GameRequestPeer = 0x0001_000A,
+    GameRequestAntonRaidPeer = 0x010A_000A,
+    GameRespondAntonRaidPeer = 0x010A_000B,
+    GameCreateAntonRaid = 0x0001_0299,
+    GameLeaveAntonRaid = 0x0001_029A,
+    GameManageAntonRaid = 0x0001_029E,
+    GameRequestAntonRaidDirectory = 0x0001_033C,
+    GameRequestAntonRaidMembers = 0x0001_0363,
+    GameCheckAntonRaidUser = 0x0001_0364,
     GameResponsePeer = 0x0001_000B,
     GameLeaveParty = 0x0001_000D,
     GameRemovePartyMember = 0x0001_000E,
@@ -482,6 +490,12 @@ public enum ServerMessageType
     // Native town-party NOTI payloads. These keys are type zero because they are server push
     // notifications rather than direct replies to the C2S command keys.
     GamePartyInviteRequest = 0x0000_0007,
+    GameCreateAntonRaidReply = 0x0001_0299,
+    GameLeaveAntonRaidReply = 0x0001_029A,
+    GameCheckAntonRaidUserReply = 0x0001_0364,
+    GameAntonRaidDirectory = 0x0000_024F,
+    GameAntonRaidChanged = 0x0000_0250,
+    GameAntonRaidTownLoaded = 0x0000_04BD,
     GamePartyInviteAccepted = 0x0000_0008,
     GamePartyRoster = 0x0000_0009,
     // Synthetic catalogue identity: the encoder emits NOTI 0x0009 type 1, while a distinct key

@@ -1,6 +1,8 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Application.Events;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Events;
 
 namespace Dfo.Server.Application.Tests.Events;
@@ -14,7 +16,7 @@ public sealed class EventInformationIdentityTests
     public async Task Shared_identity_is_sent_once_even_when_owners_have_different_periods()
     {
         var service = new EventManagementDomainService([new Owner(2215, Dependency(At.AddDays(1))),
-            new Owner(2330, Dependency(At.AddDays(2)))], new UnusedLifecycle());
+            new Owner(2330, Dependency(At.AddDays(2)))], new UnusedLifecycle(), new Catalog(1));
         var list = await service.GetEventInfoListAsync(new(1), At, default);
         Assert.Single(list, x => x.EventId == 69);
     }
@@ -23,8 +25,39 @@ public sealed class EventInformationIdentityTests
     public async Task Conflicting_wire_content_is_not_silently_hidden_by_deduplication()
     {
         var service = new EventManagementDomainService([new Owner(2215, Dependency(At.AddDays(1))),
-            new Owner(2330, Dependency(At.AddDays(1)) with { StartNotice = "different" })], new UnusedLifecycle());
+            new Owner(2330, Dependency(At.AddDays(1)) with { StartNotice = "different" })], new UnusedLifecycle(), new Catalog(1));
         await Assert.ThrowsAsync<InvalidDataException>(async () => await service.GetEventInfoListAsync(new(1), At, default));
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(23, true)]
+    public async Task Raid_channel_catalog_controls_event_info_entry(byte environment, bool raidChannelEnabled)
+    {
+        var service = new EventManagementDomainService([], new UnusedLifecycle(), new Catalog(environment));
+
+        var list = await service.GetEventInfoListAsync(new(1), At, default);
+
+        if (raidChannelEnabled)
+        {
+            var entry = Assert.Single(list);
+            Assert.Equal(181, entry.EventId);
+            Assert.False(entry.HasDetail);
+            Assert.Empty(entry.StartNotice);
+            Assert.Empty(entry.EndNotice);
+        }
+        else
+        {
+            Assert.Empty(list);
+        }
+    }
+
+    private sealed class Catalog(byte environment) : IChannelContentRuleService
+    {
+        public string ScriptVersion => throw new NotSupportedException();
+        public ValueTask<byte[]> ReadScriptAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<ChannelServerInfo>> ChannelsAsync(CancellationToken cancellationToken) =>
+            ValueTask.FromResult<IReadOnlyList<ChannelServerInfo>>([new(200, "#ch.200", 250, 0, "127.0.0.1", 10200, environment)]);
     }
 
     private sealed class UnusedLifecycle : IManagedEventLifecycleDomainService

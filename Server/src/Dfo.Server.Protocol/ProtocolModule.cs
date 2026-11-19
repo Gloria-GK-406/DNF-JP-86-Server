@@ -79,6 +79,7 @@ using Dfo.Server.Protocol.Game.MagicBoxSingleOpening;
 using Dfo.Server.Protocol.Game.PackageOpening;
 using Dfo.Server.Protocol.Game.LotteryOpening;
 using Dfo.Server.Protocol.Game.VendingMachine;
+using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.AvatarPackageOpening;
 using Dfo.Server.Protocol.Game.GenCeraTicket;
@@ -173,6 +174,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddMailboxSlice();
         services.AddQuestProgressSlice();
         services.AddPartySlice();
+        services.AddAntonRaidSlice();
         services.AddGameMessageSending();
         services.TryAddSingleton<Dfo.Server.Abstractions.Effects.IReplayStateProjectionSink, ReplayStateProjectionDelivery>();
         services.AddDungeonsSlice();

@@ -9,7 +9,9 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Raids;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -52,7 +54,8 @@ internal sealed class SelectedSessionCleanupService(
     Dfo.Server.Abstractions.Chat.IChatConversationDomainService conversations,
     Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService relations,
     ICharacterIdentityQueryDomainService identities,
-    ILogger<SelectedSessionCleanupService> logger) : ISelectedSessionCleanupDomainService
+    ILogger<SelectedSessionCleanupService> logger,
+    IAntonRaidDomainService raids) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {
@@ -75,6 +78,7 @@ internal sealed class SelectedSessionCleanupService(
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> conversationDepartures = [];
         SelectedSessionFriendDeparture? friendDeparture = null;
+        AntonRaidRecruitmentChange? raidDeparture = null;
         var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && currentMember.Session == session)
         {
@@ -202,6 +206,7 @@ internal sealed class SelectedSessionCleanupService(
                 }
             }
         }
+        Run(() => { raidDeparture = raids.Disconnected(session); return raidDeparture is not null; });
         Run(() => expertStores.CloseExact(session));
         Run(() => { housing.CloseExact(session); return true; });
         Run(() => pvp.ClearReadyExact(session));
@@ -254,6 +259,7 @@ internal sealed class SelectedSessionCleanupService(
         {
             ConversationDepartures = conversationDepartures,
             FriendDeparture = friendDeparture,
+            RaidDeparture = raidDeparture,
         };
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);

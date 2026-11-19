@@ -1,8 +1,10 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Configuration;
+using Dfo.Server.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,8 +41,8 @@ public sealed class ChannelEntryDomainServiceTests
         var domain = Domain(deployment,null);
         var unknown = await domain.ResolveAsync(19999,default);
         Assert.Equal(0,unknown.ChannelId); Assert.Equal(ChannelEntryKind.General,unknown.Kind);
-        Assert.Null(domain.Refuse(unknown,1));
-        var refusal=domain.Refuse(new(100,10011,ChannelEntryKind.SaintHorn),69);
+        Assert.Null(await domain.RefuseAsync(unknown,new(1),new(1),1,default));
+        var refusal=await domain.RefuseAsync(new(100,10011,ChannelEntryKind.SaintHorn),new(1),new(1),69,default);
         Assert.Equal((byte)0xFD,refusal!.ErrorCode);
         Assert.Equal("圣者之鸣号频道仅限70级及以上角色进入。",refusal.Message);
         Assert.Empty(deployment.Reads);
@@ -55,6 +57,7 @@ public sealed class ChannelEntryDomainServiceTests
         services.AddSingleton<IChannelLoginDeploymentSource>(new Deployment());
         services.AddSingleton<IChannelCatalog>(new Catalog(null));
         services.AddSingleton<IChannelScriptSource>(new Script());
+        services.AddSingleton(TestRequired.Absent<ICharacterQuestLogDomainService>());
         new ApplicationModule().ConfigureServices(services,new ConfigurationBuilder().Build());
         using var provider=services.BuildServiceProvider();
         Assert.Same(provider.GetRequiredService<ChannelEntryDomainService>(),provider.GetRequiredService<IChannelEntryDomainService>());
@@ -62,7 +65,7 @@ public sealed class ChannelEntryDomainServiceTests
 
     private static ChannelEntryDomainService Domain(Deployment deployment,byte? environment) => new(
         new ChannelContentRuleService(new Catalog(environment),new Script()),ChannelEntryOptions.Legacy,
-        new ChannelListenerOptions([10011],false),deployment);
+        new ChannelListenerOptions([10011],false),deployment,TestRequired.Absent<ICharacterQuestLogDomainService>());
     private sealed class Catalog(byte? environment):IChannelCatalog
     {
         public ValueTask<IReadOnlyList<ChannelServerInfo>> GetChannelsAsync(CancellationToken ct)=>

@@ -87,7 +87,10 @@ public sealed class SelectCharacterPreparationService(
 
         // Admission depends only on minimum character facts. Refuse before loading any
         // entry state so the rejected selection leaves the current online state untouched.
-        if (channels.Refuse(channel, character.Progression.Level) is { } refusal)
+        var refusal = await channels.RefuseAsync(
+            channel, accountId, character.Identity.CharacterId, character.Progression.Level, cancellationToken)
+            .ConfigureAwait(false);
+        if (refusal is not null)
             throw new ChannelAdmissionRefusedException(channel, refusal);
 
         return character;

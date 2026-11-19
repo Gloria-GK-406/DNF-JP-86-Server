@@ -1,11 +1,15 @@
+using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Application.Channel;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDomainService> registered,
-    IManagedEventLifecycleDomainService lifecycle) : IEventManagementDomainService
+    IManagedEventLifecycleDomainService lifecycle, IChannelContentRuleService channels) : IEventManagementDomainService
 {
+    private const int RaidChannelEventId = 181;
+
     private readonly IManagedEventDomainService[] events = Registered(registered);
     private static IManagedEventDomainService[] Registered(IEnumerable<IManagedEventDomainService> all)
     {
@@ -41,6 +45,16 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
                 && previous.StartNotice == entry.StartNotice && previous.EndNotice == entry.EndNotice) continue;
             throw new InvalidDataException($"Conflicting event information for identity {entry.EventId}.");
         }
+        var catalog = await channels.ChannelsAsync(ct);
+        if (!unique.ContainsKey(RaidChannelEventId)
+            && catalog.Any(channel => channel.LoginEnvironment == ChannelEntryDomainService.RaidLoginEnvironment))
+        {
+            unique.Add(RaidChannelEventId, new EventInfo(RaidChannelEventId, "", "", "", "", "", now, now, "")
+            {
+                HasDetail = false,
+            });
+        }
+
         return [..unique.Values];
     }
     public async ValueTask<ManagedEventList> ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)

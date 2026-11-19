@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Channel;
+using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Tests.Channel;
@@ -18,7 +19,7 @@ public sealed class ChannelAdmissionTests
         var policy = new ChannelEntryDomainService(new ChannelContentRuleService(new StubChannelCatalog(
             [new ChannelServerInfo(id, $"#ch.{id}", 100, 0, "127.0.0.1", 10000 + id, environment)]),
             new NoChannelScript()), ChannelEntryOptions.Legacy,
-            new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false), new UnusedDeployment());
+            new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false), new UnusedDeployment(), new RecordingQuestLogs());
         var channel = await policy.ResolveAsync(10000 + id, default);
         Assert.Equal(environment, channel.LoginEnvironment);
         Assert.Equal(kind, channel.Kind);
@@ -51,7 +52,7 @@ public sealed class ChannelAdmissionTests
                 ]),
                 new NoChannelScript()),
             ChannelEntryOptions.Legacy,
-            new ChannelListenerOptions([10011], AllowAdvertisedPortFallback: false), new UnusedDeployment());
+            new ChannelListenerOptions([10011], AllowAdvertisedPortFallback: false), new UnusedDeployment(), new RecordingQuestLogs());
 
         var mapped = await policy.ResolveAsync(10011, CancellationToken.None);
         var advertisementIsNotABind = await policy.ResolveAsync(37102, CancellationToken.None);
@@ -76,17 +77,17 @@ public sealed class ChannelAdmissionTests
             ChannelEntryOptions.Legacy,
             new ChannelListenerOptions(
                 [10011, 10161],
-                AllowAdvertisedPortFallback: true), new UnusedDeployment());
+                AllowAdvertisedPortFallback: true), new UnusedDeployment(), new RecordingQuestLogs());
 
         var general = await policy.ResolveAsync(10011, CancellationToken.None);
         var restricted = await policy.ResolveAsync(10161, CancellationToken.None);
 
         Assert.Equal(11, general.ChannelId);
         Assert.Equal(ChannelEntryKind.General, general.Kind);
-        Assert.Null(policy.Refuse(general, characterLevel: 1));
+        Assert.Null(await policy.RefuseAsync(general, new(1), new(1), 1, default));
         Assert.Equal(100, restricted.ChannelId);
         Assert.Equal(ChannelEntryKind.SaintHorn, restricted.Kind);
-        Assert.NotNull(policy.Refuse(restricted, characterLevel: 1));
+        Assert.NotNull(await policy.RefuseAsync(restricted, new(1), new(1), 1, default));
     }
 
     /// <remarks>
@@ -120,7 +121,7 @@ public sealed class ChannelAdmissionTests
         var policy = Policy();
         var channel = await policy.ResolveAsync(10161, CancellationToken.None);
 
-        var refusal = policy.Refuse(channel, characterLevel: 69);
+        var refusal = await policy.RefuseAsync(channel, new(1), new(1), 69, default);
 
         Assert.NotNull(refusal);
         Assert.Equal(0xFD, refusal!.ErrorCode);
@@ -135,7 +136,24 @@ public sealed class ChannelAdmissionTests
         var policy = Policy();
         var channel = await policy.ResolveAsync(10161, CancellationToken.None);
 
-        Assert.Null(policy.Refuse(channel, level));
+        Assert.Null(await policy.RefuseAsync(channel, new(1), new(1), level, default));
+    }
+
+    [Theory]
+    [InlineData(12828, true)]
+    [InlineData(12829, false)]
+    public async Task A_raid_channel_requires_the_selected_character_to_clear_the_access_quest(
+        int clearedQuestId, bool refused)
+    {
+        var quests = new RecordingQuestLogs();
+        quests.Cleared[1] = [new(clearedQuestId, 1)];
+        quests.Cleared[2] = [new(12829, 1)];
+        var policy = Policy(quests: quests);
+        var raid = new ChannelEntryIdentity(200, 10200, ChannelEntryKind.Raid);
+
+        var refusal = await policy.RefuseAsync(raid, new(1), new(1), 86, default);
+
+        Assert.Equal(refused, refusal is not null);
     }
 
     [Fact]
@@ -144,7 +162,7 @@ public sealed class ChannelAdmissionTests
         var policy = Policy();
         var channel = await policy.ResolveAsync(10011, CancellationToken.None);
 
-        Assert.Null(policy.Refuse(channel, characterLevel: 1));
+        Assert.Null(await policy.RefuseAsync(channel, new(1), new(1), 1, default));
     }
 
     [Fact]
@@ -169,17 +187,17 @@ public sealed class ChannelAdmissionTests
              new(11, "#ch.11", 500, 0, "127.0.0.1", 40011),
              new(100, "#ch.100", 500, 0, "127.0.0.1", 40100)]), new NoChannelScript()),
             ChannelEntryOptions.Legacy with { SaintHornMinimumLevel = 75 },
-            new ChannelListenerOptions([10010, 10011, 10100], AllowAdvertisedPortFallback: false), new UnusedDeployment());
+            new ChannelListenerOptions([10010, 10011, 10100], AllowAdvertisedPortFallback: false), new UnusedDeployment(), new RecordingQuestLogs());
         var channel = await policy.ResolveAsync(10100, default);
         Assert.Equal(100, channel.ChannelId);
         Assert.Equal(ChannelEntryKind.SaintHorn, channel.Kind);
         Assert.True(channel.IsTransient);
-        Assert.Contains("75", policy.Refuse(channel, 74)!.Message);
-        Assert.Null(policy.Refuse(channel, 75));
+        Assert.Contains("75", (await policy.RefuseAsync(channel, new(1), new(1), 74, default))!.Message);
+        Assert.Null(await policy.RefuseAsync(channel, new(1), new(1), 75, default));
         Assert.Equal(11, (await policy.ResolveAsync(10011, default)).ChannelId);
     }
 
-    private static ChannelEntryDomainService Policy(bool freeDuelEnabled = false) =>
+    private static ChannelEntryDomainService Policy(bool freeDuelEnabled = false, RecordingQuestLogs? quests = null) =>
         new(
             new ChannelContentRuleService(
                 new StubChannelCatalog(
@@ -190,7 +208,7 @@ public sealed class ChannelAdmissionTests
                 ]),
                 new NoChannelScript()),
             ChannelEntryOptions.Legacy with { FreeDuelEnabled = freeDuelEnabled },
-            new ChannelListenerOptions([], AllowAdvertisedPortFallback: true), new UnusedDeployment());
+            new ChannelListenerOptions([], AllowAdvertisedPortFallback: true), new UnusedDeployment(), quests ?? new RecordingQuestLogs());
 
     private sealed class UnusedDeployment : Dfo.Server.Abstractions.Configuration.IChannelLoginDeploymentSource
     {

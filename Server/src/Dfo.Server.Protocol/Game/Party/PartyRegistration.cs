@@ -41,8 +41,8 @@ internal static class PartyRegistration
         services.AddNotificationHandler<PartySettingsChanged, PartySettingsChangedHandler>();
         services.AddNotificationHandler<PartyLeadershipChanged, PartyLeadershipChangedHandler>();
         services.AddGameCmdMessageDecoder<SetUdpIpPortDecoder>(ClientMessageType.GameSetUdpIpPort);
-        services.AddGameCmdMessageDecoder<RequestPeerDecoder>(ClientMessageType.GameRequestPeer);
-        services.AddGameCmdMessageDecoder<ResponsePeerDecoder>(ClientMessageType.GameResponsePeer);
+        services.AddGameCmdMessageDecoder<RequestPeerDecoder>(ClientMessageType.GameRequestPeer, ClientMessageType.GameRequestAntonRaidPeer);
+        services.AddGameCmdMessageDecoder<ResponsePeerDecoder>(ClientMessageType.GameResponsePeer, ClientMessageType.GameRespondAntonRaidPeer);
         services.AddGameCmdMessageDecoder<LeavePartyDecoder>(ClientMessageType.GameLeaveParty);
         services.AddGameCmdMessageDecoder<RemovePartyMemberDecoder>(ClientMessageType.GameRemovePartyMember);
         services.AddGameCmdMessageDecoder<ChangePartyLeaderDecoder>(ClientMessageType.GameChangePartyLeader);

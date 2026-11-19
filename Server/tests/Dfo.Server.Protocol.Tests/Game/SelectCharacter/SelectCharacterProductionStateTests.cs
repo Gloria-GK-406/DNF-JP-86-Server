@@ -550,7 +550,10 @@ public sealed class SelectCharacterProductionStateTests
             ValueTask.FromResult(default(CreatureEquipmentLifetime));
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int port, CancellationToken ct) =>
             ValueTask.FromResult(new ChannelEntryIdentity(1, port, ChannelEntryKind.General));
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
         public ValueTask<ChannelEntryPolicyState> ResolveAsync(
             ChannelEntryIdentity channel, int town, CancellationToken ct)
         {

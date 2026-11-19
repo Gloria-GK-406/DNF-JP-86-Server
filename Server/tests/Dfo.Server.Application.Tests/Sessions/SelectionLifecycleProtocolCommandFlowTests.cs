@@ -79,7 +79,10 @@ public sealed class SelectionLifecycleProtocolCommandFlowTests
     private sealed class RefusedChannel : IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int port, CancellationToken ct) => ValueTask.FromResult(new ChannelEntryIdentity(1, port, ChannelEntryKind.General));
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => new(0xAC, "level gate");
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(new(0xAC, "level gate"));
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
     }
     private sealed class FailingPreparation(ISelectCharacterPreparationDomainService actual, Exception cause) : ISelectCharacterPreparationDomainService

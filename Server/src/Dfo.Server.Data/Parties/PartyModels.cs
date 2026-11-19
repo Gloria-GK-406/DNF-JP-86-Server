@@ -254,6 +254,7 @@ public enum PartyFailureReason
     PartyCapacityBelowMemberCount,
     UnknownPartyCategory,
     InvalidPartyModeTarget,
+    RaidRecruiting,
 }
 
 public sealed record PartyOperationResult(

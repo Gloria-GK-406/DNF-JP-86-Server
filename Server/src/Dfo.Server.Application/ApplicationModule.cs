@@ -37,7 +37,9 @@ using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Settlement;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Application.Parties;
+using Dfo.Server.Application.Raids;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
@@ -122,6 +124,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddSessions();
         services.AddAuthentication(configuration);
         services.AddParties();
+        services.TryAddSingleton<IAntonRaidDomainService, AntonRaidDomainService>();
         services.AddCommandDispatching();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, LoginSessionConnectionObserver>());
         services.AddHttpOperationCommands();

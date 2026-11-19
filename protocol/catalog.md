@@ -1,8 +1,10 @@
 # 协议清单
 
-## 2026-11-19 安图恩攻坚（A21 静态取证，待实机）
+## 2026-11-19 安图恩攻坚（A21 招募主流程已实测）
 
-以下为构包、读取或本地分支的 `ClientStatic` 证据。攻坚功能尚未实现，暂无团本实机或线级样本。阶段业务、实机场景和保留项见 [攻坚服务设计](../Document/tasks/anton-raid/design.md#82-a21-实机取证)。
+A21 实机完成了进频道、建团、申请、批准和编入第 6 队，其余招募分支见[验收记录](../Document/tasks/anton-raid/recruitment/acceptance.md)。阶段业务、实机场景和保留项见[攻坚服务设计](../Document/tasks/anton-raid/design.md#82-a21-实机取证)。
+
+[活动列表 `0x006C`](game/server-to-client/NOTI-0x006C.md) 的无详情身份 `181` 启用 A21 的团队频道入口。
 
 | 范围 | CMD 交换页 | NOTI |
 | --- | --- | --- |
@@ -10,6 +12,16 @@
 | 准备、门票与重入 | [开团](game/client-to-server/0x029B.md)、[门票](game/client-to-server/0x0293.md)、[重入](game/client-to-server/0x029D.md) | [准备](game/server-to-client/NOTI-0x0253.md)、[票据就绪](game/server-to-client/NOTI-0x0257.md)、[断线通知](game/server-to-client/NOTI-0x0328.md)、[城镇加载](game/server-to-client/NOTI-0x04BD.md) |
 | 攻坚阶段和地图 | [行为](game/client-to-server/0x0296.md)、[符号](game/client-to-server/0x0297.md)、[buff](game/client-to-server/0x02B7.md)、[怪物状态](game/client-to-server/0x02B8.md) | [行为](game/server-to-client/NOTI-0x0247.md)、[符号](game/server-to-client/NOTI-0x0248.md)、[参与](game/server-to-client/NOTI-0x0249.md)、[地图表](game/server-to-client/NOTI-0x024A.md)、[单图状态](game/server-to-client/NOTI-0x024B.md)、[阶段](game/server-to-client/NOTI-0x024C.md)、[成员](game/server-to-client/NOTI-0x024E.md)、[阶段计时](game/server-to-client/NOTI-0x0255.md)、[剩余时长](game/server-to-client/NOTI-0x0256.md)、[buff](game/server-to-client/NOTI-0x027A.md)、[怪物状态](game/server-to-client/NOTI-0x027B.md) |
 | 过场与结算 | [过场](game/client-to-server/0x0294.md)、[选牌](game/client-to-server/0x0295.md) | [过场](game/server-to-client/NOTI-0x0258.md)、[奖励](game/server-to-client/NOTI-0x0259.md)、[结果与本地任务事件](game/server-to-client/NOTI-0x025A.md) |
+
+| S→C 族 | Type | 招募切片的投影 | 布局记录 |
+| --- | --- | --- | --- |
+| `0x01` CMD | `0x0299` | `AntonRaidReply` 建团应答 | [0x0299](game/client-to-server/0x0299.md) |
+| `0x01` CMD | `0x029A` | `AntonRaidReply` 退出应答 | [0x029A](game/client-to-server/0x029A.md) |
+| `0x01` CMD | `0x0364` | `AntonRaidReply` 入团预检应答 | [0x0364](game/client-to-server/0x0364.md) |
+| `0x00` NOTI | `0x0007` | `AntonRaidApprovalNotice` 审批提示 | [0x0007](game/server-to-client/NOTI-0x0007.md) |
+| `0x00` NOTI | `0x024F` | `AntonRaidDirectoryNotice` 当前频道目录 | [0x024F](game/server-to-client/NOTI-0x024F.md) |
+| `0x00` NOTI | `0x0250` | `AntonRaidChangedNotice` 团对象变化 | [0x0250](game/server-to-client/NOTI-0x0250.md) |
+| `0x00` NOTI | `0x04BD` | `AntonRaidTownLoaded` 团本城镇就绪 | [0x04BD](game/server-to-client/NOTI-0x04BD.md) |
 
 ## 2026-11-18 梦幻与梦想装扮合成器（#367、#372，A21 成功及通用拒绝路径 ClientVerified）
 

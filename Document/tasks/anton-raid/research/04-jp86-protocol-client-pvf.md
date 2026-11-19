@@ -281,6 +281,7 @@ A21 战况导航入口 VA `0x00A4E7C0` 的进图分支在 `0x00A4E952–0x00A4E9
 | NPC 326 | `npc/npc_naen.npc` 奈恩·希格 | `[item shop] 108` = `naen_raid.shp`：「团队模式入场材料」tab 卖 10096296；消耗品 tab 卖 10095687–10095690 和 10146786–10146789；材料 tab 卖 3341 |
 | NPC 327 | `npc/npc_zactor.npc` 鹰眼杰克特 | `[role] [leave raid zone] 0 [start raid] 0`：开团与离开攻坚区由 NPC 角色触发 |
 | NPC 328 | 乌恩·莱奥尼尔 | `[item shop] 110`；`wuun_raid.shp` 分「安徒恩普通模式」「安徒恩团队模式」「安徒恩史诗武器」三个 tab |
+| NPC 330 | `npc/hiram.npc` 海岚·克拉夫 | town 19 area 1 `battleship_main.map` 的甲板右侧，地图坐标 `(1304, 241)`。`[create raid] 1`，字段菜单「创建攻坚队」 |
 | NPC 340 | 天界分解修理机 | 商店 96 与分解 |
 | NPC 332 | 奈恩·希格（另一个实例） | `[item shop] 107`；任务 12829 的发放 NPC |
 
