@@ -50,9 +50,10 @@
 
 ### 普通入口遇到借出容器
 
-`PartyService` 能区分借出的容器与自己管理的队伍。普通组队入口遇到借出容器一律拒绝，不代为转交攻坚实例：
+团员在开团准备期和攻坚中会走普通组队协议：参照服务端在 `PREPARE_START_RAID` 后由客户端按团编组自建小队，攻坚中也放行团员之间的组队操作（`UpstreamStatic`，见 [上游招募调研](tasks/anton-raid/research/01-upstream-recruitment.md#26-普通组队动作反向改写团编组state-2-或-5)）。因此按发起者与目标分流：
 
-- 退队、踢人、换队长、邀请、应答和修改队伍设置作用于借出容器或其成员时，返回专门的失败原因。
+- 组队类协议命令先识别涉及的角色是否为团员。是团员就交给攻坚实例裁决，由它经租借句柄写容器；不是团员才交给 `PartyService`。各状态下的处理见 [服务设计](tasks/anton-raid/design.md#43-团员发出的普通组队请求)。
+- `PartyService` 自身拒绝任何直接作用于借出容器或其成员的普通操作，返回专门的失败原因，作为分流遗漏时的兜底。
 - 周围队伍查询（`Query`）过滤借出容器，团本小队不出现在城镇的公开队伍列表里（[目录查询](../Server/src/Dfo.Server.Application/Parties/PartyService.cs#L38)）。
 - 会话清理里的 `CleanupCharacter` 不处理借出容器的成员。攻坚实例在会话清理流程中登记自己的一步，放在现在组队清理的位置（[会话清理](../Server/src/Dfo.Server.Application/Sessions/SelectCharacterLifecycleServices.cs#L178)）。这一步要先把角色移出容器，再结束本局，因为副本离场要求成员先离队（[副本离场](../Server/src/Dfo.Server.Application/World/DungeonRunStore.Departure.cs#L72)）。
 
@@ -60,9 +61,9 @@
 
 已编入小队的团员拿到借出容器的 key，不受虚拟队影响。未编队区的团员不在任何容器里，`PartyService` 把他们视为单人虚拟队：
 
-- **普通组队**：未编队团员可能互相邀请、被外人邀请或申请加入普通队。`PartyService` 只感知借出的容器，不感知团员名单。「团员不能组普通队」是攻坚实例的规则，参照 [`PartyRunAdmission`](../Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs#L305)，在邀请与应答命令的准入检查里询问攻坚实例。
+- **普通组队**：未编队团员可能互相邀请、被外人邀请或申请加入普通队。`PartyService` 只感知借出的容器，不感知团员名单。「团员不能自组普通队」是攻坚实例的规则，由上一节的分流交给攻坚实例裁决，做法与 [`PartyRunAdmission`](../Server/src/Dfo.Server.Protocol/Game/Party/PartyProtocolCommands.cs#L305) 一样放在协议命令里。
 - **单人下图**：未编队团员若能走到普通选图入口，会以虚拟队开一局。团本城镇内的入场是否放行由攻坚实例判定。
-- **入团前已在普通队**：先由攻坚实例让角色退出普通队，还是拒绝入团，待裁定。
+- **入团前已在普通队**：入团时攻坚实例先让角色走普通离队流程退出原队，再登记为团员。退队失败则入团失败。
 
 ## 团长改编与出战
 
@@ -91,4 +92,3 @@
   - 团长委任小队队长是否有独立客户端动作。
   - 团本城镇内普通选图入口是否可达。
   - [团长操作协议](../protocol/game/client-to-server/0x029E.md) · [开团协议](../protocol/game/client-to-server/0x029B.md) · [重入协议](../protocol/game/client-to-server/0x029D.md)
-- **待裁定。** 入团前已在普通队的角色，由攻坚实例让其退队还是拒绝入团。
