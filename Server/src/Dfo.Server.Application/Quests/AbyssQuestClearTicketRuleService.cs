@@ -10,19 +10,18 @@ internal sealed class AbyssQuestClearTicketRuleService(IStackableActionDefinitio
 {
     internal const int ItemId = 10005122;
 
-    public async ValueTask<(IReadOnlyList<int> Selected, ListedQuestClearDefinition Content)> SelectAsync(
+    public async ValueTask<IReadOnlyList<int>> SelectAsync(
         int itemId, WorldContentSubject subject, DateTimeOffset now, CancellationToken ct)
     {
         if (itemId != ItemId || await items.GetAsync(itemId, ct).ConfigureAwait(false) is not
-            { Action: "[any quest clear]", IsReadable: true, ListedQuestClear: { } content } item
-            || content.MaterialItemId == itemId)
+            { Action: "[any quest clear]", IsReadable: true, ListedQuestClear: { Count: > 0 } questIds } item)
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Not a supported abyss quest-clear ticket.");
         if (subject.Level < item.MinimumLevel || subject.Level > item.MaximumLevel
             || item.ExpiresAtUnixSeconds != 0 && now.ToUnixTimeSeconds() >= item.ExpiresAtUnixSeconds)
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Abyss ticket level or expiration limit.");
 
         var selected = new List<int>();
-        foreach (var id in content.QuestIds)
+        foreach (var id in questIds)
         {
             var quest = await quests.FindAsync(id, ct).ConfigureAwait(false);
             if (quest is not { Grade: QuestGrade.Achievement }
@@ -33,6 +32,6 @@ internal sealed class AbyssQuestClearTicketRuleService(IStackableActionDefinitio
                     || await availability.MeetsRequirementsAsync(quest, subject, ct).ConfigureAwait(false)))
                 selected.Add(id);
         }
-        return (selected, content);
+        return selected;
     }
 }

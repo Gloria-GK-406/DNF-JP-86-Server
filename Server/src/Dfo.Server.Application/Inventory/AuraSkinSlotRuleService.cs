@@ -15,24 +15,19 @@ internal sealed class AuraSkinSlotRuleService(IOpeningEffectPlanRuleService open
     {
         if (item.ItemId != TicketItemId)
             throw new OpeningRejectedException(OpeningRejection.WrongItem, $"Item {item.ItemId} does not open the aura skin slot.");
-        return [new ConsumeFromContainerEffect(source, item.ItemId, 1), new OpenAuraSkinSlotEffect()];
+        return OpeningEffects(source, item);
     }
 
-    public async ValueTask<RecipeAmount> ActionTicketMaterialAsync(int itemId, CancellationToken ct)
+    public async ValueTask<ImmutableArray<DomainEffect>> PlanActionOpeningAsync(BusinessSlot source, ItemReference item, CancellationToken ct)
     {
-        if (itemId != ActionTicketItemId)
-            throw new OpeningRejectedException(OpeningRejection.WrongItem, $"Item {itemId} is not a supported aura action ticket.");
-        var rule = await openingPlans.SourceRuleAsync(itemId, ct).ConfigureAwait(false);
-        if (rule is not { Action: "[open aura skin slot]", IsConsumedOnUse: true, AuraSkinSlotMaterial: { } material }
-            || material.ItemId == itemId)
-            throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Aura action ticket has no valid material declaration.");
-        return new(material.ItemId, material.Count);
+        if (item.ItemId != ActionTicketItemId)
+            throw new OpeningRejectedException(OpeningRejection.WrongItem, $"Item {item.ItemId} is not a supported aura action ticket.");
+        var rule = await openingPlans.SourceRuleAsync(item.ItemId, ct).ConfigureAwait(false);
+        if (rule is not { Action: "[open aura skin slot]", IsConsumedOnUse: true })
+            throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Invalid aura action ticket declaration.");
+        return OpeningEffects(source, item);
     }
 
-    public ImmutableArray<DomainEffect> PlanActionOpening(BusinessSlot source, ItemReference item, RecipeAmount material,
-        IReadOnlyList<OpeningHeldItem> held, DateTimeOffset at) =>
-        [new ConsumeFromContainerEffect(source, item.ItemId, 1),
-            .. openingPlans.MaterialCosts([material], 1, held, at).Items.Select(cost =>
-                new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count)),
-            new OpenAuraSkinSlotEffect()];
+    private static ImmutableArray<DomainEffect> OpeningEffects(BusinessSlot source, ItemReference item) =>
+        [new ConsumeFromContainerEffect(source, item.ItemId, 1), new OpenAuraSkinSlotEffect()];
 }

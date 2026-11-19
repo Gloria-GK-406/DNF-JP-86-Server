@@ -32,7 +32,5 @@ public interface IAuraSkinSlotRuleService
     /// Anything other than the ticket is refused with <see cref="OpeningRejectedException"/>.
     /// </summary>
     ImmutableArray<DomainEffect> PlanOpening(BusinessSlot source, ItemReference item);
-    ValueTask<RecipeAmount> ActionTicketMaterialAsync(int itemId, CancellationToken ct);
-    ImmutableArray<DomainEffect> PlanActionOpening(BusinessSlot source, ItemReference item, RecipeAmount material,
-        IReadOnlyList<OpeningHeldItem> held, DateTimeOffset at);
+    ValueTask<ImmutableArray<DomainEffect>> PlanActionOpeningAsync(BusinessSlot source, ItemReference item, CancellationToken ct);
 }

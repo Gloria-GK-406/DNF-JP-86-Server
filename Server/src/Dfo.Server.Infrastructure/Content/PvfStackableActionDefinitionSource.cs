@@ -17,7 +17,6 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
         internal static readonly PvfField<int> LevelupRangeField = PvfField.Int32("[levelup range]", optional: true);
         internal static readonly PvfField<IReadOnlyList<string>> ImpossibleContentsField = PvfField.Strings("[impossible contents]", optional: true);
-        internal static readonly PvfField<IReadOnlyList<PvfToken>> NeedMaterialField = PvfField.Tokens("[need material]", optional: true);
     }
 
     private readonly Lock gate = new();
@@ -83,18 +82,15 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         }
         var increase = 1;
         var blockedInHardcore = false;
-        ListedQuestClearDefinition? listedQuestClear = null;
+        IReadOnlyList<int>? listedQuestClear = null;
         if (actionName == "[any quest clear]")
         {
             var operands = document.Read(Fields.ActionTypeField);
-            var material = document.Read(Fields.NeedMaterialField);
             if (operands.Count < 2 || !operands[0].IsString
-                || operands.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32 || token.Value is <= 0 or >= 30_000)
-                || material.Count != 2 || material.Any(token => token.Kind != PvfTokenKind.Int32 || token.Value <= 0))
+                || operands.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32 || token.Value is <= 0 or >= 30_000))
                 unreadable = true;
             else
-                listedQuestClear = new(operands.Skip(1).Select(token => token.Value).Distinct().ToArray(),
-                    material[0].Value, material[1].Value);
+                listedQuestClear = operands.Skip(1).Select(token => token.Value).Distinct().ToArray();
         }
         if (actionName == "[level up ticket]")
         {

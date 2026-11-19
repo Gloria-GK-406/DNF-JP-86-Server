@@ -26,7 +26,6 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         internal static readonly PvfField<IReadOnlyList<int>> BoosterSelectCategoryField = PvfField.Int32List("[booster select category]", optional: true);
         internal static readonly PvfField<bool> CloseBoosterSelectCategoryField = PvfField.Marker("[/booster select category]", optional: true);
         internal static readonly PvfField<int> BoosterSelectionNumField = PvfField.Int32("[booster selection num]", optional: true);
-        internal static readonly PvfField<IReadOnlyList<int>> NeedMaterialField = PvfField.Int32List("[need material]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> SealingRemovalItemField = PvfField.Int32List("[sealing removal item]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> AvatarField = PvfField.Tokens("[avatar]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> PackageDataIncludeUsablePeriodField = PvfField.Int32List("[package data include usable period]", optional: true);
@@ -328,7 +327,6 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
         }
         var goldCost = 0;
         var costSeen = false;
-        var materialSeen = false;
         var material = 0; var materialCount = 0; var sourceCount = 1; var selectionCount = 0;
         var random = false; var booster = false; var purchaseGroups = 0;
         string? boosterCategory = null;
@@ -486,17 +484,6 @@ internal sealed class PvfPackageOpeningDefinitionSource(PvfArchiveProvider provi
             if (kind == OpeningPackageKind.Lottery && name == Fields.LotteryUseNeedItemField.Name)
             {
                 errors.Add("Lottery material costs are not supported by this opening entry yet");
-                continue;
-            }
-            // Other pots use this field for shop recipes, already paid by BuyItem.
-            if (kind == OpeningPackageKind.Lottery && id == 7615 && name == Fields.NeedMaterialField.Name)
-            {
-                if (materialSeen) errors.Add("Duplicate lottery material cost");
-                materialSeen = true;
-                var values = Numbers(section);
-                if (values.Length != 2 || values[0] <= 0 || values[1] <= 0)
-                    errors.Add("Invalid lottery material cost");
-                else { material = values[0]; materialCount = values[1]; }
                 continue;
             }
             if (kind == OpeningPackageKind.Lottery && name == Fields.IntDataField.Name)

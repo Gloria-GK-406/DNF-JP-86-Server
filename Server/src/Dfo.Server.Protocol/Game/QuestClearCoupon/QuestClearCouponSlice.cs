@@ -48,8 +48,6 @@ internal static class QuestClearCouponPayloadCodec
 {
     public const int RequestLength = 19;
     public const byte SilentFailure = 2;
-    // A21 failure jump table dispatches 22 to RVA 0x01204BEB, dstr FILE/102 string 1353 (物品不足).
-    internal const byte MissingMaterial = 22;
 
     public static QuestClearCouponRequest Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {

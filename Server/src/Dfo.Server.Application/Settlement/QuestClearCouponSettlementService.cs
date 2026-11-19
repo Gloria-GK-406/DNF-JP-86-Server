@@ -14,8 +14,7 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
     ICharacterDomainService characters, IConsumableStateDomainService states,
     IQuestClearCouponRuleService rules, ISpecialConsumableEffectPlanRuleService plans,
     AbyssQuestClearTicketRuleService abyssTickets, IQuestFactsDomainService questFacts,
-    IItemPlacementRuleService placements, ICharacterBusinessInventoryDomainService bags,
-    IOpeningEffectPlanRuleService openingPlans, ICharacterConditionTable conditions) : IQuestClearCouponSettlementDomainService
+    ICharacterConditionTable conditions) : IQuestClearCouponSettlementDomainService
 {
     public ValueTask<QuestClearCouponResult> UseAsync(SelectedSessionIdentity session,
         BusinessSlot sourceSlot, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct) =>
@@ -35,24 +34,19 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
             throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Not a quest-clear coupon.");
 
         var state = await states.QuestsAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-        QuestCouponPlan plan;
+        IReadOnlyList<int> selected;
         if (abyssTicket)
         {
             var subject = await questFacts.SubjectAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
-            var (selected, content) = await abyssTickets.SelectAsync(source.ItemId, subject, now, ct).ConfigureAwait(false);
-            plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
-            var material = new RecipeAmount(content.MaterialItemId, content.MaterialCount);
-            var costs = await ReadMaterialCostsAsync(session, material, now, ct).ConfigureAwait(false);
-            plan = plan with { Effects = plan.Effects.InsertRange(0, costs.Items.Select(cost =>
-                new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count))) };
+            selected = await abyssTickets.SelectAsync(source.ItemId, subject, now, ct).ConfigureAwait(false);
         }
         else
         {
-            var selected = await SelectGradeQuestsAsync(session, source.ItemId, state, now, ct).ConfigureAwait(false);
+            selected = await SelectGradeQuestsAsync(session, source.ItemId, state, now, ct).ConfigureAwait(false);
             if (selected is null || selected.Count == 0)
                 throw new OpeningRejectedException(OpeningRejection.InvalidChoice, "No eligible quests remain for this coupon.");
-            plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
         }
+        var plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
         var result = await inventory.ApplyAsync(session, plan.Effects, now, footprint, ct).ConfigureAwait(false);
         return new(result.Inventory, plan.Completed,
             plan.Effects.Any(effect => effect is SetClearedQuestEffect { GrantsPermanentAttributes: true }));
@@ -71,17 +65,5 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Side quest coupon requires a non-hardcore character.");
         var cleared = state.Cleared.Where(x => x.Mark != 0).Select(x => new ClearedQuest(x.QuestId, x.Mark)).ToArray();
         return await rules.SelectAsync(itemId, progress.Level, identity.Job, identity.GrowType, cleared, now, ct).ConfigureAwait(false);
-    }
-
-    private async ValueTask<RecipeEffectCosts> ReadMaterialCostsAsync(SelectedSessionIdentity session,
-        RecipeAmount material, DateTimeOffset now, CancellationToken ct)
-    {
-        var placement = await placements.PlacementForAsync(material.ItemId, ct).ConfigureAwait(false);
-        if (placement?.Destination.Space is not { } space || !space.IsCarriedItemSpace())
-            throw new OpeningRejectedException(OpeningRejection.UnsupportedContent, "Abyss ticket material has no carried inventory space.");
-        var bag = bags.GetStore(session.CharacterId, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
-        OpeningHeldItem[] held = bag is null ? [] : (await bag.GetAllAsync(ct).ConfigureAwait(false))
-            .OrderBy(item => item.SlotIndex).Select(item => new OpeningHeldItem(new(space, item.SlotIndex), item)).ToArray();
-        return openingPlans.MaterialCosts([material], 1, held, now);
     }
 }

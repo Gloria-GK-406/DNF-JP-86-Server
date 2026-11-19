@@ -87,7 +87,7 @@ DECISIONS = {
     "[npc growth]": ("B3", "NPC养成活动", "建立对应NPC成长与领取奖励的闭环", "参数0、NPC身份和养成表"),
     "[create passive object]": ("B2", "副本/场景对象", "核对是否客户端生成，再决定服务端校验、消耗及对象投影", "两个对象参数、场景限制和他人可见性"),
     "[expert job store doll]": ("B3", "专家职业商店", "开店助手需真实商店、交易和关闭生命周期", "店铺 owner、职业限制、交易和掉线收尾"),
-    "[random recovery fatigue]": ("B1", "疲劳/随机表", "复用疲劳与使用限制，按已证的随机表结算", "数据表语法、<106限制、上限及碎片是否参与右键使用"),
+    "[random recovery fatigue]": ("B1", "疲劳/随机表", "复用疲劳与使用限制，按已证的随机表结算", "数据表语法、<106限制、恢复上限和用后投影"),
 }
 
 expected = {r["ActionType"] for r in scope["Representatives"]}

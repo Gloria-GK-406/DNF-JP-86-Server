@@ -15,7 +15,6 @@ internal sealed partial class EquipmentUpgradeRuleService
         if (kind is not (EquipmentUpgradeKind.Reinforcement or EquipmentUpgradeKind.Amplification) || ticket.Kind != kind)
             return new(EquipmentReinforcementRejection.CannotReinforce, IsTicket: true);
         if ((!random && ticket.ApplyMode != "fixed") || ticket.ApplyValue != -1 || ticket.TargetLevel > 31
-            || ticket.RequiresAdditionalMaterials
             || ticket.SuccessRatePercent is < 0 or > 100)
             return new(EquipmentReinforcementRejection.UnsupportedContent, IsTicket: true);
         if (kind == EquipmentUpgradeKind.Amplification)

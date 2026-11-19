@@ -47,7 +47,6 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         internal static readonly PvfField<IReadOnlyList<string>> UsableJobField = PvfField.Strings("[usable job]", optional: true);
         internal static readonly PvfField<IReadOnlyList<string>> ActionUsablePlaceField = PvfField.Strings("[action usable place]", optional: true);
         internal static readonly PvfField<IReadOnlyList<int>> ActionUsableDungeonField = PvfField.Int32List("[action usable dungeon]", optional: true);
-        internal static readonly PvfField<IReadOnlyList<PvfToken>> NeedMaterialField = PvfField.Tokens("[need material]", optional: true);
     }
 
     private const string StackableListPath = "stackable/stackable.lst";
@@ -135,14 +134,11 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         if (action == "[repair coupon]"
             && RootSectionValues(archive, ref reader, Fields.ActionTypeField, out _, out _) is { Count: not 1 })
             unreadable = true;
-        (int ItemId, int Count)? auraSkinSlotMaterial = null;
         if (action == "[open aura skin slot]")
         {
             var actionValues = RootSectionValues(archive, ref reader, Fields.ActionTypeField, out var duplicateAction, out _);
-            var material = RootSectionValues(archive, ref reader, Fields.NeedMaterialField, out var duplicate, out _);
-            if (!duplicateAction && actionValues is { Count: 1 } && !duplicate && material is { Count: 2 }
-                && material.All(token => token.Kind == PvfTokenKind.Int32 && token.Value > 0))
-                auraSkinSlotMaterial = (material[0].Value, material[1].Value);
+            if (duplicateAction || actionValues is not { Count: 1 })
+                unreadable = true;
         }
         IReadOnlyList<int> allowedDungeons = [];
         if (dungeons is not null)
@@ -173,7 +169,6 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             AllowedDungeonIds = allowedDungeons,
             SummonsApc = summonsApc,
             SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null,
-            AuraSkinSlotMaterial = auraSkinSlotMaterial,
         };
     }
 

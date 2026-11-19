@@ -94,32 +94,20 @@ public sealed class StackableActionOpeningTests
     }
 
     [PvfFact]
-    public async Task Captured_abyss_ticket_clears_listed_quests_and_spends_material_once()
+    public async Task Captured_abyss_ticket_clears_listed_quests_without_exchange_coins()
     {
         using var shop = CreateQuestFixture();
         var host = shop.Host;
         host.SetLevel(86);
         host.Sql("INSERT INTO character_active_quests VALUES(1,0,4391,0),(1,1,2002,0);");
         await host.Seed(8, AbyssTicket, 2);
-        await host.Seed(124, AbyssCoin, 9);
 
         await Send(host, 1, AbyssTicketRequest);
-        AssertAck(host, 8, 126, succeeded: false);
-        Assert.Equal(new byte[] { 0, 22, 8, 0, 0, 0 },
-            QuestClearCouponPayloadCodec.Encode(Assert.Single(host.Sender.Messages.OfType<QuestClearCouponResponse>())));
-        Assert.Equal(2, host.Count(AbyssTicket));
-        Assert.Equal(9, host.Count(AbyssCoin));
-        Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1"));
-        Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
-
-        await host.Seed(125, AbyssCoin, 11);
-        host.Sender.Messages.Clear();
-        await Send(host, 2, AbyssTicketRequest);
         AssertAck(host, 8, 126, succeeded: true);
         Assert.Equal(new byte[] { 1, 8, 0, 0, 126, 0, 0, 0 },
             QuestClearCouponPayloadCodec.Encode(Assert.Single(host.Sender.Messages.OfType<QuestClearCouponResponse>())));
         Assert.Equal(1, host.Count(AbyssTicket));
-        Assert.Equal(10, host.Count(AbyssCoin));
+        Assert.Equal(0, host.Count(AbyssCoin));
         Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1 AND slot_index IN (4391,4539) AND flag_value=1"));
         Assert.Equal(1, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
         Assert.Equal(2002, host.Scalar("SELECT quest_id FROM character_active_quests WHERE character_id=1"));
@@ -131,16 +119,16 @@ public sealed class StackableActionOpeningTests
             && visibility.Flags[4391] == 1 && visibility.Flags[4539] == 1 && visibility.Flags[2002] == 0);
 
         host.Sender.Messages.Clear();
-        await Send(host, 2, AbyssTicketRequest);
+        await Send(host, 1, AbyssTicketRequest);
         Assert.DoesNotContain(host.Sender.Messages, message => message is QuestClearCouponResponse);
         Assert.Contains(host.Sender.Messages, message => message is QuestVisibilityMessage visibility
             && visibility.Flags[4391] == 1 && visibility.Flags[4539] == 1);
 
         host.Sender.Messages.Clear();
-        await Send(host, 3, AbyssTicketRequest);
+        await Send(host, 2, AbyssTicketRequest);
         AssertAck(host, 8, 126, succeeded: false);
         Assert.Equal(1, host.Count(AbyssTicket));
-        Assert.Equal(10, host.Count(AbyssCoin));
+        Assert.Equal(0, host.Count(AbyssCoin));
     }
 
     [PvfFact]
@@ -163,7 +151,7 @@ public sealed class StackableActionOpeningTests
         await Send(host, 2, AbyssTicketRequest);
         AssertAck(host, 8, 126, succeeded: true);
         Assert.Equal(1, host.Count(AbyssTicket));
-        Assert.Equal(10, host.Count(AbyssCoin));
+        Assert.Equal(20, host.Count(AbyssCoin));
         Assert.Equal(1, host.Scalar("SELECT flag_value FROM character_invisible_flags WHERE character_id=1 AND slot_index=4391"));
         Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1 AND slot_index=4539"));
     }
@@ -198,43 +186,35 @@ public sealed class StackableActionOpeningTests
         Assert.Equal(cap, host.Scalar("SELECT lucky_star FROM accounts WHERE account_id=1"));
     }
 
-    [PvfFact]
-    public async Task Captured_aura_action_requires_material_and_opens_only_once()
+    [PvfTheory]
+    [InlineData(0)]
+    [InlineData(160)]
+    public async Task Captured_aura_action_leaves_exchange_material_untouched_and_opens_only_once(int materials)
     {
         using var shop = CreateQuestFixture();
         var host = shop.Host;
         await host.Seed(4, AuraTicket, 2);
-        await host.Seed(121, AuraMaterial, 79);
+        if (materials > 0) await host.Seed(121, AuraMaterial, materials);
 
         await Send(host, 1, AuraTicketRequest);
-        AssertAck(host, 4, 123, succeeded: false);
-        var refusal = Assert.Single(host.Sender.Messages.OfType<QuestClearCouponResponse>());
-        Assert.Equal(new byte[] { 0, 22, 4, 0, 0, 0 }, QuestClearCouponPayloadCodec.Encode(refusal));
-        Assert.Equal(2, host.Count(AuraTicket));
-        Assert.Equal(79, host.Count(AuraMaterial));
-        Assert.Equal(0, host.Scalar("SELECT aura_skin_slot FROM characters WHERE character_id=1"));
-
-        await host.Seed(122, AuraMaterial, 81);
-        host.Sender.Messages.Clear();
-        await Send(host, 2, AuraTicketRequest);
         AssertAck(host, 4, 123, succeeded: true);
         Assert.Equal(1, host.Count(AuraTicket));
-        Assert.Equal(80, host.Count(AuraMaterial));
+        Assert.Equal(materials, host.Count(AuraMaterial));
         Assert.Equal(1, host.Scalar("SELECT aura_skin_slot FROM characters WHERE character_id=1"));
         Assert.Contains(host.Sender.Messages, message => message is InventoryDeltaMessage);
         Assert.Contains(host.Sender.Messages, message => message is ExtendedUserStateMessage
             { Public.Extras.AuraSkinSlotOpen: true });
 
         host.Sender.Messages.Clear();
-        await Send(host, 2, AuraTicketRequest);
+        await Send(host, 1, AuraTicketRequest);
         Assert.DoesNotContain(host.Sender.Messages, message => message is QuestClearCouponResponse);
         Assert.Contains(host.Sender.Messages, message => message is ExtendedUserStateMessage
             { Public.Extras.AuraSkinSlotOpen: true });
 
-        await Send(host, 3, AuraTicketRequest);
+        await Send(host, 2, AuraTicketRequest);
         AssertAck(host, 4, 123, succeeded: false);
         Assert.Equal(1, host.Count(AuraTicket));
-        Assert.Equal(80, host.Count(AuraMaterial));
+        Assert.Equal(materials, host.Count(AuraMaterial));
     }
 
     private static CeraShopFixture CreateQuestFixture()

@@ -169,10 +169,7 @@ public sealed class GameQuestClearCouponCommandHandler(
             else if (actionFailure is OpeningRejectedException rejected)
                 logger.LogInformation("Quest clear coupon rejected character={CharacterId} slot={Slot}: {Reason}", session.CharacterId, message.SourceSlot, rejected.Reason);
             else logger.LogError(actionFailure, "Quest clear coupon failed character={CharacterId} slot={Slot}", session.CharacterId, message.SourceSlot);
-            var error = branch is Branch.AuraSkinSlot or Branch.AbyssTicket
-                && actionFailure is OpeningRejectedException { Reason: OpeningRejection.MissingMaterial }
-                ? QuestClearCouponPayloadCodec.MissingMaterial : QuestClearCouponPayloadCodec.SilentFailure;
-            await RefuseAsync(connection, message, branch == Branch.Coupon, ct, error).ConfigureAwait(false);
+            await RefuseAsync(connection, message, branch == Branch.Coupon, ct).ConfigureAwait(false);
             if (branch == Branch.Fatigue && actionFailure is OpeningRejectedException)
                 await SendItemUsageAsync(context, session, ct).ConfigureAwait(false);
             return false;
@@ -292,11 +289,10 @@ public sealed class GameQuestClearCouponCommandHandler(
                 FollowingMessages: following), ct).ConfigureAwait(false);
     }
 
-    private ValueTask RefuseAsync(NetworkConnectionId connection, QuestClearCouponRequest request, bool sanitize, CancellationToken ct,
-        byte error = QuestClearCouponPayloadCodec.SilentFailure) =>
+    private ValueTask RefuseAsync(NetworkConnectionId connection, QuestClearCouponRequest request, bool sanitize, CancellationToken ct) =>
         outbox.RegisterCmdAsync(connection, new QuestClearCouponResponse(false,
             sanitize && request.SourceSlot < 0 ? (short)0 : request.SourceSlot, sanitize && request.Container != 0 ? (byte)0 : request.Container)
-        { Action = request.Action, ErrorCode = error }, ct);
+        { Action = request.Action }, ct);
     private static bool CanRefuse(Exception failure) => failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure);
     private enum Branch { Entry, Fatigue, Coupon, LostLand, LuckyStar, AuraSkinSlot, AbyssTicket }
     private sealed record ActionOutcome(OpeningInventoryReceipt? Inventory, QuestClearCouponResult? Coupon, Exception? Failure, DungeonRoomVisit? Movement = null);
