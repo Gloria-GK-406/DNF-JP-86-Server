@@ -25,27 +25,47 @@
 
 ## 2. 组件与职责
 
+对外只有一个攻坚领域服务。从建团到收尾，团员、小队、阶段、地图、计时、结算都是同一个攻坚实例的状态，彼此参与同一组不变量。按 [架构与分层](../../Architecture.md#接口类别与代码形状) 的判据，它们属于一个聚合，由一个领域服务对外。
+
 ```
-Protocol/Game/Raid/*              薄 handler → 协议 CMD → 领域服务；Raid 投影（NOTI 组装与受众）
+Protocol/Game/AntonRaid/*           薄 handler → 协议 CMD → IAntonRaidDomainService；攻坚投影（NOTI 组装与受众）
+Abstractions/Raids/
+  IAntonRaidDomainService           对外唯一的攻坚领域服务
 Application/Raids/
-  RaidStore                       唯一的攻坚注册表：实例、团号、角色→团索引、频道目录（internal）
-  RaidRecruitmentDomainService    建团、入团审批、离团/踢人、改标题、编组、移交团长、等待表
-  RaidPreparationDomainService    开团准备、小队自建校验、门票扣除、准备取消
-  RaidProgressionDomainService    阶段开始、触发器执行、地图状态、符号、计时、buff、屏障、阶段完成与失败
-  RaidSortieDomainService         出战回报：进图、通关、死亡、复活、离图；入场裁决
-  RaidSettlementDomainService     结果、翻牌、小队大奖、任务进度、失败补偿
-  RaidPresenceDomainService       掉线保留、到期离团、重入
-  RaidRuleService                 读 PVF raid 配置的唯一入口，返回不可变 AntonRaidDefinition
-  RaidTriggerRules（静态）         触发器解释器，纯函数
-  AntonRaidDeadlineSource         DungeonDeadlineKind.AntonRaid 的来源
-  AntonRaidBossClearHook          IDungeonBossClearHook（Kind = AntonRaid）
+  AntonRaidDomainService            实现，持有实例注册表：实例、团号、角色→团索引、频道目录
+    AntonRaidInstance               聚合根，字段见 §3，方法守住实例内的不变量
+    招募、准备、攻坚、出战、结算、在场    按用例分的 partial 文件，只是代码组织，不注册、不对外
+  AntonRaidRuleService              规则服务：读 PVF raid 配置的唯一入口，返回不可变的 AntonRaidDefinition
+  AntonRaidTriggerRules（静态）      纯规则：触发器解释器
+  AntonRaidSettlementRules（静态）   纯规则：名次、奖池抽取、牌位分配
+  接入适配                          现有扩展点的实现，只把事件转给攻坚领域服务，自身没有状态：
+    AntonRaidDeadlineSource           DungeonDeadlineKind.AntonRaid 的来源
+    AntonRaidBossClearHook            IDungeonBossClearHook（Kind = AntonRaid）
+    AntonRaidEntryRoute               入场路由中的攻坚一项
+    出战离场订阅、会话清理中的攻坚一步
 Infrastructure/Content/
-  PvfRaidDefinitionSource         解析 etc/raid/raid.lst、anton.etc、.buff、.symbol
+  PvfRaidDefinitionSource           解析 etc/raid/raid.lst、anton.etc、.buff、.symbol
 ```
 
-几个服务都通过 `RaidStore` 读写同一个实例，按用例拆开只是为了让每个服务的方法面小。它们都在唯一执行器里运行，不加锁（[单一执行器](../../GameplayExecution.md#单一执行器与生产者)）。
+`AntonRaidRuleService` 和两组纯规则单独存在，是分层的要求：业务服务问规则服务「这一阶段的地图表、触发器、计时、奖池是什么」，自己不读 PVF（[领域与规则](../../Architecture.md#领域与规则)）。接入适配是现有机制规定的形状，例如截止时间调度器要一个来源、首领房清场要一个钩子。它们不持有攻坚状态，所以不算领域服务。
 
-规则输入只经 `RaidRuleService` 进入。业务服务问规则服务「这一阶段的地图表、触发器、计时、奖池是什么」，自己不读 PVF（[架构与分层](../../Architecture.md#领域与规则)）。
+本仓的 `DungeonRunStore` 是一个存储加 8 个按用例拆开的领域服务接口（`World/DungeonRunRegistration.cs`）。那是因为战斗、拾取、翻牌、计时等由许多不同的 CMD 分别注入，按用例收窄依赖面。攻坚只由自己的协议切片和上面几处适配调用，用一个入口更清楚，这里有意不照搬。
+
+所有方法都在唯一执行器里运行，不加锁（[单一执行器](../../GameplayExecution.md#单一执行器与生产者)）。每个写方法返回具名结果，带上本次变化要发的投影计划（类似组队的 `PartyNotificationPlan`）。协议层按计划组装 NOTI 和受众，领域服务不碰连接。
+
+### 2.1 对外方法
+
+| 分组 | 方法 | 调用方 |
+| --- | --- | --- |
+| 招募 | `Create`、`RequestJoin`、`Invite`、`Respond`、`Leave`（含踢人）、`AssignSquad`、`TransferLeadership`、`ModifyTitle`、`SetWaiting` | 攻坚协议 CMD |
+| 小队 | `HandlePartyRequest`：团员发出的普通组队请求，见 §4.3 | 组队协议 CMD 的分流 |
+| 开团 | `Start`：一阶段开团与二阶段开打共用 | 攻坚协议 CMD |
+| 出战 | `AdmitEntry`、`SortieEntered`、`SortieCleared`、`MemberDied`、`MemberRevived`、`SortieLeft` | 入场路由、清场钩子、离场订阅 |
+| 机制 | `DoBehavior`、`SetSymbol`、`CastBuff`、`ReportMonsterHp` | 攻坚协议 CMD |
+| 到点 | `NextDeadline`、`AdvanceDeadline(InstanceId, Key, Version)` | 截止时间来源与内部命令 |
+| 结算 | `MovieFinished`、`SelectCard` | 攻坚协议 CMD |
+| 在场 | `MemberDisconnected`、`Rejoin` | 会话清理、攻坚协议 CMD |
+| 查询 | `FindByCharacter`、`Directory(channel)`、`Snapshot(InstanceId)` | 投影、重入补发、目录 |
 
 ## 3. 领域模型
 
@@ -155,7 +175,7 @@ Infrastructure/Content/
 容器、共享归属索引、租借句柄、归还规则都以 [领域设计](../../AntonRaidDesign.md#小队容器与租借) 为准。本方案按资料补两点：
 
 1. **容器何时有人。** 招募期编组只改 `SquadIndex`，不往容器里放人，也不发 `0x0009`（上游如此）。容器在开团准备期由客户端自建小队的请求填入，在攻坚中与间歇期由团长改编时服务端直接替换。
-2. **普通组队入口改为交给所有者。** 领域设计原来写的是「普通入口遇到借出容器一律拒绝」。资料表明团员在准备期和攻坚中都会走普通组队协议，所以改成：组队类协议命令先识别涉及的角色是不是团员，是团员就交给 `RaidRecruitmentDomainService` 裁决，由它通过租借句柄写容器；不是团员才走 `PartyService`。`PartyService` 仍然拒绝任何直接作用于借出容器的普通操作，这条保留，用来兜底。
+2. **普通组队入口改为交给所有者。** 领域设计原来写的是「普通入口遇到借出容器一律拒绝」。资料表明团员在准备期和攻坚中都会走普通组队协议，所以改成：组队类协议命令先识别涉及的角色是不是团员，是团员就交给攻坚领域服务的 `HandlePartyRequest` 裁决，由它通过租借句柄写容器；不是团员才走 `PartyService`。`PartyService` 仍然拒绝任何直接作用于借出容器的普通操作，这条保留，用来兜底。
 
 ### 4.3 团员发出的普通组队请求
 
@@ -167,14 +187,14 @@ Infrastructure/Content/
 | `0x000D` 退队 | 让准备作废 | 不在副本时移回未编队区并移出容器 | — |
 | `0x000E` 踢人、`0x0079` 换队长 | 拒绝 | 只有团长能改编，按改编规则处理 | — |
 
-准备期的具体帧序是实机首要验证项。如果 A21 客户端收到 `PREPARE_START_RAID` 后并不自建小队，就改为由服务端在准备结束时直接按编组填容器，再推送 `0x0009`、`0x0099`、`0x000B`。这两种做法的接缝都在 `RaidPreparationDomainService` 里，换做法不影响其他部分。
+准备期的具体帧序是实机首要验证项。如果 A21 客户端收到 `PREPARE_START_RAID` 后并不自建小队，就改为由服务端在准备结束时直接按编组填容器，再推送 `0x0009`、`0x0099`、`0x000B`。这两种做法的接缝都在攻坚领域服务的开团准备部分，换做法不影响其他部分。
 
 ### 4.4 副本
 
 | 接缝 | 做法 |
 | --- | --- |
 | 玩法识别 | 新增 `DungeonRunKind.AntonRaid`，`DungeonRunMode.AntonRaid(InstanceId, PhaseIndex, SquadIndex)` 冻结在 layout 上 |
-| 入场 | 在 `IDungeonEntryRoutingDomainService` 里排最前：团本频道的选图一律交给 `RaidSortieDomainService` 裁决，不落到普通判断。检查：团处于 `Attacking`；请求者所在小队就是本团的某个容器，非空且有队长；图号属于当前阶段且地图是 open；同图小队数未超过 `PARTY MAX`；该小队没有进行中的出战 |
+| 入场 | 在 `IDungeonEntryRoutingDomainService` 里排最前：团本频道的选图一律交给攻坚领域服务的 `AdmitEntry` 裁决，不落到普通判断。检查：团处于 `Attacking`；请求者所在小队就是本团的某个容器，非空且有队长；图号属于当前阶段且地图是 open；同图小队数未超过 `PARTY MAX`；该小队没有进行中的出战 |
 | 能力表 | `EndsOnBossClear` 保持默认；`DrawsClearCards=false`；`UnlocksDifficulty=false`；`AllowsOrdinaryRechallenge=false`；`Revival` 新增「小队复活币额度」策略；`AppliesFailureWeakness`、`PartyWipe` 先取普通值，列入实机项 |
 | 掉落 | 照上游：保留经验与任务进度，关闭怪物掉落、任务掉落、随机精英 |
 | 进图回报 | 加载就绪时登记出战，名单用**实际进图者**。上游用编组名单，会把没进图的队友算成参与 |
@@ -192,7 +212,7 @@ Infrastructure/Content/
 
 ### 4.6 截止时间
 
-在 `DungeonDeadlineKind` 加 `AntonRaid`，实现 `AntonRaidDeadlineSource`。它向 `RaidStore` 要最近的截止时间，逐项提交 `AdvanceRaidDeadlineCommand(InstanceId, Key, Version)`。实例状态变化时由 `RaidStore` 在提交处调用 `Wake(AntonRaid)`。
+在 `DungeonDeadlineKind` 加 `AntonRaid`，实现 `AntonRaidDeadlineSource`。它向攻坚领域服务要最近的截止时间（`NextDeadline`），逐项提交 `AdvanceRaidDeadlineCommand(InstanceId, Key, Version)`。实例状态变化时由攻坚领域服务在提交处调用 `Wake(AntonRaid)`。
 
 截止时间随实例出现和消失，不重试、不补跑，过期项靠版本丢弃，这些都与调度器现有约定相符（[到点推进](../../DungeonRunKinds.md#一局之内的到点推进)）。唯一不同是状态所有者是攻坚实例而不是某一局，需要在该文档里补一句。
 
@@ -239,8 +259,8 @@ Attacking(n) ──进攻超时──▶ Failed(n) ──▶ 收尾
 
 ### 5.3 攻坚
 
-- **阶段开始。** 由 `RaidRuleService` 给出该阶段的地图表、符号初值、触发器和计时；初始化 `RaidPhaseState`，执行 `[2PHASE INIT]` 一类初始化触发，然后广播整套态势。
-- **事件驱动。** 地图状态变化、计时到点、符号变化、出战通关都会喂给 `RaidTriggerRules.Evaluate(state, event, script)`。它返回一组动作：设地图状态、预约地图状态、设符号、设或重置计时、开随机孵化中心、阶段完成。由 `RaidProgressionDomainService` 应用这些动作，并产出投影。
+- **阶段开始。** 由 `AntonRaidRuleService` 给出该阶段的地图表、符号初值、触发器和计时；初始化 `RaidPhaseState`，执行 `[2PHASE INIT]` 一类初始化触发，然后广播整套态势。
+- **事件驱动。** 地图状态变化、计时到点、符号变化、出战通关都会喂给 `AntonRaidTriggerRules.Evaluate(state, event, script)`。它返回一组动作：设地图状态、预约地图状态、设符号、设或重置计时、开随机孵化中心、阶段完成。由攻坚领域服务应用这些动作，并产出投影。
 - **手写规则**（脚本之外）：
   - 通关计数阈值（`HP INFO`）及对应的显示符号；
   - 孵化中心「4 开 3、1 个感染源」的随机，种子显式传入规则服务；
@@ -420,8 +440,8 @@ ClientHack 仓的 `proto-*.md` 已经手工读出大部分 raid NOTI 的字段�
 
 1. **前置修正**：`raid phase clear` 改为服务端计数；协议页按 §8.4 修正；频道准入加 12829 门槛；核对团本城镇落点。
 2. **组队容器**：拆出容器，实现共享归属索引、租借句柄、借出与归还、普通入口的所有者路由（见领域设计）。
-3. **招募**：`RaidStore`、`RaidRecruitmentDomainService`，以及 0x0299、0x029A、0x029E、0x029F、0x0364、子类型 10 邀请、`024F` / `0250` 投影。到这一步就可以做第一轮实机取证。
+3. **招募**：`IAntonRaidDomainService` 与 `AntonRaidInstance` 的招募部分，以及 0x0299、0x029A、0x029E、0x029F、0x0364、子类型 10 邀请、`024F` / `0250` 投影。到这一步就可以做第一轮实机取证。
 4. **开团准备与门票**：0x029B、准备期组队路由、扣票事务。
-5. **攻坚**：`RaidRuleService` 与触发器解释器（先用 PVF 全量 dump 做单元测试），出战接缝，截止时间来源，一阶段跑通后再做二阶段。
+5. **攻坚**：`AntonRaidRuleService` 与触发器解释器（先用 PVF 全量 dump 做单元测试），出战接缝，截止时间来源，一阶段跑通后再做二阶段。
 6. **结算**：翻牌、大奖、任务、邮件补发。
 7. **掉线与重入**。
