@@ -24,7 +24,7 @@
 ## 0. 先看结论
 
 1. **上游所有团本入口只在团本频道生效。** 判定条件是监听端口属于频道类型 `0x17`（团本频道号 200、端口 10200）。普通频道发来的团本请求一律回失败或不处理。`UpstreamStatic`：`U/Network/Core/GameNetworkConfig.cs:12,21,26,191-193`、`U/Network/Handlers/RaidHandler.cs:105-112`。JP86 已经认识这个频道类型：`ChannelScript.cs:78` 要求 `[raid]` 行必须是 type 23，团本城镇 19 见 `IChannelSources.cs:37`。
-2. **招募期没有实际小队。** `RAID_MANAGER_WORK` op0 只改团员的 `PartyIndex` 标签。实际普通队在两个时机才出现：一是开团准备期，由客户端走普通组队协议自建；二是攻坚中和阶段间歇，由服务端替换队伍。`UpstreamStatic`。这与草案「建团即借出五个空容器」差异最大，见 §6。
+2. **招募期没有实际小队。** `RAID_MANAGER_WORK` op0 只改团员的 `PartyIndex` 标签。实际普通队在两个时机才出现：一是开团准备期，由客户端走普通组队协议自建；二是攻坚中和阶段间歇，由服务端替换队伍。`UpstreamStatic`。JP86 的 [租借设计](../../../AntonRaidDesign.md) 可在建团时先建空容器。A21 实际组队请求见 [准备通知](../../../../protocol/game/server-to-client/NOTI-0x0253.md)。
 3. **团长离团或掉线就解散整团，没有自动移交。** 只能用 `RAID_MANAGER_WORK` op1 主动移交。`UpstreamStatic`：`U/Game/Raid/RaidManager.cs:1293-1310`。
 4. **上游的断线就是离团。** 第三方商业端改成保留 300 秒，期间显示离线，到期后才离团。`UpstreamStatic` 与 `ThirdPartyStatic`。
 5. **JP86 有四个协议页的机器区「可能含义」引用的是旧版上游**，与 `1870c85` 不符：0x024C、0x024E、0x029E，以及 NOTI 0x0007 漏了 type 10。见 §1.4。
@@ -279,7 +279,7 @@ A21 没有「直接加入」。上游的两种形态都要对方确认。
 | 5 | USERINFO + RAID_MODIFY op0（此时 State 仍为 0） | 频道 | `:38` |
 | 6 | RAID_SET_TIMER（类型 0、键 0、3 秒）、RAID_REMAIN_TIME（0，3）、PREPARE_START_RAID（0B） | 全团 | `:39-42` |
 | 7 | 定时 3 秒，到点执行 `CompleteRaidPreparationAsync` | — | `:43-51` |
-| 8 | **准备窗口内由客户端自建小队**（推断）：每个 `PartyIndex≠0` 组里团序第一人当小队队长，发 SET_PARTY_INFO 建队（服务端强制团本设置），并向组内其他人发普通邀请；组员 RES_PEER 应答，服务端走 `TryCommitPreparationResponse` → `AcceptPreparedRaidMember`。单人组只需队长 SET_PARTY_INFO | 组内 | `PartyHandler.cs:1816-1842`；`RaidManager.cs:533-558`；`PartyManager.cs:157-208`；自测 `:1585-1625`（测试里称为 "raid auto-response"） |
+| 8 | **准备窗口处理普通组队命令**：上游按编组校验 SET_PARTY_INFO 及 RES_PEER，后者走 `TryCommitPreparationResponse` → `AcceptPreparedRaidMember`。A21 的 `0x0253` 已证实单成员组建队、多人组非首位主动应答；多人首位与邀请顺序待实机 | 组内 | `PartyHandler.cs:1816-1842`；`RaidManager.cs:533-558`；`PartyManager.cs:157-208`；自测 `:1585-1625`（测试里称为 "raid auto-response"） |
 | 9 | 到点检查：团长在线；准备仍有效，即名单、session、`PartyIndex` 都与冻结时一致；每个非 0 组都已形成一支实际队伍，且队长是团序第一人、成员恰好一致、设置块 [9]==2 | — | `Progression.cs:785-807`；`PartyManager.cs:363-382` |
 | 10 | 失败：`StartPending=false`，发 RAID_STATE(0,0) 与 0x0257 给全团，发 0x01F7「攻坚小队组建未完成，请确认队员在线且未加入其他队伍后重试。」给团长。不扣门票 | 全团、团长 | `:796-806` |
 | 11 | 成功：在锁内再次确认小队，扣除全员门票（`RaidEntryCostCommitService`），State 2、Arg 0、Phase 0，记录开始时间 | — | `RaidManager.cs:589-626`；`Progression.cs:808-822` |
@@ -455,7 +455,7 @@ A21 没有「直接加入」。上游的两种形态都要对方确认。
 对照的是 `Document/AntonRaidDesign.md`（2026-11-19 草案）。
 
 1. **五个借出容器与上游「招募期无实际队伍」相冲突。**
-   - 上游招募期 `PartyIndex` 只是标签，到准备期才由**客户端**用 SET_PARTY_INFO 和普通邀请自建队伍。服务端只校验并强制团本设置，不替客户端建队。
+   - 上游招募期 `PartyIndex` 只是标签，准备期接收普通组队命令并强制团本设置。A21 的两条准备构包分支见 §2.10；其他组队入口仍待实机。
    - 如果 A21 收到 PREPARE_START_RAID 后确实会自动组队（`Unknown`，上游自测把它当客户端自动应答），服务端预先建好的容器会让客户端的建队请求撞上「已在队中」。届时需要决定：把客户端的 SET_PARTY_INFO 和邀请翻译成租借句柄操作，还是在准备期再把成员放进容器。
    - 草案「建团即借出五个空容器」可以保留为服务端内部结构，但「招募期拖人是否立即形成实际小队」，上游的答案是否定的。
    - 这是实机首要验证项（§7 第 1 项）。

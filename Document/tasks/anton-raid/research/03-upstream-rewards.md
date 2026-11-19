@@ -230,7 +230,7 @@ StartPhaseOneResultMovieAsync (Rewards.cs:302-325)
 `SELECT_RAID_REWARD_CARD` 接受 `rewardType == 2`（`RaidHandler.Rewards.cs:516`、`:204`）。`type 2` 的牌不揭示，但仍走
 `GrantPhaseOnePartyRewardAsync`：`rewardType==1 ? party_card : gold`，于是按金币奖池再抽一次并入账（`:456-468`、`:585-601`）。
 改包客户端每阶段可多领一份金币。第三方 `T:DfoServer.Network.Handlers/RaidHandler.cs:5208-5228`、`:380` 同样放行。
-JP86 若不实现 pcroom_card，应拒绝 type 2。
+JP86 的 type 2 不产生奖励。A21 可能在一次正常选牌中追加 type 2，兼容应答由实机确认。
 
 ### 3.7 卡死风险（上游）
 
@@ -369,10 +369,10 @@ JP86 若不实现 pcroom_card，应拒绝 type 2。
 
 | 项 | 为什么需要实机 |
 |---|---|
-| `0x0259` 各字段含义与客户端行为：type 0/1/3 外的取值、`cardType` 在 type 3 中的意义、`flags` 只是金边还是还有别的位 | 上游只说明它怎么用；协议页含义标注需按 §1 修正后再实测 |
+| `0x0259` 各字段含义与客户端行为，包括 type 2、type 3 的 UI 与条目内标志 | [客户端分支](../../../../protocol/game/server-to-client/NOTI-0x0259.md) 已确认读 0/1、2、3，仍需对照画面 |
 | `0x025A` `rank` 的 +2 偏移、`rewardOption` 的 UI 效果 | 上游自测只断言自己的字节 |
-| `0x0258` 布局与客户端对它的反应；客户端何时发 `0x0294 [01]`、发不发 `[00]` | 结构未知 |
-| 客户端翻一张牌时是否连发 type 1 与 type 0 两帧，还是只发一帧 | 上游自测手动各发一次 |
+| `0x0258` 实际发送长度、触发画面及 `0x0294` 两种请求的线上时序 | [提示与回调](../../../../protocol/game/server-to-client/NOTI-0x0258.md) 已有静态证据，另有发 `[00]` 的本地输入路径 |
+| 原版选牌分支的 type 2 启用条件与响应反馈 | [选牌入口](../../../../protocol/game/client-to-server/0x0295.md) 已证同一次选择发 1、0，条件追加 2 |
 | `0x0314 ALEADY_RAID_REWARD` 是否需要、何时发（例如重复领取或次数用尽） | 两个参照服务端都没用；handler 像通用桩 |
 | `[DEAD COUNT]` 第三列与金币 `state` 的对应关系 | §3.2 疑点 |
 | 原版资格口径、掉线者是否得奖、是否退票 | 参照端都是自行决定 |

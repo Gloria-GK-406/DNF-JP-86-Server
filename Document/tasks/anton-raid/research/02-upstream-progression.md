@@ -48,10 +48,10 @@ PVF 用现有构建好的 PvfProbe 读取：`dotnet …\DNF-JP-86-Server\Tool\Pv
 | type | 名称 | 上游 handler | 上游读取的 body | 触发与处理 | 与 JP86 机器区对照 |
 |---|---|---|---|---|---|
 | `0x0294` | RAID_MOVIE_SKIP | `U/Network/Handlers/RaidHandler.Rewards.cs:267-300` | `u8 flag`，`flag==1` 表示动画播完/跳过 | 只在 State 3 且结算流程已开始时接受；回 ACK；`flag==1` 时开始翻牌并单发 `RAID_STATE(4,arg)` 与小队奖励列表（翻牌交给奖励调研） | 机器区 `BodyLength=1` 闭合，客户端注册了 CMD 响应 handler，ACK 合理。一致 |
-| `0x0296` | RAID_DO_BEHAVIOR | `RaidHandler.cs:192-214` | 要求 **恰好 8 字节**：`u32 target` + `u32 behavior` | State 2 时把原始 body 广播成 `NOTI 0x0247`，发给全团（含发送者）；回 ACK | **不一致**：机器区读到 `u32 + u16`（下界 6 字节），`NOTI 0x0247` 接收端也读 `u32 + u16`。若实际为 6 字节，上游会全部拒收。客户端未注册 CMD 响应 handler，上游的 ACK 可能多余 |
+| `0x0296` | RAID_DO_BEHAVIOR | `RaidHandler.cs:192-214` | 要求 **恰好 8 字节**：`u32 target` + `u32 behavior` | State 2 时把原始 body 广播成 `NOTI 0x0247`，发给全团（含发送者）；回 ACK | **不一致**：A21 [请求构包](../../../../protocol/game/client-to-server/0x0296.md) 闭合为 `u32 + u16` 共 6 字节，`NOTI 0x0247` 也读该布局。上游的 8 字节长度校验不接受此请求，A21 未注册同号 CMD 响应 handler |
 | `0x0297` | RAID_SET_SYMBOL | `RaidHandler.cs:216-263` | 9 字节：`u32 symbolId`、`u32 operand`、`u8 op`（0 赋值、1 加且饱和、2 减且下限 0） | 只接受二阶段、symbol 110（黑色火山屏障）、且本团已登记该符号；走屏障变更（见 §2.4）；回 ACK | 布局一致（机器区闭合 9 字节）。客户端未注册响应 handler，ACK 同上存疑。上游只放行 110 是它自己的限制，A21 是否还会上报其他符号 `Unknown` |
 | `0x02B7` | RAID_BUFF_SYSTEM | `U/Network/Handlers/RaidHandler.Situation.cs:28-131`、`:257-279` | `u8 buffType`；可选 `u16 partyIndex`；其后到包尾每 2 字节一个目标 userId | State 2 才接受；按冷却登记激活；`INCREASE TIME` 延长阶段时限、`INCREASE COIN` 给目标小队返还复活币额度；之后广播 `NOTI 0x027A`，延时成功时再广播 `0x0255/0x0256` 并重排进攻计时；回 ACK | 字段一致（机器区 `3 + n×2` 下界）。客户端未注册响应 handler，ACK 存疑。上游**不检查施放者是否团长**，PVF 未标明施放权限，`Unknown` |
-| `0x02B8` | RAID_MONSTER_HP | `RaidHandler.Situation.cs:133-189` | `u8 n`（≤5），随后 `n×u32`，要求 `len == 1+4n` | `n==0`：补登参与（迟到的入图回报），单发攻坚对象、参与快照、buff 状态、怪物状态。`n>0`：按发送者所在小队与当前地图缓存这组值，再向全团广播 `NOTI 0x027B` | 首字节一致。机器区有 3 个构包点且形状分化（`divergent`），说明 `n` 与内容随调用路径变化。值的含义上游未解释；结合 `PVFbuff:29-128` 每图最多 1 Boss + 3 精英，推测为这些怪的血量，`Unknown` |
+| `0x02B8` | RAID_MONSTER_HP | `RaidHandler.Situation.cs:133-189` | `u8 n`（≤5），随后 `n×u32`，要求 `len == 1+4n` | `n==0`：补登参与（迟到的入图回报），单发攻坚对象、参与快照、buff 状态、怪物状态。`n>0`：按发送者所在小队与当前地图缓存这组值，再向全团广播 `NOTI 0x027B` | A21 [三个构包点](../../../../protocol/game/client-to-server/0x02B8.md) 均符合该计数布局，含 `n=0`；限值与零值触发的服务端处理属于上游策略。值的含义上游未解释；结合 `PVFbuff:29-128` 每图最多 1 Boss + 3 精英，推测为这些怪的血量，`Unknown` |
 
 ### 1.2 服务端 → 客户端
 
@@ -130,19 +130,19 @@ PVF 用现有构建好的 PvfProbe 读取：`dotnet …\DNF-JP-86-Server\Tool\Pv
 
 上游**只解析了计时与延时开放**（`UT/RaidEtcFile.cs:279-353`），其余逻辑全部在 handler 里手写（§3）。第三方同样手写。对照脚本，上游的手写逻辑与脚本基本一致，差异列在 §3.6。
 
-### 2.4 符号表 `UpstreamStatic`（名称对应由 PVF 用法推断）
+### 2.4 PVF 符号与上游用法
 
-符号名到数字 ID 的映射在 PVF 里没有，上游硬编码在 `U/Network/Handlers/RaidHandler.AntonDefinitions.cs:7-141`。客户端应有自己的名称表，本调研未找到，映射本身 `Unknown`。
+dev PVF 的 [符号表](04-jp86-protocol-client-pvf.md#46-antonetcsymbolid--符号) 给出名称和 ID。上游用法见 `U/Network/Handlers/RaidHandler.AntonDefinitions.cs:7-141`，其中 111 未在 dev PVF 的表中定位。
 
 | ID | PVF 名（推断） | 用法 |
 |---|---|---|
 | 1 / 2 | SMOKE PASSIVE CREATE / METEO PASSIVE CREATE | 211、216 周期效果到点置 1 |
 | 3–6 | 221–224 HATCHERY FAIL | 孵化中心类型 1 计时到点置 1 |
-| 7 / 8 | 感染存在 / 感染图号 | 上游自定，PVF 无对应名 |
+| 7 / 8 | 感染存在 / 感染图号 | PVF 有对应符号，`0x024A` 的尾字段驱动它们 |
 | 9–12 | 221–224 HATCHERY NAMED CREATE | 孵化中心类型 3 计时到点置 1 |
 | 50–56 | 210–216 DGN HP | `id = 图号 - 160`，显示累计通关数 |
 | 57–63 | 218–224 DGN HP | `id = 图号 - 161` |
-| 102 | KILL ALL CHARACTER（推断） | 一阶段失败与舰炮失守时置 1 |
+| 102 | KILL ALL CHARACTER | 一阶段失败与舰炮失守时置 1 |
 | 104 / 105 | 1PHASE FAIL / 1PHASE SUCCESS | |
 | 106 | 2PHASE INIT | |
 | 110 | BLACK VOLCANO BARRIER | 0–10000 |
@@ -152,14 +152,14 @@ PVF 用现有构建好的 PvfProbe 读取：`dotnet …\DNF-JP-86-Server\Tool\Pv
 
 **屏障 110**：二阶段开始置 10000（PVF:718-719）。客户端发 `0x0297` 改值（上游推测是能量阻截战里的攻击扣减）。降到 0 时置 `127=0,110=0,111=1,126=1` 并开始每秒回复；回满 10000 时置 `126=0,110=10000,111=0,127=1`；中间值只发 110（`RaidHandler.Progression.cs:463-552`）。回复期间**每秒向全团广播一次**。进入 219 时单发当前屏障快照（`:561-576`）。
 
-### 2.5 地图状态字节 `Unknown`
+### 2.5 地图状态字节
 
 上游与第三方都只用数字。`0 = open`、`2 = hide` 可由初始表确定（`AntonDefinitions.cs:48-57`，对应 PVF 的 open/hide）。`1` 与 `3` 存在两种读法：
 
 - 上游黑雾散后把 211 置 3（PVF 写 `close`，PVF:160），通关时把地图置 3（PVF 写 `clear`），所以上游把 3 同时当 close 和 clear 用。
 - 第三方舰炮通关时先发 3 再发 1（`T/…/RaidHandler.cs:3683-3684`），PVF 此处是 `clear` 后 `close`（PVF:296-301），即 3=clear、1=close。
 
-两份实现自相矛盾。要以客户端读取 PVF 状态字的代码或实机改值确认，属于开工前必须定的一项。
+A21 的 `getStringToDungeonState` 与 NOTI 写入路径确定 `0=open、1=close、2=hide、3=clear`。JP86 按 [客户端枚举](../../../../protocol/game/server-to-client/NOTI-0x024B.md) 区分关闭与通关。
 
 ## 3. 时序
 
@@ -373,21 +373,21 @@ State2(任一阶段) --进攻超时--> State4/Arg1 并删除攻坚
 
 按开工前的阻断程度排序。
 
-1. **地图状态字节**：1 与 3 分别是 close 还是 clear（§2.5）。
-2. **孵化中心入口**：是否从 218 局内选图进入；若是，客户端发的帧、难度值、成功后的加载帧序。
-3. **`0x0296`/`0x0247` 长度**：6 字节还是 8 字节；`target`/`behavior` 的含义；何时由客户端发出。
+1. **地图状态切换**：客户端各 UI 在何时展示 `close=1` 和 `clear=3`，用真实切换序列验证（§2.5）。
+2. **孵化中心入口**：A21 战况导航排除 221–224，dev PVF 的 [218 四角小队传送](04-jp86-protocol-client-pvf.md#218-到孵化中心的传送) 明确目标图。留待实机确认切图和加载顺序、队伍及源局衔接。
+3. **`0x0296`/`0x0247` 语义**：两者已确认读写 6 字节；字段的业务含义和发出场景待实机。
 4. **`0x0297` 的来源**：哪个场景、对哪些符号发；是否只有 110；客户端是否自己执行 `anton.etc` 的部分触发器再上报。这决定服务端解释器与客户端谁是权威。
-5. **符号 ID 表**：客户端的符号名到 ID 映射（上游硬编码，102、111 无 PVF 名）。
+5. **额外符号**：上游使用的 111 在 dev PVF 未定位，检查其作用与显示。
 6. **无 CMD 响应 handler 的 ACK**：`0x0296/0297/02B7/02B8` 回 ACK 是否有害或被忽略。
-7. **`0x024A` 字段顺序**：感染图号在列表前还是包尾。
-8. **`0x024E` 取值**：死亡 0 还是 2；是否需要发。
+7. **`0x024A` 投影**：感染图号位于包尾，实机确认感染出现和清除时的帧序。
+8. **`0x024E` 提示**：0 才进入成员文本路径，确认死亡时的文字与是否需要其他通知。
 9. **`0x0249` op 语义**：0/1/2/4 各对应什么显示。
 10. **`0x02B8` 值的含义**：Boss/精英血量还是别的；哪些路径发、`n` 取值。
 11. **`KILL ALL CHARACTER`**：客户端自行处死图内角色，还是需要服务端结束局。
 12. **周期计时**：211 黑雾、216 陨石在 PVF 里 `RESET TIMER` 后是否循环。
 13. **`PARTY MAX`** 的确切含义（同图小队上限？）与超限时客户端表现。
 14. **屏障**：扣减由谁发、回复周期是否 1 秒、感染期间 34 是否正确、客户端是否自行显示回复。
-15. **`0x0255` 两个 u32**：截止时刻与时长的顺序；重入补发时应写原截止时刻还是现算。
+15. **`0x0255` 计时补发**：已知两个 u32 为 Unix 秒截止及持续秒数；验证重入所需的计时集合和值。
 16. **`0x0258`、`0x0273`、`0x028A`** 的布局与发送时机（静态读不出）。
 17. **二阶段开打**：是否需要先发 `RAID_STATE(1,1)`；间歇期中途加入者的门票怎么处理。
 18. **失败后**：`RETRY`/`RETRY ITEM 10099897` 的发放与重试资格；超时后在图内的局如何结束；攻坚对象解散的帧序。

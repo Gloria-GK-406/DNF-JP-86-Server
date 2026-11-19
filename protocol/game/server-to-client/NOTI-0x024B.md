@@ -51,5 +51,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21 静态证据
+
+来源为 `ClientStatic`。原版 A21、分析镜像 SHA-256 见 [客户端证据绑定](../../../Document/tasks/anton-raid/research/04-jp86-protocol-client-pvf.md#0-绑定版本与标签)，以下地址为 VA。
+
+handler `0x01149520` 读取 `u32 图号 + u8 + u8 状态`，中间字节读后未用，末字段原样交由 `0x00C2C5B0` 存入。
+
+`RDARScriptRaid.cpp::getStringToDungeonState`（VA `0x02B29100`）将 `open/close/hide/clear` 四个字面量注册为 `0x544/0x547/0x54A/0x54D`，对应返回 `0/1/2/3`，返回位置为 `0x02B29444`、`0x02B2945E`、`0x02B29532`、`0x02B29515`。**Confirmed** 的客户端映射为 `open=0`、`close=1`、`hide=2`、`clear=3`。

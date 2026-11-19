@@ -1,5 +1,16 @@
 # 协议清单
 
+## 2026-11-19 安图恩攻坚（A21 静态取证，待实机）
+
+以下为构包、读取或本地分支的 `ClientStatic` 证据。攻坚功能尚未实现，暂无团本实机或线级样本。阶段业务、实机场景和保留项见 [攻坚服务设计](../Document/tasks/anton-raid/design.md#82-a21-实机取证)。
+
+| 范围 | CMD 交换页 | NOTI |
+| --- | --- | --- |
+| 招募、编组与退团 | [建团](game/client-to-server/0x0299.md)、[退团](game/client-to-server/0x029A.md)、[等待](game/client-to-server/0x029C.md)、[改编](game/client-to-server/0x029E.md)、[改标题](game/client-to-server/0x029F.md)、[入团预检](game/client-to-server/0x0364.md)、[邀请](game/client-to-server/0x000A.md)、[应答](game/client-to-server/0x000B.md) | [邀请 UI](game/server-to-client/NOTI-0x0007.md)、[目录](game/server-to-client/NOTI-0x024F.md)、[团对象与编组](game/server-to-client/NOTI-0x0250.md) |
+| 准备、门票与重入 | [开团](game/client-to-server/0x029B.md)、[门票](game/client-to-server/0x0293.md)、[重入](game/client-to-server/0x029D.md) | [准备](game/server-to-client/NOTI-0x0253.md)、[票据就绪](game/server-to-client/NOTI-0x0257.md)、[断线通知](game/server-to-client/NOTI-0x0328.md)、[城镇加载](game/server-to-client/NOTI-0x04BD.md) |
+| 攻坚阶段和地图 | [行为](game/client-to-server/0x0296.md)、[符号](game/client-to-server/0x0297.md)、[buff](game/client-to-server/0x02B7.md)、[怪物状态](game/client-to-server/0x02B8.md) | [行为](game/server-to-client/NOTI-0x0247.md)、[符号](game/server-to-client/NOTI-0x0248.md)、[参与](game/server-to-client/NOTI-0x0249.md)、[地图表](game/server-to-client/NOTI-0x024A.md)、[单图状态](game/server-to-client/NOTI-0x024B.md)、[阶段](game/server-to-client/NOTI-0x024C.md)、[成员](game/server-to-client/NOTI-0x024E.md)、[阶段计时](game/server-to-client/NOTI-0x0255.md)、[剩余时长](game/server-to-client/NOTI-0x0256.md)、[buff](game/server-to-client/NOTI-0x027A.md)、[怪物状态](game/server-to-client/NOTI-0x027B.md) |
+| 过场与结算 | [过场](game/client-to-server/0x0294.md)、[选牌](game/client-to-server/0x0295.md) | [过场](game/server-to-client/NOTI-0x0258.md)、[奖励](game/server-to-client/NOTI-0x0259.md)、[结果与本地任务事件](game/server-to-client/NOTI-0x025A.md) |
+
 ## 2026-11-18 梦幻与梦想装扮合成器（#367、#372，A21 成功及通用拒绝路径 ClientVerified）
 
 梦幻 `10007247` 与梦想 `10007246` 均由实机确认发送 [CMD0447](game/client-to-server/0x0447.md)，包体 145 字节，合成器槽位在偏移 14。按实际模板的 PVF 品级配方结算，两种合成器均已实测扣料、关窗和显示产物。梦想也验证了收到 `00 16` 后提示、关窗与材料保留。

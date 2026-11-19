@@ -8,7 +8,9 @@
 |---|---|
 | 客户端 | A21 `DNF.exe` SHA-256 `1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD`。协议页写 **RVA**，ClientHack 文档写 **VA**，两者差 `0x400000`（例：NOTI `0x0247` handler RVA `0x00D50FD0` = VA `0x01150FD0`；共享空桩 RVA `0x01E31720` = VA `0x02231720`） |
 | PVF | `ClientStore/mounts/dev/content/Script.pvf`，`content:0.3.3-dev.1`，SHA-256 `a97132dda0970b3e0ce7c3de8052acf0be2664f52e26c819b1d8cb6d427cfcd2`（本次实测） |
-| 服务端 | worktree `DNF-JP-86-Server-anton-raid` 当前工作区 |
+| A21 分析镜像 | `ClientEvidence/dumps/dnf-dump-20260922-194214-883-23144/DNF-memory-rva.bin`，SHA-256 `aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d`，基址 `0x00400000`（见同目录 `manifest.json`） |
+| A21 全 RVA 分析 PE | `ClientEvidence/binaries/DNF.unpacked-b1-full-e5a34bbf.exe`，SHA-256 `e5a34bbfcf5f7da99a71cbe6c4a7d10dd8ed700c68059f2c7ddafa3f141c0ee8`，基址 `0x00400000` |
+| 服务端 | worktree `DNF-JP-86-Server-anton-raid` |
 
 [protocol/evidence.md](../../../../protocol/evidence.md) 定义的是证据**种类与效力顺序**，没有给出下列标签名。本文沿用仓内 `patterns/flow-*.md` 已经在用的写法，并对应到 evidence.md 的种类：
 
@@ -26,22 +28,22 @@
 
 ### 1.1 总体结论
 
-- 所有 raid 相关协议页都是 2026-08 静态生成的骨架。**人工区全部为空**，只有默认的「尚无观察记录」或「待实机补全」模板。没有样本，没有 `samples/*.hex`，也没有线级或实机记录。
-- `protocol/catalog.md` 没有任何 raid 条目。`protocol/patterns/` 没有 raid 流程页（对 `raid|安图恩|安徒恩|攻坚|anton` 的检索为零命中）。
+- 生成区是静态普查。各协议新增的 A21 指令证据见对应协议页人工区。暂无团本线级样本或实机记录。
+- 已有静态证据按 [协议清单](../../../../protocol/catalog.md) 查阅，端到端时序仍在 [服务设计的取证项](../design.md#82-a21-实机取证)。
 - `GameProtocol.cs` 和 `NetworkMessages.cs` 没有任何 raid opcode 常量或消息成员。注意编号同号不同协议：`GameProtocol.cs:124` 的 `SecurityStatusType = 0x0252` 是 C→S `SECURITY_STATUS`，`:151` 的 `BossTowerMapType = 0x0334` 是 NOTI，`:286` 的 `0x02EF` 是 C→S FPS 统计。它们与本表的 NOTI `0x0252`、C→S `0x0334`、NOTI `0x02EF` 都无关（`CurrentImplementation`）。
 - 协议目录没有单独的 raid CMD 响应页（`server-to-client/` 下只有 `CMD-0x02B6.md`、`CMD-0x036F.md`）。响应读法见 §1.3，来自 ClientHack `proto-5.md` 与 `proto-3.md`。
 - 任务清单里的 NOTI `0x0254` **没有协议页**，A21 NOTI 注册表也没有登记 `0x0254`（`protocol-identity.tsv` 的 NOTI 序列从 `0x0253` 跳到 `0x0255`）。字面量表里有 `ENUM_NOTIPACKET_START_RAID`，它在字面量区里排在 `RAID_SET_TIMER`（`0x0255`）与 `PREPARE_START_RAID`（`0x0253`）之间，所以推断它就是 NOTI `0x0254`。即使如此，客户端也**没有为它注册 handler**（`ClientStatic(hand)` / Hypothesis）。
 
 ### 1.2 C→S 请求（`protocol/game/client-to-server/`）
 
-「响应」列是客户端是否在 CMD 表为同号注册了 handler。注册了就说明服务端应回一帧同号 CMD。所有页面的人工区都是空模板。
+「响应」列记录 A21 是否注册同号 CMD handler。回包是否参与客户端状态推进应按 handler 分支及实机确认，空桩和带字段的 handler 分开看。
 
 | Type | 名称 | 布局 | BodyLength / 结构（`ClientStatic`） | 字段摘要（页面「可能含义」，来源标签） | 构包点 RVA | 响应 handler RVA |
 |---|---|---|---|---|---|---|
 | `0x0293` | RAID_ENTRY_COST_INFO | 闭合 | 1 | `+0 u8` stage；上游：stage==0 时额外下发 buff/怪物状态（`UpstreamReference`） | `0x0082CD39`, `0x00B986D6` | `0x01E31720` = **空桩 `ret`** |
 | `0x0294` | RAID_MOVIE_SKIP | 闭合 | 1 | `+0 u8` 过场完成或跳过标志；上游 ==1 时开一阶段翻牌（`UpstreamReference`） | `0x006D0693`, `0x006D06D7` | `0x01E31720` 空桩 |
 | `0x0295` | SELECT_RAID_REWARD_CARD | 闭合 | 2 | `+0 u8` rewardType（上游：1=party_card，否则 gold）；`+1 u8` cardIndex ≤3（`UpstreamReference`） | `0x006DFDF5`, `0x006DFE2B`, `0x006DFE70` | `0x00D144D0` |
-| `0x0296` | RAID_DO_BEHAVIOR | 部分 | ≥6：`u32 + u16`，构包路径有跟不下去的调用 | `+0 u32` target、`+4 u16` behavior，上游原样广播；**上游要求长度==8，与客户端 ≥6 冲突**（`UpstreamReference` / High） | `0x0227C145` | 无 |
+| `0x0296` | RAID_DO_BEHAVIOR | 闭合 | `u32 + u16` 共 6B | [A21 构包指令](../../../../protocol/game/client-to-server/0x0296.md) 确认宽度，上游的 8B 长度校验不兼容 | `0x0227C145` | 无 |
 | `0x0297` | RAID_SET_SYMBOL | 闭合 | 9 | `+0 u32` symbolId（上游只收 110=黑色火山屏障）、`+4 u32` operand、`+8 u8` operation 0/1/2=赋值/加/减（`UpstreamReference`）。symbolId 与 PVF `anton.etc.symbol` 编号一致（§4.6） | `0x00822E8A` | 无 |
 | `0x0298` | RAID_MESSAGE | 部分 | `u8` + `dstring`（`i32 长度+字节`，见 game-frame `WriteDString`）；构包经虚表，载荷随运行时类型变 | 全部 unknown | `0x0228BD51` | 无 |
 | `0x0299` | CREATE_RAID | 部分 | `u8` + `dstring` | 页面 unknown；meanings tsv 有上游「offset 4 = i32 长度前缀标题」，**与客户端 `+1` 起的 dstring 错位 3 字节**，未进入机器表（`UpstreamReference`） | `0x00B91EF7` | `0x00D13AC0` |
@@ -51,8 +53,8 @@
 | `0x029D` | REJOIN_RAID | 闭合 | 4 | `+0 u32` unknown | `0x00D6FF18` | `0x00D13F90` |
 | `0x029E` | RAID_MANAGER_WORK | 闭合 | 12 | `+0 u32` op（上游只收 0=分配到小队）、`+4 u32` targetActorId（上游只读低 u16）、`+8 u32` partyIndex（0=未编队）（`UpstreamReference`） | `0x00B91096`, `0x00B98DC1`, `0x021966EE` | `0x01E31720` 空桩 |
 | `0x029F` | MODIFY_RAID_INFO | 部分 | `u8` + `dstring` | 同 `0x0299`，上游 offset 4 标题与客户端错位 | `0x00B92007` | 无 |
-| `0x02B7` | RAID_BUFF_SYSTEM | 部分 | ≥`3+n×2`：`u8, u16, n×u16`，构包经虚表 | `+0 u8` buffType（上游 0..4=INCREASE TIME/ATTACK BONUS/INVINCIBLE/RESTORE/INCREASE COIN）、`+1 u16` partyIndex、`n×u16` 目标 userId（`UpstreamReference`） | `0x0066DB63` | 无 |
-| `0x02B8` | RAID_MONSTER_HP | 部分 | ≥1；**3 个构包点写出的形状不一致**（divergent） | `+0 u8` valueCount ≤5，其后 `n×u32`；上游要求总长 `1+4n`（`UpstreamReference`） | `0x006501AB`, `0x0065028C`, `0x006505E2` | 无 |
+| `0x02B7` | RAID_BUFF_SYSTEM | 闭合 | `u8, u16, n×u16`，无独立目标条数 | `+0 u8` buffType（上游 0..4=INCREASE TIME/ATTACK BONUS/INVINCIBLE/RESTORE/INCREASE COIN）、`+1 u16` partyIndex、`n×u16` 目标 userId（`UpstreamReference`） | `0x0066DB63` | 无 |
+| `0x02B8` | RAID_MONSTER_HP | 闭合 | `u8 n + n×u32`，三个构包点同布局（含 `n=0`） | [A21 构包指令](../../../../protocol/game/client-to-server/0x02B8.md) 确认宽度；限值 5 及运行值含义仍为参照 | `0x006501AB`, `0x0065028C`, `0x006505E2` | 无 |
 | `0x0331` | RAID_OTHER_CHANNEL_USERINFO | 闭合 | 4：`u8 u16 u8` | 全部 unknown | `0x00671C89`, `0x01FCCE19`, `0x021361BE`, `0x021958D0`, `0x02341A7E` | 无 |
 | `0x0332` | RAID_OTHER_CHANNEL_REQUEST_JOIN | 部分 | ≥9：`u8 u16 u32 u16`，构包经虚表 | 全部 unknown | `0x00822DB3` | `0x00D1F1F0` |
 | `0x0334` | RAID_RECENT_FRIEND_LIST | 结构未知 | 构包器未调用写原语，也没有正常收尾 | — | `0x00B9B1FE` | `0x00B9FB20`（forwarder 注册） |
@@ -70,7 +72,8 @@
 | `0x029A` | `0x01114150` | `u8` | proto-5.md:311 |
 | `0x029B` | `0x01113D90` | 按 errorCode 分支：`0x11` → `u32 n` + `n×u32`；`0xD9` → `u32 n` + `n×u32`；其他错误码无载荷 | proto-5.md:363–369 |
 | `0x029C` | `0x011143B0` | 只看信封，零读取 | proto-5.md:280–284 |
-| `0x029D` | `0x01113F90` | proto-5 已列注册但没有单独给出读法 | `Unknown` |
+| `0x029D` | `0x01113F90` | 只看信封，无额外读取 | [响应路径](../../../../protocol/game/client-to-server/0x029D.md) |
+| `0x0364` | `0x0110DD50` | 成功多读一个用于后续查团的 `u32` | [响应路径](../../../../protocol/game/client-to-server/0x0364.md) |
 | `0x0332` | `0x0111F1F0`（与 `0x0333` 共用） | 只看信封，零读取 | proto-3.md:484–509 |
 | `0x0334` | `0x00F9FB20`（RVA `0x00B9FB20`） | 未分析 | `Unknown` |
 
@@ -81,25 +84,25 @@
 | Type | 名称 | 页面状态 / 下界 | 手工布局（`ClientStatic(hand)`） | 页面已挂的上游含义（`UpstreamReference`） | handler RVA |
 |---|---|---|---|---|---|
 | `0x0247` | RAID_DO_BEHAVIOR | 部分，≥6 | `u32 u16`（6B），与 C→S `0x0296` 的 `u32+u16` 同形 | — | `0x00D50FD0` |
-| `0x0248` | RAID_SET_SYMBOL | 部分，≥1+8n | `u8 N(u8)×{u32 u32}` | 计数；`{symbolId, value}` | `0x00D48040` |
-| `0x0249` | RAID_DUNGEON_PARTICIPATION_INFO | 部分，≥9 | `u8 N(u8)×{u32 u8 u8 N(u8)×{u16}}` | 上游 `+0` 恒 1、`+4` dungeonId、`+8` op、`+12` 成员数、`+16` u32 成员。**上游按 u32 对齐，客户端是 u8/u16，偏移不对应** | `0x00D515B0` |
-| `0x024A` | RAID_DUNGEON_STATE | 部分，≥6+5n | `u8 u8 N(u8)×{u32 u8} u32`：**尾部还有一个 u32**，页面误放到了 offset 2 | 上游 `+0` 恒 0、`+4` 条目数、`+8` infectionDungeonId（u32 对齐，错位） | `0x00D480B0` |
-| `0x024B` | RAID_CHANGE_DUNGEON_STATE | 部分，≥6 | `u32 u8 u8`（6B） | `+0` dungeonId；上游 `+4` 恒 0、`+8` state（客户端没有 offset 8） | `0x00D49520` |
-| `0x024C` | RAID_STATE | 部分，≥2 | `u8 u8`（2B） | 上游 `+0` State（超时终局=3）、`+4` StateArgument（客户端没有 offset 4） | `0x00D5E9A0` |
+| `0x0248` | RAID_SET_SYMBOL | 部分，≥1+8n | `u8 n + n×(u32 ID, u32 值)` | `(0,0)` 清空并提前结束；见 [符号通知](../../../../protocol/game/server-to-client/NOTI-0x0248.md) | `0x00D48040` |
+| `0x0249` | RAID_DUNGEON_PARTICIPATION_INFO | 部分，≥9 | `u8 N(u8)×{u32 u8 u8 N(u8)×{u16}}` | 旧机器区转录按 `u32` 对齐；当前上游与客户端都用窄字段，首项是 A21 外层分组计数。见 [参与通知](../../../../protocol/game/server-to-client/NOTI-0x0249.md) | `0x00D515B0` |
+| `0x024A` | RAID_DUNGEON_STATE | 部分，≥6+5n | `u8 u8 N(u8)×{u32 u8} u32`：**尾部还有一个 u32**，页面误放到了 offset 2 | 旧转录偏移错误。首字节读后未用，感染图号位于列表后，见 [地图表](../../../../protocol/game/server-to-client/NOTI-0x024A.md) | `0x00D480B0` |
+| `0x024B` | RAID_CHANGE_DUNGEON_STATE | 部分，≥6 | `u32 u8 u8`（6B） | 旧转录的 `+8` 超出布局。状态在 `+5`，枚举见 [地图状态](../../../../protocol/game/server-to-client/NOTI-0x024B.md) | `0x00D49520` |
+| `0x024C` | RAID_STATE | 部分，≥2 | `u8 u8`（2B） | 旧转录的 `+4` 超出布局。A21 第二个字节在状态 2 区分两阶段；见 [阶段状态](../../../../protocol/game/server-to-client/NOTI-0x024C.md) | `0x00D5E9A0` |
 | `0x024D` | RAID_MESSAGE | 部分，≥1 | `u8` | — | `0x00D48180` |
-| `0x024E` | RAID_MEMBER_STATE | 部分，≥3 | `u16 u8`（3B） | `+0` userId、`+2` 1=存活 2=死亡 | `0x00D48200` |
+| `0x024E` | RAID_MEMBER_STATE | 部分，≥3 | `u16 u8`（3B） | 旧转录给出的 1/2 和 A21 路径不符。A21 仅值 0 进入成员文本处理，见 [成员提示](../../../../protocol/game/server-to-client/NOTI-0x024E.md) | `0x00D48200` |
 | `0x024F` | RAID_LIST | 部分，≥4+25n | `u32 LOOP{u8}`（proto-1 的压缩写法，比页面粗） | — | `0x00D834B0` |
 | `0x0250` | RAID_MODIFY | 部分，≥8 | `[SWITCH] 2*u32, u8` | — | `0x00D84BD0` |
 | `0x0251` | RAID_WAITING_LIST | 部分，≥5 | `u16 LOOP{u16, u8}` | — | `0x00D64860` |
 | `0x0252` | RAID_WAITING_MODIFY | 部分，≥4 | `u8, u16, u8`（4B） | — | `0x00D64A60` |
 | `0x0253` | PREPARE_START_RAID | 结构未知（打包区） | **无 read 原语调用**，疑为零长 body | — | `0x00D734B0` |
 | `0x0254` | （START_RAID，推断） | **无页面、无注册** | — | — | — |
-| `0x0255` | RAID_SET_TIMER | 部分，≥13 | `u8 u32 u32 u32`（13B）；同一函数注册两次（无害重复） | 上游 `+0` key0 计时器类型（0 团本/1 活跃/2 恢复/3 特效）、`+4` key1 dungeonId、`+8` 截止时间戳、`+12` 时长。客户端字段在 1/5/9，**上游偏移错位** | `0x00D4EFE0` |
+| `0x0255` | RAID_SET_TIMER | 部分，≥13 | `u8 u32 u32 u32`（13B）；同一函数注册两次（无害重复） | 旧转录偏移错误。当前上游已用同一窄字段布局；A21 在 `+5/+9` 使用 Unix 秒截止及持续秒数，见 [计时通知](../../../../protocol/game/server-to-client/NOTI-0x0255.md) | `0x00D4EFE0` |
 | `0x0256` | RAID_REMAIN_TIME | 部分，≥5 | `u8 u32`（5B） | `+0` 计时器类型 0/1、`+1` 剩余秒（与客户端一致） | `0x00D48140` |
-| `0x0257` | RAID_ENTRY_COST_INFO | 部分，≥4+5n | `u32 LOOP{u16, u8, u16}` | `+0` 条目数；组内 `+0` userId、`+2` 就绪、`g1:6` 持有数。**上游组内宽度大于客户端的 5B** | `0x00D602E0` |
+| `0x0257` | RAID_ENTRY_COST_INFO | 部分，≥4+5n | `u32 LOOP{u16, u8, u16}` | 生成区的旧上游偏移与 A21 不同。当前上游编码为相同的 5B 条目；见 [读取点](../../../../protocol/game/server-to-client/NOTI-0x0257.md) | `0x00D602E0` |
 | `0x0258` | RAID_MOVIE_SKIP | 结构未知（打包区） | 无 read 原语调用 | — | `0x00D6C2C0` |
-| `0x0259` | RAID_REWARD_LIST | 部分，≥12 | `2*u8 LOOP{u16, 2*u8, u32, u16}` | 上游 `+0` rewardType=3、`+4` 条目数、组内 userId/CardType/Flags/ItemId/Quantity。**客户端的计数应在前两个 u8 内，上游「offset 4=条目数」与之冲突** | `0x00D86EC0` |
-| `0x025A` | RAID_RESULT | 部分，≥10 | `2*u8, u32, u16, 2*u8`（10B，非 SWITCH） | 上游 6 个 u32：resultType/phaseIndex/clearTime/deadCount/rank/rewardOption（24B），**与客户端 10B 错位** | `0x00D764F0` |
+| `0x0259` | RAID_REWARD_LIST | 部分，≥12 | `2*u8 LOOP{u16, 2*u8, u32, u16}` | 旧转录把条目数放到 `+4`；A21 计数实际位于 `+1`。当前上游也用两个 `u8`，见 [奖励列表](../../../../protocol/game/server-to-client/NOTI-0x0259.md) | `0x00D86EC0` |
+| `0x025A` | RAID_RESULT | 部分，≥10 | `2*u8, u32, u16, 2*u8`（10B，非 SWITCH） | 旧转录使用六个 `u32`。当前上游与 A21 都用 10B，结果分支见 [阶段结果](../../../../protocol/game/server-to-client/NOTI-0x025A.md) | `0x00D764F0` |
 | `0x0273` | CLEAR_RAID_BUFF | 结构未知 | 无直接读取，解析委托给 VA `0x00442570` | — | `0x00D68C70` |
 | `0x027A` | RAID_BUFF_SYSTEM | 部分，≥15 | `u8 N(u8)×{u8 u8 N(u8)×{u16 u16 u32 u32}}` | 组数；{buffType, 条目数, {partyIndex, userId, activeUntil, cooldownUntil}}（与客户端形状吻合） | `0x00D5EEA0` |
 | `0x027B` | RAID_MONSTER_HP | 部分，≥11+4n | `u8 N(u8)×{u16 u8 N(u8)×{u16} u32 u8 N(u8)×{u32}}` | {situationIndex, 成员数, 成员 userId[], usedCoin, 运行值数, 运行值[]}（形状吻合） | `0x00D5F1D0` |
@@ -121,12 +124,12 @@
 | 问题 | 影响 | 标签 |
 |---|---|---|
 | `patterns/data/meanings/09-raidhandler-progression.tsv`、`12-protocol-gameprotocolhandler.tsv` 等把上游含义标为 `Confirmed`/`High`，但来源全是 ServerS4A21 | 按 evidence.md 上游最高只到 Hypothesis。照页面实现会把上游当事实 | `UpstreamReference` |
-| 上游构包大量按 **u32** 写字段（`0x0249`/`0x024A`/`0x024B`/`0x024C`/`0x0255`/`0x0257`/`0x0259`/`0x025A`），A21 客户端读的是 u8/u16 | 生成器按 offset 把上游含义挂到客户端字段上，**挂错了位**。这些 NOTI 的 body 必须按 §1.4 手工布局重建，不能照搬上游 builder | `ClientStatic(hand)` vs `UpstreamReference` |
-| C→S `0x0299`/`0x029F` 上游在 offset 4 读 i32 标题，客户端在 offset 1 写 dstring | 解包器需按客户端写 | 同上 |
-| C→S `0x0296` 上游要求 8B，客户端 ≥6B | 需样本定长 | 同上 |
+| 旧上游转录大量按 **u32** 对齐字段（`0x0249`/`0x024A`/`0x024B`/`0x024C`/`0x0255`/`0x0257`/`0x0259`/`0x025A`），A21 客户端读的是 u8/u16 | 生成器按 offset 把上游含义挂到客户端字段上，**挂错了位**。实现应以协议人工区的 A21 布局为准；当前上游部分 builder 已改用窄字段 | `ClientStatic(hand)` vs `UpstreamReference` |
+| C→S `0x0299`/`0x029F` 的旧上游转录把 dstring 起点写成 offset 4，A21 在 offset 0 写 `u8 0`，从 offset 1 写 dstring | 解包器按客户端读 | 同上 |
+| C→S `0x0296` 上游要求 8B，A21 已静态确认 6B | 实现按 6B，场景和语义待实机 | 同上 |
 | NOTI `0x0327` 页面标题与身份行名称不一致 | 只是页面标题问题，身份表与字面量都是 `RAID_MEMBERS` | `ClientStatic` |
-| 相邻编号的名称冲突：C→S `0x0333/0x0335/0x0336/0x033C/0x0364` 和 NOTI `0x02F1–0x02F6` 在 `game/index.md` 里是 RAID_* 名，页面标题却是 ADVANCE_ALTAR 或活动名。proto-2 把 NOTI `0x02F2` 记为 `RAID_OTHER_CHANNEL_USER_TITLE_BOOK`（`u8 u16 u8 u8 u8_count×{…}`） | 这些协议不在本次清单里。若跨频道组队需要用到，要先裁定名称 | `ClientStatic` |
-| 字面量表另有 `ENUM_NOTIPACKET_RAID_PHASE_COIN_INFO`、`ANTON_CONQUEST_CLEAR_COUNT`、`ALEADY_RAID_REWARD`，以及 `UDPPACKET_ANTON_REWARD_SELECT_CARD` | 前两者在 A21 NOTI 注册表里未定位到 type。翻牌存在一条 **UDP 包**路径，翻牌同步可能不只靠 TCP `0x0295` | `ClientStatic(hand)`（`literals-a21.csv`） |
+| 相邻编号的名称冲突：C→S `0x0333/0x0335/0x0336/0x033C` 和 NOTI `0x02F1–0x02F6` 在 `game/index.md` 里是 RAID_* 名，页面标题却是 ADVANCE_ALTAR 或活动名。proto-2 把 NOTI `0x02F2` 记为 `RAID_OTHER_CHANNEL_USER_TITLE_BOOK`（`u8 u16 u8 u8 u8_count×{…}`） | 这些协议不在本次清单里。若跨频道组队需要用到，要先裁定名称 | `ClientStatic` |
+| 字面量表另有 `ENUM_NOTIPACKET_RAID_PHASE_COIN_INFO`、`ANTON_CONQUEST_CLEAR_COUNT`、`ALEADY_RAID_REWARD`，以及 `UDPPACKET_ANTON_REWARD_SELECT_CARD` | 前两者在 A21 NOTI 注册表里未定位到 type。UDP 名称是进一步取证线索，是否实际参与翻牌同步待证 | `ClientStatic(hand)`（`literals-a21.csv`） |
 
 ## 2. 客户端侧证据
 
@@ -143,15 +146,15 @@
 | `.../a21-vmp1/vmp1-5.md:201` | `CNRDDualRaidPacketManager.cpp` 属于房间→UDP 桥（双人 raid，不是本玩法） | `ClientStatic(hand)` |
 | `.../a21-units/unit-035.md:300` | `anton` 是 SERVER_GROUP_TYPE 9（服务器组名），**与 raid 无关**，勿混淆 | `ClientStatic(hand)` |
 | `DNF-JP-86-ClientHack/ClientHack/tools/literals-a21.csv` | 客户端源文件 `RDAR\CNRDRaidManager.cpp`（函数 VA `0x00C24DB0`，`CNRDRaidManager::moveChannel`）、`RDAR\PopupWindow\RaidChannelWindow.cpp`（VA `0x00F8FD40`）、`DNFShared\GameScript\RDARScriptRaid.cpp`（VA `0x02B29100`，解析 `[RAID BUFF LIST]`/`[RAID MONSTER LIST]`）；`MatchChannelMoveManager::moveRaidChannel` / `moveLastRaidChannel`（VA `0x00608AC0`/`0x00608BB0`）；窗口 `RaidCreateWindow`（含 `RaidNameEdit`）、`RaidListWindow2`、`RaidMemberWindow`、`RaidMatchingWindow`、`RaidWaitListWindow`、`RAID_CHANNEL_WINDOW`/`FINDRAID_WINDOW`/`RAID_TEAM_WINDOW`；局内 `anton_game_navigation_*`、`RaidPartyStatus`、`AntonBuff%02d`、`raid_timer`；过场 `Video/AntonCutScene/1-1…1-5,2-1…2-3,1-F,1-S,2-F,2-S.avi`；结算 `RaidRewardSelectCard`/`RaidRewardIndividual`/`RaidRewardDrawer`/`RaidTimeBorad`；`QUEST_EVENT_RAID_PHASE_CLEAR`（VA `0x00E68160`）；`not raid dungeon`（VA `0x028B3310`）；`Etc/Raid/Raid.lst`、`AntonStatusBoard.etc` | `ClientStatic(hand)` |
-| 构包点与 handler 的地址邻近（VA = RVA+`0x400000`） | ① `0x0297`/`0x029A`/`0x029B`/`0x0332`/`0x0363`/`0x0293` 的构包点在 VA `0x00C22DB3–0x00C2CD39`，落在 `CNRDRaidManager.cpp` 区；② `0x0299` 构包点（VA `0x00F91EF7`）在 `RaidCreateWindow` 函数（`0x00F91BB0`，含 `RaidNameEdit`）内，dstring 应为团名；`0x029F`（`0x00F92007`）紧随其后；`0x029C`/`0x029E`/`0x0293`/`0x0334` 的构包点落在 `MyRaidBtn`/`MyRaidPanel`/`RaidMemberWindow` 区（`0x00F97390–0x00F9B1FE`）；③ **`REJOIN_RAID` 的构包点 VA `0x0116FF18` 紧跟 NOTI `0x0328 RAID_DISCONN_INFO` 的 handler（VA `0x0116FE00`）**，重入请求很可能由该 NOTI 触发；④ `0x02B7` 构包点（VA `0x00A6DB63`）挨着 `RaidPartyStatus`/`PartyIcon`，buff 由局内小队状态面板发出；⑤ NOTI `0x0253` 的 handler（VA `0x011734B0`）紧跟 `anton_count_down.ani` 的函数（`0x011733E0`），NOTI `0x024C` 的 handler（`0x0115E9A0`）紧跟 `00_start_back.ani` 的函数（`0x0115E890`） | `ClientStatic(proximity)` / Hypothesis |
+| 构包点与 handler 的地址邻近（VA = RVA+`0x400000`） | ① `0x0297`/`0x029A`/`0x029B`/`0x0332`/`0x0363`/`0x0293` 的构包点在 VA `0x00C22DB3–0x00C2CD39`，落在 `CNRDRaidManager.cpp` 区；② `0x0299` 构包点（VA `0x00F91EF7`）在 `RaidCreateWindow` 函数（`0x00F91BB0`，含 `RaidNameEdit`）内，dstring 应为团名；`0x029F`（`0x00F92007`）紧随其后；`0x029C`/`0x029E`/`0x0293`/`0x0334` 的构包点落在 `MyRaidBtn`/`MyRaidPanel`/`RaidMemberWindow` 区（`0x00F97390–0x00F9B1FE`）；③ `0x0328` 触发 `0x029D` 已走通指令路径，见 [重入分支](../../../../protocol/game/server-to-client/NOTI-0x0328.md)；④ `0x02B7` 构包点（VA `0x00A6DB63`）挨着 `RaidPartyStatus`/`PartyIcon`，buff 由局内小队状态面板发出；⑤ NOTI `0x0253` 的 [组队路径](../../../../protocol/game/server-to-client/NOTI-0x0253.md) 已走通，NOTI `0x024C` 的 handler（`0x0115E9A0`）紧跟 `00_start_back.ani` 的函数（`0x0115E890`） | `ClientStatic(proximity)` / Hypothesis |
 | 服务端仓 `Docs/ProtocolScaffoldDissonances.md:56–62` | 上游把 raid behavior 转发到 NOTI `0x0296`，而客户端接收表里**没有** NOTI `0x0296`；NOTI 名称的置信度低于 CMD | `ClientStatic` vs `UpstreamReference` |
 | 服务端仓 `Docs/新功能接入规范.md:314–320` | 安图恩团本翻牌不走 `.dgn [result card]`（安图恩的 `.dgn` 不声明该段），走哪条路未查明 | `PvfContent` |
 | 服务端仓 `Docs/DungeonEntryNotes.md:58` | 全档 `[raid dungeon]` 14 个 | `PvfContent` |
 | `Document/ChannelCatalog-20261010.md:7` | raid 组 type 32 的 CH201 原生客户端不接受，上游跳过；raid 环境=23 | `UpstreamReference` + 实测记录 |
 | `Document/outputs/issue-101/pvf/dungeons.tsv` | 旧 PVF 的 dungeon 表，210–224 均带 `[raid dungeon]`、无疲劳、禁练习（与本次 dev PVF 一致） | `PvfContent`（旧版） |
-| ClientEvidence | 未发现 raid 相关 trace 或 dump | `Unknown` |
+| ClientEvidence | 有 A21 分析镜像，未发现团本现场 trace | `ClientStatic(hand)` |
 
-客户端侧没有任何**线级样本、运行时读取跟踪或实机观察**。raid UI 状态机（招募→编队→开团→阶段→结算）在客户端侧未被逆向，只有窗口和资源名。
+暂无团本线级样本、运行时读取跟踪或实机观察。A21 多个 UI 和构包分支已经定位，跨会话的完整流程仍待实机。
 
 ## 3. 本仓现有 raid 相关实现（`CurrentImplementation`）
 
@@ -229,6 +232,19 @@
 
 217（`map/217_dalelidhole`）不在 `dungeon.lst`。一阶段用 `MonsterApcDifficultyBonus_raid1.tbl`，二阶段用 `_raid2.tbl`。
 
+#### 218 到孵化中心的传送
+
+dev PVF 的 `dungeon/anton/phase2/energycut.dgn`（218）在四角地图放「安徒恩的筋」。`passiveobject/actionobject/map/anton/phase3/wall/action/wall_last{,_1,_2,_3}.act` 检查目标图状态是否为 0，满足后生成 18888–18891 的传送对象；相应 `wall_open*.obj` 带 `[warp object]`、`[int data] 0 150 <目标图> 2 20000` 与 `[string data] party include self`。
+
+| 218 房间地图 | 入口被动对象 | 目标图 |
+| --- | --- | --- |
+| 19100 | 18862 | 224 |
+| 19103 | 18863 | 221 |
+| 19116 | 18893 | 223 |
+| 19119 | 18892 | 222 |
+
+A21 战况导航入口 VA `0x00A4E7C0` 的进图分支在 `0x00A4E952–0x00A4E961` 排除 221–224。dev PVF 证实局内传送对象及目标图，真实触发条件、换图报文与小队在源局的处理由实机确认。
+
 ### 4.4 触发器（`anton.etc` `[TRIGGER]/[BEHAVIOR]`，摘要）
 
 指令词汇：`IF`、`CHECK DUNGEON STATE <id> open|clear|close|hide`、`ON CHANGE DUNGEON STATE <id>`、`ON CHANGE SYMBOL <sym>`、`CHECK TIMER END <type> <id>`；动作有 `SET DUNGEON STATE`、`RESERVE DUNGEON STATE <id> <state> <sec>`、`SET <sym> <v>`、`SET TIMER <type> <id> <sec>`、`RESET TIMER`、`CLEAR PHASE`、`OPEN RANDOM HATCHERY`。计时器类型 1/2/3 与 NOTI `0x0255` 的 key0 取值同域（推断）。
@@ -236,7 +252,7 @@
 | 阶段 | 主线 |
 |---|---|
 | 1 | 210 通关 → 210 隐藏，211 关闭，212–215 开放，216 在 20 秒后开放，黑雾开、播黑雾出动画，`SET TIMER 2 211 300`。211 开放后计时 240 秒循环生成黑雾被动（SMOKE PASSIVE），清后关闭、300 秒后重开，重开后 480 秒内未清则 `1PHASE FAIL`。216 开放播「舰炮」动画，360 秒未清则 NAVIGUN FAIL、KILL ALL CHARACTER、212–215 重开、213/215 HP 归零；清了则 150 秒后重开。212/214 开放 300 秒内未清 → `1PHASE FAIL`，清后关闭 150 秒再开。**213 与 215 都 clear → `1PHASE SUCCESS`** → 全部隐藏 + `CLEAR PHASE`。`1PHASE FAIL` → 全灭、回到 210 open 的初态 |
-| 2 | 初始化：`2PHASE INIT=1`、`BLACK VOLCANO BARRIER=10000`、`SET TIMER 3 219 180`。屏障到 10000 播恢复动画，到 0 播破碎动画（屏障由 C→S `0x0297` symbol 110 改写）。218 通关后保持 open、HP 归零。219 的计时 3 结束 → `OPEN RANDOM HATCHERY`。孵化场开放后 120 秒未清 → `<id> HATCHERY FAIL`（每 45 秒重复），120 秒和 50 秒周期生成命名怪；清后关闭 240 秒再开。**219 clear → 218/219/221–224 隐藏，220 开放**；**220 clear → 220 隐藏 + `CLEAR PHASE`** |
+| 2 | 初始化：`2PHASE INIT=1`、`BLACK VOLCANO BARRIER=10000`、`SET TIMER 3 219 180`。屏障到 10000 播恢复动画，到 0 播破碎动画（上游用 C→S `0x0297` 更新 110，A21 实际调用场景待证）。218 通关后保持 open、HP 归零。219 的计时 3 结束 → `OPEN RANDOM HATCHERY`。孵化场开放后 120 秒未清 → `<id> HATCHERY FAIL`（每 45 秒重复），120 秒和 50 秒周期生成命名怪；清后关闭 240 秒再开。**219 clear → 218/219/221–224 隐藏，220 开放**；**220 clear → 220 隐藏 + `CLEAR PHASE`** |
 
 ### 4.5 `anton.etc.buff`
 
@@ -333,12 +349,12 @@
 
 | # | 缺口 | 为什么重要 |
 |---|---|---|
-| 1 | 所有 raid 协议**零线级样本、零实机观察**，人工区全空 | catalog 不能登记，任何实现都只能停在静态推断 |
-| 2 | 上游含义按 u32 对齐挂到 A21 的 u8/u16 字段上（§1.5），而且被标为 Confirmed | 直接照页面或上游写编码器会让客户端读错位。NOTI 必须按 ClientHack proto-0/1 的读序重建，并把这些结论回写到协议页人工区 |
-| 3 | `[SWITCH]` 或打包区的 NOTI（`0x0250`、`0x02EA`、`0x0253`、`0x0258`、`0x0273` 委托体、`0x024F`/`0x02EC` 列表元素）布局未闭合 | 招募列表、修改团、开团倒计时、过场、清 buff 都依赖这些 NOTI |
-| 4 | C→S `0x0298`/`0x02B7` 构包经虚表，`0x02B8` 三个构包点形状不一，`0x0334` 结构未知 | 需要运行时读取跟踪或抓包 |
-| 5 | CMD `0x0293`/`0x0294`/`0x029E` 响应是空桩，`0x029D` 和 `0x0334` 的响应读法未分析 | 服务端如何确认团长改编、过场完成、入场材料查询，只能靠 NOTI 投影。需要确认客户端是否在等这些响应 |
-| 6 | 招募→开团→阶段→间歇→重入→结算的客户端 UI 状态机未逆向，只有窗口名和地址邻近线索（§2） | 设计草案「A21 待实机确认」各项都卡在这里 |
+| 1 | 暂无团本线级样本或实机观察 | catalog 已登记静态证据；实际发送时序、受众和画面须另证 |
+| 2 | 生成区仍有旧上游偏移和过高置信度（§1.5） | 编解码以协议页的 A21 人工记录为准 |
+| 3 | 部分打包区的 NOTI（含 `0x02EA`、`0x0273` 委托体、`0x02EC`）尚未闭合；`0x0258` 已追到 UI 路径，实际帧体仍待测 | 首版只接已明确需要的边界 |
+| 4 | C→S `0x0298` 构包经虚表，`0x0334` 结构未知 | 进入相关场景时抓包 |
+| 5 | 多条 CMD 响应为空桩。已确认 `0x029D` 只读结果信封、`0x0364` 成功读额外 u32；`0x0334` 待取证 | 结果信封、NOTI 投影和 UI 推进分别验证 |
+| 6 | 已定位单个客户端处理分支，尚无整段生命周期证据 | 靠 [实机取证场景](../design.md#82-a21-实机取证) 验证跨会话顺序 |
 | 7 | 借出小队在客户端怎样显示（普通队伍 NOTI 还是 raid 专用 NOTI）没有任何客户端证据 | 直接决定 AntonRaidDesign 的投影层 |
 | 8 | 落点：本仓用 town 19 的 gate 区，PVF 等待室是 area 2 | 需要实机核对 NPC 327 是否可达 |
 | 9 | 频道准入：PVF 有「完成 12829 才能进团队模式频道」，本仓 raid 频道没有任务门槛 | 规则缺失 |
