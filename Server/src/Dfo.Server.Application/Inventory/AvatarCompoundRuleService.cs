@@ -52,9 +52,14 @@ internal sealed class AvatarCompoundRuleService(IAvatarCompoundDefinitionSource 
         bool Usable(AvatarCompoundItemDefinition item) => level >= item.MinimumLevel
             && item.Jobs.IsValid && item.Jobs.Allows(CharacterJobFamilies.Resolve(job));
     }
+    public bool SupportsPlusConverter(int itemId) => itemId is 10007246 or 10007247;
+
     public async ValueTask<AvatarCompoundPlan> PlanPlusAsync(byte job, byte level, int converterId,
         AvatarCompoundPlusInput input, CancellationToken ct)
     {
+        if (!SupportsPlusConverter(converterId))
+            return new(AvatarCompoundRejection.MissingMaterial);
+
         var jobFamily = CharacterJobFamilies.Resolve(job);
         var target = await content.ItemAsync(input.TargetItemId, ct).ConfigureAwait(false);
         if (target is not { Grade: 3, Permanent: true } || !Usable(target)

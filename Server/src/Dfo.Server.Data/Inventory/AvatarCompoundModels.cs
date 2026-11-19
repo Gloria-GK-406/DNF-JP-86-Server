@@ -10,7 +10,6 @@ public sealed record AvatarCompoundPlusInput(BusinessSlot Material,
     ImmutableArray<AvatarCompoundPlusIngredient> Ingredients, int TargetItemId, ushort Ability)
 {
     public const int IngredientCount = 8;
-    public static bool SupportsConverter(int itemId) => itemId is 10007246 or 10007247;
 }
 public enum AvatarCompoundRejection { None, InvalidRequest, NoSession, MissingMaterial, InvalidAvatar, Locked,
     UnsupportedLifetime, UnsupportedContent, InvalidChoice, NoRoom, StorageFailure }

@@ -96,14 +96,14 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             StackablesIndex(archive);
 
             var rule = stackables.TryGetValue(itemId, out var entry)
-                ? Read(archive, "stackable/" + entry.RelativePath, itemId)
+                ? Read(archive, "stackable/" + entry.RelativePath)
                 : null;
             cache[itemId] = rule;
             return ValueTask.FromResult(rule);
         }
     }
 
-    private static ItemUseRule Read(PvfArchive archive, string path, int itemId)
+    private static ItemUseRule Read(PvfArchive archive, string path)
     {
         var reader = archive.OpenScript(path);
 
@@ -129,10 +129,9 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         if (expBonusRate > 0 && effectDuration <= 0)
             unreadable = true;
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
-        // These converters list this unsupported job separately from their playable jobs.
-        // Drop exactly that entry; the remaining archive declarations still gate the converter.
-        if (Dfo.Server.Data.Inventory.AvatarCompoundPlusInput.SupportsConverter(itemId)
-            && action == "[absolute bind cube]" && jobText is not null)
+        // Absolute bind declarations list creator mage alongside the supported job families.
+        // Project the remaining job tokens so each playable family's restriction still applies.
+        if (action == "[absolute bind cube]" && jobText is not null)
             jobText = jobText.Where(job => job != "[creator mage]").ToArray();
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
         // Random fatigue recovery already requires town presence. The assault exclusion grants no place.

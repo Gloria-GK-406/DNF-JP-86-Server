@@ -60,10 +60,9 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         if (identity is null || progress is null || identity.CharacterId != session.CharacterId)
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Character identity or progress unavailable.");
-        if (itemId == QuestClearCouponRuleService.SideCouponItemId
-            && await conditions.FindAsync(session.CharacterId, ct).ConfigureAwait(false) is not { HardcoreMode: 0 })
-            throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Side quest coupon requires a non-hardcore character.");
+        var condition = await conditions.FindAsync(session.CharacterId, ct).ConfigureAwait(false);
         var cleared = state.Cleared.Where(x => x.Mark != 0).Select(x => new ClearedQuest(x.QuestId, x.Mark)).ToArray();
-        return await rules.SelectAsync(itemId, progress.Level, identity.Job, identity.GrowType, cleared, now, ct).ConfigureAwait(false);
+        return await rules.SelectAsync(itemId, progress.Level, identity.Job, identity.GrowType, condition?.HardcoreMode,
+            cleared, now, ct).ConfigureAwait(false);
     }
 }

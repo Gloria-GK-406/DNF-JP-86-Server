@@ -80,7 +80,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
             return new(AvatarCompoundRejection.MissingMaterial);
         var now = clock.GetUtcNow();
         var box = await material.Container.GetAsync(input.Material.Index, ct).ConfigureAwait(false);
-        if (box is not { IsPile: true, Count: > 0 } || !AvatarCompoundPlusInput.SupportsConverter(box.ItemId)
+        if (box is not { IsPile: true, Count: > 0 } || !rules.SupportsPlusConverter(box.ItemId)
             || box.Snapshot.IsMirror || box.Snapshot.Lifetime.IsExpired(now))
             return new(AvatarCompoundRejection.MissingMaterial);
         if (Locked(box.Snapshot))

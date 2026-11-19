@@ -17,5 +17,6 @@ public interface IAvatarCompoundRuleService
 {
     ValueTask<AvatarCompoundPlan> PlanAsync(byte job, byte level, AvatarCompoundInput input, int materialId,
         ItemSnapshot first, ItemSnapshot second, int seed, CancellationToken ct);
+    bool SupportsPlusConverter(int itemId);
     ValueTask<AvatarCompoundPlan> PlanPlusAsync(byte job, byte level, int converterId, AvatarCompoundPlusInput input, CancellationToken ct);
 }

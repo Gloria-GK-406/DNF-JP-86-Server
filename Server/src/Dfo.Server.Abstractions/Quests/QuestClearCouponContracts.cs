@@ -20,6 +20,7 @@ public interface IQuestClearCouponRuleService
         byte level,
         byte job,
         byte growType,
+        int? hardcoreMode,
         IReadOnlyList<ClearedQuest> cleared,
         DateTimeOffset now,
         CancellationToken cancellationToken);

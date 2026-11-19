@@ -59,8 +59,6 @@ internal sealed class PvfAvatarCompoundDefinitionSource(PvfArchiveProvider provi
     public ValueTask<AvatarCompoundPlusDefinition?> PlusForJobAsync(int converterId, QuestJobRequirement job, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        if (!AvatarCompoundPlusInput.SupportsConverter(converterId))
-            return ValueTask.FromResult<AvatarCompoundPlusDefinition?>(null);
         lock (gate)
         {
             if (!plusRecipes.TryGetValue(converterId, out var recipes))

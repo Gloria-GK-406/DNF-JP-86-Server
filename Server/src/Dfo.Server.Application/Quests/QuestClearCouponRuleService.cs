@@ -15,8 +15,11 @@ internal sealed class QuestClearCouponRuleService(
     public bool IsCoupon(int itemId) => itemId is StoryCoupon or SideCouponItemId;
 
     public async ValueTask<IReadOnlyList<int>> SelectAsync(int itemId, byte level, byte job,
-        byte growType, IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now, CancellationToken cancellationToken)
+        byte growType, int? hardcoreMode, IReadOnlyList<ClearedQuest> cleared, DateTimeOffset now, CancellationToken cancellationToken)
     {
+        if (itemId == SideCouponItemId && hardcoreMode is not 0)
+            throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Side quest coupon requires a non-hardcore character.");
+
         // Other archives use the same action for different grades and reward policies.
         var item = await items.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
         if (!IsCoupon(itemId) || item is not { IsReadable: true, Action: "[quest clear]" })
