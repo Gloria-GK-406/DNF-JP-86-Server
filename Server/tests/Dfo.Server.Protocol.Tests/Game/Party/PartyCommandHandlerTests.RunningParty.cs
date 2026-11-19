@@ -134,7 +134,7 @@ public sealed partial class PartyCommandHandlerTests
             fixture.RaidMembership = TestRequired.Absent<IAntonRaidDomainService>((method, arguments) =>
                 method.Name == nameof(IAntonRaidDomainService.IsRecruitingMember)
                     ? Equals(arguments![0], raidMember)
-                    : null);
+                    : method.Name == nameof(IAntonRaidDomainService.IsPreparing) ? false : null);
 
             Assert.False(await fixture.SetPartyInfoAsync(raidMember));
             Assert.False(await fixture.RequestPeerAsync(Inviter, Invitee));

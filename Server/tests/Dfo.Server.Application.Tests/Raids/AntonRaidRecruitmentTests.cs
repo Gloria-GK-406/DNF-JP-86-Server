@@ -103,7 +103,9 @@ public sealed class AntonRaidRecruitmentTests
             sessions = TestSessions.Directory(out registry);
             var locations = new OnlineCharacterLocationDomainService();
             runtime = new OnlineCharacterRuntimeDomainService(Clock, locations);
-            Raids = new AntonRaidDomainService(sessions, locations, TestParties.Create(), ChannelEntryOptions.Legacy, Clock);
+            var parties = TestParties.Create();
+            Raids = new AntonRaidDomainService(sessions, locations, parties, ChannelEntryOptions.Legacy, Clock,
+                parties, null!, null!, null!, null!, null!, null!);
         }
 
         public TestClock Clock { get; } = new();

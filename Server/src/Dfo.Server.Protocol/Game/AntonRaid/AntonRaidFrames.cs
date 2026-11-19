@@ -7,7 +7,8 @@ namespace Dfo.Server.Protocol.Game.AntonRaid;
 
 internal sealed record AntonRaidRequest(
     GameMessageMetadata Metadata, ClientMessageType MessageType,
-    uint Value = 0, uint Target = 0, byte[]? Title = null, byte Channel = 0, uint Operation = 0)
+    uint Value = 0, uint Target = 0, byte[]? Title = null, byte Channel = 0, uint Operation = 0,
+    IReadOnlyList<uint>? Values = null)
     : IClientNetworkMessage;
 
 internal sealed class AntonRaidRequestDecoder : IGameMessageDecoder
@@ -22,6 +23,18 @@ internal sealed class AntonRaidRequestDecoder : IGameMessageDecoder
                 new AntonRaidRequest(metadata, kind, Title: body[5..].ToArray()),
             ClientMessageType.GameLeaveAntonRaid when body.Length == 2 =>
                 new AntonRaidRequest(metadata, kind, Target: BinaryPrimitives.ReadUInt16LittleEndian(body)),
+            ClientMessageType.GameStartAntonRaid when body.IsEmpty => new AntonRaidRequest(metadata, kind),
+            ClientMessageType.GameRequestAntonRaidTickets when body.Length == 1 && body[0] <= 1 =>
+                new AntonRaidRequest(metadata, kind, body[0]),
+            ClientMessageType.GameSetAntonRaidSymbol when body.Length == 9 && body[8] <= 2 =>
+                new AntonRaidRequest(metadata, kind, BinaryPrimitives.ReadUInt32LittleEndian(body[4..]),
+                    BinaryPrimitives.ReadUInt32LittleEndian(body), Operation: body[8]),
+            ClientMessageType.GameActivateAntonRaidBuff when body.Length is >= 3 and <= 11 && body.Length % 2 == 1
+                && body[0] <= 4 =>
+                new AntonRaidRequest(metadata, kind, body[0], BinaryPrimitives.ReadUInt16LittleEndian(body[1..]),
+                    Values: ReadTargets(body[3..])),
+            ClientMessageType.GameReportAntonRaidMonster when !body.IsEmpty && body[0] <= 5 && body.Length == 1 + 4 * body[0] =>
+                new AntonRaidRequest(metadata, kind, Values: ReadHitPoints(body[1..])),
             ClientMessageType.GameManageAntonRaid when body.Length == 12 =>
                 new AntonRaidRequest(metadata, kind, BinaryPrimitives.ReadUInt32LittleEndian(body[8..]),
                     BinaryPrimitives.ReadUInt32LittleEndian(body[4..]), Operation: BinaryPrimitives.ReadUInt32LittleEndian(body)),
@@ -33,6 +46,22 @@ internal sealed class AntonRaidRequestDecoder : IGameMessageDecoder
                 new AntonRaidRequest(metadata, kind, body[0]),
             _ => null,
         };
+    }
+
+    private static uint[] ReadTargets(ReadOnlySpan<byte> body)
+    {
+        var values = new uint[body.Length / 2];
+        for (var index = 0; index < values.Length; index++)
+            values[index] = BinaryPrimitives.ReadUInt16LittleEndian(body[(index * 2)..]);
+        return values;
+    }
+
+    private static uint[] ReadHitPoints(ReadOnlySpan<byte> body)
+    {
+        var values = new uint[body.Length / 4];
+        for (var index = 0; index < values.Length; index++)
+            values[index] = BinaryPrimitives.ReadUInt32LittleEndian(body[(index * 4)..]);
+        return values;
     }
 }
 
@@ -148,8 +177,13 @@ internal static class AntonRaidFrameFields
         writer.Write(raid.Title.Length);
         writer.Write(raid.Title.Span);
         writer.Write((byte)0);
-        writer.Write((byte)0); // Recruiting
-        writer.Write((byte)0);
+        writer.Write(raid.Stage switch
+        {
+            AntonRaidStage.Preparing => raid.PreparingFromIntermission ? (byte)5 : (byte)0,
+            AntonRaidStage.Failed => (byte)4,
+            _ => (byte)raid.Stage,
+        });
+        writer.Write(raid.Stage == AntonRaidStage.Attacking ? raid.Phase : raid.Stage == AntonRaidStage.Failed ? (byte)1 : (byte)0);
         writer.Write(0u);
         WriteMember(writer, raid.Leader);
     }

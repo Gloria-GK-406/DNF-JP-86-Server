@@ -97,6 +97,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
     private readonly IDespairTowerDomainService despair;
     private readonly ISaoTowerDomainService sao;
     private readonly IDarkElfRuinsDomainService ruins;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid;
 
     public GameDungeonSelectionCommandHandler(
         ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
@@ -108,7 +109,8 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
         ILogger<GameDungeonSelectionCommandHandler> logger, IDungeonEntryIntentDomainService entryIntents,
         IMarriageHousingQueryDomainService housing, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation,
-        IDespairTowerDomainService despair, ISaoTowerDomainService sao, TimeProvider clock, IWeaknessDomainService weakness, IDarkElfRuinsDomainService ruins)
+        IDespairTowerDomainService despair, ISaoTowerDomainService sao, TimeProvider clock, IWeaknessDomainService weakness,
+        IDarkElfRuinsDomainService ruins, Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null)
 
     {
         this.exits = exits; this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.dungeonRuns = runs; this.departureSink = departureSink; this.parties = parties;
@@ -120,6 +122,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler :
             this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,
             ReturnTownIsolatedAsync);
         this.ruins = ruins;
+        this.antonRaid = antonRaid;
     }
 
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameEnterSelectDungeonCommand command, CancellationToken token) =>

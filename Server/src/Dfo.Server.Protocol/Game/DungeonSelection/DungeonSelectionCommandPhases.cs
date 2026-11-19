@@ -190,17 +190,19 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         // The one hand-over between channels: a released Boss tower run leaves the leader in town,
         // so the same request opens the ordinary selection without locating it again. A run the
         // tower kept ends the request with its owner.
-        if (session is not null
+        var raidChannel = session is not null && antonRaid is not null
+            && await antonRaid.IsRaidChannelAsync(session, cancellationToken).ConfigureAwait(false);
+        if (!raidChannel && session is not null
             && DungeonLocator.Locate(session, participation, bossTowers, illusionTowers) is DungeonPlace.InBossTower boss
             && !await SelectionPrepareBossAsync(execution, boss, message.Selection, cancellationToken).ConfigureAwait(false))
             return true;
-        return await EnterOrdinarySelectionAsync(context, message, session, cancellationToken).ConfigureAwait(false);
+        return await EnterOrdinarySelectionAsync(context, message, session, raidChannel, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<bool> EnterOrdinarySelectionAsync(
         NetworkDispatchContext context,
         EnterSelectDungeonRequest message,
-        SelectedSessionIdentity? session,
+        SelectedSessionIdentity? session, bool raidChannel,
         CancellationToken cancellationToken)
     {
         var result = session is null ? null
@@ -234,12 +236,15 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             return false;
         if (attached.Any(x => !sessions.IsInWorld(x.Session)))
             return false;
-        var intent = message.Selection == 0
+        var raidIntent = raidChannel ? antonRaid?.Selection(session, message.Selection) : null;
+        if (raidChannel && raidIntent is null)
+            return false;
+        var intent = raidIntent ?? (message.Selection == 0
             ? DungeonEntryIntent.Interactive
             : entryIntents!.Find(session) is { Kind: DungeonEntryIntentKind.OrdinaryRechallenge } retry
                 && retry.DirectedDungeonId == message.Selection
                 ? retry
-                : DungeonEntryIntent.Directed(message.Selection);
+                : DungeonEntryIntent.Directed(message.Selection));
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();

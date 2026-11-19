@@ -1,6 +1,8 @@
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Notifications;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +16,11 @@ internal static class AntonRaidRegistration
         [
             ClientMessageType.GameCreateAntonRaid,
             ClientMessageType.GameLeaveAntonRaid,
+            ClientMessageType.GameStartAntonRaid,
+            ClientMessageType.GameRequestAntonRaidTickets,
+            ClientMessageType.GameSetAntonRaidSymbol,
+            ClientMessageType.GameActivateAntonRaidBuff,
+            ClientMessageType.GameReportAntonRaidMonster,
             ClientMessageType.GameManageAntonRaid,
             ClientMessageType.GameCheckAntonRaidUser,
             ClientMessageType.GameRequestAntonRaidMembers,
@@ -36,8 +43,14 @@ internal static class AntonRaidRegistration
         services.AddGameNotiMessageEncoder<AntonRaidDirectoryNotice, AntonRaidDirectoryEncoder>();
         services.AddGameNotiMessageEncoder<AntonRaidChangedNotice, AntonRaidChangedEncoder>();
         services.AddGameNotiMessageEncoder<AntonRaidApprovalNotice, AntonRaidApprovalEncoder>();
+        services.AddGameNotiMessageEncoder<AntonRaidRuntimeNotice, AntonRaidRuntimeNoticeEncoder>();
         services.AddNotificationHandler<AntonRaidTownArrived, AntonRaidTownArrivedHandler>();
         services.AddNotificationHandler<AntonRaidRecruitmentChanged, AntonRaidRecruitmentChangedHandler>();
         services.AddNotificationHandler<AntonRaidApprovalIssued, AntonRaidApprovalIssuedHandler>();
+        services.AddNotificationHandler<AntonRaidRuntimeChanged, AntonRaidRuntimeChangedHandler>();
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Raids.AntonRaidCombatChanged, AntonRaidCombatNotificationSubscriber>(
+            "raid.anton-combat-wire", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly);
+        services.AddTransient<AntonRaidSquadProjection>();
+        services.AddDungeonDeadlineSource<AntonRaidDeadlineSource>();
     }
 }

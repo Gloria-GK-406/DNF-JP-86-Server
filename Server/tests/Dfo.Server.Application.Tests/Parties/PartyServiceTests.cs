@@ -29,6 +29,96 @@ public sealed class PartyServiceTests
             new Dfo.Server.Application.World.OnlineCharacterLocationDomainService());
 
     [Fact]
+    public void Leased_squads_exchange_full_rosters_and_keep_their_keys_until_returned()
+    {
+        TestGameplay.Run(() =>
+        {
+            var service = NewService();
+            var owner = Guid.NewGuid();
+            var lease = service.Rent(owner, 10);
+            var first = Enumerable.Range(1, 4).Select(id => Character(id, null)).ToArray();
+            var tenth = Enumerable.Range(5, 4).Select(id => Character(id, null)).ToArray();
+            Assert.Same(lease, service.Rent(owner, 10));
+            Assert.Equal(10, lease.Keys.Distinct().Count());
+            Assert.All(lease.Keys, key => Assert.Null(service.FindByKey(key)));
+            Assert.Null(service.Replace(lease with { }, [new(1, first)]));
+
+            var placed = service.Replace(lease, [new(1, first), new(10, tenth)])!;
+            var original = placed.Notifications[0].Snapshot!;
+            Assert.True(original.IsLeased);
+            Assert.False(service.Return(lease));
+            Assert.Empty(service.Replace(lease, [new(1, first), new(10, tenth)])!.Notifications);
+            Assert.Null(service.Replace(lease, [new(1, first), new(10, first)]));
+            Assert.Equal(lease.Keys[0], service.KeyOf(first[0].CharacterId));
+            Assert.Equal(lease.Keys[9], service.KeyOf(tenth[0].CharacterId));
+
+            var moved = service.Replace(lease, [new(1, tenth), new(10, first)])!;
+            var firstPlan = moved.Notifications[0];
+            var exchanged = firstPlan.Snapshot!;
+            Assert.Equal(lease.Keys[0], firstPlan.ClearPartyKey);
+            Assert.Equal(original.LeadershipVersion, firstPlan.ClearLeadershipVersion);
+            Assert.Equal(first.Select(member => member.CharacterId), firstPlan.ClearAudience);
+            Assert.True(exchanged.LeadershipVersion > original.LeadershipVersion);
+            Assert.Equal(lease.Keys[9], service.KeyOf(first[0].CharacterId));
+            var membership = service.FindByKey(lease.Keys[0])!;
+            Assert.Equal(tenth[0].CharacterId, membership.LeaderCharacterId);
+            Assert.Equal(tenth.Select((member, slot) => new PartyMembershipMember(member.CharacterId, (byte)slot)),
+                membership.Members);
+
+            var cleared = service.Replace(lease, [])!;
+            Assert.All(cleared.Notifications, plan => Assert.Null(plan.Snapshot));
+            Assert.All(lease.Keys, key => Assert.Null(service.FindByKey(key)));
+            Assert.Equal(PartyKey.Virtual(first[0].CharacterId), service.KeyOf(first[0].CharacterId));
+            var refilled = Assert.Single(service.Replace(lease, [new(1, first)])!.Notifications).Snapshot!;
+            Assert.Equal(original.Key, refilled.Key);
+            Assert.True(refilled.LeadershipVersion > exchanged.LeadershipVersion);
+            Assert.NotNull(service.Replace(lease, []));
+            Assert.True(service.Return(lease));
+            Assert.False(service.Return(lease));
+            Assert.Empty(service.Rent(owner, 10).Keys.Intersect(lease.Keys));
+            Assert.Null(service.Replace(lease, []));
+        });
+    }
+
+    [Fact]
+    public void Leased_parties_are_hidden_and_reject_ordinary_writes()
+    {
+        TestGameplay.Run(() =>
+        {
+            var areas = new OnlineCharacterLocationDomainService();
+            var mode = new PartyModeRuleService();
+            var service = new PartyService(new StubPartyMemberStatusDomainService(), mode,
+                TimeProvider.System, EmptyPartyMemberSessionEndpointSource.Instance, areas);
+            var scope = new PartyDirectoryScope(11, 1, 1);
+            var leader = Character(1, scope);
+            var member = Character(2, scope);
+            var other = Character(3, scope);
+            Stand(areas, 1, scope);
+            Stand(areas, 2, scope);
+            Stand(areas, 3, scope);
+            var lease = service.Rent(Guid.NewGuid(), 1);
+            Assert.NotNull(service.Replace(lease, [new(1, [leader, member])]));
+            Assert.True(service.CreateOrUpdateSettings(other, mode.DefaultSettings, PartyTitle.Empty).Succeeded);
+            Assert.Equal(other.CharacterId, Assert.Single(service.Query(new(scope))).LeaderMember.CharacterId);
+            Assert.Null(service.Replace(lease, [new(1, [other])]));
+            var secondLease = service.Rent(Guid.NewGuid(), 1);
+            Assert.Null(service.Replace(secondLease, [new(1, [member])]));
+
+            Assert.False(service.RequestInvite(other, member, Profile(0)).Succeeded);
+            Assert.False(service.RequestInvite(member, other, Profile(0)).Succeeded);
+            Assert.False(service.AcceptInvite(member, other).Succeeded);
+            Assert.False(service.AcceptInvite(other, member).Succeeded);
+            Assert.False(service.CreateOrUpdateSettings(leader, mode.DefaultSettings, PartyTitle.Empty).Succeeded);
+            Assert.False(service.TransferLeadership(leader.CharacterId, member.CharacterId).Succeeded);
+            Assert.False(service.RemoveMember(leader.CharacterId, member.CharacterId).Succeeded);
+            Assert.False(service.LeaveParty(leader.CharacterId).Succeeded);
+            Assert.True(service.CleanupCharacter(member.CharacterId).Succeeded);
+            Assert.Equal(lease.Keys[0], service.KeyOf(member.CharacterId));
+            Assert.Equal(2, service.FindByKey(lease.Keys[0])!.Members.Length);
+        });
+    }
+
+    [Fact]
     public void A_later_invite_does_not_void_an_earlier_one_the_recipient_accepts()
     {
         TestGameplay.Run(() =>

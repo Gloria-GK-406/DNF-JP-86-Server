@@ -73,19 +73,22 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly ICommandConnectionClosures closures;
     private readonly IGameCommandOutbox mapOutbox;
     private readonly IGuardianAltarDomainService guardian;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid;
     public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunEntryDomainService runs,
         IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
         IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
         ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
-        ILogger<GameMapLoadingCommandHandler> logger, IGuardianAltarDomainService guardian)
+        ILogger<GameMapLoadingCommandHandler> logger, IGuardianAltarDomainService guardian,
+        Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null)
 
     {
         this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.visits = visits; this.registry = registry;
         this.fatigue = fatigue; this.weaknessState = weaknessState; this.closures = closures; this.mapOutbox = outbox;
         this.guardian = guardian;
+        this.antonRaid = antonRaid;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameFinishLoadingCommand command, CancellationToken token)
     {
@@ -104,6 +107,16 @@ internal sealed partial class GameMapLoadingCommandHandler :
         }
         var completed = await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
         var selected = sessions.FindByConnection(id);
+        if (completed && selected is not null && antonRaid is not null
+            && runs.Find(selected.CharacterId) is { Layout.Mode: DungeonRunMode.AntonRaid, RoomVersion: 0 } raidRun)
+        {
+            await workUnits.WriteAsync(execution, new("anton-raid.ready", [CaptureParticipant(selected)]),
+                async (_, ct) =>
+                {
+                    await antonRaid.RegisterReadyAsync(selected, raidRun, ct).ConfigureAwait(false);
+                    return true;
+                }, token).ConfigureAwait(false);
+        }
         if (completed && selected is not null && runs.Find(selected.CharacterId) is { Layout.Mode: DungeonRunMode.Guardian } activity)
         {
             var result = await workUnits.WriteAsync(execution, new("guardian-altar.ready", [CaptureParticipant(selected)]),

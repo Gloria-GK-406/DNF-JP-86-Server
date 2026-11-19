@@ -64,11 +64,14 @@ internal sealed class DungeonEntranceDomainService(
             var context = new MonsterDropContext(run.RunId, run.Layout.DungeonId, run.Layout.Seed, run.CurrentCell,
                 run.CurrentRoomMapId, run.Difficulty, next, template.Level, template.ActorType, requester.CharacterId,
                 participants, multipliers) { RandomDropCount = template.RandomDropCount };
-            var pending = new List<RolledDrop>(await loot.GenerateGroundAsync(template.Code, context, cancellationToken)
-                .ConfigureAwait(false));
-            foreach (var participant in participants)
-                pending.AddRange(await loot.GeneratePersonalAsync(template.Code, participant.CharacterId, context,
-                    cancellationToken).ConfigureAwait(false));
+            var pending = new List<RolledDrop>();
+            if (run.Layout.Mode is not DungeonRunMode.AntonRaid)
+            {
+                pending.AddRange(await loot.GenerateGroundAsync(template.Code, context, cancellationToken).ConfigureAwait(false));
+                foreach (var participant in participants)
+                    pending.AddRange(await loot.GeneratePersonalAsync(template.Code, participant.CharacterId, context,
+                        cancellationToken).ConfigureAwait(false));
+            }
             actors.Add(new(next, template with { IsHostile = true }, IsAiCharacter: false, IsDead: false, pending));
         }
         if (!runs.StageDynamicCell(run.RunId, run.RoomVersion, run.CurrentCellState.Revision, actors,

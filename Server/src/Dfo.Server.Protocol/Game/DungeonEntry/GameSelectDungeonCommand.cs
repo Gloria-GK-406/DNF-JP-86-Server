@@ -80,6 +80,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
     private readonly IOutboundOrdering ordering;
     private readonly IDespairTowerDomainService despair;
     private readonly IDungeonEntryRoutingDomainService entries;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid;
     public GameSelectDungeonCommandHandler(ISelectedSessionDomainService sessions, ISelectedCharacterCurrentViewDomainService currentViews,
         ITownAreaDomainService townAreas, IPartyService parties,
         IPartyProjectionStateDomainService projectionState, ICharacterStateProjectionDomainService currentState,
@@ -94,7 +95,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         ICharacterFatigueDomainService fatigue,
         IOutboundOrdering ordering,
         IDespairTowerDomainService despair,
-        IDungeonEntryRoutingDomainService entries)
+        IDungeonEntryRoutingDomainService entries, Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.transit = transit; this.housing = housing; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; this.clock = clock; this.outbox = outbox; this.closures = closures; this.workUnits = units; this.onlineUsers = onlineUsers; this.departureSink = departureSink; this.parties = parties;
@@ -107,6 +108,7 @@ internal sealed partial class GameSelectDungeonCommandHandler : ICommandHandler<
         this.ordering = ordering;
         this.despair = despair;
         this.entries = entries;
+        this.antonRaid = antonRaid;
     }
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSelectDungeonCommand command, CancellationToken token)
     {

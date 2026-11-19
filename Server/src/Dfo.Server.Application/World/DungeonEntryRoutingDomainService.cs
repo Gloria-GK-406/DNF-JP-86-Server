@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Raids;
 
 namespace Dfo.Server.Application.World;
 
@@ -20,10 +21,14 @@ public sealed class DungeonEntryRoutingDomainService(
     ICycleDungeonEntryDomainService cycles,
     IDungeonEntryDecisionDomainService decisions,
     IDimensionDungeonDomainService dimensions,
-    IHellDungeonEntryDomainService hell, IDarkElfRuinsDomainService ruins) : IDungeonEntryRoutingDomainService
+    IHellDungeonEntryDomainService hell, IDarkElfRuinsDomainService ruins,
+    IAntonRaidDomainService? raids = null) : IDungeonEntryRoutingDomainService
 {
     public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct) =>
-        ruins.Supports(entry.DungeonId) ? ruins.EnterAsync(entry, ct)
+        entry.IsRaidChannel || entry.Facts.Intent.Kind == DungeonEntryIntentKind.AntonRaid
+            || entry.DungeonId is >= 210 and <= 216 or >= 218 and <= 224
+            ? raids?.EnterAsync(entry, ct) ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
+        : ruins.Supports(entry.DungeonId) ? ruins.EnterAsync(entry, ct)
         : lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)
         : guardian.Supports(entry.DungeonId) ? guardian.EnterAsync(entry, ct)
         : giantDragon.Supports(entry.DungeonId) ? giantDragon.EnterAsync(entry, ct)

@@ -87,7 +87,7 @@ internal sealed class DungeonClearSettlementDomainService(
         // Every client needs the same reward row indexed by party seat. Fixing the
         // other faces is idempotent and does not grant their experience or inventory.
         List<ClearSettlementMemberCards>? memberCards = null;
-        if (run.Participants.Count > 1)
+        if (run.Participants.Count > 1 && run.Layout.Mode.Capabilities.DrawsClearCards)
         {
             memberCards = [];
             foreach (var participant in run.Participants.OrderBy(value => value.Slot))

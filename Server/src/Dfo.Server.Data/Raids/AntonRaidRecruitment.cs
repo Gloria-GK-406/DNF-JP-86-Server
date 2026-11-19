@@ -10,13 +10,19 @@ public sealed record AntonRaidRecruitmentSnapshot(
     uint Number, ReadOnlyMemory<byte> Title, IReadOnlyList<AntonRaidMember> Members)
 {
     public AntonRaidMember Leader => Members[0];
+    public AntonRaidStage Stage { get; init; }
+    public byte Phase { get; init; }
+    public bool PreparingFromIntermission { get; init; }
 }
 
 public sealed record AntonRaidRecruitmentChange(
     uint Number,
     AntonRaidRecruitmentSnapshot? Raid,
     IReadOnlyList<AntonRaidRecruitmentSnapshot> Directory,
-    IReadOnlyList<SelectedSessionIdentity> Audience);
+    IReadOnlyList<SelectedSessionIdentity> Audience)
+{
+    public IReadOnlyList<PartyNotificationPlan> Squads { get; init; } = [];
+}
 
 public sealed record AntonRaidRecruitmentResult(
     bool Succeeded, uint Number, IReadOnlyList<AntonRaidRecruitmentChange> Changes, PartyNotificationPlan Party)

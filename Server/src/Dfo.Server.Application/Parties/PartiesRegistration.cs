@@ -22,6 +22,8 @@ internal static class PartiesRegistration
         services.TryAddSingleton<PartyService>();
         services.TryAddSingleton<IPartyService>(provider =>
             provider.GetRequiredService<PartyService>());
+        services.TryAddSingleton<IPartyLeaseService>(provider =>
+            provider.GetRequiredService<PartyService>());
         return services;
     }
 }

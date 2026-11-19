@@ -72,7 +72,8 @@ internal sealed class DungeonCellFactory(
             IReadOnlyList<RolledDrop> pending = [];
             LostLandKillBonus? lostLandBonus = null;
             var eligibleForGroupReward = false;
-            if (!isDummy && (described.IsHellTemplate || isMonster || described.IsAiCharacter))
+            if (context.Layout.Mode is not DungeonRunMode.AntonRaid && !isDummy
+                && (described.IsHellTemplate || isMonster || described.IsAiCharacter))
             {
                 var dropContext = new MonsterDropContext(
                     context.RunId,
@@ -151,8 +152,9 @@ internal sealed class DungeonCellFactory(
                 declared.Id.RandomIdentity, context.Layout.DungeonId, context.Difficulty,
                 context.Layout.Seed, context.Cell.X, context.Cell.Y, context.MapId);
             var pending = new List<RolledDrop>();
-            foreach (var participant in participants)
-                pending.AddRange(await questLoot.DrawAsync(request, participant, cancellationToken).ConfigureAwait(false));
+            if (context.Layout.Mode is not DungeonRunMode.AntonRaid)
+                foreach (var participant in participants)
+                    pending.AddRange(await questLoot.DrawAsync(request, participant, cancellationToken).ConfigureAwait(false));
             objects.Add(new(declared, pending.ToArray()));
         }
 

@@ -45,7 +45,9 @@ internal sealed class GameAntonRaidCommandHandler(
     ITownAreaDomainService towns,
     IPartyProjectionStateDomainService projectionState,
     IPartyService parties,
-    IOutboundOrdering ordering) : ICommandHandler<GameAntonRaidCommand, bool>
+    IOutboundOrdering ordering,
+    AntonRaidSquadProjection squads,
+    TimeProvider clock) : ICommandHandler<GameAntonRaidCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameAntonRaidCommand command, CancellationToken ct)
     {
@@ -99,6 +101,52 @@ internal sealed class GameAntonRaidCommandHandler(
                     await outbox.RegisterCmdAsync(removed.ConnectionId, new AntonRaidReply(ServerMessageType.GameLeaveAntonRaidReply, true, 1), ct).ConfigureAwait(false);
                 await DeliverAsync(departure).ConfigureAwait(false);
                 return departure.Succeeded;
+
+            case ClientMessageType.GameStartAntonRaid:
+                var start = await units.WriteAsync(execution, new("AntonRaidStart", []),
+                    (_, token) => raids.StartAsync(session, token), ct).ConfigureAwait(false);
+                await SendReplyAsync(ServerMessageType.GameStartAntonRaidReply, start.Started).ConfigureAwait(false);
+                if (start is { Change: { Raid: { } starting } startingChange, Deadline: { } until })
+                {
+                    await AntonRaidRecruitmentProjection.DeliverAsync(projections, startingChange, ct).ConfigureAwait(false);
+                    IGameNotiMessage[] notices = [.. AntonRaidRuntimeNotice.Timer(until, clock.GetUtcNow()),
+                        new AntonRaidRuntimeNotice(ServerMessageType.GameAntonRaidPrepare, ReadOnlyMemory<byte>.Empty)];
+                    await AntonRaidRuntimeProjection.SendAsync(projections,
+                        starting.Members.Select(member => member.Session).ToArray(), notices, ct).ConfigureAwait(false);
+                }
+                else if (start.Tickets is { } status)
+                {
+                    await AntonRaidRuntimeProjection.SendAsync(projections, [session], [AntonRaidRuntimeNotice.Tickets(status)], ct)
+                        .ConfigureAwait(false);
+                }
+                return start.Started;
+
+            case ClientMessageType.GameRequestAntonRaidTickets when raids.IsRecruitingMember(session):
+                var tickets = await units.WriteAsync(execution, new("AntonRaidTickets", []),
+                    (_, token) => raids.TicketsAsync(session, token), ct).ConfigureAwait(false);
+                await AntonRaidRuntimeProjection.SendAsync(projections, [session], [AntonRaidRuntimeNotice.Tickets(tickets)], ct)
+                    .ConfigureAwait(false);
+                return true;
+
+            case ClientMessageType.GameSetAntonRaidSymbol:
+                return await units.WriteAsync(execution, new("anton-raid.symbol", []),
+                    (_, token) => raids.ChangeShieldAsync(session, input.Target, input.Value, (byte)input.Operation, token),
+                    ct).ConfigureAwait(false);
+
+            case ClientMessageType.GameActivateAntonRaidBuff:
+                return await units.WriteAsync(execution, new("anton-raid.buff", []),
+                    (_, token) => raids.UseCombatBuffAsync(session, (byte)input.Value, (ushort)input.Target, input.Values!, token),
+                    ct).ConfigureAwait(false);
+
+            case ClientMessageType.GameReportAntonRaidMonster when input.Values is { Count: 0 }
+                && raids.CombatSnapshot(session) is { } snapshot:
+                await AntonRaidRuntimeProjection.SendAsync(projections, [session],
+                    AntonRaidCombatFrames.Snapshot(snapshot, clock.GetUtcNow()), ct).ConfigureAwait(false);
+                return true;
+
+            case ClientMessageType.GameReportAntonRaidMonster when input.Values is { Count: > 0 }:
+                return await units.WriteAsync(execution, new("anton-raid.monster-status", []),
+                    (_, token) => raids.ReportMonsterStatusAsync(session, input.Values, token), ct).ConfigureAwait(false);
 
             case ClientMessageType.GameManageAntonRaid when input.Operation == 0 && input.Target <= ushort.MaxValue:
                 var assignment = raids.Assign(session, (ushort)input.Target, input.Value);
@@ -157,7 +205,10 @@ internal sealed class GameAntonRaidCommandHandler(
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                 change.Party, recipients, ct).ConfigureAwait(false);
             foreach (var delta in change.Changes)
+            {
+                await squads.DeliverAsync(delta.Squads, ct).ConfigureAwait(false);
                 await AntonRaidRecruitmentProjection.DeliverAsync(projections, delta, ct).ConfigureAwait(false);
+            }
         }
     }
 

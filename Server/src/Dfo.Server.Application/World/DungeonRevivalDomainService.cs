@@ -9,13 +9,15 @@ namespace Dfo.Server.Application.World;
 internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService sessions,
     ICharacterContainerDomainService containers, IDungeonRunParticipantDomainService runs,
     ITournamentDungeonDomainService tournaments, IAltarDungeonDomainService altars, IDarkElfRuinsDomainService ruins,
-    Dfo.Server.Abstractions.Quests.IQuestProgressDomainService quests) : IDungeonRevivalDomainService
+    Dfo.Server.Abstractions.Quests.IQuestProgressDomainService quests,
+    Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null) : IDungeonRevivalDomainService
 {
     public async ValueTask<DungeonRevivalResult> ReviveAsync(SelectedSessionIdentity payer,
         CharacterId target, DungeonRunId runId, CancellationToken cancellationToken)
     {
         if (!sessions.IsInWorld(payer)) return new(false);
-        var policy = runs.Find(target)?.Layout.Mode.Capabilities.Revival ?? DungeonRevivalPolicy.Ordinary;
+        var activeRun = runs.Find(target);
+        var policy = activeRun?.Layout.Mode.Capabilities.Revival ?? DungeonRevivalPolicy.Ordinary;
         var permitted = policy switch
         {
             DungeonRevivalPolicy.Ordinary => true,
@@ -23,6 +25,8 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
             DungeonRevivalPolicy.TournamentLife => tournaments.CanRevive(target, runId),
             DungeonRevivalPolicy.AltarLife => altars.CanRevive(target, runId),
             DungeonRevivalPolicy.DarkElfRuinsLife => ruins.CanRevive(payer.CharacterId, runId),
+            DungeonRevivalPolicy.AntonRaidSquad => activeRun is not null && activeRun.RunId == runId
+                && antonRaid?.CanRevive(activeRun, target) == true,
         };
         if (!permitted) return new(false);
         var bag = containers.FindContainer(payer.CharacterId, InventoryContainerType.Main);
@@ -33,6 +37,9 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
             throw new InvalidOperationException("Tournament revival changed after admission; roll back the complete revival.");
         if (policy == DungeonRevivalPolicy.AltarLife && !altars.StageRevival(target, runId))
             throw new InvalidOperationException("Altar revival changed after admission.");
+        if (policy == DungeonRevivalPolicy.AntonRaidSquad
+            && !await antonRaid!.StageRevivalAsync(activeRun!, target, cancellationToken).ConfigureAwait(false))
+            throw new InvalidOperationException("Anton raid revival budget changed after admission.");
         var remaining = (coin.Snapshot with { Count = coin.Count - 1 }).ToCore();
         // Keep the virtual counter at zero; the transactional item store commits before life state.
         await bag!.UpdateAsync(coin, current => current with { Count = current.Count - 1 }, cancellationToken).ConfigureAwait(false);

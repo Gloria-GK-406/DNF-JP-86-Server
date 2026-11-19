@@ -124,7 +124,13 @@ public sealed class ApplicationModule : IServerModule
         services.AddSessions();
         services.AddAuthentication(configuration);
         services.AddParties();
-        services.TryAddSingleton<IAntonRaidDomainService, AntonRaidDomainService>();
+        services.TryAddSingleton<AntonRaidDomainService>();
+        services.TryAddSingleton<IAntonRaidDomainService>(provider => provider.GetRequiredService<AntonRaidDomainService>());
+        services.AddSingleton<IDungeonBossClearHook>(provider => provider.GetRequiredService<AntonRaidDomainService>());
+        services.AddDomainEvent<AntonRaidCombatChanged>("raid.anton-combat", 1);
+        services.AddDomainEvent<AntonRaidPhaseConcluded>("raid.anton-phase-concluded", 1);
+        services.AddDomainSubscriber<DungeonParticipantLeft, AntonRaidDomainService>("raid.anton-departure",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.AddCommandDispatching();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, LoginSessionConnectionObserver>());
         services.AddHttpOperationCommands();

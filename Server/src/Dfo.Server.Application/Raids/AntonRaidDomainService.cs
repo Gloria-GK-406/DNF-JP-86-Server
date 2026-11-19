@@ -1,8 +1,11 @@
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Parties;
@@ -11,12 +14,25 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Raids;
 
-internal sealed class AntonRaidDomainService(
+internal sealed partial class AntonRaidDomainService(
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService towns,
     IPartyService parties,
     ChannelEntryOptions channelOptions,
-    TimeProvider clock) : IAntonRaidDomainService
+    TimeProvider clock,
+    IPartyLeaseService leases,
+    IAntonRaidContentSource content,
+    IDungeonEntryMaterialsDomainService materials,
+    ICharacterBusinessInventoryDomainService inventory,
+    IMaterialConsumptionRuleService materialRules,
+    IDungeonDeadlineWake deadlines,
+    IDomainTransactionAccessor transactions,
+    IChannelEntryDomainService channelEntry,
+    IDungeonAdmissionDomainService admission,
+    IDungeonVisitDomainService visits,
+    IDungeonStructureRuleService structures,
+    IDungeonRunQueryDomainService dungeonRuns,
+    IEventService events) : IAntonRaidDomainService, IDomainEventSubscriber<DungeonParticipantLeft>
 {
     private const int RaidCapacity = 20;
     private const int SquadCapacity = 4;
@@ -57,6 +73,7 @@ internal sealed class AntonRaidDomainService(
     {
         GameplayWriteAssertion.Writing(nameof(Create));
         if (RecruitmentChannel(leader.Session) is not { } channel
+            || Of(leader.Session) is { CanEdit: false }
             || lastRaidNumbers.GetValueOrDefault(channel) == ushort.MaxValue)
             return AntonRaidRecruitmentResult.Refused;
 
@@ -67,7 +84,8 @@ internal sealed class AntonRaidDomainService(
         var prior = Remove(leader.Session);
         var sequence = checked((ushort)(lastRaidNumbers.GetValueOrDefault(channel) + 1));
         lastRaidNumbers[channel] = sequence;
-        var raid = new Recruitment(((uint)channel << 16) | sequence, channel, title.ToArray(), leader with { Squad = 0 });
+        var raid = new Recruitment(((uint)channel << 16) | sequence, channel, title.ToArray(),
+            leader with { Squad = 0 }, leases.Rent(Guid.NewGuid(), (int)LastSquad));
         raids.Add(raid.Number, raid);
         memberships.Add(leader.Session.CharacterId, raid);
         return new(true, raid.Number, prior is null ? [Change(raid)] : [prior, Change(raid)], party.Notifications);
@@ -125,7 +143,7 @@ internal sealed class AntonRaidDomainService(
     public AntonRaidRecruitmentResult Assign(SelectedSessionIdentity sender, ushort target, uint squad)
     {
         GameplayWriteAssertion.Writing(nameof(Assign));
-        if (Of(sender) is not { } raid || RecruitmentChannel(sender) != raid.Channel
+        if (Of(sender) is not { CanEdit: true } raid || RecruitmentChannel(sender) != raid.Channel
             || (sender.WireUserId != target && raid.Leader.Session != sender) || squad > LastSquad)
             return AntonRaidRecruitmentResult.Refused;
 
@@ -138,13 +156,14 @@ internal sealed class AntonRaidDomainService(
             return AntonRaidRecruitmentResult.Refused;
 
         raid.Members[index] = raid.Members[index] with { Squad = (byte)squad };
-        return new(true, raid.Number, [Change(raid)], PartyNotificationPlan.Empty);
+        return new(true, raid.Number, [Change(raid) with { Squads = ReplaceSquads(raid) }], PartyNotificationPlan.Empty);
     }
 
     public AntonRaidRecruitmentResult Leave(SelectedSessionIdentity sender, ushort target)
     {
         GameplayWriteAssertion.Writing(nameof(Leave));
-        if (Of(sender) is not { } raid || (sender.WireUserId != target && raid.Leader.Session != sender))
+        if (Of(sender) is not { } raid
+            || (sender.WireUserId != target && (!raid.CanEdit || raid.Leader.Session != sender)))
             return AntonRaidRecruitmentResult.Refused;
         var member = raid.Members.Find(candidate => candidate.Session.WireUserId == target);
         return member is not null && Remove(member.Session) is { } change
@@ -163,7 +182,8 @@ internal sealed class AntonRaidDomainService(
         && raid.Members.Any(member => member.Session == session) ? raid : null;
 
     private bool CanJoin(SelectedSessionIdentity applicant, Recruitment raid) =>
-        RecruitmentChannel(applicant) == raid.Channel
+        raid.CanEdit
+        && RecruitmentChannel(applicant) == raid.Channel
         && RecruitmentChannel(raid.Leader.Session) == raid.Channel
         && !memberships.ContainsKey(applicant.CharacterId)
         && raid.Members.Count < RaidCapacity
@@ -182,10 +202,18 @@ internal sealed class AntonRaidDomainService(
 
         memberships.Remove(session.CharacterId);
         raid.Members.RemoveAll(member => member.Session == session);
+        var canceled = raid.Stage == AntonRaidStage.Preparing;
+        if (canceled)
+            RestoreFromPreparation(raid);
+        raid.PreparedSquads.RemoveWhere(number => raid.Members.All(member => member.Squad != number));
+        var squadChanges = ReplaceSquads(raid);
         if (raid.Members.Count == 0)
+        {
             raids.Remove(raid.Number);
+            leases.Return(raid.Lease);
+        }
 
-        return Change(raid);
+        return Change(raid) with { Squads = squadChanges };
     }
 
     private void InvalidateApprovals(SelectedSessionIdentity session)
@@ -202,13 +230,29 @@ internal sealed class AntonRaidDomainService(
                 .Where(sessions.IsInWorld)
                 .ToArray());
 
-    private sealed class Recruitment(uint number, int channel, ReadOnlyMemory<byte> title, AntonRaidMember leader)
+    private sealed class Recruitment(uint number, int channel, ReadOnlyMemory<byte> title, AntonRaidMember leader, PartyLease lease)
     {
         public uint Number { get; } = number;
         public int Channel { get; } = channel;
         public List<AntonRaidMember> Members { get; } = [leader];
         public AntonRaidMember Leader => Members[0];
+        public PartyLease Lease { get; } = lease;
+        public AntonRaidStage Stage { get; set; }
+        public byte Phase { get; set; }
+        public bool CanEdit => Stage is AntonRaidStage.Recruiting or AntonRaidStage.Break;
+        public DateTimeOffset? Deadline { get; set; }
+        public StartPreparation? Preparation { get; set; }
+        public long PreparationGeneration { get; set; }
+        public HashSet<byte> PreparedSquads { get; } = [];
+        public HashSet<CharacterId> PaidTickets { get; } = [];
+        public AntonRaidPhaseRuntime? Combat { get; set; }
+        public Dictionary<byte, AntonRaidPhaseOutcome> Outcomes { get; } = [];
 
-        public AntonRaidRecruitmentSnapshot Snapshot() => new(Number, title, Members.ToArray());
+        public AntonRaidRecruitmentSnapshot Snapshot() => new(Number, title, Members.ToArray())
+        {
+            Stage = Stage,
+            Phase = Phase,
+            PreparingFromIntermission = Preparation?.Previous == AntonRaidStage.Break,
+        };
     }
 }

@@ -16,12 +16,12 @@ namespace Dfo.Server.Application.Parties;
 /// listed in the area its leader stands in, and a copy pushed on every step would be a second
 /// record of the position that the location store already holds.
 /// </remarks>
-public sealed class PartyService(
+public sealed partial class PartyService(
     IPartyMemberStatusDomainService memberStatus,
     IPartyModeRuleService modeRules,
     TimeProvider clock,
     IPartyMemberSessionEndpointSource sessionEndpoints,
-    ITownAreaDomainService townAreas) : IPartyService
+    ITownAreaDomainService townAreas) : IPartyService, IPartyLeaseService
 {
     internal static readonly TimeSpan InvitationLifetime = TimeSpan.FromSeconds(30);
 
@@ -53,7 +53,7 @@ public sealed class PartyService(
             return area.Members
                 .Where(member => member.SharesTownPresence)
                 .Select(member => membership.TryGetValue(member.CharacterId, out var party)
-                    && party.IsLeader(member.CharacterId) ? party : null)
+                    && party.Lease is null && party.IsLeader(member.CharacterId) ? party : null)
                 .OfType<PartyInstance>()
                 .OrderBy(party => party.Key)
                 .Where(party => query.Category is null || party.Settings.Category == query.Category)
@@ -79,6 +79,8 @@ public sealed class PartyService(
             settings = modeRules.Normalize(settings);
             if (membership.TryGetValue(character.CharacterId, out var party))
             {
+                if (party.Lease is not null)
+                    return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
                 var member = party.Find(character.CharacterId)
                     ?? throw new InvalidOperationException("Party membership index is inconsistent.");
                 if (!party.IsLeader(character.CharacterId))
@@ -126,6 +128,8 @@ public sealed class PartyService(
 
         lock (sync)
         {
+            if (IsLeased(inviter.CharacterId) || IsLeased(target.CharacterId))
+                return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
             if (target.CharacterId == inviter.CharacterId)
                 return PartyOperationResult.Reject(PartyFailureReason.SelfInvite);
             var domainFailure = ValidateTownPair(inviter, target);
@@ -191,6 +195,8 @@ public sealed class PartyService(
 
         lock (sync)
         {
+            if (IsLeased(inviter.CharacterId) || IsLeased(invitee.CharacterId))
+                return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
             if (!invitations.TryGetValue((invitee.CharacterId, inviter.CharacterId), out var invitation)
                 || invitation.InviteeCharacterId != invitee.CharacterId
                 || invitation.InviterCharacterId != inviter.CharacterId)
@@ -274,7 +280,9 @@ public sealed class PartyService(
     {
         GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(LeaveParty));
         lock (sync)
-            return LeaveLocked(characterId);
+            return IsLeased(characterId)
+                ? PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting)
+                : LeaveLocked(characterId);
     }
 
     /// <param name="leader">The member who received the request and accepts it; not necessarily the party's leader.</param>
@@ -317,6 +325,8 @@ public sealed class PartyService(
             {
                 return PartyOperationResult.Reject(PartyFailureReason.NotInParty);
             }
+            if (party.Lease is not null)
+                return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
             if (!party.IsLeader(currentLeaderCharacterId))
                 return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
             if (currentLeaderCharacterId == nextLeaderCharacterId)
@@ -348,6 +358,8 @@ public sealed class PartyService(
         {
             if (!membership.TryGetValue(currentLeaderCharacterId, out var party))
                 return PartyOperationResult.Reject(PartyFailureReason.NotInParty);
+            if (party.Lease is not null)
+                return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
             if (!party.IsLeader(currentLeaderCharacterId))
                 return PartyOperationResult.Reject(PartyFailureReason.NotPartyLeader);
             if (targetCharacterId == currentLeaderCharacterId
@@ -377,14 +389,8 @@ public sealed class PartyService(
         GameplayWriteAssertion.Writing(nameof(PartyService) + "." + nameof(CleanupCharacter));
         lock (sync)
         {
-            foreach (var key in invitations.Keys
-                         .Where(key => key.Sender == characterId || key.Recipient == characterId)
-                         .ToArray())
-            {
-                invitations.Remove(key);
-            }
-
-            return membership.ContainsKey(characterId)
+            ForgetRequestsInvolving(characterId);
+            return membership.TryGetValue(characterId, out var party) && party.Lease is null
                 ? LeaveLocked(characterId)
                 : PartyOperationResult.Success();
         }
@@ -421,7 +427,8 @@ public sealed class PartyService(
                         [new PartyMembershipMember(characterId, 0)]);
             }
 
-            if (key.Kind != PartyKeyKind.Real || !parties.TryGetValue(key, out var party))
+            if (key.Kind != PartyKeyKind.Real || !parties.TryGetValue(key, out var party)
+                || party.MemberCount == 0)
                 return null;
 
             return new PartyMembershipSnapshot(
@@ -487,6 +494,16 @@ public sealed class PartyService(
             DirectoryChange: new PartyDirectoryChange(previous, DirectoryScopeOf(party))));
     }
 
+    private void ForgetRequestsInvolving(CharacterId characterId)
+    {
+        foreach (var key in invitations.Keys
+                     .Where(key => key.Sender == characterId || key.Recipient == characterId)
+                     .ToArray())
+        {
+            invitations.Remove(key);
+        }
+    }
+
     private void ForgetRequestsTo(CharacterId recipient, CharacterId? onlyFrom = null)
     {
         foreach (var key in invitations.Keys
@@ -545,7 +562,7 @@ public sealed class PartyService(
         return new PartySnapshot(
             0, party.Generation, party.Revision, party.LeaderWireUserId,
             party.Settings, party.Title, members.ToImmutable(), Key: party.Key,
-            LeadershipVersion: party.LeadershipVersion);
+            LeadershipVersion: party.LeadershipVersion) { IsLeased = party.Lease is not null };
     }
 
     private PartyDirectoryScope? DirectoryScopeOf(PartyInstance party) =>
@@ -580,7 +597,18 @@ public sealed class PartyService(
             PartyCharacterSnapshot leader,
             PartySettings settings,
             PartyTitle title,
-            byte maximumCapacity)
+            byte maximumCapacity) : this(generation, settings, title, maximumCapacity)
+        {
+            Members[0] = new PartyMemberState(leader, 0);
+            LeaderCharacterId = leader.CharacterId;
+        }
+
+        internal PartyInstance(
+            long generation,
+            PartySettings settings,
+            PartyTitle title,
+            byte maximumCapacity,
+            PartyLease? lease = null)
         {
             if (maximumCapacity == 0)
                 throw new ArgumentOutOfRangeException(nameof(maximumCapacity));
@@ -589,10 +617,10 @@ public sealed class PartyService(
             Settings = settings;
             Title = title;
             Members = new PartyMemberState?[maximumCapacity];
-            Members[0] = new PartyMemberState(leader, 0);
-            LeaderCharacterId = leader.CharacterId;
+            Lease = lease;
         }
 
+        internal PartyLease? Lease { get; }
         internal CharacterId LeaderCharacterId { get; private set; }
         internal long LeadershipVersion { get; set; } = 1;
         internal PartyKey Key { get; }
@@ -610,6 +638,18 @@ public sealed class PartyService(
 
         internal PartyMemberState? Find(CharacterId characterId) =>
             Members.FirstOrDefault(member => member?.Character.CharacterId == characterId);
+
+        internal void SetLeasedRoster(PartyCharacterSnapshot[] roster)
+        {
+            var leaderId = roster.Length == 0 ? default : roster[0].CharacterId;
+            if (LeaderCharacterId != leaderId)
+                LeadershipVersion++;
+            LeaderCharacterId = leaderId;
+            Array.Clear(Members);
+            for (byte slot = 0; slot < roster.Length; slot++)
+                Members[slot] = new PartyMemberState(roster[slot], slot);
+            Revision++;
+        }
 
         private byte? FindAvailableSlot()
         {

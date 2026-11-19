@@ -1,0 +1,182 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.OnlineUsers;
+using Dfo.Server.Abstractions.Raids;
+using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.World;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Raids;
+using Dfo.Server.Data.World;
+using Microsoft.Extensions.Logging;
+
+namespace Dfo.Server.Protocol.Game.AntonRaid;
+
+internal sealed record MaintainAntonRaidCommand : ICommand<AntonRaidDeadlineScan>;
+internal sealed record AdvanceAntonRaidCommand(AntonRaidDeadline Deadline) : ICommand<bool>;
+internal sealed record AdvanceAntonRaidCombatCommand(AntonRaidCombatDeadline Deadline) : ICommand<bool>;
+internal sealed record ReturnAntonRaidRunCommand(DungeonRunId Run) : ICommand<AntonRaidRunReturn>;
+internal sealed record AntonRaidRunReturn(bool Cleared, IReadOnlyList<SelectedSessionIdentity> Participants);
+internal sealed record AntonRaidDeadlineScan(DateTimeOffset? Next, IReadOnlyList<AntonRaidDeadline> Due,
+    IReadOnlyList<AntonRaidCombatDeadline> Combat, IReadOnlyList<Guid> Returns);
+
+internal sealed class AntonRaidDeadlineHandler(IAntonRaidDomainService raids, ICommandWorkUnits units,
+    IOnlineUserQueryDomainService users, AntonRaidSquadProjection squads, ICommandProjections projections,
+    TimeProvider clock, ILogger<AntonRaidDeadlineHandler> logger,
+    IDungeonRunDepartureDomainService runDeparture, IDungeonRunProjectionDomainService runProjection,
+    Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService sessions)
+    : ICommandHandler<MaintainAntonRaidCommand, AntonRaidDeadlineScan>, ICommandHandler<AdvanceAntonRaidCommand, bool>,
+      ICommandHandler<AdvanceAntonRaidCombatCommand, bool>, ICommandHandler<ReturnAntonRaidRunCommand, AntonRaidRunReturn>
+{
+    public ValueTask<AntonRaidDeadlineScan> HandleAsync(CommandExecutionContext context,
+        MaintainAntonRaidCommand command, CancellationToken ct)
+    {
+        var pending = raids.PreparationDeadlines();
+        var combat = raids.CombatDeadlines();
+        var returns = raids.PendingRunReturns();
+        var now = clock.GetUtcNow();
+        var next = pending.Select(deadline => (DateTimeOffset?)deadline.At).Concat(combat.Select(deadline => (DateTimeOffset?)deadline.At)).Min();
+        if (returns.Count > 0)
+            next = now;
+        if (next <= now)
+            next = now.AddMilliseconds(100);
+        return ValueTask.FromResult(new AntonRaidDeadlineScan(next, pending.Where(deadline => deadline.At <= now).ToArray(),
+            combat.Where(deadline => deadline.At <= now).OrderBy(deadline => deadline.At).ThenBy(deadline => deadline.Generation).ToArray(), returns));
+    }
+
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceAntonRaidCombatCommand command, CancellationToken ct)
+    {
+        var cohort = raids.CombatParticipants(command.Deadline);
+        var capture = TimerRecipientCapture.Capture(cohort, users);
+        if (command.Deadline.Kind != AntonRaidCombatDeadlineKind.Intermission)
+            return await units.WriteAsync(context, new("anton-raid.combat-deadline", capture),
+                (_, token) => raids.AdvanceCombatAsync(command.Deadline, token), ct).ConfigureAwait(false);
+
+        var start = await units.WriteAsync(context, new("anton-raid.intermission", capture),
+            (_, token) => raids.FinishIntermissionAsync(command.Deadline, token), ct).ConfigureAwait(false);
+        if (start is not { Change: { } change, Deadline: { } until })
+        {
+            if (start.Tickets is { } tickets)
+                await AntonRaidRuntimeProjection.SendAsync(projections, cohort, [AntonRaidRuntimeNotice.Tickets(tickets)], ct)
+                    .ConfigureAwait(false);
+            return false;
+        }
+        await AntonRaidRecruitmentProjection.DeliverAsync(projections, change, ct).ConfigureAwait(false);
+        await AntonRaidRuntimeProjection.SendAsync(projections, cohort,
+            [.. AntonRaidRuntimeNotice.Timer(until, clock.GetUtcNow()),
+                new AntonRaidRuntimeNotice(ServerMessageType.GameAntonRaidPrepare, ReadOnlyMemory<byte>.Empty)], ct).ConfigureAwait(false);
+        return true;
+    }
+
+    public async ValueTask<AntonRaidRunReturn> HandleAsync(CommandExecutionContext context,
+        ReturnAntonRaidRunCommand command, CancellationToken ct)
+    {
+        if (!raids.PendingRunReturns().Contains(command.Run.Value))
+            return new(false, []);
+        var current = runDeparture.Find(command.Run);
+        if (current?.Layout.Mode is not DungeonRunMode.AntonRaid)
+        {
+            raids.CompleteRunReturn(command.Run.Value);
+            return new(false, []);
+        }
+        var frozen = runProjection.Find(command.Run).ToArray();
+        var ended = await units.WriteAsync(context, new("anton-raid.force-return",
+                frozen.Where(sessions.IsInWorld).Select(member => new SelectedSessionRecipient(member, null)).ToArray()),
+            (_, _) => runDeparture.EndRunAsync(command.Run), ct).ConfigureAwait(false);
+        raids.CompleteRunReturn(command.Run.Value);
+        foreach (var member in frozen)
+            runProjection.ParticipantDeparted(command.Run, member.CharacterId);
+        var recipients = frozen.Where(member => ended.Contains(member.CharacterId) && sessions.IsInWorld(member)).ToArray();
+        if (recipients.Length > 0)
+            await AntonRaidRuntimeProjection.SendAsync(projections, recipients,
+                [new Dfo.Server.Protocol.Game.DungeonClear.EnableClearDungeonNotification()], ct).ConfigureAwait(false);
+        return new(current.ClearOpen, recipients);
+    }
+
+    public async ValueTask<bool> HandleAsync(CommandExecutionContext context, AdvanceAntonRaidCommand command, CancellationToken ct)
+    {
+        var cohort = raids.PreparationParticipants(command.Deadline);
+        if (cohort.Count == 0)
+            return false;
+
+        Exception? failure = null;
+        var result = await units.WriteResultAsync(context,
+            new("AntonRaidPreparation", TimerRecipientCapture.Capture(cohort, users)), async (unit, token) =>
+            {
+                try
+                {
+                    return await raids.FinishPreparationAsync(command.Deadline, token).ConfigureAwait(false);
+                }
+                catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
+                {
+                    failure = error;
+                    unit.RequireRollback(error);
+                    return new AntonRaidPreparationOutcome();
+                }
+            }, ct).ConfigureAwait(false);
+        AntonRaidPreparationOutcome outcome;
+        if (result is CommandWriteResult<AntonRaidPreparationOutcome>.CommitRolledBack rollback)
+            failure = rollback.Cause;
+        if (failure is not null)
+        {
+            logger.LogError(failure, "Anton raid preparation rolled back for {RaidNumber}", command.Deadline.Number);
+            outcome = raids.CancelPreparation(command.Deadline);
+        }
+        else
+        {
+            outcome = ((CommandWriteResult<AntonRaidPreparationOutcome>.Returned)result).Value;
+        }
+
+        if (outcome.Change is not { Raid: { } raid } change)
+            return false;
+        await squads.DeliverAsync(change.Squads, ct).ConfigureAwait(false);
+        await AntonRaidRecruitmentProjection.DeliverAsync(projections, change, ct).ConfigureAwait(false);
+        var notices = new List<IGameNotiMessage> { AntonRaidRuntimeNotice.State(raid.Stage, raid.Phase) };
+        if (outcome.Tickets is { } tickets)
+            notices.Add(AntonRaidRuntimeNotice.Tickets(tickets));
+        await AntonRaidRuntimeProjection.SendAsync(projections, cohort, notices, ct).ConfigureAwait(false);
+        if (outcome.Debits is { } debits)
+        {
+            var now = clock.GetUtcNow();
+            foreach (var member in cohort)
+            {
+                var adjustments = debits.Where(debit => debit.CharacterId == member.CharacterId).Select(debit =>
+                {
+                    var slot = A21InventoryLayout.ToGameSlot(debit.Slot);
+                    return debit.Remaining is { } item
+                        ? new InventoryDeltaMessage(slot.Space, [new InventoryItemState(null, slot.Index, item)], now)
+                        : GameInventoryDelivery.ClearedSlotNotification(slot.Space, slot.Index, now);
+                }).ToArray();
+                await AntonRaidRuntimeProjection.SendAsync(projections, [member], adjustments, ct).ConfigureAwait(false);
+            }
+        }
+        return outcome.AttackDeadline.HasValue;
+    }
+}
+
+internal sealed class AntonRaidDeadlineSource : DungeonDeadlineSource
+{
+    public override DungeonDeadlineKind Kind => DungeonDeadlineKind.AntonRaid;
+
+    public override async ValueTask<DateTimeOffset?> RunAsync(DungeonDeadlineRound round, CancellationToken ct)
+    {
+        var scan = await round.SubmitAsync(new MaintainAntonRaidCommand(), ct).ConfigureAwait(false);
+        foreach (var deadline in scan.Due)
+            await round.ItemAsync(new AdvanceAntonRaidCommand(deadline), "preparation deadline", ct).ConfigureAwait(false);
+        foreach (var deadline in scan.Combat)
+            await round.ItemAsync(new AdvanceAntonRaidCombatCommand(deadline), "combat deadline", ct).ConfigureAwait(false);
+        foreach (var run in scan.Returns)
+        {
+            var runId = new DungeonRunId(run);
+            var result = await round.SubmitAsync(new ReturnAntonRaidRunCommand(runId), "end raid run", ct).ConfigureAwait(false);
+            foreach (var session in result.Participants)
+                await round.ItemAsync(new ProjectDungeonReturnCommand(session, runId, result.Cleared), "return raid member", ct)
+                    .ConfigureAwait(false);
+        }
+        return (await round.SubmitAsync(new MaintainAntonRaidCommand(), ct).ConfigureAwait(false)).Next;
+    }
+}
