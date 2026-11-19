@@ -87,7 +87,7 @@ DECISIONS = {
     "[npc growth]": ("B3", "NPC养成活动", "建立对应NPC成长与领取奖励的闭环", "参数0、NPC身份和养成表"),
     "[create passive object]": ("B2", "副本/场景对象", "核对是否客户端生成，再决定服务端校验、消耗及对象投影", "两个对象参数、场景限制和他人可见性"),
     "[expert job store doll]": ("B3", "专家职业商店", "开店助手需真实商店、交易和关闭生命周期", "店铺 owner、职业限制、交易和掉线收尾"),
-    "[random recovery fatigue]": ("B1", "疲劳/随机表/物品材料", "复用疲劳与使用限制；按int data解析权重并扣额外材料", "数据表语法、<106限制、上限和need material"),
+    "[random recovery fatigue]": ("B1", "疲劳/随机表", "复用疲劳与使用限制，按已证的随机表结算", "数据表语法、<106限制、上限及碎片是否参与右键使用"),
 }
 
 expected = {r["ActionType"] for r in scope["Representatives"]}
@@ -107,7 +107,7 @@ for index, item in enumerate(scope["Representatives"], 1):
 lines = ["# #371 逐动作实现判断", "", "范围来自 issue 快照与现行 dev PVF，79 行、819 个模板；每行对应一个验收身份。数量是模板数，不是可直接使用的功能数。", "",
     "本表是实现建议和预期，不是实机结果。所有行均为**未执行验收**，没有任何一行已被判定为 A21 不支持。", "",
     "B1：优先复用现有领域，但仍须补齐本行取证；B2：扩展领域能力；B3：依赖完整玩法基础；R：先纠正协议路径或语义，再决定归属。", "",
-    "公共验收：按真实协议操作、检查明确反馈、只发生预期效果、消费型动作成功扣券及声明的额外材料、失败保持资产；只读UI动作不扣物品。详见 [验收计划](acceptance-plan.md)。", ""]
+    "公共验收：按真实协议操作、检查明确反馈、只发生预期效果、消费型动作成功扣除道具及已确认属于该操作的材料。失败保持资产，只读UI动作不扣物品。详见 [验收计划](acceptance-plan.md)。", ""]
 for group in scope["Groups"]:
     lines += [f"## {group['Group']}（{len(group['Tags'])} 种，{group['Items']} 个模板）", "",
         "| 验收ID / action type | 模板数 / 参数组合 | PVF代表物品 | 批次 / owner | 建议效果与实现判断 | 放行前必须确认 |",

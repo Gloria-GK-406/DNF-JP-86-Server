@@ -20,7 +20,7 @@
   "Artifacts": [
     {
       "Path": "action-decisions.json",
-      "Sha256": "de9e2f41f5f773046cf8305f057f45c9b940d8f7f3bb3b0bc780f7ff58d53fcb"
+      "Sha256": "c48292cb975a60cbe59b81e89ba844068169b761d180e4b55e20053ae78db75d"
     },
     {
       "Path": "client-static.json",

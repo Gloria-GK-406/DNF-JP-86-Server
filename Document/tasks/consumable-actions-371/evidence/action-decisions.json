@@ -1765,9 +1765,9 @@
     ],
     "OperandVariants": 1,
     "Batch": "B1",
-    "Owner": "疲劳/随机表/物品材料",
-    "ProposedBehavior": "复用疲劳与使用限制；按int data解析权重并扣额外材料",
-    "EvidenceGate": "数据表语法、<106限制、上限和need material",
+    "Owner": "疲劳/随机表",
+    "ProposedBehavior": "复用疲劳与使用限制，按已证的随机表结算",
+    "EvidenceGate": "数据表语法、<106限制、上限及碎片是否参与右键使用",
     "AcceptanceStatus": "未执行",
     "RouteStatus": "未新增A21实帧；需逐族核对",
     "UnsupportedA21": false
