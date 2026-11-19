@@ -19,7 +19,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
     private const int RandomFatigueExclusiveLimit = 106;
     private const int RandomFatigueRollRange = 100_000;
 
-    public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, CancellationToken ct)
+    public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, int seed, CancellationToken ct)
     {
         var action = await actions.GetAsync(f.Item.ItemId, ct).ConfigureAwait(false);
         if (action is not { IsReadable: true } || !SupportsFatiguePotion(f, action))
@@ -44,7 +44,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
             throw Reject(nameof(ItemUsageRejection.CoolingDown));
         var result = await ConsumptionAsync(f.Source, f.Item, ct).ConfigureAwait(false);
         var recovery = random
-            ? Math.Min(used, SelectRandomFatigueRecovery(RandomFatigueTiers(action), Random.Shared.Next(RandomFatigueRollRange)))
+            ? Math.Min(used, SelectRandomFatigueRecovery(RandomFatigueTiers(action), new Random(seed).Next(RandomFatigueRollRange)))
             : action.FatigueRecovery;
         return result.Add(new SetFatigueStateEffect(f.Fatigue.Raw,
                 new(used - recovery, effective.ConsumedToday, f.At)))

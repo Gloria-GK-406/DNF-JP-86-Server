@@ -39,7 +39,7 @@ public sealed record PetNameFacts(BusinessSlot Source, ItemReference? Card, Item
 
 public interface ISpecialConsumableEffectPlanRuleService
 {
-    ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts facts, CancellationToken ct);
+    ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts facts, int seed, CancellationToken ct);
     ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,
         IReadOnlyList<int> selected, DateTimeOffset at, CancellationToken ct);
     ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, SkillGroup group, int page,
