@@ -71,6 +71,7 @@ public sealed class GameQuestClearCouponCommandHandler(
             branch = message.Action switch
             {
                 QuestClearCouponRequest.LuckyStarAction => Branch.LuckyStar,
+                QuestClearCouponRequest.RandomFatiguePotionAction => Branch.Fatigue,
                 QuestClearCouponRequest.AuraSkinSlotAction => Branch.AuraSkinSlot,
                 QuestClearCouponRequest.AbyssQuestClearAction => Branch.AbyssTicket,
                 _ => source is not null && message.Action is 99 or 101 && await lostLandItems.SupportsAsync(source.ItemId, ct).ConfigureAwait(false) ? Branch.LostLand
@@ -110,7 +111,12 @@ public sealed class GameQuestClearCouponCommandHandler(
                         return new ActionOutcome(used?.OpeningReceipt ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Not a usable Heras entry coupon."), null, null);
                     }
                     if (branch == Branch.Fatigue)
-                        return new ActionOutcome(await potions.UseAsync(session, slot, clock.GetUtcNow(), footprint, token).ConfigureAwait(false), null, null);
+                    {
+                        var kind = message.Action == QuestClearCouponRequest.RandomFatiguePotionAction
+                            ? FatiguePotionKind.Random : FatiguePotionKind.Fixed;
+                        return new ActionOutcome(await potions.UseAsync(session, slot, clock.GetUtcNow(), footprint, token, kind)
+                            .ConfigureAwait(false), null, null);
+                    }
                     if (branch == Branch.LuckyStar)
                         return new ActionOutcome(await itemUseEffects.UseLuckyStarActionAsync(session, slot,
                             clock.GetUtcNow(), footprint, token).ConfigureAwait(false), null, null);

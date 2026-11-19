@@ -130,6 +130,9 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             unreadable = true;
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
+        // Random fatigue recovery already requires town presence. The assault exclusion grants no place.
+        if (action == "[random recovery fatigue]" && placeText is not null)
+            placeText = placeText.Where(place => !place.Equals("[dont use assult]", StringComparison.OrdinalIgnoreCase)).ToArray();
         var dungeons = RootSectionValues(archive, ref reader, Fields.ActionUsableDungeonField, out var duplicateDungeons, out _);
         if (action == "[repair coupon]"
             && RootSectionValues(archive, ref reader, Fields.ActionTypeField, out _, out _) is { Count: not 1 })

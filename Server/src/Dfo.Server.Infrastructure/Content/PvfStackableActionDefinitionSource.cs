@@ -12,6 +12,7 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
     private static class Fields
     {
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField = PvfField.Tokens("[action type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> RandomFatigueDataField = PvfField.Int32List("[int data]", optional: true);
         internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
         internal static readonly PvfField<int> MaximumLevelField = PvfField.Int32("[maximum level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
@@ -71,6 +72,14 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
                 unreadable = true;
         }
         var recovery = 0;
+        IReadOnlyList<FatigueRecoveryTier> randomRecovery = [];
+        if (actionName == "[random recovery fatigue]")
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count == 1 && document.TryRead(Fields.RandomFatigueDataField, out var data))
+                randomRecovery = ReadRandomFatigueRecovery(data);
+            if (randomRecovery.Count == 0) unreadable = true;
+        }
         var entryDungeon = 0;
         var entryIncrease = 0;
         if (actionName == "[add enter limit dungeonincount]")
@@ -128,7 +137,30 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         return new(actionName, min, max, expiry,
             !unreadable && min >= 0 && max >= min
                 && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
-        { FatigueRecovery = recovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
+        { FatigueRecovery = recovery, RandomFatigueRecovery = randomRecovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
             EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease, ListedQuestClear = listedQuestClear };
+    }
+
+    private static IReadOnlyList<FatigueRecoveryTier> ReadRandomFatigueRecovery(IReadOnlyList<int> data)
+    {
+        // Server rule for A079: [0, default amount] then [0, weight, amount] rows out of 100,000.
+        if (data.Count < 5 || (data.Count - 2) % 3 != 0 || data[0] != 0 || data[1] is <= 0 or > ushort.MaxValue)
+            return [];
+        var defaultWeight = 100_000;
+        var previousAmount = data[1];
+        var tiers = new FatigueRecoveryTier[1 + (data.Count - 2) / 3];
+        for (var i = 1; i < tiers.Length; i++)
+        {
+            var at = 2 + (i - 1) * 3;
+            var weight = data[at + 1];
+            var amount = data[at + 2];
+            if (data[at] != 0 || weight <= 0 || weight >= defaultWeight || amount <= previousAmount || amount > ushort.MaxValue)
+                return [];
+            tiers[i] = new(amount, weight);
+            previousAmount = amount;
+            defaultWeight -= weight;
+        }
+        tiers[0] = new(data[1], defaultWeight);
+        return tiers;
     }
 }

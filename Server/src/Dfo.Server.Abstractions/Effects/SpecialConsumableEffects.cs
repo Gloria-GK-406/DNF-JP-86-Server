@@ -33,7 +33,7 @@ public sealed record QuestCouponPlan(ImmutableArray<int> Completed, ImmutableArr
 public sealed record RefundSkillPlan(CharacterSkillLearningRejection Rejection,
     ImmutableArray<CharacterSkillState> Changed, CharacterSkillPointLedger? Ledger);
 public sealed record FatiguePotionFacts(BusinessSlot Source, ItemReference Item, byte Level, bool InTown,
-    FatigueStateFacts Fatigue, ConsumableUsageRow? Usage, DateTimeOffset At);
+    FatigueStateFacts Fatigue, ConsumableUsageRow? Usage, DateTimeOffset At, FatiguePotionKind Kind = FatiguePotionKind.Fixed);
 public sealed record PetNameFacts(BusinessSlot Source, ItemReference? Card, ItemReference? Worn,
     CreatureState? Current, ImmutableArray<byte> Name, DateTimeOffset At);
 

@@ -26,12 +26,13 @@ public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short
     uint Reserved1, uint Action, uint Reserved2, uint Reserved3, bool Complete) : IEffectSettlementRequest
 {
     internal const uint LuckyStarAction = 105;
+    internal const uint RandomFatiguePotionAction = 107;
     internal const uint AuraSkinSlotAction = 123;
     internal const uint AbyssQuestClearAction = 126;
 
     public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.ItemUsage | (Action switch
     {
-        58 => ReplayProjectionNeeds.Fatigue,
+        58 or RandomFatiguePotionAction => ReplayProjectionNeeds.Fatigue,
         LuckyStarAction => ReplayProjectionNeeds.Rental,
         AuraSkinSlotAction => ReplayProjectionNeeds.CharacterAppearance,
         AbyssQuestClearAction => ReplayProjectionNeeds.Quests,
@@ -41,7 +42,7 @@ public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short
     public bool IsSupported => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
         && Action == 77 && Reserved2 == 0 && Reserved3 == 0;
     public bool IsFatiguePotion => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
-        && Action == 58 && Reserved2 == 0 && Reserved3 == 0;
+        && Action is 58 or RandomFatiguePotionAction && Reserved2 == 0 && Reserved3 == 0;
 }
 
 internal static class QuestClearCouponPayloadCodec

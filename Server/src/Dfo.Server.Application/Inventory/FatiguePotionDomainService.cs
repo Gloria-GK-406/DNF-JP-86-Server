@@ -12,7 +12,8 @@ internal sealed class FatiguePotionDomainService(IOpeningInventoryDomainService 
     ISpecialConsumableEffectPlanRuleService rules, ITownAreaDomainService towns) : IFatiguePotionDomainService
 {
     public async ValueTask<OpeningInventoryReceipt> UseAsync(SelectedSessionIdentity session,
-        BusinessSlot sourceSlot, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
+        BusinessSlot sourceSlot, DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct,
+        FatiguePotionKind kind = FatiguePotionKind.Fixed)
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         var source = await inventory.SourceAsync(session, sourceSlot, now, ct).ConfigureAwait(false);
@@ -21,7 +22,7 @@ internal sealed class FatiguePotionDomainService(IOpeningInventoryDomainService 
         var plan = await rules.FatigueAsync(new(sourceSlot, source, progress.Level,
             towns.Find(session.CharacterId) is not null,
             await states.FatigueAsync(session.CharacterId, ct).ConfigureAwait(false),
-            await states.UsageAsync(session.CharacterId, source.ItemId, ct).ConfigureAwait(false), now), ct).ConfigureAwait(false);
+            await states.UsageAsync(session.CharacterId, source.ItemId, ct).ConfigureAwait(false), now, kind), ct).ConfigureAwait(false);
         return (await inventory.ApplyAsync(session, plan, now, footprint, ct).ConfigureAwait(false)).Inventory;
     }
 }

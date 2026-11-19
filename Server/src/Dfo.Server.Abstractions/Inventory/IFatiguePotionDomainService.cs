@@ -4,8 +4,11 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
+public enum FatiguePotionKind { Fixed, Random }
+
 public interface IFatiguePotionDomainService
 {
     ValueTask<OpeningInventoryReceipt> UseAsync(SelectedSessionIdentity session, BusinessSlot sourceSlot,
-        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken token);
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken token,
+        FatiguePotionKind kind = FatiguePotionKind.Fixed);
 }
