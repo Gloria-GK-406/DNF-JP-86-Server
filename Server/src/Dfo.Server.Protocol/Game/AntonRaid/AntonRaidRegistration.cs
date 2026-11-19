@@ -17,6 +17,8 @@ internal static class AntonRaidRegistration
             ClientMessageType.GameCreateAntonRaid,
             ClientMessageType.GameLeaveAntonRaid,
             ClientMessageType.GameStartAntonRaid,
+            ClientMessageType.GameRejoinAntonRaid,
+            ClientMessageType.GameRenameAntonRaid,
             ClientMessageType.GameRequestAntonRaidTickets,
             ClientMessageType.GameSetAntonRaidSymbol,
             ClientMessageType.GameActivateAntonRaidBuff,
@@ -45,12 +47,14 @@ internal static class AntonRaidRegistration
         services.AddGameNotiMessageEncoder<AntonRaidApprovalNotice, AntonRaidApprovalEncoder>();
         services.AddGameNotiMessageEncoder<AntonRaidRuntimeNotice, AntonRaidRuntimeNoticeEncoder>();
         services.AddNotificationHandler<AntonRaidTownArrived, AntonRaidTownArrivedHandler>();
+        services.AddNotificationHandler<AntonRaidSessionArrived, AntonRaidSessionArrivedHandler>();
         services.AddNotificationHandler<AntonRaidRecruitmentChanged, AntonRaidRecruitmentChangedHandler>();
         services.AddNotificationHandler<AntonRaidApprovalIssued, AntonRaidApprovalIssuedHandler>();
         services.AddNotificationHandler<AntonRaidRuntimeChanged, AntonRaidRuntimeChangedHandler>();
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Raids.AntonRaidCombatChanged, AntonRaidCombatNotificationSubscriber>(
             "raid.anton-combat-wire", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly);
         services.AddTransient<AntonRaidSquadProjection>();
+        services.AddTransient<DungeonTownReturnProjection>();
         services.AddDungeonDeadlineSource<AntonRaidDeadlineSource>();
     }
 }

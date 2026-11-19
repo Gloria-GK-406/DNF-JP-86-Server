@@ -233,10 +233,11 @@ internal sealed class CleanupNotificationDelivery(
     ICommandProjections projections,
     IPartyProjectionStateDomainService projectionState,
     IPartyService parties,
-    IOutboundOrdering ordering) : ICleanupNotificationDelivery
+    IOutboundOrdering ordering,
+    Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection raidSquads) : ICleanupNotificationDelivery
 {
 
     public ValueTask DeliverAsync(
         SelectedSessionCleanupNotificationPlan plan, CancellationToken cancellationToken) =>
-        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, cancellationToken);
+        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, raidSquads, cancellationToken);
 }

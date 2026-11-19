@@ -14,3 +14,5 @@ public enum AntonRaidStage : byte
 public readonly record struct AntonRaidDeadline(Guid Instance, uint Number, long Generation, DateTimeOffset At);
 
 public sealed record AntonRaidTicket(ushort User, ushort Count, bool Ready);
+
+public enum AntonRaidSquadSignal { Settings, Invite, Accept }

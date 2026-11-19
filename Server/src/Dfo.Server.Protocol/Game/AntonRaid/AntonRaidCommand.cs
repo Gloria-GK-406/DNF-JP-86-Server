@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
@@ -47,6 +48,10 @@ internal sealed class GameAntonRaidCommandHandler(
     IPartyService parties,
     IOutboundOrdering ordering,
     AntonRaidSquadProjection squads,
+    IDungeonRunDepartureDomainService raidDepartures,
+    IDungeonRunProjectionDomainService raidRunProjection,
+    IOnlineUserQueryDomainService users,
+    DungeonTownReturnProjection dungeonReturn,
     TimeProvider clock) : ICommandHandler<GameAntonRaidCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameAntonRaidCommand command, CancellationToken ct)
@@ -94,12 +99,26 @@ internal sealed class GameAntonRaidCommandHandler(
                 return approval.Succeeded;
 
             case ClientMessageType.GameLeaveAntonRaid:
+                var departing = sessions.TryGetInWorld((ushort)input.Target, out var current) && raids.IsRecruitingMember(current)
+                    ? current : null;
+                var run = departing is null ? null : raidDepartures.Find(departing.CharacterId);
                 var departure = raids.Leave(session, (ushort)input.Target);
+                var returnAfterLeave = false;
+                if (departure.Succeeded && departing is not null && run is not null)
+                {
+                    returnAfterLeave = await units.WriteAsync(execution,
+                        new("AntonRaidLeaveRun", TimerRecipientCapture.Capture([departing], users)),
+                        (_, _) => raidDepartures.EndAsync(departing.CharacterId, run.RunId), ct).ConfigureAwait(false);
+                    if (returnAfterLeave)
+                        raidRunProjection.ParticipantDeparted(run.RunId, departing.CharacterId);
+                }
                 if (!departure.Succeeded || input.Target == session.WireUserId)
                     await SendReplyAsync(ServerMessageType.GameLeaveAntonRaidReply, departure.Succeeded).ConfigureAwait(false);
                 else if (sessions.TryGetInWorld((ushort)input.Target, out var removed))
                     await outbox.RegisterCmdAsync(removed.ConnectionId, new AntonRaidReply(ServerMessageType.GameLeaveAntonRaidReply, true, 1), ct).ConfigureAwait(false);
                 await DeliverAsync(departure).ConfigureAwait(false);
+                if (returnAfterLeave)
+                    await dungeonReturn.ReturnAsync(departing!, ct).ConfigureAwait(false);
                 return departure.Succeeded;
 
             case ClientMessageType.GameStartAntonRaid:
@@ -147,6 +166,32 @@ internal sealed class GameAntonRaidCommandHandler(
             case ClientMessageType.GameReportAntonRaidMonster when input.Values is { Count: > 0 }:
                 return await units.WriteAsync(execution, new("anton-raid.monster-status", []),
                     (_, token) => raids.ReportMonsterStatusAsync(session, input.Values, token), ct).ConfigureAwait(false);
+
+            case ClientMessageType.GameRejoinAntonRaid:
+                var rejoin = raids.Rejoin(session, input.Value);
+                await SendReplyAsync(ServerMessageType.GameRejoinAntonRaidReply, rejoin.Succeeded).ConfigureAwait(false);
+                await DeliverAsync(rejoin).ConfigureAwait(false);
+                if (rejoin.Changes.SingleOrDefault()?.Raid is { } resumed)
+                {
+                    var readiness = await units.WriteAsync(execution, new("AntonRaidRejoinTickets", []),
+                        (_, token) => raids.TicketsAsync(session, token), ct).ConfigureAwait(false);
+                    IReadOnlyList<IGameServerMessage> battle = raids.CombatSnapshot(session) is { } resumedCombat
+                        ? AntonRaidCombatFrames.Snapshot(resumedCombat, clock.GetUtcNow()) : [];
+                    await AntonRaidRuntimeProjection.SendAsync(projections, [session],
+                        [AntonRaidRuntimeNotice.Tickets(readiness), AntonRaidRuntimeNotice.State(resumed.Stage, resumed.Phase), .. battle],
+                        ct).ConfigureAwait(false);
+                }
+                return rejoin.Succeeded;
+
+            case ClientMessageType.GameManageAntonRaid when input.Operation == 1 && input.Target <= ushort.MaxValue:
+                var transfer = raids.TransferLeadership(session, (ushort)input.Target);
+                await DeliverAsync(transfer).ConfigureAwait(false);
+                return transfer.Succeeded;
+
+            case ClientMessageType.GameRenameAntonRaid when input.Title is { } newTitle:
+                var rename = raids.ChangeTitle(session, newTitle);
+                await DeliverAsync(rename).ConfigureAwait(false);
+                return rename.Succeeded;
 
             case ClientMessageType.GameManageAntonRaid when input.Operation == 0 && input.Target <= ushort.MaxValue:
                 var assignment = raids.Assign(session, (ushort)input.Target, input.Value);
@@ -204,11 +249,7 @@ internal sealed class GameAntonRaidCommandHandler(
             var recipients = PartyNotificationRecipientCapture.Capture(change.Party, sessions, towns);
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                 change.Party, recipients, ct).ConfigureAwait(false);
-            foreach (var delta in change.Changes)
-            {
-                await squads.DeliverAsync(delta.Squads, ct).ConfigureAwait(false);
-                await AntonRaidRecruitmentProjection.DeliverAsync(projections, delta, ct).ConfigureAwait(false);
-            }
+            await squads.DeliverChangesAsync(change.Changes, ct).ConfigureAwait(false);
         }
     }
 

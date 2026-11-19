@@ -309,19 +309,20 @@ internal sealed partial class AntonRaidDomainService
     public async ValueTask HandleAsync(DomainEventEnvelope<DungeonParticipantLeft> message, CancellationToken ct)
     {
         var departure = message.Payload;
+        var runtime = dungeonRuns.Find(departure.RunId);
+        if (runtime is null)
+            OnRaidRunEnded(departure.RunId);
         var owned = raids.Values.Where(raid => raid.Stage == AntonRaidStage.Attacking && raid.Combat is not null)
             .SelectMany(raid => raid.Combat!.Sorties.Values.Select(sortie => (Raid: raid, Sortie: sortie)))
             .FirstOrDefault(pair => pair.Sortie.Run == departure.RunId);
         if (owned.Raid is null || owned.Raid.Combat is not { } combat)
             return;
-        var runtime = dungeonRuns.Find(departure.RunId);
         if (runtime is not null && !owned.Sortie.Participants.ContainsKey(departure.CharacterId))
             return;
         var next = combat.Copy();
         if (runtime is null)
         {
             next.Sorties.Remove(owned.Sortie.Squad);
-            // Deferred rejoin members can be attached to the squad once this exact run has ended.
         }
         else
         {
@@ -352,7 +353,8 @@ internal sealed partial class AntonRaidDomainService
             var eligible = success ? next.ClearParticipants : next.Participants;
             var members = raid.Members.Where(member => eligible.Contains(member.Session.CharacterId)).Select(member =>
                 new AntonRaidPhaseParticipant(member.Session.AccountId, member.Session.CharacterId, member.Squad,
-                    member == raid.Leader ? (byte)0 : member.Squad != 0 && raid.Members.First(candidate => candidate.Squad == member.Squad) == member
+                    member == raid.Leader ? (byte)0 : member.Squad != 0
+                    && SquadOrder(raid, member.Squad, raid.Members.Where(candidate => candidate.Squad == member.Squad)).First() == member
                         ? (byte)1 : (byte)2)).ToArray();
             outcome = new(next.Instance, next.Number, next.Phase, success, next.DeathCount,
                 next.StartedAt, now, Array.AsReadOnly(members), Audience(raid));

@@ -65,9 +65,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 TestParties.Of(runs),
                 runs,
                 [departure], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
-                raids: new Dfo.Server.Application.Raids.AntonRaidDomainService(f.Directory,
-                    TestRequired.Absent<Dfo.Server.Abstractions.World.ITownAreaDomainService>(), TestParties.Of(runs),
-                    Dfo.Server.Abstractions.Channel.ChannelEntryOptions.Legacy, TimeProvider.System));
+                raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
             var complete = new CompleteReturnToSelectionStageHandler(f.Users, f.Directory, cleanup);
 
             using var footprint = new TestEffectFootprints.Lease(selected);

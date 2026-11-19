@@ -33,18 +33,10 @@ internal sealed partial class TowerReturnCommandHandler
     public async ValueTask<bool> HandleAsync(CommandExecutionContext context, ProjectDungeonReturnCommand command, CancellationToken token)
     {
         var session = command.Session;
-        // A captured return never admits a replacement session or a character that entered another run.
-        if (!sessions.IsInWorld(session) || wipeRuns.Find(session.CharacterId) is not null) return false;
-        var view = await currentViews.TryLoadAsync(session, token).ConfigureAwait(false);
-        var position = onlineCharacters.PositionOf(session);
-        if (view is null || position is null) throw new InvalidOperationException($"Cannot prepare dungeon return for {session.CharacterId}.");
-        TownAreaEntry[] entries = [new TownAreaEntry(session, view, position)];
-        var requests = TownArrivalProjection.TownReturnRequests(entries);
-        var admitted = await transit.ReturnToTownAsync(requests, token).ConfigureAwait(false);
-        await TownArrivalProjection.ProjectAsync(sessions, townAreas, currentViews, outbox,
-            weaknessState, true, projections,
-            new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState),
-            TownArrivalProjection.TownAdmissions(entries, requests, admitted), token).ConfigureAwait(false);
+        var projection = new DungeonTownReturnProjection(sessions, wipeRuns, currentViews, onlineCharacters,
+            transit, townAreas, outbox, weaknessState, projections, parties, projectionState);
+        if (!await projection.ReturnAsync(session, token).ConfigureAwait(false))
+            return false;
         logger.LogInformation("Dungeon returned character={CharacterId} run={RunId} reason={Reason}",
             session.CharacterId, command.RunId, command.Cleared ? "clear-timeout" : "party-wipe");
         return true;

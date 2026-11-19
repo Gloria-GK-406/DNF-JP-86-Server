@@ -34,7 +34,7 @@ public sealed class AntonRaidPeerCommandTests
         runtime.Begin(applicant, area, position, true, 100);
         var parties = TestParties.Create();
         var raids = new AntonRaidDomainService(sessions, town, parties, ChannelEntryOptions.Legacy, TimeProvider.System,
-            parties, null!, null!, null!, null!, null!, null!);
+            parties, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var raid = raids.Create(new(leader, "Leader"u8.ToArray(), 0, 0, 0), "RaidLab"u8.ToArray());
         Assert.True(raid.Succeeded);
 

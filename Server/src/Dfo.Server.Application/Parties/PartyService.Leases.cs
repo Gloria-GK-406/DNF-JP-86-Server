@@ -95,8 +95,7 @@ public sealed partial class PartyService
                 var party = change.Party;
                 return new PartyNotificationPlan(change.ClearAudience,
                     party.MemberCount == 0 ? null : Snapshot(party),
-                    SettingsChange: party.MemberCount != 0 && (change.Previous.Length == 0
-                        || change.PreviousLeadershipVersion != party.LeadershipVersion)
+                    SettingsChange: party.MemberCount != 0 && change.Previous.Length == 0
                             ? PartySettingsChangeKind.Created : null,
                     ClearPartyKey: hasClear ? party.Key : null,
                     ClearLeadershipVersion: hasClear ? change.PreviousLeadershipVersion : null,

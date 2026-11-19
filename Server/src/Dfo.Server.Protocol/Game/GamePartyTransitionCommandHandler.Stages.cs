@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Data.Raids;
+using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
@@ -364,6 +366,42 @@ internal sealed partial class GamePartyTransitionCommandHandler
         if (GameRequestFreshness.IsStale(metadata)) return false;
         var caller = sessions.FindByConnection(dispatch.Connection.ConnectionId);
         if (caller is null) return false;
+
+        if (change == PartyChange.Leave && raids?.IsPreparing(caller) == true
+            && raids.CancelPreparationFor(caller).Change is { Raid: { } restored } canceled)
+        {
+            await raidSquads!.DeliverAsync(canceled.Squads, token).ConfigureAwait(false);
+            await AntonRaidRecruitmentProjection.DeliverAsync(projections, canceled, token).ConfigureAwait(false);
+            var tickets = await workUnits.WriteAsync(execution, new("AntonRaidCanceledByPartyLeave", []),
+                (_, ct) => raids.TicketsAsync(caller, ct), token).ConfigureAwait(false);
+            await AntonRaidRuntimeProjection.SendAsync(projections,
+                restored.Members.Select(member => member.Session).ToArray(),
+                [AntonRaidRuntimeNotice.State(restored.Stage, restored.Phase),
+                 AntonRaidRuntimeNotice.Tickets(tickets)], token).ConfigureAwait(false);
+            return true;
+        }
+        if (raids?.IsRecruitingMember(caller) == true)
+        {
+            var result = change == PartyChange.Leave ? raids.LeaveSquad(caller) : ApplyRaidSquadChange();
+            if (result.Succeeded)
+                await raidSquads!.DeliverChangesAsync(result.Changes, token).ConfigureAwait(false);
+            else
+                await RefuseAsync(dispatch, change, PartyFailureReason.RaidRecruiting, token).ConfigureAwait(false);
+            return result.Succeeded;
+
+            AntonRaidRecruitmentResult ApplyRaidSquadChange()
+            {
+                var roster = parties.FindParty(new(caller.AccountId, caller.CharacterId, caller.WireUserId, null));
+                if (!roster.IsLeased || roster.Members.FirstOrDefault(member => member.Slot == targetSlot) is not { } member
+                    || !sessions.TryGetInWorld(member.CharacterId, out var target))
+                {
+                    return AntonRaidRecruitmentResult.Refused;
+                }
+                return change == PartyChange.Remove
+                    ? raids.Assign(caller, target.WireUserId, 0)
+                    : raids.SetSquadLeader(caller, target);
+            }
+        }
 
         var (candidates, place) = LocatePartyOf(caller, targetSlot);
         if (change == PartyChange.Remove && PartyStandsInADungeon(candidates.Candidates))

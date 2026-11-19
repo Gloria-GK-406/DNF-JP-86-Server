@@ -24,9 +24,9 @@ internal sealed partial class AntonRaidDomainService
         foreach (var member in raid.Members)
         {
             var paid = raid.PaidTickets.Contains(member.Session.CharacterId);
-            if (paid)
+            if (paid || member.RejoinUntil.HasValue)
             {
-                tickets.Add(new(member.Session.WireUserId, 0, true));
+                tickets.Add(new(member.RejoinUntil.HasValue ? (ushort)0 : member.Session.WireUserId, 0, paid));
                 continue;
             }
             var store = inventory.GetStore(member.Session.CharacterId, BusinessInventoryStoreKind.Item);
@@ -78,26 +78,44 @@ internal sealed partial class AntonRaidDomainService
         return new(true, StageChange(raid, AntonRaidStage.Preparing, raid.Phase), deadline, tickets);
     }
 
-    public PartyOperationResult PrepareSquad(SelectedSessionIdentity sender, SelectedSessionIdentity? peer)
+    public PartyOperationResult PrepareSquad(SelectedSessionIdentity sender, AntonRaidSquadSignal signal, SelectedSessionIdentity? peer = null)
     {
         GameplayWriteAssertion.Writing(nameof(PrepareSquad));
+        if (signal == AntonRaidSquadSignal.Settings && Of(sender) is { Stage: AntonRaidStage.Attacking or AntonRaidStage.Break } active
+            && active.Lease.Keys.Contains(parties.KeyOf(sender.CharacterId)))
+        {
+            return PartyOperationResult.Success();
+        }
         if (Of(sender) is not { Stage: AntonRaidStage.Preparing, Preparation: { } preparation } raid
             || raid.Deadline <= clock.GetUtcNow())
         {
             return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
         }
         var member = preparation.Roster.First(item => item.Session == sender);
-        var squad = preparation.Roster.Where(item => item.Squad == member.Squad).ToArray();
-        if (member.Squad == 0 || (peer is null ? squad[0].Session != sender
-                : peer == sender || !squad.Any(item => item.Session == peer))
-            || squad.Any(item => RecruitmentChannel(item.Session) != raid.Channel))
+        var squad = SquadOrder(raid, member.Squad, preparation.Roster.Where(item => item.Squad == member.Squad)).ToArray();
+        var leader = squad[0].Session;
+        var validSignal = signal switch
+        {
+            AntonRaidSquadSignal.Settings => sender == leader && peer is null,
+            AntonRaidSquadSignal.Invite => sender == leader && peer != leader && squad.Any(item => item.Session == peer),
+            AntonRaidSquadSignal.Accept => sender != leader && peer == leader,
+            _ => false,
+        };
+        if (member.Squad == 0 || !validSignal || squad.Any(item => RecruitmentChannel(item.Session) != raid.Channel))
         {
             return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
         }
-        if (!raid.PreparedSquads.Add(member.Squad))
-            return PartyOperationResult.Success();
-        var changes = ReplaceSquads(raid);
-        return changes.Count == 0 ? PartyOperationResult.Success() : PartyOperationResult.Success(changes.Single());
+        var changes = raid.PreparedSquads.Add(member.Squad) ? ReplaceSquads(raid) : [];
+        var change = changes.SingleOrDefault();
+        if (signal != AntonRaidSquadSignal.Accept)
+            return PartyOperationResult.Success(change);
+        change ??= new PartyNotificationPlan([], parties.FindParty(
+            new(sender.AccountId, sender.CharacterId, sender.WireUserId, null)));
+        return PartyOperationResult.Success(change with
+        {
+            SettingsChange = null,
+            Acceptance = new(leader.CharacterId, sender.CharacterId, leader.WireUserId, sender.WireUserId, sender.CharacterId),
+        });
     }
 
     public IReadOnlyList<AntonRaidDeadline> PreparationDeadlines() => raids.Values
@@ -187,6 +205,11 @@ internal sealed partial class AntonRaidDomainService
         return new(Change(raid) with { Squads = ReplaceSquads(raid) });
     }
 
+    public AntonRaidPreparationOutcome CancelPreparationFor(SelectedSessionIdentity session) =>
+        Of(session) is { Stage: AntonRaidStage.Preparing, Deadline: { } until } raid
+            ? CancelPreparation(new(raid.Lease.Owner, raid.Number, raid.PreparationGeneration, until))
+            : new();
+
     private Recruitment? CurrentPreparation(AntonRaidDeadline deadline) =>
         raids.TryGetValue(deadline.Number, out var raid) && raid.Lease.Owner == deadline.Instance
         && raid.Stage == AntonRaidStage.Preparing && raid.PreparationGeneration == deadline.Generation
@@ -194,9 +217,9 @@ internal sealed partial class AntonRaidDomainService
 
     private bool HasFrozenSquad(Recruitment raid, IGrouping<byte, AntonRaidMember> squad) =>
         parties.FindByKey(raid.Lease.Keys[squad.Key - 1]) is { } party
-        && party.LeaderCharacterId == squad.First().Session.CharacterId
+        && party.LeaderCharacterId == SquadOrder(raid, squad.Key, squad).First().Session.CharacterId
         && party.Members.OrderBy(member => member.Slot).Select(member => member.CharacterId)
-            .SequenceEqual(squad.Select(member => member.Session.CharacterId));
+            .SequenceEqual(SquadOrder(raid, squad.Key, squad).Select(member => member.Session.CharacterId));
 
     private void RestoreFromPreparation(Recruitment raid)
     {
@@ -210,9 +233,10 @@ internal sealed partial class AntonRaidDomainService
 
     private IReadOnlyList<PartyNotificationPlan> ReplaceSquads(Recruitment raid)
     {
-        var squads = raid.Members.Where(member => raid.PreparedSquads.Contains(member.Squad))
+        var squads = raid.Members.Where(member => member.RejoinUntil is null
+                && !raid.DeferredSquadMembers.Contains(member.Session.CharacterId) && raid.PreparedSquads.Contains(member.Squad))
             .GroupBy(member => member.Squad).Select(squad => new PartyLeaseSquad(squad.Key,
-                squad.Select(member => new PartyCharacterSnapshot(member.Session.AccountId,
+                SquadOrder(raid, squad.Key, squad).Select(member => new PartyCharacterSnapshot(member.Session.AccountId,
                     member.Session.CharacterId, member.Session.WireUserId, null)).ToArray())).ToArray();
         return (leases.Replace(raid.Lease, squads)
             ?? throw new InvalidOperationException("The raid roster no longer owns its party lease.")).Notifications;

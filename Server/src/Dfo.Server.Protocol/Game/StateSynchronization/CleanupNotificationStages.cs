@@ -19,6 +19,7 @@ internal static class CleanupNotificationStages
         IPartyProjectionStateDomainService projectionState,
         IPartyService parties,
         IOutboundOrdering ordering,
+        AntonRaidSquadProjection raidSquads,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
@@ -39,7 +40,10 @@ internal static class CleanupNotificationStages
             plan.PartyNotifications, plan.PartyRecipients, cancellationToken).ConfigureAwait(false);
 
         if (plan.RaidDeparture is { } raid)
+        {
+            await raidSquads.DeliverAsync(raid.Squads, cancellationToken).ConfigureAwait(false);
             await AntonRaidRecruitmentProjection.DeliverAsync(projections, raid, cancellationToken).ConfigureAwait(false);
+        }
 
         foreach (var (audience, left) in ConversationDepartureNotices.For(plan))
             await projections.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);

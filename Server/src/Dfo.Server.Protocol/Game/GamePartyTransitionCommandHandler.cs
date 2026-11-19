@@ -28,6 +28,7 @@ using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -39,6 +40,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Altar;
+using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.TownProjection;
@@ -83,6 +85,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IAltarDungeonDomainService altars;
     private readonly IOutboundOrdering ordering;
     private readonly IGuardianAltarDomainService guardian;
+    private readonly IAntonRaidDomainService? raids;
+    private readonly AntonRaidSquadProjection? raidSquads;
     public GamePartyTransitionCommandHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
         IDungeonRunDepartureDomainService runs, IDungeonExitDomainService exits, IDungeonRunProjectionDomainService registry, IPartyService parties,
@@ -94,13 +98,16 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         ICommandConnectionClosures closures, IDungeonCardPresentationControl cardPresentation,
         IDungeonEntryIntentDomainService entryIntents, IAltarDungeonDomainService altars,
         IWeaknessDomainService weakness, TimeProvider clock,
-        ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering, IGuardianAltarDomainService guardian)
+        ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering, IGuardianAltarDomainService guardian,
+        IAntonRaidDomainService? raids = null, AntonRaidSquadProjection? raidSquads = null)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
         this.runs = runs; this.exits = exits; this.registry = registry; this.cardPresentation = cardPresentation;
         this.entryIntents = entryIntents; this.altars = altars; this.ordering = ordering;
         this.guardian = guardian;
+        this.raids = raids;
+        this.raidSquads = raidSquads;
         Departures = new TowerPartyDeparture(this.sessions, this.onlineUsers, this.characters, this.clock, this.outbox,
             this.currentViews, this.currentState, this.onlineCharacters, workUnits, this.closures, closeTargets, this.logger,
             ReturnTownIsolatedAsync);

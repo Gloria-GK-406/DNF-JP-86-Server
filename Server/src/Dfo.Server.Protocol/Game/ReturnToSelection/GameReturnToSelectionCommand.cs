@@ -59,7 +59,8 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
     ICommandWorkUnits units, ICommandSelectedSessionCleanup cleanup, IGameCommandOutbox outbox,
     ICommandProjections projections, ICommandConnectionClosures closures, IPartyService parties,
     IPartyProjectionStateDomainService projectionState,
-    IOutboundOrdering ordering) :  ICommandHandler<GameReturnToSelectionCommand, bool>
+    IOutboundOrdering ordering,
+    Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection raidSquads) : ICommandHandler<GameReturnToSelectionCommand, bool>
 {
 
 
@@ -121,5 +122,5 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
         return await cleanup.CleanupAsync(execution, session, includeOwner: false, cancellationToken: ct).ConfigureAwait(false);
     }
     private ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) =>
-        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, ct);
+        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, raidSquads, ct);
 }

@@ -29,6 +29,23 @@ internal sealed class AntonRaidTownArrivedHandler(IAntonRaidDomainService raids,
     }
 }
 
+internal sealed record AntonRaidSessionArrived(SelectedSessionIdentity Session)
+    : INotification<AntonRaidSessionArrived>;
+
+internal sealed class AntonRaidSessionArrivedHandler(IAntonRaidDomainService raids)
+    : INotificationHandler<AntonRaidSessionArrived>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+        NotificationRecipient recipient, AntonRaidSessionArrived notice, CancellationToken ct) =>
+        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+            recipient.ExpectedSession == notice.Session && raids.RejoinOffer(notice.Session) is { } offer
+                ? [AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidRejoinOffer, writer =>
+                {
+                    writer.Write(offer.Number);
+                    writer.Write(offer.Channel);
+                })] : []);
+}
+
 internal sealed record AntonRaidRecruitmentChanged(AntonRaidRecruitmentChange Change)
     : INotification<AntonRaidRecruitmentChanged>;
 
@@ -69,7 +86,7 @@ internal static class AntonRaidRecruitmentProjection
         var profiles = new List<CurrentUserStateMessage>();
         foreach (var member in members)
         {
-            if (await views.TryLoadAsync(member.Session, ct).ConfigureAwait(false) is { } view)
+            if (member.RejoinUntil is null && await views.TryLoadAsync(member.Session, ct).ConfigureAwait(false) is { } view)
                 profiles.Add(ProfileOf(view));
         }
         return profiles;

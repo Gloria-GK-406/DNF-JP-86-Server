@@ -96,6 +96,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly IDarkElfRuinsDomainService ruins;
     private readonly ICharacterRelationQueryDomainService relations;
     private readonly ICharacterIdentityQueryDomainService identities;
+    private readonly AntonRaidSquadProjection raidSquads;
     public GameSelectCharacterCommandHandler(IOnlineUserQueryDomainService users, IChannelEntryDomainService channels,
         ISelectedCharacterStateMessageFactory stateMessages, ISelectedSessionDomainService selectedSessions,
         IGameCommandOutbox outbox, ICommandProjections projections, ICommandConnectionClosures closures,
@@ -110,7 +111,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         IClientSettingsDomainService clientSettings,
         ISaoTowerDomainService sao, IEnumerable<OnlineTicketRefillRegistration> ticketRefills,
         IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins,
-        ICharacterRelationQueryDomainService relations, ICharacterIdentityQueryDomainService identities)
+        ICharacterRelationQueryDomainService relations, ICharacterIdentityQueryDomainService identities,
+        AntonRaidSquadProjection raidSquads)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -125,6 +127,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             throw new InvalidOperationException("Selected-character ticket refill orders must be unique.");
         this.ruins = ruins;
         this.relations = relations; this.identities = identities;
+        this.raidSquads = raidSquads;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -387,6 +390,9 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         if (SendsFramesAfterTheCompletionMarker && channel.Kind == ChannelEntryKind.Raid)
             await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
                 new AntonRaidTownArrived(session), cancellationToken).ConfigureAwait(false);
+        if (SendsFramesAfterTheCompletionMarker)
+            await projections.ProjectAsync(new NotificationAudience.TheseSessions([session]),
+                new AntonRaidSessionArrived(session), cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
         await AnnounceToFriendsAsync(execution, session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
@@ -763,7 +769,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         finally { selectedSessions.ReleaseExact(session); }
     }
     private ValueTask DeliverCleanupAsync(SelectedSessionCleanupNotificationPlan plan, CancellationToken ct) =>
-        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, ct);
+        CleanupNotificationStages.DeliverAsync(plan, outbox, projections, projectionState, parties, ordering, raidSquads, ct);
     private async ValueTask PublishCommittedEntryAsync(SelectedSessionIdentity session, TownParticipantPublicationPlan publication, CancellationToken ct)
     {
         if (!selectedSessions.IsInWorld(session)) return;

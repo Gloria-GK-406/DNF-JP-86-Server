@@ -19,6 +19,8 @@ internal static class WorldMaintenanceCommandRegistration
         services.AddInternalCommandHandler<AdvanceAntonRaidCommand, bool, AntonRaidDeadlineHandler>(internalActionCancellation: InternalActionCancellationCapability.ConfirmedRollbackWriteResult);
         services.AddInternalCommandHandler<AdvanceAntonRaidCombatCommand, bool, AntonRaidDeadlineHandler>();
         services.AddInternalCommandHandler<ReturnAntonRaidRunCommand, AntonRaidRunReturn, AntonRaidDeadlineHandler>();
+        services.AddInternalCommandHandler<ExpireAntonRaidRejoinCommand, bool, AntonRaidDeadlineHandler>();
+        services.AddInternalCommandHandler<RestoreAntonRaidSquadsCommand, bool, AntonRaidDeadlineHandler>();
         services.AddInternalCommandHandler<MaintainRoomMechanismsCommand, RoomMechanismNextDeadline, MaintainRoomMechanismsCommandHandler>();
         services.AddInternalCommandHandler<ProjectRoomMechanismCommand, bool, MaintainRoomMechanismsCommandHandler>();
         return services;

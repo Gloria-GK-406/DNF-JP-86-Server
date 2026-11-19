@@ -24,6 +24,11 @@ internal sealed class AntonRaidRequestDecoder : IGameMessageDecoder
             ClientMessageType.GameLeaveAntonRaid when body.Length == 2 =>
                 new AntonRaidRequest(metadata, kind, Target: BinaryPrimitives.ReadUInt16LittleEndian(body)),
             ClientMessageType.GameStartAntonRaid when body.IsEmpty => new AntonRaidRequest(metadata, kind),
+            ClientMessageType.GameRejoinAntonRaid when body.Length == 4 =>
+                new AntonRaidRequest(metadata, kind, BinaryPrimitives.ReadUInt32LittleEndian(body)),
+            ClientMessageType.GameRenameAntonRaid when body.Length is >= 5 and <= 260 && body[0] == 0
+                && BinaryPrimitives.ReadInt32LittleEndian(body[1..]) == body.Length - 5 =>
+                new AntonRaidRequest(metadata, kind, Title: body[5..].ToArray()),
             ClientMessageType.GameRequestAntonRaidTickets when body.Length == 1 && body[0] <= 1 =>
                 new AntonRaidRequest(metadata, kind, body[0]),
             ClientMessageType.GameSetAntonRaidSymbol when body.Length == 9 && body[8] <= 2 =>
@@ -190,7 +195,7 @@ internal static class AntonRaidFrameFields
 
     internal static void WriteMember(BinaryWriter writer, AntonRaidMember member)
     {
-        writer.Write(member.Session.WireUserId);
+        writer.Write(member.DisconnectedAt.HasValue ? (ushort)0 : member.Session.WireUserId);
         writer.Write((byte)1);
         writer.Write(member.Name.Length);
         writer.Write(member.Name.Span);
@@ -198,7 +203,7 @@ internal static class AntonRaidFrameFields
         writer.Write(member.GrowthType);
         writer.Write(member.Squad);
         writer.Write((byte)0);
-        writer.Write(checked((uint)member.Session.CharacterId.Value));
+        writer.Write(checked((uint)(member.DisconnectedAt?.ToUnixTimeSeconds() ?? member.Session.CharacterId.Value)));
         writer.Write((byte)0);
         writer.Write((byte)0);
     }

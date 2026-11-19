@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
+using Dfo.Server.Data.Raids;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Party;
 
@@ -23,6 +24,15 @@ internal sealed class AntonRaidSquadProjection(PartyClientIdRegistry numbers,
             var projected = numbers.Project(change);
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                 projected, PartyNotificationRecipientCapture.Capture(projected, sessions, towns), ct).ConfigureAwait(false);
+        }
+    }
+
+    internal async ValueTask DeliverChangesAsync(IReadOnlyList<AntonRaidRecruitmentChange> changes, CancellationToken ct)
+    {
+        foreach (var change in changes)
+        {
+            await DeliverAsync(change.Squads, ct).ConfigureAwait(false);
+            await AntonRaidRecruitmentProjection.DeliverAsync(projections, change, ct).ConfigureAwait(false);
         }
     }
 }

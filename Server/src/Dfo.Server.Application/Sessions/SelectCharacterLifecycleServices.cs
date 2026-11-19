@@ -146,6 +146,8 @@ internal sealed class SelectedSessionCleanupService(
             await RunAsync(() => SettleStepAsync(() => creatures.LeaveAsync(session, CancellationToken.None)));
             run = dungeonRuns.Find(session.CharacterId);
         }
+        // Raid owns its lease and releases the exact generation before dungeon departure.
+        Run(() => { raidDeparture = raids.Disconnected(session); return raidDeparture is not null; });
 
         // Tower membership belongs to the exact selected-session generation. It must be released
         // even after that generation has already lost the selected-session directory race.
@@ -206,7 +208,6 @@ internal sealed class SelectedSessionCleanupService(
                 }
             }
         }
-        Run(() => { raidDeparture = raids.Disconnected(session); return raidDeparture is not null; });
         Run(() => expertStores.CloseExact(session));
         Run(() => { housing.CloseExact(session); return true; });
         Run(() => pvp.ClearReadyExact(session));
