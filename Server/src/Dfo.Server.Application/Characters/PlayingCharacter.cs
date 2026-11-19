@@ -148,8 +148,28 @@ internal sealed partial class PlayingCharacter(
 internal sealed class ItemUseRuleService(
     IItemUseRuleDefinitionSource rules) : IItemUseRuleService
 {
-    public ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken) =>
-        rules.GetAsync(itemId, cancellationToken);
+    public async ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken)
+    {
+        var rule = await rules.GetAsync(itemId, cancellationToken).ConfigureAwait(false);
+
+        // The converters still require an explicitly declared playable job.
+        if (rule is { Action: "[absolute bind cube]", Jobs.UnrecognizedTokens.Count: > 0 }
+            && rule.Jobs.UnrecognizedTokens.All(token => token == "[creator mage]"))
+        {
+            var jobs = rule.Jobs.JobFamilies.Where(job => job != QuestJobRequirement.Unrecognized).ToArray();
+            return rule with { Jobs = new ItemJobRestriction(IsExactAll: false, jobs) };
+        }
+
+        // Random fatigue recovery requires town presence. The assault exclusion grants no place.
+        if (rule is { Action: "[random recovery fatigue]", Places.UnrecognizedTokens.Count: > 0 }
+            && rule.Places.UnrecognizedTokens.All(token => token.Equals("[dont use assult]", StringComparison.OrdinalIgnoreCase)))
+        {
+            var places = rule.Places.Places.Where(place => place != ItemUsePlace.Unrecognized).ToArray();
+            return rule with { Places = new ItemPlaceRestriction(IsUnrestricted: false, places) };
+        }
+
+        return rule;
+    }
 
     public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule)
     {

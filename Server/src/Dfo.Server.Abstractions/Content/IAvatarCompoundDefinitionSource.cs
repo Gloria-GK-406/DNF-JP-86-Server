@@ -6,6 +6,7 @@ public sealed record AvatarCompoundWeightedItem(int ItemId, int Weight);
 public sealed record AvatarCompoundPart(string EquipmentType, int RareRate, int UpperRate,
     ImmutableArray<AvatarCompoundWeightedItem> Rare, ImmutableArray<AvatarCompoundWeightedItem> Advanced);
 public sealed record AvatarCompoundMaterial(byte Category, int ItemId, int Count);
+public sealed record AvatarCompoundPlusDefinition(int IngredientGrade, IReadOnlyDictionary<string, int> Targets);
 public sealed record AvatarCompoundDefinition(int NormalGrade, int AdvancedGrade, int GoldenBonus,
     ImmutableArray<AvatarCompoundMaterial> Materials, ImmutableArray<AvatarCompoundPart> Parts);
 public sealed record AvatarCompoundItemDefinition(int ItemId, string EquipmentType, int Grade,
@@ -18,4 +19,6 @@ public interface IAvatarCompoundDefinitionSource
 {
     ValueTask<AvatarCompoundDefinition?> ForJobAsync(byte job, CancellationToken ct);
     ValueTask<AvatarCompoundItemDefinition?> ItemAsync(int itemId, CancellationToken ct);
+    ValueTask<AvatarCompoundPlusDefinition?> PlusForJobAsync(int converterId, QuestJobRequirement job, CancellationToken ct) =>
+        ValueTask.FromResult<AvatarCompoundPlusDefinition?>(null);
 }

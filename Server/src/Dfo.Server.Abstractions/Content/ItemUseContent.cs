@@ -24,6 +24,8 @@ public sealed record ItemJobRestriction(
     /// <summary>What an item declaring <c>[all]</c> carries.</summary>
     public static readonly ItemJobRestriction Any = new(IsExactAll: true, JobFamilies: []);
 
+    public IReadOnlyList<string> UnrecognizedTokens { get; init; } = [];
+
     public bool IsValid => IsExactAll
         ? JobFamilies.Count == 0
         : JobFamilies.Count > 0
@@ -41,6 +43,8 @@ public sealed record ItemPlaceRestriction(
 {
     /// <summary>What an item declaring no place at all carries.</summary>
     public static readonly ItemPlaceRestriction Anywhere = new(IsUnrestricted: true, Places: []);
+
+    public IReadOnlyList<string> UnrecognizedTokens { get; init; } = [];
 
     public bool IsValid => IsUnrestricted
         ? Places.Count == 0

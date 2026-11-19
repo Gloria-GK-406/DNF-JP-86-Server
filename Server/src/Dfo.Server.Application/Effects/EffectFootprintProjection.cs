@@ -55,6 +55,8 @@ internal class EffectFootprintProjection(ReplayProjectionNeeds minimum)
                 case (AddDungeonEntryAllowanceEffect, DungeonEntryAllowanceChange): Needs |= ReplayProjectionNeeds.HerasQuota; break;
                 case (SetFatigueStateEffect, FatigueStateChange): Needs |= ReplayProjectionNeeds.Fatigue; break;
                 case (SetItemUsageStateEffect, ItemUsageStateChange): Needs |= ReplayProjectionNeeds.ItemUsage; break;
+                case (SetClearedQuestEffect { GrantsPermanentAttributes: true }, QuestRowChange):
+                    Needs |= ReplayProjectionNeeds.Quests | ReplayProjectionNeeds.CharacterAppearance; break;
                 case (SetCarriedQuestEffect or RemoveTrackedQuestEffect or SetClearedQuestEffect, QuestRowChange): Needs |= ReplayProjectionNeeds.Quests; break;
                 case (SetLearnedSkillEffect, LearnedSkillChange): Needs |= ReplayProjectionNeeds.Skills; break;
                 case (RenamePetEffect, PetNameChange):

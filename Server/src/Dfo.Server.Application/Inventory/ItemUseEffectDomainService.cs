@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -14,7 +15,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
     Dfo.Server.Abstractions.DomainEvents.IEventService events,
     IExperienceItemDomainService experienceItems, IEntryAllowanceItemDomainService entryItems,
     IDungeonParticipationDomainService participation, IReviveCoinDomainService reviveCoins,
-    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars) : IItemUseEffectDomainService
+    Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
+    IOpeningInventoryDomainService openingInventory) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
@@ -38,15 +40,35 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         }
 
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
+        return await UseWithRuleAsync(session, source, item, rule, clock.GetUtcNow(), footprint,
+            captureOpeningReceipt: false, ct).ConfigureAwait(false);
+    }
+
+    public async ValueTask<OpeningInventoryReceipt> UseLuckyStarActionAsync(SelectedSessionIdentity session, BusinessSlot source,
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)
+    {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        var item = await openingInventory.SourceAsync(session, source, at, ct).ConfigureAwait(false);
+        var rule = await rules.LuckyStarActionRuleAsync(item.ItemId, ct).ConfigureAwait(false)
+            ?? throw new OpeningRejectedException(OpeningRejection.WrongItem, $"Item {item.ItemId} is not a supported lucky star action item.");
+        var use = await UseWithRuleAsync(session, source, item, rule, at, footprint,
+            captureOpeningReceipt: true, ct).ConfigureAwait(false);
+        return use.OpeningReceipt
+            ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Lucky star item use refused: {use.Status}.");
+    }
+
+    private async ValueTask<ItemUseApplication> UseWithRuleAsync(SelectedSessionIdentity session, BusinessSlot source,
+        ItemReference item, ItemUseRule? rule, DateTimeOffset at, IEffectFootprintRecorder footprint,
+        bool captureOpeningReceipt, CancellationToken ct)
+    {
         if (rule?.SummonsApc == true && participation.Find(session.CharacterId)?.Mode == DungeonParticipationMode.BossTower)
             return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
         var facts = rule is null || !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
             rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;
-        var at = clock.GetUtcNow();
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
-        if (rule?.Action == "[rent point]")
+        if (rule?.Action == ItemUseEffectRuleService.RentPointAction)
         {
             if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
                 return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
@@ -56,11 +78,14 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
             footprint.RecordRentalState(session);
         }
         footprint.DemandActive(session);
-        var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Effects, ct)
-            .ConfigureAwait(false);
+        var opening = captureOpeningReceipt
+            ? await openingInventory.ApplyAsync(session, plan.Effects, at, footprint, ct).ConfigureAwait(false)
+            : null;
+        var applied = opening?.Applied ?? await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session),
+            plan.Effects, ct).ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().LastOrDefault(x => x.Slot == source)?.RemainingCount ?? item.Count;
         footprint.DemandActive(session);
         await events.EnqueueAsync(new Dfo.Server.Abstractions.Achievements.ItemUsed(session.CharacterId, item.ItemId, 1), ct);
-        return new(ItemUsability.Allowed, item.ItemId, remaining, applied);
+        return new(ItemUsability.Allowed, item.ItemId, remaining, applied) { OpeningReceipt = opening?.Inventory };
     }
 }

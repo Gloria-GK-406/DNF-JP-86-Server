@@ -38,7 +38,7 @@ public sealed class SouthernDaleCompatibilityTests
     }
 
     [Dfo.Server.Testing.PvfFact]
-    public async Task Southern_coin_pot_pays_wallet_gold_and_consumes_one_pot()
+    public async Task Southern_coin_pot_pays_wallet_gold_and_consumes_only_the_pot()
     {
         using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         await fixture.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
@@ -52,7 +52,7 @@ public sealed class SouthernDaleCompatibilityTests
         Assert.Equal(before + reward.Count, fixture.Host.Gold);
         Assert.Equal(fixture.Host.Gold, result.GoldAfter);
         Assert.Equal(1, fixture.Host.Count(7615));
-        Assert.Equal(0, fixture.Host.Count(2680739));
+        Assert.Equal(2, fixture.Host.Count(2680739));
         Assert.NotEmpty(fixture.Encode(new LotteryOpeningResponse(result)));
     }
 
@@ -104,17 +104,18 @@ public sealed class SouthernDaleCompatibilityTests
     }
 
     [Dfo.Server.Testing.PvfFact]
-    public async Task Southern_coin_pot_without_two_keys_preserves_all_inputs()
+    public async Task Southern_coin_pot_opens_without_exchange_keys()
     {
         using var fixture = new CeraShopFixture(questProtocol: true, useArchive: true);
         await fixture.Host.Services.GetRequiredService<ILotteryDefinitionCache>().InitializeAsync();
         await fixture.Host.Seed(65, 7615, 1);
-        await fixture.Host.Seed(177, 2680739, 1);
-        var refused = await Assert.ThrowsAsync<Dfo.Server.Data.Inventory.OpeningRejectedException>(async () =>
-            await OpeningDomainTestDriver.Lottery(fixture.Host, fixture.Host.Session, 65, 0));
-        Assert.Equal(Dfo.Server.Data.Inventory.OpeningRejection.MissingMaterial, refused.Reason);
-        Assert.Equal(1, fixture.Host.Count(7615));
-        Assert.Equal(1, fixture.Host.Count(2680739));
+        var before = fixture.Host.Gold;
+
+        var result = await OpeningDomainTestDriver.Lottery(fixture.Host, fixture.Host.Session, 65, 0);
+
+        Assert.Equal(before + Assert.Single(result.Receipt.Rewards).Count, fixture.Host.Gold);
+        Assert.Equal(0, fixture.Host.Count(7615));
+        Assert.Equal(0, fixture.Host.Count(2680739));
     }
 
     [Dfo.Server.Testing.PvfFact]

@@ -50,7 +50,6 @@ public sealed record EquipmentUpgradeTicketDefinition(EquipmentUpgradeKind Kind,
     public IReadOnlyList<int> AllowedRarities { get; init; } = [];
     public int SlotRestriction { get; init; }
     public int SealRestriction { get; init; }
-    public bool RequiresAdditionalMaterials { get; init; }
 }
 public sealed record EquipmentUpgradeTicketLevel(byte Level, int Weight);
 

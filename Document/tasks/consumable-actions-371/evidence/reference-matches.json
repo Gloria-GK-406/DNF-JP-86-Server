@@ -1,0 +1,911 @@
+{
+  "SearchBoundary": {
+    "CurrentImplementation": "E:\\Project\\DNF\\DNF-JP-86-Server-consumables-371\\Server\\src",
+    "UpstreamReference": "E:\\Project\\DNF\\ServerS4A21\\Server\\DfoServer",
+    "ThirdPartyReference": "E:\\Project\\DNF\\Research\\third-party-s4a21-v3.3\\decompiled\\DfoServer"
+  },
+  "Note": "Literal matches locate candidates; absence is not proof of missing behavior; references are not A21 evidence.",
+  "Matches": {
+    "[any quest clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Quests\\QuestCompletionTicketService.cs",
+          "Line": 394,
+          "Text": "case \"[any quest clear]\":",
+          "Sha256": "f8bb1efd34782ff438df33d3fc461817e2e4f92c138b4af91f5cc2c0ee7642dc"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Quests\\QuestCompletionTicketService.cs",
+          "Line": 300,
+          "Text": "case \"[any quest clear]\":",
+          "Sha256": "4015afe9b9b716c50ffcc9d612b5a828ee52e7f7edeb1447024d9862b8c854a3"
+        }
+      ]
+    },
+    "[first awaken clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Quests\\QuestCompletionTicketService.cs",
+          "Line": 400,
+          "Text": "case \"[first awaken clear]\":",
+          "Sha256": "f8bb1efd34782ff438df33d3fc461817e2e4f92c138b4af91f5cc2c0ee7642dc"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Quests\\QuestCompletionTicketService.cs",
+          "Line": 306,
+          "Text": "case \"[first awaken clear]\":",
+          "Sha256": "4015afe9b9b716c50ffcc9d612b5a828ee52e7f7edeb1447024d9862b8c854a3"
+        }
+      ]
+    },
+    "[second awaken clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Quests\\QuestCompletionTicketService.cs",
+          "Line": 404,
+          "Text": "case \"[second awaken clear]\":",
+          "Sha256": "f8bb1efd34782ff438df33d3fc461817e2e4f92c138b4af91f5cc2c0ee7642dc"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Quests\\QuestCompletionTicketService.cs",
+          "Line": 310,
+          "Text": "case \"[second awaken clear]\":",
+          "Sha256": "4015afe9b9b716c50ffcc9d612b5a828ee52e7f7edeb1447024d9862b8c854a3"
+        }
+      ]
+    },
+    "[achievement quest clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Quests\\QuestCompletionTicketService.cs",
+          "Line": 397,
+          "Text": "case \"[achievement quest clear]\":",
+          "Sha256": "f8bb1efd34782ff438df33d3fc461817e2e4f92c138b4af91f5cc2c0ee7642dc"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Quests\\QuestCompletionTicketService.cs",
+          "Line": 303,
+          "Text": "case \"[achievement quest clear]\":",
+          "Sha256": "4015afe9b9b716c50ffcc9d612b5a828ee52e7f7edeb1447024d9862b8c854a3"
+        }
+      ]
+    },
+    "[quest clear]": {
+      "CurrentImplementation": [
+        {
+          "Path": "Dfo.Server.Application\\Quests\\QuestClearCouponRuleService.cs",
+          "Line": 21,
+          "Text": "if (!IsCoupon(itemId) || item is not { IsReadable: true, Action: \"[quest clear]\" })",
+          "Sha256": "c579bc82075937b7a937c2e56304fdc74bc16192b218611a543b705aed9cd4c6"
+        }
+      ],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Quests\\QuestCompletionTicketService.cs",
+          "Line": 408,
+          "Text": "case \"[quest clear]\":",
+          "Sha256": "f8bb1efd34782ff438df33d3fc461817e2e4f92c138b4af91f5cc2c0ee7642dc"
+        },
+        {
+          "Path": "GameWorld\\QuestData.cs",
+          "Line": 924,
+          "Text": "case \"[quest clear]\": return 1;",
+          "Sha256": "58436d049006e551455cece75c369bde5f2e50091f1da7da64d3e009112e327f"
+        },
+        {
+          "Path": "SelfTests\\QuestCompletionTicketSelfTest.cs",
+          "Line": 46,
+          "Text": "StackableItemProvider.NormalizeType(side?.ActionTypeName) == \"[quest clear]\"",
+          "Sha256": "799e318f29f5e027cc0d2d7ff82ae0c456eb3185f3a330814125653db3552a0d"
+        },
+        {
+          "Path": "SelfTests\\QuestCompletionTicketSelfTest.cs",
+          "Line": 53,
+          "Text": "StackableItemProvider.NormalizeType(epic?.ActionTypeName) == \"[quest clear]\"",
+          "Sha256": "799e318f29f5e027cc0d2d7ff82ae0c456eb3185f3a330814125653db3552a0d"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Quests\\QuestCompletionTicketService.cs",
+          "Line": 270,
+          "Text": "if (!string.Equals(actionName, \"[quest clear]\", StringComparison.OrdinalIgnoreCase) || ResolveIconFrame(stackable?.Icon) != 1288)",
+          "Sha256": "4015afe9b9b716c50ffcc9d612b5a828ee52e7f7edeb1447024d9862b8c854a3"
+        },
+        {
+          "Path": "DfoServer.Game.Quests\\QuestCompletionTicketService.cs",
+          "Line": 314,
+          "Text": "case \"[quest clear]\":",
+          "Sha256": "4015afe9b9b716c50ffcc9d612b5a828ee52e7f7edeb1447024d9862b8c854a3"
+        },
+        {
+          "Path": "DfoServer.GameWorld\\QuestData.cs",
+          "Line": 965,
+          "Text": "\"[quest clear]\" => 1,",
+          "Sha256": "cd0d27f9b3177e61aeb9cbeb7c8e9fbf34a40ec5adaa7e253f0bb784d6cd2ad6"
+        }
+      ]
+    },
+    "[quest clear coupon]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[all quest clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[assist quest clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[change creature]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\UpgradeTicketService.cs",
+          "Line": 169,
+          "Text": "if (stackableItemFile.ActionTypeName != \"[change creature]\" || list.Count != 4 || list[0] != item3.ItemId || list[1] <= 0 || list[3] != -1 || !ItemMetadataResolver.TryResolveItemKind(list[1], out var itemKind2) || itemKind2 != 5 || CreatureSpecies(item3.ItemId) <= 0 || CreatureSpecies(list[1]) <= 0)",
+          "Sha256": "6759e91b780c2b7523354a6cb739711704e603c2c10613c8a8ca7833ddd0c045"
+        }
+      ]
+    },
+    "[change creature random]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[creature growth]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\PetCreatureEvolutionRuntimeService.cs",
+          "Line": 151,
+          "Text": "if (StackableItemProvider.NormalizeType(stackableItemFile?.ActionTypeName) != \"[creature growth]\")",
+          "Sha256": "3cfbb0210b146693c8d70630ad982c71e81be31da88187c2f2aa36cfa31a13c0"
+        },
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 7158,
+          "Text": "if (StackableItemProvider.NormalizeType(StackableItemProvider.Load(itemCode)?.ActionTypeName) != \"[creature growth]\")",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        }
+      ]
+    },
+    "[creature use item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\UpgradeTicketService.cs",
+          "Line": 156,
+          "Text": "if (stackableItemFile.ActionTypeName != \"[creature use item]\" || list.Count != 2 || list[0] != 3 || detail.Level < 1 || !PetCreatureExperienceService.TryGetLevelExperience(list[1], out experience))",
+          "Sha256": "6759e91b780c2b7523354a6cb739711704e603c2c10613c8a8ca7833ddd0c045"
+        }
+      ]
+    },
+    "[creature transport stone]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "SelfTests\\CargoTransportStoneSelfTest.cs",
+          "Line": 151,
+          "Text": "`[creature transport stone]`",
+          "Sha256": "9d7d9156fc82b82662d2afe84fa59fe2fe7022343e200a99185b95ba7038e258"
+        },
+        {
+          "Path": "SelfTests\\CargoTransportStoneSelfTest.cs",
+          "Line": 157,
+          "Text": "splitLine.ActionTypeName == \"[creature transport stone]\"",
+          "Sha256": "9d7d9156fc82b82662d2afe84fa59fe2fe7022343e200a99185b95ba7038e258"
+        },
+        {
+          "Path": "SelfTests\\CargoTransportStoneSelfTest.cs",
+          "Line": 274,
+          "Text": "creature.ActionTypeName == \"[creature transport stone]\"",
+          "Sha256": "9d7d9156fc82b82662d2afe84fa59fe2fe7022343e200a99185b95ba7038e258"
+        }
+      ],
+      "ThirdPartyReference": []
+    },
+    "[up layer despair dungeon]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[clear layer despair dungeon]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 9,
+          "Text": "internal const string ClearAction = \"[clear layer despair dungeon]\";",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 18,
+          "Text": "case \"[clear layer despair dungeon]\":",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 39,
+          "Text": "bool flag = ((text == \"[clear layer despair dungeon]\" || text == \"[clear layer scream dungeon]\") ? true : false);",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        }
+      ]
+    },
+    "[elevator tower of despair]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 7,
+          "Text": "internal const string ElevatorAction = \"[elevator tower of despair]\";",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 17,
+          "Text": "case \"[elevator tower of despair]\":",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 30,
+          "Text": "if (text == \"[elevator tower of despair]\" && item.ActionTypeParams.Count == 1)",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        }
+      ]
+    },
+    "[init dimension dungeon count]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[add dimension dungeon enter count]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Dungeon\\DimensionDungeonEnterTicketService.cs",
+          "Line": 23,
+          "Text": "internal const string ActionType = \"[add dimension dungeon enter count]\";",
+          "Sha256": "11e530627c99697500f17f6c9f52608d1670f06370a07fed448ed9747fe0a385"
+        },
+        {
+          "Path": "SelfTests\\DimensionDungeonEnterTicketSelfTest.cs",
+          "Line": 290,
+          "Text": "\"[action type]\\n`[add dimension dungeon enter count]` \" + enterCount + \"\\n[/action type]\\n\" +",
+          "Sha256": "a1e09aa48e4d8ea0c590df11216d5f7303b420d6252f544c424bf8f8d48e5071"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Dungeon\\DimensionDungeonEnterTicketDefinition.cs",
+          "Line": 5,
+          "Text": "internal const string ActionType = \"[add dimension dungeon enter count]\";",
+          "Sha256": "ad48380093c06088ec527469be76c726fabfaf8cb6015a1f179ca218ffb7f307"
+        },
+        {
+          "Path": "DfoServer.Game.Dungeon\\DimensionDungeonEnterTicketRules.cs",
+          "Line": 20,
+          "Text": "if (!string.Equals(StackableItemProvider.NormalizeType(stackable.ActionTypeName), \"[add dimension dungeon enter count]\", StringComparison.OrdinalIgnoreCase))",
+          "Sha256": "fa704c2ebf441090e3bbcb7f334c58ba72efffa4d5f6a81419e9e2d1e4901d2b"
+        }
+      ]
+    },
+    "[add account enter limit dungeonincount]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[auto dungeon clear]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[init anton raid try]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[init anton raid buy item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[dungeon reward reset]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[guild dungeon time ticket]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Guilds\\GuildDungeonExtensionDefinition.cs",
+          "Line": 10,
+          "Text": "internal const string ActionType = \"[guild dungeon time ticket]\";",
+          "Sha256": "cd878a82b7b4a40cdac2e5811e4b39c1b4b1e35d70857dd105163d270647310c"
+        },
+        {
+          "Path": "DfoServer.Game.Guilds\\GuildDungeonExtensionDefinition.cs",
+          "Line": 15,
+          "Text": "if (stackable != null && string.Equals(StackableItemProvider.NormalizeType(stackable.ActionTypeName), \"[guild dungeon time ticket]\", StringComparison.OrdinalIgnoreCase))",
+          "Sha256": "cd878a82b7b4a40cdac2e5811e4b39c1b4b1e35d70857dd105163d270647310c"
+        },
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 5622,
+          "Text": "if (!string.Equals(StackableItemProvider.NormalizeType(stackableItemFile?.ActionTypeName), \"[guild dungeon time ticket]\", StringComparison.OrdinalIgnoreCase))",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        }
+      ]
+    },
+    "[clear layer scream dungeon]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 11,
+          "Text": "internal const string PhantomClearAction = \"[clear layer scream dungeon]\";",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 19,
+          "Text": "case \"[clear layer scream dungeon]\":",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 39,
+          "Text": "bool flag = ((text == \"[clear layer despair dungeon]\" || text == \"[clear layer scream dungeon]\") ? true : false);",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TowerTicketDefinition.cs",
+          "Line": 42,
+          "Text": "definition = new TowerTicketDefinition(text == \"[clear layer scream dungeon]\", 0);",
+          "Sha256": "a2d77b2ccf50fd1eeba0f6b166ecea94df3145844074d204fc5ba1794bde1578"
+        }
+      ]
+    },
+    "[reset all skill cooltime]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[reset second grow skill cooltime]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\AwakeningCooldownPotionService.cs",
+          "Line": 15,
+          "Text": "internal const string ActionName = \"[reset second grow skill cooltime]\";",
+          "Sha256": "2a87a5ff86d0687735129b0868391c951692ae517454d6270d6dccf98410830b"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\AwakeningCooldownPotionService.cs",
+          "Line": 24,
+          "Text": "if (item != null && StackableItemProvider.NormalizeType(item.StackableType) == \"[waste]\" && StackableItemProvider.NormalizeType(item.ActionTypeName) == \"[reset second grow skill cooltime]\" && item.ActionTypeParams.Count == 0)",
+          "Sha256": "2a87a5ff86d0687735129b0868391c951692ae517454d6270d6dccf98410830b"
+        }
+      ]
+    },
+    "[equipment item period change]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\UpgradeTicketService.cs",
+          "Line": 93,
+          "Text": "else if (stackableItemFile.ActionTypeName != \"[equipment item period change]\")",
+          "Sha256": "6759e91b780c2b7523354a6cb739711704e603c2c10613c8a8ca7833ddd0c045"
+        }
+      ]
+    },
+    "[change growth equipment]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\UpgradeTicketService.cs",
+          "Line": 87,
+          "Text": "if (stackableItemFile.ActionTypeName != \"[change growth equipment]\" || !list.SequenceEqual(new int[5] { -1, -1, 0, 9999, -1 }))",
+          "Sha256": "6759e91b780c2b7523354a6cb739711704e603c2c10613c8a8ca7833ddd0c045"
+        }
+      ]
+    },
+    "[equipment purify]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[extend item period]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[change phoenix period]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[init roption unique change count]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[free repair equipment]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[repair equipment]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[item change]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[level up decision change]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[open aura skin slot]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 571,
+          "Text": "if (item == null || item.Count < 1 || InventoryItemExpirationService.IsInstanceDeadlineExpired(item, DateTimeOffset.UtcNow.ToUnixTimeSeconds()) || !ItemMetadataResolver.TryLoadStackableFile(item.ItemId, out var stackable) || !(stackableAction ? string.Equals(stackable.ActionTypeName?.Trim().Trim('`'), \"[open aura skin slot]\", StringComparison.Ordin",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        }
+      ]
+    },
+    "[rent point]": {
+      "CurrentImplementation": [
+        {
+          "Path": "Dfo.Server.Application\\Inventory\\ItemUseEffectDomainService.cs",
+          "Line": 49,
+          "Text": "if (rule?.Action == \"[rent point]\")",
+          "Sha256": "011a7f10df3ff2b6d09bb2fb961c0f4508cf82358f0d6cab7c1117639e866a93"
+        },
+        {
+          "Path": "Dfo.Server.Infrastructure\\Content\\PvfLuckyStarRentalContentSource.cs",
+          "Line": 107,
+          "Text": "if(archive.ResolveString(matches[0].Values[0].Value)!=\"[rent point]\") return ValueTask.FromResult<int?>(null);",
+          "Sha256": "ab19ad6832d0a52e9fe2552269ba9aad83f4112bde9bf92d5ac88fd3fef29a47"
+        }
+      ],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\LuckyStarItemUseService.cs",
+          "Line": 27,
+          "Text": "if (StackableItemProvider.NormalizeType(stackableItemFile?.ActionTypeName) != \"[rent point]\")",
+          "Sha256": "7f98ad8e979d9c85f4c7004dd33abb07aa25adfbb8576ae817125bbdd7c98c22"
+        }
+      ]
+    },
+    "[add auctionpoint]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[add mileage]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[give goldcoin]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[charm charging]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\CharmChargingDefinition.cs",
+          "Line": 11,
+          "Text": "if (StackableItemProvider.NormalizeType(stackableItemFile?.ActionTypeName) != \"[charm charging]\" || stackableItemFile.ActionTypeParams.Count != 2)",
+          "Sha256": "3784b8c58d49570368aacb9c6610e1312f02f21247d3b9bdc305f44cfe9d4bb6"
+        }
+      ]
+    },
+    "[decrease pcroom honey time]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[chatemoticon]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[open guide book]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[story book]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.GameWorld\\StoryBookDefinitionCatalog.cs",
+          "Line": 29,
+          "Text": "return StackableItemProvider.NormalizeType(StackableItemProvider.Load(itemId)?.ActionTypeName).Equals(\"[story book]\", StringComparison.OrdinalIgnoreCase);",
+          "Sha256": "937dedb4ae7e3b5abee169f69782a90b19ce8d616fb62e49f4822ac50f2ed191"
+        }
+      ]
+    },
+    "[ridable item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[change avatar]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[compound item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[increase guild exp fund]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\GuildContributionItemDefinition.cs",
+          "Line": 7,
+          "Text": "internal const string ActionType = \"[increase guild exp fund]\";",
+          "Sha256": "82e0f029f481def720289d58b87594ec1be079384d2b3be9e257acdecbcb4ad4"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\GuildContributionItemDefinition.cs",
+          "Line": 11,
+          "Text": "return StackableItemProvider.NormalizeType(item?.ActionTypeName) == \"[increase guild exp fund]\";",
+          "Sha256": "82e0f029f481def720289d58b87594ec1be079384d2b3be9e257acdecbcb4ad4"
+        }
+      ]
+    },
+    "[guild hongbao]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Guilds\\GuildHongbaoCatalog.cs",
+          "Line": 123,
+          "Text": "return StackableItemProvider.NormalizeType(stackableItemFile?.ActionTypeName) == \"[guild hongbao]\";",
+          "Sha256": "6dbd6cc984269a06112d708c85f29fde767d13aade7218b2aef18afe057778e7"
+        }
+      ]
+    },
+    "[guild mark effect]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[add guildmileage]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[teleport to partner]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [
+        {
+          "Path": "Game\\Inventory\\TeleportConsumableDefinition.cs",
+          "Line": 18,
+          "Text": "internal const string PartnerActionTag = \"[teleport to partner]\";",
+          "Sha256": "bcf904c26e671599555ce2feb11eaf4b86324aa44629ce8c75e4672cf40e8abf"
+        }
+      ],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Inventory\\TeleportConsumableDefinition.cs",
+          "Line": 12,
+          "Text": "internal const string PartnerActionTag = \"[teleport to partner]\";",
+          "Sha256": "e7c57002029f0ec927bb7e5e38e7c66a6bdf8f03f7fdf8ee388a640d16889925"
+        },
+        {
+          "Path": "DfoServer.Game.Inventory\\TeleportConsumableDefinition.cs",
+          "Line": 52,
+          "Text": "if (string.Equals(a, \"[teleport to partner]\", StringComparison.OrdinalIgnoreCase))",
+          "Sha256": "e7c57002029f0ec927bb7e5e38e7c66a6bdf8f03f7fdf8ee388a640d16889925"
+        }
+      ]
+    },
+    "[deploy in isometric cell map]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[guess number item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Events\\NativeMiniGameService.cs",
+          "Line": 462,
+          "Text": "150 => \"[guess number item]\",",
+          "Sha256": "29b248fa2d437ca49f999cda61b71794a2ea8ed622f85451f99fbf099c6811cc"
+        },
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 4637,
+          "Text": "case \"[guess number item]\":",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        },
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 4651,
+          "Text": "int id = ((stackableItemFile?.ActionTypeName == \"[guess number item]\") ? 2359 : 2361);",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        }
+      ]
+    },
+    "[bingo]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[bingo stamp]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[use bingo mal item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[real estate item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[event action]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[counting coin]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[yet game item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[territory combat item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[snorkeling chance item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Events\\NativeMiniGameService.cs",
+          "Line": 463,
+          "Text": "154 => \"[snorkeling chance item]\",",
+          "Sha256": "29b248fa2d437ca49f999cda61b71794a2ea8ed622f85451f99fbf099c6811cc"
+        },
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 4638,
+          "Text": "case \"[snorkeling chance item]\":",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        }
+      ]
+    },
+    "[snorkeling upgrade item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Events\\NativeMiniGameService.cs",
+          "Line": 464,
+          "Text": "155 => \"[snorkeling upgrade item]\",",
+          "Sha256": "29b248fa2d437ca49f999cda61b71794a2ea8ed622f85451f99fbf099c6811cc"
+        },
+        {
+          "Path": "DfoServer.Network.Handlers\\InventoryHandler.cs",
+          "Line": 4639,
+          "Text": "case \"[snorkeling upgrade item]\":",
+          "Sha256": "fa2fcdf81ede8e9b5610b340ad8f8d6b095c469913d314b962be788682a12b60"
+        }
+      ]
+    },
+    "[lucky balloon item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[seria room deco]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[tournament ticket]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[Red envelope item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[steampunk]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[celebrate big transition]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[Change RedMonkey Item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[event extexsion day item]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[npc growth]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[create passive object]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[expert job store doll]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": []
+    },
+    "[random recovery fatigue]": {
+      "CurrentImplementation": [],
+      "UpstreamReference": [],
+      "ThirdPartyReference": [
+        {
+          "Path": "DfoServer.Game.Dungeon\\RandomFatiguePotion.cs",
+          "Line": 19,
+          "Text": "return string.Equals(StackableItemProvider.NormalizeType(StackableItemProvider.Load(itemId)?.ActionTypeName), \"[random recovery fatigue]\", StringComparison.OrdinalIgnoreCase);",
+          "Sha256": "f49bdd8018c902d0cf35227c18be0747db29195ef22f2a895861716f3477bf67"
+        }
+      ]
+    }
+  },
+  "70Reference": {
+    "Path": "E:\\Project\\DNF\\Research\\1995chen-dnf\\other\\等级补丁\\70\\df_game_r",
+    "Sha256": "cf45f4e8514c3bf560dd322c146f8441249f6c28246ec8566dcf9ebc4e1b2eb7",
+    "LiteralPresent": {
+      "[any quest clear]": false,
+      "[first awaken clear]": false,
+      "[second awaken clear]": false,
+      "[achievement quest clear]": false,
+      "[quest clear]": false,
+      "[quest clear coupon]": false,
+      "[all quest clear]": false,
+      "[assist quest clear]": false,
+      "[change creature]": false,
+      "[change creature random]": false,
+      "[creature growth]": false,
+      "[creature use item]": false,
+      "[creature transport stone]": false,
+      "[up layer despair dungeon]": false,
+      "[clear layer despair dungeon]": false,
+      "[elevator tower of despair]": false,
+      "[init dimension dungeon count]": false,
+      "[add dimension dungeon enter count]": false,
+      "[add account enter limit dungeonincount]": false,
+      "[auto dungeon clear]": false,
+      "[init anton raid try]": false,
+      "[init anton raid buy item]": false,
+      "[dungeon reward reset]": false,
+      "[guild dungeon time ticket]": false,
+      "[clear layer scream dungeon]": false,
+      "[reset all skill cooltime]": false,
+      "[reset second grow skill cooltime]": false,
+      "[equipment item period change]": false,
+      "[change growth equipment]": false,
+      "[equipment purify]": true,
+      "[extend item period]": false,
+      "[change phoenix period]": false,
+      "[init roption unique change count]": false,
+      "[free repair equipment]": false,
+      "[repair equipment]": false,
+      "[item change]": false,
+      "[level up decision change]": false,
+      "[open aura skin slot]": false,
+      "[rent point]": false,
+      "[add auctionpoint]": false,
+      "[add mileage]": false,
+      "[give goldcoin]": false,
+      "[charm charging]": false,
+      "[decrease pcroom honey time]": false,
+      "[chatemoticon]": true,
+      "[open guide book]": true,
+      "[story book]": false,
+      "[ridable item]": false,
+      "[change avatar]": false,
+      "[compound item]": false,
+      "[increase guild exp fund]": false,
+      "[guild hongbao]": false,
+      "[guild mark effect]": false,
+      "[add guildmileage]": false,
+      "[teleport to partner]": false,
+      "[deploy in isometric cell map]": false,
+      "[guess number item]": false,
+      "[bingo]": true,
+      "[bingo stamp]": false,
+      "[use bingo mal item]": false,
+      "[real estate item]": false,
+      "[event action]": false,
+      "[counting coin]": false,
+      "[yet game item]": false,
+      "[territory combat item]": false,
+      "[snorkeling chance item]": false,
+      "[snorkeling upgrade item]": false,
+      "[lucky balloon item]": false,
+      "[seria room deco]": true,
+      "[tournament ticket]": false,
+      "[Red envelope item]": false,
+      "[steampunk]": false,
+      "[celebrate big transition]": false,
+      "[Change RedMonkey Item]": false,
+      "[event extexsion day item]": false,
+      "[npc growth]": false,
+      "[create passive object]": false,
+      "[expert job store doll]": false,
+      "[random recovery fatigue]": false
+    }
+  }
+}

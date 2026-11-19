@@ -2,22 +2,31 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : IItemUseEffectRuleService
 {
+    internal const string RentPointAction = "[rent point]";
+
     public async ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken ct)
     {
         var rule = await judgement.RuleForAsync(itemId, ct).ConfigureAwait(false);
-        if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]" or "[repair coupon]")
+        if (rule?.Action is "[love point coupon]" or "[upgrade wedding ring]" or "[repair coupon]" or "[repair equipment]")
             rule = rule with { HasUnreadableDeclaration = true };
-        // A shop-listed MLA upgrade coupon must not fall through to a bare consumption.
-        if (itemId == 490002848 && rule is not null)
+        // These tickets have dedicated settlement; ordinary use would only spend them.
+        if (rule is not null && (itemId is 490002848 or AuraSkinSlotRuleService.ActionTicketItemId
+            or QuestClearCouponRuleService.SideCouponItemId || AbyssQuestClearTicketRuleService.IsTicket(itemId)))
             rule = rule with { HasUnreadableDeclaration = true };
         return rule;
     }
+
+    public async ValueTask<ItemUseRule?> LuckyStarActionRuleAsync(int itemId, CancellationToken ct) =>
+        itemId == 10002998 && await RuleForAsync(itemId, ct).ConfigureAwait(false) is { Action: RentPointAction } rule
+            ? rule : null;
+
     public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule) => judgement.CooldownKeyFor(itemId, rule);
     public ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
         ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at)

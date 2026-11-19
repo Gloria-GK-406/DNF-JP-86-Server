@@ -19,6 +19,9 @@ public interface IAuraSkinSlotDomainService
     /// </summary>
     ValueTask<AuraSkinSlotResult> OpenAsync(SelectedSessionIdentity session, BusinessSlot source,
         DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct);
+
+    ValueTask<AuraSkinSlotResult> OpenWithActionTicketAsync(SelectedSessionIdentity session, BusinessSlot source,
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 
 /// <summary>Which item opens the aura transmog avatar slot and what spending it does.</summary>
@@ -29,4 +32,5 @@ public interface IAuraSkinSlotRuleService
     /// Anything other than the ticket is refused with <see cref="OpeningRejectedException"/>.
     /// </summary>
     ImmutableArray<DomainEffect> PlanOpening(BusinessSlot source, ItemReference item);
+    ValueTask<ImmutableArray<DomainEffect>> PlanActionOpeningAsync(BusinessSlot source, ItemReference item, CancellationToken ct);
 }

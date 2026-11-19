@@ -42,6 +42,7 @@ internal static class QuestsRegistration
         services.TryAddSingleton<IQuestAcceptanceDomainService, QuestAcceptanceDomainService>();
         services.TryAddSingleton<IQuestDefinitionDomainService, QuestDefinitionDomainService>();
         services.TryAddSingleton<IQuestClearCouponRuleService, QuestClearCouponRuleService>();
+        services.TryAddSingleton<AbyssQuestClearTicketRuleService>();
         services.TryAddSingleton<IQuestClearancePlanRuleService, QuestClearancePlanRuleService>();
         services.TryAddSingleton<ICharacterQuestLogDomainService, CharacterQuestLogDomainService>();
         services.TryAddSingleton<IQuestTriggerDomainService, QuestTriggerDomainService>();

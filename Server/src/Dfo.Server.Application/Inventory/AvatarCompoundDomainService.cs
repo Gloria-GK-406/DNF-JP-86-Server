@@ -17,7 +17,7 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
     ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IBusinessInventorySlotDomainService slots, IAvatarCompoundRuleService rules,
     IItemLifecycleDomainService lifecycle, IDomainTransactionAccessor transactions,
-    IEventService events, TimeProvider clock) : IAvatarCompoundDomainService
+    IEventService events, TimeProvider clock) : IAvatarCompoundDomainService, IAvatarCompoundPlusDomainService
 {
     public async ValueTask<AvatarCompoundResult> CompoundAsync(SelectedSessionIdentity session, AvatarCompoundInput input, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -58,14 +58,74 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
         var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
         if (progress is null) return new(AvatarCompoundRejection.NoSession);
         var plan = await rules.PlanAsync(identity.Job, progress.Level, input, box.ItemId, a.Snapshot, b.Snapshot, Random.Shared.Next(), ct);
+        return await SettleAsync(session, first.Container, [a, b], material, box, plan, now, footprint, ct).ConfigureAwait(false);
+    }
+
+    public async ValueTask<AvatarCompoundResult> CompoundPlusAsync(SelectedSessionIdentity session, AvatarCompoundPlusInput input,
+        IEffectFootprintRecorder footprint, CancellationToken ct)
+    {
+        footprint.DemandActive(session);
+        _ = transactions.Current ?? throw new InvalidOperationException("Avatar compound requires a transaction.");
+        if (!sessions.IsInWorld(session))
+            return new(AvatarCompoundRejection.NoSession);
+        if (input.Ingredients.IsDefault || input.Ingredients.Length != AvatarCompoundPlusInput.IngredientCount
+            || input.Ingredients.Any(x => x.Slot.Space != BusinessInventorySpace.Avatar)
+            || input.Ingredients.Select(x => x.Slot).Distinct().Count() != input.Ingredients.Length
+            || input.Material.Space is not (BusinessInventorySpace.Consumable or BusinessInventorySpace.QuickSlot))
+            return new(AvatarCompoundRejection.InvalidRequest);
+
+        var material = slots.Find(session.CharacterId, input.Material);
+        var avatar = slots.Find(session.CharacterId, input.Ingredients[0].Slot);
+        if (material is null || avatar is null)
+            return new(AvatarCompoundRejection.MissingMaterial);
+        var now = clock.GetUtcNow();
+        var box = await material.Container.GetAsync(input.Material.Index, ct).ConfigureAwait(false);
+        if (box is not { IsPile: true, Count: > 0 } || !rules.SupportsPlusConverter(box.ItemId)
+            || box.Snapshot.IsMirror || box.Snapshot.Lifetime.IsExpired(now))
+            return new(AvatarCompoundRejection.MissingMaterial);
+        if (Locked(box.Snapshot))
+            return new(AvatarCompoundRejection.Locked);
+        if (await itemUse.CanUseAsync(session.CharacterId, box.ItemId, ct) != ItemUsability.Allowed)
+            return new(AvatarCompoundRejection.InvalidChoice);
+
+        var ingredients = new List<ItemReference>(input.Ingredients.Length);
+        foreach (var row in input.Ingredients)
+        {
+            var item = await avatar.Container.GetAsync(row.Slot.Index, ct).ConfigureAwait(false);
+            if (item is null || item.ItemId != row.ItemId || item.IsPile || item.Snapshot.IsMirror
+                || !item.Type.HasFlag(ItemTraits.Avatar) || item.Snapshot.AvatarDetail is null)
+                return new(AvatarCompoundRejection.InvalidAvatar);
+            var snapshot = item.Snapshot;
+            if (Locked(snapshot))
+                return new(AvatarCompoundRejection.Locked);
+            if (!Permanent(snapshot))
+                return new(AvatarCompoundRejection.UnsupportedLifetime);
+            if (HasJewels(snapshot))
+                return new(AvatarCompoundRejection.UnsupportedContent);
+            ingredients.Add(item);
+        }
+        var character = characters.Get(session.CharacterId);
+        var identity = await character.IdentityAsync(ct).ConfigureAwait(false);
+        var progress = await character.ProgressAsync(ct).ConfigureAwait(false);
+        if (identity is null || progress is null)
+            return new(AvatarCompoundRejection.NoSession);
+        var plan = await rules.PlanPlusAsync(identity.Job, progress.Level, box.ItemId, input, ct).ConfigureAwait(false);
+        return await SettleAsync(session, avatar.Container, ingredients, material, box, plan, now, footprint, ct)
+            .ConfigureAwait(false);
+    }
+
+    private async ValueTask<AvatarCompoundResult> SettleAsync(SelectedSessionIdentity session, IBusinessItemContainer avatar,
+        IReadOnlyList<ItemReference> ingredients, BoundInventorySlot material, ItemReference box, AvatarCompoundPlan plan,
+        DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken ct)
+    {
         if (plan.Rejection != AvatarCompoundRejection.None) return new(plan.Rejection);
         if (plan.Outputs.IsDefaultOrEmpty || plan.Outputs.Length > 2 || plan.MaterialCount <= 0)
             throw new InvalidDataException("Invalid avatar compound plan.");
         if (box.Count < plan.MaterialCount) return new(AvatarCompoundRejection.MissingMaterial);
-        var held = await first.Container.GetAllAsync(ct).ConfigureAwait(false);
-        var occupied = held.Where(x => x.SlotIndex != input.First.Index && x.SlotIndex != input.Second.Index)
-            .Select(x => x.SlotIndex).ToHashSet();
-        var capacity = await first.Container.OpenSlotCountAsync(ct).ConfigureAwait(false);
+        var held = await avatar.GetAllAsync(ct).ConfigureAwait(false);
+        var occupied = held.Select(x => x.SlotIndex).ToHashSet();
+        occupied.ExceptWith(ingredients.Select(x => x.SlotIndex));
+        var capacity = await avatar.OpenSlotCountAsync(ct).ConfigureAwait(false);
         var destinations = Enumerable.Range(0, Math.Max(0, capacity)).Where(i => !occupied.Contains(i)).Take(plan.Outputs.Length).ToArray();
         if (destinations.Length != plan.Outputs.Length) return new(AvatarCompoundRejection.NoRoom);
         var records = new List<ItemRecord>();
@@ -74,25 +134,31 @@ internal sealed class AvatarCompoundDomainService(ISelectedSessionDomainService 
             footprint.DemandActive(session);
             records.Add(await lifecycle.CreateAsync(output with { InstanceValue = ArrivingAvatar.NewIdentity() }, ct).ConfigureAwait(false));
         }
+        var deductions = ImmutableArray.CreateBuilder<AvatarCompoundDeduction>(ingredients.Count + 1);
+        foreach (var item in ingredients)
+        {
+            footprint.DemandActive(session);
+            await ItemContainerOperations.ConsumeAsync(avatar, item, 1, lifecycle, ct).ConfigureAwait(false);
+            deductions.Add(new(new(BusinessInventorySpace.Avatar, item.SlotIndex), 1));
+        }
         footprint.DemandActive(session);
-        await ItemContainerOperations.ConsumeAsync(first.Container, a, 1, lifecycle, ct).ConfigureAwait(false);
-        footprint.DemandActive(session);
-        await ItemContainerOperations.ConsumeAsync(second.Container, b, 1, lifecycle, ct).ConfigureAwait(false);
-        footprint.DemandActive(session);
-        await ItemContainerOperations.ConsumeAsync(material.Container, box, plan.MaterialCount, lifecycle, ct).ConfigureAwait(false);
+        var remaining = await ItemContainerOperations.ConsumeAsync(material.Container, box, plan.MaterialCount, lifecycle, ct)
+            .ConfigureAwait(false);
+        deductions.Add(new(material.Slot, plan.MaterialCount));
         var outputs = ImmutableArray.CreateBuilder<AvatarCompoundOutput>();
         for (var i = 0; i < records.Count; i++)
         {
             footprint.DemandActive(session);
-            var placed = await first.Container.PutAsync(destinations[i], records[i], ct).ConfigureAwait(false);
+            var placed = await avatar.PutAsync(destinations[i], records[i], ct).ConfigureAwait(false);
             outputs.Add(new(new(BusinessInventorySpace.Avatar, destinations[i]), placed.Snapshot.DeepCopy()));
         }
-        var deductions = ImmutableArray.Create(new AvatarCompoundDeduction(input.First, 1),
-            new AvatarCompoundDeduction(input.Second, 1), new AvatarCompoundDeduction(input.Material, plan.MaterialCount));
-        footprint.RecordInventorySlots(session, [input.First, input.Second, input.Material, .. outputs.Select(x => x.Slot)]);
+        footprint.RecordInventorySlots(session, [.. deductions.Select(x => x.Slot), .. outputs.Select(x => x.Slot)]);
         footprint.DemandActive(session);
         await events.EnqueueAsync(new ItemUsed(session.CharacterId, box.ItemId, plan.MaterialCount), ct).ConfigureAwait(false);
-        return new(AvatarCompoundRejection.None, new(session, deductions, outputs.ToImmutable(), plan.RareRate, now));
+        return new(AvatarCompoundRejection.None, new(session, deductions.MoveToImmutable(), outputs.ToImmutable(), plan.RareRate, now)
+        {
+            MaterialRemaining = remaining > 0 ? box.Snapshot with { Count = remaining } : null,
+        });
     }
     private static bool Locked(ItemSnapshot item) => item.SortLockFlag != 0 || item.EquipmentLockId != 0 || item.TradeRestriction != 0;
     private static bool Permanent(ItemSnapshot item) => item.Lifetime.IsPermanent && item.AvatarDetail is { DeleteDate: 0 };

@@ -25,12 +25,24 @@ namespace Dfo.Server.Protocol.Game.QuestClearCoupon;
 public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short SourceSlot, byte Container,
     uint Reserved1, uint Action, uint Reserved2, uint Reserved3, bool Complete) : IEffectSettlementRequest
 {
-    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.ItemUsage | (Action == 58 ? ReplayProjectionNeeds.Fatigue : ReplayProjectionNeeds.None);
+    internal const uint LuckyStarAction = 105;
+    internal const uint RandomFatiguePotionAction = 107;
+    internal const uint AuraSkinSlotAction = 123;
+    internal const uint AbyssQuestClearAction = 126;
+
+    public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.ItemUsage | (Action switch
+    {
+        58 or RandomFatiguePotionAction => ReplayProjectionNeeds.Fatigue,
+        LuckyStarAction => ReplayProjectionNeeds.Rental,
+        AuraSkinSlotAction => ReplayProjectionNeeds.CharacterAppearance,
+        AbyssQuestClearAction => ReplayProjectionNeeds.Quests,
+        _ => ReplayProjectionNeeds.None,
+    });
     public ClientMessageType MessageType => ClientMessageType.GameQuestClearCoupon;
     public bool IsSupported => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
         && Action == 77 && Reserved2 == 0 && Reserved3 == 0;
     public bool IsFatiguePotion => Complete && SourceSlot >= 0 && Container == 0 && Reserved1 == 0
-        && Action == 58 && Reserved2 == 0 && Reserved3 == 0;
+        && Action is 58 or RandomFatiguePotionAction && Reserved2 == 0 && Reserved3 == 0;
 }
 
 internal static class QuestClearCouponPayloadCodec
@@ -56,7 +68,7 @@ internal static class QuestClearCouponPayloadCodec
         if (!response.Succeeded)
         {
             var failure = new byte[6];
-            failure[1] = SilentFailure;
+            failure[1] = response.ErrorCode;
             BinaryPrimitives.WriteInt16LittleEndian(failure.AsSpan(2), response.SourceSlot);
             failure[4] = response.Container;
             return failure;
@@ -84,6 +96,7 @@ internal sealed class QuestClearCouponDecoder(ILogger<QuestClearCouponDecoder> l
 public sealed record QuestClearCouponResponse(bool Succeeded, short SourceSlot, byte Container) : IGameCmdMessage
 {
     public uint Action { get; init; } = 77;
+    internal byte ErrorCode { get; init; } = QuestClearCouponPayloadCodec.SilentFailure;
     public ServerMessageType MessageType => ServerMessageType.GameQuestClearCoupon;
 }
 

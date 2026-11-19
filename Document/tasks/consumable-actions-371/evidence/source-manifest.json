@@ -1,0 +1,46 @@
+{
+  "MainBaseline": "aae13ba824989b7b2b1d966f4a6fc53d7aff15ce",
+  "UpstreamBaseline": "1870c85860375f7232a022b6b1b98e78cf840e4f",
+  "PvfSha256": "a97132dda0970b3e0ce7c3de8052acf0be2664f52e26c819b1d8cb6d427cfcd2",
+  "ClientContentSha256": "1F8244D3F7309BBE2FDE4299E1863A894F6B28D5707BF01732980585B20B00DD",
+  "PriorAudit": [
+    {
+      "Path": "E:\\Project\\DNF\\DNF-JP-86-Server\\Document\\tasks\\consumable-use-audit-20261117\\analysis.md",
+      "Sha256": "5998a13c9a657d6f894c182a872a4935a159e1a693126356b144177073d0c1df"
+    },
+    {
+      "Path": "E:\\Project\\DNF\\DNF-JP-86-Server\\Document\\tasks\\consumable-use-audit-20261117\\evidence\\actions.tsv",
+      "Sha256": "a7afe4b4e760121e258a7d713c13682dd36916d267f33e8b162a66387c7690c1"
+    },
+    {
+      "Path": "E:\\Project\\DNF\\DNF-JP-86-Server\\Document\\tasks\\consumable-use-audit-20261117\\evidence\\examples.tsv",
+      "Sha256": "e20bd2ef7c77932b5b9efc179abb245c10e3cbdb935b96df920d5b0b4817ff16"
+    }
+  ],
+  "Artifacts": [
+    {
+      "Path": "action-decisions.json",
+      "Sha256": "44196f887bb70b52e667c129a48c7bdb179b24801d3a2333f40f57166ec97e86"
+    },
+    {
+      "Path": "client-static.json",
+      "Sha256": "a41a83f984d1eab5f8b4931225ae2766c9c907a22b8993248966a653f9037a6a"
+    },
+    {
+      "Path": "issue-371.json",
+      "Sha256": "48691704f1dc3b19fce3abd168bd1f9035362a86713f92f670dc3edf0fd0592e"
+    },
+    {
+      "Path": "pvf-actions.json",
+      "Sha256": "d0cb2298455377e9bda7aee83bdd5efb5ab6aa955f21a0e45b8f88572e159366"
+    },
+    {
+      "Path": "reference-matches.json",
+      "Sha256": "e815eb18a8fbaf2c354add37832fd1fcbb0334cf5a48d63a06928ff9f70427c3"
+    },
+    {
+      "Path": "scope.json",
+      "Sha256": "3c9d3df79dc96f2d5c723342505337d86d2799b08d00c231cd2387b109a7637f"
+    }
+  ]
+}

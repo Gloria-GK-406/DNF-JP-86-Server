@@ -65,7 +65,6 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
     IPackageOpeningRuleService rules, ILotteryRuleService selector, ICharacterDomainService characters,
     IDomainTransactionAccessor transactions, TimeProvider clock,
     IPremiumServiceRuleService premiumRules, IPremiumServiceUsageDomainService usage, IOpeningEffectPlanRuleService plans,
-    ICharacterBusinessInventoryDomainService bags,
     IServerBroadcastRuleService broadcasts, IEventService events)
     : ILotteryOpeningDomainService
 {
@@ -80,8 +79,7 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
         var source = await inventory.SourceAsync(session, sourceSlot, now, token).ConfigureAwait(false);
         selector.RequireDeclared(source.ItemId); // No on-demand PVF fallback for an unknown pot.
         var definition = await rules.DefinitionAsync(source.ItemId, OpeningPackageKind.Lottery, token).ConfigureAwait(false);
-        var goldPot = source.ItemId == 7615 && mode == 0;
-        if (definition.MaterialCount != 0 && !goldPot || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
+        if (definition.MaterialCount != 0 || definition.Pools.Length != 1 || definition.Pools[0].Draws != 1)
             throw Reject("Unsupported lottery layout.");
         var useRule = await plans.SourceRuleAsync(source.ItemId, token).ConfigureAwait(false);
         DoublePotUsageDecision? quota = null;
@@ -101,15 +99,6 @@ internal sealed class LotteryOpeningDomainService(IOpeningInventoryDomainService
             || grants[0].Item.PremiumType != 0 || grants[0].Item.Placement.Destination.Space != BusinessInventorySpace.CarriedEquipment))
             throw Reject("This lottery result variant is not supported yet.");
         var consumed = plans.SourceCosts(sourceSlot, source.ItemId, useRule, definition.SourceCount);
-        if (definition.MaterialCount > 0)
-        {
-            var held = new List<OpeningHeldItem>();
-            foreach (var space in new[] { BusinessInventorySpace.Quest, BusinessInventorySpace.Material,
-                BusinessInventorySpace.Consumable, BusinessInventorySpace.QuickSlot })
-                if (bags.GetStore(session.CharacterId, BusinessInventoryStoreKind.Item).FindContainer(space) is { } bag)
-                    held.AddRange((await bag.GetAllAsync(token).ConfigureAwait(false)).Select(x => new OpeningHeldItem(new(space, x.SlotIndex), x)));
-            consumed = consumed.AddRange(plans.MaterialCosts([new(definition.MaterialItemId, definition.MaterialCount)], 1, held, now).Items);
-        }
         var plan = plans.Build(source.ItemId, useRule, consumed,
             grants, [], now, gold: definition.GoldCost, quota: quota);
         var applied = await inventory.ApplyAsync(session, plan, now, footprint, token).ConfigureAwait(false);

@@ -17,7 +17,14 @@ internal sealed class QuestClearancePlanRuleService(IQuestContentRuleService que
         var effects = ImmutableArray.CreateBuilder<DomainEffect>();
         foreach (var row in state.Carried.Where(x => ids.Contains(x.QuestId))) effects.Add(new SetCarriedQuestEffect(row, null));
         foreach (var row in state.Tracked.Where(x => ids.Contains(x.QuestId))) effects.Add(new RemoveTrackedQuestEffect(row));
-        foreach (var id in completed) effects.Add(new SetClearedQuestEffect(id, marks.TryGetValue(id, out var mark) ? mark : null, IQuestLog.ClearedMark));
+        foreach (var id in completed)
+        {
+            var definition = await quests.FindAsync(id, ct).ConfigureAwait(false);
+            effects.Add(new SetClearedQuestEffect(id, marks.TryGetValue(id, out var mark) ? mark : null, IQuestLog.ClearedMark)
+            {
+                GrantsPermanentAttributes = definition?.HasSpecialRewardStatus == true,
+            });
+        }
         var newly = completed.ToHashSet();
         var clearedAfter = state.Cleared.Where(x => x.Mark != 0).Select(x => x.QuestId).Concat(completed).ToHashSet();
         foreach (var row in state.Carried.Where(x => !ids.Contains(x.QuestId)))

@@ -134,6 +134,12 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         if (action == "[repair coupon]"
             && RootSectionValues(archive, ref reader, Fields.ActionTypeField, out _, out _) is { Count: not 1 })
             unreadable = true;
+        if (action == "[open aura skin slot]")
+        {
+            var actionValues = RootSectionValues(archive, ref reader, Fields.ActionTypeField, out var duplicateAction, out _);
+            if (duplicateAction || actionValues is not { Count: 1 })
+                unreadable = true;
+        }
         IReadOnlyList<int> allowedDungeons = [];
         if (dungeons is not null)
         {
@@ -158,7 +164,12 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             HasUnreadableDeclaration: unreadable,
             ExpBonusRate: expBonusRate,
             EffectDurationMilliseconds: Math.Max(0, effectDuration),
-            Action: action) { AllowedDungeonIds = allowedDungeons, SummonsApc = summonsApc, SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null };
+            Action: action)
+        {
+            AllowedDungeonIds = allowedDungeons,
+            SummonsApc = summonsApc,
+            SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null,
+        };
     }
 
     /// <summary>
@@ -184,7 +195,12 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             .Where(family => family is not QuestJobRequirement.Any)
             .Distinct()
             .ToArray();
-        return new ItemJobRestriction(IsExactAll: false, families);
+        return new ItemJobRestriction(IsExactAll: false, families)
+        {
+            UnrecognizedTokens = families.Contains(QuestJobRequirement.Unrecognized)
+                ? tokens.Where(token => ArchiveJobFamilyTokens.Resolve(token) == QuestJobRequirement.Unrecognized).ToArray()
+                : [],
+        };
     }
 
     /// <inheritdoc cref="ProjectJobs" path="/param[@name='tokens']"/>
@@ -197,7 +213,12 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             .Select(token => PlaceTokens.TryGetValue(token, out var place) ? place : ItemUsePlace.Unrecognized)
             .Distinct()
             .ToArray();
-        return new ItemPlaceRestriction(IsUnrestricted: false, places);
+        return new ItemPlaceRestriction(IsUnrestricted: false, places)
+        {
+            UnrecognizedTokens = places.Contains(ItemUsePlace.Unrecognized)
+                ? tokens.Where(token => !PlaceTokens.ContainsKey(token)).ToArray()
+                : [],
+        };
     }
 
     /// <summary>

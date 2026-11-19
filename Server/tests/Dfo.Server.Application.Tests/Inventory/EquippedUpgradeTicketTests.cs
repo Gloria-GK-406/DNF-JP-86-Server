@@ -15,39 +15,42 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class EquippedUpgradeTicketTests
 {
     [PvfTheory]
-    [InlineData(0, 6, InventoryContainerType.Equipment)]
-    [InlineData(15284, 6, InventoryContainerType.Equipment)]
-    [InlineData(15285, 7, InventoryContainerType.Equipment)]
-    [InlineData(99999, 13, InventoryContainerType.Equipment)]
-    [InlineData(0, 6, InventoryContainerType.Main)]
+    [InlineData(2682157, 0, 6, InventoryContainerType.Equipment)]
+    [InlineData(2682157, 15284, 6, InventoryContainerType.Equipment)]
+    [InlineData(2682157, 15285, 7, InventoryContainerType.Equipment)]
+    [InlineData(2682157, 99999, 13, InventoryContainerType.Equipment)]
+    [InlineData(2682157, 0, 6, InventoryContainerType.Main)]
+    [InlineData(10007137, 0, 6, InventoryContainerType.Equipment)]
     public async Task Blessing_ticket_overwrites_the_level_once_without_gold_or_equipment_replacement(
-        int draw, byte level, InventoryContainerType container)
+        int ticket, int draw, byte level, InventoryContainerType container)
     {
         using var archive = new PvfArchiveProvider(new());
         using var shop = Fixture(archive, draw);
-        await Seed(shop, 0, 2682157, 12);
+        await Seed(shop, 0, ticket, 12);
         var core = StackableItemCore.Create(1, 3000, 1234) with { Attribute = 0xB4, Durability = 45, EnchantCardId = 42 };
         await shop.SeedCore(12, core, container);
         var before = shop.StoredCore(12, container);
         var uid = shop.Scalar($"SELECT core_uid FROM item_slots WHERE owner_id=1 AND list_type={(int)container} AND slot_index=12");
-        await Send(shop, 0, 2682157, 12, container);
+        await Send(shop, 0, ticket, 12, container);
         var ack = Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
         Assert.True(ack.Success);
         Assert.Equal(level, ack.NewLevel);
         before[9] = (byte)(0xA0 | level);
         Assert.Equal(before, shop.StoredCore(12, container));
         Assert.Equal(uid, shop.Scalar($"SELECT core_uid FROM item_slots WHERE owner_id=1 AND list_type={(int)container} AND slot_index=12"));
-        Assert.Equal(1, shop.Count(2682157));
+        Assert.Equal(1, shop.Count(ticket));
         Assert.Equal(100000, shop.Gold);
-        await Send(shop, 0, 2682157, 12, container);
+        await Send(shop, 0, ticket, 12, container);
         Assert.Single(shop.Sender.Messages.OfType<ReinforceItemResponse>());
-        Assert.Equal(1, shop.Count(2682157));
+        Assert.Equal(1, shop.Count(ticket));
     }
 
     [PvfTheory]
     [InlineData(2682155)]
     [InlineData(2682156)]
-    public async Task Blessing_ticket_for_another_equipment_family_does_not_consume_assets(int ticket)
+    [InlineData(490000699)]
+    [InlineData(10007406)]
+    public async Task Incompatible_ticket_does_not_consume_assets(int ticket)
     {
         using var archive = new PvfArchiveProvider(new());
         using var shop = Fixture(archive);

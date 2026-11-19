@@ -17,7 +17,10 @@ public sealed record SetFatigueStateEffect(CharacterFatigueRow? Expected, Charac
 public sealed record SetItemUsageStateEffect(int ItemId, ConsumableUsageRow? Expected, ConsumableUsageRow Value) : DomainEffect;
 public sealed record SetCarriedQuestEffect(StoredActiveQuest Expected, StoredActiveQuest? Value) : DomainEffect;
 public sealed record RemoveTrackedQuestEffect(StoredTrackedQuest Expected) : DomainEffect;
-public sealed record SetClearedQuestEffect(int QuestId, byte? ExpectedMark, byte Mark) : DomainEffect;
+public sealed record SetClearedQuestEffect(int QuestId, byte? ExpectedMark, byte Mark) : DomainEffect
+{
+    public bool GrantsPermanentAttributes { get; init; }
+}
 public sealed record SetLearnedSkillEffect(int Page, int Slot, int SkillId, byte? ExpectedLevel, byte? Level,
     SkillGroup Group = SkillGroup.Pve) : DomainEffect;
 public sealed record RenamePetEffect(int ItemUid, int ExpectedTemplateId, ImmutableArray<byte> Name) : DomainEffect;
@@ -30,13 +33,13 @@ public sealed record QuestCouponPlan(ImmutableArray<int> Completed, ImmutableArr
 public sealed record RefundSkillPlan(CharacterSkillLearningRejection Rejection,
     ImmutableArray<CharacterSkillState> Changed, CharacterSkillPointLedger? Ledger);
 public sealed record FatiguePotionFacts(BusinessSlot Source, ItemReference Item, byte Level, bool InTown,
-    FatigueStateFacts Fatigue, ConsumableUsageRow? Usage, DateTimeOffset At);
+    FatigueStateFacts Fatigue, ConsumableUsageRow? Usage, DateTimeOffset At, FatiguePotionKind Kind = FatiguePotionKind.Fixed);
 public sealed record PetNameFacts(BusinessSlot Source, ItemReference? Card, ItemReference? Worn,
     CreatureState? Current, ImmutableArray<byte> Name, DateTimeOffset At);
 
 public interface ISpecialConsumableEffectPlanRuleService
 {
-    ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts facts, CancellationToken ct);
+    ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts facts, int seed, CancellationToken ct);
     ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,
         IReadOnlyList<int> selected, DateTimeOffset at, CancellationToken ct);
     ValueTask<ImmutableArray<DomainEffect>> RefundAsync(BusinessSlot source, ItemReference water, SkillGroup group, int page,

@@ -8,12 +8,19 @@ namespace Dfo.Server.Application.Inventory;
 internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSource definitions,
     IItemUseRuleService uses) : IEquipmentRepairRuleService
 {
-    public async ValueTask<IEquipmentRepairCouponRule?> PrepareCouponAsync(int itemId, CancellationToken ct)
+    public ValueTask<IEquipmentRepairCouponRule?> PrepareCouponAsync(int itemId, CancellationToken ct) =>
+        PrepareMaterialAsync(itemId, "[repair coupon]", ct);
+
+    public ValueTask<IEquipmentRepairCouponRule?> PreparePotionAsync(int itemId, CancellationToken ct) =>
+        itemId == 10015551 ? PrepareMaterialAsync(itemId, "[repair equipment]", ct)
+            : ValueTask.FromResult<IEquipmentRepairCouponRule?>(null);
+
+    private async ValueTask<IEquipmentRepairCouponRule?> PrepareMaterialAsync(int itemId, string action, CancellationToken ct)
     {
         var rule = await uses.RuleForAsync(itemId, ct).ConfigureAwait(false);
         // The repair use case cannot silently discard additional potion effects.
-        return rule is { IsReadable: true, IsConsumedOnUse: true, Action: "[repair coupon]",
-            ExpBonusRate: 0, SummonsApc: false, SharedEffectSelector: null }
+        return rule is { IsReadable: true, IsConsumedOnUse: true,
+            ExpBonusRate: 0, SummonsApc: false, SharedEffectSelector: null } && rule.Action == action
             ? new CouponRule(rule, uses.CooldownKeyFor(itemId, rule), uses) : null;
     }
 
@@ -27,10 +34,10 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
             && (rule.AllowedDungeonIds.Count == 0 || dungeonId is { } id && rule.AllowedDungeonIds.Contains(id));
     }
 
-    public async ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct)
+    public async ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct, bool roundPrice = false)
     {
         var rates = await definitions.RatesAsync(ct).ConfigureAwait(false);
-        return rates is { } value ? new Rule(definitions, value) : null;
+        return rates is { } value ? new Rule(definitions, value, roundPrice) : null;
     }
 
     public async ValueTask<ushort?> AutoRepairDurabilityAsync(ItemSnapshot core, CancellationToken ct)
@@ -42,7 +49,7 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
     }
 
     private sealed class Rule(IEquipmentRepairDefinitionSource definitions,
-        (float CostRate, IReadOnlyList<float> UpgradeRates) rates) : IEquipmentRepairRule
+        (float CostRate, IReadOnlyList<float> UpgradeRates) rates, bool roundPrice) : IEquipmentRepairRule
     {
         public async ValueTask<EquipmentRepairQuote?> QuoteAsync(ItemSnapshot core, CancellationToken ct)
         {
@@ -52,12 +59,13 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
             if (core.Durability > definition.MaxDurability || core.ReinforcementLevel >= rates.UpgradeRates.Count)
                 return null;
             var lost = definition.MaxDurability - core.Durability;
-            // A21 truncates after float32 arithmetic; grade adjustment uses integer division.
+            // Grade adjustment uses integer division. The potion's A21 quote rounds the float32 fee.
             var basePrice = (long)definition.RepairPrice * (definition.Grade + 5L) / 10;
             var raw = (float)basePrice * rates.CostRate / definition.MaxDurability * lost
                 * rates.UpgradeRates[core.ReinforcementLevel];
-            if (!float.IsFinite(raw) || raw < 0 || raw > int.MaxValue) return null;
-            return new((int)raw, definition.MaxDurability, core.Durability != definition.MaxDurability);
+            var cost = roundPrice ? MathF.Round(raw) : raw;
+            if (!float.IsFinite(cost) || cost < 0 || cost >= (float)int.MaxValue) return null;
+            return new((int)cost, definition.MaxDurability, core.Durability != definition.MaxDurability);
         }
     }
 }

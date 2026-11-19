@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-11-18 梦幻与梦想装扮合成器（#367、#372，A21 成功及通用拒绝路径 ClientVerified）
+
+梦幻 `10007247` 与梦想 `10007246` 均由实机确认发送 [CMD0447](game/client-to-server/0x0447.md)，包体 145 字节，合成器槽位在偏移 14。按实际模板的 PVF 品级配方结算，两种合成器均已实测扣料、关窗和显示产物。梦想也验证了收到 `00 16` 后提示、关窗与材料保留。
+
 ## 2026-11-14 全区系统广播 NOTI 0x0056 子类型取证（ClientStatic + ClientVerified）
 
 A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/server-to-client/NOTI-0x0056.md)。
@@ -612,7 +616,7 @@ P01–P10由用户确认通过；实例重构及常规事务回归已交付。�
 
 ## 2026-09-30 异界气息与异次元属性候选实现
 
-[净化 `0x00CC`](game/client-to-server/0x00CC.md) 的 A21 静态普通分支为 12B；[属性赋予/扭转 `0x00CD`](game/client-to-server/0x00CD.md) 的 action0/1 为 14B，action2 另有未闭合动态尾。本服按真实 PVF `etc/amplifyitem.etc` 接入已闭合的净化、清除、赋予和扭转材料路径，装备/材料同事务，[00CC 结果](game/server-to-client/CMD-0x00CC.md)、[00CD 结果](game/server-to-client/CMD-0x00CD.md)与两槽刷新；action2 隔离，普通强化继续拒绝非零 `AmplifyType`。证据状态仅 `70Reference + UpstreamReference + ClientStatic + ContentStatic + CurrentImplementation`；污染装备自然生成路径、实际 S2C 帧与 GUI/重登效果仍待[人工验收](../Document/tasks/equipment-development/attempts/spec-004-outworld-amplify/Human-Test-List.md)，不标 `ClientVerified`。
+[净化 `0x00CC`](game/client-to-server/0x00CC.md) 的 A21 静态普通分支为 12B，异界气息清除卷轴 `10000704` 的实机请求也是 12B。该成功路径已核对客户端显示、卷轴扣量与装备原槽保留，标记 `WireCaptured + ClientVerified`。[属性赋予/扭转 `0x00CD`](game/client-to-server/0x00CD.md) 的 action0/1 为 14B，action2 的动态尾待确认。本服按 PVF `etc/amplifyitem.etc` 接入净化、清除、赋予和扭转的材料规则，装备和材料同事务结算，随后发送 [00CC 结果](game/server-to-client/CMD-0x00CC.md)或 [00CD 结果](game/server-to-client/CMD-0x00CD.md)并刷新两槽。普通强化继续拒绝非零 `AmplifyType`。其他材料和玩法路径按[人工验收](../Document/tasks/equipment-development/attempts/spec-004-outworld-amplify/Human-Test-List.md)逐项验证。
 
 ## 2026-09-30 魔法封印装备候选实现
 
@@ -682,6 +686,11 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 
 > 2026-09-23 [CMD0204任务完成券](game/client-to-server/0x0204.md#a21-任务完成券2026-09-23)：action77的19B请求已观察；首轮实机已观察批量清理生效；因选择题漏清，范围修订为仅当前等级及以下适配角色的Epic，不按接取前置/答案分支过滤，修订待复验。
 > 2026-10-16 [赫拉斯次数券0204有界接入](game/client-to-server/0x0204.md#赫拉斯次数券有界接入2026-10-16)：通用19B静态路径补证；服务端按持有槽/PVF决定增次，未猜本券Action枚举。支持002C与0204并保护重放；本券真实请求和效果待实机验收。
+> 2026-11-18 [CMD0204 动作 105 与 123](game/client-to-server/0x0204.md#a21-动作-105-与-123-实帧2026-11-18)：A21 实帧确认幸运星 `10002998` 为动作 `105`、光环栏扩展券 `10157209` 为动作 `123`。两样本均为 19B，动作位于 offset `7`。两个模板用后效果及扣量已实机通过，S→C 原始 ACK 待捕获。
+> 2026-11-18 [CMD0204 动作 126](game/client-to-server/0x0204.md#a21-动作-126-实帧2026-11-18)：A21 使用深渊派对任务完成券 `10005122` 的 19B 请求已观察，动作值 `126`。服务端已结算任务和材料；隔离实机确认 EP1、EP2 完成，EP3 仍可接，扣 1 张券和 10 枚硬币。S→C 原始 ACK 待捕获。
+> 2026-11-18 [CMD0204 外传任务完成券](game/client-to-server/0x0204.md#a21-外传任务完成券实帧2026-11-18)：`10157196` 确认后发送 19B 请求，与主线券共用动作 `77`。支持符合条件的普通外传、个性技能及后续步骤。通过 [USERINFO subtype 1](game/server-to-client/NOTI-0x0002.md#2026-11-18-subtype-1-永久属性任务列表371) 同步永久属性任务，实机重登确认火强 13、火抗 6。S→C 原始 ACK 待捕获。
+> 2026-11-19 [CMD0204 动作 107](game/client-to-server/0x0204.md#a21-动作-107-实帧2026-11-19)：A21 右键神秘的魔界抗疲劳秘药 `2683466` 时收到 19B 请求，偏移 `7` 为动作 `107`。按用户确认的十万分权重规则接入。隔离实机恢复 25 点，只扣一瓶秘药，碎片保留。原版分布待取证。
+> 2026-11-19 [CMD0204 材料语义复核](../Document/tasks/consumable-actions-371/investigation.md#2026-11-19-兑换材料复核)：按商店样本与任务裁定，`[need material]` 用于兑换定价。动作 `123`、`126` 现分别只消耗对应的券。前述额外扣料为旧版实机记录。
 
 ## 阶段
 
@@ -732,7 +741,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` | `0x0012` | `DELETE_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备与堆叠物） | [0x0012.md](game/client-to-server/0x0012.md) |
 | `0x01` | `0x0015` | `BUY_ITEM` | Mutation / 有响应 | 实现服务端功能（A21，部分商品实机通过） | [0x0015.md](game/client-to-server/0x0015.md) |
 | `0x01` | `0x0016` | `SELL_ITEM` | Mutation / 有响应 | ClientVerified（A21 普通装备）；堆叠物自动化通过；特殊装备基础价/零价兜底已实现，实机待验 | [0x0016.md](game/client-to-server/0x0016.md) |
-| `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 普通修理及契约自动修理已实现；自动7B严格形状、每日额度与快照已自动验证，触发/显示待实机 | [0x0017.md](game/client-to-server/0x0017.md) |
+| `0x01` | `0x0017` | `REPAIR_EQUIPMENT` | Mutation / 有响应 | 普通修理及契约自动修理已实现。装备修复剂 `10015551` 的 8B 请求已抓包，收费全修的取消、报价和成功路径已实机验证 | [0x0017.md](game/client-to-server/0x0017.md) |
 | `0x01` | `0x001A` | `DISJOINT_ITEM` | Mutation / 有响应 | ClientVerified（A21 系统/便携分解成功流程；便携 providerId=0、工具槽分档、批量逐件请求；`0x000E` 修复后当前角色刷新与同账号换角余额一致；成功 S2C body 未归档） | [0x001A.md](game/client-to-server/0x001A.md) |
 | `0x01` | `0x001D` | `BUY_SKILL` | Mutation / 有响应 | 实现服务端功能（A21 普通加点，待实机） | [0x001D.md](game/client-to-server/0x001D.md) |
 | `0x01` | `0x001E` | `INCREASE_STATUS` | Mutation / 有响应 | 已实现经验兵书；C2S有实帧、S2C静态补证；修复后实机待验 | [0x001E.md](game/client-to-server/0x001E.md) |
@@ -1274,6 +1283,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0405` | `CapsuleGiveDecoder` | 仅证明 decoder 已注册 | [0x0405](game/client-to-server/0x0405.md) |
 | `0x01` | `0x0406` | `CapsuleTakeDecoder` | 仅证明 decoder 已注册 | [0x0406](game/client-to-server/0x0406.md) |
 | `0x01` | `0x0441` | `WeeklyAttendanceDecoder` | 仅证明 decoder 已注册 | [0x0441](game/client-to-server/0x0441.md) |
+| `0x01` | `0x0447` | `AvatarCompoundPlusDecoder` | 仅证明 decoder 已注册 | [0x0447](game/client-to-server/0x0447.md) |
 | `0x01` | `0x0450` | `MagicBoxBatchOpeningDecoder` | 仅证明 decoder 已注册 | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` | `0x045C` | `FrameLagPerDungeonDecoder` | 仅证明 decoder 已注册 | [0x045C](game/client-to-server/0x045C.md) |
 | `0x01` | `0x04D7` | `LogConnectProcessDecoder` | 仅证明 decoder 已注册 | [0x04D7](game/client-to-server/0x04D7.md) |
@@ -1433,6 +1443,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0405` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0405](game/client-to-server/0x0405.md) |
 | `0x01` CMD | `0x0406` | `CapsuleAck` | 仅证明 encoder 可产生该 identity | [0x0406](game/client-to-server/0x0406.md) |
 | `0x01` CMD | `0x0441` | `WeeklyAttendanceResponse` | 仅证明 encoder 可产生该 identity | [0x0441](game/client-to-server/0x0441.md) |
+| `0x01` CMD | `0x0447` | `AvatarCompoundPlusResponse` | 仅证明 encoder 可产生该 identity | [0x0447](game/client-to-server/0x0447.md) |
 | `0x01` CMD | `0x0450` | `MagicBoxBatchOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0450](game/client-to-server/0x0450.md) |
 | `0x01` CMD | `0x04DD` | `ConnectionCheckResponse` | 仅证明 encoder 可产生该 identity | [0x04DD](game/client-to-server/0x04DD.md) |
 | `0x01` CMD | `0x04E6` | `JoustResponse` | 仅证明 encoder 可产生该 identity | [0x04E6](game/client-to-server/0x04E6.md) |
@@ -1685,6 +1696,7 @@ CMD [0012](game/client-to-server/0x0012.md)增加operation=3特效消费；晶�
 |---|---|---|---|---|
 | NOTI | 0x042D | WeeklyAttendanceStateMessage | ClientStatic 450B及偏移；CurrentImplementation 状态刷新，未ClientVerified | [042D](game/server-to-client/NOTI-0x042D.md) |
 | CMD | 0x0441 | WeeklyAttendanceRequest / WeeklyAttendanceResponse | ClientStatic 请求14B opaque / 响应4B；CurrentImplementation 原子奖励，未ClientVerified | [0441](game/client-to-server/0x0441.md) |
+| CMD | 0x0447 | AvatarCompoundPlusRequest / AvatarCompoundPlusResponse | WireCaptured 两种请求145B；两种成功及 10007246 通用拒绝 ClientVerified | [0447](game/client-to-server/0x0447.md) |
 
 ## 2026-10-10 配额职责与镜像次数同步
 

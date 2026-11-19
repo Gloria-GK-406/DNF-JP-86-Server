@@ -12,6 +12,7 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
     private static class Fields
     {
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ActionTypeField = PvfField.Tokens("[action type]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> RandomFatigueDataField = PvfField.Int32List("[int data]", optional: true);
         internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
         internal static readonly PvfField<int> MaximumLevelField = PvfField.Int32("[maximum level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> ExpirationDateField = PvfField.Tokens("[expiration date]", optional: true);
@@ -71,6 +72,15 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
                 unreadable = true;
         }
         var recovery = 0;
+        var randomDefaultRecovery = 0;
+        IReadOnlyList<FatigueRecoveryTier> randomRecovery = [];
+        if (actionName == "[random recovery fatigue]")
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count == 1 && document.TryRead(Fields.RandomFatigueDataField, out var data))
+                (randomDefaultRecovery, randomRecovery) = ReadRandomFatigueRecovery(data);
+            if (randomRecovery.Count == 0) unreadable = true;
+        }
         var entryDungeon = 0;
         var entryIncrease = 0;
         if (actionName == "[add enter limit dungeonincount]")
@@ -82,6 +92,16 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         }
         var increase = 1;
         var blockedInHardcore = false;
+        IReadOnlyList<int>? listedQuestClear = null;
+        if (actionName == "[any quest clear]")
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count < 2 || !operands[0].IsString
+                || operands.Skip(1).Any(token => token.Kind != PvfTokenKind.Int32 || token.Value is <= 0 or >= 30_000))
+                unreadable = true;
+            else
+                listedQuestClear = operands.Skip(1).Select(token => token.Value).Distinct().ToArray();
+        }
         if (actionName == "[level up ticket]")
         {
             var operands = document.Read(Fields.ActionTypeField);
@@ -118,7 +138,31 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
         return new(actionName, min, max, expiry,
             !unreadable && min >= 0 && max >= min
                 && (actionName != "[add fatigue]" || recovery is > 0 and <= ushort.MaxValue))
-        { FatigueRecovery = recovery, LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
-            EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease };
+        {
+            FatigueRecovery = recovery, RandomFatigueDefaultRecovery = randomDefaultRecovery, RandomFatigueRecovery = randomRecovery,
+            LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
+            EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease, ListedQuestClear = listedQuestClear,
+        };
+    }
+
+    private static (int DefaultRecovery, IReadOnlyList<FatigueRecoveryTier> WeightedRecovery)
+        ReadRandomFatigueRecovery(IReadOnlyList<int> data)
+    {
+        // The archive gives [0, default amount] followed by [0, weight, amount] rows.
+        if (data.Count < 5 || (data.Count - 2) % 3 != 0 || data[0] != 0 || data[1] is <= 0 or > ushort.MaxValue)
+            return (0, []);
+        var previousAmount = data[1];
+        var tiers = new FatigueRecoveryTier[(data.Count - 2) / 3];
+        for (var i = 0; i < tiers.Length; i++)
+        {
+            var at = 2 + i * 3;
+            var weight = data[at + 1];
+            var amount = data[at + 2];
+            if (data[at] != 0 || weight <= 0 || amount <= previousAmount || amount > ushort.MaxValue)
+                return (0, []);
+            tiers[i] = new(amount, weight);
+            previousAmount = amount;
+        }
+        return (data[1], tiers);
     }
 }

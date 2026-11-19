@@ -15,18 +15,25 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
     IItemUsageRuleSource usages, IDailyResetRuleService days, IItemUseRuleService uses, ICharacterSkillRuleService skills, IQuestClearancePlanRuleService clearance) : ISpecialConsumableEffectPlanRuleService
 {
     private readonly IQuestClearancePlanRuleService clearance = clearance;
+    private const int RandomFatiguePotionId = 2683466;
+    private const int RandomFatigueExclusiveLimit = 106;
+    private const int RandomFatigueRollRange = 100_000;
 
-    public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, CancellationToken ct)
+    public async ValueTask<ImmutableArray<DomainEffect>> FatigueAsync(FatiguePotionFacts f, int seed, CancellationToken ct)
     {
         var action = await actions.GetAsync(f.Item.ItemId, ct).ConfigureAwait(false);
-        if (action is not { IsReadable: true, Action: "[add fatigue]", FatigueRecovery: > 0 and <= ushort.MaxValue })
+        if (action is not { IsReadable: true } || !SupportsFatiguePotion(f, action))
             throw Reject("Not a supported fatigue potion.");
         if (!f.InTown || f.Level < action.MinimumLevel || f.Level > action.MaximumLevel
             || action.ExpiresAtUnixSeconds > 0 && action.ExpiresAtUnixSeconds <= f.At.ToUnixTimeSeconds())
             throw Reject("Fatigue potion is not usable here, at this level, or after expiration.");
         var effective = f.Fatigue.Raw is { } raw && days.IsCurrentPeriod(raw.UpdatedAt, f.At) ? raw : new(0, 0, f.At);
         var used = Math.Min(f.Fatigue.Total, effective.Used);
-        if (used < action.FatigueRecovery) throw Reject("Not enough fatigue recovery space.");
+        var random = f.Kind == FatiguePotionKind.Random;
+        if (random && f.Fatigue.Total - used >= RandomFatigueExclusiveLimit)
+            throw Reject("Random fatigue potion requires fewer than 106 remaining points.");
+        if (used <= 0 || !random && used < action.FatigueRecovery)
+            throw Reject("Not enough fatigue recovery space.");
         var usage = await usages.GetAsync(f.Item.ItemId, ct).ConfigureAwait(false);
         if (usage is not { IsReadable: true, DailyLimit: >= -1, CooldownMilliseconds: >= 0 })
             throw new InvalidDataException("Missing or invalid usage rule.");
@@ -36,9 +43,40 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         if (f.Usage?.LastUsedAt?.AddMilliseconds(usage.CooldownMilliseconds) > f.At)
             throw Reject(nameof(ItemUsageRejection.CoolingDown));
         var result = await ConsumptionAsync(f.Source, f.Item, ct).ConfigureAwait(false);
+        var recovery = random
+            ? Math.Min(used, SelectRandomFatigueRecovery(RandomFatigueTiers(action), new Random(seed).Next(RandomFatigueRollRange)))
+            : action.FatigueRecovery;
         return result.Add(new SetFatigueStateEffect(f.Fatigue.Raw,
-                new(used - action.FatigueRecovery, effective.ConsumedToday, f.At)))
+                new(used - recovery, effective.ConsumedToday, f.At)))
             .Add(new SetItemUsageStateEffect(f.Item.ItemId, f.Usage, new(checked(count + 1), f.At)));
+    }
+
+    private static bool SupportsFatiguePotion(FatiguePotionFacts facts, StackableActionDefinition definition) => facts.Kind switch
+    {
+        FatiguePotionKind.Fixed => definition is { Action: "[add fatigue]", FatigueRecovery: > 0 and <= ushort.MaxValue },
+        FatiguePotionKind.Random => facts.Item.ItemId == RandomFatiguePotionId
+            && definition is { Action: "[random recovery fatigue]", RandomFatigueDefaultRecovery: > 0, RandomFatigueRecovery.Count: > 0 },
+        _ => false,
+    };
+
+    internal static IReadOnlyList<FatigueRecoveryTier> RandomFatigueTiers(StackableActionDefinition action)
+    {
+        // The server assigns the unallocated weight to the default recovery amount.
+        var defaultWeight = RandomFatigueRollRange - action.RandomFatigueRecovery.Sum(tier => (long)tier.Weight);
+        if (defaultWeight <= 0)
+            throw Reject("Random fatigue weights leave no weight for the default amount.");
+        return [new(action.RandomFatigueDefaultRecovery, (int)defaultWeight), .. action.RandomFatigueRecovery];
+    }
+
+    internal static int SelectRandomFatigueRecovery(IReadOnlyList<FatigueRecoveryTier> tiers, int roll)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(roll);
+        foreach (var tier in tiers)
+        {
+            if (roll < tier.Weight) return tier.Amount;
+            roll -= tier.Weight;
+        }
+        throw new ArgumentOutOfRangeException(nameof(roll));
     }
 
     public async ValueTask<QuestCouponPlan> CouponAsync(BusinessSlot source, ItemReference item, QuestStateFacts state,

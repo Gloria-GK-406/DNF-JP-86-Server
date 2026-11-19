@@ -13,6 +13,8 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Database;
+using Dfo.Server.Protocol.Game.Fatigue;
+using Dfo.Server.Protocol.Game.QuestClearCoupon;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Testing;
 
@@ -20,6 +22,95 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class FatiguePotionTests
 {
+    [PvfFact]
+    public async Task Random_potion_uses_the_archive_weights_and_the_approved_remainder()
+    {
+        using var fixture = new CeraShopFixture(useArchive: true);
+        var source = fixture.Host.Services.GetRequiredService<IStackableActionDefinitionSource>();
+        var potion = await source.GetAsync(2683466, default);
+        Assert.NotNull(potion);
+        Assert.True(potion.IsReadable);
+        var declaration = await fixture.Host.Services.GetRequiredService<IItemUseRuleDefinitionSource>().GetAsync(2683466, default);
+        Assert.NotNull(declaration);
+        Assert.Contains("[dont use assult]", declaration.Places.UnrecognizedTokens);
+        Assert.False(declaration.IsReadable);
+        var use = await fixture.Host.Services.GetRequiredService<IItemUseRuleService>().RuleForAsync(2683466, default);
+        Assert.NotNull(use);
+        Assert.True(use.IsReadable);
+        Assert.Equal(20, potion.RandomFatigueDefaultRecovery);
+        Assert.Equal(4, potion.RandomFatigueRecovery.Count);
+        var tiers = SpecialConsumableEffectPlanRuleService.RandomFatigueTiers(potion);
+        Assert.Equal(new FatigueRecoveryTier[]
+        {
+            new(20, 38_999), new(25, 50_000), new(30, 10_000), new(40, 1_000), new(50, 1)
+        }, tiers);
+
+        (int Roll, int Amount)[] boundaries =
+        [
+            (0, 20), (38_998, 20), (38_999, 25), (88_998, 25), (88_999, 30),
+            (98_998, 30), (98_999, 40), (99_998, 40), (99_999, 50),
+        ];
+        foreach (var (roll, amount) in boundaries)
+            Assert.Equal(amount, SpecialConsumableEffectPlanRuleService.SelectRandomFatigueRecovery(tiers, roll));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            SpecialConsumableEffectPlanRuleService.SelectRandomFatigueRecovery(tiers, 100_000));
+    }
+
+    [PvfTheory]
+    [InlineData(105, 0, 107, true)]
+    [InlineData(98, 2, 107, true)]
+    [InlineData(106, 2, 107, false)]
+    [InlineData(105, 2, 58, false)]
+    public async Task Captured_random_potion_only_spends_the_potion_below_106(
+        int remaining, int fragments, byte action, bool succeeds)
+    {
+        const int potion = 2683466;
+        const int fragment = 10003037;
+        using var fixture = new CeraShopFixture(useArchive: true);
+        var shop = fixture.Host;
+        await shop.Seed(3, potion, 2);
+        if (fragments > 0) await shop.Seed(126, fragment, fragments);
+
+        var before = await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var tx = shop.Services.GetRequiredService<Dfo.Server.Application.Transactions.DomainTransactionScope>().Begin();
+            var fatigue = shop.Services.GetRequiredService<ICharacterFatigueDomainService>();
+            var balance = await fatigue.BalanceOfAsync(shop.Session.CharacterId, default);
+            await fatigue.SpendAsync(shop.Session.CharacterId, checked((ushort)(balance.Total - remaining)), default);
+            await tx.CommitAsync(default);
+            return await fatigue.BalanceOfAsync(shop.Session.CharacterId, default);
+        });
+        Assert.Equal(remaining, before.Remaining);
+
+        var body = Convert.FromHexString("030000000000006B0000000000000000000000");
+        body[7] = action;
+        await EffectRequestTransport.SendRaw(shop, new(1, 0x0204, 0, 1), body);
+        var ack = Assert.Single(shop.Sender.Messages.OfType<QuestClearCouponResponse>());
+        Assert.Equal(succeeds, ack.Succeeded);
+        Assert.Equal(fragments, shop.Count(fragment));
+        Assert.Equal(before.ConsumedToday, shop.Scalar("SELECT consumed_today FROM character_fatigue WHERE character_id=1"));
+        if (!succeeds)
+        {
+            Assert.Equal(2, shop.Count(potion));
+            Assert.Equal(before.Used, shop.Scalar("SELECT used FROM character_fatigue WHERE character_id=1"));
+            Assert.DoesNotContain(shop.Sender.Messages, message => message is FatigueNotification);
+            return;
+        }
+
+        Assert.Equal((uint)action, ack.Action);
+        Assert.Equal(1, shop.Count(potion));
+        var after = Assert.Single(shop.Sender.Messages.OfType<FatigueNotification>()).Balance;
+        Assert.Contains(after.Remaining - remaining, new[] { 20, 25, 30, 40, 50 });
+        Assert.Equal(after.Used, shop.Scalar("SELECT used FROM character_fatigue WHERE character_id=1"));
+
+        shop.Sender.Messages.Clear();
+        await EffectRequestTransport.SendRaw(shop, new(1, 0x0204, 0, 1), body);
+        Assert.DoesNotContain(shop.Sender.Messages, message => message is QuestClearCouponResponse);
+        Assert.Equal(after, Assert.Single(shop.Sender.Messages.OfType<FatigueNotification>()).Balance);
+        Assert.Equal(1, shop.Count(potion));
+        Assert.Equal(fragments, shop.Count(fragment));
+    }
+
     [Fact]
     public async Task Actual_fatigue_handler_outer_exclusive_borrows_effect_lifecycle_and_commits_once()
     {

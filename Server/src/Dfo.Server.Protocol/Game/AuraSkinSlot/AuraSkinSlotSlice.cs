@@ -136,11 +136,7 @@ public sealed class GameOpenAuraSkinSlotCommandHandler(ISelectedSessionDomainSer
         {
             var current = await views.TryLoadAsync(session, ct).ConfigureAwait(false);
             if (current is not null)
-            {
-                var equipment = current.CharacterInventory.Containers.Single(x => x.ContainerType == InventoryContainerType.Equipment).Items;
-                following.Add(new ExtendedUserStateMessage(current.Character, current.CharacterEntry.Public,
-                    current.CharacterEntry.Skills, equipment, result.Inventory.PreparedAt));
-            }
+                following.Add(ExtendedUserStateMessage.FromCurrent(current, result.Inventory.PreparedAt));
         }
         catch (Exception failure) when (failure is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(failure))
         {

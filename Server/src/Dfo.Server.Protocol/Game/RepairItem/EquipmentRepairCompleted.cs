@@ -40,6 +40,13 @@ public sealed class EquipmentRepairCompletedHandler(
         messages.Add(new RepairItemResponse(
             receipt.Slot is { } slot ? A21InventoryLayout.ToGameSlot(slot) : null, receipt.Gold,
             RepairAllSpace: notification.RepairAllSpace));
+        if (receipt.CarriedEquipment.Count > 0)
+        {
+            // The all-repair ACK redraws ordinary bag equipment. Follow it with authoritative durability.
+            var unchanged = receipt.CarriedEquipment.Select(item => new InventoryItemState(
+                item.Item.ItemUid, A21InventoryLayout.ToGameSlot(item.Slot).Index, item.Item.ToCore())).ToArray();
+            messages.Add(GameInventoryDelivery.Notification(new(InventoryContainerType.Main, unchanged, notification.PreparedAt)));
+        }
         if (notification.Entitlements is { } entitlements)
             messages.Add(new PremiumServiceStateMessage(entitlements, notification.Usage ?? [], notification.PreparedAt));
         return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(messages);

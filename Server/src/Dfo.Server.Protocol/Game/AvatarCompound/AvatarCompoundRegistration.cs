@@ -22,6 +22,14 @@ internal static class AvatarCompoundRegistration
             new[] { CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarCompound, typeof(AvatarCompoundRequest)));
         services.RegisterProtocolMessageHandler<AvatarCompoundHandler, AvatarCompoundRequest, GameAvatarCompoundCommand>(ClientMessageType.GameAvatarCompound);
+        services.AddNotificationHandler<AvatarCompoundPlusCompleted, AvatarCompoundPlusCompletedHandler>();
+        services.AddGameCmdMessageDecoder<AvatarCompoundPlusDecoder>(ClientMessageType.GameAvatarCompoundPlus);
+        services.AddGameCmdMessageEncoder<AvatarCompoundPlusResponse, AvatarCompoundPlusEncoder>();
+        services.AddProtocolCommandHandler<GameAvatarCompoundPlusCommand, AvatarCompoundResult, GameAvatarCompoundPlusCommandHandler>(
+            [CommandRegistrationExit.CommittedReplayCurrentStateBatch],
+            new ProtocolCommandMessageBinding(ClientMessageType.GameAvatarCompoundPlus, typeof(AvatarCompoundPlusRequest)));
+        services.RegisterProtocolMessageHandler<AvatarCompoundPlusHandler, AvatarCompoundPlusRequest, GameAvatarCompoundPlusCommand>(
+            ClientMessageType.GameAvatarCompoundPlus);
         return services;
     }
 }

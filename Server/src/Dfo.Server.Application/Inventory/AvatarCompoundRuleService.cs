@@ -52,6 +52,38 @@ internal sealed class AvatarCompoundRuleService(IAvatarCompoundDefinitionSource 
         bool Usable(AvatarCompoundItemDefinition item) => level >= item.MinimumLevel
             && item.Jobs.IsValid && item.Jobs.Allows(CharacterJobFamilies.Resolve(job));
     }
+    public bool SupportsPlusConverter(int itemId) => itemId is 10007246 or 10007247;
+
+    public async ValueTask<AvatarCompoundPlan> PlanPlusAsync(byte job, byte level, int converterId,
+        AvatarCompoundPlusInput input, CancellationToken ct)
+    {
+        if (!SupportsPlusConverter(converterId))
+            return new(AvatarCompoundRejection.MissingMaterial);
+
+        var jobFamily = CharacterJobFamilies.Resolve(job);
+        var target = await content.ItemAsync(input.TargetItemId, ct).ConfigureAwait(false);
+        if (target is not { Grade: 3, Permanent: true } || !Usable(target)
+            || input.Ability > byte.MaxValue || !Ability(target, input.Ability))
+            return new(AvatarCompoundRejection.InvalidChoice);
+
+        var definition = await content.PlusForJobAsync(converterId, jobFamily, ct).ConfigureAwait(false);
+        if (definition is null || !definition.Targets.TryGetValue(target.EquipmentType, out var itemId) || target.ItemId != itemId)
+            return new(AvatarCompoundRejection.InvalidChoice);
+
+        foreach (var ingredient in input.Ingredients)
+        {
+            var item = await content.ItemAsync(ingredient.ItemId, ct).ConfigureAwait(false);
+            if (item is null || item.Grade != definition.IngredientGrade || item.EquipmentType != target.EquipmentType || !Usable(item))
+                return new(AvatarCompoundRejection.InvalidAvatar);
+            if (!item.Permanent)
+                return new(AvatarCompoundRejection.UnsupportedLifetime);
+        }
+        return new(AvatarCompoundRejection.None, [Create(target, (byte)input.Ability)], MaterialCount: 1);
+
+        bool Usable(AvatarCompoundItemDefinition item) => level >= item.MinimumLevel
+            && item.Jobs.IsValid && item.Jobs.Allows(jobFamily);
+    }
+
     private static bool Ability(AvatarCompoundItemDefinition item, int ability) =>
         item.Abilities.IsEmpty ? ability == 0 : item.Abilities.Contains(ability);
     private static int Pick(ImmutableArray<AvatarCompoundWeightedItem> pool, Random random)

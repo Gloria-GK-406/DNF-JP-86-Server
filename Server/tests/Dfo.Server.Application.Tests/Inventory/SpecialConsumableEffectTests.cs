@@ -101,17 +101,17 @@ public sealed class SpecialConsumableEffectTests
             new ItemUseRuleService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>());
         var item=TestItemReferences.FromCore(0,StackableItemCore.Create(2,2000,2),ItemWorldClass.Interchangeable);
         await Assert.ThrowsAsync<OpeningRejectedException>(()=>rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,
-            raw with { Raw=new(100,110,at) },usage,at),default).AsTask());
+            raw with { Raw=new(100,110,at) },usage,at),seed: 0,default).AsTask());
         Assert.Equal(100,f.Scalar("SELECT used FROM character_fatigue WHERE character_id=71"));
         Assert.Equal(3,f.Scalar("SELECT value FROM character_daily_counters WHERE character_id=71"));
         rules=new SpecialConsumableEffectPlanRuleService(new ActionSource(),new UsageSource(0),
             f.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>(),
             new ItemUseRuleService(new FakeItemUseRules((2000,ItemUseRules.Potion(0)))),null!, clearance: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IQuestClearancePlanRuleService>());
         var plan=await rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,
-            raw with { Raw=new(100,110,at) },usage,at),default);
+            raw with { Raw=new(100,110,at) },usage,at),seed: 0,default);
         var usageEffect=Assert.Single(plan.OfType<SetItemUsageStateEffect>());
         Assert.Equal(usage,usageEffect.Expected);Assert.Equal(1,usageEffect.Value.UsedCount);Assert.Equal(at,usageEffect.Value.LastUsedAt);
-        await Assert.ThrowsAsync<OpeningRejectedException>(()=>rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,raw,usage,at),default).AsTask());
+        await Assert.ThrowsAsync<OpeningRejectedException>(()=>rules.FatigueAsync(new(new(BusinessInventorySpace.Consumable,0),item,85,true,raw,usage,at),seed: 0,default).AsTask());
         Assert.Equal(100,f.Scalar("SELECT used FROM character_fatigue WHERE character_id=71"));
     }
 

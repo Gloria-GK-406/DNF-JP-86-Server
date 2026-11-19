@@ -23,7 +23,6 @@ public sealed class PvfEquipmentReinforcementDefinitionSourceTests
         Assert.Equal(new[] { 0, 1, 2, 3, 5, 6 }, ticket.AllowedRarities);
         Assert.Equal(new[] { 6, 7, 8, 9, 10, 11, 12, 13 }, ticket.RandomLevels.Select(value => (int)value.Level));
         Assert.Equal(new[] { 15285, 30805, 32150, 11201, 8600, 1440, 437, 82 }, ticket.RandomLevels.Select(value => value.Weight));
-        Assert.False(ticket.RequiresAdditionalMaterials);
     }
 
     [Theory]

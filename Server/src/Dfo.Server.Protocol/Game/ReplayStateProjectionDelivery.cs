@@ -72,6 +72,8 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
         // Its temporary material restoration must precede the authoritative current inventory below.
         if (needs.HasFlag(ReplayProjectionNeeds.AvatarCompound))
             messages.Add(new Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundResponse(null, Recovery: true));
+        if (needs.HasFlag(ReplayProjectionNeeds.AvatarCompoundPlus))
+            messages.Add(new Dfo.Server.Protocol.Game.AvatarCompound.AvatarCompoundPlusResponse(null));
         if (needs.HasFlag(ReplayProjectionNeeds.ItemUsage))
         {
             messages.AddRange(ItemUsageCountMessage.FullSnapshot(state.ItemUsage));

@@ -61,7 +61,7 @@ public sealed class QuestClearCouponRuleServiceTests
     {
         var service = new QuestClearCouponRuleService(new ItemSource(new("[quest clear]", 0, 84, expiry, true)), new NoQuests());
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await service.SelectAsync(10006007, level, 0, 0, [], DateTimeOffset.FromUnixTimeSeconds(1800000000), default));
+            await service.SelectAsync(10006007, level, 0, 0, null, [], DateTimeOffset.FromUnixTimeSeconds(1800000000), default));
         Assert.Equal(OpeningRejection.ItemUnusable, error.Reason);
     }
 
@@ -70,8 +70,19 @@ public sealed class QuestClearCouponRuleServiceTests
     {
         var service = new QuestClearCouponRuleService(new ItemSource(new("[quest clear coupon]", 1, 84, 0, true)), new NoQuests());
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
-            await service.SelectAsync(10006007, 80, 0, 0, [], DateTimeOffset.UtcNow, default));
+            await service.SelectAsync(10006007, 80, 0, 0, null, [], DateTimeOffset.UtcNow, default));
         Assert.Equal(OpeningRejection.UnsupportedContent, error.Reason);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(1)]
+    public async Task Side_coupon_rejects_a_missing_mode_or_hardcore_character(int? hardcoreMode)
+    {
+        var service = new QuestClearCouponRuleService(new ItemSource(new("[quest clear]", 1, 99, 0, true)), new NoQuests());
+        var error = await Assert.ThrowsAsync<OpeningRejectedException>(async () =>
+            await service.SelectAsync(10157196, 86, 0, 0, hardcoreMode, [], DateTimeOffset.UtcNow, default));
+        Assert.Equal(OpeningRejection.ItemUnusable, error.Reason);
     }
 
     private static IReadOnlyList<int> Select(IReadOnlyList<QuestDefinition> quests, IReadOnlyList<ClearedQuest>? cleared = null) =>

@@ -66,7 +66,9 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IEquipmentGrowthRuleService, EquipmentGrowthRuleService>();
         services.TryAddSingleton<IEquipmentGrowthDomainService, EquipmentGrowthDomainService>();
         services.TryAddSingleton<IAvatarCompoundRuleService, AvatarCompoundRuleService>();
-        services.TryAddSingleton<IAvatarCompoundDomainService, AvatarCompoundDomainService>();
+        services.TryAddSingleton<AvatarCompoundDomainService>();
+        services.TryAddSingleton<IAvatarCompoundDomainService>(provider => provider.GetRequiredService<AvatarCompoundDomainService>());
+        services.TryAddSingleton<IAvatarCompoundPlusDomainService>(provider => provider.GetRequiredService<AvatarCompoundDomainService>());
         services.TryAddSingleton<IEquipmentWearRuleService, EquipmentWearRuleService>();
         services.TryAddSingleton<AvatarAppearanceRuleService>();
         services.TryAddSingleton<IEquipmentWearDomainService, EquipmentWearDomainService>();

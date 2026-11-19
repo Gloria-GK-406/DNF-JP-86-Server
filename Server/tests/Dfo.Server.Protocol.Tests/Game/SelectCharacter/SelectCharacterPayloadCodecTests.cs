@@ -648,10 +648,7 @@ public sealed class SelectCharacterPayloadCodecTests
 
         var body = EncodeSelectedStateBody(result, 0x0002, 1);
 
-        // A21 ends subtype 1 with a fixed roll of twenty-six dimension keys and two constant runs
-        // around the manage level and manage point. What stood here before was the older client's
-        // tail -- four dimension flags, a PvP result list, a special-reward quest list and six stat
-        // fields -- and none of it is on A21's wire.
+        // The reference capture has twenty-six dimension keys and an empty reward quest list.
         //
         // The values below are not a re-recording of whatever the encoder now produces: every byte
         // is read off the reference session's own subtype 1, whose last 187 bytes this reproduces
@@ -673,7 +670,7 @@ public sealed class SelectCharacterPayloadCodecTests
     }
 
     [Fact]
-    public async Task SelectCharacterPayload_Subtype1PreservesRealSqliteSpecialRewardSource()
+    public async Task SelectCharacterPayload_Subtype1EncodesPermanentQuestRewardsFromSqlite()
     {
         var path = Path.Combine(Path.GetTempPath(), $"dfo-row9-{Guid.NewGuid():N}.db");
         try
@@ -739,12 +736,17 @@ public sealed class SelectCharacterPayloadCodecTests
             Assert.Equal([13502], typed.Public.Extras.SpecialRewardQuestIds);
             Assert.Empty(typed.Public.Pvp.Results);
 
-            // The wire assertion that used to follow -- the quest id 23 bytes from the end of
-            // subtype 1 -- is gone because A21's subtype 1 does not carry the special-reward list.
-            // What this test is named for still holds and is still checked: the id comes out of the
-            // real SQLite source rather than the fixture. The body is still built so that a change
-            // which makes the domain unencodable fails here rather than silently.
-            Assert.NotEmpty(body);
+            var withoutReward = result with { CharacterEntry = typed with
+            {
+                Public = typed.Public with { Extras = typed.Public.Extras with { SpecialRewardQuestIds = [] } },
+            }};
+            var baseline = EncodeSelectedStateBody(withoutReward, 0x0002, 1);
+            var rewardCountOffset = baseline.Length - 25;
+            Assert.Equal(baseline.Length + sizeof(uint), body.Length);
+            Assert.Equal(baseline[..rewardCountOffset], body[..rewardCountOffset]);
+            Assert.Equal(1u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(rewardCountOffset)));
+            Assert.Equal(13502u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(rewardCountOffset + sizeof(uint))));
+            Assert.Equal(baseline[(rewardCountOffset + sizeof(uint))..], body[(rewardCountOffset + 2 * sizeof(uint))..]);
         }
         finally
         {
@@ -981,7 +983,7 @@ internal static class SelectCharacterPayloadTestData
             ExtraEquipmentSlotState: 0,
             Dimensions: [(0, 1, 2, 3)],
             DimensionFlags: (4, 5, 6, 7),
-            SpecialRewardQuestIds: [0x0A0B0C0D, 0x11121314]);
+            SpecialRewardQuestIds: []);
         var collections = new CharacterCollectionsEntryState(
             Enumerable.Range(0, 5).Select(index => new CharacterTitleBookCategoryState(
                 (byte)index, 1, 2,

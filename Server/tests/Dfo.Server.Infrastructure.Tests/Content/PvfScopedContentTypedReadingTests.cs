@@ -223,14 +223,14 @@ public sealed class PvfScopedContentTypedReadingTests
     }
 
     [Fact]
-    public void Southern_coin_pot_retains_the_declared_key_cost_without_an_archive()
+    public void Southern_coin_pot_ignores_the_shop_key_cost()
     {
         Section[] sections = [new("[stackable type]", [new(PvfTokenKind.QuotedString, 1), I(0)]),
             new("[int data]", [I(0), I(1000), I(100000)]), new("[need material]", [I(2680739), I(2)])];
         var definition = PvfPackageOpeningDefinitionSource.Parse(7615, sections, _ => "[upgradable legacy]");
         Assert.Empty(definition.Diagnostics);
-        Assert.Equal(2680739, definition.MaterialItemId);
-        Assert.Equal(2, definition.MaterialCount);
+        Assert.Equal(0, definition.MaterialItemId);
+        Assert.Equal(0, definition.MaterialCount);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public sealed class PvfScopedContentTypedReadingTests
     [InlineData("noninteger")]
     [InlineData("multiple-materials")]
     [InlineData("duplicate")]
-    public void Lottery_material_declarations_cannot_silently_drop_invalid_costs(string defect)
+    public void Lottery_opening_ignores_invalid_shop_material_fields(string defect)
     {
         var values = defect switch
         {
@@ -267,7 +267,8 @@ public sealed class PvfScopedContentTypedReadingTests
             new("[int data]", [I(0), I(1000), I(100000)]), new("[need material]", values.ToList()) };
         if (defect == "duplicate") sections.Add(new("[need material]", [I(2680739), I(2)]));
         var definition = PvfPackageOpeningDefinitionSource.Parse(7615, sections, _ => "[upgradable legacy]");
-        Assert.NotEmpty(definition.Diagnostics);
+        Assert.Empty(definition.Diagnostics);
+        Assert.Equal(0, definition.MaterialCount);
     }
 
     [Theory]

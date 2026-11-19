@@ -111,6 +111,9 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         var open = sections.Select((section, index) => (section, index))
             .Where(value => value.section.Name == Fields.RandomTicket.Name).ToArray();
         if (open.Length == 0) return null;
+        // Forging and lucky tickets also use [enchant random], but have their own action and target rules.
+        if (sections.Any(section => section.Name is "[action type]" or "[reinforcement usable item list]"))
+            return new(EquipmentUpgradeKind.Reinforcement, 0, 100, "unsupported", -1);
         InvalidDataException Invalid() => new($"PVF '{path}': malformed [enchant random] restrictions or weighted levels.");
         var close = sections.Select((section, index) => (section, index))
             .Where(value => value.section.Name == Fields.CloseRandomTicket.Name).ToArray();
@@ -139,7 +142,6 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         {
             RandomLevels = rows.ToArray(), AllowedRarities = rarities,
             SlotRestriction = slot.Value, SealRestriction = seal.Value,
-            RequiresAdditionalMaterials = sections.Any(value => value.Name == "[need material]" && value.Values.Count != 0),
         };
     }
 
