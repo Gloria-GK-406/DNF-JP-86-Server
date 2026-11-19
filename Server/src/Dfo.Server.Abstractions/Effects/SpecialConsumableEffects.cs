@@ -17,7 +17,10 @@ public sealed record SetFatigueStateEffect(CharacterFatigueRow? Expected, Charac
 public sealed record SetItemUsageStateEffect(int ItemId, ConsumableUsageRow? Expected, ConsumableUsageRow Value) : DomainEffect;
 public sealed record SetCarriedQuestEffect(StoredActiveQuest Expected, StoredActiveQuest? Value) : DomainEffect;
 public sealed record RemoveTrackedQuestEffect(StoredTrackedQuest Expected) : DomainEffect;
-public sealed record SetClearedQuestEffect(int QuestId, byte? ExpectedMark, byte Mark) : DomainEffect;
+public sealed record SetClearedQuestEffect(int QuestId, byte? ExpectedMark, byte Mark) : DomainEffect
+{
+    public bool GrantsPermanentAttributes { get; init; }
+}
 public sealed record SetLearnedSkillEffect(int Page, int Slot, int SkillId, byte? ExpectedLevel, byte? Level,
     SkillGroup Group = SkillGroup.Pve) : DomainEffect;
 public sealed record RenamePetEffect(int ItemUid, int ExpectedTemplateId, ImmutableArray<byte> Name) : DomainEffect;

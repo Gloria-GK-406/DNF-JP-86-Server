@@ -34,7 +34,6 @@ internal sealed class QuestClearCouponRuleService(
         var completed = cleared.Where(q => q.Mark != 0).Select(q => q.QuestId).ToHashSet();
         var family = CharacterJobFamilies.Resolve(job);
         var side = grade == QuestGrade.Side;
-        var reserved = side ? SideQuestIdsInSpecialRewardChains(definitions) : [];
         // Grade tickets catch up all qualifying stages in one pass, including stages with
         // prerequisites inside that grade. Quest logs still handle ordinary acceptance separately.
         return definitions.Where(Eligible).Select(q => q.QuestId).Distinct().Order().ToArray();
@@ -42,8 +41,7 @@ internal sealed class QuestClearCouponRuleService(
         bool Eligible(QuestDefinition quest) => quest.QuestId is > 0 and < 30_000
             && !completed.Contains(quest.QuestId)
             && quest.Grade == grade
-            && (!side || !reserved.Contains(quest.QuestId)
-                && !quest.ObjectiveTypeCode.Equals("play only", StringComparison.OrdinalIgnoreCase))
+            && (!side || !quest.ObjectiveTypeCode.Equals("play only", StringComparison.OrdinalIgnoreCase))
             && quest.RequiredLevel is { Minimum: >= 0 } range && range.Minimum <= level
             // Old offer-level ceilings do not exclude historical stories.
             && range.Maximum >= range.Minimum
@@ -54,29 +52,4 @@ internal sealed class QuestClearCouponRuleService(
             && (quest.GrowTypeRequirement is null || quest.GrowTypeRequirement == growType);
     }
 
-    private static HashSet<int> SideQuestIdsInSpecialRewardChains(IReadOnlyList<QuestDefinition> definitions)
-    {
-        var sideQuests = definitions.Where(quest => quest.Grade == QuestGrade.Side).ToArray();
-        var sideIds = sideQuests.Select(quest => quest.QuestId).ToHashSet();
-        var prerequisites = (from quest in sideQuests
-            from requirementGroup in quest.CompletedQuestPrerequisiteGroups
-            from prerequisite in requirementGroup
-            where sideIds.Contains(prerequisite)
-            select (Quest: quest.QuestId, Related: prerequisite)).ToArray();
-        var links = prerequisites.Concat(prerequisites.Select(link => (Quest: link.Related, Related: link.Quest)))
-            .ToLookup(link => link.Quest, link => link.Related);
-
-        // A clear flag for a permanent-stat quest feeds character entry. Preserve the whole
-        // side quest chain until the coupon's special reward behavior is established.
-        var reserved = sideQuests.Where(quest => quest.HasSpecialRewardStatus
-                || quest.Rewards.Any(reward => reward.Kind != QuestRewardKind.Item))
-            .Select(quest => quest.QuestId).ToHashSet();
-        var pending = new Queue<int>(reserved);
-        while (pending.TryDequeue(out var questId))
-        {
-            foreach (var related in links[questId])
-                if (reserved.Add(related)) pending.Enqueue(related);
-        }
-        return reserved;
-    }
 }

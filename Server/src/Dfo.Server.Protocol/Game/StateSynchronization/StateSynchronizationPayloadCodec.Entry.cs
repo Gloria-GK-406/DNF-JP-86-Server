@@ -793,9 +793,8 @@ internal static partial class StateSynchronizationPayloadCodec
         (4128, 1), (4123, 3),
     ];
 
-    /// <summary>What A21 writes between the dimension roll and the manage-level pair.</summary>
-    private static readonly byte[] SubtypeOneAfterDimensionPrefix =
-        [0x02, 0x00, 0x05, 0x00, 0x6F, 0x00, 0x00, 0x00, 0x00];
+    /// <summary>Three state bytes, an empty account-entry count, and the quest-piece byte.</summary>
+    private static readonly byte[] SubtypeOneBeforeRewardQuests = [0x02, 0x00, 0x05, 0x00, 0x6F];
 
     /// <summary>And what it writes after the manage point, to the end of the frame.</summary>
     private static readonly byte[] SubtypeOneAfterDimensionRest =
@@ -805,13 +804,7 @@ internal static partial class StateSynchronizationPayloadCodec
     ];
 
     /// <summary>Subtype one from the dimension roll to the end of the frame.</summary>
-    /// <remarks>
-    /// The two constant runs replace what this server wrote as four dimension flags, a PvP result
-    /// list, a special-reward quest list and six trailing stat fields. Those are the older client's
-    /// tail; A21's own server emits these bytes instead, and the capture agrees with it. Only the
-    /// manage level and manage point sit inside as values, at the offsets the upstream patches
-    /// them into -- what the rest of the twenty-five constant bytes stand for is not established.
-    /// </remarks>
+    /// <remarks>A21 VA 013E661F calls the reader at 013E1F50 for the reward quest count and IDs.</remarks>
     private static void WriteSubtypeOneDimensionTail(
         BinaryWriter writer,
         CharacterEntryExtrasState extras)
@@ -839,7 +832,10 @@ internal static partial class StateSynchronizationPayloadCodec
             writer.Write(value2);
         }
 
-        writer.Write(SubtypeOneAfterDimensionPrefix);
+        writer.Write(SubtypeOneBeforeRewardQuests);
+        writer.Write(checked((uint)extras.SpecialRewardQuestIds.Count));
+        foreach (var questId in extras.SpecialRewardQuestIds)
+            writer.Write(checked((uint)questId));
         // The account's adventure group (冒险团): level u8, then its points i32.
         writer.Write(extras.AdventureGroup.Level);
         writer.Write(extras.AdventureGroup.Point);

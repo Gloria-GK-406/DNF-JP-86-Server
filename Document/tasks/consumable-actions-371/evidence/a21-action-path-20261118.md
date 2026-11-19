@@ -160,7 +160,7 @@ Application 定向回归 90 项、Protocol 定向回归 47 项通过。任务券
 
 **UpstreamReference / Confirmed（限参照服）**。在 `ServerS4A21/Server/DfoServer/Game/Quests/QuestCompletionTicketService.cs`，`EnumerateGradeQuestIds` 按 `[side]`、任务最低等级筛选，排除 `[play only]`。它遍历任务目录，覆盖尚未接取的后续步骤，且逐条调用 `MarkQuestClearedWithoutReward`，不走普通任务的奖励或特殊奖励结算。该筛法还会选中符合等级的个性技能任务，如 `13511 → 13512 → 13513`。参照服的 `QuestCompletionTicketSelfTest.VerifyGradeTicket` 也声明了无 FinishResult、无成就奖励的预期。
 
-**CurrentImplementation / Confirmed**。本仓的 `CharacterEntryStateDomainService.LoadAsync` 会将已完成且有 `[special reward status]` 的任务 ID 加入 USERINFO。因为个性技能链的原版兑付行为尚未确认，`10157196` 暂保留这些任务，以及通过 PVF 前置关系与特殊奖励任务相连的外传步骤。实际接入普通 `[side]`，按角色的等级下限、职业和成长类型筛选，排除 `[play only]`，现有完成标记保留。普通外传后续步骤只要符合相同条件，就会在同一张券内一并完成。范围以券本身为界，其他种类任务的前置不纳入。
+**首版实现（`7b76ce01b`）**。本仓的 `CharacterEntryStateDomainService.LoadAsync` 会将已完成且有 `[special reward status]` 的任务 ID 加入 USERINFO。首版因此先保留特殊奖励任务及其外传前后续，接入普通 `[side]` 的批量结算。筛选按角色等级、职业、成长类型与任务类型，既有完成标记维持原值。
 
 使用限于真人实帧已确认的 `10157196`、动作 `77` 且符合 PVF 等级 5～86 的普通角色。用券复用原子任务结算，扣券与写入完成标记在同一笔事务，奖励仅为完成状态与由其解锁的普通内容，无金币、经验或物品结算。无合格任务或通过 `0x002C` 请求时保留券。其他同标签券，以及 A21 原版对个性技能、永久属性和普通奖励的兑付，继续保留为待确认。
 
@@ -169,3 +169,17 @@ Application 定向回归 90 项、Protocol 定向回归 47 项通过。任务券
 **ClientVerified（限本服实现）**。Lv.86 的 `pv` 在原版 A21 Client-10 用券后，用户确认普通外传消失，个性技能相关外传仍在。客户端请求 seq `27`，服务端结算 79 条任务。对换服前备份与 `14:59:48 +08:00` 的隔离库，唯一背包数量变化是券 `1 → 0`，79 条标记从未完成变为已完成。暗精灵遗迹 `2655～2660` 六步和亡者峡谷 `62 → 63` 均在其中。PVF 查证的 33 条个性技能外传标记均未改变，已接主线 `1016`、经验和金币一致。
 
 入站与结算日志收录于 `ClientEvidence/traces/20261118-371-A21-10157196-verified/a21-371-10157196-verified-20261118.log`，SHA-256 `2cda6c14da1bce5cb35f8e300ff12c69454259832927760e25ca755eccf90be1`。原版 A21 服务端的个性技能及奖励口径、S→C 原始 ACK 和用券后的真实副本入场仍待确认。
+
+### 外传券的个性技能与永久属性
+
+**CurrentImplementation**。用户确认个性技能外传也应结算，`10157196` 采用与其他 `[side]` 任务相同的角色等级、职业、成长类型和任务类型条件。券、完成标记与已接任务清理仍在同一笔事务。金币、经验和普通任务物品的结算规则沿用上一版。
+
+**Observed / Confirmed**。首次属性复验收到 seq `39`，扣掉邮件中领取的 1 张券，新写入 33 条个性技能外传标记，其中 10 条有永久属性声明。用户实测用券后与重登后火强、火抗均为 0。当时领域状态持有正确 ID，但出站编码在任务 count 的位置固定写 0。请求和 33 个任务 ID 已和隔离库逐项对账，收录于 `ClientEvidence/traces/20261118-371-A21-10157196-stats/a21-371-10157196-33-side-quests.log`，SHA-256 `07c5f350556d823e5b560971ce8fc24968f57d4a4b8cd357e59fafefe7fd9dec`。
+
+**ClientStatic / Confirmed**。复查 A21 `DNF-memory-rva.bin`（`dnf-dump-20260922-194214-883-23144`，SHA-256 `aaae24216e0e260afa528445775e767d104f658fd68fdad21ec7bb601b9c8a3d`，ImageBase `0x00400000`）。USERINFO subtype 1 的 `VA 0x013E661F` 调用 `0x013E1F50`。该函数先清任务集合，在 `0x013E1F68` 读 u32 数量，在 `0x013E1F7B` 逐条读 u32 ID，以 `0x01863C60` 插入，再调用角色状态更新分支。紧随列表的是冒险团等级和点数。旧空列表抓包的四个零字节实际是 count。当前编码结构见 [USERINFO](../../../../protocol/game/server-to-client/NOTI-0x0002.md#2026-11-18-subtype-1-永久属性任务列表371)。
+
+**CurrentImplementation**。已完成的属性任务 ID 由完成标记投影，并写入上述列表。完成声明 `[special reward status]` 的任务后，同一会话收到 USERINFO subtype 1。重放和重登读取同一份完成状态。当前 PVF 中 `13510` 和 `12683` 分别声明全属性强化 +7 和 +6，`13513` 声明全属性抗性 +6。
+
+自动验证以真实 dev PVF 和 `0x0204` 包体核对 33 条个性技能外传、10 个属性任务 ID、旧完成标记、用券和重放的出站实际包体。Protocol 测试从真实 SQLite 读出属性任务标记，逐字节核对入场包计数、ID 与后续字段。Application 定向回归 162 项、Protocol 定向回归 75 项通过。
+
+**ClientVerified（重登面板）**。修复后的隔离服使用第一次已结算的完成标记。用户重新进入 `pv`，实机确认火属性强化 13、火属性抗性 6，与 PVF 增量一致。该次复验沿用已完成任务，补发的用券即时包体和请求重放由自动回归覆盖。

@@ -54,7 +54,8 @@ internal sealed class QuestClearCouponSettlementService(IOpeningInventoryDomainS
             plan = await plans.CouponAsync(sourceSlot, source, state, selected, now, ct).ConfigureAwait(false);
         }
         var result = await inventory.ApplyAsync(session, plan.Effects, now, footprint, ct).ConfigureAwait(false);
-        return new(result.Inventory, plan.Completed);
+        return new(result.Inventory, plan.Completed,
+            plan.Effects.Any(effect => effect is SetClearedQuestEffect { GrantsPermanentAttributes: true }));
     }
 
     private async ValueTask<IReadOnlyList<int>> SelectGradeQuestsAsync(SelectedSessionIdentity session, int itemId,

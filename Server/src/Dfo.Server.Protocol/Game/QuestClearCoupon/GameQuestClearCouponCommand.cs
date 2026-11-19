@@ -269,6 +269,8 @@ public sealed class GameQuestClearCouponCommandHandler(
         try
         {
             var current = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
+            if (current is not null && result.PermanentAttributesChanged)
+                following.Add(ExtendedUserStateMessage.FromCurrent(current, result.Inventory.PreparedAt));
             var progression = await characters.Get(session.CharacterId).ProgressAsync(ct).ConfigureAwait(false);
             if (current is not null && progression is not null)
             {

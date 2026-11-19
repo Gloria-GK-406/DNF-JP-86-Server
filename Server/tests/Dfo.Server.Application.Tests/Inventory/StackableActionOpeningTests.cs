@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Application.Characters;
@@ -21,38 +22,43 @@ public sealed class StackableActionOpeningTests
     private static readonly byte[] AuraTicketRequest = Convert.FromHexString("040000000000007B0000000000000000000000");
     private static readonly byte[] AbyssTicketRequest = Convert.FromHexString("080000000000007E0000000000000000000000");
     private static readonly byte[] SideTicketRequest = Convert.FromHexString("030000000000004D0000000000000000000000");
+    private static readonly int[] SideQuestStatRewards = [3043,12683,12689,12690,12694,13502,13504,13507,13510,13513];
 
     [PvfFact]
-    public async Task Captured_side_ticket_catches_up_ordinary_chains_and_preserves_individual_skill_quests()
+    public async Task Captured_side_ticket_catches_up_side_quests_and_projects_permanent_attributes()
     {
         using var shop = CreateQuestFixture();
         var host = shop.Host;
         host.SetLevel(86);
         host.Sql("INSERT INTO character_active_quests VALUES(1,0,2655,0),(1,1,13511,0),(1,2,1016,0);");
+        host.Sql("INSERT INTO character_invisible_flags VALUES(1,13502,1);");
         await host.Seed(3, SideTicket, 1);
 
         await Send(host, 1, SideTicketRequest);
         AssertAck(host, 3, 77, succeeded: true);
         Assert.Equal(0, host.Count(SideTicket));
         Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1 AND slot_index IN (2655,2656) AND flag_value=1"));
-        Assert.Equal(0, host.Scalar("""
+        Assert.Equal(33, host.Scalar("""
             SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1
-                AND (slot_index BETWEEN 13501 AND 13513 OR slot_index BETWEEN 12680 AND 12694
-                    OR slot_index IN (1016,2510,2513,3041,3042,3043))
+                AND flag_value=1 AND (slot_index BETWEEN 13501 AND 13513 OR slot_index BETWEEN 12680 AND 12694
+                    OR slot_index IN (2510,2513,3041,3042,3043))
             """));
-        Assert.Equal(2, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1 AND quest_id IN (1016,13511)"));
-        Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1 AND quest_id=2655"));
+        Assert.Equal(0, host.Scalar("SELECT COUNT(*) FROM character_invisible_flags WHERE character_id=1 AND slot_index=1016"));
+        Assert.Equal(1016, host.Scalar("SELECT quest_id FROM character_active_quests WHERE character_id=1"));
+        Assert.Equal(1, host.Scalar("SELECT COUNT(*) FROM character_active_quests WHERE character_id=1"));
         Assert.Equal(100000, host.Scalar("SELECT carried_gold FROM character_stats WHERE character_id=1"));
         Assert.Equal(checked((int)host.ExperienceForLevel(86)), host.Scalar("SELECT exp FROM characters WHERE character_id=1"));
         Assert.Equal(0, host.Count(10088439));
         Assert.Contains(host.Sender.Messages, message => message is InventoryDeltaMessage);
         Assert.Contains(host.Sender.Messages, message => message is QuestVisibilityMessage visibility
-            && visibility.Flags[2655] == 1 && visibility.Flags[2656] == 1 && visibility.Flags[13513] == 0);
+            && visibility.Flags[2655] == 1 && visibility.Flags[2656] == 1 && visibility.Flags[13513] == 1);
+        AssertSideQuestAttributes(Assert.Single(host.Sender.Messages.OfType<ExtendedUserStateMessage>()));
 
         host.Sender.Messages.Clear();
         await Send(host, 1, SideTicketRequest);
         Assert.DoesNotContain(host.Sender.Messages, message => message is QuestClearCouponResponse);
         Assert.Contains(host.Sender.Messages, message => message is QuestVisibilityMessage visibility && visibility.Flags[2656] == 1);
+        AssertSideQuestAttributes(Assert.Single(host.Sender.Messages.OfType<ExtendedUserStateMessage>()));
 
         await host.Seed(3, SideTicket, 1);
         host.Sender.Messages.Clear();
@@ -243,6 +249,17 @@ public sealed class StackableActionOpeningTests
             INSERT INTO character_expert_job(character_id) VALUES(1);
             """);
         return shop;
+    }
+
+    private static void AssertSideQuestAttributes(ExtendedUserStateMessage message)
+    {
+        var body = message.EncodeBody();
+        var idsOffset = body.Length - 21 - SideQuestStatRewards.Length * sizeof(uint);
+        Assert.Equal((uint)SideQuestStatRewards.Length, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(idsOffset - sizeof(uint))));
+        var ids = Enumerable.Range(0, SideQuestStatRewards.Length)
+            .Select(index => BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(idsOffset + index * sizeof(uint))))
+            .Order();
+        Assert.Equal(SideQuestStatRewards, ids);
     }
 
     private static ValueTask Send(ShopFixture host, ushort sequence, byte[] body) =>
