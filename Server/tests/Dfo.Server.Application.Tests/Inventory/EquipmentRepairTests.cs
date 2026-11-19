@@ -12,6 +12,8 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentRepairTests
 {
+    private const int RepairPotion = 10015551;
+
     [Theory]
     [InlineData(0xA0, 7, 113)]
     [InlineData(0xA1, 0, 226)]
@@ -60,6 +62,75 @@ public sealed class EquipmentRepairTests
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
         Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Main, 3));
         Assert.Null(Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).Slot);
+    }
+
+    [Fact]
+    public async Task Repair_potion_matches_the_a21_quote_consumes_once_and_refreshes_the_bag()
+    {
+        using var shop = Fixture();
+        await SeedRepairPotion(shop, 1_000_000, 12);
+        var request = Assert.IsType<RepairItemRequest>(await RepairWire.Send(shop, "all", materialSlot: 7, sequence: 28));
+        Assert.Equal("AB2549A50CA0FEFE9DA0C29FBEF4EA43CB40F3CF8657AC4BD8875DF94B276FA6", request.Metadata.FullBodySha256);
+        Assert.Equal(913744, shop.Gold);
+        Assert.Equal(1, shop.Count(RepairPotion));
+        Assert.Equal((ushort)45, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal((ushort)22, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Collection(shop.Sender.Messages,
+            message => Assert.Equal(1, Assert.Single(Assert.IsType<Dfo.Server.Protocol.Game.InventoryDeltaMessage>(message).Items).Core.Value),
+            message =>
+            {
+                var ack = Assert.IsType<RepairItemResponse>(message);
+                Assert.Equal(913744, ack.Gold);
+                Assert.Null(ack.Slot);
+            },
+            message =>
+            {
+                var bag = Assert.Single(Assert.IsType<Dfo.Server.Protocol.Game.InventoryDeltaMessage>(message).Items);
+                Assert.Equal((9, (ushort)22), (bag.SlotIndex, bag.Core.Durability));
+            });
+
+        await RepairWire.Send(shop, "all", materialSlot: 7, sequence: 28);
+        await RepairWire.Send(shop, "all", materialSlot: 7, sequence: 29);
+        Assert.Equal(913744, shop.Gold);
+        Assert.Equal(1, shop.Count(RepairPotion));
+        Assert.Equal(new byte[] { 0, 4 }, shop.Sender.Messages.OfType<RepairItemResponse>().Select(x => x.ErrorCode));
+    }
+
+    [Theory]
+    [InlineData(86255, 12, 10)]
+    [InlineData(1_000_000, 45, 4)]
+    public async Task Repair_potion_preserves_items_and_gold_when_repair_is_refused(int gold, ushort durability, byte error)
+    {
+        using var shop = Fixture();
+        await SeedRepairPotion(shop, gold, durability);
+        await RepairWire.Send(shop, "all", materialSlot: 7);
+        Assert.Equal(gold, shop.Gold);
+        Assert.Equal(2, shop.Count(RepairPotion));
+        Assert.Equal(durability, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Equal((ushort)22, await shop.Durability(InventoryContainerType.Main, 9));
+        Assert.Equal(error, Assert.IsType<RepairItemResponse>(Assert.Single(shop.Sender.Messages)).ErrorCode);
+    }
+
+    [Fact]
+    public async Task Repair_potion_rolls_back_gold_and_material_when_repair_commit_fails()
+    {
+        using var shop = Fixture();
+        await SeedRepairPotion(shop, 1_000_000, 12);
+        shop.Sql("CREATE TRIGGER refuse_potion_repair BEFORE UPDATE OF item_core ON items WHEN substr(hex(OLD.item_core),3,8)='974B0506' BEGIN SELECT RAISE(ABORT,'repair failed'); END;");
+        await Assert.ThrowsAsync<SqliteException>(() => RepairWire.Send(shop, "all", materialSlot: 7).AsTask());
+        Assert.Equal(1_000_000, shop.Gold);
+        Assert.Equal(2, shop.Count(RepairPotion));
+        Assert.Equal((ushort)12, await shop.Durability(InventoryContainerType.Equipment, 12));
+        Assert.Empty(shop.Sender.Messages);
+    }
+
+    private static async Task SeedRepairPotion(ShopFixture shop, int gold, ushort durability)
+    {
+        await shop.Seed(7, RepairPotion, 2);
+        await shop.SeedCore(12, StackableItemCore.Create(1, 101010327, 12345) with { Durability = durability },
+            InventoryContainerType.Equipment);
+        await shop.SeedCore(9, StackableItemCore.Create(1, 27600, 12346) with { Durability = 22 });
+        shop.Sql($"UPDATE character_stats SET carried_gold={gold} WHERE character_id=1");
     }
 
     [Fact]
@@ -163,7 +234,21 @@ public sealed class EquipmentRepairTests
         {
         services.AddSingleton<IEquipmentRepairDefinitionSource>(new Prices());
         services.AddSingleton<IPremiumServiceDefinitionSource>(new PremiumRules());
+        services.AddSingleton<IItemPlacementDefinitionSource, RepairFixturePlacement>();
+        services.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((RepairPotion,
+            new(true, 0, 0, 1, ItemJobRestriction.Any, ItemPlaceRestriction.Anywhere, Action: "[repair equipment]"))));
     });
+
+    private sealed class RepairFixturePlacement : IItemPlacementDefinitionSource
+    {
+        private readonly NpcShopTestContent defaultPlacement = new();
+
+        public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>
+            itemId is 101010327 or 27600
+                ? ValueTask.FromResult<ItemPlacement?>(new(1, 1, new(BusinessInventorySpace.CarriedEquipment, 0, 55))
+                    { WorldClass = ItemWorldClass.Equipment })
+                : defaultPlacement.GetAsync(itemId, ct);
+    }
 
     private static InventoryItemCoreState Piece(ushort durability) =>
         StackableItemCore.Create(1, 3000, 1234) with { Durability = durability };
@@ -286,6 +371,8 @@ public sealed class EquipmentRepairTests
             ValueTask.FromResult<EquipmentRepairDefinition?>(itemId switch
             {
                 3000 => new(1680, 3, 45),
+                101010327 => new(145600, 91, 45),
+                27600 => new(560, 1, 45),
                 100310669 => new(0, 7, 0),
                 _ => null,
             });

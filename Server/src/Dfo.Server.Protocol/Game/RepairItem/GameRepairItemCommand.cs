@@ -44,8 +44,8 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
             catch (InventorySlotMappingException) { invalidCoupon = true; }
         }
         EquipmentRepairResult result;
-        // Coupon use is a single-target operation; it cannot be combined with automatic or quick repair.
-        if (invalidCoupon || coupon is not null && (slot is null || automatic)
+        var repairAllWithPotion = slot is null && message.RepairAllSpace == InventoryContainerType.Main && !automatic;
+        if (invalidCoupon || coupon is not null && slot is null && !repairAllWithPotion
             || (message.AutoRepair != 0 && !automatic) || message.Reserved != 0 || message.QuickRepair != 0)
             result = new(EquipmentRepairRejection.InvalidRequest);
         else if (!onlineUsers.TryGetByConnection(context.Connection.ConnectionId, out var online)
@@ -53,17 +53,19 @@ public sealed class GameRepairItemCommandHandler(IOnlineUserQueryDomainService o
             result = new(EquipmentRepairRejection.NoSession);
         else
             result = await units.WriteAsync(execution, new("RepairItem", []),
-                (_, token) => automatic
-                    ? repairs.AutoRepairAsync(session, token)
-                    : coupon is { } source
-                        ? repairs.RepairWithCouponAsync(session, slot!.Value, source, token)
-                        : repairs.RepairAsync(session, slot, token),
+                (_, token) => (automatic, coupon, slot) switch
+                {
+                    (true, _, _) => repairs.AutoRepairAsync(session, token),
+                    (false, { } source, { } target) => repairs.RepairWithCouponAsync(session, target, source, token),
+                    (false, { } source, null) => repairs.RepairAllWithPotionAsync(session, source, token),
+                    _ => repairs.RepairAsync(session, slot, token),
+                },
                 cancellationToken).ConfigureAwait(false);
 
         if (automatic)
             logger.LogInformation("Automatic repair character={CharacterId} result={Result}", session.CharacterId, result.Rejection);
         if (message.MaterialSlot != -1)
-            logger.LogInformation("Coupon repair character={CharacterId} target={Target} source={Source} result={Result}",
+            logger.LogInformation("Consumable repair character={CharacterId} target={Target} source={Source} result={Result}",
                 session.CharacterId, message.Slot, message.MaterialSlot, result.Rejection);
         if (result.Receipt is { } receipt)
             await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([receipt.Session.CharacterId]),

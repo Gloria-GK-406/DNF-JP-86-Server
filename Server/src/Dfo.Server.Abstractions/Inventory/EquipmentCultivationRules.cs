@@ -70,7 +70,8 @@ public interface IEquipmentRepairRule
 public interface IEquipmentRepairRuleService
 {
     ValueTask<IEquipmentRepairCouponRule?> PrepareCouponAsync(int itemId, CancellationToken ct);
-    ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct);
+    ValueTask<IEquipmentRepairCouponRule?> PreparePotionAsync(int itemId, CancellationToken ct);
+    ValueTask<IEquipmentRepairRule?> PrepareAsync(CancellationToken ct, bool roundPrice = false);
     ValueTask<ushort?> AutoRepairDurabilityAsync(ItemSnapshot core, CancellationToken ct);
 }
 

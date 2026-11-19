@@ -8,9 +8,11 @@ public sealed record EquipmentRepairReceipt(
     SelectedSessionIdentity Session, BusinessSlot? Slot, int Gold)
 {
     public EquipmentRepairCouponChange? Coupon { get; init; }
+    public IReadOnlyList<EquipmentRepairBagSlot> CarriedEquipment { get; init; } = [];
 }
 
 public sealed record EquipmentRepairCouponChange(BusinessSlot Slot, InventoryItemCoreState? Remaining);
+public sealed record EquipmentRepairBagSlot(BusinessSlot Slot, ItemSnapshot Item);
 
 public sealed record EquipmentRepairResult(EquipmentRepairRejection Rejection,
     EquipmentRepairReceipt? Receipt = null)
