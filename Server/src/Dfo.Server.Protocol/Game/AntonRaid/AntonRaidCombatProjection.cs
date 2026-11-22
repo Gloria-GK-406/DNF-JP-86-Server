@@ -58,8 +58,8 @@ internal static class AntonRaidCombatFrames
             frames.Add(Buffs(change.Snapshot.Buffs));
         if (change.Participation)
         {
-            if (change.ParticipationGroups.Count > 0)
-                frames.Add(Participation(change.ParticipationGroups));
+            if (change.ParticipationChanges.Count > 0)
+                frames.Add(Participation(change.ParticipationChanges));
             frames.Add(Status(change.Snapshot.Sorties));
         }
         if (change.LifeMember != 0)
@@ -83,13 +83,12 @@ internal static class AntonRaidCombatFrames
         if (snapshot.Timers.SingleOrDefault(timer => timer.Kind is AntonRaidCombatDeadlineKind.Attack
             or AntonRaidCombatDeadlineKind.Intermission) is { Duration: > 0 } wholePhase)
             frames.Add(Remaining(wholePhase.At, now, wholePhase.Kind == AntonRaidCombatDeadlineKind.Intermission ? (byte)1 : (byte)0));
-        var groups = snapshot.Sorties.Where(sortie => sortie.Participants.Count > 0).SelectMany(sortie =>
-        {
-            var users = sortie.Participants.Select(SelectedSessionIdentity.ToWireUserId).ToArray();
-            return new AntonRaidParticipationGroup[] { new(sortie.DungeonId, 0, users), new(sortie.DungeonId, (byte)(sortie.Cleared ? 4 : 1), users) };
-        }).ToArray();
-        if (groups.Length > 0)
-            frames.Add(Participation(groups));
+        var participation = snapshot.Sorties.Where(sortie => sortie.Participants.Count > 0)
+            .Select(sortie => new AntonRaidParticipationChange(sortie.DungeonId,
+                sortie.Cleared ? AntonRaidParticipationKind.Cleared : AntonRaidParticipationKind.Ready, sortie.Participants))
+            .ToArray();
+        if (participation.Length > 0)
+            frames.Add(Participation(participation, restoring: true));
         frames.Add(Buffs(snapshot.Buffs));
         frames.Add(Status(snapshot.Sorties));
         return frames;
@@ -153,18 +152,30 @@ internal static class AntonRaidCombatFrames
             }
         });
 
-    private static AntonRaidRuntimeNotice Participation(IReadOnlyList<AntonRaidParticipationGroup> groups) =>
-        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidParticipation, writer =>
+    private static AntonRaidRuntimeNotice Participation(IReadOnlyList<AntonRaidParticipationChange> changes,
+        bool restoring = false)
+    {
+        var groups = new List<(int Dungeon, byte Operation, ushort[] Members)>();
+        foreach (var change in changes)
+        {
+            var members = change.Members.Select(SelectedSessionIdentity.ToWireUserId).ToArray();
+            if (restoring || change.Kind is AntonRaidParticipationKind.Departed or AntonRaidParticipationKind.Ready)
+                groups.Add((change.DungeonId, 0, members));
+            if (change.Kind != AntonRaidParticipationKind.Departed)
+                groups.Add((change.DungeonId, change.Kind == AntonRaidParticipationKind.Cleared ? (byte)4 : (byte)1, members));
+        }
+        return AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidParticipation, writer =>
         {
             writer.Write(checked((byte)groups.Count));
             foreach (var group in groups)
             {
-                writer.Write(checked((uint)group.DungeonId));
+                writer.Write(checked((uint)group.Dungeon));
                 writer.Write(group.Operation);
-                writer.Write(checked((byte)group.Members.Count));
+                writer.Write(checked((byte)group.Members.Length));
                 foreach (var member in group.Members) writer.Write(member);
             }
         });
+    }
 
     private static AntonRaidRuntimeNotice Status(IReadOnlyList<AntonRaidSortieSnapshot> sorties) =>
         AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMonsterStatus, writer =>

@@ -51,6 +51,29 @@ public sealed class AntonRaidRecruitmentTests
     }
 
     [Fact]
+    public Task Recruitment_rechecks_the_pvf_maximum_at_approval_and_can_start_at_capacity() =>
+        TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture(maximumMembers: 2) { TicketAvailable = true };
+            var leader = fixture.Admit(1);
+            var accepted = fixture.Admit(2);
+            var overflow = fixture.Admit(3);
+            var raid = fixture.Raids.Create(leader, "test"u8.ToArray());
+
+            Assert.NotNull(fixture.Raids.Request(accepted, leader));
+            Assert.NotNull(fixture.Raids.Request(overflow, leader));
+            Assert.True(fixture.Raids.Respond(leader.Session, accepted.Session, true).Succeeded);
+            Assert.False(fixture.Raids.Respond(leader.Session, overflow.Session, true).Succeeded);
+            Assert.Null(fixture.Raids.CheckApplicantTarget(overflow.Session, leader.Session));
+            Assert.Null(fixture.Raids.Request(overflow, leader));
+            Assert.Equal(2, fixture.Raids.Find(200, raid.Number)!.Members.Count);
+
+            await using var start = fixture.Transactions.Begin();
+            Assert.True((await fixture.Raids.StartAsync(leader.Session, default)).Started);
+            await start.CommitAsync(default);
+        });
+
+    [Fact]
     public void Cross_channel_and_expired_applications_do_not_add_members()
     {
         TestGameplay.Run(() =>
@@ -334,7 +357,7 @@ public sealed class AntonRaidRecruitmentTests
         private readonly OnlineStateRegistry registry;
         private readonly OnlineCharacterRuntimeDomainService runtime;
 
-        public Fixture(int expectedPaid = 2)
+        public Fixture(int expectedPaid = 2, int maximumMembers = 20)
         {
             sessions = TestSessions.Directory(out registry);
             var locations = new OnlineCharacterLocationDomainService();
@@ -351,7 +374,8 @@ public sealed class AntonRaidRecruitmentTests
                 method.Name == "IsConsumable" ? true : null);
             var materials = new TestMaterials(expectedPaid, () => MaterialAttempts++);
             Raids = new AntonRaidDomainService(sessions, locations, Parties, ChannelEntryOptions.Legacy, Clock,
-                Parties, new AntonRaidRuleService(new TestContent()), materials, inventory, materialRules, TestRequired.Absent<IDungeonDeadlineWake>(), Transactions,
+                Parties, new AntonRaidRuleService(new TestContent(maximumMembers), new Dfo.Server.Application.Parties.PartyModeRuleService()),
+                materials, inventory, materialRules, TestRequired.Absent<IDungeonDeadlineWake>(), Transactions,
                 TestRequired.Absent<IChannelEntryDomainService>(), TestRequired.Absent<IDungeonAdmissionDomainService>(),
                 TestRequired.Absent<IDungeonVisitDomainService>(), TestRequired.Absent<IDungeonStructureRuleService>(),
                 TestRequired.Absent<IDungeonRunQueryDomainService>(), TestRequired.Absent<IEventService>());
@@ -378,9 +402,9 @@ public sealed class AntonRaidRecruitmentTests
         }
     }
 
-    private sealed class TestContent : IAntonRaidContentSource
+    private sealed class TestContent(int maximumMembers) : IAntonRaidContentSource
     {
-        public AntonRaidRules Load() => new(2, 20, TimeSpan.FromSeconds(3), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(5),
+        public AntonRaidRules Load() => new(2, maximumMembers, TimeSpan.FromSeconds(3), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(5),
             10096296, 1, 10099897, 1, [TimeSpan.FromMinutes(40), TimeSpan.FromMinutes(40)])
         {
             Phases = [new([], []), new([], [])],

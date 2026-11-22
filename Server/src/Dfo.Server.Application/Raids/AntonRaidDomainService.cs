@@ -34,11 +34,6 @@ internal sealed partial class AntonRaidDomainService(
     IDungeonRunQueryDomainService dungeonRuns,
     IEventService events) : IAntonRaidDomainService, IDomainEventSubscriber<DungeonParticipantLeft>
 {
-    private const int RaidCapacity = 20;
-    private const int SquadCapacity = 4;
-    private const uint LastSquad = 10;
-    private static readonly TimeSpan ApprovalLifetime = TimeSpan.FromSeconds(60);
-
     private readonly Dictionary<uint, Recruitment> raids = [];
     private readonly Dictionary<CharacterId, Recruitment> memberships = [];
     private readonly Dictionary<int, ushort> lastRaidNumbers = [];
@@ -86,7 +81,7 @@ internal sealed partial class AntonRaidDomainService(
         var sequence = checked((ushort)(lastRaidNumbers.GetValueOrDefault(channel) + 1));
         lastRaidNumbers[channel] = sequence;
         var raid = new Recruitment(((uint)channel << 16) | sequence, channel, title.ToArray(),
-            leader with { Squad = 0 }, leases.Rent(Guid.NewGuid(), (int)LastSquad));
+            leader with { Squad = 0 }, leases.Rent(Guid.NewGuid(), AntonRaidRuleService.SquadCount));
         raids.Add(raid.Number, raid);
         memberships.Add(leader.Session.CharacterId, raid);
         return new(true, raid.Number, prior is null ? [Change(raid)] : [prior, Change(raid)], party.Notifications);
@@ -114,7 +109,7 @@ internal sealed partial class AntonRaidDomainService(
         if (approvals.ContainsKey(key))
             return null;
 
-        var approval = new AntonRaidApproval(sender.Session, recipient.Session, applicant, leader.Session, raid.Number, now + ApprovalLifetime);
+        var approval = new AntonRaidApproval(sender.Session, recipient.Session, applicant, leader.Session, raid.Number, now + AntonRaidRuleService.ApprovalLifetime);
         approvals.Add(key, approval);
         return approval;
     }
@@ -144,7 +139,7 @@ internal sealed partial class AntonRaidDomainService(
     public AntonRaidRecruitmentResult Assign(SelectedSessionIdentity sender, ushort target, uint squad)
     {
         GameplayWriteAssertion.Writing(nameof(Assign));
-        if (Of(sender) is not { } raid || RecruitmentChannel(sender) != raid.Channel || squad > LastSquad
+        if (Of(sender) is not { } raid || RecruitmentChannel(sender) != raid.Channel || squad > AntonRaidRuleService.SquadCount
             || (raid.Stage == AntonRaidStage.Recruiting
                 ? sender.WireUserId != target && raid.Leader.Session != sender
                 : !CanEditActiveSquads(raid) || raid.Leader.Session != sender))
@@ -178,7 +173,7 @@ internal sealed partial class AntonRaidDomainService(
         && RecruitmentChannel(applicant) == raid.Channel
         && RecruitmentChannel(raid.Leader.Session) == raid.Channel
         && !memberships.ContainsKey(applicant.CharacterId)
-        && raid.Members.Count < RaidCapacity
+        && raidRules.HasRecruitmentSpace(raid.Members.Count)
         && raid.Members.All(member => member.Session.AccountId != applicant.AccountId);
 
     private PartyOperationResult ExitOrdinaryParty(SelectedSessionIdentity session) =>

@@ -8,12 +8,14 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Parties;
 using Dfo.Server.Application.Raids;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Raids;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Protocol.Game;
@@ -39,8 +41,12 @@ public sealed class AntonRaidPeerCommandTests
         runtime.Begin(leader, area, position, true, 100);
         runtime.Begin(applicant, area, position, true, 100);
         var parties = TestParties.Create();
+        var content = TestRequired.Absent<IAntonRaidContentSource>((method, _) =>
+            method.Name == nameof(IAntonRaidContentSource.Load)
+                ? new AntonRaidRules(2, 20, default, default, default, 0, 0, 0, 0, []) : null);
+        var raidRules = new AntonRaidRuleService(content, new PartyModeRuleService());
         var raids = new AntonRaidDomainService(sessions, town, parties, ChannelEntryOptions.Legacy, TimeProvider.System,
-            parties, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
+            parties, raidRules, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!);
         var raid = raids.Create(new(leader, "Leader"u8.ToArray(), 0, 0, 0), "RaidLab"u8.ToArray());
         Assert.True(raid.Succeeded);
 

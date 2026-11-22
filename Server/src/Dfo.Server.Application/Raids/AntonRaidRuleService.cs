@@ -1,14 +1,24 @@
+using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Data.Raids;
 
 namespace Dfo.Server.Application.Raids;
 
-internal sealed class AntonRaidRuleService(IAntonRaidContentSource source)
+internal sealed class AntonRaidRuleService(IAntonRaidContentSource source, IPartyModeRuleService partyRules)
 {
+    internal const byte SquadCount = 10;
+    internal static readonly TimeSpan ApprovalLifetime = TimeSpan.FromSeconds(60);
+
     internal AntonRaidRules Current => source.Load();
 
+    internal bool HasRecruitmentSpace(int members) => Fits(Current, members + 1);
+
+    internal bool HasSquadSpace(int members) => members < partyRules.MaximumCapacity;
+
     internal static bool CanStartWith(AntonRaidRules rules, int members) =>
-        members >= rules.MinimumMembers && members <= rules.MaximumMembers;
+        members >= rules.MinimumMembers && Fits(rules, members);
+
+    private static bool Fits(AntonRaidRules rules, int members) => members <= rules.MaximumMembers;
 
     internal static int HatcheryAt(int room) => room switch
     {

@@ -197,7 +197,7 @@ internal sealed partial class AntonRaidDomainService
         var target = session;
         if (rule.Party)
         {
-            if (squad is 0 or > (ushort)LastSquad || !combat.Sorties.TryGetValue((byte)squad, out var sortie)
+            if (squad is 0 or > AntonRaidRuleService.SquadCount || !combat.Sorties.TryGetValue((byte)squad, out var sortie)
                 || sortie.Participants.Count == 0)
                 return false;
             if (targets.Count != 0)
@@ -394,7 +394,7 @@ internal sealed partial class AntonRaidDomainService
     }
 
     private Recruitment? CurrentCombat(AntonRaidEntryIdentity identity) =>
-        identity.Squad is >= 1 and <= (byte)LastSquad && raids.TryGetValue(identity.Number, out var raid)
+        identity.Squad is >= 1 and <= AntonRaidRuleService.SquadCount && raids.TryGetValue(identity.Number, out var raid)
         && raid.Lease.Owner == identity.Instance && raid.Stage == AntonRaidStage.Attacking
         && raid.Combat is { } combat && combat.Phase == identity.Phase && combat.Generation == identity.Generation ? raid : null;
 
@@ -434,38 +434,35 @@ internal sealed partial class AntonRaidDomainService
             next.SymbolUpdates.ToArray(), next.TimerChanges.ToArray(), next.Ends.Select(run => run.Value).Distinct().ToArray(),
             participation, full, life, lifeState)
         {
-            ParticipationGroups = participation ? ParticipationGroups(raid.Combat, next) : [],
+            ParticipationChanges = participation ? ParticipationChanges(raid.Combat, next) : [],
             BuffsChanged = buffsChanged,
             InfectedMapChanged = raid.Combat?.InfectedMap != next.InfectedMap,
         };
         _ = await events.EnqueueAsync(change, ct).ConfigureAwait(false);
     }
 
-    private static IReadOnlyList<AntonRaidParticipationGroup> ParticipationGroups(AntonRaidPhaseRuntime? previous,
+    private static IReadOnlyList<AntonRaidParticipationChange> ParticipationChanges(AntonRaidPhaseRuntime? previous,
         AntonRaidPhaseRuntime next)
     {
         if (previous is null) return [];
-        var changes = new List<AntonRaidParticipationGroup>();
+        var changes = new List<AntonRaidParticipationChange>();
         foreach (var old in previous.Sorties.Values)
         {
             var current = next.Sorties.GetValueOrDefault(old.Squad);
             var retained = current?.Run == old.Run ? current.Participants.Keys.ToHashSet() : [];
-            var removed = old.Participants.Where(member => !retained.Contains(member.Key)).Select(member => member.Value.WireUserId).ToArray();
+            var removed = old.Participants.Where(member => !retained.Contains(member.Key)).Select(member => member.Key).ToArray();
             if (removed.Length > 0)
-                changes.Add(new(old.DungeonId, 0, removed));
+                changes.Add(new(old.DungeonId, AntonRaidParticipationKind.Departed, removed));
         }
         foreach (var current in next.Sorties.Values)
         {
             var old = previous.Sorties.GetValueOrDefault(current.Squad);
             var newlyReady = current.Participants.Where(member => old?.Participants.GetValueOrDefault(member.Key) != member.Value)
-                .Select(member => member.Value.WireUserId).ToArray();
+                .Select(member => member.Key).ToArray();
             if (newlyReady.Length > 0)
-            {
-                changes.Add(new(current.DungeonId, 0, newlyReady));
-                changes.Add(new(current.DungeonId, 1, newlyReady));
-            }
+                changes.Add(new(current.DungeonId, AntonRaidParticipationKind.Ready, newlyReady));
             if (current.Cleared && old?.Cleared != true)
-                changes.Add(new(current.DungeonId, 4, current.Participants.Values.Select(member => member.WireUserId).ToArray()));
+                changes.Add(new(current.DungeonId, AntonRaidParticipationKind.Cleared, current.Participants.Keys.ToArray()));
         }
         return changes;
     }

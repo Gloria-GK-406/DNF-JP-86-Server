@@ -15,9 +15,12 @@ public sealed record AntonRaidCombatChanged(AntonRaidCombatSnapshot Snapshot,
     IReadOnlyList<KeyValuePair<uint, uint>> Symbols, IReadOnlyList<AntonRaidCombatDeadline> Timers,
     IReadOnlyList<Guid> Ends, bool Participation = false, bool Full = false, ushort LifeMember = 0, byte LifeState = 0) : IDomainEvent
 {
-    public IReadOnlyList<AntonRaidParticipationGroup> ParticipationGroups { get; init; } = [];
+    public IReadOnlyList<AntonRaidParticipationChange> ParticipationChanges { get; init; } = [];
     public bool BuffsChanged { get; init; }
     public bool InfectedMapChanged { get; init; }
 }
 
-public sealed record AntonRaidParticipationGroup(int DungeonId, byte Operation, IReadOnlyList<ushort> Members);
+public enum AntonRaidParticipationKind { Departed, Ready, Cleared }
+
+public sealed record AntonRaidParticipationChange(int DungeonId, AntonRaidParticipationKind Kind,
+    IReadOnlyList<CharacterId> Members);

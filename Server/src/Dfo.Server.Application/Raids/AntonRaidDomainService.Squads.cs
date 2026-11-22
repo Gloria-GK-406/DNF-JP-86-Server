@@ -18,7 +18,7 @@ internal sealed partial class AntonRaidDomainService
         var invites = plan.Raid.SquadInvites;
         foreach (var expired in invites.Where(pair => pair.Value.ExpiresAt <= now).Select(pair => pair.Key).ToArray())
             invites.Remove(expired);
-        invites[(inviter, invitee)] = new(plan.Inviter.Squad, plan.Invitee.Squad, plan.Raid.PreparationGeneration, now + ApprovalLifetime);
+        invites[(inviter, invitee)] = new(plan.Inviter.Squad, plan.Invitee.Squad, plan.Raid.PreparationGeneration, now + AntonRaidRuleService.ApprovalLifetime);
         return PartyOperationResult.Success(new([], Invitation: new(invitee.CharacterId, inviter.WireUserId, display)));
     }
 
@@ -67,7 +67,7 @@ internal sealed partial class AntonRaidDomainService
         var destination = existingSquad != 0 ? existingSquad : (byte)Enumerable.Range(1, raid.Lease.Keys.Length)
             .FirstOrDefault(number => raid.Members.All(member => member.Squad != number));
         if (destination == 0 || !SquadIdle(raid, destination)
-            || raid.Members.Count(member => member.Squad == destination) >= SquadCapacity)
+            || !raidRules.HasSquadSpace(raid.Members.Count(member => member.Squad == destination)))
             return null;
         return new(raid, from, to, destination);
     }
@@ -114,7 +114,7 @@ internal sealed partial class AntonRaidDomainService
         var member = raid.Members[index];
         if (member.Squad == squad)
             return new(true, raid.Number, [], PartyNotificationPlan.Empty);
-        if (squad != 0 && raid.Members.Count(candidate => candidate.Squad == squad) >= SquadCapacity)
+        if (squad != 0 && !raidRules.HasSquadSpace(raid.Members.Count(candidate => candidate.Squad == squad)))
             return AntonRaidRecruitmentResult.Refused;
         SetMemberSquad(raid, index, squad);
         return new(true, raid.Number, [Change(raid) with { Squads = ReplaceSquads(raid) }], PartyNotificationPlan.Empty);

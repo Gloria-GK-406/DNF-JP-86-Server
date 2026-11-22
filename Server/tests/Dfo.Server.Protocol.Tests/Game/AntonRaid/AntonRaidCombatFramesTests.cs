@@ -10,6 +10,37 @@ namespace Dfo.Server.Protocol.Tests.Game.AntonRaid;
 public sealed class AntonRaidCombatFramesTests
 {
     [Fact]
+    public void Participation_uses_reset_before_ready_and_before_restoring_a_clear()
+    {
+        var now = DateTimeOffset.UnixEpoch;
+        var snapshot = new AntonRaidCombatSnapshot(Guid.NewGuid(), 1, 1, now, 0,
+            new Dictionary<int, AntonRaidMapStatus>(), new Dictionary<uint, uint>(), [],
+            [new(Guid.NewGuid(), 221, 1, [new(0x1234)], true, 0, [])]);
+        var change = new AntonRaidCombatChanged(snapshot, [], [], [], [], [], Participation: true)
+        {
+            ParticipationChanges =
+            [
+                new(210, AntonRaidParticipationKind.Departed, [new(0x1234)]),
+                new(218, AntonRaidParticipationKind.Ready, [new(0x1234)]),
+                new(221, AntonRaidParticipationKind.Cleared, [new(0x1234)]),
+            ],
+        };
+
+        Assert.Equal<byte>(
+            [4, 210, 0, 0, 0, 0, 1, 0x34, 0x12,
+                218, 0, 0, 0, 0, 1, 0x34, 0x12,
+                218, 0, 0, 0, 1, 1, 0x34, 0x12,
+                221, 0, 0, 0, 4, 1, 0x34, 0x12],
+            Participation(AntonRaidCombatFrames.Change(change, now)));
+        Assert.Equal<byte>(
+            [2, 221, 0, 0, 0, 0, 1, 0x34, 0x12, 221, 0, 0, 0, 4, 1, 0x34, 0x12],
+            Participation(AntonRaidCombatFrames.Snapshot(snapshot, now)));
+
+        static byte[] Participation(IEnumerable<IGameNotiMessage> frames) => frames.OfType<AntonRaidRuntimeNotice>()
+            .Single(frame => frame.MessageType == ServerMessageType.GameAntonRaidParticipation).Body.ToArray();
+    }
+
+    [Fact]
     public void CombatSnapshotRestoresShieldWithoutReplayingPastAnimations()
     {
         var now = DateTimeOffset.UnixEpoch;
