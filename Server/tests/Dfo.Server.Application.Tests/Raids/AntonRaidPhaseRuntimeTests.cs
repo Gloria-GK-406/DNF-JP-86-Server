@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Raids;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Raids;
+using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Testing;
 
@@ -11,6 +12,32 @@ namespace Dfo.Server.Application.Tests.Raids;
 public sealed class AntonRaidPhaseRuntimeTests
 {
     private static readonly DateTimeOffset Start = new(2026, 11, 19, 0, 0, 0, TimeSpan.Zero);
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Boss_clear_counts_from_the_value_already_set_by_a_pvf_trigger()
+    {
+        const int dungeon = 210;
+        const uint hitSymbol = 50;
+        const uint initialized = 100;
+        var attackTime = TimeSpan.FromMinutes(40);
+        var rules = new AntonRaidRules(10, 20, default, default, default, 0, 0, 0, 0, [attackTime])
+        {
+            Phases =
+            [
+                new([new(dungeon, AntonRaidMapStatus.Open, hitSymbol, 2, 5, 4, DungeonDifficulty.Normal)],
+                    [new([new(AntonRaidConditionKind.Symbol, initialized, 0)],
+                        [new(AntonRaidActionKind.SetSymbol, initialized, 1), new(AntonRaidActionKind.SetSymbol, hitSymbol, 1)])]),
+            ],
+        };
+        var runtime = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 0, 1, rules, null, Start, Start + attackTime, 4);
+
+        Clear(runtime, dungeon, 1, Start);
+
+        var snapshot = runtime.Snapshot();
+        Assert.Equal(2u, snapshot.Symbols[hitSymbol]);
+        Assert.Equal(AntonRaidMapStatus.Cleared, snapshot.Maps[dungeon]);
+    }
 
     [PvfFact]
     public void First_stage_resets_without_extending_deadline_and_counts_both_legs()

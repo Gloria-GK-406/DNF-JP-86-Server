@@ -11,7 +11,7 @@ internal sealed class AntonRaidPhaseRuntime
     private readonly AntonRaidRules rules;
     private readonly AntonRaidPhaseRule phase;
     private readonly AntonRaidShieldRule? shield;
-    private readonly Dictionary<int, Map> maps;
+    private readonly Dictionary<int, AntonRaidMapStatus> maps;
     private readonly Dictionary<uint, uint> symbols = [];
     private readonly Dictionary<(AntonRaidCombatDeadlineKind Kind, uint Key, byte Type), Scheduled> timers = [];
     private readonly Queue<TriggerEvent> pending = [];
@@ -23,7 +23,8 @@ internal sealed class AntonRaidPhaseRuntime
     internal byte Phase { get; }
     internal long Generation { get; }
     internal DateTimeOffset StartedAt { get; }
-    internal uint InfectedMap { get; private set; }
+    internal uint InfectedMap => rules.Symbols.TryGetValue("[INFECTION DUNGEON INDEX]", out var index)
+        ? symbols.GetValueOrDefault(index) : 0;
     internal int DeathCount { get; set; }
     internal bool? Succeeded { get; private set; }
     internal Dictionary<byte, Sortie> Sorties { get; } = [];
@@ -45,7 +46,7 @@ internal sealed class AntonRaidPhaseRuntime
         this.shield = shield;
         phase = rules.Phases[index];
         StartedAt = startedAt;
-        maps = phase.Maps.ToDictionary(map => map.DungeonId, map => new Map(map.InitialStatus));
+        maps = phase.Maps.ToDictionary(map => map.DungeonId, map => map.InitialStatus);
         version = generation;
         SetDeadline(StartedAt, AntonRaidCombatDeadlineKind.Attack, 0, 0, (int)(attackDeadline - StartedAt).TotalSeconds);
         Evaluate(new(null, 0, 0), startedAt, seed);
@@ -61,7 +62,6 @@ internal sealed class AntonRaidPhaseRuntime
         Phase = old.Phase;
         Generation = old.Generation;
         StartedAt = old.StartedAt;
-        InfectedMap = old.InfectedMap;
         DeathCount = old.DeathCount;
         Succeeded = old.Succeeded;
         version = old.version;
@@ -82,7 +82,7 @@ internal sealed class AntonRaidPhaseRuntime
         && timers.TryGetValue((AntonRaidCombatDeadlineKind.Attack, 0, 0), out var attack) && now < attack.Deadline.At;
 
     internal AntonRaidCombatSnapshot Snapshot() => new AntonRaidCombatSnapshot(Instance, Number, Phase, StartedAt, InfectedMap,
-        maps.ToDictionary(item => item.Key, item => item.Value.Status), new Dictionary<uint, uint>(symbols),
+        new Dictionary<int, AntonRaidMapStatus>(maps), new Dictionary<uint, uint>(symbols),
         Deadlines.Where(timer => timer.Kind is AntonRaidCombatDeadlineKind.Attack or AntonRaidCombatDeadlineKind.MapTimer)
             .OrderBy(timer => timer.At).ToArray(),
         Sorties.Values.Select(sortie => new AntonRaidSortieSnapshot(sortie.Run.Value, sortie.DungeonId, sortie.Squad,
@@ -93,7 +93,7 @@ internal sealed class AntonRaidPhaseRuntime
     };
 
     internal bool HasCapacity(int dungeon, byte squad, DungeonRunId? replacing = null) => Succeeded is null
-        && maps.TryGetValue(dungeon, out var map) && map.Status == AntonRaidMapStatus.Open
+        && maps.TryGetValue(dungeon, out var map) && map == AntonRaidMapStatus.Open
         && (replacing is { } run ? Sorties.TryGetValue(squad, out var sortie) && sortie.Run == run : !Sorties.ContainsKey(squad))
         && Sorties.Values.Count(other => other.DungeonId == dungeon)
             < phase.Maps.Single(rule => rule.DungeonId == dungeon).PartyLimit;
@@ -111,15 +111,14 @@ internal sealed class AntonRaidPhaseRuntime
     internal bool Clear(Sortie sortie, IReadOnlyCollection<CharacterId> atClear, DateTimeOffset now, int seed)
     {
         if (!AttackOpenAt(now) || sortie.Cleared || !maps.TryGetValue(sortie.DungeonId, out var map)
-            || map.Status != AntonRaidMapStatus.Open || atClear.Count == 0)
+            || map != AntonRaidMapStatus.Open || atClear.Count == 0)
             return false;
         Sorties[sortie.Squad] = sortie with { Cleared = true };
         ClearParticipants.UnionWith(atClear);
         var mapRule = phase.Maps.Single(rule => rule.DungeonId == sortie.DungeonId);
-        var hits = checked(map.Clears + 1);
-        maps[sortie.DungeonId] = map with { Clears = hits };
-        SetSymbol(mapRule.HitSymbol, (uint)hits);
-        if ((uint)hits >= mapRule.RequiredClears)
+        var hits = checked(symbols.GetValueOrDefault(mapRule.HitSymbol) + 1);
+        SetSymbol(mapRule.HitSymbol, hits);
+        if (hits >= mapRule.RequiredClears)
             SetMap((uint)sortie.DungeonId, AntonRaidMapStatus.Cleared);
         Evaluate(new(null, 0, 0), now, seed);
         return true;
@@ -138,7 +137,8 @@ internal sealed class AntonRaidPhaseRuntime
         }
         if (expected.Kind == AntonRaidCombatDeadlineKind.ShieldRecovery && shield is { } recovery)
         {
-            var rate = InfectedMap != 0 && maps[(int)InfectedMap].Status == AntonRaidMapStatus.Open
+            var infected = InfectedMap;
+            var rate = infected != 0 && maps[(int)infected] == AntonRaidMapStatus.Open
                 ? recovery.InfectedChargeRate : recovery.ChargeRate;
             SetShield(recovery, Math.Min(recovery.Ceiling, ShieldValue(recovery) + (uint)rate), now, seed);
             QueueShieldRecovery(recovery, ShieldValue(recovery), now);
@@ -155,7 +155,7 @@ internal sealed class AntonRaidPhaseRuntime
     internal bool ApplyShield(uint operand, AntonRaidShieldOperation operation, DateTimeOffset now, int seed)
     {
         if (shield is not { } barrier || Succeeded is not null || operand > barrier.Ceiling
-            || !maps.TryGetValue(barrier.DungeonId, out var volcano) || volcano.Status != AntonRaidMapStatus.Open)
+            || !maps.TryGetValue(barrier.DungeonId, out var volcano) || volcano != AntonRaidMapStatus.Open)
             return false;
         var previous = ShieldValue(barrier);
         var value = operation switch
@@ -232,7 +232,7 @@ internal sealed class AntonRaidPhaseRuntime
     private bool Matches(AntonRaidCondition condition, TriggerEvent cause) => condition.Kind switch
     {
         AntonRaidConditionKind.Symbol => symbols.GetValueOrDefault(condition.Key) == condition.Value,
-        AntonRaidConditionKind.MapStatus => maps.TryGetValue((int)condition.Key, out var map) && (uint)map.Status == condition.Value,
+        AntonRaidConditionKind.MapStatus => maps.TryGetValue((int)condition.Key, out var map) && (uint)map == condition.Value,
         AntonRaidConditionKind.MapChanged or AntonRaidConditionKind.SymbolChanged =>
             cause.Kind == condition.Kind && condition.Key == cause.Key,
         AntonRaidConditionKind.TimerEnded =>
@@ -269,9 +269,8 @@ internal sealed class AntonRaidPhaseRuntime
                 var hatcheries = rules.Hatcheries.ToArray();
                 random.Shuffle(hatcheries.AsSpan());
                 var selected = hatcheries.Take(rules.OpenHatcheries).ToArray();
-                InfectedMap = (uint)selected[0];
                 SetSymbol(rules.Symbols["[IS EXIST INFECTION DUNGEON]"], 1);
-                SetSymbol(rules.Symbols["[INFECTION DUNGEON INDEX]"], InfectedMap);
+                SetSymbol(rules.Symbols["[INFECTION DUNGEON INDEX]"], (uint)selected[0]);
                 foreach (var map in selected)
                     SetMap((uint)map, AntonRaidMapStatus.Open);
                 break;
@@ -281,13 +280,14 @@ internal sealed class AntonRaidPhaseRuntime
     private void SetMap(uint key, AntonRaidMapStatus status)
     {
         var id = (int)key;
-        var previous = maps[id];
-        if (previous.Status == status) return;
-        var rule = phase.Maps.Single(candidate => candidate.DungeonId == id);
-        var cleared = status == AntonRaidMapStatus.Open ? 0 : previous.Clears;
-        maps[id] = new(status, cleared);
-        if (status == AntonRaidMapStatus.Open && cleared != previous.Clears)
-            SetSymbol(rule.HitSymbol, 0);
+        if (maps[id] == status) return;
+        maps[id] = status;
+        if (status == AntonRaidMapStatus.Open)
+        {
+            var hitSymbol = phase.Maps.Single(candidate => candidate.DungeonId == id).HitSymbol;
+            if (symbols.GetValueOrDefault(hitSymbol) != 0)
+                SetSymbol(hitSymbol, 0);
+        }
         if (status == AntonRaidMapStatus.Hidden)
         {
             timers.Remove((AntonRaidCombatDeadlineKind.ReservedMap, key, 0));
@@ -295,7 +295,6 @@ internal sealed class AntonRaidPhaseRuntime
                 timers.Remove((AntonRaidCombatDeadlineKind.ShieldRecovery, key, 0));
             if (InfectedMap == key)
             {
-                InfectedMap = 0;
                 SetSymbol(rules.Symbols["[IS EXIST INFECTION DUNGEON]"], 0);
                 SetSymbol(rules.Symbols["[INFECTION DUNGEON INDEX]"], 0);
             }
@@ -311,11 +310,6 @@ internal sealed class AntonRaidPhaseRuntime
         SymbolUpdates.Add(new(key, value));
         if (previous != value)
             pending.Enqueue(new(AntonRaidConditionKind.SymbolChanged, key, 0));
-        foreach (var rule in phase.Maps)
-        {
-            if (rule.HitSymbol == key && maps[rule.DungeonId].Clears != value)
-                maps[rule.DungeonId] = maps[rule.DungeonId] with { Clears = checked((int)value) };
-        }
         if (value != 0 && rules.Symbols.TryGetValue("[KILL ALL CHARACTER]", out var kill) && kill == key)
             EndSorties();
     }
@@ -350,7 +344,6 @@ internal sealed class AntonRaidPhaseRuntime
         public int BonusCoins { get; init; }
     }
 
-    private readonly record struct Map(AntonRaidMapStatus Status, int Clears = 0);
     private readonly record struct Scheduled(AntonRaidCombatDeadline Deadline, AntonRaidMapStatus MapStatus);
     private readonly record struct TriggerEvent(AntonRaidConditionKind? Kind, uint Key, uint Value);
 }
