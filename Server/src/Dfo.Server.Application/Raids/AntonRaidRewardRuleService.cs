@@ -2,8 +2,10 @@ using Dfo.Server.Abstractions.Raids;
 
 namespace Dfo.Server.Application.Raids;
 
-internal static class AntonRaidSettlementRules
+internal sealed class AntonRaidRewardRuleService(IAntonRaidRewardContentSource source)
 {
+    internal AntonRaidRewardDefinition Current => source.Read();
+
     internal static byte Rank(AntonRaidPhaseRewardDefinition phase, int deaths)
     {
         foreach (var range in phase.Ranks)

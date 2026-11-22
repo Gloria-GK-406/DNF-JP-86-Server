@@ -55,7 +55,6 @@ internal static class AntonRaidRegistration
             "raid.anton-combat-wire", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.LiveOnly);
         services.AddDomainSubscriber<Dfo.Server.Abstractions.Raids.AntonRaidPhaseConcluded, AntonRaidPhaseRewardSubscriber>(
             "raid.anton-phase-rewards", Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
-        services.AddTransient<IAntonRaidRewardPhaseBridge, AntonRaidRewardPhaseBridge>();
         services.AddAntonRaidRewardsSlice();
         services.AddTransient<AntonRaidSquadProjection>();
         services.AddTransient<DungeonTownReturnProjection>();

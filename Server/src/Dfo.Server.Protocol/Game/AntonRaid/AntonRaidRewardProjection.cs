@@ -1,7 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
@@ -10,20 +9,13 @@ using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.AntonRaid;
 
-internal interface IAntonRaidRewardPhaseBridge
-{
-    (Guid Instance, byte Phase)? Locate(SelectedSessionIdentity session);
-
-    ValueTask<bool> CompleteAsync(CommandExecutionContext execution, AntonRaidRewardSnapshot snapshot, CancellationToken ct);
-}
-
 internal sealed class AntonRaidRewardProjection(IAntonRaidRewardSettlementDomainService settlements,
-    IAntonRaidRewardPhaseBridge bridge, ISelectedSessionDomainService sessions,
+    IAntonRaidDomainService raids, ISelectedSessionDomainService sessions,
     ISelectedCharacterCurrentViewDomainService views, IGameCommandOutbox outbox, TimeProvider clock)
 {
     internal async ValueTask ReplayAsync(SelectedSessionIdentity session, CancellationToken ct)
     {
-        if (bridge.Locate(session) is not { } phase || settlements.Find(phase.Instance, phase.Phase) is not { } snapshot
+        if (raids.SettlementOf(session) is not { } phase || settlements.Find(phase.Instance, phase.Phase) is not { } snapshot
             || snapshot.Stage == AntonRaidRewardStage.Complete)
             return;
 
@@ -41,7 +33,7 @@ internal sealed class AntonRaidRewardProjection(IAntonRaidRewardSettlementDomain
 
     internal SelectedSessionIdentity? Online(AntonRaidRewardSnapshot snapshot, CharacterId character) =>
         sessions.TryGetInWorld(character, out var session)
-            && bridge.Locate(session) == (snapshot.Seed.Instance, snapshot.Seed.Phase)
+            && raids.SettlementOf(session) == (snapshot.Seed.Instance, snapshot.Seed.Phase)
             ? session : null;
 
     internal async ValueTask PromptAsync(AntonRaidRewardSnapshot snapshot, CancellationToken ct)

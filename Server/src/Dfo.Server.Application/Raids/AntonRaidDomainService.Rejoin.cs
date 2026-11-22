@@ -21,7 +21,7 @@ internal sealed partial class AntonRaidDomainService
             return RemoveMember(raid, session);
         var now = clock.GetUtcNow();
         var index = raid.Members.FindIndex(member => member.Session == session);
-        raid.Members[index] = raid.Members[index] with { DisconnectedAt = now, RejoinUntil = now + content.Load().RejoinTime };
+        raid.Members[index] = raid.Members[index] with { DisconnectedAt = now, RejoinUntil = now + raidRules.Current.RejoinTime };
         raid.DeferredSquadMembers.Remove(session.CharacterId);
         if (raid.Stage == AntonRaidStage.Preparing)
             RestoreFromPreparation(raid);

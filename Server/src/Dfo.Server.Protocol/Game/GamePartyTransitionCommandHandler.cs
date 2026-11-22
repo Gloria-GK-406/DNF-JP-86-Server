@@ -85,8 +85,8 @@ internal sealed partial class GamePartyTransitionCommandHandler :
     private readonly IAltarDungeonDomainService altars;
     private readonly IOutboundOrdering ordering;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly IAntonRaidDomainService? raids;
-    private readonly AntonRaidSquadProjection? raidSquads;
+    private readonly IAntonRaidDomainService raids;
+    private readonly AntonRaidSquadProjection raidSquads;
     public GamePartyTransitionCommandHandler(ISelectedSessionDomainService sessions,
         ISelectedCharacterCurrentViewDomainService currentViews, IOnlineCharacterRuntimeDomainService onlineCharacters,
         IDungeonRunDepartureDomainService runs, IDungeonExitDomainService exits, IDungeonRunProjectionDomainService registry, IPartyService parties,
@@ -99,7 +99,7 @@ internal sealed partial class GamePartyTransitionCommandHandler :
         IDungeonEntryIntentDomainService entryIntents, IAltarDungeonDomainService altars,
         IWeaknessDomainService weakness, TimeProvider clock,
         ILogger<GamePartyTransitionCommandHandler> logger, IOutboundOrdering ordering, IGuardianAltarDomainService guardian,
-        IAntonRaidDomainService? raids = null, AntonRaidSquadProjection? raidSquads = null)
+        IAntonRaidDomainService raids, AntonRaidSquadProjection raidSquads)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.currentState = currentState; this.characters = characters; this.onlineCharacters = onlineCharacters; this.transit = transit; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.closures = closures; this.weaknessState = weakness; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;

@@ -190,7 +190,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
         // The one hand-over between channels: a released Boss tower run leaves the leader in town,
         // so the same request opens the ordinary selection without locating it again. A run the
         // tower kept ends the request with its owner.
-        var raidChannel = session is not null && antonRaid is not null
+        var raidChannel = session is not null
             && await antonRaid.IsRaidChannelAsync(session, cancellationToken).ConfigureAwait(false);
         if (!raidChannel && session is not null
             && DungeonLocator.Locate(session, participation, bossTowers, illusionTowers) is DungeonPlace.InBossTower boss
@@ -236,7 +236,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             return false;
         if (attached.Any(x => !sessions.IsInWorld(x.Session)))
             return false;
-        var raidIntent = raidChannel ? antonRaid?.Selection(session, message.Selection) : null;
+        var raidIntent = raidChannel ? antonRaid.Selection(session, message.Selection) : null;
         if (raidChannel && raidIntent is null)
             return false;
         var intent = raidIntent ?? (message.Selection == 0

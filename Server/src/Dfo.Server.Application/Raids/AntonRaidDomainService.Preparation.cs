@@ -19,7 +19,7 @@ internal sealed partial class AntonRaidDomainService
     {
         if (Of(session) is not { } raid)
             return [];
-        var rules = content.Load();
+        var rules = raidRules.Current;
         var tickets = new List<AntonRaidTicket>(raid.Members.Count);
         foreach (var member in raid.Members)
         {
@@ -55,8 +55,8 @@ internal sealed partial class AntonRaidDomainService
         {
             return AntonRaidStart.Refused;
         }
-        var rules = content.Load();
-        if (raid.Members.Count < rules.MinimumMembers || raid.Members.Count > rules.MaximumMembers)
+        var rules = raidRules.Current;
+        if (!AntonRaidRuleService.CanStartWith(rules, raid.Members.Count))
             return AntonRaidStart.Refused;
 
         var tickets = await TicketsAsync(leader, ct).ConfigureAwait(false);
@@ -140,7 +140,7 @@ internal sealed partial class AntonRaidDomainService
             return CancelPreparation(deadline) with { Tickets = ticketStatus };
         }
 
-        var rules = content.Load();
+        var rules = raidRules.Current;
         var unpaid = preparation.Roster.Where(member => !raid.PaidTickets.Contains(member.Session.CharacterId))
             .Select((member, slot) => new DungeonRunParticipant(member.Session.AccountId, member.Session.CharacterId,
                 checked((byte)slot), member == raid.Leader)).ToArray();

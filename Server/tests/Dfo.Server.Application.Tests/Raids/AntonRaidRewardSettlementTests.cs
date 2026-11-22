@@ -95,7 +95,7 @@ public sealed class AntonRaidRewardSettlementTests
             players.Select(player => player.Character).ToArray(), players);
     }
 
-    private static AntonRaidRewardSettlementDomainService Create() => new(new TestContent(), new WakeProbe());
+    private static AntonRaidRewardSettlementDomainService Create() => new(new AntonRaidRewardRuleService(new TestContent()), new WakeProbe());
 
     private sealed class WakeProbe : IDungeonDeadlineWake
     {

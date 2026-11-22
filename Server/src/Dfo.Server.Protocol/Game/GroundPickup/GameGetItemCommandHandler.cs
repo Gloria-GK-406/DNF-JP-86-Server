@@ -67,14 +67,14 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
     private readonly IQuestQueryDomainService quests;
     private readonly IGroundPickupDomainService floor;
     private readonly ICommandConnectionClosures closures;
-    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? raids;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService raids;
 
     public GameGetItemCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IGroundPickupDomainService floor, IQuestQueryDomainService quests, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units, IGameCommandOutbox outbox,
         ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameGetItemCommandHandler> logger,
-        Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? raids = null)
+        Dfo.Server.Abstractions.Raids.IAntonRaidDomainService raids)
 
     {
         this.sessions = sessions; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
@@ -119,7 +119,7 @@ internal sealed partial class GameGetItemCommandHandler : ICommandHandler<GameGe
             _=await DeliverPickupAsync(session,result,token).ConfigureAwait(false);
             if(clear is not null)
                 _ = await DungeonClearCommandProjection.DeliverAsync(sessions, runs, FindRecipients(session, clear.RunId),
-                    quests, outbox, session, clear, token, raidSettling: raids?.SettlementOf(session) is not null).ConfigureAwait(false);
+                    quests, outbox, session, clear, token, raidSettling: raids.SettlementOf(session) is not null).ConfigureAwait(false);
             return;
         }
         logger.LogInformation("Get item {ConnectionId} user={WireUserId}: drop {Number} refused as {Status}",connectionId,session.WireUserId,groundDropNumber,result.Status);

@@ -17,11 +17,13 @@ internal sealed class AntonRaidSquadProjection(PartyClientIdRegistry numbers,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState,
     IPartyService parties, IOutboundOrdering ordering, ISelectedSessionDomainService sessions, ITownAreaDomainService towns)
 {
+    internal PartyNotificationPlan Project(PartyNotificationPlan plan) => numbers.Project(plan);
+
     internal async ValueTask DeliverAsync(IReadOnlyList<PartyNotificationPlan> changes, CancellationToken ct)
     {
         foreach (var change in changes)
         {
-            var projected = numbers.Project(change);
+            var projected = Project(change);
             await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
                 projected, PartyNotificationRecipientCapture.Capture(projected, sessions, towns), ct).ConfigureAwait(false);
         }

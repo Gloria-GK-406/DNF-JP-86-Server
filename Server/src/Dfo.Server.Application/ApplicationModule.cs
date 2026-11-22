@@ -126,6 +126,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddSessions();
         services.AddAuthentication(configuration);
         services.AddParties();
+        services.TryAddSingleton<AntonRaidRuleService>();
+        services.TryAddSingleton<AntonRaidRewardRuleService>();
         services.TryAddSingleton<AntonRaidDomainService>();
         services.TryAddSingleton<IAntonRaidDomainService>(provider => provider.GetRequiredService<AntonRaidDomainService>());
         services.AddSingleton<IDungeonBossClearHook>(provider => provider.GetRequiredService<AntonRaidDomainService>());

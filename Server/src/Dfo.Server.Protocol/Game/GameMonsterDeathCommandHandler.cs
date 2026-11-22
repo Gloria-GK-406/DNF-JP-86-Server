@@ -70,7 +70,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
     private readonly IQuestQueryDomainService quests;
     private readonly ICommandConnectionClosures closures;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? raids;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService raids;
     public GameMonsterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunQueryDomainService runs,
         IDungeonRunProjectionDomainService registry, IPartyService parties, IDungeonClearDomainService clearEvaluator,
         IMonsterDeathDomainService deaths, ICreatureRuntimeDomainService creatures, IQuestQueryDomainService quests,
@@ -79,7 +79,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers,
         ICommandWorkUnits units, IGameCommandOutbox outbox, ICommandConnectionClosures closures,
         TimeProvider clock, ILogger<GameMonsterDeathCommandHandler> logger,
-        IGuardianAltarDomainService guardian, Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? raids = null)
+        IGuardianAltarDomainService guardian, Dfo.Server.Abstractions.Raids.IAntonRaidDomainService raids)
 
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
@@ -267,7 +267,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
             (unit, token) => deaths.SettleAsync(request, unit.Footprint, token), ct);
     private ValueTask<int> ProjectClearAsync(SelectedSessionIdentity reporter, DungeonClearChange clear, CancellationToken ct) =>
         DungeonClearCommandProjection.DeliverAsync(sessions, runs, FindRecipients(reporter, clear.RunId), quests, outbox,
-            reporter, clear, ct, raidSettling: raids?.SettlementOf(reporter) is not null);
+            reporter, clear, ct, raidSettling: raids.SettlementOf(reporter) is not null);
     private IReadOnlyList<IGameServerMessage> TournamentFrames(TournamentActionResult result) =>
         TournamentCompletionFrames.CompletionFrames(result, clock);
 }

@@ -367,10 +367,10 @@ internal sealed partial class GamePartyTransitionCommandHandler
         var caller = sessions.FindByConnection(dispatch.Connection.ConnectionId);
         if (caller is null) return false;
 
-        if (change == PartyChange.Leave && raids?.IsPreparing(caller) == true
+        if (change == PartyChange.Leave && raids.IsPreparing(caller)
             && raids.CancelPreparationFor(caller).Change is { Raid: { } restored } canceled)
         {
-            await raidSquads!.DeliverAsync(canceled.Squads, token).ConfigureAwait(false);
+            await raidSquads.DeliverAsync(canceled.Squads, token).ConfigureAwait(false);
             await AntonRaidRecruitmentProjection.DeliverAsync(projections, canceled, token).ConfigureAwait(false);
             var tickets = await workUnits.WriteAsync(execution, new("AntonRaidCanceledByPartyLeave", []),
                 (_, ct) => raids.TicketsAsync(caller, ct), token).ConfigureAwait(false);
@@ -380,11 +380,11 @@ internal sealed partial class GamePartyTransitionCommandHandler
                  AntonRaidRuntimeNotice.Tickets(tickets)], token).ConfigureAwait(false);
             return true;
         }
-        if (raids?.IsRecruitingMember(caller) == true)
+        if (raids.IsRecruitingMember(caller))
         {
             var result = change == PartyChange.Leave ? raids.LeaveSquad(caller) : ApplyRaidSquadChange();
             if (result.Succeeded)
-                await raidSquads!.DeliverChangesAsync(result.Changes, token).ConfigureAwait(false);
+                await raidSquads.DeliverChangesAsync(result.Changes, token).ConfigureAwait(false);
             else
                 await RefuseAsync(dispatch, change, PartyFailureReason.RaidRecruiting, token).ConfigureAwait(false);
             return result.Succeeded;

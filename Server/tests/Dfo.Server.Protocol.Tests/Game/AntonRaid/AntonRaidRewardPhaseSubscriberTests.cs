@@ -2,10 +2,8 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Raids;
-using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Testing;
 
@@ -35,7 +33,10 @@ public sealed class AntonRaidRewardPhaseSubscriberTests
             starts++;
             return new AntonRaidRewardSnapshot((AntonRaidRewardSettlementSeed)args![0]!, 2, AntonRaidRewardStage.Result, []);
         });
-        var subscriber = new AntonRaidPhaseRewardSubscriber(settlements, new FixedBridge(member, outcome.Instance),
+        var raids = TestRequired.Absent<IAntonRaidDomainService>((method, args) =>
+            method.Name == nameof(IAntonRaidDomainService.SettlementOf) && Equals(args![0], member)
+                ? (outcome.Instance, (byte)0) : null);
+        var subscriber = new AntonRaidPhaseRewardSubscriber(settlements, raids,
             sessions, effects, transactions, TimeProvider.System);
 
         await using (var rolledBack = transactions.Begin())
@@ -54,13 +55,6 @@ public sealed class AntonRaidRewardPhaseSubscriberTests
         Assert.Equal(1, starts);
         Assert.Equal([ServerMessageType.GameAntonRaidResult, ServerMessageType.GameAntonRaidState], effects.Types);
     });
-
-    private sealed class FixedBridge(SelectedSessionIdentity member, Guid instance) : IAntonRaidRewardPhaseBridge
-    {
-        public (Guid Instance, byte Phase)? Locate(SelectedSessionIdentity session) => session == member ? (instance, 0) : null;
-        public ValueTask<bool> CompleteAsync(CommandExecutionContext execution, AntonRaidRewardSnapshot snapshot, CancellationToken ct)
-            => throw new NotSupportedException();
-    }
 
     private sealed class WireEffects(IDomainTransactionAccessor transactions) : IEventService
     {

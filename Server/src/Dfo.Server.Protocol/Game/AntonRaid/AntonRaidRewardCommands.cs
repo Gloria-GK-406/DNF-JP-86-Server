@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -8,6 +9,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Raids;
 using Dfo.Server.Data.World;
 using Microsoft.Extensions.Logging;
 
@@ -28,9 +30,11 @@ internal sealed class AntonRaidRewardMessageHandler(ICommandBus commands) : Clie
 }
 
 internal sealed class AntonRaidRewardCommandHandler(IAntonRaidRewardSettlementDomainService settlements,
-    IAntonRaidRewardPhaseBridge bridge, ISelectedSessionDomainService sessions,
+    IAntonRaidDomainService raids, ISelectedSessionDomainService sessions,
     IOnlineUserQueryDomainService users, IAntonRaidRewardGrantDomainService rewards, ICommandWorkUnits units,
-    AntonRaidRewardProjection projection, IGameCommandOutbox outbox, TimeProvider clock,
+    AntonRaidRewardProjection projection, AntonRaidSquadProjection squads, ICommandProjections projections,
+    IDungeonEntryIntentDomainService entryIntents, ITownAreaDomainService towns, DungeonTownReturnProjection returns,
+    IGameCommandOutbox outbox, TimeProvider clock,
     ILogger<AntonRaidRewardCommandHandler> logger)
     : ICommandHandler<GameAntonRaidRewardCommand, bool>,
       ICommandHandler<QueryAntonRaidRewardDeadlines, IReadOnlyList<AntonRaidRewardDeadline>>,
@@ -44,7 +48,7 @@ internal sealed class AntonRaidRewardCommandHandler(IAntonRaidRewardSettlementDo
             return false;
 
         var input = command.Input;
-        var location = bridge.Locate(session);
+        var location = raids.SettlementOf(session);
         var now = clock.GetUtcNow();
         if (input.MessageType == ClientMessageType.GameFinishAntonRaidMovie)
         {
@@ -119,15 +123,45 @@ internal sealed class AntonRaidRewardCommandHandler(IAntonRaidRewardSettlementDo
                     await ProjectGrantAsync(award, ct).ConfigureAwait(false);
                 }
 
-                if (finished && await bridge.CompleteAsync(execution, advance.Snapshot, ct).ConfigureAwait(false)
-                    && settlements.Complete(advance.Snapshot.Seed.Instance, advance.Snapshot.Seed.Phase))
+                if (finished)
                 {
-                    settlements.Forget(advance.Snapshot.Seed.Instance);
+                    await CompletePhaseAsync(execution, advance.Snapshot, ct).ConfigureAwait(false);
+                    if (settlements.Complete(advance.Snapshot.Seed.Instance, advance.Snapshot.Seed.Phase))
+                        settlements.Forget(advance.Snapshot.Seed.Instance);
                 }
                 break;
         }
         return true;
     }
+
+    private async ValueTask CompletePhaseAsync(CommandExecutionContext execution, AntonRaidRewardSnapshot snapshot, CancellationToken ct)
+    {
+        var finalized = await units.WriteAsync(execution, new("anton-raid.finish-settlement", []),
+            (_, _) => ValueTask.FromResult(new PhaseFinalization(raids.CompletePhaseSettlement(
+                snapshot.Seed.Instance, snapshot.Seed.Phase))), ct).ConfigureAwait(false);
+        if (finalized.Change is not { Raid: { } raid } change)
+            return;
+        await squads.DeliverChangesAsync([change], ct).ConfigureAwait(false);
+        var recipients = raid.Members.Where(member => member.RejoinUntil is null)
+            .Select(member => member.Session).Where(sessions.IsInWorld).ToArray();
+        if (recipients.Length == 0)
+            return;
+        var messages = new List<IGameServerMessage> { AntonRaidRuntimeNotice.State(raid.Stage, raid.Phase) };
+        if (raid.Stage == AntonRaidStage.Break && raids.StageDeadline(recipients[0]) is { } breakEnds)
+            messages.AddRange(AntonRaidRuntimeNotice.Timer(breakEnds, clock.GetUtcNow(), kind: 1));
+        await AntonRaidRuntimeProjection.SendAsync(projections, recipients, messages, ct).ConfigureAwait(false);
+        foreach (var recipient in recipients)
+        {
+            if (entryIntents.Find(recipient)?.Raid is not { } selection
+                || selection.Instance != snapshot.Seed.Instance || selection.Phase != snapshot.Seed.Phase)
+                continue;
+            entryIntents.ClearExact(recipient);
+            if (towns.Find(recipient.CharacterId) is null)
+                await returns.ReturnAsync(recipient, ct).ConfigureAwait(false);
+        }
+    }
+
+    private sealed record PhaseFinalization(AntonRaidRecruitmentChange? Change);
 
     private async ValueTask<GrantOutcome> GrantAsync(CommandExecutionContext execution, AntonRaidRewardSnapshot snapshot,
         AntonRaidRewardGrant grant, CancellationToken ct)

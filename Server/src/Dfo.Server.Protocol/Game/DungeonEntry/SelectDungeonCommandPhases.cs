@@ -53,10 +53,10 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
         // Only looked at here: a refusal leaves the selection as it was, and the intent is spent
         // once the entry has committed.
-        var raidChannel = antonRaid is not null && await antonRaid.IsRaidChannelAsync(session, cancellationToken).ConfigureAwait(false);
+        var raidChannel = await antonRaid.IsRaidChannelAsync(session, cancellationToken).ConfigureAwait(false);
         var intent = entryIntents.Authorize(session, message.DungeonId, message.MirrorQuestId is not null);
         if (raidChannel && message.MirrorQuestId is null)
-            intent ??= antonRaid?.HatcherySelection(session, message.DungeonId);
+            intent ??= antonRaid.HatcherySelection(session, message.DungeonId);
         if (intent is null || raidChannel != (intent.Value.Kind == DungeonEntryIntentKind.AntonRaid))
         {
             logger.LogWarning(

@@ -21,7 +21,7 @@ internal sealed partial class AntonRaidDomainService(
     ChannelEntryOptions channelOptions,
     TimeProvider clock,
     IPartyLeaseService leases,
-    IAntonRaidContentSource content,
+    AntonRaidRuleService raidRules,
     IDungeonEntryMaterialsDomainService materials,
     ICharacterBusinessInventoryDomainService inventory,
     IMaterialConsumptionRuleService materialRules,

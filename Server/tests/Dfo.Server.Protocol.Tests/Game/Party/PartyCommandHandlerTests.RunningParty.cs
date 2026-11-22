@@ -195,7 +195,7 @@ public sealed partial class PartyCommandHandlerTests
             new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions, town, Parties,
                     new TestCommandProjections(projection.Events), projection.Streams,
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), RaidMembership, Refusals,
-                    NullLogger<GameSetPartyInfoCommandHandler>.Instance))
+                    NullLogger<GameSetPartyInfoCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
                 .SendAsync(new GameSetPartyInfoCommand(Dispatch(session),
                     new SetPartyInfoRequest(GameMessageMetadata.Empty, Settings(), PartyTitle.Empty))).AsTask();
 
@@ -203,7 +203,7 @@ public sealed partial class PartyCommandHandlerTests
             await new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions, town, Parties,
                     new FixedPartyMemberStatus(), new TestCommandProjections(projection.Events), projection.Streams,
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
-                    NullLogger<GameRequestPeerCommandHandler>.Instance))
+                    NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
                 .SendAsync(new GameRequestPeerCommand(Dispatch(from),
                     new RequestPeerRequest(GameMessageMetadata.Empty, to.WireUserId, 0, 64, [])));
 
@@ -211,7 +211,7 @@ public sealed partial class PartyCommandHandlerTests
             await new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions, town, Parties,
                     new TestCommandProjections(projection.Events), projection.Streams,
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
-                    NullLogger<GameResponsePeerCommandHandler>.Instance))
+                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
                 .SendAsync(new GameResponsePeerCommand(Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, 0, 0, [])));
 

@@ -56,6 +56,12 @@ public sealed class CommandHandlerArchitectureTests
             [typeof(Dfo.Server.Abstractions.DomainEvents.ICommandProjections)] = "只登记即时投影，不发布领域事实。",
             [typeof(Dfo.Server.Protocol.Game.IGameCommandOutbox)] = "Protocol所有的CMD/NOTI强类型登记。",
             [typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)] = "显式收件人的登记顺序组。",
+            [typeof(Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection)] =
+                "仅攻坚编组的客户端队伍编号映射和队伍快照登记，编组规则与事务留在原位。",
+            [typeof(Dfo.Server.Protocol.Game.AntonRaid.AntonRaidRewardProjection)] =
+                "仅读取当前收件人并登记攻坚结算和奖励资产帧，不发放奖励或开启事务。",
+            [typeof(Dfo.Server.Protocol.Game.DungeonTownReturnProjection)] =
+                "仅对指定会话执行已批准的返回城镇及其固定帧序，不选择副本或开启工作单元。",
             [typeof(IPartyService)] =
                 "队伍聚合的权威边界按领域语言明确命名为 PartyService；用户要求该名称不追加 Domain 后缀。",
         };

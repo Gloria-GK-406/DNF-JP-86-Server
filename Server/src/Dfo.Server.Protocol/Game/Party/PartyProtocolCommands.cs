@@ -154,7 +154,7 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
     IPartyService parties, IPartyMemberStatusDomainService memberStatus,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
     IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameRequestPeerCommandHandler> logger,
-    PartyClientIdRegistry? raidPartyIds = null)
+    AntonRaidSquadProjection raidSquads)
     : ICommandHandler<GameRequestPeerCommand, bool>
 {
 
@@ -218,7 +218,7 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
                 if (raids.IsPreparing(inviter))
                 {
                     var prepared = raids.PrepareSquad(inviter, AntonRaidSquadSignal.Invite, target);
-                    return prepared with { Notifications = raidPartyIds!.Project(prepared.Notifications) };
+                    return prepared with { Notifications = raidSquads.Project(prepared.Notifications) };
                 }
                 if (raids.IsRecruitingMember(inviter) && raids.IsRecruitingMember(target))
                 {
@@ -248,7 +248,7 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
     IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameResponsePeerCommandHandler> logger,
-    PartyClientIdRegistry? raidPartyIds = null, AntonRaidSquadProjection? raidSquads = null)
+    AntonRaidSquadProjection raidSquads)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -314,14 +314,14 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
                 if (message.PeerValue != 0)
                     return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
                 var prepared = raids.PrepareSquad(invitee, AntonRaidSquadSignal.Accept, inviter);
-                return prepared with { Notifications = raidPartyIds!.Project(prepared.Notifications) };
+                return prepared with { Notifications = raidSquads.Project(prepared.Notifications) };
             }
             if (raids.IsRecruitingMember(invitee) && raids.IsRecruitingMember(inviter))
             {
                 var accepted = raids.RespondSquadInvite(invitee, inviter, message.PeerValue == 0);
                 if (accepted.Succeeded)
                 {
-                    await raidSquads!.DeliverChangesAsync(accepted.Changes, cancellationToken).ConfigureAwait(false);
+                    await raidSquads.DeliverChangesAsync(accepted.Changes, cancellationToken).ConfigureAwait(false);
                     return PartyOperationResult.Success();
                 }
             }
@@ -358,7 +358,7 @@ internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDom
     IPartyService parties,
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
     IAntonRaidDomainService raids, IGameCommandOutbox outbox, ILogger<GameSetPartyInfoCommandHandler> logger,
-    PartyClientIdRegistry? raidPartyIds = null)
+    AntonRaidSquadProjection raidSquads)
     :
       ICommandHandler<GameSetPartyInfoCommand, bool>
 {
@@ -410,7 +410,7 @@ internal sealed partial class GameSetPartyInfoCommandHandler(ISelectedSessionDom
             if (!raids.IsPreparing(session) && !parties.FindParty(new(session.AccountId, session.CharacterId, session.WireUserId, null)).IsLeased)
                 return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
             var prepared = raids.PrepareSquad(session, AntonRaidSquadSignal.Settings);
-            return prepared with { Notifications = raidPartyIds!.Project(prepared.Notifications) };
+            return prepared with { Notifications = raidSquads.Project(prepared.Notifications) };
         }
     }
 }

@@ -22,12 +22,12 @@ public sealed class DungeonEntryRoutingDomainService(
     IDungeonEntryDecisionDomainService decisions,
     IDimensionDungeonDomainService dimensions,
     IHellDungeonEntryDomainService hell, IDarkElfRuinsDomainService ruins,
-    IAntonRaidDomainService? raids = null) : IDungeonEntryRoutingDomainService
+    IAntonRaidDomainService raids) : IDungeonEntryRoutingDomainService
 {
     public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct) =>
         entry.IsRaidChannel || entry.Facts.Intent.Kind == DungeonEntryIntentKind.AntonRaid
             || entry.DungeonId is >= 210 and <= 216 or >= 218 and <= 224
-            ? raids?.EnterAsync(entry, ct) ?? ValueTask.FromResult(DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite))
+            ? raids.EnterAsync(entry, ct)
         : ruins.Supports(entry.DungeonId) ? ruins.EnterAsync(entry, ct)
         : lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)
         : guardian.Supports(entry.DungeonId) ? guardian.EnterAsync(entry, ct)

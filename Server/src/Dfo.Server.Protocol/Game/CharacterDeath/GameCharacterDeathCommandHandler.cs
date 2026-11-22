@@ -64,12 +64,12 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
     private readonly IDungeonRunProjectionDomainService registry;
     private readonly ICommandConnectionClosures closures;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService antonRaid;
     public GameCharacterDeathCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunParticipantDomainService runs,
         IDungeonRunProjectionDomainService registry, IBossTowerDomainService bossTowers, IIllusionTowerDomainService illusionTowers,
         IDungeonParticipationDomainService participation, ICharacterDomainService characters, IOnlineUserQueryDomainService onlineUsers, ICommandWorkUnits units,
         IGameCommandOutbox outbox, ICommandConnectionClosures closures, TimeProvider clock, ILogger<GameCharacterDeathCommandHandler> logger,
-        IGuardianAltarDomainService guardian, Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null)
+        IGuardianAltarDomainService guardian, Dfo.Server.Abstractions.Raids.IAntonRaidDomainService antonRaid)
 
     {
         this.sessions = sessions; this.logger = logger; this.characters = characters; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.clock = clock; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers;this.runs=runs;this.registry=registry;this.closures=closures;
@@ -96,7 +96,7 @@ internal sealed partial class GameCharacterDeathCommandHandler : ICommandHandler
         // Original Direct mutation: no transaction or work unit is created for ordinary death.
         var occurredAt = clock.GetUtcNow();
         var committed=runs.TryMarkParticipantDead(session.CharacterId,expected.RunId,expected.RoomVersion);if(committed is null)return;
-        if (committed.Layout.Mode is DungeonRunMode.AntonRaid && antonRaid is not null)
+        if (committed.Layout.Mode is DungeonRunMode.AntonRaid)
         {
             await workUnits.WriteAsync(execution, new("anton-raid.character-death",
                     [CaptureParticipant(session) with { Metadata = message.Metadata }]), async (_, ct) =>

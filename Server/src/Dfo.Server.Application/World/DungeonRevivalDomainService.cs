@@ -10,7 +10,7 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
     ICharacterContainerDomainService containers, IDungeonRunParticipantDomainService runs,
     ITournamentDungeonDomainService tournaments, IAltarDungeonDomainService altars, IDarkElfRuinsDomainService ruins,
     Dfo.Server.Abstractions.Quests.IQuestProgressDomainService quests,
-    Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null) : IDungeonRevivalDomainService
+    Dfo.Server.Abstractions.Raids.IAntonRaidDomainService antonRaid) : IDungeonRevivalDomainService
 {
     public async ValueTask<DungeonRevivalResult> ReviveAsync(SelectedSessionIdentity payer,
         CharacterId target, DungeonRunId runId, CancellationToken cancellationToken)
@@ -26,7 +26,7 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
             DungeonRevivalPolicy.AltarLife => altars.CanRevive(target, runId),
             DungeonRevivalPolicy.DarkElfRuinsLife => ruins.CanRevive(payer.CharacterId, runId),
             DungeonRevivalPolicy.AntonRaidSquad => activeRun is not null && activeRun.RunId == runId
-                && antonRaid?.CanRevive(activeRun, target) == true,
+                && antonRaid.CanRevive(activeRun, target),
         };
         if (!permitted) return new(false);
         var bag = containers.FindContainer(payer.CharacterId, InventoryContainerType.Main);
@@ -38,7 +38,7 @@ internal sealed class DungeonRevivalDomainService(ISelectedSessionDomainService 
         if (policy == DungeonRevivalPolicy.AltarLife && !altars.StageRevival(target, runId))
             throw new InvalidOperationException("Altar revival changed after admission.");
         if (policy == DungeonRevivalPolicy.AntonRaidSquad
-            && !await antonRaid!.StageRevivalAsync(activeRun!, target, cancellationToken).ConfigureAwait(false))
+            && !await antonRaid.StageRevivalAsync(activeRun!, target, cancellationToken).ConfigureAwait(false))
             throw new InvalidOperationException("Anton raid revival budget changed after admission.");
         var remaining = (coin.Snapshot with { Count = coin.Count - 1 }).ToCore();
         // Keep the virtual counter at zero; the transactional item store commits before life state.

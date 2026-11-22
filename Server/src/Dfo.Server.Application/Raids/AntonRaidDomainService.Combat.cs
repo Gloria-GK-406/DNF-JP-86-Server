@@ -40,19 +40,10 @@ internal sealed partial class AntonRaidDomainService
             || Of(leader) != owned.Raid || !sessions.IsInWorld(leader)
             || owned.Sortie.Participants.GetValueOrDefault(leader.CharacterId) != leader
             || parties.FindByKey(owned.Raid.Lease.Keys[owned.Sortie.Squad - 1])?.LeaderCharacterId != leader.CharacterId
-            || HatcheryAt(run.CurrentRoomMapId) != dungeonId || !owned.Combat.HasCapacity(dungeonId, owned.Sortie.Squad, run.RunId))
+            || AntonRaidRuleService.HatcheryAt(run.CurrentRoomMapId) != dungeonId || !owned.Combat.HasCapacity(dungeonId, owned.Sortie.Squad, run.RunId))
             return null;
         return DungeonEntryIntent.AntonRaid(identity, dungeonId, run.RunId);
     }
-
-    private static int HatcheryAt(int room) => room switch
-    {
-        19100 => 224,
-        19103 => 221,
-        19116 => 223,
-        19119 => 222,
-        _ => 0,
-    };
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
@@ -62,7 +53,7 @@ internal sealed partial class AntonRaidDomainService
             || context.PracticeMode != 0 || context.MirrorQuestId is not null
             || CurrentCombat(identity) is not { Combat: { } live } raid
             || !live.AttackOpenAt(clock.GetUtcNow())
-            || content.Load().Hatcheries.Contains(context.DungeonId) != source.HasValue)
+            || raidRules.Current.Hatcheries.Contains(context.DungeonId) != source.HasValue)
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
 
         var combat = WithoutAbortedEntries(live);
@@ -80,7 +71,7 @@ internal sealed partial class AntonRaidDomainService
             || context.Participants.Any(member => dungeonRuns.Find(member.CharacterId)?.RunId != source)))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite);
 
-        var rule = content.Load().Phases[combat.Phase].Maps.Single(map => map.DungeonId == context.DungeonId);
+        var rule = raidRules.Current.Phases[combat.Phase].Maps.Single(map => map.DungeonId == context.DungeonId);
         var facts = context.Facts with { Difficulty = rule.Difficulty, Intent = DungeonEntryIntent.Interactive };
         var result = await admission.ExecuteAsync(context with { Facts = facts },
             new() { EnforceOrdinaryDifficulty = false, ConsumesFatigue = false, RequiredItemsOverride = [], RaidTransferFrom = source },
@@ -156,7 +147,7 @@ internal sealed partial class AntonRaidDomainService
 
     public bool CanRevive(DungeonRunState run, CharacterId target) =>
         RaidSortie(run) is { } owned && owned.Sortie.Participants.ContainsKey(target)
-        && owned.Sortie.UsedCoins < content.Load().Phases[owned.Combat.Phase].Maps
+        && owned.Sortie.UsedCoins < raidRules.Current.Phases[owned.Combat.Phase].Maps
             .Single(map => map.DungeonId == run.Layout.DungeonId).CoinLimit + owned.Sortie.BonusCoins;
 
     public async ValueTask<bool> StageRevivalAsync(DungeonRunState run, CharacterId target, CancellationToken ct)
@@ -186,7 +177,7 @@ internal sealed partial class AntonRaidDomainService
         if (dungeonRuns.Find(session.CharacterId) is not { } run || RaidSortie(run) is not { } owned
             || owned.Combat.Phase != 1 || !sessions.IsInWorld(session)
             || owned.Sortie.Participants.GetValueOrDefault(session.CharacterId) != session
-            || symbol != content.Load().Symbols["[BLACK VOLCANO BARRIER]"])
+            || symbol != raidRules.Current.Symbols["[BLACK VOLCANO BARRIER]"])
             return false;
         var now = clock.GetUtcNow();
         var next = owned.Combat.Copy();
@@ -201,7 +192,7 @@ internal sealed partial class AntonRaidDomainService
         IReadOnlyList<uint> targets, CancellationToken ct)
     {
         if (Of(session) is not { Stage: AntonRaidStage.Attacking, Combat: { } combat } raid
-            || !sessions.IsInWorld(session) || content.Load().Buffs.SingleOrDefault(buff => buff.Type == type) is not { } rule)
+            || !sessions.IsInWorld(session) || raidRules.Current.Buffs.SingleOrDefault(buff => buff.Type == type) is not { } rule)
             return false;
         var target = session;
         if (rule.Party)
@@ -253,7 +244,7 @@ internal sealed partial class AntonRaidDomainService
 
     private AntonRaidCombatDeadline BreakDeadline(Recruitment raid, DateTimeOffset until) =>
         new(raid.Lease.Owner, raid.Number, raid.Phase, raid.PreparationGeneration, AntonRaidCombatDeadlineKind.Intermission,
-            0, 0, until, (int)content.Load().IntermissionTime.TotalSeconds);
+            0, 0, until, (int)raidRules.Current.IntermissionTime.TotalSeconds);
 
     public IReadOnlyList<SelectedSessionIdentity> CombatParticipants(AntonRaidCombatDeadline deadline) =>
         raids.TryGetValue(deadline.Number, out var raid) && raid.Lease.Owner == deadline.Instance ? Audience(raid) : [];
@@ -366,7 +357,7 @@ internal sealed partial class AntonRaidDomainService
         StageAdmission(raid, () =>
         {
             raid.Stage = stage;
-            raid.Deadline = stage == AntonRaidStage.Break ? clock.GetUtcNow() + content.Load().IntermissionTime : null;
+            raid.Deadline = stage == AntonRaidStage.Break ? clock.GetUtcNow() + raidRules.Current.IntermissionTime : null;
             if (raid.Combat is { } combat)
                 pendingReturns.UnionWith(combat.Ends.Select(run => run.Value));
             deadlines.Wake(DungeonDeadlineKind.AntonRaid);

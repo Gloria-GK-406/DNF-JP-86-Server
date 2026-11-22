@@ -351,7 +351,7 @@ public sealed class AntonRaidRecruitmentTests
                 method.Name == "IsConsumable" ? true : null);
             var materials = new TestMaterials(expectedPaid, () => MaterialAttempts++);
             Raids = new AntonRaidDomainService(sessions, locations, Parties, ChannelEntryOptions.Legacy, Clock,
-                Parties, new TestContent(), materials, inventory, materialRules, TestRequired.Absent<IDungeonDeadlineWake>(), Transactions,
+                Parties, new AntonRaidRuleService(new TestContent()), materials, inventory, materialRules, TestRequired.Absent<IDungeonDeadlineWake>(), Transactions,
                 TestRequired.Absent<IChannelEntryDomainService>(), TestRequired.Absent<IDungeonAdmissionDomainService>(),
                 TestRequired.Absent<IDungeonVisitDomainService>(), TestRequired.Absent<IDungeonStructureRuleService>(),
                 TestRequired.Absent<IDungeonRunQueryDomainService>(), TestRequired.Absent<IEventService>());

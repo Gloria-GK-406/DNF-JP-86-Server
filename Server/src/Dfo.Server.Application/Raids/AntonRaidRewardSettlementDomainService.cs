@@ -5,7 +5,7 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Raids;
 
 internal sealed class AntonRaidRewardSettlementDomainService(
-    IAntonRaidRewardContentSource content, IDungeonDeadlineWake deadlines) : IAntonRaidRewardSettlementDomainService
+    AntonRaidRewardRuleService rules, IDungeonDeadlineWake deadlines) : IAntonRaidRewardSettlementDomainService
 {
     private static readonly TimeSpan PromptDelay = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan MovieLimit = TimeSpan.FromSeconds(15);
@@ -25,7 +25,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
                 && (previous.Seed.Phase >= seed.Phase || previous.Stage != AntonRaidRewardStage.Complete))
                 return null;
 
-            var definition = content.Read();
+            var definition = rules.Current;
             var round = new Round(seed with { Eligible = seed.Eligible.ToArray(), Audience = seed.Audience.ToArray() },
                 definition.Phases[seed.Phase], definition.RetryCertificate, now);
             active[seed.Instance] = round;
@@ -202,7 +202,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
         {
             Seed = seed;
             this.retry = retry;
-            Rank = AntonRaidSettlementRules.Rank(phase, seed.DeathCount);
+            Rank = AntonRaidRewardRuleService.Rank(phase, seed.DeathCount);
             MovieFallback = now + MovieLimit;
 
             var groups = new Dictionary<byte, Squad>();
@@ -228,7 +228,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
                 Deadline = now + PromptDelay;
                 SquadCards = Participants.Values.Select(participant =>
                 {
-                    var (item, flags) = AntonRaidSettlementRules.Draw(phase, AntonRaidRewardKind.SquadItem, Rank);
+                    var (item, flags) = AntonRaidRewardRuleService.Draw(phase, AntonRaidRewardKind.SquadItem, Rank);
                     return new AntonRaidRewardCard(participant.Recipient.Character,
                         AntonRaidRewardKind.SquadItem, 1, flags, item);
                 }).ToArray();
@@ -298,6 +298,6 @@ internal sealed class AntonRaidRewardSettlementDomainService(
         internal bool[] Occupied { get; } = new bool[4];
         internal Dictionary<AntonRaidRewardKind, (AntonRaidRewardItem Item, byte Flags)[]> Cards { get; } =
             new[] { AntonRaidRewardKind.PartyCard, AntonRaidRewardKind.Gold }.ToDictionary(kind => kind,
-                kind => Enumerable.Range(0, 4).Select(_ => AntonRaidSettlementRules.Draw(phase, kind, rank)).ToArray());
+                kind => Enumerable.Range(0, 4).Select(_ => AntonRaidRewardRuleService.Draw(phase, kind, rank)).ToArray());
     }
 }

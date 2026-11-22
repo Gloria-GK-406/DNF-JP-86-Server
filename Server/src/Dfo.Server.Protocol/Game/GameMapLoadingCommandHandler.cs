@@ -73,7 +73,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
     private readonly ICommandConnectionClosures closures;
     private readonly IGameCommandOutbox mapOutbox;
     private readonly IGuardianAltarDomainService guardian;
-    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid;
+    private readonly Dfo.Server.Abstractions.Raids.IAntonRaidDomainService antonRaid;
     public GameMapLoadingCommandHandler(ISelectedSessionDomainService sessions, IDungeonRunEntryDomainService runs,
         IDungeonVisitDomainService visits, IDungeonRunProjectionDomainService registry, IPartyService parties,
         ICharacterFatigueDomainService fatigue, IWeaknessDomainService weaknessState,
@@ -81,7 +81,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
         IDungeonParticipationDomainService participation, ICommandProjections projections, IGameCommandOutbox outbox, ICommandWorkUnits units,
         ICommandConnectionClosures closures, IOnlineUserQueryDomainService onlineUsers,
         ILogger<GameMapLoadingCommandHandler> logger, IGuardianAltarDomainService guardian,
-        Dfo.Server.Abstractions.Raids.IAntonRaidDomainService? antonRaid = null)
+        Dfo.Server.Abstractions.Raids.IAntonRaidDomainService antonRaid)
 
     {
         this.sessions = sessions; this.projections = projections; this.logger = logger; this.bossTowers = bossTowers; this.illusionTowers = illusionTowers; bossKind = new BossTowerRunKind(bossTowers); illusionKind = new IllusionTowerRunKind(illusionTowers); this.participation = participation; this.outbox = outbox; this.workUnits = units; this.onlineUsers = onlineUsers; this.parties = parties;
@@ -107,7 +107,7 @@ internal sealed partial class GameMapLoadingCommandHandler :
         }
         var completed = await CompleteOrdinaryLoadingAsync(id, token).ConfigureAwait(false);
         var selected = sessions.FindByConnection(id);
-        if (completed && selected is not null && antonRaid is not null
+        if (completed && selected is not null
             && runs.Find(selected.CharacterId) is { Layout.Mode: DungeonRunMode.AntonRaid, RoomVersion: 0 } raidRun)
         {
             await workUnits.WriteAsync(execution, new("anton-raid.ready", [CaptureParticipant(selected)]),

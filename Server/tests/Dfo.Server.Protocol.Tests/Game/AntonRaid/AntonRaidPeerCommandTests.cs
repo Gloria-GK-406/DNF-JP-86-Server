@@ -62,7 +62,7 @@ public sealed class AntonRaidPeerCommandTests
             views, runtime, TestRequired.Absent<ITownTransitDomainService>(), town, outbox, TestRequired.Absent<IWeaknessDomainService>(),
             projections, parties, partyProjection);
         var rewards = new AntonRaidRewardProjection(TestRequired.Absent<IAntonRaidRewardSettlementDomainService>(),
-            TestRequired.Absent<IAntonRaidRewardPhaseBridge>(), sessions, views, outbox, TimeProvider.System);
+            raids, sessions, views, outbox, TimeProvider.System);
         var handler = ProtocolAlgorithmFixture.Create<GameAntonRaidCommandHandler>(sessions, raids, channels, views, workUnits,
             projections, parties, order, partyProjection, outbox, squadProjection, returnProjection, rewards);
         var command = new GameAntonRaidCommand(new(new(applicant.ConnectionId, NetworkEndpointKind.Game, 10200)),
