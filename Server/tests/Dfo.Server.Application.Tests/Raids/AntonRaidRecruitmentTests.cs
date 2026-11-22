@@ -24,6 +24,14 @@ namespace Dfo.Server.Application.Tests.Raids;
 public sealed class AntonRaidRecruitmentTests
 {
     [Fact]
+    public void Raid_dungeon_ownership_uses_the_configured_phase_maps()
+    {
+        var fixture = new Fixture(phaseDungeonId: 301);
+        Assert.True(fixture.Raids.SupportsDungeon(301));
+        Assert.False(fixture.Raids.SupportsDungeon(210));
+    }
+
+    [Fact]
     public void Only_the_current_leader_can_approve_a_live_application()
     {
         TestGameplay.Run(() =>
@@ -357,7 +365,7 @@ public sealed class AntonRaidRecruitmentTests
         private readonly OnlineStateRegistry registry;
         private readonly OnlineCharacterRuntimeDomainService runtime;
 
-        public Fixture(int expectedPaid = 2, int maximumMembers = 20)
+        public Fixture(int expectedPaid = 2, int maximumMembers = 20, int? phaseDungeonId = null)
         {
             sessions = TestSessions.Directory(out registry);
             var locations = new OnlineCharacterLocationDomainService();
@@ -374,7 +382,7 @@ public sealed class AntonRaidRecruitmentTests
                 method.Name == "IsConsumable" ? true : null);
             var materials = new TestMaterials(expectedPaid, () => MaterialAttempts++);
             Raids = new AntonRaidDomainService(sessions, locations, Parties, ChannelEntryOptions.Legacy, Clock,
-                Parties, new AntonRaidRuleService(new TestContent(maximumMembers), new Dfo.Server.Application.Parties.PartyModeRuleService()),
+                Parties, new AntonRaidRuleService(new TestContent(maximumMembers, phaseDungeonId), new Dfo.Server.Application.Parties.PartyModeRuleService()),
                 materials, inventory, materialRules, TestRequired.Absent<IDungeonDeadlineWake>(), Transactions,
                 TestRequired.Absent<IChannelEntryDomainService>(), TestRequired.Absent<IDungeonAdmissionDomainService>(),
                 TestRequired.Absent<IDungeonVisitDomainService>(), TestRequired.Absent<IDungeonStructureRuleService>(),
@@ -402,12 +410,17 @@ public sealed class AntonRaidRecruitmentTests
         }
     }
 
-    private sealed class TestContent(int maximumMembers) : IAntonRaidContentSource
+    private sealed class TestContent(int maximumMembers, int? phaseDungeonId) : IAntonRaidContentSource
     {
         public AntonRaidRules Load() => new(2, maximumMembers, TimeSpan.FromSeconds(3), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(5),
             10096296, 1, 10099897, 1, [TimeSpan.FromMinutes(40), TimeSpan.FromMinutes(40)])
         {
-            Phases = [new([], []), new([], [])],
+            Phases =
+            [
+                new([], []),
+                new(phaseDungeonId is { } dungeon
+                    ? [new(dungeon, AntonRaidMapStatus.Open, 0, 1, 1, 1, DungeonDifficulty.Normal)] : [], []),
+            ],
         };
     }
 

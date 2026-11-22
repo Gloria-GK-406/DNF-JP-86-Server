@@ -26,7 +26,7 @@ public sealed class DungeonEntryRoutingDomainService(
 {
     public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct) =>
         entry.IsRaidChannel || entry.Facts.Intent.Kind == DungeonEntryIntentKind.AntonRaid
-            || entry.DungeonId is >= 210 and <= 216 or >= 218 and <= 224
+            || raids.SupportsDungeon(entry.DungeonId)
             ? raids.EnterAsync(entry, ct)
         : ruins.Supports(entry.DungeonId) ? ruins.EnterAsync(entry, ct)
         : lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)

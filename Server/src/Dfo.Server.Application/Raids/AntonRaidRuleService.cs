@@ -22,6 +22,9 @@ internal sealed class AntonRaidRuleService(IAntonRaidContentSource source, IPart
     internal static bool LimitsPhaseClearQuestProgressToOncePerDay(int questId) =>
         questId == DailyPhaseClearQuestId;
 
+    internal bool SupportsDungeon(int dungeonId) =>
+        Current.Phases.Any(phase => phase.Maps.Any(map => map.DungeonId == dungeonId));
+
     internal bool HasRecruitmentSpace(int members) => Fits(Current, members + 1);
 
     internal bool HasSquadSpace(int members) => members < partyRules.MaximumCapacity;

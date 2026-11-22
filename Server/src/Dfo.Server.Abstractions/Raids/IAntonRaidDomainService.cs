@@ -42,6 +42,7 @@ public interface IAntonRaidDomainService : IDungeonBossClearHook
     ValueTask<AntonRaidPreparationOutcome> FinishPreparationAsync(AntonRaidDeadline deadline, CancellationToken ct);
     AntonRaidPreparationOutcome CancelPreparation(AntonRaidDeadline deadline);
     ValueTask<bool> IsRaidChannelAsync(SelectedSessionIdentity session, CancellationToken ct);
+    bool SupportsDungeon(int dungeonId);
     DungeonEntryIntent? Selection(SelectedSessionIdentity leader, int selection);
     DungeonEntryIntent? HatcherySelection(SelectedSessionIdentity leader, int dungeonId);
     ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct);

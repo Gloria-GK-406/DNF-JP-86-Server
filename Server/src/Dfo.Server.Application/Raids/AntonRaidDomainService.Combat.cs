@@ -20,6 +20,8 @@ internal sealed partial class AntonRaidDomainService
     public async ValueTask<bool> IsRaidChannelAsync(SelectedSessionIdentity session, CancellationToken ct) =>
         (await channelEntry.ResolveAsync(session.ListenerPort, ct).ConfigureAwait(false)).Kind == ChannelEntryKind.Raid;
 
+    public bool SupportsDungeon(int dungeonId) => raidRules.SupportsDungeon(dungeonId);
+
     public DungeonEntryIntent? Selection(SelectedSessionIdentity leader, int selection)
     {
         if (Of(leader) is not { Stage: AntonRaidStage.Attacking, Combat: { } combat } raid
