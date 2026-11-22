@@ -34,7 +34,7 @@ internal static class AntonRaidCombatFrames
     internal static IReadOnlyList<IGameNotiMessage> Change(AntonRaidCombatChanged change, DateTimeOffset now)
     {
         if (change.Full)
-            return Snapshot(change.Snapshot, now);
+            return Snapshot(change.Snapshot, now, includeMovieSymbols: true);
         var frames = new List<IGameNotiMessage>();
         foreach (var map in change.Maps)
             frames.Add(AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMapChanged, writer =>
@@ -71,11 +71,14 @@ internal static class AntonRaidCombatFrames
         return frames;
     }
 
-    internal static IReadOnlyList<IGameNotiMessage> Snapshot(AntonRaidCombatSnapshot snapshot, DateTimeOffset now)
+    internal static IReadOnlyList<IGameNotiMessage> Snapshot(AntonRaidCombatSnapshot snapshot, DateTimeOffset now,
+        bool includeMovieSymbols = false)
     {
         var frames = new List<IGameNotiMessage> { MapSnapshot(snapshot), Symbols([new(0, 0)]) };
-        if (snapshot.Symbols.Count > 0)
-            frames.Add(Symbols(snapshot.Symbols.ToArray()));
+        // A21 symbols 121–128 play cutscenes. Only the phase start may include them in a snapshot.
+        var symbols = snapshot.Symbols.Where(symbol => includeMovieSymbols || symbol.Key is < 121 or > 128).ToArray();
+        if (symbols.Length > 0)
+            frames.Add(Symbols(symbols));
         frames.AddRange(snapshot.Timers.Select(Timer));
         if (snapshot.Timers.SingleOrDefault(timer => timer.Kind is AntonRaidCombatDeadlineKind.Attack
             or AntonRaidCombatDeadlineKind.Intermission) is { Duration: > 0 } wholePhase)

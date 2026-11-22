@@ -11,6 +11,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Protocol.Tests.Game.AntonRaid;
 
+[Trait("Category", "Unit")]
 public sealed class AntonRaidRewardPhaseSubscriberTests
 {
     [Fact]

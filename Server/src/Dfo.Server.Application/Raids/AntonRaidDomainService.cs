@@ -277,6 +277,7 @@ internal sealed partial class AntonRaidDomainService(
         public long PreparationGeneration { get; set; }
         public HashSet<byte> PreparedSquads { get; } = [];
         public Dictionary<byte, CharacterId> SquadLeaders { get; } = [];
+        public Dictionary<(SelectedSessionIdentity Inviter, SelectedSessionIdentity Invitee), PendingSquadInvite> SquadInvites { get; } = [];
         public HashSet<CharacterId> PaidTickets { get; } = [];
         public AntonRaidPhaseRuntime? Combat { get; set; }
         public Dictionary<byte, AntonRaidPhaseOutcome> Outcomes { get; } = [];

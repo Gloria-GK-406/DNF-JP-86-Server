@@ -94,6 +94,16 @@ internal sealed class AntonRaidPhaseRuntime
         && Sorties.Values.Count(other => other.DungeonId == dungeon)
             < phase.Maps.Single(rule => rule.DungeonId == dungeon).PartyLimit;
 
+    internal void StartSortie(DungeonRunId run, int dungeon, byte squad, bool isTransfer)
+    {
+        var previous = isTransfer ? Sorties[squad] : null;
+        Sorties[squad] = new(run, dungeon, squad, new Dictionary<CharacterId, SelectedSessionIdentity>(),
+            UsedCoins: previous?.UsedCoins ?? 0)
+        {
+            BonusCoins = previous?.BonusCoins ?? 0,
+        };
+    }
+
     internal bool Clear(Sortie sortie, IReadOnlyCollection<CharacterId> atClear, DateTimeOffset now, int seed)
     {
         if (!AttackOpenAt(now) || sortie.Cleared || !maps.TryGetValue(sortie.DungeonId, out var map)

@@ -61,6 +61,16 @@ public sealed class AntonRaidPhaseRuntimeTests
         Assert.Equal(3, rules.Hatcheries.Count(id => snapshot.Maps[id] == AntonRaidMapStatus.Open));
         Assert.Equal(AntonRaidMapStatus.Open, snapshot.Maps[(int)snapshot.InfectedMap]);
 
+        runtime.StartSortie(DungeonRunId.New(), 218, 1, isTransfer: false);
+        runtime.Sorties[1] = runtime.Sorties[1] with { UsedCoins = 3, BonusCoins = 2 };
+        var hatcheryRun = DungeonRunId.New();
+        runtime.StartSortie(hatcheryRun, (int)snapshot.InfectedMap, 1, isTransfer: true);
+        var transferred = Assert.Single(runtime.Snapshot().Sorties);
+        Assert.Equal(hatcheryRun.Value, transferred.Run);
+        Assert.Equal(3, transferred.UsedCoins);
+        Assert.Equal(2, runtime.Sorties[1].BonusCoins);
+        runtime.Sorties.Remove(1);
+
         Clear(runtime, 219, 1, hatchery.At);
         Assert.All(rules.Hatcheries, id => Assert.Equal(AntonRaidMapStatus.Hidden, runtime.Snapshot().Maps[id]));
         Clear(runtime, 220, 4, hatchery.At);

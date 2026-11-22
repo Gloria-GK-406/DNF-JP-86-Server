@@ -6,6 +6,7 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Tests.Raids;
 
+[Trait("Category", "Unit")]
 public sealed class AntonRaidTimeoutTests
 {
     [Fact]

@@ -79,6 +79,7 @@ internal sealed class GameAntonRaidCommandHandler(
                 }
                 await DeliverAsync(result).ConfigureAwait(false);
                 await SendReplyAsync(ServerMessageType.GameCreateAntonRaidReply, result.Succeeded, result.Number).ConfigureAwait(false);
+                await RefreshTicketStatusAsync(result).ConfigureAwait(false);
                 return result.Succeeded;
 
             case ClientMessageType.GameCheckAntonRaidUser:
@@ -95,6 +96,7 @@ internal sealed class GameAntonRaidCommandHandler(
                     return false;
                 var approval = raids.Respond(session, sender, input.Value == 0);
                 await DeliverAsync(approval).ConfigureAwait(false);
+                await RefreshTicketStatusAsync(approval).ConfigureAwait(false);
                 return approval.Succeeded;
 
             case ClientMessageType.GameLeaveAntonRaid:
@@ -249,6 +251,18 @@ internal sealed class GameAntonRaidCommandHandler(
 
         ValueTask SendReplyAsync(ServerMessageType type, bool accepted, uint value = 0) =>
             outbox.RegisterCmdAsync(connection, new AntonRaidReply(type, accepted, value), ct);
+
+        async ValueTask RefreshTicketStatusAsync(AntonRaidRecruitmentResult change)
+        {
+            if (change.Changes.SingleOrDefault(entry => entry.Number == change.Number)?.Raid is not { } raid)
+                return;
+
+            var tickets = await units.WriteAsync(execution, new("AntonRaidRecruitmentTickets", []),
+                (_, token) => raids.TicketsAsync(raid.Leader.Session, token), ct).ConfigureAwait(false);
+            await AntonRaidRuntimeProjection.SendAsync(projections,
+                raid.Members.Where(member => member.RejoinUntil is null).Select(member => member.Session).ToArray(),
+                [AntonRaidRuntimeNotice.Tickets(tickets)], ct).ConfigureAwait(false);
+        }
 
         async ValueTask DeliverAsync(AntonRaidRecruitmentResult change)
         {

@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Dfo.Server.Protocol.Tests.Game.AntonRaid;
 
+[Trait("Category", "Unit")]
 public sealed class AntonRaidRewardFramesTests
 {
     [Fact]

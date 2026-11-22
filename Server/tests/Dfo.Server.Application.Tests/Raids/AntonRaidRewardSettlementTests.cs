@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Dfo.Server.Application.Tests.Raids;
 
+[Trait("Category", "Unit")]
 public sealed class AntonRaidRewardSettlementTests
 {
     private static readonly DateTimeOffset Start = DateTimeOffset.UnixEpoch;

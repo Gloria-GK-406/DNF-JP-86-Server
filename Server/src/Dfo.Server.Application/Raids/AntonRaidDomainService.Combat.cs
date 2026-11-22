@@ -94,8 +94,7 @@ internal sealed partial class AntonRaidDomainService
         if (result.Entry?.Visits.Values.FirstOrDefault()?.Run is { } run)
         {
             var next = combat.Copy();
-            next.Sorties[identity.Squad] = new(run.RunId, context.DungeonId, identity.Squad,
-                new Dictionary<CharacterId, SelectedSessionIdentity>());
+            next.StartSortie(run.RunId, context.DungeonId, identity.Squad, isTransfer: source is not null);
             if (source is not null || combat != live)
                 await PublishCombatAsync(raid, next, ct, participation: true).ConfigureAwait(false);
             StageCombat(raid, next);
@@ -420,13 +419,15 @@ internal sealed partial class AntonRaidDomainService
         if (next.Succeeded is { } success)
         {
             var eligible = success ? next.ClearParticipants : next.Participants;
-            var members = raid.Members.Where(member => eligible.Contains(member.Session.CharacterId)).Select(member =>
+            var settlementMembers = raid.Members
+                .Where(member => member.RejoinUntil is null || member.RejoinUntil > now).ToArray();
+            var members = settlementMembers.Where(member => eligible.Contains(member.Session.CharacterId)).Select(member =>
                 new AntonRaidPhaseParticipant(member.Session.AccountId, member.Session.CharacterId, member.Squad,
                     member == raid.Leader ? (byte)0 : member.Squad != 0
-                    && SquadOrder(raid, member.Squad, raid.Members.Where(candidate => candidate.Squad == member.Squad)).First() == member
+                    && SquadOrder(raid, member.Squad, settlementMembers.Where(candidate => candidate.Squad == member.Squad)).First() == member
                         ? (byte)1 : (byte)2)).ToArray();
             outcome = new(next.Instance, next.Number, next.Phase, success, next.DeathCount,
-                next.StartedAt, now, Array.AsReadOnly(members), Audience(raid).Select(member => member.CharacterId).ToArray());
+                next.StartedAt, now, Array.AsReadOnly(members), settlementMembers.Select(member => member.Session.CharacterId).ToArray());
         }
         await PublishCombatAsync(raid, next, ct, participation).ConfigureAwait(false);
         if (outcome is not null)

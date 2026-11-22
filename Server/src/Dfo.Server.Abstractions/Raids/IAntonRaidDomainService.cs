@@ -28,7 +28,8 @@ public interface IAntonRaidDomainService : IDungeonBossClearHook
     IReadOnlyList<PartyNotificationPlan> RestoreAvailableSquads();
     AntonRaidRecruitmentResult TransferLeadership(SelectedSessionIdentity sender, ushort target);
     AntonRaidRecruitmentResult ChangeTitle(SelectedSessionIdentity sender, ReadOnlyMemory<byte> title);
-    AntonRaidRecruitmentResult MoveFromPartyRequest(SelectedSessionIdentity sender, SelectedSessionIdentity peer, AntonRaidSquadSignal signal);
+    PartyOperationResult RequestSquadInvite(SelectedSessionIdentity inviter, SelectedSessionIdentity invitee, PartyInviteDisplayState display);
+    AntonRaidRecruitmentResult RespondSquadInvite(SelectedSessionIdentity invitee, SelectedSessionIdentity inviter, bool accepted);
     AntonRaidRecruitmentResult LeaveSquad(SelectedSessionIdentity sender);
     AntonRaidRecruitmentResult SetSquadLeader(SelectedSessionIdentity sender, SelectedSessionIdentity target);
     ValueTask<AntonRaidStart> StartAsync(SelectedSessionIdentity leader, CancellationToken ct);

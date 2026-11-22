@@ -20,6 +20,7 @@ using Dfo.Server.Testing;
 
 namespace Dfo.Server.Application.Tests.Raids;
 
+[Trait("Category", "Unit")]
 public sealed class AntonRaidRecruitmentTests
 {
     [Fact]
@@ -193,9 +194,137 @@ public sealed class AntonRaidRecruitmentTests
             Assert.True(fixture.Raids.PrepareSquad(leader.Session, AntonRaidSquadSignal.Settings).Succeeded);
             Assert.True(fixture.Raids.LeaveSquad(partner.Session).Succeeded);
             Assert.Equal(PartyKeyKind.Virtual, fixture.Parties.KeyOf(partner.Session.CharacterId).Kind);
-            Assert.True(fixture.Raids.MoveFromPartyRequest(leader.Session, partner.Session, AntonRaidSquadSignal.Invite).Succeeded);
+            Assert.True(fixture.Raids.RequestSquadInvite(leader.Session, partner.Session, new(10, 156, 100, 0)).Succeeded);
+            Assert.Equal(PartyKeyKind.Virtual, fixture.Parties.KeyOf(partner.Session.CharacterId).Kind);
+            Assert.True(fixture.Raids.RespondSquadInvite(partner.Session, leader.Session, accepted: true).Succeeded);
             Assert.Equal(key, fixture.Parties.KeyOf(partner.Session.CharacterId));
             Assert.Equal(2, fixture.MaterialAttempts);
+        });
+    }
+
+    [Fact]
+    public async Task Raid_members_can_form_another_squad_after_leaving_the_original_one()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture(expectedPaid: 4) { TicketAvailable = true };
+            var leader = fixture.Admit(1).Session;
+            var other = fixture.Admit(2);
+            var inviter = fixture.Admit(3);
+            var invitee = fixture.Admit(4);
+            var outsider = fixture.Admit(5);
+            var raid = fixture.Raids.Create(new(leader, "leader"u8.ToArray(), 0, 0, 0), "test"u8.ToArray());
+
+            foreach (var applicant in new[] { other, inviter, invitee })
+            {
+                Assert.NotNull(fixture.Raids.Request(applicant, raid.Changes.Single().Raid!.Leader));
+                Assert.True(fixture.Raids.Respond(leader, applicant.Session, true).Succeeded);
+            }
+            foreach (var member in fixture.Raids.Find(200, raid.Number)!.Members)
+                Assert.True(fixture.Raids.Assign(leader, member.Session.WireUserId, 6).Succeeded);
+            await using (var start = fixture.Transactions.Begin())
+            {
+                Assert.True((await fixture.Raids.StartAsync(leader, default)).Started);
+                await start.CommitAsync(default);
+            }
+            Assert.True(fixture.Raids.PrepareSquad(leader, AntonRaidSquadSignal.Settings).Succeeded);
+            var deadline = Assert.Single(fixture.Raids.PreparationDeadlines());
+            fixture.Clock.Now = deadline.At;
+            await using (var finish = fixture.Transactions.Begin())
+            {
+                Assert.NotNull((await fixture.Raids.FinishPreparationAsync(deadline, default)).AttackDeadline);
+                await finish.CommitAsync(default);
+            }
+            var originalParty = fixture.Parties.KeyOf(leader.CharacterId);
+            Assert.Equal(originalParty, fixture.Parties.KeyOf(inviter.Session.CharacterId));
+
+            foreach (var member in new[] { other, inviter, invitee })
+                Assert.True(fixture.Raids.LeaveSquad(member.Session).Succeeded);
+
+            var display = new PartyInviteDisplayState(10, 156, 100, 0);
+            Assert.False(fixture.Raids.RequestSquadInvite(inviter.Session, outsider.Session, display).Succeeded);
+            Assert.False(fixture.Raids.RespondSquadInvite(invitee.Session, inviter.Session, accepted: true).Succeeded);
+            Assert.True(fixture.Raids.RequestSquadInvite(inviter.Session, invitee.Session, display).Succeeded);
+            Assert.True(fixture.Raids.RespondSquadInvite(invitee.Session, inviter.Session, accepted: false).Succeeded);
+            Assert.False(fixture.Raids.RespondSquadInvite(invitee.Session, inviter.Session, accepted: true).Succeeded);
+
+            Assert.True(fixture.Raids.RequestSquadInvite(inviter.Session, invitee.Session, display).Succeeded);
+            Assert.Equal(PartyKeyKind.Virtual, fixture.Parties.KeyOf(inviter.Session.CharacterId).Kind);
+            var accepted = fixture.Raids.RespondSquadInvite(invitee.Session, inviter.Session, accepted: true);
+            Assert.True(accepted.Succeeded);
+            var squadChange = Assert.Single(accepted.Changes);
+            var squad = Assert.Single(squadChange.Squads);
+            Assert.Equal(inviter.Session.WireUserId, squad.Snapshot!.LeaderWireUserId);
+            Assert.Equal(invitee.Session.CharacterId, squad.Acceptance!.JoiningCharacterId);
+            Assert.Equal(squad.Snapshot.Key, fixture.Parties.KeyOf(invitee.Session.CharacterId));
+            Assert.Equal(new byte[] { 6, 0, 1, 1 }, squadChange.Raid!.Members.Select(member => member.Squad));
+
+            Assert.True(fixture.Raids.RequestSquadInvite(other.Session, leader, display).Succeeded);
+            Assert.True(fixture.Raids.RespondSquadInvite(leader, other.Session, accepted: true).Succeeded);
+            Assert.Equal(originalParty, fixture.Parties.KeyOf(other.Session.CharacterId));
+
+            Assert.True(fixture.Raids.LeaveSquad(leader).Succeeded);
+            var remaining = fixture.Parties.FindByKey(originalParty)!;
+            Assert.Equal(other.Session.CharacterId, remaining.LeaderCharacterId);
+            Assert.True(fixture.Raids.RequestSquadInvite(leader, other.Session, display).Succeeded);
+            var rejoined = fixture.Raids.RespondSquadInvite(other.Session, leader, accepted: true);
+            Assert.True(rejoined.Succeeded);
+            var rejoinedSquad = Assert.Single(Assert.Single(rejoined.Changes).Squads);
+            Assert.Equal(other.Session.WireUserId, rejoinedSquad.Snapshot!.LeaderWireUserId);
+            Assert.Equal(leader.CharacterId, rejoinedSquad.Acceptance!.JoiningCharacterId);
+            Assert.Empty(rejoinedSquad.ClearAudience);
+            Assert.Equal(1, fixture.MaterialAttempts);
+        });
+    }
+
+    [Fact]
+    public async Task Phase_settlement_keeps_members_who_can_still_rejoin()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture(expectedPaid: 3) { TicketAvailable = true };
+            var leader = fixture.Admit(1);
+            var reserved = fixture.Admit(2);
+            var expiring = fixture.Admit(3);
+            var raid = fixture.Raids.Create(leader, "test"u8.ToArray());
+            foreach (var member in new[] { reserved, expiring })
+            {
+                Assert.NotNull(fixture.Raids.Request(member, leader));
+                Assert.True(fixture.Raids.Respond(leader.Session, member.Session, true).Succeeded);
+            }
+            await using (var start = fixture.Transactions.Begin())
+            {
+                Assert.True((await fixture.Raids.StartAsync(leader.Session, default)).Started);
+                await start.CommitAsync(default);
+            }
+            var opening = Assert.Single(fixture.Raids.PreparationDeadlines());
+            fixture.Clock.Now = opening.At;
+            await using (var finish = fixture.Transactions.Begin())
+            {
+                Assert.NotNull((await fixture.Raids.FinishPreparationAsync(opening, default)).AttackDeadline);
+                await finish.CommitAsync(default);
+            }
+            var deadline = Assert.Single(fixture.Raids.CombatDeadlines());
+            fixture.Clock.Now = deadline.At.AddMinutes(-5);
+            fixture.Raids.Disconnected(expiring.Session);
+            fixture.End(expiring.Session);
+            fixture.Clock.Now = deadline.At.AddMinutes(-1);
+            fixture.Raids.Disconnected(reserved.Session);
+            fixture.End(reserved.Session);
+
+            fixture.Clock.Now = deadline.At;
+            await using (var settle = fixture.Transactions.Begin())
+            {
+                Assert.True(await fixture.Raids.AdvanceCombatAsync(deadline, default));
+                await settle.CommitAsync(default);
+            }
+            var outcome = fixture.Raids.PhaseOutcome(deadline.Instance, deadline.Phase)!;
+            Assert.Equal([leader.Session.CharacterId, reserved.Session.CharacterId], outcome.Audience);
+            Assert.Empty(outcome.Eligible);
+            var returning = fixture.Admit(2, suffix: "returning").Session;
+            Assert.True(fixture.Raids.Rejoin(returning, raid.Number).Succeeded);
+            Assert.Equal((deadline.Instance, deadline.Phase), fixture.Raids.SettlementOf(returning));
+            Assert.False(fixture.Raids.Rejoin(fixture.Admit(3, suffix: "expired").Session, raid.Number).Succeeded);
         });
     }
 
@@ -205,7 +334,7 @@ public sealed class AntonRaidRecruitmentTests
         private readonly OnlineStateRegistry registry;
         private readonly OnlineCharacterRuntimeDomainService runtime;
 
-        public Fixture()
+        public Fixture(int expectedPaid = 2)
         {
             sessions = TestSessions.Directory(out registry);
             var locations = new OnlineCharacterLocationDomainService();
@@ -220,7 +349,7 @@ public sealed class AntonRaidRecruitmentTests
                 method.Name == "GetStore" ? store : null);
             var materialRules = TestRequired.Absent<IMaterialConsumptionRuleService>((method, _) =>
                 method.Name == "IsConsumable" ? true : null);
-            var materials = new TestMaterials(() => MaterialAttempts++);
+            var materials = new TestMaterials(expectedPaid, () => MaterialAttempts++);
             Raids = new AntonRaidDomainService(sessions, locations, Parties, ChannelEntryOptions.Legacy, Clock,
                 Parties, new TestContent(), materials, inventory, materialRules, TestRequired.Absent<IDungeonDeadlineWake>(), Transactions,
                 TestRequired.Absent<IChannelEntryDomainService>(), TestRequired.Absent<IDungeonAdmissionDomainService>(),
@@ -258,12 +387,12 @@ public sealed class AntonRaidRecruitmentTests
         };
     }
 
-    private sealed class TestMaterials(Action consume) : IDungeonEntryMaterialsDomainService, IDungeonEntryMaterialPlan
+    private sealed class TestMaterials(int expectedPaid, Action consume) : IDungeonEntryMaterialsDomainService, IDungeonEntryMaterialPlan
     {
         public ValueTask<DungeonEntryMaterialPreparation> PrepareAsync(IReadOnlyList<DungeonRunParticipant> participants,
             IReadOnlyList<Dfo.Server.Abstractions.Content.DungeonRequiredItem> requirements, CancellationToken ct)
         {
-            Assert.Equal(2, participants.Count);
+            Assert.Equal(expectedPaid, participants.Count);
             Assert.False(Assert.Single(requirements).AllowSharedMaterial);
             return ValueTask.FromResult(new DungeonEntryMaterialPreparation(this));
         }
