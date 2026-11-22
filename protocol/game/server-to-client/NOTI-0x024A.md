@@ -54,5 +54,8 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## A21 静态证据
+
+来源为 `ClientStatic`。原版 A21、分析镜像 SHA-256 见 [客户端证据绑定](../../../Document/tasks/anton-raid/research/04-jp86-protocol-client-pvf.md#0-绑定版本与标签)，以下地址为 VA。
+
+handler 读取 `u8 + u8 n + n×(u32 图号, u8 状态) + u32`。首字节读后未用，状态送到 `0x00C2C5B0` 原样存入。尾项由 `0x00C27C20` 更新感染图并同步符号 8，非零时还置符号 7。状态枚举见 [NOTI 0x024B](NOTI-0x024B.md)。`ClientStatic`，读宽及赋值 **Confirmed**，发送与 UI 时序待实机。

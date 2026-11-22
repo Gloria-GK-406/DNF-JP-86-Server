@@ -23,6 +23,8 @@ public sealed record DungeonAdmissionOptions
     public MirrorDungeonCatalog? MirrorCatalog { get; init; }
     public IReadOnlyList<DungeonRequiredItem>? RequiredItemsOverride { get; init; }
     public DungeonAdmissionQuota? Quota { get; init; }
+    /// <summary>The exact energy-cut sortie that an authorized hatchery portal replaces.</summary>
+    public DungeonRunId? RaidTransferFrom { get; init; }
 }
 /// <summary>The daily entry counter an admission charges. Only dungeon entry families have one.</summary>
 public sealed record DungeonAdmissionQuota(UsageQuotaFamily Family, DateOnly Period, int Maximum, int? DungeonId = null)

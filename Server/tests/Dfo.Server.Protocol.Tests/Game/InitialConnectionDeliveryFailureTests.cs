@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Testing;
 using Dfo.Server.Protocol.Tests.Support;
@@ -100,7 +102,10 @@ public sealed class InitialConnectionDeliveryFailureTests
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ChannelEntryIdentity(11, listenerPort, ChannelEntryKind.General));
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
     }
 
     private sealed class Config : IServerConfigService

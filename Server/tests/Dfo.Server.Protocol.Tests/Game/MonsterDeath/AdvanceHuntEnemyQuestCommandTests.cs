@@ -454,7 +454,10 @@ public sealed class AdvanceHuntEnemyQuestCommandTests
             new OneQuestDefinition(definition ?? Quest1776()),
             new OneCharacterLog(log),
             new UnusedClientReports(),
-            seeking ?? new NoSeekingProgress(), mirror: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>());
+            seeking ?? new NoSeekingProgress(),
+            mirror: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IMirrorAradQuestDomainService>(),
+            raidLedger: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidRewardLedger>(),
+            daily: TestRequired.Absent<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>());
 
     private sealed class UnusedClientReports : IQuestTriggerDomainService
     {

@@ -13,7 +13,7 @@ internal static class DungeonClearCommandProjection
     internal static async ValueTask<int> DeliverAsync(ISelectedSessionDomainService selectedSessions, IDungeonRunQueryDomainService runs,
         IReadOnlyList<SelectedSessionIdentity> candidates, IQuestQueryDomainService quests,
         IGameCommandOutbox outbox,
-        SelectedSessionIdentity requester, DungeonClearChange change, CancellationToken cancellationToken)
+        SelectedSessionIdentity requester, DungeonClearChange change, CancellationToken cancellationToken, bool raidSettling = false)
     {
         ArgumentNullException.ThrowIfNull(requester);
         ArgumentNullException.ThrowIfNull(change);
@@ -33,7 +33,9 @@ internal static class DungeonClearCommandProjection
             var run = runs.Find(target.CharacterId);
             List<IGameServerMessage> frames = run?.Layout.Mode is DungeonRunMode.DarkElfRuins
                 ? [.. Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.ClearPreamble(run)]
-                : [new EnableClearDungeonNotification(), new SecretShopNpcNotification(GameProtocol.SecretShopNpcId)];
+                : raidSettling && run?.Layout.Mode is DungeonRunMode.AntonRaid ? [] : [new EnableClearDungeonNotification()];
+            if (run?.Layout.Mode is not (DungeonRunMode.DarkElfRuins or DungeonRunMode.AntonRaid))
+                frames.Add(new SecretShopNpcNotification(GameProtocol.SecretShopNpcId));
             if (quests.IsCycleClear(run))
             {
                 // The map-clear subscriber is asynchronous. Resynchronize an already-ready
@@ -48,9 +50,11 @@ internal static class DungeonClearCommandProjection
             }
             // A read above may yield across logout, connection replacement, or a new run.
             if (selectedSessions.IsInWorld(target)
-                && runs.Find(target.CharacterId)?.RunId == change.RunId)
+                && runs.Find(target.CharacterId)?.RunId == change.RunId && frames.Count != 0)
                 projected.Add(new(target.ConnectionId, frames));
         }
+        if (projected.Count == 0)
+            return 0;
         var required = projected.FirstOrDefault(target => target.ConnectionId == requester.ConnectionId)
             ?.OrderedMessages ?? [];
         var secondary = projected.Where(target => target.ConnectionId != requester.ConnectionId).ToArray();

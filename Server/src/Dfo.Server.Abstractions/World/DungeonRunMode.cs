@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Raids;
+
 namespace Dfo.Server.Abstractions.World;
 
 /// <summary>The gameplay an ordinary-engine run was admitted into.</summary>
@@ -31,6 +33,7 @@ public enum DungeonRunKind : byte
     Couple,
     LostLand,
     DarkElfRuins,
+    AntonRaid,
 }
 
 /// <summary>
@@ -63,7 +66,8 @@ public abstract record DungeonRunMode
                     or DungeonRunKind.GoldSilverHorn or DungeonRunKind.Couple => kind,
                 DungeonRunKind.Hell or DungeonRunKind.Mirror or DungeonRunKind.Sao or DungeonRunKind.Despair
                     or DungeonRunKind.Tournament or DungeonRunKind.Altar or DungeonRunKind.Guardian
-                    or DungeonRunKind.GiantDragon or DungeonRunKind.LostLand or DungeonRunKind.DarkElfRuins => throw new ArgumentException(
+                    or DungeonRunKind.GiantDragon or DungeonRunKind.LostLand or DungeonRunKind.DarkElfRuins
+                    or DungeonRunKind.AntonRaid => throw new ArgumentException(
                         $"{kind} runs carry an entry plan.", nameof(kind)),
             };
         }
@@ -120,6 +124,11 @@ public abstract record DungeonRunMode
     public sealed record DarkElfRuins(DarkElfRuinsEntryPlan Plan) : DungeonRunMode
     {
         public override DungeonRunKind Kind => DungeonRunKind.DarkElfRuins;
+    }
+
+    public sealed record AntonRaid(AntonRaidEntryIdentity Identity) : DungeonRunMode
+    {
+        public override DungeonRunKind Kind => DungeonRunKind.AntonRaid;
     }
 }
 

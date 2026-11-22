@@ -26,6 +26,7 @@ public enum DungeonRevivalPolicy : byte
     TournamentLife,
     AltarLife,
     DarkElfRuinsLife,
+    AntonRaidSquad,
 }
 
 /// <summary>
@@ -86,6 +87,11 @@ public sealed record DungeonRunCapabilities(
         {
             DrawsClearCards = false, UnlocksDifficulty = false, AllowsOrdinaryRechallenge = false,
             Revival = DungeonRevivalPolicy.DarkElfRuinsLife,
+        },
+        DungeonRunKind.AntonRaid => OrdinaryRun with
+        {
+            DrawsClearCards = false, UnlocksDifficulty = false, AllowsOrdinaryRechallenge = false,
+            Revival = DungeonRevivalPolicy.AntonRaidSquad,
         },
         DungeonRunKind.Tournament => OrdinaryRun with
         {

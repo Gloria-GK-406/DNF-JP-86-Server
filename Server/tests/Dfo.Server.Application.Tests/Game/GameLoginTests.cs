@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Data.Channel;
@@ -455,7 +456,10 @@ public sealed class GameLoginTests
             Assert.Equal(10011, listenerPort);
             return ValueTask.FromResult(new ChannelEntryIdentity(200, listenerPort, ChannelEntryKind.General, environment));
         }
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
     }
 
     /// <remarks>

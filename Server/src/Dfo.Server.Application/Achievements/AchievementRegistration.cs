@@ -17,6 +17,7 @@ internal static class AchievementRegistration
         services.TryAddSingleton<IAchievementCharacterFactsDomainService, AchievementCharacterFactsDomainService>();
         services.TryAddSingleton<ITitleBookDomainService, TitleBookDomainService>();
         services.TryAddSingleton<ICharacterGameplayFactDomainService, CharacterGameplayFactDomainService>();
+        services.AddDomainEvent<Dfo.Server.Abstractions.Raids.AntonRaidAchievementClear>("anton-raid.achievement-clear", 1);
         services.AddDomainEvent<MonsterDefeated>("character.monster-defeated", 1);
         services.AddDomainEvent<DungeonCompleted>("character.dungeon-completed", 1);
         services.AddDomainEvent<QuestCompleted>("character.quest-completed", 1);
@@ -31,6 +32,7 @@ internal static class AchievementRegistration
         services.AddDomainEvent<TitleAppearanceChanged>("title.appearance-changed", 1);
         services.AddDomainEvent<TitleStored>("title.stored", 1);
         services.AddDomainEvent<TitleWithdrawn>("title.withdrawn", 1);
+        services.AddDomainSubscriber<Dfo.Server.Abstractions.Raids.AntonRaidAchievementClear, AchievementDomainService>("achievement.anton-raid", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<MonsterDefeated, AchievementDomainService>("achievement.monster", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<DungeonCompleted, AchievementDomainService>("achievement.dungeon", DomainEventDeliveryPolicy.Reliable);
         services.AddDomainSubscriber<QuestCompleted, AchievementDomainService>("achievement.quest", DomainEventDeliveryPolicy.Reliable);

@@ -177,6 +177,8 @@ public sealed record PartySnapshot(
     PartyKey Key = default,
     long LeadershipVersion = 0)
 {
+    public bool IsLeased { get; init; }
+
     public PartyMemberSnapshot LeaderMember => Members.Single(member =>
         member.WireUserId == LeaderWireUserId);
 
@@ -254,6 +256,7 @@ public enum PartyFailureReason
     PartyCapacityBelowMemberCount,
     UnknownPartyCategory,
     InvalidPartyModeTarget,
+    RaidRecruiting,
 }
 
 public sealed record PartyOperationResult(

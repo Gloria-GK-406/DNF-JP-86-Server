@@ -46,6 +46,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandContentSource, PvfLostLandContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandDropContentSource, PvfLostLandDropContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandConsumableDefinitionSource, PvfLostLandConsumableDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidRewardContentSource, PvfAntonRaidRewardContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDespairTowerContentSource, PvfDespairTowerContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDimensionDungeonContentSource, PvfDimensionDungeonContentSource>();
@@ -81,6 +82,7 @@ public sealed class InfrastructureModule : IServerModule
                 : 0,
         });
         services.TryAddSingleton<PvfArchiveProvider>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidContentSource, PvfAntonRaidContentSource>();
         services.TryAddSingleton<IContentArchiveIdentity, PvfArchiveIdentity>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource, PvfGoldSilverHornContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Achievements.IAchievementDefinitionSource, PvfAchievementDefinitionSource>();

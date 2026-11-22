@@ -26,6 +26,8 @@ public sealed record QuestDungeonCleared(int DungeonId, DungeonDifficulty Diffic
 
 public sealed record QuestCharacterRevived(DungeonRunId RunId, CharacterId CharacterId) : QuestProgressFact;
 
+public sealed record QuestRaidPhaseCleared(byte Phase, byte Role, DateTimeOffset EndedAt) : QuestProgressFact;
+
 /// <summary>The authoritative inventory or currency balance changed; item goals are re-read.</summary>
 public sealed record QuestHoldingsChanged : QuestProgressFact;
 

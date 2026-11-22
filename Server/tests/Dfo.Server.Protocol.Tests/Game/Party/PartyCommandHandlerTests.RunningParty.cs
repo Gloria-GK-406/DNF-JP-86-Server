@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Parties;
@@ -121,6 +122,30 @@ public sealed partial class PartyCommandHandlerTests
 
     private static PartyCharacterSnapshot Snapshot(SelectedSessionIdentity session) => Character(session);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Recruitment_blocks_ordinary_party_settings_and_both_sides_of_peer_commands(bool raidMemberInvites)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var raidMember = raidMemberInvites ? Inviter : Invitee;
+            var fixture = RunningPartyFixture.Create();
+            fixture.RaidMembership = TestRequired.Absent<IAntonRaidDomainService>((method, arguments) =>
+                method.Name == nameof(IAntonRaidDomainService.IsRecruitingMember)
+                    ? Equals(arguments![0], raidMember)
+                    : method.Name == nameof(IAntonRaidDomainService.IsPreparing) ? false : null);
+
+            Assert.False(await fixture.SetPartyInfoAsync(raidMember));
+            Assert.False(await fixture.RequestPeerAsync(Inviter, Invitee));
+            Assert.True(fixture.Parties.RequestInvite(Snapshot(Inviter), Snapshot(Invitee),
+                new PartyInviteDisplayState(0, 0, 0, 0)).Succeeded);
+            Assert.False(await fixture.ResponsePeerAsync(Invitee, Inviter));
+            Assert.Equal(PartyKeyKind.Virtual, fixture.Parties.KeyOf(Inviter.CharacterId).Kind);
+            Assert.Equal(PartyKeyKind.Virtual, fixture.Parties.KeyOf(Invitee.CharacterId).Kind);
+        });
+    }
+
     private sealed class RunningPartyFixture
     {
         private static readonly DungeonLayout Layout = new(
@@ -164,19 +189,29 @@ public sealed partial class PartyCommandHandlerTests
 
         public RecordingCommandOutbox Refusals { get; } = new();
 
+        public IAntonRaidDomainService RaidMembership { get; set; } = TestRequired.Absent<IAntonRaidDomainService>();
+
+        public Task<bool> SetPartyInfoAsync(SelectedSessionIdentity session) =>
+            new DirectBus<GameSetPartyInfoCommand>(new GameSetPartyInfoCommandHandler(sessions, town, Parties,
+                    new TestCommandProjections(projection.Events), projection.Streams,
+                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), RaidMembership, Refusals,
+                    NullLogger<GameSetPartyInfoCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
+                .SendAsync(new GameSetPartyInfoCommand(Dispatch(session),
+                    new SetPartyInfoRequest(GameMessageMetadata.Empty, Settings(), PartyTitle.Empty))).AsTask();
+
         public async Task<bool> RequestPeerAsync(SelectedSessionIdentity from, SelectedSessionIdentity to) =>
             await new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions, town, Parties,
                     new FixedPartyMemberStatus(), new TestCommandProjections(projection.Events), projection.Streams,
-                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, Refusals,
-                    NullLogger<GameRequestPeerCommandHandler>.Instance))
+                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
+                    NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
                 .SendAsync(new GameRequestPeerCommand(Dispatch(from),
                     new RequestPeerRequest(GameMessageMetadata.Empty, to.WireUserId, 0, 64, [])));
 
         public async Task<bool> ResponsePeerAsync(SelectedSessionIdentity from, SelectedSessionIdentity inviter) =>
             await new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions, town, Parties,
                     new TestCommandProjections(projection.Events), projection.Streams,
-                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, Refusals,
-                    NullLogger<GameResponsePeerCommandHandler>.Instance))
+                    ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
+                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
                 .SendAsync(new GameResponsePeerCommand(Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, 0, 0, [])));
 

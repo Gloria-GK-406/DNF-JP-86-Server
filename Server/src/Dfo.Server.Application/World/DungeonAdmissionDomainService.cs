@@ -45,7 +45,10 @@ internal sealed class DungeonAdmissionDomainService(ICharacterDungeonDifficultyD
         var eligible = new List<(DungeonRunParticipant Member, SelectedSessionIdentity? Selected)>();
         foreach (var member in context.Participants)
         {
-            if (participation.Find(member.CharacterId) is not null || tower.IsInTower(member.CharacterId) || options.MirrorCatalog is not null && runs.Find(member.CharacterId) is not null)
+            var permittedRaidTransfer = context.IsRaidChannel && options.RaidTransferFrom is { } source
+                && runs.Find(member.CharacterId) is { Layout.Mode: DungeonRunMode.AntonRaid } current && current.RunId == source;
+            if (participation.Find(member.CharacterId) is not null && !permittedRaidTransfer || tower.IsInTower(member.CharacterId)
+                || options.MirrorCatalog is not null && runs.Find(member.CharacterId) is not null)
                 return Refuse(DungeonEntryFailure.AlreadyInDungeon, member.Slot);
             SelectedSessionIdentity? selected = null;
             if (context.DungeonId == CoupleDungeonRule.DungeonId)

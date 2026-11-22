@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Raids;
 
 namespace Dfo.Server.Abstractions.World;
 
@@ -10,6 +11,7 @@ public enum DungeonEntryIntentKind : byte
     Directed = 1,
     Cycle = 2,
     OrdinaryRechallenge = 3,
+    AntonRaid = 4,
 }
 
 /// <summary>The client-side selection path that immediately precedes dungeon entry.</summary>
@@ -18,6 +20,9 @@ public readonly record struct DungeonEntryIntent(
     int? DirectedDungeonId,
     int? CycleQuestId = null)
 {
+    public AntonRaidEntryIdentity? Raid { get; init; }
+    public DungeonRunId? RaidTransferFrom { get; init; }
+
     public static DungeonEntryIntent Interactive { get; } =
         new(DungeonEntryIntentKind.Interactive, null);
 
@@ -35,6 +40,9 @@ public readonly record struct DungeonEntryIntent(
         dungeonId > 0
             ? new(DungeonEntryIntentKind.OrdinaryRechallenge, dungeonId)
             : throw new ArgumentOutOfRangeException(nameof(dungeonId));
+
+    public static DungeonEntryIntent AntonRaid(AntonRaidEntryIdentity identity, int? dungeonId, DungeonRunId? transferFrom = null) =>
+        new(DungeonEntryIntentKind.AntonRaid, dungeonId) { Raid = identity, RaidTransferFrom = transferFrom };
 }
 
 public enum DungeonRunPurposeKind : byte

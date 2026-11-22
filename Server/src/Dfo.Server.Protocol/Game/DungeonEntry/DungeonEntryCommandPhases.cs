@@ -32,6 +32,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
         PartySnapshot roster,
         SelectDungeonRequest message,
         DungeonEntryFacts facts,
+        bool raidChannel,
         CancellationToken cancellationToken)
     {
         var mirror = message.MirrorQuestId is not null;
@@ -60,7 +61,10 @@ internal sealed partial class GameSelectDungeonCommandHandler
         var previousRuns = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => runs.Find(participant.CharacterId));
-        var entry = new DungeonEntryContext(message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId);
+        var entry = new DungeonEntryContext(message.DungeonId, facts, message.RequestMode, message.PracticeMode, participants, message.MirrorQuestId)
+        {
+            IsRaidChannel = raidChannel,
+        };
         var protectedMembers = attachments.Members.Select(value => value.Session == requester
             ? CaptureParticipant(value.Session) : new SelectedSessionRecipient(value.Session, null)).ToArray();
         var attempt = await workUnits.WriteAsync(execution, new("dungeon-entry", protectedMembers),

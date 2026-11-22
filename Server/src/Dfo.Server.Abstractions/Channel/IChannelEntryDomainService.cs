@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Channel;
 namespace Dfo.Server.Abstractions.Channel;
 
@@ -14,7 +16,9 @@ public interface IChannelEntryDomainService
     ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken);
 
     /// <summary>The reason this character may not enter the channel, or null when they may.</summary>
-    ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel);
+    ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+        ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+        CancellationToken cancellationToken);
 
     ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken);
 }

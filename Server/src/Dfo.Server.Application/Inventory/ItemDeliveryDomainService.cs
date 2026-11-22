@@ -58,11 +58,11 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
                 var template = grant.Instance?.Snapshot ?? grant.Snapshot
                     ?? await rules.TemplateAsync(grant.ItemId, ct).ConfigureAwait(false);
                 if (grant.Instance is null) template = await lifecycle.PrepareNewAsync(template, ct).ConfigureAwait(false);
-                if (options is not null)
+                if (options?.ExpiresAt is { } expiresAt)
                 {
                     if (grant.Instance is not null || template.LegacyKind == 8)
                         throw new InvalidDataException("A delivery deadline only applies to new non-avatar grants.");
-                    var deadline = checked((int)options.ExpiresAt.ToUnixTimeSeconds());
+                    var deadline = checked((int)expiresAt.ToUnixTimeSeconds());
                     if (deadline <= 0) throw new InvalidDataException("Invalid delivery deadline.");
                     template = template with { ExpireTime = template.Lifetime.IsPermanent
                         ? deadline : Math.Min(template.Lifetime.Deadline, deadline) };
@@ -156,7 +156,11 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
             {
                 var builder = MailBuilder.FromSystem(character).WithText(source, mode == ItemDeliveryMode.MailOnly
                     ? "奖励已通过邮件发放。" : "背包空间不足，剩余奖励已通过邮件发放。");
-                if (options is not null) builder.ExpiresAt(options.ExpiresAt).WithDeliveryKey(options.MailDeliveryKey);
+                if (options is not null)
+                {
+                    builder.WithDeliveryKey(options.MailDeliveryKey);
+                    if (options.ExpiresAt is { } mailExpiry) builder.ExpiresAt(mailExpiry);
+                }
                 var attachments = new List<PreparedMailAttachment>();
                 foreach (var item in batch)
                 {

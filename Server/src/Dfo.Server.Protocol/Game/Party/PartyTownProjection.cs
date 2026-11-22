@@ -58,7 +58,7 @@ internal static class PartyTownProjection
         var character = new PartyCharacterSnapshot(
             mover.AccountId, mover.CharacterId, mover.WireUserId, null);
         var candidate = parties.FindParty(character);
-        if (candidate.IsVirtual)
+        if (candidate.IsVirtual || candidate.IsLeased)
             return;
 
         var stream = projectionState.StreamOf(candidate.Generation);

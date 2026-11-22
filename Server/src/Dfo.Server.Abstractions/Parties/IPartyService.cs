@@ -33,7 +33,7 @@ public interface IPartyService
 
     PartyOperationResult LeaveParty(CharacterId characterId);
 
-    /// <summary>Withdraws every party artifact owned by this character.</summary>
+    /// <summary>Withdraws ordinary party state. The lease owner handles departure from a leased party.</summary>
     PartyOperationResult CleanupCharacter(CharacterId characterId);
 
     /// <summary>Returns a real party or a transient, one-member virtual party view.</summary>

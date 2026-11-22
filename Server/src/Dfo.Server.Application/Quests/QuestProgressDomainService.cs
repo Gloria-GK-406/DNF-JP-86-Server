@@ -1,8 +1,11 @@
+using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Raids;
 
 namespace Dfo.Server.Application.Quests;
 
@@ -14,7 +17,8 @@ public sealed class QuestProgressDomainService(
     IQuestDefinitionDomainService definitions,
     ICharacterQuestLogDomainService logs,
     IQuestTriggerDomainService clientReports,
-    ISeekingQuestProgressDomainService seeking, IMirrorAradQuestDomainService mirror) : IQuestProgressDomainService
+    ISeekingQuestProgressDomainService seeking, IMirrorAradQuestDomainService mirror,
+    IAntonRaidRewardLedger raidLedger, IDailyResetRuleService daily) : IQuestProgressDomainService
 {
     public async ValueTask<QuestProgressReport> ReportAsync(
         AccountId accountId,
@@ -67,6 +71,13 @@ public sealed class QuestProgressDomainService(
                         log, dungeonClear, cancellationToken).ConfigureAwait(false);
                     changes.AddRange(clearAdvances);
                     serverProgressChanged |= clearAdvances.Count != 0;
+                    break;
+
+                case QuestRaidPhaseCleared raidClear:
+                    var raidAdvances = await AdvanceRaidPhaseQuestsAsync(
+                        log, characterId, raidClear, cancellationToken).ConfigureAwait(false);
+                    changes.AddRange(raidAdvances);
+                    serverProgressChanged |= raidAdvances.Count != 0;
                     break;
 
                 case QuestHoldingsChanged:
@@ -176,6 +187,41 @@ public sealed class QuestProgressDomainService(
                 after.PackedValue));
         }
 
+        return changes;
+    }
+
+    private async ValueTask<IReadOnlyList<QuestProgressChange>> AdvanceRaidPhaseQuestsAsync(
+        IQuestLog log, CharacterId character, QuestRaidPhaseCleared clear, CancellationToken cancellationToken)
+    {
+        var carried = await log.CarriedAsync(cancellationToken).ConfigureAwait(false);
+        var changes = new List<QuestProgressChange>();
+        foreach (var active in carried)
+        {
+            var definition = await definitions.FindAsync(active.QuestId, cancellationToken).ConfigureAwait(false);
+            if (definition is null || definition.ObjectiveTypeCode != RaidPhaseClearObjectives.Type
+                || definition.IsManagedByAchievement)
+                continue;
+
+            var before = new QuestTrigger(unchecked((uint)active.TriggerValue));
+            foreach (var target in RaidPhaseClearObjectives.Read(definition.ObjectiveArguments))
+            {
+                if (!target.Matches(clear.Phase, clear.Role) || before.GetChannel(target.Channel) == 0)
+                    continue;
+
+                if (AntonRaidRuleService.LimitsPhaseClearQuestProgressToOncePerDay(active.QuestId)
+                    && !await raidLedger.TryCountQuestClearAsync(
+                        character, active.QuestId, clear.Phase, daily.PeriodDay(clear.EndedAt), cancellationToken)
+                    .ConfigureAwait(false))
+                    continue;
+
+                var after = before.ReplaceChannel(target.Channel, before.GetChannel(target.Channel) - 1);
+                if (!await log.RecordProgressAsync(active, unchecked((int)after.PackedValue), cancellationToken)
+                    .ConfigureAwait(false))
+                    throw new InvalidDataException($"Quest {active.QuestId} changed during Anton raid settlement.");
+
+                changes.Add(new QuestProgressChange(active.QuestId, before.PackedValue, after.PackedValue));
+            }
+        }
         return changes;
     }
 

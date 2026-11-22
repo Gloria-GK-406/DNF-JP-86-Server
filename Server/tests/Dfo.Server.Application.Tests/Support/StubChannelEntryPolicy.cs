@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Data.Channel;
 
@@ -33,5 +35,8 @@ internal sealed class StubChannelEntryPolicy(ChannelAdmissionRefusal? refusal = 
         CancellationToken cancellationToken) =>
         ValueTask.FromResult(GeneralChannel with { ListenerPort = listenerPort });
 
-    public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => refusal;
+    public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+        ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+        CancellationToken cancellationToken) =>
+        ValueTask.FromResult(refusal);
 }

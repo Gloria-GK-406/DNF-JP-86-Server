@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Protocol.Game.Party;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
@@ -18,6 +19,7 @@ internal static class CleanupNotificationStages
         IPartyProjectionStateDomainService projectionState,
         IPartyService parties,
         IOutboundOrdering ordering,
+        AntonRaidSquadProjection raidSquads,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(plan);
@@ -36,6 +38,12 @@ internal static class CleanupNotificationStages
         // The party stage retains its own XO-6 order, revision watermark and sampled recipients.
         await PartyNotificationStages.DeliverPartyNotificationsAsync(projections, projectionState, parties, ordering,
             plan.PartyNotifications, plan.PartyRecipients, cancellationToken).ConfigureAwait(false);
+
+        if (plan.RaidDeparture is { } raid)
+        {
+            await raidSquads.DeliverAsync(raid.Squads, cancellationToken).ConfigureAwait(false);
+            await AntonRaidRecruitmentProjection.DeliverAsync(projections, raid, cancellationToken).ConfigureAwait(false);
+        }
 
         foreach (var (audience, left) in ConversationDepartureNotices.For(plan))
             await projections.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);

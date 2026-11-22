@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Data.Characters;
@@ -13,7 +14,7 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
     ICharacterTable characters) : IAchievementDomainService, IDomainEventSubscriber<MonsterDefeated>,
     IDomainEventSubscriber<DungeonCompleted>, IDomainEventSubscriber<QuestCompleted>, IDomainEventSubscriber<ItemUsed>,
     IDomainEventSubscriber<MaterialConsumed>, IDomainEventSubscriber<CharacterLevelChanged>,
-    IDomainEventSubscriber<InventoryContentsChanged>
+    IDomainEventSubscriber<InventoryContentsChanged>, IDomainEventSubscriber<AntonRaidAchievementClear>
 {
     public async ValueTask PrepareAsync(CharacterId character, int level, CancellationToken ct)
     {
@@ -168,6 +169,10 @@ internal sealed class AchievementDomainService(IAchievementRuleService rules, IA
             await CheckSatisfiedAsync(fact.CharacterId, static x => x.Condition.Type is "first grow" or "awakening", ct);
         await ReconcileAuthoritativeAsync(fact.CharacterId, facts, ct);
     }
+    public ValueTask HandleAsync(DomainEventEnvelope<AntonRaidAchievementClear> e, CancellationToken ct) =>
+        ApplyAsync(e.EventId, new(e.Payload.Character, "raid.phase-cleared", e.Payload.Phase,
+            RaidRole: e.Payload.Role), ct);
+
     public async ValueTask HandleAsync(DomainEventEnvelope<InventoryContentsChanged> e, CancellationToken ct)
     {
         var container = e.Payload.Container;

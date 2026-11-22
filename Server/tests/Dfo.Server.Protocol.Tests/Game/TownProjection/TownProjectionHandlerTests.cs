@@ -759,7 +759,9 @@ public sealed class TownProjectionHandlerTests
 
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) =>
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
             throw new NotSupportedException("Crossing an area does not re-admit anyone.");
     }
 

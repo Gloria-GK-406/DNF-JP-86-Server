@@ -366,7 +366,8 @@ public sealed class SessionGenerationOwnershipTests
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),
-            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance);
+            new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
+            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
     }
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>
@@ -408,7 +409,10 @@ public sealed class SessionGenerationOwnershipTests
             return ValueTask.FromResult(new ChannelEntryIdentity(11, listenerPort, kind));
         }
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
     }
 
     private sealed class FailingChannels : IChannelEntryDomainService
@@ -419,7 +423,10 @@ public sealed class SessionGenerationOwnershipTests
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromException<ChannelEntryIdentity>(new InvalidOperationException("channel unavailable"));
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
     }
 
     private sealed class PassiveParties : IPartyService

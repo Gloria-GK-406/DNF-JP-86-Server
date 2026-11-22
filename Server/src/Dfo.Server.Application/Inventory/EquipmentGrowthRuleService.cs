@@ -49,7 +49,7 @@ internal sealed class EquipmentGrowthRuleService(IEquipmentEmancipateDefinitionS
             or DungeonRunKind.Despair or DungeonRunKind.Tournament or DungeonRunKind.Altar or DungeonRunKind.Guardian
             or DungeonRunKind.GiantDragon or DungeonRunKind.SouthernDale or DungeonRunKind.TauKingdom
             or DungeonRunKind.SealedTreasure or DungeonRunKind.Heras or DungeonRunKind.GoldSilverHorn
-            or DungeonRunKind.Couple or DungeonRunKind.LostLand or DungeonRunKind.DarkElfRuins => true,
+            or DungeonRunKind.Couple or DungeonRunKind.LostLand or DungeonRunKind.DarkElfRuins or DungeonRunKind.AntonRaid => true,
     };
 }
 

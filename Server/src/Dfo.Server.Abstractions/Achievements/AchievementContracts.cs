@@ -100,7 +100,7 @@ public interface ITitleBookDomainService
 }
 /// <summary>A successful authoritative gameplay operation, never a client achievement delta.</summary>
 public sealed record CharacterGameplayFact(CharacterId CharacterId, string Kind, int SubjectId, int Count = 1,
-    int DungeonId = -1, int Difficulty = -1);
+    int DungeonId = -1, int Difficulty = -1, int RaidRole = -1);
 public sealed record MonsterDefeated(CharacterId CharacterId, int MonsterId, int Rank, int DungeonId, int Difficulty) : IDomainEvent;
 public sealed record DungeonCompleted(CharacterId CharacterId, int DungeonId, int Difficulty) : IDomainEvent;
 public sealed record QuestCompleted(CharacterId CharacterId, int QuestId) : IDomainEvent;

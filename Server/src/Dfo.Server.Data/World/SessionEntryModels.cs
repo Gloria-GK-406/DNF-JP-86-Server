@@ -195,6 +195,8 @@ public sealed record SelectedSessionCleanupNotificationPlan(
     /// </summary>
     public SelectedSessionFriendDeparture? FriendDeparture { get; init; }
 
+    public Dfo.Server.Data.Raids.AntonRaidRecruitmentChange? RaidDeparture { get; init; }
+
     public SelectedSessionCleanupNotificationPlan(
         NetworkConnectionId ownerConnectionId,
         IReadOnlyList<SelectedSessionCleanupNotice> requiredOwnerNotices,

@@ -4,7 +4,7 @@ using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDomainService> registered,
-    IManagedEventLifecycleDomainService lifecycle) : IEventManagementDomainService
+    IManagedEventLifecycleDomainService lifecycle, IEnumerable<IEventInfoEntryDomainService> infoEntries) : IEventManagementDomainService
 {
     private readonly IManagedEventDomainService[] events = Registered(registered);
     private static IManagedEventDomainService[] Registered(IEnumerable<IManagedEventDomainService> all)
@@ -30,7 +30,8 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     public async ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {
         var entries = new List<EventInfo>();
-        foreach (var e in events) entries.AddRange(await e.GetEventInfoEntriesAsync(account,now,ct));
+        foreach (var provider in events.Concat(infoEntries))
+            entries.AddRange(await provider.GetEventInfoEntriesAsync(account, now, ct).ConfigureAwait(false));
         var unique = new Dictionary<int, EventInfo>();
         foreach (var entry in entries)
         {

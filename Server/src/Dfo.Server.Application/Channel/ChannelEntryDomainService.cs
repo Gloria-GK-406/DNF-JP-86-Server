@@ -1,6 +1,10 @@
 using Dfo.Server.Abstractions.Channel;
-using Dfo.Server.Data.Channel;
 using Dfo.Server.Abstractions.Configuration;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Application.Raids;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Channel;
 
@@ -12,7 +16,8 @@ internal sealed class ChannelEntryDomainService(
     IChannelContentRuleService channels,
     ChannelEntryOptions options,
     ChannelListenerOptions listeners,
-    IChannelLoginDeploymentSource deployment) : IChannelEntryDomainService
+    IChannelLoginDeploymentSource deployment,
+    ICharacterQuestLogDomainService questLogs) : IChannelEntryDomainService
 {
     public async ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken)
     {
@@ -65,15 +70,26 @@ internal sealed class ChannelEntryDomainService(
         return Unknown(listenerPort);
     }
 
-    public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel)
+    public async ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+        ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(channel);
 
-        return channel.Kind is ChannelEntryKind.SaintHorn
-               && characterLevel < options.SaintHornMinimumLevel
-            ? RestrictedChannelRefusal
-            : null;
+        if (channel.Kind is ChannelEntryKind.SaintHorn && characterLevel < options.SaintHornMinimumLevel)
+            return RestrictedChannelRefusal;
+
+        if (channel.Kind is not ChannelEntryKind.Raid)
+            return null;
+
+        var clearedQuests = await questLogs.LogOf(accountId, characterId).ClearedAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return AntonRaidRuleService.CanEnterChannel(clearedQuests) ? null : RaidAdmissionRefusal;
     }
+
+    private static readonly ChannelAdmissionRefusal RaidAdmissionRefusal = new(
+        ErrorCode: 0xFD,
+        Message: "请先完成安徒恩团队模式的前置任务。");
 
     /// <summary>The channel identifier reported for a listener no channel claims.</summary>
     public const int ChannelIdUnknown = 0;
@@ -101,7 +117,7 @@ internal sealed class ChannelEntryDomainService(
             return ChannelEntryKind.FreeDuel;
         if (channel.LoginEnvironment is 8 or 24)
             return ChannelEntryKind.Pvp;
-        if (channel.LoginEnvironment == 23)
+        if (ChannelContentRuleService.IsRaidEnvironment(channel.LoginEnvironment))
             return ChannelEntryKind.Raid;
 
         // A duelling channel that is switched off is an ordinary channel, not a missing

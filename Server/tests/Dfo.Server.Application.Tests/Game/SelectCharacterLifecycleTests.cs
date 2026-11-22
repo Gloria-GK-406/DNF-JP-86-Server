@@ -992,7 +992,10 @@ public sealed partial class SelectCharacterLifecycleTests
     private sealed class TestEntryChannel : Dfo.Server.Abstractions.Channel.IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int port, CancellationToken ct) => new StubChannelEntryPolicy().ResolveAsync(port, ct);
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => new StubChannelEntryPolicy().Refuse(channel, level);
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
+            ChannelEntryIdentity channel, AccountId accountId, CharacterId characterId, int characterLevel,
+            CancellationToken cancellationToken) =>
+            new StubChannelEntryPolicy().RefuseAsync(channel, accountId, characterId, characterLevel, cancellationToken);
         public ValueTask<Dfo.Server.Data.Channel.ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken ct) => throw new NotSupportedException();
     }
     // The real sealed CMD owns every phase. These adapters only observe existing domain and

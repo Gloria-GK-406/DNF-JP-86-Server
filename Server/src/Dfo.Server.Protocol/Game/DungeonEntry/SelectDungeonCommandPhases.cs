@@ -53,8 +53,11 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
         // Only looked at here: a refusal leaves the selection as it was, and the intent is spent
         // once the entry has committed.
+        var raidChannel = await antonRaid.IsRaidChannelAsync(session, cancellationToken).ConfigureAwait(false);
         var intent = entryIntents.Authorize(session, message.DungeonId, message.MirrorQuestId is not null);
-        if (intent is null)
+        if (raidChannel && message.MirrorQuestId is null)
+            intent ??= antonRaid.HatcherySelection(session, message.DungeonId);
+        if (intent is null || raidChannel != (intent.Value.Kind == DungeonEntryIntentKind.AntonRaid))
         {
             logger.LogWarning(
                 "Select dungeon {ConnectionId}: invalid selection context intent={Intent} dungeon={DungeonId}",
@@ -108,7 +111,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        if (bossTowers.Supports(message.DungeonId) == true)
+        if (!raidChannel && bossTowers.Supports(message.DungeonId) == true)
         {
             if (message.MirrorQuestId is not null)
             {
@@ -122,7 +125,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
         // The legacy tower shortcut accepts ordinary entry only. Manual hell must reach the
         // CMD decision/hell admission path, where towers have no valid hell declaration.
-        if (message.MirrorQuestId is null && message.RequestMode != 1
+        if (!raidChannel && message.MirrorQuestId is null && message.RequestMode != 1
             && await illusionTowers.SupportsDungeonAsync(message.DungeonId, cancellationToken).ConfigureAwait(false))
         {
             _ = await EnterIllusionAsync(execution,
@@ -133,7 +136,8 @@ internal sealed partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        await EnterOrdinaryAsync(execution, context.Connection.ConnectionId, session, result, roster, message, facts, cancellationToken).ConfigureAwait(false);
+        await EnterOrdinaryAsync(execution, context.Connection.ConnectionId, session, result, roster, message, facts, raidChannel,
+            cancellationToken).ConfigureAwait(false);
     }
 
 

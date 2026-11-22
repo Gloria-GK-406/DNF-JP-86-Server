@@ -1,0 +1,194 @@
+using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Notifications;
+using Dfo.Server.Abstractions.Raids;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Data.Networking;
+using Dfo.Server.Data.Raids;
+using Dfo.Server.Data.World;
+
+namespace Dfo.Server.Protocol.Game.AntonRaid;
+
+internal sealed class AntonRaidCombatNotificationSubscriber(IEventService events, IAntonRaidDomainService raids,
+    ISelectedSessionDomainService sessions, TimeProvider clock)
+    : IDomainEventSubscriber<AntonRaidCombatChanged>
+{
+    public async ValueTask HandleAsync(DomainEventEnvelope<AntonRaidCombatChanged> message, CancellationToken ct)
+    {
+        var change = message.Payload;
+        var recipients = change.Audience.Select(character => sessions.TryGetInWorld(character, out var session) ? session : null)
+            .OfType<SelectedSessionIdentity>()
+            .Where(session => raids.CombatSnapshot(session) is { } current
+                && current.Instance == change.Snapshot.Instance && current.Phase == change.Snapshot.Phase)
+            .ToArray();
+        if (recipients.Length == 0)
+            return;
+        var notices = AntonRaidCombatFrames.Change(change, clock.GetUtcNow());
+        if (notices.Count > 0)
+            _ = await events.ProjectAsync(new NotificationAudience.TheseSessions(recipients),
+                new AntonRaidRuntimeChanged(notices), ct).ConfigureAwait(false);
+    }
+}
+
+internal static class AntonRaidCombatFrames
+{
+    internal static IReadOnlyList<IGameNotiMessage> Change(AntonRaidCombatChanged change, DateTimeOffset now)
+    {
+        if (change.Full)
+            return Snapshot(change.Snapshot, now, includeMovieSymbols: true);
+        var frames = new List<IGameNotiMessage>();
+        foreach (var map in change.Maps)
+            frames.Add(AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMapChanged, writer =>
+            {
+                writer.Write(checked((uint)map.Key));
+                writer.Write((byte)0);
+                writer.Write((byte)map.Value);
+            }));
+        if (change.InfectedMapChanged)
+            frames.Add(MapSnapshot(change.Snapshot));
+        // A repeated script pulse must occupy a separate frame.
+        foreach (var symbol in change.Symbols)
+            frames.Add(Symbols([symbol]));
+        foreach (var timer in change.Timers)
+        {
+            frames.Add(Timer(timer));
+            if (timer.Kind == AntonRaidCombatDeadlineKind.Attack)
+                frames.Add(Remaining(timer.At, now));
+        }
+        if (change.BuffsChanged)
+            frames.Add(Buffs(change.Snapshot.Buffs));
+        if (change.Participation)
+        {
+            if (change.ParticipationChanges.Count > 0)
+                frames.Add(Participation(change.ParticipationChanges));
+            frames.Add(Status(change.Snapshot.Sorties));
+        }
+        if (change.LifeChange is { } life)
+            frames.Add(AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMemberLife, writer =>
+            {
+                writer.Write(SelectedSessionIdentity.ToWireUserId(life.Character));
+                writer.Write(life.State == AntonRaidLifeState.Revived ? (byte)1 : (byte)0);
+            }));
+        return frames;
+    }
+
+    internal static IReadOnlyList<IGameNotiMessage> Snapshot(AntonRaidCombatSnapshot snapshot, DateTimeOffset now,
+        bool includeMovieSymbols = false)
+    {
+        var frames = new List<IGameNotiMessage> { MapSnapshot(snapshot), Symbols([new(0, 0)]) };
+        // A21 symbols 121–128 play cutscenes. Only the phase start may include them in a snapshot.
+        var symbols = snapshot.Symbols.Where(symbol => includeMovieSymbols || symbol.Key is < 121 or > 128).ToArray();
+        if (symbols.Length > 0)
+            frames.Add(Symbols(symbols));
+        frames.AddRange(snapshot.Timers.Select(Timer));
+        if (snapshot.Timers.SingleOrDefault(timer => timer.Kind is AntonRaidCombatDeadlineKind.Attack
+            or AntonRaidCombatDeadlineKind.Intermission) is { Duration: > 0 } wholePhase)
+            frames.Add(Remaining(wholePhase.At, now, wholePhase.Kind == AntonRaidCombatDeadlineKind.Intermission ? (byte)1 : (byte)0));
+        var participation = snapshot.Sorties.Where(sortie => sortie.Participants.Count > 0)
+            .Select(sortie => new AntonRaidParticipationChange(sortie.DungeonId,
+                sortie.Cleared ? AntonRaidParticipationKind.Cleared : AntonRaidParticipationKind.Ready, sortie.Participants))
+            .ToArray();
+        if (participation.Length > 0)
+            frames.Add(Participation(participation, restoring: true));
+        frames.Add(Buffs(snapshot.Buffs));
+        frames.Add(Status(snapshot.Sorties));
+        return frames;
+    }
+
+    private static AntonRaidRuntimeNotice MapSnapshot(AntonRaidCombatSnapshot snapshot) =>
+        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMapSnapshot, writer =>
+        {
+            writer.Write((byte)0);
+            writer.Write(checked((byte)snapshot.Maps.Count));
+            foreach (var map in snapshot.Maps)
+            {
+                writer.Write(checked((uint)map.Key));
+                writer.Write((byte)map.Value);
+            }
+            writer.Write(snapshot.InfectedMap);
+        });
+
+    private static AntonRaidRuntimeNotice Symbols(IReadOnlyList<KeyValuePair<uint, uint>> symbols) =>
+        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidSymbols, writer =>
+        {
+            writer.Write(checked((byte)symbols.Count));
+            foreach (var symbol in symbols)
+            {
+                writer.Write(symbol.Key);
+                writer.Write(symbol.Value);
+            }
+        });
+
+    private static AntonRaidRuntimeNotice Timer(AntonRaidCombatDeadline timer) =>
+        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidSetTimer, writer =>
+        {
+            writer.Write(timer.TimerType);
+            writer.Write(timer.Key);
+            writer.Write(checked((uint)timer.At.ToUnixTimeSeconds()));
+            writer.Write(checked((uint)timer.Duration));
+        });
+
+    private static AntonRaidRuntimeNotice Remaining(DateTimeOffset at, DateTimeOffset now, byte kind = 0) =>
+        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidRemaining, writer =>
+        {
+            writer.Write(kind);
+            writer.Write(checked((uint)Math.Max(0, Math.Ceiling((at - now).TotalSeconds))));
+        });
+
+    private static AntonRaidRuntimeNotice Buffs(IReadOnlyList<AntonRaidBuffGroup> groups) =>
+        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidBuffStatus, writer =>
+        {
+            writer.Write(checked((byte)groups.Count));
+            foreach (var buff in groups)
+            {
+                writer.Write(buff.Type);
+                writer.Write(checked((byte)buff.Targets.Count));
+                foreach (var target in buff.Targets)
+                {
+                    writer.Write(target.Squad is { } squad ? (ushort)squad : ushort.MaxValue);
+                    writer.Write(SelectedSessionIdentity.ToWireUserId(target.Character));
+                    writer.Write(checked((uint)target.ActiveUntil.ToUnixTimeSeconds()));
+                    writer.Write(checked((uint)target.CooldownUntil.ToUnixTimeSeconds()));
+                }
+            }
+        });
+
+    private static AntonRaidRuntimeNotice Participation(IReadOnlyList<AntonRaidParticipationChange> changes,
+        bool restoring = false)
+    {
+        var groups = new List<(int Dungeon, byte Operation, ushort[] Members)>();
+        foreach (var change in changes)
+        {
+            var members = change.Members.Select(SelectedSessionIdentity.ToWireUserId).ToArray();
+            if (restoring || change.Kind is AntonRaidParticipationKind.Departed or AntonRaidParticipationKind.Ready)
+                groups.Add((change.DungeonId, 0, members));
+            if (change.Kind != AntonRaidParticipationKind.Departed)
+                groups.Add((change.DungeonId, change.Kind == AntonRaidParticipationKind.Cleared ? (byte)4 : (byte)1, members));
+        }
+        return AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidParticipation, writer =>
+        {
+            writer.Write(checked((byte)groups.Count));
+            foreach (var group in groups)
+            {
+                writer.Write(checked((uint)group.Dungeon));
+                writer.Write(group.Operation);
+                writer.Write(checked((byte)group.Members.Length));
+                foreach (var member in group.Members) writer.Write(member);
+            }
+        });
+    }
+
+    private static AntonRaidRuntimeNotice Status(IReadOnlyList<AntonRaidSortieSnapshot> sorties) =>
+        AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMonsterStatus, writer =>
+        {
+            writer.Write(checked((byte)sorties.Count));
+            foreach (var sortie in sorties)
+            {
+                writer.Write((ushort)sortie.Squad);
+                writer.Write(checked((byte)sortie.Participants.Count));
+                foreach (var member in sortie.Participants) writer.Write(SelectedSessionIdentity.ToWireUserId(member));
+                writer.Write(checked((uint)sortie.UsedCoins));
+                writer.Write(checked((byte)sortie.MonsterHitPoints.Count));
+                foreach (var hp in sortie.MonsterHitPoints) writer.Write(hp);
+            }
+        });
+}

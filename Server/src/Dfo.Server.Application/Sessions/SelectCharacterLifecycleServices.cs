@@ -9,7 +9,9 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Raids;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -52,7 +54,8 @@ internal sealed class SelectedSessionCleanupService(
     Dfo.Server.Abstractions.Chat.IChatConversationDomainService conversations,
     Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService relations,
     ICharacterIdentityQueryDomainService identities,
-    ILogger<SelectedSessionCleanupService> logger) : ISelectedSessionCleanupDomainService
+    ILogger<SelectedSessionCleanupService> logger,
+    IAntonRaidDomainService raids) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {
@@ -75,6 +78,7 @@ internal sealed class SelectedSessionCleanupService(
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> conversationDepartures = [];
         SelectedSessionFriendDeparture? friendDeparture = null;
+        AntonRaidRecruitmentChange? raidDeparture = null;
         var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && currentMember.Session == session)
         {
@@ -142,6 +146,8 @@ internal sealed class SelectedSessionCleanupService(
             await RunAsync(() => SettleStepAsync(() => creatures.LeaveAsync(session, CancellationToken.None)));
             run = dungeonRuns.Find(session.CharacterId);
         }
+        // Raid owns its lease and releases the exact generation before dungeon departure.
+        Run(() => { raidDeparture = raids.Disconnected(session); return raidDeparture is not null; });
 
         // Tower membership belongs to the exact selected-session generation. It must be released
         // even after that generation has already lost the selected-session directory race.
@@ -187,6 +193,9 @@ internal sealed class SelectedSessionCleanupService(
             // the run ends, or the whole run when nobody else is left in it.
             if (run is not null)
             {
+                var raidRun = run.Layout.Mode is DungeonRunMode.AntonRaid ? new AntonRaidMemberDeparture(run.RunId, session) : null;
+                if (raidRun is not null)
+                    Run(() => { raids.QueueMemberDeparture(raidRun); return true; });
                 var ended = false;
                 await RunAsync(() => SettleStepAsync(async () => { ended = await dungeonRuns.EndAsync(session.CharacterId, run.RunId).ConfigureAwait(false); }));
                 if (ended)
@@ -199,6 +208,8 @@ internal sealed class SelectedSessionCleanupService(
                             return true;
                         });
                     }
+                    if (raidRun is not null)
+                        Run(() => raids.CompleteMemberDeparture(raidRun));
                 }
             }
         }
@@ -254,6 +265,7 @@ internal sealed class SelectedSessionCleanupService(
         {
             ConversationDepartures = conversationDepartures,
             FriendDeparture = friendDeparture,
+            RaidDeparture = raidDeparture,
         };
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);

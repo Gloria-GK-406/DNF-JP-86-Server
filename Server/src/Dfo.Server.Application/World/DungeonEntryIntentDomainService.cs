@@ -22,6 +22,8 @@ internal sealed class DungeonEntryIntentDomainService(ISaoTowerRuleService sao) 
     public DungeonEntryIntent? Authorize(SelectedSessionIdentity session, int dungeonId, bool mirror)
     {
         if (Find(session) is not { } intent) return null;
+        if (intent.Kind == DungeonEntryIntentKind.AntonRaid)
+            return !mirror && (intent.DirectedDungeonId is null || intent.DirectedDungeonId == dungeonId) ? intent : null;
         var bound = intent.Kind is DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.Cycle or DungeonEntryIntentKind.OrdinaryRechallenge;
         return bound && intent.DirectedDungeonId != dungeonId && !mirror
             && !(intent.Kind == DungeonEntryIntentKind.Directed

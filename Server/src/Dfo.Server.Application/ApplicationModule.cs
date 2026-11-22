@@ -37,7 +37,9 @@ using Dfo.Server.Application.Notifications;
 using Dfo.Server.Application.DomainEvents;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Application.Settlement;
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Application.Parties;
+using Dfo.Server.Application.Raids;
 using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Application.World;
@@ -77,6 +79,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddDungeonContents(configuration);
         services.AddMapClearQuests();
         Dfo.Server.Application.Achievements.AchievementRegistration.AddAchievements(services);
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidRewardGrantDomainService, Dfo.Server.Application.Raids.AntonRaidRewardGrantDomainService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Raids.IAntonRaidRewardSettlementDomainService, Dfo.Server.Application.Raids.AntonRaidRewardSettlementDomainService>();
         services.AddDomainEvent<MailCreated>("mail.created", 1);
         services.AddMail();
         services.AddChat();
@@ -122,6 +126,17 @@ public sealed class ApplicationModule : IServerModule
         services.AddSessions();
         services.AddAuthentication(configuration);
         services.AddParties();
+        services.TryAddSingleton<AntonRaidRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            Dfo.Server.Abstractions.Events.IEventInfoEntryDomainService, AntonRaidEventInfoDomainService>());
+        services.TryAddSingleton<AntonRaidRewardRuleService>();
+        services.TryAddSingleton<AntonRaidDomainService>();
+        services.TryAddSingleton<IAntonRaidDomainService>(provider => provider.GetRequiredService<AntonRaidDomainService>());
+        services.AddSingleton<IDungeonBossClearHook>(provider => provider.GetRequiredService<AntonRaidDomainService>());
+        services.AddDomainEvent<AntonRaidCombatChanged>("raid.anton-combat", 1);
+        services.AddDomainEvent<AntonRaidPhaseConcluded>("raid.anton-phase-concluded", 1);
+        services.AddDomainSubscriber<DungeonParticipantLeft, AntonRaidDomainService>("raid.anton-departure",
+            Dfo.Server.Abstractions.DomainEvents.DomainEventDeliveryPolicy.Reliable);
         services.AddCommandDispatching();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<Dfo.Server.Application.Commands.INetworkConnectionLifecycleHandler, LoginSessionConnectionObserver>());
         services.AddHttpOperationCommands();
