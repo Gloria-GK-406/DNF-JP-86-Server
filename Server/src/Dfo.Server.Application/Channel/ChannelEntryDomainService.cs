@@ -19,8 +19,6 @@ internal sealed class ChannelEntryDomainService(
     IChannelLoginDeploymentSource deployment,
     ICharacterQuestLogDomainService questLogs) : IChannelEntryDomainService
 {
-    internal const byte RaidLoginEnvironment = 23;
-
     public async ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken)
     {
         var channel = await ResolveAsync(listenerPort, cancellationToken).ConfigureAwait(false);
@@ -119,7 +117,7 @@ internal sealed class ChannelEntryDomainService(
             return ChannelEntryKind.FreeDuel;
         if (channel.LoginEnvironment is 8 or 24)
             return ChannelEntryKind.Pvp;
-        if (channel.LoginEnvironment == RaidLoginEnvironment)
+        if (ChannelContentRuleService.IsRaidEnvironment(channel.LoginEnvironment))
             return ChannelEntryKind.Raid;
 
         // A duelling channel that is switched off is an ordinary channel, not a missing

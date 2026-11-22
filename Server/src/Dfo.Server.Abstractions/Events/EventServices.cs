@@ -3,13 +3,17 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Abstractions.Events;
 
-public interface IManagedEventDomainService
+public interface IEventInfoEntryDomainService
+{
+    ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
+}
+
+public interface IManagedEventDomainService : IEventInfoEntryDomainService
 {
     int EventId { get; }
     ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct);
     /// <summary>Whether the activity is enabled and inside its period; the gameplay meaning of "open".</summary>
     ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct);
-    ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct);
     ValueTask ChangeAsync(EventChange change, string actor, DateTimeOffset now, CancellationToken ct);
 }
 public interface IEventManagementDomainService

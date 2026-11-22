@@ -10,6 +10,7 @@ internal sealed class AntonRaidRuleService(IAntonRaidContentSource source, IPart
     private const int AdmissionQuestId = 12829;
     private const int DailyPhaseClearQuestId = 12830;
 
+    internal const int ChannelEventId = 181;
     internal const byte SquadCount = 10;
     internal static readonly TimeSpan ApprovalLifetime = TimeSpan.FromSeconds(60);
 

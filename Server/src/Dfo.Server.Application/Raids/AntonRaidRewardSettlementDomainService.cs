@@ -7,12 +7,6 @@ namespace Dfo.Server.Application.Raids;
 internal sealed class AntonRaidRewardSettlementDomainService(
     AntonRaidRewardRuleService rules, IDungeonDeadlineWake deadlines) : IAntonRaidRewardSettlementDomainService
 {
-    private static readonly TimeSpan PromptDelay = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan MovieLimit = TimeSpan.FromSeconds(15);
-    private static readonly TimeSpan SelectionLimit = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan SquadDelay = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan DeliveryDelay = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan DeliveryRetryDelay = TimeSpan.FromSeconds(2);
     private readonly Lock gate = new();
     private readonly Dictionary<Guid, Round> active = [];
 
@@ -85,7 +79,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
             if (round.AllSelected)
             {
                 round.Stage = AntonRaidRewardStage.SquadDelay;
-                round.Deadline = now + SquadDelay;
+                round.Deadline = now + AntonRaidRewardRuleService.SquadDelay;
                 Wake();
             }
             return new(true, round.Snapshot(), card, round.Grant(card));
@@ -122,19 +116,19 @@ internal sealed class AntonRaidRewardSettlementDomainService(
                 case AntonRaidRewardStage.Cards:
                     var opened = round.RevealUnselected();
                     round.Stage = AntonRaidRewardStage.SquadDelay;
-                    round.Deadline = now + SquadDelay;
+                    round.Deadline = now + AntonRaidRewardRuleService.SquadDelay;
                     return new(AntonRaidRewardAdvanceKind.CardsAutoSelected, round.Snapshot(),
                         opened, opened.Select(round.Grant).ToArray());
 
                 case AntonRaidRewardStage.SquadDelay:
                     round.Stage = AntonRaidRewardStage.SquadItems;
-                    round.Deadline = now + DeliveryDelay;
+                    round.Deadline = now + AntonRaidRewardRuleService.DeliveryDelay;
                     return new(AntonRaidRewardAdvanceKind.SquadItemsShown, round.Snapshot(), round.SquadCards, []);
 
                 case AntonRaidRewardStage.SquadItems:
                 case AntonRaidRewardStage.Delivering:
                     round.Stage = AntonRaidRewardStage.Delivering;
-                    round.Deadline = now + DeliveryRetryDelay;
+                    round.Deadline = now + AntonRaidRewardRuleService.DeliveryRetryDelay;
                     return new(AntonRaidRewardAdvanceKind.Deliver, round.Snapshot(), [], round.Grants());
 
                 default:
@@ -170,7 +164,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
     private static void OpenCards(Round round, DateTimeOffset now)
     {
         round.Stage = AntonRaidRewardStage.Cards;
-        round.Deadline = now + SelectionLimit;
+        round.Deadline = now + AntonRaidRewardRuleService.SelectionLimit;
     }
 
     private static void Validate(AntonRaidRewardSettlementSeed seed)
@@ -203,7 +197,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
             Seed = seed;
             this.retry = retry;
             Rank = AntonRaidRewardRuleService.Rank(phase, seed.DeathCount);
-            MovieFallback = now + MovieLimit;
+            MovieFallback = now + AntonRaidRewardRuleService.MovieLimit;
 
             var groups = new Dictionary<byte, Squad>();
             foreach (var recipient in seed.Eligible.OrderBy(member => member.Character.Value))
@@ -225,7 +219,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
             if (seed.Succeeded && Participants.Count > 0)
             {
                 Stage = AntonRaidRewardStage.Result;
-                Deadline = now + PromptDelay;
+                Deadline = now + AntonRaidRewardRuleService.PromptDelay;
                 SquadCards = Participants.Values.Select(participant =>
                 {
                     var (item, flags) = AntonRaidRewardRuleService.Draw(phase, AntonRaidRewardKind.SquadItem, Rank);

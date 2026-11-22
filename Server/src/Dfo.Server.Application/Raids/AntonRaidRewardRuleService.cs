@@ -4,6 +4,13 @@ namespace Dfo.Server.Application.Raids;
 
 internal sealed class AntonRaidRewardRuleService(IAntonRaidRewardContentSource source)
 {
+    internal static readonly TimeSpan PromptDelay = TimeSpan.FromSeconds(2);
+    internal static readonly TimeSpan MovieLimit = TimeSpan.FromSeconds(15);
+    internal static readonly TimeSpan SelectionLimit = TimeSpan.FromSeconds(10);
+    internal static readonly TimeSpan SquadDelay = TimeSpan.FromSeconds(2);
+    internal static readonly TimeSpan DeliveryDelay = TimeSpan.FromSeconds(5);
+    internal static readonly TimeSpan DeliveryRetryDelay = TimeSpan.FromSeconds(2);
+
     internal AntonRaidRewardDefinition Current => source.Read();
 
     internal static byte Rank(AntonRaidPhaseRewardDefinition phase, int deaths)

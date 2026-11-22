@@ -1,15 +1,11 @@
-using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Events;
-using Dfo.Server.Application.Channel;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.Events;
 
 internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDomainService> registered,
-    IManagedEventLifecycleDomainService lifecycle, IChannelContentRuleService channels) : IEventManagementDomainService
+    IManagedEventLifecycleDomainService lifecycle, IEnumerable<IEventInfoEntryDomainService> infoEntries) : IEventManagementDomainService
 {
-    private const int RaidChannelEventId = 181;
-
     private readonly IManagedEventDomainService[] events = Registered(registered);
     private static IManagedEventDomainService[] Registered(IEnumerable<IManagedEventDomainService> all)
     {
@@ -34,7 +30,8 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     public async ValueTask<EventInfo[]> GetEventInfoListAsync(AccountId account,DateTimeOffset now,CancellationToken ct)
     {
         var entries = new List<EventInfo>();
-        foreach (var e in events) entries.AddRange(await e.GetEventInfoEntriesAsync(account,now,ct));
+        foreach (var provider in events.Concat(infoEntries))
+            entries.AddRange(await provider.GetEventInfoEntriesAsync(account, now, ct).ConfigureAwait(false));
         var unique = new Dictionary<int, EventInfo>();
         foreach (var entry in entries)
         {
@@ -45,16 +42,6 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
                 && previous.StartNotice == entry.StartNotice && previous.EndNotice == entry.EndNotice) continue;
             throw new InvalidDataException($"Conflicting event information for identity {entry.EventId}.");
         }
-        var catalog = await channels.ChannelsAsync(ct);
-        if (!unique.ContainsKey(RaidChannelEventId)
-            && catalog.Any(channel => channel.LoginEnvironment == ChannelEntryDomainService.RaidLoginEnvironment))
-        {
-            unique.Add(RaidChannelEventId, new EventInfo(RaidChannelEventId, "", "", "", "", "", now, now, "")
-            {
-                HasDetail = false,
-            });
-        }
-
         return [..unique.Values];
     }
     public async ValueTask<ManagedEventList> ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)

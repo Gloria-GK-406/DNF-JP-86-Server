@@ -12,6 +12,8 @@ internal sealed class ChannelContentRuleService(
         CancellationToken cancellationToken) =>
         channels.GetChannelsAsync(cancellationToken);
 
+    internal static bool IsRaidEnvironment(byte? environment) => environment == 23;
+
     public string ScriptVersion => script.Version;
 
     public ValueTask<byte[]> ReadScriptAsync(CancellationToken cancellationToken) =>

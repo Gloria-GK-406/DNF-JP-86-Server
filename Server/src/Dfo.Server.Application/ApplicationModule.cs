@@ -127,6 +127,8 @@ public sealed class ApplicationModule : IServerModule
         services.AddAuthentication(configuration);
         services.AddParties();
         services.TryAddSingleton<AntonRaidRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            Dfo.Server.Abstractions.Events.IEventInfoEntryDomainService, AntonRaidEventInfoDomainService>());
         services.TryAddSingleton<AntonRaidRewardRuleService>();
         services.TryAddSingleton<AntonRaidDomainService>();
         services.TryAddSingleton<IAntonRaidDomainService>(provider => provider.GetRequiredService<AntonRaidDomainService>());
