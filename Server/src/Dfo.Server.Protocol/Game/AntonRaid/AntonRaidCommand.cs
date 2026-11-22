@@ -11,6 +11,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
@@ -162,8 +163,10 @@ internal sealed class GameAntonRaidCommandHandler(
                         ct).ConfigureAwait(false);
 
             case ClientMessageType.GameActivateAntonRaidBuff:
+                var buffSquad = input.Target <= byte.MaxValue ? (byte?)input.Target : null;
+                var buffTargets = input.Values!.Select(user => new CharacterId(checked((int)user))).ToArray();
                 return await units.WriteAsync(execution, new("anton-raid.buff", []),
-                    (_, token) => raids.UseCombatBuffAsync(session, (byte)input.Value, (ushort)input.Target, input.Values!, token),
+                    (_, token) => raids.UseCombatBuffAsync(session, (byte)input.Value, buffSquad, buffTargets, token),
                     ct).ConfigureAwait(false);
 
             case ClientMessageType.GameReportAntonRaidMonster when input.Values is { Count: 0 }

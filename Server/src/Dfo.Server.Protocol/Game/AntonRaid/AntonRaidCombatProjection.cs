@@ -144,8 +144,8 @@ internal static class AntonRaidCombatFrames
                 writer.Write(checked((byte)buff.Targets.Count));
                 foreach (var target in buff.Targets)
                 {
-                    writer.Write(target.Squad);
-                    writer.Write(target.User);
+                    writer.Write(target.Squad is { } squad ? (ushort)squad : ushort.MaxValue);
+                    writer.Write(SelectedSessionIdentity.ToWireUserId(target.Character));
                     writer.Write(checked((uint)target.ActiveUntil.ToUnixTimeSeconds()));
                     writer.Write(checked((uint)target.CooldownUntil.ToUnixTimeSeconds()));
                 }

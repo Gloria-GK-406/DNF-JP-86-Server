@@ -45,5 +45,6 @@ public sealed record AntonRaidSortieSnapshot(Guid Run, int DungeonId, byte Squad
 public readonly record struct AntonRaidEntryIdentity(Guid Instance, uint Number, byte Phase, long Generation, byte Squad);
 
 public sealed record AntonRaidBuffRule(byte Type, bool Party, int Cooldown, int Duration, int Effect);
-public sealed record AntonRaidBuffTarget(ushort Squad, ushort User, DateTimeOffset ActiveUntil, DateTimeOffset CooldownUntil);
+/// <summary>A null squad applies the buff to the raid.</summary>
+public sealed record AntonRaidBuffTarget(byte? Squad, CharacterId Character, DateTimeOffset ActiveUntil, DateTimeOffset CooldownUntil);
 public sealed record AntonRaidBuffGroup(byte Type, IReadOnlyList<AntonRaidBuffTarget> Targets);

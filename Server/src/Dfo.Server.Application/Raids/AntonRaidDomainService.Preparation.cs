@@ -26,7 +26,7 @@ internal sealed partial class AntonRaidDomainService
             var paid = raid.PaidTickets.Contains(member.Session.CharacterId);
             if (paid || member.RejoinUntil.HasValue)
             {
-                tickets.Add(new(member.RejoinUntil.HasValue ? (ushort)0 : member.Session.WireUserId, 0, paid));
+                tickets.Add(new(member.RejoinUntil.HasValue ? null : member.Session.CharacterId, 0, paid));
                 continue;
             }
             var store = inventory.GetStore(member.Session.CharacterId, BusinessInventoryStoreKind.Item);
@@ -39,7 +39,7 @@ internal sealed partial class AntonRaidDomainService
                 var items = await container.GetAllAsync(ct).ConfigureAwait(false);
                 count += items.Where(item => materialRules.IsConsumable(item, rules.TicketItemId)).Sum(item => (long)item.Count);
             }
-            tickets.Add(new(member.Session.WireUserId, (ushort)Math.Min(count, ushort.MaxValue), count >= rules.TicketCount));
+            tickets.Add(new(member.Session.CharacterId, count, count >= rules.TicketCount));
         }
         return tickets;
     }

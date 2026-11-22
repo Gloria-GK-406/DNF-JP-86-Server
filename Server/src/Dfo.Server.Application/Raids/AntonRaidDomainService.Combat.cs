@@ -191,37 +191,29 @@ internal sealed partial class AntonRaidDomainService
         return true;
     }
 
-    public async ValueTask<bool> UseCombatBuffAsync(SelectedSessionIdentity session, byte type, ushort squad,
-        IReadOnlyList<uint> targets, CancellationToken ct)
+    public async ValueTask<bool> UseCombatBuffAsync(SelectedSessionIdentity session, byte type, byte? squad,
+        IReadOnlyList<CharacterId> targets, CancellationToken ct)
     {
         if (Of(session) is not { Stage: AntonRaidStage.Attacking, Combat: { } combat } raid
             || !sessions.IsInWorld(session) || raidRules.Current.Buffs.SingleOrDefault(buff => buff.Type == type) is not { } rule)
             return false;
-        var target = session;
+        var target = session.CharacterId;
+        byte? targetSquad = null;
         if (rule.Party)
         {
-            if (squad is 0 or > AntonRaidRuleService.SquadCount || !combat.Sorties.TryGetValue((byte)squad, out var sortie)
-                || sortie.Participants.Count == 0)
+            if (squad is not { } destination || destination is 0 or > AntonRaidRuleService.SquadCount
+                || !combat.Sorties.TryGetValue(destination, out var sortie) || sortie.Participants.Count == 0
+                || targets.Any(character => !sortie.Participants.ContainsKey(character)))
                 return false;
-            if (targets.Count != 0)
-            {
-                if (targets.Any(uid => !sortie.Participants.Values.Any(member => member.WireUserId == uid)))
-                    return false;
-                target = sortie.Participants.Values.First(member => member.WireUserId == targets[0]);
-            }
-            else
-            {
-                target = sortie.Participants.Values.First();
-            }
-        }
-        else
-        {
-            squad = ushort.MaxValue;
+
+            target = targets.Count == 0 ? sortie.Participants.Keys.First() : targets[0];
+            targetSquad = destination;
         }
         var next = combat.Copy();
-        if (!next.ActivateBuff(rule, squad, target.WireUserId, clock.GetUtcNow()))
+        if (!next.ActivateBuff(rule, targetSquad, target, clock.GetUtcNow()))
             return false;
-        await PublishCombatAsync(raid, next, ct, participation: type == 0, buffsChanged: true).ConfigureAwait(false);
+        await PublishCombatAsync(raid, next, ct, participation: AntonRaidRuleService.GrantsExtraCoins(rule),
+            buffsChanged: true).ConfigureAwait(false);
         StageCombat(raid, next);
         return true;
     }

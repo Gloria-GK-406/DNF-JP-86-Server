@@ -40,6 +40,10 @@ internal sealed class AntonRaidRuleService(IAntonRaidContentSource source, IPart
                 ChargeRate: rules.ShieldChargeRate, InfectedChargeRate: rules.InfectedShieldChargeRate)
             : null;
 
+    internal static bool GrantsExtraCoins(AntonRaidBuffRule rule) => rule.Type == 0;
+
+    internal static bool ExtendsAttack(AntonRaidBuffRule rule) => rule.Type == 1;
+
     internal static int HatcheryAt(int room) => room switch
     {
         19100 => 224,

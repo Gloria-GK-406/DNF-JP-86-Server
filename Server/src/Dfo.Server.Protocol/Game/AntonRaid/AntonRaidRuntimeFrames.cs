@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Raids;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Protocol.Game.AntonRaid;
 
@@ -27,9 +28,9 @@ internal sealed record AntonRaidRuntimeNotice(ServerMessageType MessageType, Rea
             writer.Write(tickets.Count);
             foreach (var ticket in tickets)
             {
-                writer.Write(ticket.User);
+                writer.Write(ticket.Character is { } character ? SelectedSessionIdentity.ToWireUserId(character) : (ushort)0);
                 writer.Write(ticket.Ready);
-                writer.Write(ticket.Count);
+                writer.Write((ushort)Math.Min(ticket.Count, ushort.MaxValue));
             }
         });
 

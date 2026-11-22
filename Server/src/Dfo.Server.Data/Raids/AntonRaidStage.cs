@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Data.Raids;
 
 public enum AntonRaidStage : byte
@@ -13,6 +15,7 @@ public enum AntonRaidStage : byte
 
 public readonly record struct AntonRaidDeadline(Guid Instance, uint Number, long Generation, DateTimeOffset At);
 
-public sealed record AntonRaidTicket(ushort User, ushort Count, bool Ready);
+/// <summary>A null character omits the identity of a member awaiting rejoin.</summary>
+public sealed record AntonRaidTicket(CharacterId? Character, long Count, bool Ready);
 
 public enum AntonRaidSquadSignal { Settings, Invite, Accept }

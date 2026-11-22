@@ -187,11 +187,11 @@ internal sealed class AntonRaidPhaseRuntime
             SetDeadline(now, AntonRaidCombatDeadlineKind.ShieldRecovery, key, 0, barrier.RecoveryIntervalSeconds);
     }
 
-    internal bool ActivateBuff(AntonRaidBuffRule rule, ushort squad, ushort user, DateTimeOffset now)
+    internal bool ActivateBuff(AntonRaidBuffRule rule, byte? squad, CharacterId character, DateTimeOffset now)
     {
         if (Succeeded is not null || buffs.TryGetValue(rule.Type, out var active) && active.CooldownUntil > now)
             return false;
-        if (rule.Type == 1)
+        if (AntonRaidRuleService.ExtendsAttack(rule))
         {
             if (!timers.TryGetValue((AntonRaidCombatDeadlineKind.Attack, 0, 0), out var attack)
                 || attack.Deadline.At <= now)
@@ -199,13 +199,13 @@ internal sealed class AntonRaidPhaseRuntime
             var remaining = (int)Math.Ceiling((attack.Deadline.At - now).TotalSeconds);
             SetDeadline(now, AntonRaidCombatDeadlineKind.Attack, 0, 0, checked(remaining + rule.Effect));
         }
-        if (rule.Type == 0)
+        if (AntonRaidRuleService.GrantsExtraCoins(rule))
         {
-            if (squad > byte.MaxValue || !Sorties.TryGetValue((byte)squad, out var sortie) || sortie.Participants.Count == 0)
+            if (squad is not { } destination || !Sorties.TryGetValue(destination, out var sortie) || sortie.Participants.Count == 0)
                 return false;
-            Sorties[(byte)squad] = sortie with { BonusCoins = checked(sortie.BonusCoins + rule.Effect) };
+            Sorties[destination] = sortie with { BonusCoins = checked(sortie.BonusCoins + rule.Effect) };
         }
-        buffs[rule.Type] = new(squad, user, now.AddSeconds(rule.Duration), now.AddSeconds(rule.Cooldown));
+        buffs[rule.Type] = new(squad, character, now.AddSeconds(rule.Duration), now.AddSeconds(rule.Cooldown));
         return true;
     }
 
