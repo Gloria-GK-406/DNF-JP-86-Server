@@ -10,6 +10,24 @@ namespace Dfo.Server.Protocol.Tests.Game.AntonRaid;
 [Trait("Category", "Unit")]
 public sealed class AntonRaidCombatFramesTests
 {
+    [Theory]
+    [InlineData(AntonRaidLifeState.Dead, (byte)0)]
+    [InlineData(AntonRaidLifeState.Revived, (byte)1)]
+    public void Combat_life_change_encodes_character_identity_and_state(AntonRaidLifeState state, byte wireState)
+    {
+        var now = DateTimeOffset.UnixEpoch;
+        var snapshot = new AntonRaidCombatSnapshot(Guid.NewGuid(), 1, 1, now, 0,
+            new Dictionary<int, AntonRaidMapStatus>(), new Dictionary<uint, uint>(), [], []);
+        var change = new AntonRaidCombatChanged(snapshot, [], [], [], [], [])
+        {
+            LifeChange = new(new(0x1234), state),
+        };
+
+        var frame = Assert.IsType<AntonRaidRuntimeNotice>(Assert.Single(AntonRaidCombatFrames.Change(change, now)));
+        Assert.Equal(ServerMessageType.GameAntonRaidMemberLife, frame.MessageType);
+        Assert.Equal<byte>([0x34, 0x12, wireState], frame.Body.ToArray());
+    }
+
     [Fact]
     public void Participation_uses_reset_before_ready_and_before_restoring_a_clear()
     {

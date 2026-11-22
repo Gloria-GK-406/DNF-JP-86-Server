@@ -51,7 +51,7 @@ public interface IAntonRaidDomainService : IDungeonBossClearHook
     bool CanRevive(DungeonRunState run, CharacterId target);
     ValueTask<bool> StageRevivalAsync(DungeonRunState run, CharacterId target, CancellationToken ct);
     AntonRaidCombatSnapshot? CombatSnapshot(SelectedSessionIdentity session);
-    ValueTask<bool> ChangeShieldAsync(SelectedSessionIdentity session, uint symbol, uint value, byte operation, CancellationToken ct);
+    ValueTask<bool> ChangeShieldAsync(SelectedSessionIdentity session, uint symbol, uint value, AntonRaidShieldOperation operation, CancellationToken ct);
     ValueTask<bool> UseCombatBuffAsync(SelectedSessionIdentity session, byte type, ushort squad, IReadOnlyList<uint> targets, CancellationToken ct);
     ValueTask<bool> ReportMonsterStatusAsync(SelectedSessionIdentity session, IReadOnlyList<uint> hitPoints, CancellationToken ct);
     IReadOnlyList<AntonRaidCombatDeadline> CombatDeadlines();

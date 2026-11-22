@@ -143,7 +143,8 @@ internal sealed partial class AntonRaidDomainService
             return;
         var next = owned.Combat.Copy();
         next.DeathCount++;
-        await PublishCombatAsync(owned.Raid, next, ct, life: session.WireUserId).ConfigureAwait(false);
+        await PublishCombatAsync(owned.Raid, next, ct, life: new(session.CharacterId, AntonRaidLifeState.Dead))
+            .ConfigureAwait(false);
         StageCombat(owned.Raid, next);
     }
 
@@ -159,7 +160,7 @@ internal sealed partial class AntonRaidDomainService
         var next = owned.Combat.Copy();
         next.Sorties[owned.Sortie.Squad] = owned.Sortie with { UsedCoins = owned.Sortie.UsedCoins + 1 };
         await PublishCombatAsync(owned.Raid, next, ct, participation: true,
-            life: owned.Sortie.Participants[target].WireUserId, lifeState: 1).ConfigureAwait(false);
+            life: new(target, AntonRaidLifeState.Revived)).ConfigureAwait(false);
         StageCombat(owned.Raid, next);
         return true;
     }
@@ -173,13 +174,13 @@ internal sealed partial class AntonRaidDomainService
             : snapshot;
     }
 
-    public async ValueTask<bool> ChangeShieldAsync(SelectedSessionIdentity session, uint symbol, uint value, byte operation,
-        CancellationToken ct)
+    public async ValueTask<bool> ChangeShieldAsync(SelectedSessionIdentity session, uint symbol, uint value,
+        AntonRaidShieldOperation operation, CancellationToken ct)
     {
         if (dungeonRuns.Find(session.CharacterId) is not { } run || RaidSortie(run) is not { } owned
-            || owned.Combat.Phase != 1 || !sessions.IsInWorld(session)
+            || !sessions.IsInWorld(session)
             || owned.Sortie.Participants.GetValueOrDefault(session.CharacterId) != session
-            || symbol != raidRules.Current.Symbols["[BLACK VOLCANO BARRIER]"])
+            || !owned.Combat.HasShieldSymbol(symbol))
             return false;
         var now = clock.GetUtcNow();
         var next = owned.Combat.Copy();
@@ -429,14 +430,15 @@ internal sealed partial class AntonRaidDomainService
     }
 
     private async ValueTask PublishCombatAsync(Recruitment raid, AntonRaidPhaseRuntime next, CancellationToken ct,
-        bool participation = false, bool full = false, ushort life = 0, byte lifeState = 0, bool buffsChanged = false)
+        bool participation = false, bool full = false, AntonRaidLifeChange? life = null, bool buffsChanged = false)
     {
         var change = new AntonRaidCombatChanged(next.Snapshot(), Audience(raid).Select(member => member.CharacterId).ToArray(),
             next.MapChanges.ToArray(),
             next.SymbolUpdates.ToArray(), next.TimerChanges.ToArray(), next.Ends.Select(run => run.Value).Distinct().ToArray(),
-            participation, full, life, lifeState)
+            participation, full)
         {
             ParticipationChanges = participation ? ParticipationChanges(raid.Combat, next) : [],
+            LifeChange = life,
             BuffsChanged = buffsChanged,
             InfectedMapChanged = raid.Combat?.InfectedMap != next.InfectedMap,
         };

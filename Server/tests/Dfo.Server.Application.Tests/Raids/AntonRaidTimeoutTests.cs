@@ -24,7 +24,7 @@ public sealed class AntonRaidTimeoutTests
                         [new(AntonRaidActionKind.ClearPhase)])]),
             ],
         };
-        var phase = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 0, 1, rules, begin, begin + attack, 1);
+        var phase = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 0, 1, rules, null, begin, begin + attack, 1);
         var deadline = Assert.Single(phase.Deadlines);
         var sortie = new AntonRaidPhaseRuntime.Sortie(new DungeonRunId(Guid.NewGuid()), 210, 1,
             new Dictionary<CharacterId, SelectedSessionIdentity>());

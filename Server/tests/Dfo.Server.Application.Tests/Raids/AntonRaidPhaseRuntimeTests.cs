@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Raids;
 using Dfo.Server.Data.Characters;
@@ -17,7 +18,7 @@ public sealed class AntonRaidPhaseRuntimeTests
         using var archive = new PvfArchiveProvider(new PvfContentOptions());
         var rules = new PvfAntonRaidContentSource(archive).Load();
         Assert.Equal(28, rules.Phases[0].Triggers.Count);
-        var runtime = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 0, 1, rules, Start, Start.AddMinutes(40), 4);
+        var runtime = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 0, 1, rules, null, Start, Start.AddMinutes(40), 4);
         var deadline = runtime.Deadlines.Single();
         Assert.Equal(AntonRaidCombatDeadlineKind.Attack, deadline.Kind);
         Assert.False(runtime.HasCapacity(213, 1));
@@ -52,7 +53,7 @@ public sealed class AntonRaidPhaseRuntimeTests
         var rules = new PvfAntonRaidContentSource(archive).Load();
         Assert.Equal(23, rules.Phases[1].Triggers.Count);
         Assert.Equal(5, rules.Buffs.Count);
-        var runtime = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 1, 1, rules, Start, Start.AddMinutes(40), 4);
+        var runtime = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 1, 1, rules, AntonRaidRuleService.ShieldFor(rules, 1), Start, Start.AddMinutes(40), 4);
         Assert.Equal(10_000u, runtime.Snapshot().Symbols[rules.Symbols["[BLACK VOLCANO BARRIER]"]]);
         Assert.False(runtime.HasCapacity(220, 1));
         var hatchery = runtime.Deadlines.Single(timer => timer.Key == 219);
@@ -78,6 +79,28 @@ public sealed class AntonRaidPhaseRuntimeTests
         Clear(runtime, 220, 1, hatchery.At);
         Assert.True(runtime.Succeeded);
         Assert.Empty(runtime.Deadlines);
+    }
+
+    [PvfFact]
+    public void Volcano_shield_uses_the_raid_recovery_rule()
+    {
+        using var archive = new PvfArchiveProvider(new PvfContentOptions());
+        var rules = new PvfAntonRaidContentSource(archive).Load();
+        var barrier = Assert.IsType<AntonRaidShieldRule>(AntonRaidRuleService.ShieldFor(rules, 1));
+        var runtime = new AntonRaidPhaseRuntime(Guid.NewGuid(), 1, 1, 1, rules, barrier, Start, Start.AddMinutes(40), 4);
+        var opening = runtime.Deadlines.Single(timer => timer.Key == barrier.DungeonId);
+        Assert.True(runtime.Advance(opening, opening.At, 4));
+
+        Assert.True(runtime.ApplyShield(3000, AntonRaidShieldOperation.Drain, opening.At, 4));
+        Assert.Equal(7000u, runtime.Snapshot().Symbols[barrier.Symbol]);
+        var recovery = runtime.Deadlines.Single(timer => timer.Kind == AntonRaidCombatDeadlineKind.ShieldRecovery);
+        Assert.Equal(opening.At.AddSeconds(1), recovery.At);
+        Assert.Equal((uint)barrier.DungeonId, recovery.Key);
+        Assert.True(runtime.Advance(recovery, recovery.At, 4));
+        Assert.Equal(7000u + (uint)rules.InfectedShieldChargeRate, runtime.Snapshot().Symbols[barrier.Symbol]);
+
+        Assert.True(runtime.ApplyShield(10_000, AntonRaidShieldOperation.Charge, recovery.At, 4));
+        Assert.Equal(10_000u, runtime.Snapshot().Symbols[barrier.Symbol]);
     }
 
     private static void Clear(AntonRaidPhaseRuntime runtime, int dungeon, int count, DateTimeOffset now)

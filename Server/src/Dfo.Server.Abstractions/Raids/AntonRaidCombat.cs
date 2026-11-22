@@ -13,12 +13,19 @@ public sealed record AntonRaidPhaseConcluded(AntonRaidPhaseOutcome Outcome) : ID
 public sealed record AntonRaidCombatChanged(AntonRaidCombatSnapshot Snapshot,
     IReadOnlyList<CharacterId> Audience, IReadOnlyList<KeyValuePair<int, AntonRaidMapStatus>> Maps,
     IReadOnlyList<KeyValuePair<uint, uint>> Symbols, IReadOnlyList<AntonRaidCombatDeadline> Timers,
-    IReadOnlyList<Guid> Ends, bool Participation = false, bool Full = false, ushort LifeMember = 0, byte LifeState = 0) : IDomainEvent
+    IReadOnlyList<Guid> Ends, bool Participation = false, bool Full = false) : IDomainEvent
 {
     public IReadOnlyList<AntonRaidParticipationChange> ParticipationChanges { get; init; } = [];
+    public AntonRaidLifeChange? LifeChange { get; init; }
     public bool BuffsChanged { get; init; }
     public bool InfectedMapChanged { get; init; }
 }
+
+public enum AntonRaidLifeState { Dead, Revived }
+
+public sealed record AntonRaidLifeChange(CharacterId Character, AntonRaidLifeState State);
+
+public enum AntonRaidShieldOperation { Set, Charge, Drain }
 
 public enum AntonRaidParticipationKind { Departed, Ready, Cleared }
 

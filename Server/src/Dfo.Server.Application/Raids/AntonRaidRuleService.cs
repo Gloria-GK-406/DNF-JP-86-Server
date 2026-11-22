@@ -34,6 +34,12 @@ internal sealed class AntonRaidRuleService(IAntonRaidContentSource source, IPart
 
     private static bool Fits(AntonRaidRules rules, int members) => members <= rules.MaximumMembers;
 
+    internal static AntonRaidShieldRule? ShieldFor(AntonRaidRules rules, byte phase) =>
+        phase == 1 && rules.Symbols.TryGetValue("[BLACK VOLCANO BARRIER]", out var symbol)
+            ? new(symbol, DungeonId: 219, Ceiling: 10_000, RecoveryIntervalSeconds: 1,
+                ChargeRate: rules.ShieldChargeRate, InfectedChargeRate: rules.InfectedShieldChargeRate)
+            : null;
+
     internal static int HatcheryAt(int room) => room switch
     {
         19100 => 224,
@@ -43,3 +49,6 @@ internal sealed class AntonRaidRuleService(IAntonRaidContentSource source, IPart
         _ => 0,
     };
 }
+
+internal sealed record AntonRaidShieldRule(uint Symbol, int DungeonId, uint Ceiling,
+    int RecoveryIntervalSeconds, int ChargeRate, int InfectedChargeRate);

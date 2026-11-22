@@ -157,7 +157,7 @@ internal sealed partial class AntonRaidDomainService
         var started = clock.GetUtcNow();
         var attackDeadline = started + rules.PhaseLimits[phase];
         var combat = new AntonRaidPhaseRuntime(raid.Lease.Owner, raid.Number, phase, raid.PreparationGeneration,
-            rules, started, attackDeadline, Random.Shared.Next());
+            rules, AntonRaidRuleService.ShieldFor(rules, phase), started, attackDeadline, Random.Shared.Next());
         var debits = await payment.Plan.ConsumeAsync(ct).ConfigureAwait(false);
         await PublishCombatAsync(raid, combat, ct, full: true).ConfigureAwait(false);
         StageAdmission(raid, () =>

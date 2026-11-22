@@ -62,11 +62,11 @@ internal static class AntonRaidCombatFrames
                 frames.Add(Participation(change.ParticipationChanges));
             frames.Add(Status(change.Snapshot.Sorties));
         }
-        if (change.LifeMember != 0)
+        if (change.LifeChange is { } life)
             frames.Add(AntonRaidRuntimeNotice.Write(ServerMessageType.GameAntonRaidMemberLife, writer =>
             {
-                writer.Write(change.LifeMember);
-                writer.Write(change.LifeState);
+                writer.Write(SelectedSessionIdentity.ToWireUserId(life.Character));
+                writer.Write(life.State == AntonRaidLifeState.Revived ? (byte)1 : (byte)0);
             }));
         return frames;
     }

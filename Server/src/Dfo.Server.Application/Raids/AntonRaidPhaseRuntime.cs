@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Raids;
@@ -9,6 +10,7 @@ internal sealed class AntonRaidPhaseRuntime
 {
     private readonly AntonRaidRules rules;
     private readonly AntonRaidPhaseRule phase;
+    private readonly AntonRaidShieldRule? shield;
     private readonly Dictionary<int, Map> maps;
     private readonly Dictionary<uint, uint> symbols = [];
     private readonly Dictionary<(AntonRaidCombatDeadlineKind Kind, uint Key, byte Type), Scheduled> timers = [];
@@ -33,13 +35,14 @@ internal sealed class AntonRaidPhaseRuntime
     internal List<AntonRaidCombatDeadline> TimerChanges { get; } = [];
 
     internal AntonRaidPhaseRuntime(Guid instance, uint number, byte index, long generation, AntonRaidRules rules,
-        DateTimeOffset startedAt, DateTimeOffset attackDeadline, int seed)
+        AntonRaidShieldRule? shield, DateTimeOffset startedAt, DateTimeOffset attackDeadline, int seed)
     {
         Instance = instance;
         Number = number;
         Phase = index;
         Generation = generation;
         this.rules = rules;
+        this.shield = shield;
         phase = rules.Phases[index];
         StartedAt = startedAt;
         maps = phase.Maps.ToDictionary(map => map.DungeonId, map => new Map(map.InitialStatus));
@@ -52,6 +55,7 @@ internal sealed class AntonRaidPhaseRuntime
     {
         rules = old.rules;
         phase = old.phase;
+        shield = old.shield;
         Instance = old.Instance;
         Number = old.Number;
         Phase = old.Phase;
@@ -132,13 +136,12 @@ internal sealed class AntonRaidPhaseRuntime
             Finish(false);
             return true;
         }
-        if (expected.Kind == AntonRaidCombatDeadlineKind.ShieldRecovery)
+        if (expected.Kind == AntonRaidCombatDeadlineKind.ShieldRecovery && shield is { } recovery)
         {
             var rate = InfectedMap != 0 && maps[(int)InfectedMap].Status == AntonRaidMapStatus.Open
-                ? rules.InfectedShieldChargeRate : rules.ShieldChargeRate;
-            SetShield(Math.Min(10_000u, Shield + (uint)rate), now, seed);
-            if (Shield < 10_000)
-                SetDeadline(now, AntonRaidCombatDeadlineKind.ShieldRecovery, 219, 0, 1);
+                ? recovery.InfectedChargeRate : recovery.ChargeRate;
+            SetShield(recovery, Math.Min(recovery.Ceiling, ShieldValue(recovery) + (uint)rate), now, seed);
+            QueueShieldRecovery(recovery, ShieldValue(recovery), now);
             return true;
         }
         if (expected.Kind == AntonRaidCombatDeadlineKind.ReservedMap)
@@ -147,31 +150,41 @@ internal sealed class AntonRaidPhaseRuntime
         return true;
     }
 
-    internal bool ApplyShield(uint operand, byte operation, DateTimeOffset now, int seed)
+    internal bool HasShieldSymbol(uint symbol) => shield?.Symbol == symbol;
+
+    internal bool ApplyShield(uint operand, AntonRaidShieldOperation operation, DateTimeOffset now, int seed)
     {
-        if (Phase != 1 || Succeeded is not null || operation > 2 || operand > 10_000
-            || !maps.TryGetValue(219, out var volcano) || volcano.Status != AntonRaidMapStatus.Open)
+        if (shield is not { } barrier || Succeeded is not null || operand > barrier.Ceiling
+            || !maps.TryGetValue(barrier.DungeonId, out var volcano) || volcano.Status != AntonRaidMapStatus.Open)
             return false;
-        var previous = Shield;
+        var previous = ShieldValue(barrier);
         var value = operation switch
         {
-            0 => operand,
-            1 => Math.Min(10_000u, previous + operand),
-            _ => operand >= previous ? 0 : previous - operand,
+            AntonRaidShieldOperation.Set => operand,
+            AntonRaidShieldOperation.Charge => Math.Min(barrier.Ceiling, previous + operand),
+            AntonRaidShieldOperation.Drain => operand >= previous ? 0 : previous - operand,
+            _ => previous,
         };
         if (value == previous) return false;
-        SetShield(value, now, seed);
-        if (value < 10_000 && !timers.ContainsKey((AntonRaidCombatDeadlineKind.ShieldRecovery, 219, 0)))
-            SetDeadline(now, AntonRaidCombatDeadlineKind.ShieldRecovery, 219, 0, 1);
+        SetShield(barrier, value, now, seed);
+        QueueShieldRecovery(barrier, value, now);
         return true;
     }
 
-    private uint Shield => symbols.GetValueOrDefault(rules.Symbols["[BLACK VOLCANO BARRIER]"]);
+    private uint ShieldValue(AntonRaidShieldRule barrier) => symbols.GetValueOrDefault(barrier.Symbol);
 
-    private void SetShield(uint value, DateTimeOffset now, int seed)
+    private void SetShield(AntonRaidShieldRule barrier, uint value, DateTimeOffset now, int seed)
     {
-        SetSymbol(rules.Symbols["[BLACK VOLCANO BARRIER]"], value);
+        SetSymbol(barrier.Symbol, value);
         Evaluate(new(null, 0, 0), now, seed);
+    }
+
+    private void QueueShieldRecovery(AntonRaidShieldRule barrier, uint value, DateTimeOffset now)
+    {
+        var key = (uint)barrier.DungeonId;
+        if (value < barrier.Ceiling
+            && !timers.ContainsKey((AntonRaidCombatDeadlineKind.ShieldRecovery, key, 0)))
+            SetDeadline(now, AntonRaidCombatDeadlineKind.ShieldRecovery, key, 0, barrier.RecoveryIntervalSeconds);
     }
 
     internal bool ActivateBuff(AntonRaidBuffRule rule, ushort squad, ushort user, DateTimeOffset now)
@@ -278,7 +291,7 @@ internal sealed class AntonRaidPhaseRuntime
         if (status == AntonRaidMapStatus.Hidden)
         {
             timers.Remove((AntonRaidCombatDeadlineKind.ReservedMap, key, 0));
-            if (id == 219)
+            if (id == shield?.DungeonId)
                 timers.Remove((AntonRaidCombatDeadlineKind.ShieldRecovery, key, 0));
             if (InfectedMap == key)
             {

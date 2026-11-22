@@ -149,9 +149,17 @@ internal sealed class GameAntonRaidCommandHandler(
                 return true;
 
             case ClientMessageType.GameSetAntonRaidSymbol:
-                return await units.WriteAsync(execution, new("anton-raid.symbol", []),
-                    (_, token) => raids.ChangeShieldAsync(session, input.Target, input.Value, (byte)input.Operation, token),
-                    ct).ConfigureAwait(false);
+                var operation = input.Operation switch
+                {
+                    0 => AntonRaidShieldOperation.Set,
+                    1 => AntonRaidShieldOperation.Charge,
+                    2 => AntonRaidShieldOperation.Drain,
+                    _ => (AntonRaidShieldOperation?)null,
+                };
+                return operation is { } shieldOperation
+                    && await units.WriteAsync(execution, new("anton-raid.symbol", []),
+                        (_, token) => raids.ChangeShieldAsync(session, input.Target, input.Value, shieldOperation, token),
+                        ct).ConfigureAwait(false);
 
             case ClientMessageType.GameActivateAntonRaidBuff:
                 return await units.WriteAsync(execution, new("anton-raid.buff", []),
