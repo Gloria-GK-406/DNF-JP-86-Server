@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Raids;
+using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.AntonRaid;
 using Xunit;
 
