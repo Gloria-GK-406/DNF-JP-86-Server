@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Raids;
 
 namespace Dfo.Server.Application.Quests;
 
@@ -207,7 +208,8 @@ public sealed class QuestProgressDomainService(
                 if (!target.Matches(clear.Phase, clear.Role) || before.GetChannel(target.Channel) == 0)
                     continue;
 
-                if (active.QuestId == 12830 && !await raidLedger.TryCountQuestClearAsync(
+                if (AntonRaidRuleService.LimitsPhaseClearQuestProgressToOncePerDay(active.QuestId)
+                    && !await raidLedger.TryCountQuestClearAsync(
                         character, active.QuestId, clear.Phase, daily.PeriodDay(clear.EndedAt), cancellationToken)
                     .ConfigureAwait(false))
                     continue;

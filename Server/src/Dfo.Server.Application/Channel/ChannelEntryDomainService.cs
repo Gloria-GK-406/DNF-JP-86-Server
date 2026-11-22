@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Application.Raids;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -85,10 +86,8 @@ internal sealed class ChannelEntryDomainService(
 
         var clearedQuests = await questLogs.LogOf(accountId, characterId).ClearedAsync(cancellationToken)
             .ConfigureAwait(false);
-        return clearedQuests.Any(quest => quest.QuestId == RaidAdmissionQuestId) ? null : RaidAdmissionRefusal;
+        return AntonRaidRuleService.CanEnterChannel(clearedQuests) ? null : RaidAdmissionRefusal;
     }
-
-    private const int RaidAdmissionQuestId = 12829;
 
     private static readonly ChannelAdmissionRefusal RaidAdmissionRefusal = new(
         ErrorCode: 0xFD,
