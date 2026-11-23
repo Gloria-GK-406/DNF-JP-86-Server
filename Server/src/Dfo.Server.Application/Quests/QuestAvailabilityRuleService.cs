@@ -85,12 +85,16 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
         && MatchesGrowType(quest, subject.GrowType)
         && await MatchesCreatureRestrictionAsync(quest, subject, creature, cancellationToken).ConfigureAwait(false);
 
-    internal static bool IsExpertJobQuest(QuestDefinition quest) => quest.JobChangeQuestCode == 20
-        || quest.ExpertJobRequirement is not null || quest.Rewards.Any(reward => reward.Kind == QuestRewardKind.ExpertJob);
+    internal static bool MayBeExpertJobQuest(QuestDefinition quest) =>
+        quest.JobChangeQuestCode == 20 || DeclaresExpertJob(quest);
+
+    public async ValueTask<bool> IsExpertJobQuestAsync(QuestDefinition quest, CancellationToken ct) =>
+        DeclaresExpertJob(quest) || quest.JobChangeQuestCode == 20
+            && await FindConnectedExpertJobAsync(quest.QuestId, ct).ConfigureAwait(false) is not null;
 
     private async ValueTask<bool> MatchesExpertJobAsync(QuestDefinition quest, WorldContentSubject subject, CancellationToken ct)
     {
-        if (!IsExpertJobQuest(quest)) return true;
+        if (!MayBeExpertJobQuest(quest)) return true;
         var awards = quest.Rewards.Where(reward => reward.Kind == QuestRewardKind.ExpertJob).ToArray();
         if (awards.Length != 0)
             return quest.JobChangeQuestCode == 20 && subject.ExpertJob == ExpertJobType.None
@@ -99,13 +103,27 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
                 && await expertJobs.FindAsync((ExpertJobType)awards[0].Values[0], ct).ConfigureAwait(false) is { } joining
                 && joining.ConnectedQuests.Contains(quest.QuestId);
 
-        if (await expertJobs.FindAsync(subject.ExpertJob, ct).ConfigureAwait(false) is not { } current)
+        if (quest.JobChangeQuestCode == 20
+            && await FindConnectedExpertJobAsync(quest.QuestId, ct).ConfigureAwait(false) is { } connected
+            && subject.ExpertJob != connected)
             return false;
-        if (quest.ExpertJobRequirement is { } required
-            && ((int)subject.ExpertJob != required.ExpertJobType || current.LevelAt(subject.ExpertJobExperience) < required.MinimumLevel))
-            return false;
-        return quest.JobChangeQuestCode != 20 || current.ConnectedQuests.Contains(quest.QuestId);
+        return quest.ExpertJobRequirement is not { } required
+            || (int)subject.ExpertJob == required.ExpertJobType
+                && await expertJobs.FindAsync(subject.ExpertJob, ct).ConfigureAwait(false) is { } current
+                && current.LevelAt(subject.ExpertJobExperience) >= required.MinimumLevel;
     }
+
+    private async ValueTask<ExpertJobType?> FindConnectedExpertJobAsync(int questId, CancellationToken ct)
+    {
+        foreach (var type in Enum.GetValues<ExpertJobType>())
+            if (type != ExpertJobType.None && await expertJobs.FindAsync(type, ct).ConfigureAwait(false) is { } definition
+                && definition.ConnectedQuests.Contains(questId))
+                return type;
+        return null;
+    }
+
+    private static bool DeclaresExpertJob(QuestDefinition quest) =>
+        quest.ExpertJobRequirement is not null || quest.Rewards.Any(reward => reward.Kind == QuestRewardKind.ExpertJob);
 
     private static bool MatchesTargetCharacter(
         QuestTargetCharacterRestriction? restriction,

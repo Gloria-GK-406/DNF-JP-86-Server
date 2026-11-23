@@ -57,8 +57,10 @@ public interface IEquipmentReinforcementRule
 
 public interface IEquipmentEnchantRuleService
 {
-    ValueTask<int?> CardAsync(ItemSnapshot bead, int equipmentItemId, CancellationToken ct);
+    ValueTask<EquipmentEnchantDecision?> ResolveAsync(ItemSnapshot bead, int equipmentItemId, CancellationToken ct);
 }
+
+public sealed record EquipmentEnchantDecision(int CardItemId, byte? UpgradeCount);
 
 public sealed record EquipmentRepairQuote(int Cost, ushort Durability, bool Write);
 

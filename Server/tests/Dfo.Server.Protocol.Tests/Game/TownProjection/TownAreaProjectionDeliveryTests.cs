@@ -17,6 +17,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.ExpertJobs;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
@@ -246,7 +247,11 @@ public sealed class TownAreaProjectionDeliveryTests
             Assert.Contains(
                 frames.OfType<CurrentUserStateMessage>(),
                 frame => frame.Character.Identity.CharacterId == existing.CharacterId);
-            var publication = Assert.Single(notifications.Publications, x => x.Notification is not global::Dfo.Server.Protocol.Game.PrivateStoreArrival);
+            var expertStores = Assert.Single(notifications.Publications, entry => entry.Notification is ExpertStoreArrival);
+            Assert.Equal(returning, Assert.IsType<ExpertStoreArrival>(expertStores.Notification).Viewer);
+            Assert.Equal([returning], Assert.IsType<NotificationAudience.TheseSessions>(expertStores.Audience).Sessions);
+            var publication = Assert.Single(notifications.Publications,
+                entry => entry.Notification is not (PrivateStoreArrival or ExpertStoreArrival));
             Assert.Equal(
                 [existing],
                 Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
@@ -309,7 +314,10 @@ public sealed class TownAreaProjectionDeliveryTests
             Assert.Contains(
                 frames.OfType<CurrentUserStateMessage>(),
                 frame => frame.Character.Identity.CharacterId == existing.CharacterId);
-            Assert.IsType<TownParticipantPublished>(Assert.Single(notifications.Publications, x => x.Notification is not global::Dfo.Server.Protocol.Game.PrivateStoreArrival).Notification);
+            Assert.Single(notifications.Publications,
+                entry => entry.Notification is ExpertStoreArrival arrival && arrival.Viewer == returning);
+            Assert.IsType<TownParticipantPublished>(Assert.Single(notifications.Publications,
+                entry => entry.Notification is not (PrivateStoreArrival or ExpertStoreArrival)).Notification);
         });
     }
 

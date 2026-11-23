@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
@@ -22,7 +23,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, IEquipmentEnchantContentSource enchantContent,
     EnchanterStoreOperations enchanterStores, TimeProvider clock)
 {
-    private static readonly BusinessInventorySpace[] MaterialSpaces = [BusinessInventorySpace.QuickSlot,
+    private static readonly ImmutableArray<BusinessInventorySpace> MaterialSpaces = [BusinessInventorySpace.QuickSlot,
         BusinessInventorySpace.Consumable, BusinessInventorySpace.Material, BusinessInventorySpace.Quest,
         BusinessInventorySpace.ExpertMaterial, BusinessInventorySpace.SharedMaterial];
 

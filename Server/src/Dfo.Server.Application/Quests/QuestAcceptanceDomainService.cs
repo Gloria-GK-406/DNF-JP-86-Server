@@ -30,7 +30,8 @@ internal sealed class QuestAcceptanceDomainService(
         if (definition is null)
             return QuestAcceptanceResult.Refuse(questId, QuestAcceptanceRefusal.NotAcceptable);
 
-        if (QuestAvailabilityRuleService.IsExpertJobQuest(definition)
+        if (QuestAvailabilityRuleService.MayBeExpertJobQuest(definition)
+            && await availability.IsExpertJobQuestAsync(definition, cancellationToken).ConfigureAwait(false)
             && !await availability.MeetsRequirementsAsync(definition,
                 await questFacts.SubjectAsync(accountId, characterId, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false))

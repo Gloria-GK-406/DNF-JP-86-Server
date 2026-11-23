@@ -61,3 +61,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-23 副职业实现（待 A21 实机）
+
+**CurrentImplementation + UpstreamReference**。摊位创建和入区发现共用上游形状，按完整城镇区域投影。附魔摊位在 mode 后追加卡片资格档位。 [上游与 70 证据](../../../Document/tasks/expert-jobs/UpstreamEvidence.md)

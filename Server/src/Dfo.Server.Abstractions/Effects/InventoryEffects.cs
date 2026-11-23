@@ -10,7 +10,7 @@ public sealed record GrantStackableEffect(int ItemId, int Count) : InventoryEffe
 public sealed record EquipmentEffectTarget(ItemReference Reference, int ExpectedItemId);
 public abstract record EquipmentEffect(EquipmentEffectTarget Equipment) : InventoryEffect;
 public sealed record SetEquipmentUpgradeEffect(EquipmentEffectTarget Equipment, byte Level) : EquipmentEffect(Equipment);
-public sealed record SetEquipmentEnchantmentEffect(EquipmentEffectTarget Equipment, int CardId, byte UpgradeCount = 0)
+public sealed record SetEquipmentEnchantmentEffect(EquipmentEffectTarget Equipment, int CardId, byte? UpgradeCount = null)
     : EquipmentEffect(Equipment);
 public sealed record SetEquipmentDimensionalEffect(EquipmentEffectTarget Equipment, byte Type, ushort Value) : EquipmentEffect(Equipment);
 public sealed record SetEquipmentMagicSealEffect(EquipmentEffectTarget Equipment, IReadOnlyList<RandomOptionState> Options) : EquipmentEffect(Equipment);

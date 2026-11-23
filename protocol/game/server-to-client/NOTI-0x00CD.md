@@ -93,3 +93,7 @@ BodyLength = 未知（字段集合已知不完整）
 <!-- 走过的死胡同也要写：它能避免下一个人重复同样的尝试。 -->
 
 <!-- rks:a12:end -->
+
+## 2026-11-23 副职业实现（待 A21 实机）
+
+**CurrentImplementation + UpstreamReference**。选角、就职、放弃和职业变化均从同一存档投影。附魔模式增加卡片资格、等级和耐久。各已就职模式及在线刷新时序参考上游，待 A21 实机核对。 [上游与 70 证据](../../../Document/tasks/expert-jobs/UpstreamEvidence.md)

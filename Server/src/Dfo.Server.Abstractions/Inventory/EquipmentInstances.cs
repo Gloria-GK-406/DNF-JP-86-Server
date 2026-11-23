@@ -22,8 +22,8 @@ public interface IEquipmentInstance : IItemSocketInstance
     ValueTask<ItemReference> SetReinforcementLevelAsync(byte level, CancellationToken cancellationToken);
     ValueTask<ItemReference> ResealAsync(byte nextCount, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetEnchantmentAsync(int cardId, CancellationToken cancellationToken) =>
-        SetEnchantmentAsync(cardId, 0, cancellationToken);
-    ValueTask<ItemReference> SetEnchantmentAsync(int cardId, byte upgradeCount, CancellationToken cancellationToken);
+        SetEnchantmentAsync(cardId, null, cancellationToken);
+    ValueTask<ItemReference> SetEnchantmentAsync(int cardId, byte? upgradeCount, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetForgingLevelAsync(byte level, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetDimensionalAttributeAsync(byte type, ushort value, CancellationToken cancellationToken);
     ValueTask<ItemReference> SetMagicSealOptionsAsync(IReadOnlyList<RandomOptionState> options,

@@ -17,6 +17,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.ExpertJobs;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
@@ -268,8 +269,11 @@ public sealed class TownProjectionHandlerTests
                 new Dfo.Server.Testing.ProtocolAlgorithmFixture.Outbox(sender),
                 Identity.ConnectionId, Identity, (await currentViews.TryLoadAsync(Identity, default))!, previous, CancellationToken.None);
 
+            var expertStores = Assert.Single(notifications.Published, item => item.Notification is ExpertStoreArrival);
+            Assert.Equal(Identity, Assert.IsType<ExpertStoreArrival>(expertStores.Notification).Viewer);
+            Assert.Equal([Identity], Assert.IsType<NotificationAudience.TheseSessions>(expertStores.Audience).Sessions);
             Assert.Collection(
-                notifications.Published.Where(item => item.Notification is not global::Dfo.Server.Protocol.Game.PrivateStoreArrival),
+                notifications.Published.Where(item => item.Notification is not (PrivateStoreArrival or ExpertStoreArrival)),
                 item =>
                 {
                     Assert.Equal(
@@ -321,6 +325,7 @@ public sealed class TownProjectionHandlerTests
                     "town-direct",
                     // The newcomer's own town frames are out before it hears of the stalls there.
                     "notify:PrivateStoreArrival",
+                    "notify:ExpertStoreArrival",
                     "notify:TownAreaRosterReconciled",
                     "notify:TownAreaRosterReconciled",
                     "notify:TownParticipantPublished",

@@ -29,7 +29,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         QuestCompletionPreparation Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, projection);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
         if (definition is null || definition.IsManagedByAchievement) return Refuse();
-        if (QuestAvailabilityRuleService.IsExpertJobQuest(definition)
+        if (QuestAvailabilityRuleService.MayBeExpertJobQuest(definition)
+            && await availability.IsExpertJobQuestAsync(definition, ct).ConfigureAwait(false)
             && !await availability.MeetsRequirementsAsync(definition,
                 await questFacts.SubjectAsync(account, id, ct).ConfigureAwait(false), ct).ConfigureAwait(false))
             return Refuse();

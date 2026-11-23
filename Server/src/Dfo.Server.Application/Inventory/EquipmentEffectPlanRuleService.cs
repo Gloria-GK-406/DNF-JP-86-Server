@@ -37,10 +37,10 @@ internal sealed class EquipmentEffectPlanRuleService(IEquipmentReinforcementFail
     public async ValueTask<EquipmentEffectPlan<int?>> EnchantAsync(ItemReference target, BusinessSlot source,
         ItemSnapshot bead, CancellationToken ct)
     {
-        var card = await enchant.CardAsync(bead, target.Snapshot.ItemId, ct).ConfigureAwait(false);
-        return new(card, card is null ? [] : Array.AsReadOnly<DomainEffect>([
+        var card = await enchant.ResolveAsync(bead, target.Snapshot.ItemId, ct).ConfigureAwait(false);
+        return new(card?.CardItemId, card is null ? [] : Array.AsReadOnly<DomainEffect>([
             new ConsumeFromContainerEffect(source, bead.ItemId, 1),
-            new SetEquipmentEnchantmentEffect(Target(target), card.Value, bead.EnchantUpgradeCount)]));
+            new SetEquipmentEnchantmentEffect(Target(target), card.CardItemId, card.UpgradeCount)]));
     }
 
     public async ValueTask<EquipmentEffectPlan<EquipmentOutworldDecision>> OutworldAsync(ItemReference target,

@@ -51,3 +51,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-23 副职业实现（待 A21 实机）
+
+**CurrentImplementation + UpstreamReference**。本仓沿用 `u16 ownerUserId` 的现有投影，适用于主动关摊、离区、放弃与耐久耗尽。上游在该前缀后追加角色 ID 低 16 位，该尾部待 A21 实机验证。 [上游与 70 证据](../../../Document/tasks/expert-jobs/UpstreamEvidence.md)

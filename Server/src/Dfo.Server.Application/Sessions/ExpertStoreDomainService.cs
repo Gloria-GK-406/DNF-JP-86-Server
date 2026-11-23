@@ -16,13 +16,20 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
     private readonly Dictionary<CharacterId, PendingClosures> reserved = [];
     private long lastInstance;
 
-    public void Open(CharacterId ownerCharacterId) => SetLegacyOpen(ownerCharacterId, null);
+    public void Open(CharacterId ownerCharacterId)
+    {
+        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(Open));
+        SetLegacyOpen(ownerCharacterId, null);
+    }
 
-    public void Open(SelectedSessionIdentity session) => SetLegacyOpen(session.CharacterId, session);
+    public void Open(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(Open));
+        SetLegacyOpen(session.CharacterId, session);
+    }
 
     private void SetLegacyOpen(CharacterId owner, SelectedSessionIdentity? session)
     {
-        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(Open));
         lock (gate)
         {
             DemandUnreserved(owner);
@@ -43,13 +50,20 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
         }
     }
 
-    public bool CloseExact(SelectedSessionIdentity session) => CloseSession(session).Closed;
+    public bool CloseExact(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(CloseExact));
+        return CloseSession(session).Closed;
+    }
 
-    public ExpertStoreClosure? CloseOwned(SelectedSessionIdentity exactOwner) => CloseSession(exactOwner).Closure;
+    public ExpertStoreClosure? CloseOwned(SelectedSessionIdentity exactOwner)
+    {
+        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(CloseOwned));
+        return CloseSession(exactOwner).Closure;
+    }
 
     private (bool Closed, ExpertStoreClosure? Closure) CloseSession(SelectedSessionIdentity session)
     {
-        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(CloseExact));
         lock (gate)
         {
             var owned = open.GetValueOrDefault(session.CharacterId);

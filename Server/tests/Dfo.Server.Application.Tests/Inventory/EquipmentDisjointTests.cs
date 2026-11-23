@@ -510,12 +510,13 @@ public sealed class EquipmentDisjointTests
 
     internal static ShopFixture Fixture(
         int equipmentLevel = 10,
-        IReadOnlyList<EquipmentDisjointReward>? rewards = null, Action<IServiceCollection>? configure = null) => new(services =>
+        IReadOnlyList<EquipmentDisjointReward>? rewards = null, Action<IServiceCollection>? configure = null,
+        int? equipmentGrade = null) => new(services =>
     {
         services.AddSingleton<IEquipmentDisjointRuleService>(new FixedRules(
             rewards ?? [new EquipmentDisjointReward(1000, 12)]));
         services.AddSingleton<IEquipmentDisjointDefinitionSource>(
-            new DisjointContent(equipmentLevel));
+            new DisjointContent(equipmentLevel, equipmentGrade));
         configure?.Invoke(services);
     });
 
@@ -542,12 +543,12 @@ public sealed class EquipmentDisjointTests
                 EquipmentDisjointRejection.None, rewards));
     }
 
-    private sealed class DisjointContent(int equipmentLevel) : IEquipmentDisjointDefinitionSource
+    private sealed class DisjointContent(int equipmentLevel, int? equipmentGrade) : IEquipmentDisjointDefinitionSource
     {
         public ValueTask<EquipmentDisjointDefinition?> GetEquipmentAsync(
             int itemId, CancellationToken cancellationToken) =>
             ValueTask.FromResult<EquipmentDisjointDefinition?>(
-                itemId == 3000 ? new(100, equipmentLevel, 1, true) : null);
+                itemId == 3000 ? new(100, equipmentLevel, 1, true) { Grade = equipmentGrade } : null);
 
         public ValueTask<PortableDisjointMachineDefinition?> GetPortableMachineAsync(
             int itemId, CancellationToken cancellationToken) =>

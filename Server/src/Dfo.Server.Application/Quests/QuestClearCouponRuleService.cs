@@ -44,7 +44,7 @@ internal sealed class QuestClearCouponRuleService(
         bool Eligible(QuestDefinition quest) => quest.QuestId is > 0 and < 30_000
             && !completed.Contains(quest.QuestId)
             && quest.Grade == grade
-            && !QuestAvailabilityRuleService.IsExpertJobQuest(quest)
+            && !QuestAvailabilityRuleService.MayBeExpertJobQuest(quest)
             && (!side || !quest.ObjectiveTypeCode.Equals("play only", StringComparison.OrdinalIgnoreCase))
             && quest.RequiredLevel is { Minimum: >= 0 } range && range.Minimum <= level
             // Old offer-level ceilings do not exclude historical stories.

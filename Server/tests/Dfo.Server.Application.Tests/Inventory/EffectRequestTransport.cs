@@ -21,20 +21,24 @@ namespace Dfo.Server.Application.Tests.Inventory;
 internal static class EffectRequestTransport
 {
     private static readonly ConditionalWeakTable<NetworkConnectionContext, CounterState> Counters = new();
-    public static ushort FreshSequence(ShopFixture fixture) => Counters.GetValue(fixture.Connection, _ => new()).Next;
+    public static ushort FreshSequence(ShopFixture fixture) => FreshSequence(fixture.Connection);
+    public static ushort FreshSequence(NetworkConnectionContext connection) => Counters.GetValue(connection, _ => new()).Next;
     public static ValueTask Send(ShopFixture fixture, IEffectSettlementRequest request)
     {
         return SendRaw(fixture, request.Metadata, Body(request));
     }
     public static ValueTask SendRaw(ShopFixture fixture, GameMessageMetadata input, byte[] body)
+        => SendRaw(fixture, fixture.Connection, input, body);
+
+    public static ValueTask SendRaw(ShopFixture fixture, NetworkConnectionContext connection, GameMessageMetadata input, byte[] body)
     {
-        var (ordinal, fresh) = Counters.GetValue(fixture.Connection, _ => new()).Observe(input.Sequence);
+        var (ordinal, fresh) = Counters.GetValue(connection, _ => new()).Observe(input.Sequence);
         var metadata = (input with { InboundOrdinal = ordinal, SequenceIsFresh = fresh }).WithRawBody(body);
         var decoderRegistration = fixture.Services.GetServices<GameMessageDecoderRegistration>()
             .Single(x => x.Selector == metadata.Selector && x.Type == metadata.Type);
         var decoded = ((IGameMessageDecoder)fixture.Services.GetRequiredService(decoderRegistration.DecoderType)).Decode(metadata, body)
             ?? throw new InvalidDataException("Fixture body was not decoded.");
-        return fixture.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(fixture.Connection), decoded, default);
+        return fixture.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(connection), decoded, default);
     }
     /// <summary>
     /// Whether a prepared batch is a replay of current state (it carries inventory snapshots), as distinct from the

@@ -16,6 +16,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.ExpertJobs;
 using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -230,11 +231,11 @@ internal static class ProtocolAlgorithmFixture
         [.. suppliedTo.TryGetValue(town, out var values) ? values : [], .. town.GetType()
         .GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Select(field => field.GetValue(town))
         .OfType<object>()];
-    /// <summary>Lets the newcomer's stall notice through (it lists nothing without stalls) and refuses every other projection.</summary>
+    /// <summary>Models an empty town's stall notices and refuses every other projection.</summary>
     internal sealed class ArrivalOnlyProjections : ICommandProjections
     {
         public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
-            where T : class, INotification<T> => notification is Dfo.Server.Protocol.Game.PrivateStoreArrival
+            where T : class, INotification<T> => notification is PrivateStoreArrival or ExpertStoreArrival
                 ? ValueTask.FromResult(new NotificationDelivery([]))
                 : throw new InvalidOperationException($"The component fixture did not provide ICommandProjections.ProjectAsync for {typeof(T).Name}.");
     }

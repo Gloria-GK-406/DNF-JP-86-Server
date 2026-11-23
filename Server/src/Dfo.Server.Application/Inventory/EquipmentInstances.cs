@@ -93,10 +93,14 @@ internal sealed class EquipmentInstance(IBusinessItemContainer container, ItemRe
         return ChangeAsync(core => core with { Attribute = (byte)((core.Attribute & 0xE0) | level) }, ct);
     }
 
-    public ValueTask<ItemReference> SetEnchantmentAsync(int cardId, byte upgradeCount, CancellationToken ct)
+    public ValueTask<ItemReference> SetEnchantmentAsync(int cardId, byte? upgradeCount, CancellationToken ct)
     {
         if (cardId < 0) throw new ArgumentOutOfRangeException(nameof(cardId));
-        return ChangeAsync(core => core with { EnchantCardId = cardId, EnchantUpgradeCount = upgradeCount }, ct);
+        return ChangeAsync(core => core with
+        {
+            EnchantCardId = cardId,
+            EnchantUpgradeCount = upgradeCount ?? core.EnchantUpgradeCount
+        }, ct);
     }
 
     public ValueTask<ItemReference> ResealAsync(byte nextCount, CancellationToken ct) =>

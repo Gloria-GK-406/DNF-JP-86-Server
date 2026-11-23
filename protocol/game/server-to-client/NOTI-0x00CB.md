@@ -53,3 +53,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-23 副职业实现（待 A21 实机）
+
+**CurrentImplementation + UpstreamReference**。玩家分解机成功结算后，向非自用的摊主发送上游结构 `1 + i32 金币 + i32 耐久`。请求者接收独立 CMD 0x00EB 回执。 [上游与 70 证据](../../../Document/tasks/expert-jobs/UpstreamEvidence.md)
