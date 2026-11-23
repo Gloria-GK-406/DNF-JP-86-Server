@@ -248,7 +248,7 @@ public sealed class SkillGrowthProtocolCommandFlowTests(ITestOutputHelper output
             var entry=await entries.LoadAsync(s.AccountId,s.CharacterId,ct);
             entry=entry with {Skills=entry.Skills with {ProtocolMirror=await points.RemainingAsync(s.CharacterId,ct)}};
             return new(await characters.LoadForSelectionAsync(s.AccountId,0,ct),entry,
-                await inventory.ReadCurrentAsync(s.AccountId,s.CharacterId,ct),null!,null!,new GameWorldEntryState(DateTimeOffset.UnixEpoch,StubWorldContentEntryRuleService.EmptyContent,new ChannelEntryPolicyState(11,null!,true,false)),null!);
+                await inventory.ReadCurrentAsync(s.AccountId,s.CharacterId,ct),null!,null!,new GameWorldEntryState(DateTimeOffset.UnixEpoch,StubWorldContentEntryRuleService.EmptyContent,new ChannelEntryPolicyState(11,null!,true,SkillGroup.Pve)),null!);
         }
     }
     private static void AssertSuccessfulChange(ShopFixture f,int protocol) {

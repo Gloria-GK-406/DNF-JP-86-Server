@@ -24,7 +24,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     IEquippedCreatureQuery equippedCreature,
     IWorldContentEntryRuleService worldContent,
     ICharacterEntryPreparationRuleService rules,
-    ICharacterPvpSkillProfileRepository pvpSkills,
+    ICharacterSkillStateDomainService skillState,
     IChannelEntryDomainService channels,
     ITownMovementDomainService towns,
     ISessionAdjacentEntryDomainService adjacent,
@@ -95,11 +95,11 @@ internal sealed class CharacterCurrentStateQueryDomainService(
                 await towns.SharesTownPresenceAsync(position.TownId, position.AreaId, cancellationToken)
                     .ConfigureAwait(false)),
             PersistsPosition: !channel.IsTransient,
-            PvpSkillProfileApplies: channel.IsPvp);
-        if (channel.IsPvp)
+            SkillGroup: channel.CharacterSkillGroup);
+        if (channelPolicy.SkillGroup != SkillGroup.Pve)
         {
-            var profile = await pvpSkills.ReadAsync(
-                session.AccountId, session.CharacterId, cancellationToken).ConfigureAwait(false);
+            var profile = await skillState.ReadAsync(session.CharacterId, cancellationToken, channelPolicy.SkillGroup)
+                .ConfigureAwait(false) ?? throw new InvalidDataException("Character skills are unavailable.");
             characterEntry = characterEntry with
             {
                 Skills = characterEntry.Skills with { Pages = profile.Pages },

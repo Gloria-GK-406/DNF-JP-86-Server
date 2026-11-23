@@ -45,7 +45,7 @@ internal sealed class EntryPlacementRuleService(
             channel.ChannelId,
             spawn,
             PersistsPosition: !channel.IsTransient,
-            PvpSkillProfileApplies: channel.IsPvp);
+            SkillGroup: channel.CharacterSkillGroup);
     }
 
     public ValueTask<bool> CanEnterTownAsync(

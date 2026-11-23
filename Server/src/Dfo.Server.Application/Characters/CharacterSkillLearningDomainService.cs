@@ -22,7 +22,7 @@ internal sealed class CharacterSkillLearningDomainService(
         if (transactions.Current is null) throw new InvalidOperationException("Skill slot changes require a transaction.");
         if (pageIndex < 0 || !sessions.IsInWorld(session)) return false;
         var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
-        if (view is null || view.World.Channel.PvpSkillProfileApplies) return false;
+        if (view is null || view.World.Channel.SkillGroup != SkillGroup.Pve) return false;
         var build = new SkillBuildId(pageIndex);
         if ((await state.BuildsAsync(session.CharacterId, ct).ConfigureAwait(false)).Active != build) return false;
         return await skillStore.Get(session.CharacterId, SkillGroup.Pve, build)
@@ -42,7 +42,7 @@ internal sealed class CharacterSkillLearningDomainService(
         if (target is < 0 || !sessions.IsInWorld(session) || onlineCharacters.StandingOf(session) is null)
             return null;
         var view = await currentViews.TryLoadAsync(session, ct).ConfigureAwait(false);
-        if (view is null || view.World.Channel.PvpSkillProfileApplies) return null;
+        if (view is null || view.World.Channel.SkillGroup != SkillGroup.Pve) return null;
         var builds = await state.BuildsAsync(session.CharacterId, ct).ConfigureAwait(false);
         var current = builds.Active.Value;
         if (expectedCurrent is { } expected && expected != current)
@@ -65,7 +65,7 @@ internal sealed class CharacterSkillLearningDomainService(
             return new(CharacterSkillLearningRejection.NoSession);
         if (!CharacterSkillDomainService.IsValidLearningRequest(changes))
             return new(CharacterSkillLearningRejection.InvalidRequest);
-        if (mode != 0 || selected.World.Channel.PvpSkillProfileApplies || onlineCharacters.StandingOf(session) is null)
+        if (mode != 0 || selected.World.Channel.SkillGroup != SkillGroup.Pve || onlineCharacters.StandingOf(session) is null)
             return new(CharacterSkillLearningRejection.UnsupportedScenario);
         if (pageIndex < 0)
             return new(CharacterSkillLearningRejection.PageUnavailable);

@@ -906,7 +906,7 @@ public sealed class CharacterEntryInventoryTests
             int persistedTownId, CancellationToken cancellationToken) => ValueTask.FromResult(
                 new ChannelEntryPolicyState(channel.ChannelId,
                     new EntrySpawnState(1, 1, 10, 20, 5, 3, channel.IsTransient),
-                    !channel.IsTransient, channel.IsFreeDuel));
+                    !channel.IsTransient, channel.CharacterSkillGroup));
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int townId,
             CancellationToken cancellationToken) => ValueTask.FromResult(true);
         public ValueTask<bool> DeclaresAreaAsync(int townId, int areaId,

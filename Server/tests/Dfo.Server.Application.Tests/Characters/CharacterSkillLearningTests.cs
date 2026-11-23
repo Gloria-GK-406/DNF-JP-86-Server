@@ -494,7 +494,7 @@ internal sealed class LearningFixture : IAsyncDisposable
                 ? new SelectCharacterResult(
                     null!, null!, null!, null!, null!,
                     new GameWorldEntryState(DateTimeOffset.UnixEpoch, null!,
-                        new ChannelEntryPolicyState(11, null!, true, false)), null!)
+                        new ChannelEntryPolicyState(11, null!, true, SkillGroup.Pve)), null!)
                 : null);
     }
     public async Task<CharacterSkillLearningResult> LearnAsync(IReadOnlyList<CharacterSkillLearningChange> changes,

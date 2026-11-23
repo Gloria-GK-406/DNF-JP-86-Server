@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Data.Channel;
 
 public sealed record ChannelServerInfo(
@@ -55,6 +57,8 @@ public sealed record ChannelEntryIdentity(int ChannelId, int ListenerPort, Chann
 
     /// <summary>True for every channel that uses duelling skills and entry projections.</summary>
     public bool IsPvp => Kind is ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp;
+
+    public SkillGroup CharacterSkillGroup => IsPvp ? SkillGroup.Duel : SkillGroup.Pve;
 
     /// <summary>True when a character's position on this channel is not persisted.</summary>
     /// <remarks>

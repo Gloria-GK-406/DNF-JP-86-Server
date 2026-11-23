@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
@@ -118,8 +119,8 @@ public sealed class EntryPlacementTests
         var general = await placement.ResolveAsync(
             StubChannelEntryPolicy.GeneralChannel, 1, CancellationToken.None);
 
-        Assert.True(duel.PvpSkillProfileApplies);
-        Assert.False(general.PvpSkillProfileApplies);
+        Assert.Equal(SkillGroup.Duel, duel.SkillGroup);
+        Assert.Equal(SkillGroup.Pve, general.SkillGroup);
     }
 
     [Fact]

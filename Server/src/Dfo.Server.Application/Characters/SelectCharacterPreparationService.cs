@@ -180,7 +180,7 @@ public sealed class SelectCharacterPreparationService(
             channel,
             character.LastInnTownId != 0 ? character.LastInnTownId : character.Position.TownId,
             cancellationToken).ConfigureAwait(false);
-        if (channelPolicy.PvpSkillProfileApplies)
+        if (channelPolicy.SkillGroup == SkillGroup.Duel)
         {
             var initial = await BuildInitialPvpSkillProfileAsync(
                 character, characterEntry.Skills, preparationRules, cancellationToken).ConfigureAwait(false);

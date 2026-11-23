@@ -1051,7 +1051,7 @@ internal static class SelectCharacterPayloadTestData
                 [],
                 new PetWelcomeEntryState(18, "pet", ["hello"])),
             Channel = new ChannelEntryPolicyState(1,
-                new EntrySpawnState(1, 2, 30, 40, 5, 0, false), true, false),
+                new EntrySpawnState(1, 2, 30, 40, 5, 0, false), true, SkillGroup.Pve),
         };
         var account = source.Account with
         {

@@ -111,7 +111,7 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
         if (needs.HasFlag(ReplayProjectionNeeds.Skills) || needs.HasFlag(ReplayProjectionNeeds.Experience) || appearanceNeeded)
         {
             var channel = await channels.ResolveAsync(session.ListenerPort, ct).ConfigureAwait(false);
-            skillGroup = channel.IsPvp ? SkillGroup.Duel : SkillGroup.Pve;
+            skillGroup = channel.CharacterSkillGroup;
             points = (await skillPoints.LedgerAsync(session.CharacterId, ct, skillGroup).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Current skill point ledger is unavailable.")).ToProtocolMirror();
         }

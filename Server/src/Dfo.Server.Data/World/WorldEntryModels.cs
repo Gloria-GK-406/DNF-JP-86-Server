@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Data.World;
 
 /// <summary>One collection box and the items this character has already collected into it.</summary>
@@ -166,13 +168,9 @@ public sealed record EntrySpawnState(
 /// <param name="PersistsPosition">
 /// Whether the resolved position is written back to the character.
 /// </param>
-/// <param name="PvpSkillProfileApplies">
-/// Whether a duelling skill profile applies at all on this channel. It says nothing about
-/// the profile's contents: a profile that applies and turns out to be empty is a different
-/// fact, and lives with the character's skills.
-/// </param>
+/// <param name="SkillGroup">The group of skill pages used on this channel.</param>
 public sealed record ChannelEntryPolicyState(
     int ChannelId,
     EntrySpawnState Spawn,
     bool PersistsPosition,
-    bool PvpSkillProfileApplies);
+    SkillGroup SkillGroup);
