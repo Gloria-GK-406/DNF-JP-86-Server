@@ -113,13 +113,14 @@ internal sealed class CharacterSide
     /// </remarks>
     public ICharacterTable Characters => new SqliteCharacterTable(this.database);
 
-    public ICharacterPvpSkillProfileRepository PvpProfile => new PvpSkillProfileService(
+    public Dfo.Server.Application.Pvp.PvpSkillInitializer PvpProfile => new(
         this.Characters,
         this.Skills,
         new SqliteCharacterPvpSkillStateTable(this.database),
         new CharacterSkillFactsReader(this.Characters, this.Skills,
             new SqliteCharacterSkillBuildTable(this.database), new SqliteCharacterEntryTable(this.database),
-            new SqliteCharacterPvpSkillStateTable(this.database)));
+            new SqliteCharacterPvpSkillStateTable(this.database)),
+        TestRequired.Absent<ICharacterEntryPreparationRuleService>());
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>

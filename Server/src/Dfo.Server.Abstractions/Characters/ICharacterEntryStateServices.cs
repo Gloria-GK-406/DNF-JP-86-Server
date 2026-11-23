@@ -42,20 +42,13 @@ public sealed record CharacterSkillStorageRecord(
     IReadOnlyList<(byte PageIndex, byte[] Body)> DarkKnightComboPages,
     IReadOnlyList<(byte SlotIndex, int ShieldItemId)> KnightShieldSlots);
 
-/// <summary>
-/// Loads the independently persisted fair-PvP skill profile.  Absence is distinct from
-/// an initialized empty profile and must therefore remain observable to entry policy.
-/// </summary>
-public interface ICharacterPvpSkillProfileRepository
+/// <summary>Prepares persistent pages for a skill group when its character enters.</summary>
+public interface ICharacterSkillGroupInitializer
 {
-    ValueTask<CharacterSkillsEntryState> ReadAsync(
-        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken);
+    SkillGroup Group { get; }
 
-    ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CharacterSkillsEntryState initialProfile,
-        CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<CharacterSkillPageState>> PrepareAsync(
+        AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken);
 }
 
 public sealed record DungeonPersistentEffectRecoveryOutcome(

@@ -8,68 +8,6 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Characters;
 
 /// <summary>
-/// Brings a character's duelling skills into being the first time they are asked for.
-/// </summary>
-/// <remarks>
-/// The marker is the whole of the decision: every character has a skill-state row from creation,
-/// and its flag says whether these have been set up. Reading it, writing the skills, and setting
-/// the flag is a sequence, and a sequence is a decision -- so it is made here.
-/// </remarks>
-internal sealed class PvpSkillProfileService(
-    ICharacterTable characters,
-    ICharacterSkillTable skills,
-    ICharacterPvpSkillStateTable skillState,
-    CharacterSkillFactsReader skillFacts) : ICharacterPvpSkillProfileRepository
-{
-    public async ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
-        AccountId accountId,
-        CharacterId characterId,
-        CharacterSkillsEntryState initialProfile,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(initialProfile);
-        var owner = await characters.FindOwnerAsync(characterId, cancellationToken)
-            .ConfigureAwait(false);
-        if (owner != accountId)
-        {
-            throw new InvalidDataException("PvP skill profile owner does not match the account.");
-        }
-
-        var state = await skillState.FindAsync(characterId, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidDataException(
-                $"Character {characterId.Value} has no duel skill-state row to seed skills against.");
-        if (state.SkillsInitialized == 0)
-        {
-            foreach (var page in initialProfile.Pages)
-            {
-                foreach (var skill in page.Skills)
-                {
-                    await skills.InsertAsync(
-                        characterId, page.PageIndex, skill.Slot, (int)skill.SkillId, skill.Level,
-                        cancellationToken, SkillGroup.Duel, [.. skill.ExtraValues]).ConfigureAwait(false);
-                }
-            }
-
-            await skillState.MarkSkillsInitializedAsync(characterId, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        return await ReadAsync(accountId, characterId, cancellationToken).ConfigureAwait(false);
-    }
-
-    public async ValueTask<CharacterSkillsEntryState> ReadAsync(
-        AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
-    {
-        if (await characters.FindOwnerAsync(characterId, cancellationToken).ConfigureAwait(false) != accountId)
-            throw new InvalidDataException("PvP skill profile owner does not match the account.");
-        var pages = await skillFacts.ReadDuelPagesAsync(characterId, cancellationToken).ConfigureAwait(false);
-        return new CharacterSkillsEntryState(
-            pages,
-            [], new CharacterSkillPointBasisState(0, 0), [], null);
-    }
-}
-
-/// <summary>
 /// Brings a character's skills back within what their expired contracts allow.
 /// </summary>
 /// <remarks>

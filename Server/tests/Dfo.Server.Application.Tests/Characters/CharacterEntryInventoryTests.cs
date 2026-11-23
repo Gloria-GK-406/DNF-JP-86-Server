@@ -256,7 +256,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(normal), new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)), skillPoints: new NormalSkillSource(),
-            pvpSkills: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
+            skillInitializer: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
 
         var ordinary = await entry.EnterAsync(
             accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
@@ -316,9 +316,9 @@ public sealed class CharacterEntryInventoryTests
         {
             Identity = Character(6021, 3).Identity with { Job = 9 },
         };
-        var result = await Dfo.Server.Application.Characters.SelectCharacterPreparationService
-            .BuildInitialPvpSkillProfileAsync(
-                darkKnight, EmptyCharacterEntry(darkKnight.Identity.CharacterId).Skills,
+        var result = await Dfo.Server.Application.Pvp.PvpSkillInitializer
+            .BuildInitialPagesAsync(
+                darkKnight,
                 new CharacterEntryPreparationRuleService(
                     new AllocationSkillSource(),
                     new UnusedExpertContracts(),
@@ -326,10 +326,10 @@ public sealed class CharacterEntryInventoryTests
                 CancellationToken.None);
 
         Assert.Equal([(short)0, (short)102, (short)150],
-            result.Pages[0].Skills.Select(value => value.Slot));
+            result[0].Skills.Select(value => value.Slot));
         Assert.Equal([(ushort)100, (ushort)101, (ushort)102],
-            result.Pages[0].Skills.Select(value => value.SkillId));
-        Assert.Equal(result.Pages[0].Skills, result.Pages[1].Skills);
+            result[0].Skills.Select(value => value.SkillId));
+        Assert.Equal(result[0].Skills, result[1].Skills);
     }
 
     [Fact]
@@ -868,14 +868,13 @@ public sealed class CharacterEntryInventoryTests
     }
 
     private sealed class FixedPvpSkills(CharacterSkillsEntryState state)
-        : ICharacterPvpSkillProfileRepository
+        : ICharacterSkillGroupInitializer
     {
-        public ValueTask<CharacterSkillsEntryState> ReadAsync(
-            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(state);
-        public ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
-            AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
-            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+        public SkillGroup Group => SkillGroup.Duel;
+
+        public ValueTask<IReadOnlyList<CharacterSkillPageState>> PrepareAsync(
+            AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(state.Pages);
     }
 
     private sealed class FixedExpertContracts : IExpertSkillContractDefinitionSource
