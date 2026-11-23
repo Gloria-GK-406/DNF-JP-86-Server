@@ -19,7 +19,8 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     ICharacterSkillStateDomainService skills, ICharacterBusinessInventoryDomainService bags,
     IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment, IEquipmentDisjointDefinitionSource definitions,
     IOpeningEffectPlanRuleService materials, IPackageOpeningRuleService rewards, IInventoryEffectPreflightDomainService preflight,
-    IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, TimeProvider clock)
+    IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, IEquipmentEnchantContentSource enchantContent,
+    EnchanterStoreOperations enchanterStores, TimeProvider clock)
 {
     private static readonly BusinessInventorySpace[] MaterialSpaces = [BusinessInventorySpace.QuickSlot,
         BusinessInventorySpace.Consumable, BusinessInventorySpace.Material, BusinessInventorySpace.Quest,
@@ -43,10 +44,13 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         if (state.Type != type)
             return new(ExpertJobProductionRejection.InvalidItem);
         var definition = await rules.FindAsync(type, ct).ConfigureAwait(false);
-        if (definition?.Production is not { } production || !production.Recipes.TryGetValue(drawing.ItemId, out var recipe)
-            || !await HasSkillAsync(owner, recipe, ct).ConfigureAwait(false))
+        if (definition is null)
             return new(ExpertJobProductionRejection.InvalidItem);
-        if (recipe.RequiredLevel > definition.LevelAt(state.Experience) + 2)
+        var requirements = ReadDrawingRequirements(definition, drawing.ItemId);
+        if (requirements is not { } requirement
+            || !await HasSkillAsync(owner, requirement.Skill, ct).ConfigureAwait(false))
+            return new(ExpertJobProductionRejection.InvalidItem);
+        if (requirement.Level > definition.LevelAt(state.Experience) + 2)
             return new(ExpertJobProductionRejection.LevelTooLow);
 
         DomainEffect[] plan = [new ConsumeFromContainerEffect(source, drawing.ItemId, 1)];
@@ -63,6 +67,15 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         return new(ExpertJobProductionRejection.None, applied.Changes<ContainerConsumptionChange>().Single().RemainingCount);
     }
 
+    private static (int Level, int Skill)? ReadDrawingRequirements(ExpertJobDefinition definition, int drawing)
+    {
+        if (definition.Production?.Recipes.TryGetValue(drawing, out var recipe) == true)
+            return (recipe.RequiredLevel, recipe.RequiredSkill);
+        if (definition.Enchantment?.CardRecipes.TryGetValue(drawing, out var cardRecipe) == true)
+            return (cardRecipe.RequiredLevel, cardRecipe.RequiredSkill);
+        return null;
+    }
+
     private async ValueTask<ExpertJobCraftResult> CraftAsync(CharacterId owner, ExpertJobType type,
         SelectedSessionIdentity actor, int recipeId, ushort attempts, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -74,7 +87,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         if (state.Type != type || definition?.Production is not { } production)
             return new(ExpertJobProductionRejection.InvalidState);
         if (!production.Recipes.TryGetValue(recipeId, out var recipe) || !state.LearnedRecipeIds.Contains(recipeId)
-            || !await HasSkillAsync(owner, recipe, ct).ConfigureAwait(false))
+            || !await HasSkillAsync(owner, recipe.RequiredSkill, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidRecipe);
 
         var level = definition.LevelAt(state.Experience);
@@ -125,6 +138,63 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         return new(ExpertJobProductionRejection.None, receipt,
             recipe.Product with { Count = (int)attemptedCount }, successes, attempts - successes,
             successes > 0 && production.Extractors.ContainsKey(recipe.Product.ItemId));
+    }
+
+    private async ValueTask<ExpertJobCraftResult> CraftBeadAsync(CharacterId owner, SelectedSessionIdentity actor,
+        int recipeId, BusinessSlot card, IEffectFootprintRecorder footprint, CancellationToken ct)
+    {
+        var context = Context(owner, actor, footprint);
+        if (context is null || stores.HasOpenStore(owner))
+            return new(ExpertJobProductionRejection.InvalidState);
+        var state = await states.ReadAsync(owner, ct).ConfigureAwait(false);
+        if (state.Type != ExpertJobType.Enchanter
+            || await rules.FindAsync(state.Type, ct).ConfigureAwait(false) is not { Enchantment: { } enchantment } definition)
+            return new(ExpertJobProductionRejection.InvalidState);
+        if (!enchantment.CardRecipes.TryGetValue(recipeId, out var recipe) || !state.LearnedRecipeIds.Contains(recipeId)
+            || !await HasSkillAsync(owner, recipe.RequiredSkill, ct).ConfigureAwait(false))
+            return new(ExpertJobProductionRejection.InvalidRecipe);
+        var level = definition.LevelAt(state.Experience);
+        if (level < recipe.RequiredLevel) return new(ExpertJobProductionRejection.LevelTooLow);
+        if (!enchantment.CardRates.TryGetValue(level, out var rate)) return new(ExpertJobProductionRejection.InvalidRecipe);
+        if (!card.Space.IsCarriedItemSpace() || card.Space == BusinessInventorySpace.TowerQuickSlot)
+            return new(ExpertJobProductionRejection.InvalidItem);
+        var cardSlot = slots.Find(owner, card);
+        var cardItem = cardSlot is null ? null : await cardSlot.Container.GetAsync(card.Index, ct).ConfigureAwait(false);
+        if (cardItem is not { IsPile: true, Count: > 0 } || cardItem.Snapshot.IsMirror
+            || cardItem.Snapshot.EquipmentLockId != 0 || cardItem.Snapshot.SortLockFlag != 0
+            || cardItem.Snapshot.Lifetime.IsExpired(context.At)
+            || !recipe.BeadsByCardId.TryGetValue(cardItem.ItemId, out var bead))
+            return new(ExpertJobProductionRejection.InvalidItem);
+        var upgradeCount = cardItem.Snapshot.EnchantUpgradeCount;
+        if (!await enchantContent.ValidateExpertCardAsync(cardItem.ItemId, upgradeCount, null, ct).ConfigureAwait(false)
+            || await enchantContent.ResolveExpertBeadAsync(bead, upgradeCount, null, ct).ConfigureAwait(false) is null)
+            return new(ExpertJobProductionRejection.InvalidItem);
+
+        var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(card, cardItem.ItemId, 1) };
+        try
+        {
+            var standing = (await HeldMaterialsAsync(owner, ct).ConfigureAwait(false)).Where(item => item.Slot != card).ToArray();
+            var costs = materials.MaterialCosts(recipe.Materials, 1, standing, context.At);
+            plan.AddRange(costs.Items.Select(cost => new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count)));
+        }
+        catch (OpeningRejectedException error) when (error.Reason is OpeningRejection.MissingMaterial
+            or OpeningRejection.InvalidRequest or OpeningRejection.UnsupportedContent)
+        {
+            return new(error.Reason == OpeningRejection.MissingMaterial
+                ? ExpertJobProductionRejection.InsufficientMaterials : ExpertJobProductionRejection.InvalidRecipe);
+        }
+
+        if (!await AddGrantsAsync(plan, [new(bead, 1)], context.At, ct, upgradeCount).ConfigureAwait(false))
+            return new(ExpertJobProductionRejection.InvalidRecipe);
+        // Validate capacity for the potential product before rolling, including the card and material debits.
+        var rejection = await PreviewAsync(context, plan, limitRewards: false, ct).ConfigureAwait(false);
+        if (rejection != ExpertJobProductionRejection.None) return new(rejection);
+        var random = Random.Shared;
+        var success = random.Next(100) < rate.SuccessByQualification[recipe.Qualification];
+        if (!success) plan.RemoveAt(plan.Count - 1);
+        var gain = success ? ExpertJobEquipmentRules.Between(random, rate.Experience.Minimum, rate.Experience.Maximum) : 0;
+        var receipt = await SettleAsync(context, plan, definition, state, gain, ct).ConfigureAwait(false);
+        return new(ExpertJobProductionRejection.None, receipt, new(bead, 1), success ? 1 : 0, success ? 0 : 1);
     }
 
     private async ValueTask<ExpertJobExtractionResult> ExtractAsync(CharacterId owner, ExpertJobType type,
@@ -200,9 +270,10 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         return context;
     }
 
-    private async ValueTask<bool> HasSkillAsync(CharacterId owner, ExpertJobRecipeDefinition recipe, CancellationToken ct) =>
+    // Appointment grants the profession skill. Recipe levels are checked against profession experience.
+    private async ValueTask<bool> HasSkillAsync(CharacterId owner, int skillId, CancellationToken ct) =>
         (await skills.ReadAsync(owner, ct).ConfigureAwait(false))?.Pages.Any(page =>
-            page.Skills.Any(skill => skill.SkillId == recipe.RequiredSkill && skill.Level >= recipe.RequiredSkillLevel)) == true;
+            page.Skills.Any(skill => skill.SkillId == skillId && skill.Level > 0)) == true;
 
     private async ValueTask<IReadOnlyList<OpeningHeldItem>> HeldMaterialsAsync(CharacterId owner, CancellationToken ct)
     {
@@ -218,7 +289,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     }
 
     private async ValueTask<bool> AddGrantsAsync(List<DomainEffect> plan, IReadOnlyList<OpeningReward> outputs,
-        DateTimeOffset at, CancellationToken ct)
+        DateTimeOffset at, CancellationToken ct, byte enchantUpgradeCount = 0)
     {
         try
         {
@@ -227,7 +298,8 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
                 || grant.Item.Placement.WorldClass != ItemWorldClass.Interchangeable
                 || grant.Item.Placement.Destination.Space == BusinessInventorySpace.VirtualResource))
                 return false;
-            plan.AddRange(grants.Select(grant => new GrantPreparedItemEffect(grant, ItemDeliveryMode.InventoryOnly)));
+            plan.AddRange(grants.Select(grant => new GrantPreparedItemEffect(
+                grant with { EnchantUpgradeCount = enchantUpgradeCount }, ItemDeliveryMode.InventoryOnly)));
             return true;
         }
         catch (OpeningRejectedException)
@@ -279,13 +351,16 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
 
     private abstract class Role(ExpertJobProductionOperations operations, CharacterId owner, ExpertJobType type) : IExpertJobProductionService
     {
+        protected ExpertJobProductionOperations Operations { get; } = operations;
+        protected CharacterId Owner { get; } = owner;
+
         public ValueTask<ExpertJobCraftResult> CraftAsync(SelectedSessionIdentity actor, int recipeId, ushort attempts,
             IEffectFootprintRecorder footprint, CancellationToken ct) =>
-            operations.CraftAsync(owner, type, actor, recipeId, attempts, footprint, ct);
+            Operations.CraftAsync(Owner, type, actor, recipeId, attempts, footprint, ct);
 
         public ValueTask<ExpertJobExtractionResult> ExtractAsync(SelectedSessionIdentity actor, BusinessSlot extractor, BusinessSlot target,
             IEffectFootprintRecorder footprint, CancellationToken ct) =>
-            operations.ExtractAsync(owner, type, actor, extractor, target, footprint, ct);
+            Operations.ExtractAsync(Owner, type, actor, extractor, target, footprint, ct);
     }
 
     private sealed class Alchemist(ExpertJobProductionOperations operations, CharacterId owner)
@@ -293,5 +368,20 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     private sealed class DollController(ExpertJobProductionOperations operations, CharacterId owner)
         : Role(operations, owner, ExpertJobType.DollController), IDollControllerDomainService;
     private sealed class Enchanter(ExpertJobProductionOperations operations, CharacterId owner)
-        : Role(operations, owner, ExpertJobType.Enchanter), IEnchanterDomainService;
+        : Role(operations, owner, ExpertJobType.Enchanter), IEnchanterDomainService
+    {
+        public ValueTask<ExpertJobCraftResult> CraftBeadAsync(SelectedSessionIdentity actor, int recipeId, BusinessSlot card,
+            IEffectFootprintRecorder footprint, CancellationToken ct) =>
+            Operations.CraftBeadAsync(Owner, actor, recipeId, card, footprint, ct);
+
+        public ValueTask<EnchanterStoreUseResult> EnchantAsync(ExpertStoreVisit visit, int recipeId, BusinessSlot card,
+            BusinessSlot target, IEffectFootprintRecorder footprint, CancellationToken ct) =>
+            Operations.EnchanterStores.EnchantAsync(Owner, visit, recipeId, card, target, footprint, ct);
+
+        public ValueTask<ExpertMachineMaintenanceResult> RepairAsync(SelectedSessionIdentity actor,
+            IEffectFootprintRecorder footprint, CancellationToken ct) =>
+            Operations.EnchanterStores.RepairAsync(Owner, actor, footprint, ct);
+    }
+
+    private EnchanterStoreOperations EnchanterStores { get; } = enchanterStores;
 }

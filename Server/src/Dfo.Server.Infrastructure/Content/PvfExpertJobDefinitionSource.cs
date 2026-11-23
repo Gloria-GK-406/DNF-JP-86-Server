@@ -58,28 +58,15 @@ internal sealed partial class PvfExpertJobDefinitionSource(PvfArchiveProvider pr
         if (costs.Count is < 1 or > 256 || costs.Any(cost => cost < 0))
             throw new InvalidDataException($"Invalid giveup costs in '{path}'.");
 
-        var qualifications = new Dictionary<byte, int>();
-        if (type == ExpertJobType.Enchanter)
-        {
-            byte? rarity = null;
-            foreach (var section in doc.Sections.SkipWhile(section => section.Name != "[rarity recipe]")
-                         .TakeWhile(section => section.Name != "[/rarity recipe]"))
-            {
-                if (section.Name == "[rarity]" && section.Values.Count == 1)
-                    rarity = checked((byte)Int(section.Values[0], path));
-                if (section.Name == "[expert job level]" && rarity is { } key && section.Values.Count == 1)
-                {
-                    qualifications.Add(key, Int(section.Values[0], path));
-                    rarity = null;
-                }
-            }
-            if (qualifications.Count == 0) throw new InvalidDataException($"Missing card qualifications in '{path}'.");
-        }
+        var skills = Pairs(root, "[skill]", path).ToDictionary(pair => pair.Key, pair => checked((byte)pair.Value));
+        var enchantment = type == ExpertJobType.Enchanter ? ReadEnchantment(archive, doc, path, skills) : null;
+        var qualifications = enchantment?.CardRecipes.Values.ToDictionary(recipe => recipe.Qualification, recipe => recipe.RequiredLevel)
+            ?? [];
 
         return new(type, thresholds, costs,
             root.Read(PvfField.Int32List("[connect quest list]")).ToHashSet(),
             root.Read(PvfField.Int32List("[clear quests]")).ToHashSet(),
-            Pairs(root, "[skill]", path).ToDictionary(pair => pair.Key, pair => checked((byte)pair.Value)),
+            skills,
             root.Read(PvfField.Int32("[giveup delete item]", optional: true)),
             root.Read(PvfField.Int32("[endurance initial value]", optional: true)),
             Pairs(root, "[auto learn recipe]", path), qualifications)
@@ -87,6 +74,7 @@ internal sealed partial class PvfExpertJobDefinitionSource(PvfArchiveProvider pr
             MaximumStoreCharge = root.Read(PvfField.Int32("[limit store charge]", optional: true)),
             DisjointMachine = type == ExpertJobType.Disjointer ? ReadDisjointMachine(archive, root, path) : null,
             Production = type == ExpertJobType.Disjointer ? null : ReadProduction(archive, root, path, type),
+            Enchantment = enchantment,
         };
     }
 

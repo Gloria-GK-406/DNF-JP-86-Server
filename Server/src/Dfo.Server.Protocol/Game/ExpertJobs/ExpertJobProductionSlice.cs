@@ -187,12 +187,30 @@ internal sealed class GameExpertJobProductionCommandHandler(ISelectedSessionDoma
             return true;
         }
 
-        if (input.RecipeId <= 0 || input.Attempts == 0 || input.CardSlot != -1)
+        if (input.RecipeId <= 0 || input.Attempts == 0 || input.CardSlot < -1 || input.CardSlot >= 0 && input.Attempts != 1)
             return await RejectAsync(ExpertJobProductionRejection.InvalidState).ConfigureAwait(false);
+        BusinessSlot? sourceCard = null;
+        if (input.CardSlot >= 0)
+        {
+            try
+            {
+                sourceCard = A21InventoryLayout.ToBusinessSlot(new(InventoryContainerType.Main, input.CardSlot));
+            }
+            catch (InventorySlotMappingException)
+            {
+                return await RejectAsync(ExpertJobProductionRejection.InvalidItem).ConfigureAwait(false);
+            }
+        }
         var craft = await units.WriteAsync(execution,
             new("expert-job-craft", [selected.Recipient], CommandWorkUnitKind.MainSettlement),
             async (unit, token) =>
             {
+                if (sourceCard is { } card)
+                {
+                    var enchanter = await role.GetEnchanterAsync(token).ConfigureAwait(false);
+                    return enchanter is null ? new ExpertJobCraftResult(ExpertJobProductionRejection.InvalidState)
+                        : await enchanter.CraftBeadAsync(actor, input.RecipeId, card, unit.Footprint, token).ConfigureAwait(false);
+                }
                 var state = await role.GetStateAsync(token).ConfigureAwait(false);
                 var service = await FindProductionAsync(role, state.Type, token).ConfigureAwait(false);
                 return service is null ? new ExpertJobCraftResult(ExpertJobProductionRejection.InvalidState)

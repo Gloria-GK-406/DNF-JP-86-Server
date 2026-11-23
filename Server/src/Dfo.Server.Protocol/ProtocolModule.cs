@@ -248,6 +248,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddExpertJobProductionSlice();
         services.AddExpertStoreSlice();
         services.AddDisjointMachineSlice();
+        services.AddEnchanterStoreSlice();
         services.AddReinforceItemSlice();
         services.AddEnchantByBeadSlice();
         services.AddMagicSealSlice();

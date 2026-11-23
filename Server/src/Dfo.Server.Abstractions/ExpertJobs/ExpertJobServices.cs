@@ -54,6 +54,7 @@ public sealed record ExpertJobDefinition(
     public int MaximumStoreCharge { get; init; }
     public DisjointMachineDefinition? DisjointMachine { get; init; }
     public ExpertJobProductionDefinition? Production { get; init; }
+    public EnchanterDefinition? Enchantment { get; init; }
 
     public int LevelAt(uint experience) => Math.Min(ExperienceThresholds.Count,
         1 + ExperienceThresholds.TakeWhile(threshold => experience >= threshold).Count());

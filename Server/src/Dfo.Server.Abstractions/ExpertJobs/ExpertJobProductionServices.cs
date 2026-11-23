@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -15,7 +16,32 @@ public interface IExpertJobProductionService
 
 public interface IAlchemistDomainService : IExpertJobProductionService;
 public interface IDollControllerDomainService : IExpertJobProductionService;
-public interface IEnchanterDomainService : IExpertJobProductionService;
+public interface IEnchanterDomainService : IExpertJobProductionService
+{
+    ValueTask<ExpertJobCraftResult> CraftBeadAsync(SelectedSessionIdentity actor, int recipeId, BusinessSlot card,
+        IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<EnchanterStoreUseResult> EnchantAsync(ExpertStoreVisit visit, int recipeId, BusinessSlot card, BusinessSlot target,
+        IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<ExpertMachineMaintenanceResult> RepairAsync(SelectedSessionIdentity actor, IEffectFootprintRecorder footprint,
+        CancellationToken ct);
+}
+
+public enum EnchanterStoreRejection { None, InvalidItem, InvalidState, InsufficientGold, Exhausted }
+
+public sealed record EnchanterStoreUseResult(EnchanterStoreRejection Rejection, EnchanterStoreUseReceipt? Receipt = null);
+
+public sealed record EnchanterStoreUseReceipt(bool Succeeded, uint Experience, int Endurance, int GuestGold, int OwnerGold,
+    IReadOnlyList<InventorySlotEffectChange> InventoryChanges, DateTimeOffset PreparedAt, bool ExperienceChanged,
+    bool LevelChanged, ExpertStoreClosure? ClosedStore);
+
+public sealed record EnchanterCardRecipe(byte Qualification, int RequiredLevel, int RequiredSkill,
+    IReadOnlyList<RecipeAmount> Materials, IReadOnlyDictionary<int, int> BeadsByCardId);
+
+public sealed record EnchanterCardRate(IReadOnlyList<int> SuccessByQualification, ExpertJobExperienceRange Experience);
+
+public sealed record EnchanterDefinition(IReadOnlyDictionary<int, EnchanterCardRecipe> CardRecipes,
+    IReadOnlyDictionary<int, EnchanterCardRate> CardRates, int WearMinimumLevel, int WearPerAttempt,
+    IReadOnlyList<ExpertMachineRepairRule> Repairs);
 
 public enum ExpertJobProductionRejection
 {

@@ -26,6 +26,7 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private Dictionary<int, string>? equipment;
     private readonly Dictionary<(int Bead, int Target), EquipmentEnchantDefinition?> cache = [];
     private readonly Dictionary<int, IReadOnlyList<string>> gemEffects = [];
+    private IReadOnlyDictionary<int, HashSet<int>>? expertBeadCards;
 
     // Explicit: the class already has a private Name(archive, token) helper.
     string Dfo.Server.Abstractions.Content.IContentWarmup.Name => "equipment-enchant-index";
@@ -95,6 +96,36 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
+    public ValueTask<bool> ValidateExpertCardAsync(int cardItemId, byte upgradeCount, int? equipmentItemId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (gate)
+            return ValueTask.FromResult(ValidateExpertCard(provider.Archive, cardItemId, upgradeCount, equipmentItemId));
+    }
+
+    public ValueTask<EquipmentEnchantDefinition?> ResolveExpertBeadAsync(int beadItemId, byte upgradeCount,
+        int? equipmentItemId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var archive = provider.Archive;
+            StackablesIndex(archive);
+            if (!stackables.TryGetValue(beadItemId, out var path)
+                || PvfDocument.TryOpen(archive, "stackable/" + path, PvfPreamble.Ignore)?.AtRoot() is not { } bead
+                || !IsBead(archive, bead.Sections)
+                || equipmentItemId is { } target && !AllowsBeadTarget(bead.Sections, target))
+                return ValueTask.FromResult<EquipmentEnchantDefinition?>(null);
+            expertBeadCards ??= PvfExpertJobDefinitionSource.ReadExpertBeadCards(archive);
+            var declaredCard = PvfSections.SingleInt32(archive, bead.Sections, Fields.MonsterCardIdField,
+                PvfRepeats.AsUndeclared, "equipment");
+            return ValueTask.FromResult<EquipmentEnchantDefinition?>(
+                declaredCard is { } card && expertBeadCards.TryGetValue(beadItemId, out var candidates) && candidates.Contains(card)
+                && ValidateExpertCard(archive, card, upgradeCount, equipmentItemId)
+                    ? new(beadItemId, card) : null);
+        }
+    }
+
     private EquipmentEnchantDefinition? Read((int Bead, int Target) key)
     {
         var archive = provider.Archive;
@@ -104,21 +135,9 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
             || !equipment.TryGetValue(key.Target, out var targetPath)) return null;
 
         var bead = (PvfDocument.TryOpen(archive, "stackable/" + beadPath, PvfPreamble.Ignore)?.Sections ?? []);
-        var type = PvfSections.Single(bead, Fields.StackableTypeField, PvfRepeats.AsUndeclared, "equipment");
         var cardId = PvfSections.SingleInt32(archive, bead, Fields.MonsterCardIdField, PvfRepeats.AsUndeclared, "equipment");
-        if (type is null || type.Values.Count != 2
-            || Name(archive, type.Values[0]) != "enchant waste"
-            || type.Values[1].Kind != PvfTokenKind.Int32 || type.Values[1].Value != 0
-            || cardId is not > 0 || !stackables.TryGetValue(cardId.Value, out var cardPath)) return null;
-
-        foreach (var whitelist in new[] { Fields.TargetItemIdField, Fields.BeadLimitedUsableItemField })
-        {
-            var declarations = bead.Where(s => s.Name == whitelist.Name).ToArray();
-            if (declarations.Length > 1 || declarations.Length == 1
-                && (declarations[0].Values.Count == 0
-                    || declarations[0].Values.Any(v => v.Kind != PvfTokenKind.Int32)
-                    || !declarations[0].Values.Any(v => v.Value == key.Target))) return null;
-        }
+        if (!IsBead(archive, bead) || cardId is not > 0 || !stackables.TryGetValue(cardId.Value, out var cardPath)
+            || !AllowsBeadTarget(bead, key.Target)) return null;
 
         var card = (PvfDocument.TryOpen(archive, "stackable/" + cardPath, PvfPreamble.Ignore)?.Sections ?? []);
         var category = PvfSections.Single(card, Fields.ItemCategoryField, PvfRepeats.AsUndeclared, "equipment");
@@ -136,6 +155,61 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
         return targetType.Length > 0 && stringData.Values.Skip(1)
             .Any(token => Name(archive, token) == targetType)
             ? new(key.Bead, cardId.Value) : null;
+    }
+
+    private bool ValidateExpertCard(PvfArchive archive, int cardItemId, byte upgradeCount, int? equipmentItemId)
+    {
+        StackablesIndex(archive);
+        if (!stackables.TryGetValue(cardItemId, out var path)
+            || PvfDocument.TryOpen(archive, "stackable/" + path, PvfPreamble.Ignore) is not { } card)
+            return false;
+        var sections = card.AtRoot().Sections;
+        var category = PvfSections.Single(sections, Fields.ItemCategoryField, PvfRepeats.AsUndeclared, "card");
+        var categoryName = category is null ? "" : string.Join(' ', category.Values.Select(token => Name(archive, token)));
+        var monsterCard = categoryName == "monster card" || categoryName.StartsWith("monster card ", StringComparison.Ordinal);
+        var type = PvfSections.Single(sections, Fields.StackableTypeField, PvfRepeats.AsUndeclared, "card");
+        var material = type?.Values is [var name, { Kind: PvfTokenKind.Int32, Value: 1 }]
+            && Name(archive, name) == "material expert job";
+        var allowed = PvfSections.Single(sections, Fields.StringDataField, PvfRepeats.AsUndeclared, "card");
+        if (allowed is null || allowed.Values.Count < 2 || allowed.Values.Any(token => !token.IsString))
+            return false;
+        var indices = card.Sections.Where(section => section.Name == Fields.EnchantIndexField.Name).ToArray();
+        if (!(monsterCard || material && indices.Length != 0)
+            || (indices.Length == 0 ? upgradeCount != 0
+                : indices.Any(section => section.Values is not [{ Kind: PvfTokenKind.Int32 }])
+                  || !indices.Any(section => section.Values[0].Value == upgradeCount)))
+            return false;
+        if (equipmentItemId is not { } targetId) return true;
+        EquipmentIndex(archive);
+        if (!equipment.TryGetValue(targetId, out var targetPath)
+            || PvfDocument.TryOpen(archive, "equipment/" + targetPath, PvfPreamble.Ignore)?.AtRoot() is not { } target)
+            return false;
+        var equipmentType = PvfSections.Single(target.Sections, Fields.EquipmentTypeField, PvfRepeats.AsUndeclared, "equipment");
+        if (equipmentType is null || equipmentType.Values.Count is < 1 or > 2
+            || !equipmentType.Values[0].IsString || equipmentType.Values.Count == 2
+                && equipmentType.Values[1].Kind != PvfTokenKind.Int32)
+            return false;
+        var targetType = Name(archive, equipmentType.Values[0]);
+        return targetType.Length > 0 && allowed.Values.Skip(1).Any(token => Name(archive, token) == targetType);
+    }
+
+    private static bool IsBead(PvfArchive archive, IReadOnlyList<PvfSection> bead)
+    {
+        var type = PvfSections.Single(bead, Fields.StackableTypeField, PvfRepeats.AsUndeclared, "equipment");
+        return type?.Values is [var name, { Kind: PvfTokenKind.Int32, Value: 0 }] && Name(archive, name) == "enchant waste";
+    }
+
+    private static bool AllowsBeadTarget(IReadOnlyList<PvfSection> bead, int itemId)
+    {
+        foreach (var whitelist in new[] { Fields.TargetItemIdField, Fields.BeadLimitedUsableItemField })
+        {
+            var declarations = bead.Where(section => section.Name == whitelist.Name).ToArray();
+            if (declarations.Length > 1 || declarations.Length == 1
+                && (declarations[0].Values.Count == 0
+                    || declarations[0].Values.Any(token => token.Kind != PvfTokenKind.Int32)
+                    || !declarations[0].Values.Any(token => token.Value == itemId))) return false;
+        }
+        return true;
     }
 
     private static Dictionary<int, string> Paths(PvfArchive archive, string path)

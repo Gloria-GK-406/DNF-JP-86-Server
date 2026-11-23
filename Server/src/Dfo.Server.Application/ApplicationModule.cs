@@ -123,6 +123,7 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<IExpertJobRuleService, ExpertJobRuleService>();
         services.TryAddSingleton<DisjointerOperations>();
         services.TryAddSingleton<ExpertJobProductionOperations>();
+        services.TryAddSingleton<EnchanterStoreOperations>();
         services.TryAddSingleton<IExpertJobDomainService, ExpertJobDomainService>();
         services.TryAddSingleton<IQuestClearCouponSettlementDomainService, QuestClearCouponSettlementService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();

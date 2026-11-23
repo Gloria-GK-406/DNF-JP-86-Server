@@ -18,12 +18,15 @@ internal sealed partial class PvfExpertJobDefinitionSource
             var type = (ExpertJobType)id;
             if (type is not (ExpertJobType.Enchanter or ExpertJobType.Alchemist or ExpertJobType.DollController)) continue;
             var path = "character/" + relative;
-            if (PvfDocument.TryOpen(archive, path)?.AtRoot() is not { } doc) continue;
+            if (PvfDocument.TryOpen(archive, path) is not { } document) continue;
+            var doc = document.AtRoot();
             var productionIds = type == ExpertJobType.Enchanter
                 ? ReadRows(doc, "[product exp]", 3, path, optional: true).Select(row => row[0]).ToHashSet() : null;
             foreach (var row in ReadRows(doc, "[items]", 4, path, optional: true))
                 if (row[1] > 0 && (productionIds is null || productionIds.Contains(row[1])))
                     result.Add(row[1], type);
+            if (type == ExpertJobType.Enchanter)
+                foreach (var group in ReadCardRecipeGroups(document, path)) result.Add(group.RecipeId, type);
         }
         return result;
     }

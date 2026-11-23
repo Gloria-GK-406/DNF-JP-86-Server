@@ -44,6 +44,7 @@ internal sealed class GrantPreparedItemEffectHandler(IItemArrivalRuleService arr
             Durability = grant.Item.Durability,
             TradeRestriction = grant.Reward.TradeRestriction,
             GenuineUpgrade = grant.Reward.Forging,
+            EnchantUpgradeCount = grant.EnchantUpgradeCount,
             // The opening rules resolve fixed quality; zero leaves generation to actual delivery.
             InstanceValue = grant.FixedInstanceValue ?? 0,
             SealFlag = grant.Item.Placement.WorldClass == ItemWorldClass.Creature ? (byte)0 : grant.Item.Sealed ? (byte)1 : (byte)0,
