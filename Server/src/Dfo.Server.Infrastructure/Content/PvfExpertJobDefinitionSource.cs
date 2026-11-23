@@ -66,7 +66,10 @@ internal sealed class PvfExpertJobDefinitionSource(PvfArchiveProvider provider) 
             Pairs(root, "[skill]", path).ToDictionary(pair => pair.Key, pair => checked((byte)pair.Value)),
             root.Read(PvfField.Int32("[giveup delete item]", optional: true)),
             root.Read(PvfField.Int32("[endurance initial value]", optional: true)),
-            Pairs(root, "[auto learn recipe]", path), qualifications);
+            Pairs(root, "[auto learn recipe]", path), qualifications)
+        {
+            MaximumStoreCharge = root.Read(PvfField.Int32("[limit store charge]", optional: true)),
+        };
     }
 
     private static Dictionary<int, int> Pairs(PvfDocument doc, string tag, string path)

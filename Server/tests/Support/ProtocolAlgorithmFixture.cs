@@ -33,6 +33,7 @@ internal static class ProtocolAlgorithmFixture
             values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue
                 : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values)
                 : parameter.ParameterType == typeof(ITownTransitDomainService) ? Transit(values)
+                : parameter.ParameterType == typeof(IExpertStoreDomainService) ? Stores(values)
                 : parameter.ParameterType == typeof(IDungeonExitDomainService) ? Exit(values.ToArray())
                 : parameter.ParameterType == typeof(IEntryPlacementRuleService) ? Placement(values)
                 : Default(parameter.ParameterType))).ToArray());
@@ -77,7 +78,14 @@ internal static class ProtocolAlgorithmFixture
             values.OfType<IOnlineCharacterRuntimeDomainService>().LastOrDefault() ?? Default<IOnlineCharacterRuntimeDomainService>()),
         new(values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
             values.OfType<IEntryPlacementRuleService>().LastOrDefault() ?? Placement(values)),
-        values.OfType<ICharacterLocationDomainService>().LastOrDefault() ?? Default<ICharacterLocationDomainService>());
+        values.OfType<ICharacterLocationDomainService>().LastOrDefault() ?? Default<ICharacterLocationDomainService>(),
+        Stores(values));
+
+    private static IExpertStoreDomainService Stores(List<object> values) =>
+        values.OfType<IExpertStoreDomainService>().LastOrDefault()
+        ?? new Dfo.Server.Application.Sessions.ExpertStoreDomainService(
+            values.OfType<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>().LastOrDefault()
+            ?? TestRequired.TransactionScope());
     // Placement reads content only through the town definitions a test supplies; its couple-room
     // rules are pure and answer without any.
     private static Dfo.Server.Application.World.EntryPlacementRuleService Placement(List<object> values) => new(

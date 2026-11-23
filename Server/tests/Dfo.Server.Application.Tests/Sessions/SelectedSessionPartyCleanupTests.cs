@@ -316,7 +316,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 sessions,
                 new CharacterContainerDomainService(TestRequired.TransactionScope()),
                 presence,
-                new ExpertStoreDomainService(),
+                new ExpertStoreDomainService(TestRequired.TransactionScope()),
                 new PvpLobbyDomainService(),
                 [new KeptPositions()],
                 failAfterPartyCleanup

@@ -49,6 +49,8 @@ public readonly record struct TownTransitArea(MapRectangle Bounds, int LinkedTow
     public bool IsLocal => LinkedTownId == Unlinked && LinkedAreaId == Unlinked;
 }
 
+public readonly record struct TownNpcPosition(int X, int Y);
+
 /// <summary>
 /// The parts of a map's geometry that entry needs: where a character can be moved from,
 /// and where they are allowed to stand.
@@ -57,6 +59,9 @@ public sealed record MapGeometry(
     IReadOnlyList<TownTransitArea> TransitAreas,
     IReadOnlyList<MapRectangle> WalkableAreas)
 {
+    /// <summary>Static NPC map positions, or null when the archive declared malformed NPC records.</summary>
+    public IReadOnlyList<TownNpcPosition>? NpcPositions { get; init; } = [];
+
     /// <summary>True when the point lies inside any area the content marks walkable.</summary>
     public bool IsWalkable(int x, int y)
     {

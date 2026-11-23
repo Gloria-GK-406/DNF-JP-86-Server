@@ -1,9 +1,11 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
@@ -56,9 +58,10 @@ internal sealed record GameExpertJobGiveUpCommand(NetworkDispatchContext Dispatc
 }
 
 internal sealed class GameExpertJobGiveUpCommandHandler(ISelectedSessionDomainService sessions,
-    IExpertJobDomainService jobs, IExpertStoreDomainService stores, ICommandWorkUnits units, IGameCommandOutbox outbox,
+    IExpertJobDomainService jobs, ICommandWorkUnits units, IGameCommandOutbox outbox,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
-    IBusinessInventorySlotDomainService inventory, TimeProvider clock, ILogger<GameExpertJobGiveUpCommandHandler> logger)
+    IBusinessInventorySlotDomainService inventory, ITownAreaDomainService townAreas, ICommandProjections projections,
+    TimeProvider clock, ILogger<GameExpertJobGiveUpCommandHandler> logger)
     : ICommandHandler<GameExpertJobGiveUpCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameExpertJobGiveUpCommand command, CancellationToken ct)
@@ -98,13 +101,13 @@ internal sealed class GameExpertJobGiveUpCommandHandler(ISelectedSessionDomainSe
             return await RefuseAsync(connection.ConnectionId,
                 result.Rejection == ExpertJobGiveUpRejection.InsufficientGold ? (byte)21 : (byte)8, ct).ConfigureAwait(false);
 
-        // Gameplay runs this committed closure on the same lane as the transaction.
-        result = result with { StoreClosed = stores.CloseExact(session) };
+        if (result.ClosedStore is { } closure)
+            await ExpertStoreProjection.ClosedAsync(sessions, townAreas, projections, closure, includeOwner: false, ct).ConfigureAwait(false);
         var view = await views.TryLoadAsync(session, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("The committed expert-job giveup lost its selected character.");
         view = await offers.RefreshAsync(view, session.AccountId, session.CharacterId, view.Character.Progression.Level, ct).ConfigureAwait(false);
         var frames = new List<IGameServerMessage>();
-        if (result.StoreClosed)
+        if (result.ClosedStore is not null)
             frames.Add(new ExpertStoreClosedMessage(session.WireUserId));
         if (result.Effects is { } applied)
         {

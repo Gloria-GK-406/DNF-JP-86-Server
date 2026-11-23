@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.World;
@@ -28,7 +29,7 @@ public interface ICharacterExpertJob
 public enum ExpertJobGiveUpRejection { None, InvalidState, InsufficientGold }
 
 public sealed record ExpertJobGiveUpResult(ExpertJobGiveUpRejection Rejection, int Gold = 0,
-    byte GiveUpCount = 0, bool StoreClosed = false, ApplyEffectsResult? Effects = null);
+    byte GiveUpCount = 0, ApplyEffectsResult? Effects = null, ExpertStoreClosure? ClosedStore = null);
 
 public sealed record ExpertJobDefinition(
     ExpertJobType Type,
@@ -42,6 +43,8 @@ public sealed record ExpertJobDefinition(
     IReadOnlyDictionary<int, int> AutoLearnRecipes,
     IReadOnlyDictionary<byte, int> CardQualificationLevelRequirements)
 {
+    public int MaximumStoreCharge { get; init; }
+
     public int LevelAt(uint experience) => Math.Min(ExperienceThresholds.Count,
         1 + ExperienceThresholds.TakeWhile(threshold => experience >= threshold).Count());
 

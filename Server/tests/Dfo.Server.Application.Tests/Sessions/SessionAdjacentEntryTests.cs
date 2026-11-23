@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class SessionAdjacentEntryTests
 {
-    private static readonly ExpertStoreDomainService Stores = new();
+    private static readonly ExpertStoreDomainService Stores = new(TestRequired.TransactionScope());
 
     /// <remarks>
     /// The registry exists whether or not anyone has been admitted to it, so a quiet server
@@ -176,7 +176,7 @@ public sealed class SessionAdjacentEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             stores.Open(new CharacterId(99));
             var presence = new SessionPresenceDomainService();
             var service = Service(presence, stores, new PvpLobbyDomainService());
@@ -193,7 +193,7 @@ public sealed class SessionAdjacentEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             stores.Open(new CharacterId(10));
             var registry = new SessionPresenceDomainService();
             registry.Admit(Presence(10));
@@ -211,7 +211,7 @@ public sealed class SessionAdjacentEntryTests
     {
         TestGameplay.Run(() =>
         {
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             stores.Open(new CharacterId(10));
 
             Assert.True(stores.Close(new CharacterId(10)));

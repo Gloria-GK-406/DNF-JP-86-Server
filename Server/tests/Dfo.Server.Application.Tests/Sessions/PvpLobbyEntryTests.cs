@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class PvpLobbyEntryTests
 {
-    private static readonly ExpertStoreDomainService Stores = new();
+    private static readonly ExpertStoreDomainService Stores = new(TestRequired.TransactionScope());
 
     /// <remarks>
     /// The distinction this pins is the one the Spec calls out: no lobby at all versus a

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -140,6 +141,26 @@ public interface IExpertStoreDomainService
 
     /// <summary>Whether this character has a store standing open.</summary>
     bool HasOpenStore(CharacterId ownerCharacterId);
+
+    bool HasOpenStore(SelectedSessionIdentity exactOwner);
+
+    ExpertStoreSnapshot? TryOpen(SelectedSessionIdentity owner, TownAreaKey area, ExpertStorePlacement placement);
+
+    ExpertStoreSnapshot? FindOwned(SelectedSessionIdentity owner);
+
+    IReadOnlyList<ExpertStoreSnapshot> In(TownAreaKey area);
+
+    bool Enter(SelectedSessionIdentity visitor, ExpertStoreSnapshot store);
+
+    ExpertStoreVisit? Visiting(SelectedSessionIdentity visitor);
+
+    bool Leave(SelectedSessionIdentity visitor);
+
+    ExpertStoreClosure? CloseOwned(SelectedSessionIdentity exactOwner);
+
+    ExpertStoreClosure? StageClose(ExpertStoreSnapshot expected);
+
+    ExpertStoreClosure? StageCloseOwned(SelectedSessionIdentity exactOwner);
 }
 
 /// <summary>A character who has signalled they are ready in the duelling lobby.</summary>

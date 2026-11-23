@@ -36,7 +36,7 @@ public sealed class SessionGenerationOwnershipTests
             var oldSession = Session("old", generation: 3);
             var current = Session("new", generation: 4);
             var presence = new SessionPresenceDomainService();
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             var lobby = new PvpLobbyDomainService();
 
             presence.Admit(new SessionPresence(current.CharacterId, 10011, 1, 2, true, current));
@@ -85,7 +85,7 @@ public sealed class SessionGenerationOwnershipTests
             var presence = new SessionPresenceDomainService();
             presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
             presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             stores.Open(owner);
             var service = Cleanup(directory, presence, stores, runtime: new ThrowingRuntime());
 
@@ -126,7 +126,7 @@ public sealed class SessionGenerationOwnershipTests
             presence.Admit(new SessionPresence(peer1.CharacterId, 10011, 1, 2, true, peer1));
             presence.Admit(new SessionPresence(
                 otherListener.CharacterId, 10012, 1, 2, true, otherListener));
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             stores.Open(owner);
             var service = Cleanup(directory, presence, stores);
 
@@ -263,7 +263,7 @@ public sealed class SessionGenerationOwnershipTests
             directory.Select(replacement);
             var presence = new SessionPresenceDomainService();
             presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             stores.Open(replacement);
             var runs = TestParties.Runs();
             var replacementRun = runs.Begin(
@@ -362,7 +362,7 @@ public sealed class SessionGenerationOwnershipTests
     {
         var areas = presence ?? new SessionPresenceDomainService();
         return new(directory, new CharacterContainerDomainService(TestRequired.TransactionScope()),
-            areas, stores ?? new ExpertStoreDomainService(),
+            areas, stores ?? new ExpertStoreDomainService(TestRequired.TransactionScope()),
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),

@@ -90,7 +90,7 @@ public sealed class UserServiceTests
         var parties = TestParties.Create();
         var cleanup = new SelectedSessionCleanupService(
             service.Sessions, new Dfo.Server.Application.Inventory.CharacterContainerDomainService(transactions: TestRequired.TransactionScope()),
-            new SessionPresenceDomainService(), new ExpertStoreDomainService(), new PvpLobbyDomainService(),
+            new SessionPresenceDomainService(), new ExpertStoreDomainService(TestRequired.TransactionScope()), new PvpLobbyDomainService(),
             [new KeptPositions()], runtime, new StubChannelEntryPolicy(),
             parties,
             TestParties.Runs(parties: parties), [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), pvpRooms: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService>(), pvpSettlement: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpSettlementDomainService>(), pvpDepartures: [], logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,

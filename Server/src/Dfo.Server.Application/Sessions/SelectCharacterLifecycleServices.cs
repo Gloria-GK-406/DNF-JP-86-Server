@@ -116,14 +116,14 @@ internal sealed class SelectedSessionCleanupService(
             // true rather than coincidental.
             if (audience.Count > 0)
             {
-                if (expertStores.HasOpenStore(session.CharacterId))
+                if (expertStores.HasOpenStore(session))
                     peerNotices.Add(new SelectedSessionCleanupNotice(
                         SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
                 peerNotices.Add(new SelectedSessionCleanupNotice(
                     SelectedSessionCleanupNoticeKind.TownDeparture, session.WireUserId));
             }
 
-            if (includeOwner && expertStores.HasOpenStore(session.CharacterId))
+            if (includeOwner && expertStores.HasOpenStore(session))
                 required.Add(new SelectedSessionCleanupNotice(
                     SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
         }

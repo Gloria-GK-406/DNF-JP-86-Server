@@ -196,11 +196,11 @@ internal sealed partial class GameTownMovementCommandHandler :
                 .ConfigureAwait(false);
         }
         var weddingAppearance = marriage is null ? null : await marriage.AppearanceAsync(session, cancellationToken).ConfigureAwait(false);
-        if (await transit.CrossAsync(session, channel.ChannelId, message.TownId, message.AreaId,
-                message.X, message.Y, sharesTownPresence, cancellationToken).ConfigureAwait(false) is null
-            || !await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections,
+        var crossing = await transit.CrossAsync(session, channel.ChannelId, message.TownId, message.AreaId,
+            message.X, message.Y, sharesTownPresence, cancellationToken).ConfigureAwait(false);
+        if (crossing is null || !await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections,
                 new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox,
-                context.Connection.ConnectionId, session, result, standingMember, cancellationToken).ConfigureAwait(false))
+                context.Connection.ConnectionId, session, result, standingMember, cancellationToken, crossing.ClosedExpertStore).ConfigureAwait(false))
         {
             logger.LogWarning(
                 "Set user area {ConnectionId}: area membership generation changed while moving",

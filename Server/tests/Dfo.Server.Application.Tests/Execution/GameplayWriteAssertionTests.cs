@@ -546,7 +546,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void ExpertStoreDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var stores = new Dfo.Server.Application.Sessions.ExpertStoreDomainService();
+        var stores = new Dfo.Server.Application.Sessions.ExpertStoreDomainService(TestRequired.TransactionScope());
         var seen = ViolationCapture.Attach();
 
         Assert.Throws<GameplayOffExecutorException>(() => stores.Open(Character));

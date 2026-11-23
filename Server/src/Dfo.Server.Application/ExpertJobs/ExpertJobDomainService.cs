@@ -34,7 +34,8 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     ICharacterSkillStateDomainService skills, ICharacterSkillRuleService skillRules,
     ICharacterSkillTable skillRows, ICharacterSkillBuildTable skillBuilds, ICharacterCarriedGoldTable gold,
     ICharacterContainerDomainService containers, IApplyEffectsDomainService effects,
-    ISelectedSessionDomainService sessions, IDungeonParticipationDomainService dungeons, IDomainTransactionAccessor transactions, TimeProvider clock)
+    ISelectedSessionDomainService sessions, IExpertStoreDomainService stores, IDungeonParticipationDomainService dungeons,
+    IDomainTransactionAccessor transactions, TimeProvider clock)
     : IExpertJobDomainService
 {
     public ICharacterExpertJob Get(CharacterId character) => new CharacterExpertJob(this, character);
@@ -113,7 +114,8 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
 
         var nextCount = checked((byte)Math.Min(current.GiveUpCount + 1, definition.GiveUpCosts.Count - 1));
         await states.WriteAsync(owner.Character, ExpertJobState.Empty with { GiveUpCount = nextCount }, ct).ConfigureAwait(false);
-        return new(ExpertJobGiveUpRejection.None, purse.Carried - cost, nextCount, Effects: applied);
+        var closure = stores.StageCloseOwned(session);
+        return new(ExpertJobGiveUpRejection.None, purse.Carried - cost, nextCount, applied, closure);
     }
 
     private async ValueTask ApplySkillsAsync(CharacterId character, ExpertJobDefinition definition, bool learn, CancellationToken ct)

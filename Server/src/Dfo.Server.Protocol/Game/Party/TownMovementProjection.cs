@@ -43,6 +43,8 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
+using Dfo.Server.Protocol.Game.ExpertJobs;
+
 namespace Dfo.Server.Protocol.Game.Party;
 
 internal static class TownMovementProjection
@@ -66,8 +68,11 @@ internal static class TownMovementProjection
     /// <summary>Projects an area crossing the caller has already committed.</summary>
     /// <returns>False when the session no longer stands in an area.</returns>
     internal static async ValueTask<bool> TownProjectTransferAsync(ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas, ICommandProjections projections, IPartyTownProjectionDelivery partyTown, ISelectedCharacterCurrentViewDomainService currentViews, IMarriageHousingQueryDomainService housing, IGameCommandOutbox outbox, NetworkConnectionId connectionId, SelectedSessionIdentity session,
-        SelectCharacterResult result, TownAreaMember previousMember, CancellationToken cancellationToken)
+        SelectCharacterResult result, TownAreaMember previousMember, CancellationToken cancellationToken,
+        ExpertStoreClosure? closedStore = null)
     {
+        if (closedStore is not null)
+            await ExpertStoreProjection.ClosedAsync(sessions, townAreas, projections, closedStore, includeOwner: true, cancellationToken).ConfigureAwait(false);
         var member = townAreas.Find(session.CharacterId);
         if (member is null || member.Session != session) return false;
         var changedArea = previousMember.Area != member.Area;
@@ -130,8 +135,11 @@ internal static class TownMovementProjection
             new GameExplicitMessageDelivery(direct, []),
             cancellationToken).ConfigureAwait(false);
         if (changedArea)
+        {
             _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
                 new PrivateStoreArrival(session), cancellationToken).ConfigureAwait(false);
+            await ExpertStoreProjection.ArrivedAsync(projections, session, cancellationToken).ConfigureAwait(false);
+        }
 
         if (changedArea && previousMember.SharesTownPresence)
             await TownArrivalProjection.TownPublishCurrentRosterCoreAsync(sessions, townAreas, projections, currentViews, previousMember.Area, cancellationToken).ConfigureAwait(false);

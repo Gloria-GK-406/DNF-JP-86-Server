@@ -77,17 +77,19 @@ internal sealed partial class GameMarriageCommandHandler
     {
         Dfo.Server.Data.Game.SelectCharacterResult view;
         Dfo.Server.Abstractions.World.TownAreaMember previous;
+        Dfo.Server.Abstractions.World.TownAreaMembershipChange crossing;
         try
         {
             if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not {} observed
                 || await currentViews.TryLoadAsync(actor, token).ConfigureAwait(false) is not {} currentView) return;
             previous = observed; view = currentView;
             if (await transit.CrossAsync(actor, channel, location.TownId, location.AreaId, location.X, location.Y, true, token)
-                    .ConfigureAwait(false) is null) return;
+                    .ConfigureAwait(false) is not { } moved) return;
+            crossing = moved;
         }
         catch (Exception error) when (IsWeddingBusinessFailure(error))
         { context.Request!.DemandCurrent(); logger.LogWarning(error, "Committed wedding projection failed for one recipient; other recipients continue."); return; }
-        await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, token).ConfigureAwait(false);
+        await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, token, crossing.ClosedExpertStore).ConfigureAwait(false);
     }
     private static bool IsWeddingBusinessFailure(Exception error) => error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error);
     private async ValueTask WeddingPositionAsync(CommandExecutionContext context, MarriageWeddingStanding standing, CancellationToken token)
