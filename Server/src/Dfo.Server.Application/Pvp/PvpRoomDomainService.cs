@@ -131,6 +131,18 @@ internal sealed class PvpRoomDomainService(
         return ValueTask.FromResult(Admit(pending, room, session, PvpRoomChangeKind.Entered, password, checkPassword: true));
     }
 
+    public ValueTask<PvpRoomOutcome> QuickJoinAsync(SelectedSessionIdentity session, CancellationToken cancellationToken)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(QuickJoinAsync));
+        ArgumentNullException.ThrowIfNull(session);
+        if (!sessions.IsInWorld(session)) return Refused(PvpRoomRefusal.SessionNotCurrent);
+
+        var pending = Pending;
+        if (pending.FindQuickJoinable(session.ListenerPort) is not { } room)
+            return Refused(PvpRoomRefusal.RoomMissing);
+        return ValueTask.FromResult(Admit(pending, room, session, PvpRoomChangeKind.Entered, null, checkPassword: true));
+    }
+
     public ValueTask<PvpRoomOutcome> SetSeatAsync(
         SelectedSessionIdentity actor, int seat, PvpSeatAction action, PvpTeam team, CancellationToken cancellationToken)
     {
@@ -826,6 +838,11 @@ internal sealed class PvpRoomDomainService(
 
         public Room? FindByNumber(int listenerPort, ushort number) =>
             Visible(listenerPort).FirstOrDefault(room => room.Snapshot.Number == number);
+
+        public Room? FindQuickJoinable(int listenerPort) => Visible(listenerPort)
+            .Where(room => room.Password is null && room.Snapshot.Phase == PvpRoomPhase.Waiting
+                && room.Snapshot.Seats.Contains(PvpSeat.OpenSeat))
+            .MinBy(room => room.Snapshot.Number);
 
         /// <summary>The smallest positive number no room on the listener shows, as this transaction sees them.</summary>
         public ushort NextNumber(int listenerPort)

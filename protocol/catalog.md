@@ -66,6 +66,8 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 
 ## 2026-11-14 决斗场一期 房间侧（TASK-06，CurrentImplementation，待实机）
 
+2026-11-23 A21 实机确认，CH50 的「立即开始」发出 [快速加入 CMD0062](game/client-to-server/0x0062.md#2026-11-23-ch50立即开始)，1 字节包体为 `00`。服务端按房号加入同频道第一个有开放空座的无密码等待房，无合适房间回 `00 BF`。A21 成功显示待实机。
+
 频道信息 `0x00C3` 在 `Game/PvpChannelInfo/`；建房、进房、座位、准备、模式、地图在 `Game/PvpRoom/`，六条 CMD 由同一个
 `GamePvpRoomCommandHandler` 处理，房间状态由领域 `PvpRoomDomainService` 持有，每条命令一个写工作单元，返回后由 `PvpRoomProjector`
 投影：请求者本人的帧直接登记，房内成员与同监听端口大厅就绪者经精确会话通知，进房离城、退房回城复用城镇投影。

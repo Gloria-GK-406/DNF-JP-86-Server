@@ -27,6 +27,12 @@ public sealed record EnterPvpRoomRequest(
     public ClientMessageType MessageType => ClientMessageType.GameEnterPvpRoom;
 }
 
+/// <summary>CMD <c>0x0062</c>, quick join from the duel lobby.</summary>
+public sealed record QuickJoinPvpRoomRequest(GameMessageMetadata Metadata, bool WellFormed) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GameQuickJoinPvpRoom;
+}
+
 /// <summary>CMD <c>0x0034</c> <c>SET_PVP_SEAT_STATE</c>: <c>u8 seat, u8 state</c>.</summary>
 public sealed record SetPvpSeatStateRequest(GameMessageMetadata Metadata, byte Seat, byte State, bool WellFormed) : IClientNetworkMessage
 {
@@ -67,6 +73,9 @@ public sealed record PvpRoomCommandRefusal : IGameCmdMessage
 
     public static PvpRoomCommandRefusal MakeRoom(byte reason) => new(ServerMessageType.GameMakePvpRoom, reason);
     public static PvpRoomCommandRefusal EnterRoom(byte reason) => new(ServerMessageType.GameEnterPvpRoom, reason);
+    public static PvpRoomCommandRefusal QuickJoinRoom(byte reason) => new(ServerMessageType.GameQuickJoinPvpRoom,
+        reason == PvpRoomRefusalCode.RoomGoneOrNotReady
+            ? PvpRoomRefusalCode.NoSuitableRoom : PvpRoomRefusalCode.QuickJoinUnavailable);
     public static PvpRoomCommandRefusal SeatState(byte reason) => new(ServerMessageType.GameSetPvpSeatState, reason);
     public static PvpRoomCommandRefusal ReadyState(byte reason) => new(ServerMessageType.GameSetPvpReadyState, reason);
     public static PvpRoomCommandRefusal TeamMode(byte reason) => new(ServerMessageType.GameSetPvpTeamMode, reason);
@@ -78,6 +87,11 @@ public sealed record PvpRoomCommandRefusal : IGameCmdMessage
 public sealed record EnterPvpRoomAccepted(ImmutableArray<bool> Ready) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameEnterPvpRoom;
+}
+
+public sealed record QuickJoinPvpRoomAccepted : IGameCmdMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameQuickJoinPvpRoom;
 }
 
 /// <summary>NOTI <c>0x0029</c> <c>PVP_ROOM_INFO</c>: these rooms as the lobby shows them, added or replaced.</summary>

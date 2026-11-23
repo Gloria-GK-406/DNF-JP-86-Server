@@ -26,6 +26,12 @@ public sealed record GameEnterPvpRoomCommand(NetworkDispatchContext Dispatch, En
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
 }
 
+public sealed record GameQuickJoinPvpRoomCommand(NetworkDispatchContext Dispatch, QuickJoinPvpRoomRequest Input) : IProtocolCommand<bool>
+{
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
+}
+
 public sealed record GameSetPvpSeatStateCommand(NetworkDispatchContext Dispatch, SetPvpSeatStateRequest Input) : IProtocolCommand<bool>
 {
     public IClientNetworkMessage Message => Input;
@@ -55,7 +61,7 @@ public sealed record GameSetPvpMapIndexCommand(NetworkDispatchContext Dispatch, 
 /// A refusal, from the room owner or for a request it never sees (malformed, a practice room, an observer
 /// seat), answers <c>00 reason</c> on the command's own number (<see cref="PvpRoomRefusalCode"/>). A success
 /// answers only through the projection; making a room has no reply of its own (upstream), entering one has
-/// <c>01 + 8 × ready</c> in the newcomer's own frames.
+/// <c>01 + 8 × ready</c> in the newcomer's own frames. Quick join first acknowledges its own request.
 /// </remarks>
 internal sealed class GamePvpRoomCommandHandler(
     ISelectedSessionDomainService sessions,
@@ -76,6 +82,7 @@ internal sealed class GamePvpRoomCommandHandler(
     ILogger<GamePvpRoomCommandHandler> logger)
     : ICommandHandler<GameMakePvpRoomCommand, bool>,
         ICommandHandler<GameEnterPvpRoomCommand, bool>,
+        ICommandHandler<GameQuickJoinPvpRoomCommand, bool>,
         ICommandHandler<GameSetPvpSeatStateCommand, bool>,
         ICommandHandler<GameSetPvpReadyStateCommand, bool>,
         ICommandHandler<GameSetPvpTeamModeCommand, bool>,
@@ -106,6 +113,11 @@ internal sealed class GamePvpRoomCommandHandler(
         RunAsync(execution, command.Dispatch, command.Input.Metadata, "ENTER_PVP_ROOM", PvpRoomCommandRefusal.EnterRoom,
             command.Input.WellFormed ? null : "malformed body",
             (actor, token) => rooms.EnterAsync(actor, command.Input.Number, command.Input.Password, token), ct);
+
+    public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameQuickJoinPvpRoomCommand command, CancellationToken ct) =>
+        RunAsync(execution, command.Dispatch, command.Input.Metadata, "QUICK_JOIN_ROOM", PvpRoomCommandRefusal.QuickJoinRoom,
+            command.Input.WellFormed ? null : "unsupported quick join body", rooms.QuickJoinAsync, ct,
+            success: new QuickJoinPvpRoomAccepted());
 
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSetPvpSeatStateCommand command, CancellationToken ct)
     {
@@ -164,7 +176,8 @@ internal sealed class GamePvpRoomCommandHandler(
         string? rejected,
         Func<SelectedSessionIdentity, CancellationToken, ValueTask<PvpRoomOutcome>> act,
         CancellationToken ct,
-        byte malformedReason = PvpRoomRefusalCode.NotNow)
+        byte malformedReason = PvpRoomRefusalCode.NotNow,
+        IGameCmdMessage? success = null)
     {
         var connection = dispatch.Connection.ConnectionId;
         if (sessions.FindByConnection(connection) is not { } actor || !sessions.IsInWorld(actor))
@@ -192,6 +205,8 @@ internal sealed class GamePvpRoomCommandHandler(
             case PvpRoomOutcome.Changed changed:
                 logger.LogInformation("{Command} character={Character} room={Room}: {Kind}", name, actor.CharacterId.Value,
                     (changed.After ?? changed.Before)?.Number, changed.Kind);
+                if (success is not null)
+                    await outbox.RegisterCmdAsync(connection, success, ct).ConfigureAwait(false);
                 await Projector().ProjectAsync(changed, ct).ConfigureAwait(false);
                 return true;
             default:
@@ -215,6 +230,13 @@ public sealed class EnterPvpRoomHandler(ICommandBus commands) : ClientMessageHan
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, EnterPvpRoomRequest message, CancellationToken ct) =>
         _ = await commands.SendAsync(new GameEnterPvpRoomCommand(context, message), ct).ConfigureAwait(false);
+}
+
+public sealed class QuickJoinPvpRoomHandler(ICommandBus commands) : ClientMessageHandler<QuickJoinPvpRoomRequest>,
+    IProtocolCommandMessageHandler<GameQuickJoinPvpRoomCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, QuickJoinPvpRoomRequest message, CancellationToken ct) =>
+        _ = await commands.SendAsync(new GameQuickJoinPvpRoomCommand(context, message), ct).ConfigureAwait(false);
 }
 
 public sealed class SetPvpSeatStateHandler(ICommandBus commands) : ClientMessageHandler<SetPvpSeatStateRequest>,

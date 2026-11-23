@@ -177,6 +177,9 @@ internal static class PvpRoomPayloadCodec
 /// </remarks>
 internal static class PvpRoomRefusalCode
 {
+    // CMD 0x0062 uses its own client text table.
+    public const byte NoSuitableRoom = 0xBF;
+    public const byte QuickJoinUnavailable = 0x17;
     public const byte NotNow = 19;
     public const byte RoomGoneOrNotReady = 22;
     public const byte WrongPassword = 6;
@@ -247,6 +250,12 @@ internal sealed class EnterPvpRoomDecoder : IGameMessageDecoder
         PvpRoomPayloadCodec.DecodeEnterRoom(metadata, body);
 }
 
+internal sealed class QuickJoinPvpRoomDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
+        new QuickJoinPvpRoomRequest(metadata, body is [0]);
+}
+
 internal sealed class SetPvpSeatStateDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
@@ -281,6 +290,12 @@ internal sealed class EnterPvpRoomAcceptedEncoder : GameCmdMessageEncoder<EnterP
 {
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(EnterPvpRoomAccepted message) =>
         OnePayload(message, PvpRoomPayloadCodec.Encode(message));
+}
+
+internal sealed class QuickJoinPvpRoomAcceptedEncoder : GameCmdMessageEncoder<QuickJoinPvpRoomAccepted>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(QuickJoinPvpRoomAccepted message) =>
+        OnePayload(message, new byte[] { 1 });
 }
 
 internal sealed class PvpRoomInfoEncoder : GameNotiMessageEncoder<PvpRoomInfoMessage>

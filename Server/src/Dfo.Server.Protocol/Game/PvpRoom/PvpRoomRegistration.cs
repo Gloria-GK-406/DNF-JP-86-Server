@@ -13,12 +13,14 @@ internal static class PvpRoomRegistration
     {
         services.AddGameCmdMessageDecoder<MakePvpRoomDecoder>(ClientMessageType.GameMakePvpRoom);
         services.AddGameCmdMessageDecoder<EnterPvpRoomDecoder>(ClientMessageType.GameEnterPvpRoom);
+        services.AddGameCmdMessageDecoder<QuickJoinPvpRoomDecoder>(ClientMessageType.GameQuickJoinPvpRoom);
         services.AddGameCmdMessageDecoder<SetPvpSeatStateDecoder>(ClientMessageType.GameSetPvpSeatState);
         services.AddGameCmdMessageDecoder<SetPvpReadyStateDecoder>(ClientMessageType.GameSetPvpReadyState);
         services.AddGameCmdMessageDecoder<SetPvpTeamModeDecoder>(ClientMessageType.GameSetPvpTeamMode);
         services.AddGameCmdMessageDecoder<SetPvpMapIndexDecoder>(ClientMessageType.GameSetPvpMapIndex);
         services.AddGameCmdMessageEncoder<PvpRoomCommandRefusal, PvpRoomCommandRefusalEncoder>();
         services.AddGameCmdMessageEncoder<EnterPvpRoomAccepted, EnterPvpRoomAcceptedEncoder>();
+        services.AddGameCmdMessageEncoder<QuickJoinPvpRoomAccepted, QuickJoinPvpRoomAcceptedEncoder>();
         services.AddGameNotiMessageEncoder<PvpRoomInfoMessage, PvpRoomInfoEncoder>();
         services.AddGameNotiMessageEncoder<PvpRoomStateMessage, PvpRoomStateEncoder>();
         services.AddGameNotiMessageEncoder<PvpSeatStateMessage, PvpSeatStateEncoder>();
@@ -29,6 +31,8 @@ internal static class PvpRoomRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameMakePvpRoom, typeof(MakePvpRoomRequest)));
         services.AddProtocolCommandHandler<GameEnterPvpRoomCommand, bool, GamePvpRoomCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameEnterPvpRoom, typeof(EnterPvpRoomRequest)));
+        services.AddProtocolCommandHandler<GameQuickJoinPvpRoomCommand, bool, GamePvpRoomCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GameQuickJoinPvpRoom, typeof(QuickJoinPvpRoomRequest)));
         services.AddProtocolCommandHandler<GameSetPvpSeatStateCommand, bool, GamePvpRoomCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameSetPvpSeatState, typeof(SetPvpSeatStateRequest)));
         services.AddProtocolCommandHandler<GameSetPvpReadyStateCommand, bool, GamePvpRoomCommandHandler>(
@@ -39,6 +43,7 @@ internal static class PvpRoomRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameSetPvpMapIndex, typeof(SetPvpMapIndexRequest)));
         services.RegisterProtocolMessageHandler<MakePvpRoomHandler, MakePvpRoomRequest, GameMakePvpRoomCommand>(ClientMessageType.GameMakePvpRoom);
         services.RegisterProtocolMessageHandler<EnterPvpRoomHandler, EnterPvpRoomRequest, GameEnterPvpRoomCommand>(ClientMessageType.GameEnterPvpRoom);
+        services.RegisterProtocolMessageHandler<QuickJoinPvpRoomHandler, QuickJoinPvpRoomRequest, GameQuickJoinPvpRoomCommand>(ClientMessageType.GameQuickJoinPvpRoom);
         services.RegisterProtocolMessageHandler<SetPvpSeatStateHandler, SetPvpSeatStateRequest, GameSetPvpSeatStateCommand>(ClientMessageType.GameSetPvpSeatState);
         services.RegisterProtocolMessageHandler<SetPvpReadyStateHandler, SetPvpReadyStateRequest, GameSetPvpReadyStateCommand>(ClientMessageType.GameSetPvpReadyState);
         services.RegisterProtocolMessageHandler<SetPvpTeamModeHandler, SetPvpTeamModeRequest, GameSetPvpTeamModeCommand>(ClientMessageType.GameSetPvpTeamMode);

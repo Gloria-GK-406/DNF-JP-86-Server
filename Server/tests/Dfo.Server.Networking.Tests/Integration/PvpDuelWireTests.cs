@@ -442,6 +442,50 @@ public sealed class PvpDuelWireTests
             "Probe" + probe, ct);
         Assert.True(fresh.Frames.Count(frame => frame.Is(0, 0x0029)) >= 1, $"{step}: the entry carried no room snapshot.");
         Assert.Equal(PvpLobbyWireView.Of(fresh.Frames).Render(), PvpLobbyWireView.Of(observer.Frames).Render());
+    [PvfFact]
+    public async Task Quick_join_uses_the_first_available_room_and_replies_when_none_is_available()
+    {
+        using var timeout = new CancellationTokenSource(Budget);
+        var ct = timeout.Token;
+        await using var server = await StartAsync(ranked: true, ct);
+        using var locked = await server.EnterWorldAsync("locked", "quick-locked", "QuickLocked", ct);
+        using var entrant = await server.EnterWorldAsync("entrant", "quick-entrant", "QuickEntrant", ct);
+        await locked.SendAsync(0x0032, MakeRoom("locked", 1, "secret"), ct);
+        await FenceAllAsync(ct, locked, entrant);
+
+        var denied = Mark(entrant);
+        await entrant.SendAsync(0x0062, [0], ct);
+        await entrant.FenceAsync(ct);
+        Assert.Equal(new byte[] { 0, 0xBF },
+            Assert.Single(After(entrant, denied), frame => frame.Is(1, 0x0062)).Body.ToArray());
+
+        using var first = await server.EnterWorldAsync("first", "quick-first", "QuickFirst", ct);
+        using var second = await server.EnterWorldAsync("second", "quick-second", "QuickSecond", ct);
+        await first.SendAsync(0x0032, MakeRoom("first", 1, null), ct);
+        await first.FenceAsync(ct);
+        await second.SendAsync(0x0032, MakeRoom("second", 1, null), ct);
+        await FenceAllAsync(ct, second, entrant);
+
+        var joined = Mark(entrant);
+        await entrant.SendAsync(0x0062, [0], ct);
+        await FenceAllAsync(ct, entrant, first);
+        Assert.Equal(new byte[] { 1 },
+            Assert.Single(After(entrant, joined), frame => frame.Is(1, 0x0062)).Body.ToArray());
+        Assert.Equal(1, Assert.Single(After(entrant, joined), frame => frame.Is(1, 0x0033)).Body[0]);
+        var firstRoom = TestGameplay.Run(server.Services, () => Room(server, first));
+        Assert.NotNull(firstRoom.SeatOf(new CharacterId(entrant.WireUserId)));
+
+        for (byte seat = 2; seat < 8; seat++)
+            await first.SendAsync(0x0034, [seat, 0xFE], ct);
+        await first.FenceAsync(ct);
+        await locked.SendAsync(0x0034, [0, 0xFE], ct);
+        await locked.FenceAsync(ct);
+        await locked.SendAsync(0x0062, [0], ct);
+        await FenceAllAsync(ct, locked, second);
+        var secondRoom = TestGameplay.Run(server.Services, () => Room(server, second));
+        Assert.NotNull(secondRoom.SeatOf(new CharacterId(locked.WireUserId)));
+    }
+
     }
 
     private static PvpRoomSnapshot Room(CharacterizationHost server, WireClient member) =>

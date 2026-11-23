@@ -387,6 +387,8 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
     ValueTask<PvpRoomOutcome> EnterAsync(
         SelectedSessionIdentity session, ushort number, ImmutableArray<byte>? password, CancellationToken cancellationToken);
 
+    ValueTask<PvpRoomOutcome> QuickJoinAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
     /// <param name="seat">The seat acted on: the actor's own for a team change or leaving.</param>
     /// <param name="team">The team to move to; only read for <see cref="PvpSeatAction.ChangeTeam"/>.</param>
     ValueTask<PvpRoomOutcome> SetSeatAsync(

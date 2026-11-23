@@ -45,6 +45,8 @@ internal sealed class ScriptedPvpRooms : IPvpRoomDomainService
     public ValueTask<PvpRoomOutcome> CreateAsync(PvpRoomCreation request, CancellationToken cancellationToken) => Answer(nameof(CreateAsync));
     public ValueTask<PvpRoomOutcome> EnterAsync(SelectedSessionIdentity session, ushort number, ImmutableArray<byte>? password, CancellationToken cancellationToken) =>
         Answer(nameof(EnterAsync));
+    public ValueTask<PvpRoomOutcome> QuickJoinAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) =>
+        Answer(nameof(QuickJoinAsync));
     public ValueTask<PvpRoomOutcome> SetSeatAsync(SelectedSessionIdentity actor, int seat, PvpSeatAction action, PvpTeam team, CancellationToken cancellationToken)
     {
         LastSeat = (action, seat, team);
