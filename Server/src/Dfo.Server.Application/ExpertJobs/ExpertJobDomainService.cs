@@ -18,6 +18,7 @@ namespace Dfo.Server.Application.ExpertJobs;
 internal sealed class ExpertJobRuleService(IExpertJobDefinitionSource source) : IExpertJobRuleService
 {
     public ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct) => source.FindAsync(type, ct);
+    public ValueTask<ExpertJobType?> FindDrawingJobAsync(int itemId, CancellationToken ct) => source.FindDrawingJobAsync(itemId, ct);
 
     public async ValueTask<bool> ContainsGrantedSkillAsync(IReadOnlySet<int> ids, CancellationToken ct)
     {
@@ -35,7 +36,8 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     ICharacterSkillTable skillRows, ICharacterSkillBuildTable skillBuilds, ICharacterCarriedGoldTable gold,
     ICharacterContainerDomainService containers, IApplyEffectsDomainService effects,
     ISelectedSessionDomainService sessions, IExpertStoreDomainService stores, IDungeonParticipationDomainService dungeons,
-    IDomainTransactionAccessor transactions, TimeProvider clock, DisjointerOperations disjointer)
+    IDomainTransactionAccessor transactions, TimeProvider clock, DisjointerOperations disjointer,
+    ExpertJobProductionOperations production)
     : IExpertJobDomainService
 {
     public ICharacterExpertJob Get(CharacterId character) => new CharacterExpertJob(this, character);
@@ -155,6 +157,12 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     {
         public ValueTask<ExpertJobState> GetStateAsync(CancellationToken ct) => service.ReadAsync(character, ct);
         public ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CancellationToken ct) => service.GetDisjointerAsync(character, ct);
+        public ValueTask<IAlchemistDomainService?> GetAlchemistAsync(CancellationToken ct) => service.GetAlchemistAsync(character, ct);
+        public ValueTask<IDollControllerDomainService?> GetDollControllerAsync(CancellationToken ct) => service.GetDollControllerAsync(character, ct);
+        public ValueTask<IEnchanterDomainService?> GetEnchanterAsync(CancellationToken ct) => service.GetEnchanterAsync(character, ct);
+        public ValueTask<ExpertJobStudyResult?> TryLearnRecipeAsync(SelectedSessionIdentity session, BusinessSlot source,
+            ItemReference drawing, IEffectFootprintRecorder footprint, CancellationToken ct) =>
+            service.TryLearnRecipeAsync(character, session, source, drawing, footprint, ct);
         public ValueTask<bool> JoinFromQuestAsync(OwnedCharacterId owner, ushort questId, ExpertJobType type, CancellationToken ct) =>
             owner.Character == character ? service.JoinFromQuestAsync(owner, questId, type, ct) : ValueTask.FromResult(false);
         public ValueTask<ExpertJobGiveUpResult> GiveUpAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct) =>
@@ -167,4 +175,20 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     private async ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CharacterId character, CancellationToken ct) =>
         (await ReadAsync(character, ct).ConfigureAwait(false)).Type == ExpertJobType.Disjointer
             ? disjointer.Bind(character) : null;
+
+    private async ValueTask<IAlchemistDomainService?> GetAlchemistAsync(CharacterId character, CancellationToken ct) =>
+        (await ReadAsync(character, ct).ConfigureAwait(false)).Type == ExpertJobType.Alchemist
+            ? production.BindAlchemist(character) : null;
+
+    private async ValueTask<IDollControllerDomainService?> GetDollControllerAsync(CharacterId character, CancellationToken ct) =>
+        (await ReadAsync(character, ct).ConfigureAwait(false)).Type == ExpertJobType.DollController
+            ? production.BindDollController(character) : null;
+
+    private async ValueTask<IEnchanterDomainService?> GetEnchanterAsync(CharacterId character, CancellationToken ct) =>
+        (await ReadAsync(character, ct).ConfigureAwait(false)).Type == ExpertJobType.Enchanter
+            ? production.BindEnchanter(character) : null;
+
+    private ValueTask<ExpertJobStudyResult?> TryLearnRecipeAsync(CharacterId character, SelectedSessionIdentity session,
+        BusinessSlot source, ItemReference drawing, IEffectFootprintRecorder footprint, CancellationToken ct) =>
+        production.TryLearnRecipeAsync(character, session, source, drawing, footprint, ct);
 }

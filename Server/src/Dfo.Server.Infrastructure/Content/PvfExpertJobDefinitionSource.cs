@@ -6,10 +6,12 @@ using Dfo.Server.Data.ExpertJobs;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfExpertJobDefinitionSource(PvfArchiveProvider provider) : IExpertJobDefinitionSource
+internal sealed partial class PvfExpertJobDefinitionSource(PvfArchiveProvider provider, PvfContentOptions options) : IExpertJobDefinitionSource
 {
+    private const string Catalog = "character/expertjob.lst";
     private readonly Lock gate = new();
     private readonly Dictionary<ExpertJobType, ExpertJobDefinition?> definitions = [];
+    private IReadOnlyDictionary<int, ExpertJobType>? drawingJobs;
 
     public ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct)
     {
@@ -23,11 +25,25 @@ internal sealed class PvfExpertJobDefinitionSource(PvfArchiveProvider provider) 
         }
     }
 
+    public ValueTask<ExpertJobType?> FindDrawingJobAsync(int itemId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (itemId <= 0) return ValueTask.FromResult<ExpertJobType?>(null);
+        lock (gate)
+        {
+            if (drawingJobs is null)
+            {
+                if (options.ResolveArchivePath() is null) return ValueTask.FromResult<ExpertJobType?>(null);
+                drawingJobs = ReadDrawingJobs(provider.Archive);
+            }
+            return ValueTask.FromResult<ExpertJobType?>(drawingJobs.TryGetValue(itemId, out var type) ? type : null);
+        }
+    }
+
     private static ExpertJobDefinition? Read(PvfArchive archive, ExpertJobType type)
     {
-        const string catalog = "character/expertjob.lst";
-        if (archive.FindFile(catalog) < 0) return null;
-        var relative = PvfListFile.Read(archive, catalog).SingleOrDefault(entry => entry.Id == (int)type).RelativePath;
+        if (archive.FindFile(Catalog) < 0) return null;
+        var relative = PvfListFile.Read(archive, Catalog).SingleOrDefault(entry => entry.Id == (int)type).RelativePath;
         if (string.IsNullOrEmpty(relative)) return null;
         var path = "character/" + relative;
         var doc = PvfDocument.Open(archive, path);
@@ -70,6 +86,7 @@ internal sealed class PvfExpertJobDefinitionSource(PvfArchiveProvider provider) 
         {
             MaximumStoreCharge = root.Read(PvfField.Int32("[limit store charge]", optional: true)),
             DisjointMachine = type == ExpertJobType.Disjointer ? ReadDisjointMachine(archive, root, path) : null,
+            Production = type == ExpertJobType.Disjointer ? null : ReadProduction(archive, root, path, type),
         };
     }
 

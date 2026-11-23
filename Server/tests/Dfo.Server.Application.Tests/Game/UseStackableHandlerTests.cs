@@ -5,6 +5,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Abstractions.Networking;
@@ -666,6 +667,10 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         services.AddSingleton<IBusinessInventorySlotDomainService>(slots);
         services.AddSingleton<IItemUseEffectDomainService>(useEffects);
         services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomQueryDomainService>((_, _) => null));
+        var noExpertJob = TestRequired.Absent<ICharacterExpertJob>();
+        services.AddSingleton(TestRequired.Absent<IExpertJobDomainService>((method, _) =>
+            method.Name == nameof(IExpertJobDomainService.Get) ? noExpertJob : null));
+        services.AddSingleton(TestRequired.Absent<ISelectedCharacterCurrentViewDomainService>());
         services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(
             new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));

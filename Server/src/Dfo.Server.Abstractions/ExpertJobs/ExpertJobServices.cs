@@ -1,8 +1,10 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.ExpertJobs;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.ExpertJobs;
@@ -23,6 +25,11 @@ public interface ICharacterExpertJob
 {
     ValueTask<ExpertJobState> GetStateAsync(CancellationToken ct);
     ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CancellationToken ct);
+    ValueTask<IAlchemistDomainService?> GetAlchemistAsync(CancellationToken ct);
+    ValueTask<IDollControllerDomainService?> GetDollControllerAsync(CancellationToken ct);
+    ValueTask<IEnchanterDomainService?> GetEnchanterAsync(CancellationToken ct);
+    ValueTask<ExpertJobStudyResult?> TryLearnRecipeAsync(SelectedSessionIdentity session, BusinessSlot source,
+        ItemReference drawing, IEffectFootprintRecorder footprint, CancellationToken ct);
     ValueTask<bool> JoinFromQuestAsync(OwnedCharacterId owner, ushort questId, ExpertJobType type, CancellationToken ct);
     ValueTask<ExpertJobGiveUpResult> GiveUpAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
@@ -46,6 +53,7 @@ public sealed record ExpertJobDefinition(
 {
     public int MaximumStoreCharge { get; init; }
     public DisjointMachineDefinition? DisjointMachine { get; init; }
+    public ExpertJobProductionDefinition? Production { get; init; }
 
     public int LevelAt(uint experience) => Math.Min(ExperienceThresholds.Count,
         1 + ExperienceThresholds.TakeWhile(threshold => experience >= threshold).Count());
@@ -67,10 +75,12 @@ public sealed record ExpertJobDefinition(
 public interface IExpertJobDefinitionSource
 {
     ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct);
+    ValueTask<ExpertJobType?> FindDrawingJobAsync(int itemId, CancellationToken ct);
 }
 
 public interface IExpertJobRuleService
 {
     ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct);
+    ValueTask<ExpertJobType?> FindDrawingJobAsync(int itemId, CancellationToken ct);
     ValueTask<bool> ContainsGrantedSkillAsync(IReadOnlySet<int> ids, CancellationToken ct);
 }

@@ -70,6 +70,7 @@ public sealed record UseStackableResponse(
 
     /// <summary>「该物品与当前职业不符， 无法使用」</summary>
     public const byte JobMismatch = 8;
+    public const byte ExpertJobRequirement = 13;
 
     /// <summary>「目前无法使用物品」 -- the cooldown and the place both land here.</summary>
     public const byte CurrentlyUnusable = 19;
@@ -219,6 +220,8 @@ public sealed record ItemUseResult(ItemUseStatus Status, int ItemId, int Remaini
     public OpeningInventoryReceipt? OpeningReceipt { get; init; }
     public ExperienceAward? ExperienceAward { get; init; }
     public CharacterSkillProtocolMirrorState? SkillPoints { get; init; }
+    public bool LearnedExpertJobRecipe { get; init; }
+    public byte? ExpertJobRecipeError { get; init; }
 
     public static ItemUseResult Refused(ItemUseStatus status, int itemId = 0) =>
         new(status, itemId, 0);
