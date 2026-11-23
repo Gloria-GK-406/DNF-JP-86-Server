@@ -121,6 +121,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddDomainEvent<ItemMirrorRemoved>("inventory.mirror-removed", 1);
         services.AddEffects();
         services.TryAddSingleton<IExpertJobRuleService, ExpertJobRuleService>();
+        services.TryAddSingleton<DisjointerOperations>();
         services.TryAddSingleton<IExpertJobDomainService, ExpertJobDomainService>();
         services.TryAddSingleton<IQuestClearCouponSettlementDomainService, QuestClearCouponSettlementService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();

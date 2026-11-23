@@ -5,7 +5,10 @@ public sealed record EquipmentDisjointDefinition(
     int SellGold,
     int MinimumLevel,
     int Rarity,
-    bool CanDisjoint);
+    bool CanDisjoint)
+{
+    public int? Grade { get; init; }
+}
 
 /// <summary>Raw facts for the destructive reinforcement GetResult path, independently of NPC admission.</summary>
 public sealed record EquipmentDestructionDefinition(int Value, int Grade, int Rarity, int SaleRate);

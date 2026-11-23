@@ -212,7 +212,8 @@ internal sealed class PvfEquipmentDisjointDefinitionSource(PvfArchiveProvider pr
             .Any(valueText => Normalize(valueText) == "trade delete");
 
         var sellGold = Math.Max(1, checked((int)((long)equipmentValue * saleRate / 1000)));
-        return new(sellGold, equipmentLevel, equipmentRarity, !cannotDisjoint && !tradeDelete);
+        var grade = PvfSections.SingleInt32(archive, sections, Fields.GradeField, PvfRepeats.AsUndeclared, "equipment");
+        return new(sellGold, equipmentLevel, equipmentRarity, !cannotDisjoint && !tradeDelete) { Grade = grade };
     }
 
     private PortableDisjointMachineDefinition? ReadPortableMachine(int itemId)

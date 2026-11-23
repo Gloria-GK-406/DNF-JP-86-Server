@@ -69,8 +69,52 @@ internal sealed class PvfExpertJobDefinitionSource(PvfArchiveProvider provider) 
             Pairs(root, "[auto learn recipe]", path), qualifications)
         {
             MaximumStoreCharge = root.Read(PvfField.Int32("[limit store charge]", optional: true)),
+            DisjointMachine = type == ExpertJobType.Disjointer ? ReadDisjointMachine(archive, root, path) : null,
         };
     }
+
+    private static DisjointMachineDefinition ReadDisjointMachine(PvfArchive archive, PvfDocument doc, string path)
+    {
+        var baseDivisor = doc.Read(PvfField.Number("[base const]"));
+        var wear = doc.Read(PvfField.Int32List("[endurance reduce]"));
+        var experience = doc.Read(PvfField.Int32List("[gain exp]"));
+        var selfService = doc.Read(PvfField.Int32List("[disjoint self service]"));
+        if (baseDivisor <= 0 || !double.IsFinite(baseDivisor)
+            || wear is not [> 0, > 0] || wear[1] < wear[0]
+            || experience is not [>= 0, >= 0] || experience[1] < experience[0]
+            || selfService is not [>= 0 and <= 100, > 0, > 0])
+            throw new InvalidDataException($"Invalid disjoint machine settings in '{path}'.");
+
+        var results = NumberRows(doc, "[disjoint result]", 8, path).ToDictionary(
+            row => (Whole(row[0], path), Whole(row[1], path), Whole(row[2], path)),
+            row => new DisjointMachineMaterialRule(Whole(row[3], path), row[4],
+                Whole(row[5], path), Whole(row[6], path), Whole(row[7], path)));
+        var repairs = NumberRows(doc, "[endurance repair cost]", 2, path)
+            .Select(row => new ExpertMachineRepairRule(Whole(row[0], path), Whole(row[1], path))).ToArray();
+        if (repairs.Any(rule => rule.FullCost <= 0 || rule.MaximumEndurance <= 0))
+            throw new InvalidDataException($"Invalid disjoint machine repair rules in '{path}'.");
+
+        const string shared = "character/expertjob.etc";
+        return new(baseDivisor, wear[0], wear[1], experience[0], experience[1], selfService[0], selfService[1],
+            selfService[2], results, ReadSelection(doc, "[additional result]", path), ReadSelection(doc, "[big win result]", path),
+            repairs, Pairs(doc, "[upgrade cost]", path),
+            Pairs(PvfDocument.Open(archive, shared).AtRoot(), "[expertjob level limit]", shared));
+    }
+
+    private static DisjointMachineSelectionRule[] ReadSelection(PvfDocument doc, string tag, string path) =>
+        NumberRows(doc, tag, 6, path).Select(row => new DisjointMachineSelectionRule(
+            Whole(row[0], path), Whole(row[1], path), Whole(row[2], path), Whole(row[3], path), Whole(row[4], path), row[5])).ToArray();
+
+    private static IEnumerable<double[]> NumberRows(PvfDocument doc, string tag, int width, string path)
+    {
+        var values = doc.Read(PvfField.Numbers(tag));
+        if (values.Count == 0 || values.Count % width != 0 || values.Any(value => !double.IsFinite(value)))
+            throw new InvalidDataException($"Invalid {tag} rows in '{path}'.");
+        return values.Chunk(width);
+    }
+
+    private static int Whole(double value, string path) => value == Math.Truncate(value) && value is >= 0 and <= int.MaxValue
+        ? (int)value : throw new InvalidDataException($"Expected a nonnegative integer in '{path}'.");
 
     private static Dictionary<int, int> Pairs(PvfDocument doc, string tag, string path)
     {

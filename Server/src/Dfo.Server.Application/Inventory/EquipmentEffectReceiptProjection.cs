@@ -13,6 +13,7 @@ internal static class EquipmentEffectReceiptProjection
         var touched = applied.Changes<ContainerConsumptionChange>().Select(change => change.Slot)
             .Concat(applied.Changes<EquipmentEffectChange>().Select(change => change.Slot))
             .Concat(applied.Changes<StackableGrantEffectChange>().SelectMany(change => change.Slots.Select(slot => slot.Slot)))
+            .Concat(applied.Changes<PreparedItemGrantChange>().SelectMany(change => change.Slots))
             .Distinct().OrderBy(slot => slot.Space).ThenBy(slot => slot.Index);
         var result = new List<InventorySlotEffectChange>();
         foreach (var slot in touched)

@@ -37,7 +37,7 @@ internal sealed class EquipmentDisjointRuleService(IEquipmentDisjointDefinitionS
         var rewards = new List<EquipmentDisjointReward>();
         Add(rewards, table.CubeItemId, CubeCount(definition, table));
         AddAdditional(rewards, definition, table, random);
-        AddExpand(rewards, definition, table, random);
+        AddEquipmentSouls(rewards, definition, table, random);
         return rewards.Count == 0
             ? new(EquipmentDisjointRejection.CannotDisjoint)
             : new(EquipmentDisjointRejection.None, rewards);
@@ -72,7 +72,7 @@ internal sealed class EquipmentDisjointRuleService(IEquipmentDisjointDefinitionS
         Add(rewards, selected, LevelCount(definition.MinimumLevel, divisor, random));
     }
 
-    private static void AddExpand(List<EquipmentDisjointReward> rewards,
+    internal static void AddEquipmentSouls(List<EquipmentDisjointReward> rewards,
         EquipmentDisjointDefinition definition, EquipmentDisjointTable table, Random random)
     {
         var index = definition.Rarity == 6 ? 5

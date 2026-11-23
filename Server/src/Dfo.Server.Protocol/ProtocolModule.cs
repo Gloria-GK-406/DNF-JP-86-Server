@@ -246,6 +246,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddDisjointItemSlice();
         services.AddExpertJobGiveUpSlice();
         services.AddExpertStoreSlice();
+        services.AddDisjointMachineSlice();
         services.AddReinforceItemSlice();
         services.AddEnchantByBeadSlice();
         services.AddMagicSealSlice();

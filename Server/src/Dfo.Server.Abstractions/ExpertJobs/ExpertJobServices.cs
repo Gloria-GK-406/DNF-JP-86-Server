@@ -22,6 +22,7 @@ public interface IExpertJobDomainService
 public interface ICharacterExpertJob
 {
     ValueTask<ExpertJobState> GetStateAsync(CancellationToken ct);
+    ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CancellationToken ct);
     ValueTask<bool> JoinFromQuestAsync(OwnedCharacterId owner, ushort questId, ExpertJobType type, CancellationToken ct);
     ValueTask<ExpertJobGiveUpResult> GiveUpAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
@@ -44,6 +45,7 @@ public sealed record ExpertJobDefinition(
     IReadOnlyDictionary<byte, int> CardQualificationLevelRequirements)
 {
     public int MaximumStoreCharge { get; init; }
+    public DisjointMachineDefinition? DisjointMachine { get; init; }
 
     public int LevelAt(uint experience) => Math.Min(ExperienceThresholds.Count,
         1 + ExperienceThresholds.TakeWhile(threshold => experience >= threshold).Count());

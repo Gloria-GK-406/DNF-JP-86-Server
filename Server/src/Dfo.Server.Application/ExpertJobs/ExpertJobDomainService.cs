@@ -35,7 +35,7 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     ICharacterSkillTable skillRows, ICharacterSkillBuildTable skillBuilds, ICharacterCarriedGoldTable gold,
     ICharacterContainerDomainService containers, IApplyEffectsDomainService effects,
     ISelectedSessionDomainService sessions, IExpertStoreDomainService stores, IDungeonParticipationDomainService dungeons,
-    IDomainTransactionAccessor transactions, TimeProvider clock)
+    IDomainTransactionAccessor transactions, TimeProvider clock, DisjointerOperations disjointer)
     : IExpertJobDomainService
 {
     public ICharacterExpertJob Get(CharacterId character) => new CharacterExpertJob(this, character);
@@ -154,6 +154,7 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     private sealed class CharacterExpertJob(ExpertJobDomainService service, CharacterId character) : ICharacterExpertJob
     {
         public ValueTask<ExpertJobState> GetStateAsync(CancellationToken ct) => service.ReadAsync(character, ct);
+        public ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CancellationToken ct) => service.GetDisjointerAsync(character, ct);
         public ValueTask<bool> JoinFromQuestAsync(OwnedCharacterId owner, ushort questId, ExpertJobType type, CancellationToken ct) =>
             owner.Character == character ? service.JoinFromQuestAsync(owner, questId, type, ct) : ValueTask.FromResult(false);
         public ValueTask<ExpertJobGiveUpResult> GiveUpAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct) =>
@@ -162,4 +163,8 @@ internal sealed class ExpertJobDomainService(IExpertJobStateStore states, IExper
     }
 
     private ValueTask<ExpertJobState> ReadAsync(CharacterId character, CancellationToken ct) => states.ReadAsync(character, ct);
+
+    private async ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CharacterId character, CancellationToken ct) =>
+        (await ReadAsync(character, ct).ConfigureAwait(false)).Type == ExpertJobType.Disjointer
+            ? disjointer.Bind(character) : null;
 }
