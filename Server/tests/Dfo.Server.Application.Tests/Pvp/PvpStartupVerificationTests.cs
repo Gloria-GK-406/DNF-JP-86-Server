@@ -1,8 +1,11 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Pvp;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Tests.Pvp;
@@ -65,7 +68,8 @@ public sealed class PvpStartupVerificationTests
         var content = new ChannelContentRuleService(new Catalog(channels), new NoScript());
         var listeners = new ChannelListenerOptions([.. channels.Select(channel => channel.Port)], AllowAdvertisedPortFallback: false);
         return new PvpStartupVerification(content,
-            new ChannelEntryDomainService(content, options ?? ChannelEntryOptions.Legacy, listeners, new NoDeployment()),
+            new ChannelEntryDomainService(content, options ?? ChannelEntryOptions.Legacy, listeners, new NoDeployment(),
+                TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>()),
             listeners, new PvpSettlementRuleService(grades, PvpSettlementRuleServiceTests.Days), new PvpRoomRuleService(maps));
     }
 
@@ -100,7 +104,9 @@ public sealed class PvpStartupVerificationTests
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ChannelEntryIdentity(listenerPort - 10000, listenerPort, ChannelEntryKind.Pvp, 99));
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,
+            CharacterId characterId, int characterLevel, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
 
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

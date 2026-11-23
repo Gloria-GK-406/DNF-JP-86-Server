@@ -4,11 +4,11 @@ namespace DbMigrate;
 
 /// <summary>
 /// Splits <c>character_pvp</c> into the duel record, the duel skill state and an audit of the
-/// columns nobody could name, and adds the battle tables (schema 10 to 11).
+/// columns nobody could name, and adds the battle tables (schema 13 to 14).
 /// </summary>
 /// <remarks>
-/// The statements are copied from the version-11 declaration rather than read from it: this step
-/// must keep producing the version-11 shape after the declaration moves on.
+/// The statements are copied from the version-14 declaration rather than read from it: this step
+/// must keep producing the version-14 shape after the declaration moves on.
 ///
 /// Every <c>character_pvp</c> row becomes one record row and one skill-state row, so grade, rating
 /// grade and whether the duel skill pages were seeded are exactly what they were. The record starts

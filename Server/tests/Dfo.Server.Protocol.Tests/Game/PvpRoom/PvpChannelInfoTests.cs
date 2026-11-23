@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.PvpChannelInfo;
@@ -41,7 +43,9 @@ public sealed class PvpChannelInfoTests
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(new ChannelEntryIdentity(1, listenerPort, kind, kind == ChannelEntryKind.Pvp ? (byte)8 : null));
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => throw new NotSupportedException();
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,
+            CharacterId characterId, int characterLevel, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

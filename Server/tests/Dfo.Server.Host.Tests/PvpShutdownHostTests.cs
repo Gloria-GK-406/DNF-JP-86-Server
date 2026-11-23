@@ -167,7 +167,9 @@ public sealed class PvpShutdownHostTests
                 ? new ChannelEntryIdentity(70, DuelPort, ChannelEntryKind.Pvp, 24)
                 : new ChannelEntryIdentity(11, listenerPort, ChannelEntryKind.General));
 
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int characterLevel) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,
+            CharacterId characterId, int characterLevel, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
 
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

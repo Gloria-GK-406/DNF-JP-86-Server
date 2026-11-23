@@ -350,7 +350,8 @@ public sealed class CharacterSkillLearningTests
         await fixture.SeedAsync();
         fixture.Sql("""
             UPDATE characters SET active_skill_build=0 WHERE character_id=71;
-            INSERT INTO character_pvp(character_id,skills_initialized) VALUES(71,1);
+            INSERT INTO character_pvp_record(character_id) VALUES(71);
+            INSERT INTO character_pvp_skill_state(character_id,skills_initialized) VALUES(71,1);
             INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level)
             VALUES(71,'pve',1,199,6,1),(71,'pvp',0,2,1,2),(71,'pvp',1,2,1,1);
             """);

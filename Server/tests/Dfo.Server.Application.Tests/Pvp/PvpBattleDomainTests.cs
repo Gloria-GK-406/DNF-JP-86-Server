@@ -814,7 +814,8 @@ public sealed class PvpBattleDomainTests
             conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(),
             relations: new TestCharacterRelations(), identities: new TestCharacterRelations(),
             pvpRooms: f.Rooms, pvpSettlement: settlement ?? f.Settlement, pvpDepartures: sinks,
-            logger: NullLogger<SelectedSessionCleanupService>.Instance);
+            logger: NullLogger<SelectedSessionCleanupService>.Instance,
+            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
     }
 
     private sealed class FailingSink : IPvpRoomDepartureSink

@@ -27,7 +27,7 @@ public sealed class AntonRaidRewardMigrationTests
 
             var result = Migrator.Migrate(path, backup: false);
             Assert.Equal(12, result.From);
-            Assert.Equal(13, result.To);
+            Assert.Equal((long)CharacterDatabaseSchema.Version, result.To);
             Assert.Equal(2L, Scalar(connection, """
                 SELECT COUNT(*) FROM sqlite_master WHERE name IN ('anton_raid_reward_ledger', 'anton_raid_quest_periods');
                 """));

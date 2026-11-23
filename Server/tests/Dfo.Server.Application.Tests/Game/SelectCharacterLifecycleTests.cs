@@ -1650,6 +1650,10 @@ public sealed partial class SelectCharacterLifecycleTests
             TNotification notification,
             CancellationToken cancellationToken)
         {
+            // This fixture has no raid session to resume. An arrival check yields no frames.
+            if (notification is Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSessionArrived)
+                return ValueTask.FromResult(new NotificationDelivery([]));
+
             ledger.Add(notification is UsageQuotaViewChanged quota ? $"quota:{quota.Family}" : "target");
             Published.Add((audience, notification));
             var attempts = audience is NotificationAudience.TheseSessions exact

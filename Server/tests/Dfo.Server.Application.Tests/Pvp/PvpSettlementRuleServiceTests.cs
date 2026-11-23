@@ -1,3 +1,4 @@
+using Dfo.Server.Testing;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Pvp;
@@ -100,7 +101,8 @@ public sealed class PvpSettlementRuleServiceTests
                 new Channels([new ChannelServerInfo(id, "#ch", 100, 0, "127.0.0.1", 10000 + id, environment)]),
                 new NoChannelScript()),
             ChannelEntryOptions.Legacy, new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false),
-            new NoDeployment());
+            new NoDeployment(),
+            TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>());
         return channels.ResolveAsync(10000 + id, default);
     }
 

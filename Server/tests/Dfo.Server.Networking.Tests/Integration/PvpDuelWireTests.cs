@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Networking.Tests.Characterization;
@@ -503,7 +504,9 @@ public sealed class PvpDuelWireTests
     {
         public async ValueTask<ChannelEntryIdentity> ResolveAsync(int port, CancellationToken token) =>
             (await actual.ResolveAsync(port, token)) with { Kind = ChannelEntryKind.Pvp, LoginEnvironment = environment };
-        public ChannelAdmissionRefusal? Refuse(ChannelEntryIdentity channel, int level) => null;
+        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,
+            CharacterId characterId, int characterLevel, CancellationToken cancellationToken) =>
+            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
         public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int port, CancellationToken token) => actual.ResolveLoginAsync(port, token);
     }
 }
