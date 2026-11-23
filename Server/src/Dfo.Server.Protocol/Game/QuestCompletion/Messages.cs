@@ -1,3 +1,4 @@
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Data.Networking;
@@ -36,6 +37,7 @@ public sealed record FinishQuestRequest(
 
 /// <summary>One reward the completion handed over, and the slot it landed in.</summary>
 public sealed record FinishedQuestItem(ushort SlotIndex, uint ItemId, uint Count);
+public sealed record FinishedQuestConsumption(ushort SlotIndex, uint Count);
 
 /// <summary>The answer to 0x0022: what the quest paid.</summary>
 /// <remarks>
@@ -55,6 +57,8 @@ public sealed record FinishQuestAcknowledgement(
     byte? GrowType = null) : IGameCmdMessage
 {
     public byte? Awakening { get; init; }
+    public ExpertJobType? ExpertJob { get; init; }
+    public IReadOnlyList<FinishedQuestConsumption> ExpertJobConsumptions { get; init; } = [];
     public IReadOnlyList<CharacterSkillPageState> SkillPages { get; init; } = [];
     public ServerMessageType MessageType => ServerMessageType.GameFinishQuest;
 }

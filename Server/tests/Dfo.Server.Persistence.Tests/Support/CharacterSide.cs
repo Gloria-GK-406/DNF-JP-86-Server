@@ -65,7 +65,8 @@ internal sealed class CharacterSide
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
         new ItemGrantDomainService(null!, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()),
             new ItemLifecycleDomainService(this.itemStore, this.Scope, new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), clock: TimeProvider.System, expiration: null!),
-            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())), appearances: TestRequired.WornAppearances);
+            this.itemStore, this.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(this.database), new SqliteAccountCargoStateTable(this.database), new InventoryCapacityRuleService())), appearances: TestRequired.WornAppearances,
+        expertJobState: new SqliteExpertJobStateStore(this.database, new SqliteCharacterExpertJobTable(this.database), new SqliteCharacterExpertRecipeTable(this.database)));
 
     /// <summary>
     /// Every template a worn piece, which is what a character's starting gear is.
@@ -233,7 +234,8 @@ internal sealed class CharacterSide
                         new SqlitePremiumServiceUsageTable(this.database), new Dfo.Server.Persistence.Quests.SqliteMirrorAradQuestDomainStore(this.database), this.database),
                     this.Scope, null!),
                 new PremiumServiceRuleService(new UsageRules()),
-                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database), marriageRelations: TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>());
+                new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database), marriageRelations: TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>(),
+            expertJobRules: TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobRuleService>());
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

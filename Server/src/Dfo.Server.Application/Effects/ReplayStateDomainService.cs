@@ -1,3 +1,4 @@
+using Dfo.Server.Data.ExpertJobs;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
@@ -142,7 +143,9 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
                 entry.Features.Collections.CollectionBoxes.Select(x => new CollectionBoxProgressSubject(x.BoxIndex,
                     x.Slots.Select(y => y.ItemId).ToImmutableArray())).ToImmutableArray(),
                 equippedCreatures.GetItemId(characterInventory!), entry.Public.DerivedStats.EquippedCreatureLevel)
-            { GiantDragonCrystalExchangeAvailable = await giantDragonCrystals.CanAcceptAsync(session.CharacterId, ct).ConfigureAwait(false),
+            { ExpertJob = (ExpertJobType)entry.Public.ExpertJob.Type,
+                ExpertJobExperience = checked((uint)entry.Public.ExpertJob.Experience),
+                GiantDragonCrystalExchangeAvailable = await giantDragonCrystals.CanAcceptAsync(session.CharacterId, ct).ConfigureAwait(false),
                 SouthernDaleQuestAvailable = await southernDaleQuests.CanAcceptAsync(session.CharacterId, ct).ConfigureAwait(false) };
             var offers = await questAvailability.ReadAvailableAsync(subject, ct).ConfigureAwait(false);
             quests = new(entry.Quests.ActiveQuests.ToImmutableArray(), entry.Quests.VisibilityFlags.ToImmutableArray(), offers.Quests.ToImmutableArray());

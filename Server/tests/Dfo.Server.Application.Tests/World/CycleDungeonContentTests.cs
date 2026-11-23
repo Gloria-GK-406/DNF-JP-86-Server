@@ -17,8 +17,9 @@ public sealed class CycleDungeonContentTests
         using var provider = ContentArchive.CreateContentProvider();
         var quests = new QuestContentRuleService(provider.GetRequiredService<IQuestDefinitionSource>(),
             provider.GetRequiredService<IQuestParameterSource>());
-        var availability = new QuestAvailabilityRuleService(quests, provider.GetRequiredService<ICreatureDefinitionSource>());
-        var offers = new WorldContentEntryRuleService(quests, provider.GetRequiredService<IDailyActivityDefinitionSource>(),
+        var availability = new QuestAvailabilityRuleService(quests, provider.GetRequiredService<ICreatureDefinitionSource>(),
+            TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobRuleService>());
+        var offers = new WorldContentEntryRuleService(provider.GetRequiredService<IDailyActivityDefinitionSource>(),
             provider.GetRequiredService<ICollectionBoxDefinitionSource>(), provider.GetRequiredService<ICreatureDefinitionSource>(), availability);
         var rules = new CycleDungeonRuleService(provider.GetRequiredService<ICycleDungeonDefinitionSource>(), quests, availability);
         var eligible = new WorldContentSubject(88, 12, 0, new Dictionary<int, int> { [2228] = 1, [2211] = 1 },

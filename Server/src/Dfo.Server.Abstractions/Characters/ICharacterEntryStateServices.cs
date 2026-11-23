@@ -183,7 +183,10 @@ public sealed record CharacterFeatureStorageRecord(
         int DisjointMachineEndurance, int EnchanterEndurance,
         IReadOnlyList<int> RecipeIds) ExpertJob,
     CharacterMailboxStorageRecord Mailbox,
-    IReadOnlyList<(int SortOrder, int MissionId, int Progress)> PvpMissions);
+    IReadOnlyList<(int SortOrder, int MissionId, int Progress)> PvpMissions)
+{
+    public CharacterExpertProtocolState? ExpertProtocol { get; init; }
+}
 
 public sealed record CharacterEntryStorageRecord(
     AccountId AccountId,

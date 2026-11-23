@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Characters;
@@ -9,7 +10,8 @@ internal sealed class CharacterSkillStateDomainService(
     ICharacterTable characters, ICharacterSkillTable skills, CharacterSkillFactsReader skillFacts,
     ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds,
     IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules,
-    ICharacterPvpSkillStateTable duelBuilds)
+    ICharacterPvpSkillStateTable duelBuilds,
+    IExpertJobStateStore expertJobs, IExpertJobRuleService expertJobRules)
     : ICharacterSkillStateDomainService
 {
     public async ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId id, CancellationToken ct,
@@ -91,6 +93,7 @@ internal sealed class CharacterSkillStateDomainService(
         if (!rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).IsComplete)
             throw new InvalidDataException("Cannot change level with unknown learned skill rules.");
         await ReconcileAsync(id, ct);
+        var expertJobSkills = await ExpertJobSkillsAsync(id, ct).ConfigureAwait(false);
         var learningLevel = await LearningLevelAsync(id, facts.Level, ct);
         bool changed;
         do
@@ -104,7 +107,7 @@ internal sealed class CharacterSkillStateDomainService(
                 {
                     var rule = rules.Get(facts.Career.Job, checked((int)learned.SkillId))
                         ?? throw new InvalidDataException("Unknown learned skill.");
-                    var free = rule.GetFreeLevel(facts.Career, facts.Level);
+                    var free = Math.Max(rule.GetFreeLevel(facts.Career, facts.Level), expertJobSkills.GetValueOrDefault(rule.SkillId));
                     var allowed = Math.Min(learned.Level, Math.Max(rule.GetMaxLevel(facts.Career, learningLevel) ?? 0, free));
                     while (allowed > free && !rule.CanLearn(facts.Career, learningLevel, allowed, learnedLevels)) allowed--;
                     if (learned.Level == allowed) continue;
@@ -142,6 +145,7 @@ internal sealed class CharacterSkillStateDomainService(
         var facts = await ReadAsync(characterId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Skill reconciliation character is unavailable.");
         var available = rules.GetAll(facts.Career.Job).ToDictionary(rule => rule.SkillId);
+        var expertJobSkills = await ExpertJobSkillsAsync(characterId, cancellationToken).ConfigureAwait(false);
         var learningLevel = await LearningLevelAsync(characterId, facts.Level, cancellationToken);
         // Validate the career even for an empty stored skill tree.
         _ = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
@@ -157,7 +161,8 @@ internal sealed class CharacterSkillStateDomainService(
                     retained.Add(checked((int)learned.SkillId), learned);
                     continue;
                 }
-                if (rule.GetMaxLevel(facts.Career, learningLevel) is null && rule.GetFreeLevel(facts.Career, facts.Level) == 0)
+                if (rule.GetMaxLevel(facts.Career, learningLevel) is null && rule.GetFreeLevel(facts.Career, facts.Level) == 0
+                    && !expertJobSkills.ContainsKey(rule.SkillId))
                 {
                     if (await skills.RemoveAsync(characterId, page, learned.Slot, cancellationToken).ConfigureAwait(false) != 1)
                         throw new InvalidOperationException("Skill row changed during reconciliation.");
@@ -167,7 +172,7 @@ internal sealed class CharacterSkillStateDomainService(
             var occupied = retained.Values.Select(value => (int)value.Slot).ToHashSet();
             foreach (var rule in available.Values.OrderBy(rule => rule.SkillId))
             {
-                var free = rule.GetFreeLevel(facts.Career, facts.Level);
+                var free = Math.Max(rule.GetFreeLevel(facts.Career, facts.Level), expertJobSkills.GetValueOrDefault(rule.SkillId));
                 if (free <= 0) continue;
                 var level = checked((byte)free);
                 if (retained.TryGetValue(rule.SkillId, out var learned))
@@ -186,6 +191,13 @@ internal sealed class CharacterSkillStateDomainService(
                 }
             }
         }
+    }
+
+    private async ValueTask<IReadOnlyDictionary<int, byte>> ExpertJobSkillsAsync(CharacterId character, CancellationToken ct)
+    {
+        var state = await expertJobs.ReadAsync(character, ct).ConfigureAwait(false);
+        return (await expertJobRules.FindAsync(state.Type, ct).ConfigureAwait(false))?.Skills
+            ?? System.Collections.Immutable.ImmutableDictionary<int, byte>.Empty;
     }
 
     public ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken,

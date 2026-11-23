@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.ExpertJobs;
 using Dfo.Server.Protocol.Game.WeeklyAttendance;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Game.GuardianAltar;
@@ -243,6 +244,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddSellItemSlice();
         services.AddRepairItemSlice();
         services.AddDisjointItemSlice();
+        services.AddExpertJobGiveUpSlice();
         services.AddReinforceItemSlice();
         services.AddEnchantByBeadSlice();
         services.AddMagicSealSlice();

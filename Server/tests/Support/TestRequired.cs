@@ -56,7 +56,8 @@ internal static class TestRequired
             rules, Absent<Dfo.Server.Abstractions.Persistence.ICharacterTable>(), Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>(),
             new Dfo.Server.Application.Characters.AmbientStoreAccess(TransactionScope()), Absent<IItemDomainStore>(),
             Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>(),
-            Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>());
+            Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(),
+            Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobStateStore>());
 
     private sealed class StructuralAdmissionRules(Dfo.Server.Abstractions.World.IDungeonStructureRuleService structures) : IDungeonAdmissionRuleService
     {

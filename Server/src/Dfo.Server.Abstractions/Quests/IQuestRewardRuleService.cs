@@ -1,3 +1,4 @@
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Content;
 
 namespace Dfo.Server.Abstractions.Quests;
@@ -14,6 +15,7 @@ public sealed record QuestCompletionRewardPlan(
     IReadOnlyList<SeekingItemRequirement>? ConsumedItems = null)
 {
     public byte? Awakening { get; init; }
+    public ExpertJobType? ExpertJob { get; init; }
 
     /// <summary>The extra equipment slot a <c>[slot expansion]</c> reward opens.</summary>
     public Dfo.Server.Data.Characters.ExtraEquipmentSlots ExtraEquipmentSlot { get; init; }
@@ -29,6 +31,7 @@ public enum QuestRewardRejection
     RewardSelectionRequired,
     RewardSelectionOutOfRange,
     InvalidSlotExpansionReward,
+    InvalidExpertJobReward,
 }
 
 public sealed record QuestRewardResolution(

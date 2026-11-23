@@ -1,3 +1,4 @@
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
@@ -224,6 +225,10 @@ internal static class CharacterStateProjection
             claimedGroups,
             boxes,
             equippedCreature.GetItemId(characterInventory),
-            entry.Public.DerivedStats.EquippedCreatureLevel);
+            entry.Public.DerivedStats.EquippedCreatureLevel)
+        {
+            ExpertJob = (ExpertJobType)entry.Public.ExpertJob.Type,
+            ExpertJobExperience = checked((uint)entry.Public.ExpertJob.Experience),
+        };
     }
 }

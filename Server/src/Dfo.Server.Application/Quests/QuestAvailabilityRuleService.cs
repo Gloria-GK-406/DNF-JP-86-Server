@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.ExpertJobs;
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Characters;
@@ -7,7 +9,7 @@ namespace Dfo.Server.Application.Quests;
 
 /// <summary>Eligibility belongs to Quest; World consumes the resulting offer projection.</summary>
 internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService quests,
-    ICreatureDefinitionSource creatures) : IQuestAvailabilityRuleService
+    ICreatureDefinitionSource creatures, IExpertJobRuleService expertJobs) : IQuestAvailabilityRuleService
 {
     public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(
         WorldContentSubject subject,
@@ -73,7 +75,7 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
         CancellationToken cancellationToken) => quest.IsExposedByNpc != false && quest.IsEventOnly != true
         && (quest.QuestId != IGiantDragonCrystalExchangeDomainService.QuestId || subject.GiantDragonCrystalExchangeAvailable)
         && (quest.QuestId != Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId || subject.SouthernDaleQuestAvailable)
-        && quest.ExpertJobRequirement is null
+        && await MatchesExpertJobAsync(quest, subject, cancellationToken).ConfigureAwait(false)
         && MatchesTargetCharacter(quest.TargetCharacterRestriction, job)
         && MatchesTrainingAvailability(quest, subject.Level, training)
         && MatchesQuestProgress(quest, subject.ClearedQuestFlags)
@@ -82,6 +84,28 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
             && (restriction.IsExactAll || restriction.JobFamilies.Contains(job)))
         && MatchesGrowType(quest, subject.GrowType)
         && await MatchesCreatureRestrictionAsync(quest, subject, creature, cancellationToken).ConfigureAwait(false);
+
+    internal static bool IsExpertJobQuest(QuestDefinition quest) => quest.JobChangeQuestCode == 20
+        || quest.ExpertJobRequirement is not null || quest.Rewards.Any(reward => reward.Kind == QuestRewardKind.ExpertJob);
+
+    private async ValueTask<bool> MatchesExpertJobAsync(QuestDefinition quest, WorldContentSubject subject, CancellationToken ct)
+    {
+        if (!IsExpertJobQuest(quest)) return true;
+        var awards = quest.Rewards.Where(reward => reward.Kind == QuestRewardKind.ExpertJob).ToArray();
+        if (awards.Length != 0)
+            return quest.JobChangeQuestCode == 20 && subject.ExpertJob == ExpertJobType.None
+                && !quest.CollisionQuestIds.Any(subject.CarriedQuestIds.Contains)
+                && awards.Length == 1 && awards[0].Values is [>= 1 and <= 4]
+                && await expertJobs.FindAsync((ExpertJobType)awards[0].Values[0], ct).ConfigureAwait(false) is { } joining
+                && joining.ConnectedQuests.Contains(quest.QuestId);
+
+        if (await expertJobs.FindAsync(subject.ExpertJob, ct).ConfigureAwait(false) is not { } current)
+            return false;
+        if (quest.ExpertJobRequirement is { } required
+            && ((int)subject.ExpertJob != required.ExpertJobType || current.LevelAt(subject.ExpertJobExperience) < required.MinimumLevel))
+            return false;
+        return quest.JobChangeQuestCode != 20 || current.ConnectedQuests.Contains(quest.QuestId);
+    }
 
     private static bool MatchesTargetCharacter(
         QuestTargetCharacterRestriction? restriction,

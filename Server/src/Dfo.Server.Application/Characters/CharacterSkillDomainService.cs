@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
@@ -15,14 +16,14 @@ internal sealed class CharacterSkillDomainStoreService(
     IDomainTransactionAccessor transactions,
     IPremiumServiceDomainService premiums,
     IPremiumServiceRuleService premiumRules,
-    CharacterSkillRefundService refunds) : ICharacterSkillDomainStoreService
+    CharacterSkillRefundService refunds, IExpertJobRuleService expertJobs) : ICharacterSkillDomainStoreService
 {
     public ICharacterSkillDomainService Get(CharacterId characterId, SkillGroup group, SkillBuildId build)
     {
         if (group is not (SkillGroup.Pve or SkillGroup.Duel))
             throw new ArgumentOutOfRangeException(nameof(group), group, null);
         return new CharacterSkillDomainService(characterId, group, build, facts, skills, rules,
-            transactions, premiums, premiumRules, refunds);
+            transactions, premiums, premiumRules, refunds, expertJobs);
     }
 }
 
@@ -36,7 +37,7 @@ internal sealed class CharacterSkillDomainService(
     IDomainTransactionAccessor transactions,
     IPremiumServiceDomainService premiums,
     IPremiumServiceRuleService premiumRules,
-    CharacterSkillRefundService refunds) : ICharacterSkillDomainService
+    CharacterSkillRefundService refunds, IExpertJobRuleService expertJobs) : ICharacterSkillDomainService
 {
     private CharacterSkillPageState? FindPage(CharacterSkillFacts? facts) =>
         facts?.Pages.SingleOrDefault(page => page.PageIndex == build.Value);
@@ -92,6 +93,8 @@ internal sealed class CharacterSkillDomainService(
             throw new InvalidOperationException("Skill learning requires a domain transaction.");
         if (!IsValidLearningRequest(changes))
             return new(CharacterSkillLearningRejection.InvalidRequest);
+        if (await expertJobs.ContainsGrantedSkillAsync(changes.Select(change => (int)change.SkillId).ToHashSet(), ct).ConfigureAwait(false))
+            return new(CharacterSkillLearningRejection.SkillUnavailable);
         var facts = await factsReader.ReadAsync(characterId, group, ct).ConfigureAwait(false);
         if (facts is null)
             return new(CharacterSkillLearningRejection.NoSession);

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Creatures;
@@ -16,7 +17,7 @@ internal sealed class QuestFactsDomainService(ICharacterContainerDomainService c
     IQuestStateRuleService rules, ICharacterTable owners, ICreatureDomainStore creatures, AmbientStoreAccess stores,
     IItemDomainStore items, IGiantDragonCrystalExchangeDomainService crystalExchange,
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
-    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern) : IQuestFactsDomainService
+    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern, IExpertJobStateStore expertJobs) : IQuestFactsDomainService
 {
     public async ValueTask<QuestHoldingsFacts> HoldingsAsync(CharacterId character, CancellationToken ct)
     {
@@ -49,10 +50,12 @@ internal sealed class QuestFactsDomainService(ICharacterContainerDomainService c
         var carried = await log.CarriedAsync(ct).ConfigureAwait(false);
         var cleared = await log.ClearedAsync(ct).ConfigureAwait(false);
         var creature = await stores.ReadAsync(creatures, rows => rows.ReadCurrentAsync(character, ct)).ConfigureAwait(false);
+        var expertJob = await expertJobs.ReadAsync(character, ct).ConfigureAwait(false);
         return new WorldContentSubject(progress.Level, identity.Job, identity.GrowType,
             cleared.Where(x => x.Mark != 0).ToDictionary(x => x.QuestId, x => (int)x.Mark),
             carried.Select(x => x.QuestId).ToArray(), [], [], creature?.ItemTemplateId ?? 0, creature?.Level ?? 0)
-        { GiantDragonCrystalExchangeAvailable = await crystalExchange.CanAcceptAsync(character, ct).ConfigureAwait(false),
+        { ExpertJob = expertJob.Type, ExpertJobExperience = expertJob.Experience,
+            GiantDragonCrystalExchangeAvailable = await crystalExchange.CanAcceptAsync(character, ct).ConfigureAwait(false),
             EligibleWeddingQuestIds = await marriage.EligibleQuestIdsAsync(account, character, ct).ConfigureAwait(false),
             SouthernDaleQuestAvailable = await southern.CanAcceptAsync(character, ct).ConfigureAwait(false) };
     }

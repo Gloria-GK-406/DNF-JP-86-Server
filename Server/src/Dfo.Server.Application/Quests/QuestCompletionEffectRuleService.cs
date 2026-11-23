@@ -136,7 +136,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
                 var occupied = new HashSet<int>();
                 foreach (var rule in skills.GetAll(career.Job).OrderBy(x => x.SkillId))
                 {
-                    var free = rule.GetFreeLevel(career, xp.Award.Level);
+                    var free = Math.Max(rule.GetFreeLevel(career, xp.Award.Level), facts.ExpertSkillGrants.GetValueOrDefault(rule.SkillId));
                     if (free <= 0) continue;
                     var slot = rule.FindAvailableSlot(occupied) ?? throw new InvalidDataException("No slot for a granted skill.");
                     effects.Add(new SetLearnedSkillEffect(page.PageIndex, slot, rule.SkillId, null, checked((byte)free)));

@@ -608,7 +608,8 @@ public sealed class WorldContentRuleTests
 
     private static WorldContentEntryRuleService Compose(QuestContentRuleService quests, StubDailyActivitySource dailyActivities,
         StubCollectionBoxSource collectionBoxes, StubCreatureSource creatures) =>
-        new(quests, dailyActivities, collectionBoxes, creatures, new QuestAvailabilityRuleService(quests, creatures));
+        new(dailyActivities, collectionBoxes, creatures, new QuestAvailabilityRuleService(quests, creatures,
+            TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobRuleService>()));
 
     /// <summary>
     /// Finishing a quest makes the quest that required it offerable.

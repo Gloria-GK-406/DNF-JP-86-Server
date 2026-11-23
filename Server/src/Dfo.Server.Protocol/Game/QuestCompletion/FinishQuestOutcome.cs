@@ -1,3 +1,4 @@
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -43,6 +44,8 @@ public sealed record QuestFinishOutcome(
 {
     public bool MirrorCompletion { get; init; }
     public byte? Awakening { get; init; }
+    public ExpertJobType? ExpertJob { get; init; }
+    public IReadOnlyList<FinishedQuestConsumption> ExpertJobConsumptions { get; init; } = [];
     public uint NotificationExperience { get; init; } = NewExperience;
     public IReadOnlyList<CommittedInventoryUpdateState> ConsumedItemUpdates { get; init; } = [];
     /// <summary>The completion opened an extra equipment slot, so subtype 1 must be resent.</summary>

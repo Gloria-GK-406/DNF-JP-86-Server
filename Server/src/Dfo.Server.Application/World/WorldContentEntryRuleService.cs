@@ -15,13 +15,11 @@ namespace Dfo.Server.Application.World;
 /// the content changing.
 /// </remarks>
 internal sealed class WorldContentEntryRuleService(
-    IQuestContentRuleService quests,
     IDailyActivityDefinitionSource dailyActivities,
     ICollectionBoxDefinitionSource collectionBoxes,
     ICreatureDefinitionSource creatures, IQuestAvailabilityRuleService questAvailability) : IWorldContentEntryRuleService
 {
-    private readonly IQuestAvailabilityRuleService availability = questAvailability
-        ?? new Dfo.Server.Application.Quests.QuestAvailabilityRuleService(quests, creatures);
+    private readonly IQuestAvailabilityRuleService availability = questAvailability;
 
     public async ValueTask<WorldContentEntryState> LoadAsync(
         WorldContentSubject subject,

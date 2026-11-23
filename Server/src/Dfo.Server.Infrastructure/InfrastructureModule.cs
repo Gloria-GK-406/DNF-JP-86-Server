@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World.IllusionTower;
@@ -186,6 +187,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
         services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();
+        services.TryAddSingleton<IExpertJobDefinitionSource, PvfExpertJobDefinitionSource>();
         services.TryAddSingleton<IEquipmentMagicSealContentSource, PvfEquipmentMagicSealContentSource>();
         services.TryAddSingleton<IEquipmentOutworldContentSource, PvfEquipmentOutworldContentSource>();
         services.TryAddSingleton<IEquipmentForgingContentSource, PvfEquipmentForgingContentSource>();

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.ExpertJobs;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -13,7 +15,7 @@ namespace Dfo.Server.Application.Settlement;
 internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainService completion,
     IQuestDefinitionDomainService definitions, IApplyEffectsDomainService apply, IEventService events,
     IGiantDragonCrystalExchangeDomainService crystalExchange,
-    IMirrorAradQuestDomainService mirror, Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern) : IQuestCompletionSettlementDomainService
+    IMirrorAradQuestDomainService mirror, Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern, IExpertJobDomainService expertJobs) : IQuestCompletionSettlementDomainService
 {
     public async ValueTask<QuestCompletionReceipt> FinishAsync(AccountId account, CharacterId character, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null)
@@ -51,8 +53,12 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
             return new(false, quest, null, null, null, ordinary.Projection, null);
         var result = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         footprint.DemandEffects(context.Owner);
+        var expertJob = plan.Reward?.ExpertJob;
+        if (expertJob is { } type
+            && !await expertJobs.Get(character).JoinFromQuestAsync(new OwnedCharacterId(account, character), quest, type, ct).ConfigureAwait(false))
+            throw new InvalidOperationException("The expert-job quest could not grant its reward.");
         await events.EnqueueAsync(new QuestCompleted(character, quest), ct).ConfigureAwait(false);
         var projection = plan.Projection is null ? null : await mirror.MergeAsync(character, plan.Projection, ct).ConfigureAwait(false);
-        return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType) { Awakening = plan.Awakening };
+        return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType) { Awakening = plan.Awakening, ExpertJob = expertJob };
     }
 }
