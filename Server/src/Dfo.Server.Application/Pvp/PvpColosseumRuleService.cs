@@ -1,12 +1,20 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Pvp;
 
 internal sealed class PvpColosseumRuleService(IPvpColosseumRuleSource definitions)
 {
+    public PvpColosseumKind? KindOf(ChannelEntryIdentity channel) => channel.Kind switch
+    {
+        ChannelEntryKind.MatchmakingDuel => PvpColosseumKind.Individual,
+        ChannelEntryKind.TotalMatchDuel => PvpColosseumKind.TotalMatch,
+        _ => null,
+    };
+
     public (int Item, int Cost, int MinimumRp) EntryTerms()
     {
         var policy = definitions.Load();
@@ -17,6 +25,10 @@ internal sealed class PvpColosseumRuleService(IPvpColosseumRuleSource definition
         !current.Complete && current.Recipient == recipient;
 
     public bool CanStart(int entriesToday) => entriesToday < definitions.Load().DailyLimit;
+
+    public bool CanQueue(PvpColosseumRun run, CharacterId recipient, PvpBattleMode mode) =>
+        CanResume(run, recipient) && mode == (run.Owner.Kind == PvpColosseumKind.TotalMatch
+            ? PvpBattleMode.TotalMatch : PvpBattleMode.Individual);
 
     public PvpColosseumRun Advance(PvpColosseumRun run, bool won)
     {

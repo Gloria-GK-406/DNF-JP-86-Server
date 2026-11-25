@@ -1053,7 +1053,7 @@ internal sealed partial class PvpRoomDomainService(
         private readonly Dictionary<InvitationKey, (PvpInvitation? Before, PvpInvitation? After)> invitations = [];
         private readonly Dictionary<PvpMatchId, (PvpMatchConclusion? Before, PvpMatchConclusion? After)> conclusions = [];
         private readonly List<TownMoves> towns = [];
-        private (ImmutableArray<MatchTicket> Before, ImmutableArray<MatchTicket> After)? queue;
+        private (ImmutableArray<PvpMatchmakingTicket> Before, ImmutableArray<PvpMatchmakingTicket> After)? queue;
         private bool closing;
 
         public bool CommitCanFail => false;
@@ -1074,7 +1074,7 @@ internal sealed partial class PvpRoomDomainService(
             MatchmakingQueue = [];
         }
 
-        public ImmutableArray<MatchTicket> MatchmakingQueue
+        public ImmutableArray<PvpMatchmakingTicket> MatchmakingQueue
         {
             get
             {

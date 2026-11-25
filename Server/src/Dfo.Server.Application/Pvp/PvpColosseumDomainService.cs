@@ -32,7 +32,7 @@ internal sealed class PvpColosseumDomainService(
     public async ValueTask<PvpColosseumEntry?> EnterAsync(SelectedSessionIdentity actor, ChannelEntryIdentity channel,
         PvpColosseumKind kind, CancellationToken ct)
     {
-        if (ChannelKind(channel) != kind) return null;
+        if (rules.KindOf(channel) != kind) return null;
         var owner = Owner(actor, kind);
         var terms = rules.EntryTerms();
         var now = clock.GetUtcNow();
@@ -53,16 +53,20 @@ internal sealed class PvpColosseumDomainService(
         return new(run, terms.Item, terms.Cost, balance);
     }
 
-    internal ValueTask<PvpColosseumRun?> ReadForQueueAsync(SelectedSessionIdentity actor, ChannelEntryIdentity channel,
-        CancellationToken ct) => ChannelKind(channel) is { } kind
-        ? store.ReadAsync(Owner(actor, kind), ct) : ValueTask.FromResult<PvpColosseumRun?>(null);
+    internal async ValueTask<Guid?> ReadQueueRunAsync(SelectedSessionIdentity actor, ChannelEntryIdentity channel,
+        PvpBattleMode mode, CancellationToken ct)
+    {
+        if (rules.KindOf(channel) is not { } kind) return null;
+        var run = await store.ReadAsync(Owner(actor, kind), ct).ConfigureAwait(false);
+        return run is not null && rules.CanQueue(run, actor.CharacterId, mode) ? run.Id : null;
+    }
 
     internal async ValueTask<HashSet<int>> SettleAsync(PvpMatchConclusion battle, CancellationToken ct)
     {
         var winners = new HashSet<int>();
         if (battle.ColosseumRuns.IsEmpty || battle.Terminal.Kind != PvpMatchOutcomeKind.Decided
             || !(matchmakingRules.AppliesTo(battle) || matchmakingRules.AppliesToTotalMatch(battle))
-            || ChannelKind(battle.Channel) is not { } kind)
+            || rules.KindOf(battle.Channel) is not { } kind)
             return winners;
 
         foreach (var fighter in battle.Fighters)
@@ -84,7 +88,7 @@ internal sealed class PvpColosseumDomainService(
     public async ValueTask<PvpColosseumDelivery?> CollectAsync(SelectedSessionIdentity actor, ChannelEntryIdentity channel,
         CancellationToken ct)
     {
-        if (ChannelKind(channel) is not { } kind) return null;
+        if (rules.KindOf(channel) is not { } kind) return null;
         var run = await store.ReadAsync(Owner(actor, kind), ct).ConfigureAwait(false);
         if (run is not { Complete: true } || run.Recipient != actor.CharacterId) return null;
         return await DeliverAsync(run, actor, ItemDeliveryMode.InventoryThenMail, ct).ConfigureAwait(false);
@@ -104,13 +108,6 @@ internal sealed class PvpColosseumDomainService(
         await store.CloseAsync(run.Id, ct).ConfigureAwait(false);
         return new(balance, items);
     }
-
-    internal static PvpColosseumKind? ChannelKind(ChannelEntryIdentity channel) => channel.Kind switch
-    {
-        ChannelEntryKind.MatchmakingDuel => PvpColosseumKind.Individual,
-        ChannelEntryKind.TotalMatchDuel => PvpColosseumKind.TotalMatch,
-        _ => null,
-    };
 
     private static PvpColosseumOwner Owner(SelectedSessionIdentity actor, PvpColosseumKind kind) =>
         PvpColosseumOwner.Of(kind, actor.CharacterId, actor.AccountId);

@@ -9,10 +9,7 @@ namespace Dfo.Server.Application.Pvp;
 
 internal sealed partial class PvpRoomDomainService
 {
-    private ImmutableArray<MatchTicket> matchmakingQueue = [];
-
-    private sealed record MatchTicket(SelectedSessionIdentity Session, PvpBattleMode Mode, CharacterCareer Career,
-        ImmutableArray<CharacterCareer> ExcludedCareers, Guid? ColosseumRun);
+    private ImmutableArray<PvpMatchmakingTicket> matchmakingQueue = [];
 
     public async ValueTask<PvpMatchmakingQueueResult> EnqueueAsync(
         SelectedSessionIdentity session, PvpBattleMode mode, ImmutableArray<CharacterCareer> excludedCareers,
@@ -20,7 +17,7 @@ internal sealed partial class PvpRoomDomainService
     {
         GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(EnqueueAsync));
         var pending = Pending;
-        var fighterCount = PvpMatchAdmission.FighterCount(mode);
+        var fighterCount = matchmakingRules.FighterCount(mode);
         // Keep each player's two rating updates in fight order even when that player reconnects before settlement.
         var awaitingRating = pending.Conclusions().Where(matchmakingRules.AppliesTo)
             .SelectMany(battle => battle.Fighters).Select(fighter => fighter.CharacterId).ToHashSet();
@@ -43,32 +40,24 @@ internal sealed partial class PvpRoomDomainService
         Guid? colosseumRunId = null;
         if (colosseumQueue)
         {
-            if (await colosseum.ReadForQueueAsync(session, channel, cancellationToken).ConfigureAwait(false)
-                    is not { Complete: false } run
-                || run.Recipient != session.CharacterId
-                || (run.Owner.Kind == PvpColosseumKind.TotalMatch
-                    ? mode != PvpBattleMode.TotalMatch : mode != PvpBattleMode.Individual))
+            colosseumRunId = await colosseum.ReadQueueRunAsync(session, channel, mode, cancellationToken).ConfigureAwait(false);
+            if (colosseumRunId is null)
                 return new(PvpMatchmakingDecision.ColosseumStateMismatch);
-            colosseumRunId = run.Id;
         }
 
         var profiles = await identities.ReadAsync([session.CharacterId], cancellationToken).ConfigureAwait(false);
-        if (!profiles.TryGetValue(session.CharacterId, out var profile) || profile.Job is < 0 or > byte.MaxValue)
+        if (!profiles.TryGetValue(session.CharacterId, out var profile) || matchmakingRules.QueueCareer(profile) is not { } career)
             return new(PvpMatchmakingDecision.CharacterProfileUnavailable);
 
-        var ticket = new MatchTicket(session, mode, new(profile.Job, profile.GrowType & 0xF), excludedCareers, colosseumRunId);
+        var ticket = new PvpMatchmakingTicket(session, mode, career, excludedCareers, colosseumRunId);
         var available = pending.MatchmakingQueue.RemoveAll(waiting =>
             awaitingRating.Contains(waiting.Session.CharacterId) || !CanQueue(pending, waiting.Session)
             || (waiting.Mode == PvpBattleMode.TotalMatch && awaitingGroupRating.Contains(waiting.Session.AccountId)));
         var needed = fighterCount - 1;
-        var eligible = available.Where(waiting => waiting.Mode == mode
-                && waiting.Session.ListenerPort == session.ListenerPort && waiting.Session.AccountId != session.AccountId
-                && waiting.Session.CharacterId != session.CharacterId && waiting.Session.WireUserId != session.WireUserId
-                && !ticket.ExcludedCareers.Contains(waiting.Career) && !waiting.ExcludedCareers.Contains(ticket.Career))
-            .DistinctBy(waiting => waiting.Session.AccountId);
+        var eligible = matchmakingRules.EligibleOpponents(ticket, available);
         var preparedAt = Now;
         ImmutableArray<PvpTotalMatchSide> sides = [];
-        MatchTicket[] opponents;
+        PvpMatchmakingTicket[] opponents;
         if (mode == PvpBattleMode.TotalMatch)
         {
             var (own, missingEquipment) = await traditional.ReadMatchmakingLineupAsync(session, preparedAt, cancellationToken)
@@ -109,7 +98,7 @@ internal sealed partial class PvpRoomDomainService
             .Where(entry => entry.ColosseumRun.HasValue)
             .ToImmutableDictionary(entry => entry.seat, entry => entry.ColosseumRun!.Value);
         var seats = Enumerable.Range(0, PvpRoomSnapshot.SeatCount).Select(seat => seat < members.Length
-            ? new PvpSeat.Taken(members[seat], seat % 2 == 0 ? PvpTeam.First : PvpTeam.Second, false)
+            ? new PvpSeat.Taken(members[seat], matchmakingRules.TeamForSeat(seat), false)
             : PvpSeat.ClosedSeat).ToImmutableArray();
         var participants = (byte)((1 << members.Length) - 1);
         var room = new PvpRoomSnapshot(PvpRoomId.New(), pending.NextNumber(channel.ListenerPort), channel,
@@ -146,7 +135,7 @@ internal sealed partial class PvpRoomDomainService
     {
         if (!InWorld(session) || await MatchmakingChannelAsync(session, cancellationToken).ConfigureAwait(false) is not { } channel)
             return null;
-        ImmutableArray<MatchTicket> queue;
+        ImmutableArray<PvpMatchmakingTicket> queue;
         lock (gate) queue = matchmakingQueue;
         var waiting = queue.Where(ticket => ticket.Session.ListenerPort == session.ListenerPort && InWorld(ticket.Session)
             && !InParty(ticket.Session.CharacterId) && !IsSeated(ticket.Session.CharacterId)).ToArray();

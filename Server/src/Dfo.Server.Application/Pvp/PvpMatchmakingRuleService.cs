@@ -1,12 +1,32 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Pvp;
 
 internal sealed class PvpMatchmakingRuleService
 {
+    public int FighterCount(PvpBattleMode mode) => PvpMatchAdmission.FighterCount(mode);
+
+    public CharacterCareer? QueueCareer(CharacterPublicIdentity profile) =>
+        profile.Job is < 0 or > byte.MaxValue ? null : new CharacterCareer(profile.Job, profile.GrowType & 0xF);
+
+    public IEnumerable<PvpMatchmakingTicket> EligibleOpponents(PvpMatchmakingTicket ticket,
+        IReadOnlyList<PvpMatchmakingTicket> waiting) =>
+        waiting.Where(candidate => candidate.Mode == ticket.Mode
+            && candidate.Session.ListenerPort == ticket.Session.ListenerPort
+            && candidate.Session.AccountId != ticket.Session.AccountId
+            && candidate.Session.CharacterId != ticket.Session.CharacterId
+            && candidate.Session.WireUserId != ticket.Session.WireUserId
+            && !ticket.ExcludedCareers.Contains(candidate.Career) && !candidate.ExcludedCareers.Contains(ticket.Career))
+        .DistinctBy(candidate => candidate.Session.AccountId);
+
+    public PvpTeam TeamForSeat(int seat) => seat % 2 == 0 ? PvpTeam.First : PvpTeam.Second;
+
     public bool AllowsOrdinaryQueue(ChannelEntryIdentity channel, PvpBattleMode mode) =>
         channel.SupportsMatchmaking && mode is PvpBattleMode.Individual or PvpBattleMode.Relay;
 
@@ -27,14 +47,14 @@ internal sealed class PvpMatchmakingRuleService
         battle.Origin == PvpRoomOrigin.Matchmaking
         && battle.Channel.SupportsMatchmaking
         && battle.Mode is PvpBattleMode.Individual or PvpBattleMode.Relay
-        && battle.Fighters.Length == PvpMatchAdmission.FighterCount(battle.Mode)
+        && battle.Fighters.Length == FighterCount(battle.Mode)
         && battle.Terminal.Kind != PvpMatchOutcomeKind.Cancelled
         && !battle.Fighters.All(fighter => fighter.Fled);
 
     public bool AppliesToTotalMatch(PvpMatchConclusion battle) =>
         battle.Mode == PvpBattleMode.TotalMatch && battle.Origin == PvpRoomOrigin.Matchmaking
         && battle.Channel.AllowsTotalMatchmaking
-        && battle.Fighters.Length == 2 && !battle.TotalMatchAppearances.IsDefaultOrEmpty
+        && battle.Fighters.Length == FighterCount(battle.Mode) && !battle.TotalMatchAppearances.IsDefaultOrEmpty
         && battle.Terminal.Kind != PvpMatchOutcomeKind.Cancelled && !battle.Fighters.All(fighter => fighter.Fled);
 
     public Dictionary<CharacterId, PvpRatingChange> Rate(PvpMatchConclusion battle,
@@ -97,3 +117,6 @@ internal sealed class PvpMatchmakingRuleService
         return new(season.Id, own.Points, new(placed, points, peak));
     }
 }
+
+internal sealed record PvpMatchmakingTicket(SelectedSessionIdentity Session, PvpBattleMode Mode, CharacterCareer Career,
+    ImmutableArray<CharacterCareer> ExcludedCareers, Guid? ColosseumRun);
