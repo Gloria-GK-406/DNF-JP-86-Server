@@ -312,20 +312,17 @@ public sealed class CharacterEntryInventoryTests
     }
 
     [Fact]
-    public async Task PvpInitializer_PreservesInitialOrderAndUsesDarkKnightGroupAllocation()
+    public async Task InitialDuelSkillPages_PreserveInitialOrderAndUseDarkKnightGroupAllocation()
     {
         var darkKnight = Character(6021, 3) with
         {
             Identity = Character(6021, 3).Identity with { Job = 9 },
         };
-        var result = await Dfo.Server.Application.Pvp.PvpSkillInitializer
-            .BuildInitialPagesAsync(
-                darkKnight,
-                new CharacterEntryPreparationRuleService(
-                    new AllocationSkillSource(),
-                    new UnusedExpertContracts(),
-                    new UnusedCreatureLifetimes(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-                CancellationToken.None);
+        var rules = new CharacterEntryPreparationRuleService(
+            new AllocationSkillSource(), new UnusedExpertContracts(), new UnusedCreatureLifetimes(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterEntryPreparationRuleService>.Instance);
+        var result = await rules.InitialDuelSkillPagesAsync(darkKnight.Identity.Job, darkKnight.Identity.GrowType,
+            darkKnight.Progression.Level, CancellationToken.None);
 
         Assert.Equal([(short)0, (short)102, (short)150],
             result[0].Skills.Select(value => value.Slot));

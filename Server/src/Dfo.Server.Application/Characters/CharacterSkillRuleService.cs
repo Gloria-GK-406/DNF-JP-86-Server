@@ -153,7 +153,16 @@ internal sealed class CharacterSkillRule : ICharacterSkillRule
     public long GetSP(int skillLevel) => Cost(skillLevel, tp: false);
     public long GetTP(int skillLevel) => Cost(skillLevel, tp: true);
 
-    public short? FindAvailableSlot(IReadOnlySet<int> occupied)
+    public short? FindAvailableSlot(IReadOnlySet<int> occupied) => FindAvailableSlot(
+        occupied, Job, definition.IsActive, definition.RawGroup, definition.NumberOfGrowTypes,
+        duelSeed: false, initialGrant: false);
+
+    internal static short? FindDuelSeedSlot(IReadOnlySet<int> occupied, byte job, SkillPointCostDefinition? skill,
+        bool initialGrant) => FindAvailableSlot(occupied, job, skill?.IsActive == true, skill?.RawGroup ?? 0,
+            skill?.NumberOfGrowTypes ?? 0, duelSeed: true, initialGrant: initialGrant);
+
+    private static short? FindAvailableSlot(IReadOnlySet<int> occupied, byte job, bool active, int rawGroup,
+        int growTypes, bool duelSeed, bool initialGrant)
     {
         // Reference ServerS4A21 SkillSlotAllocator; ordinary slots do not infer a special ID mapping.
         short? Free(int start, int end)
@@ -162,17 +171,21 @@ internal sealed class CharacterSkillRule : ICharacterSkillRule
                 if (!occupied.Contains(slot)) return checked((short)slot);
             return null;
         }
-        if (definition.IsActive && Job != 9)
+        // Duel pages seed initial grants into their active/passive halves before assigning other grants.
+        if (initialGrant)
+            return Free(active ? 0 : 102, active ? 102 : SkillHotkeySlots.SecondRowEnd)
+                ?? Free(0, SkillHotkeySlots.SecondRowEnd);
+
+        if (active && job != 9)
         {
             var hotkey = Free(0, SkillHotkeySlots.FirstRowEnd)
                 ?? Free(SkillHotkeySlots.SecondRowStart, SkillHotkeySlots.SecondRowEnd);
-            if (hotkey is not null) return hotkey;
+            if (hotkey is not null || duelSeed)
+                return hotkey ?? Free(0, SkillHotkeySlots.SecondRowEnd);
         }
-        var group = definition.IsActive ? 3
-            : definition.RawGroup is >= 0 and <= 3 ? definition.NumberOfGrowTypes <= 2 ? 1 : 0
-            : definition.RawGroup == 4 ? 2 : definition.RawGroup;
-        if (group is < 0 or > 3) group = 0;
-        return Free(6 + group * 48, 54 + group * 48);
+        var group = active ? 3 : rawGroup is >= 0 and <= 3 ? growTypes <= 2 ? 1 : 0 : rawGroup == 4 ? 2 : rawGroup;
+        if (group is < 0 or > 3) group = duelSeed ? Math.Clamp(group, 0, 3) : 0;
+        return Free(6 + group * 48, 54 + group * 48) ?? (duelSeed ? Free(0, SkillHotkeySlots.SecondRowEnd) : null);
     }
 
     private long Cost(int skillLevel, bool tp)

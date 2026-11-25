@@ -34,24 +34,23 @@ internal sealed class PvpColosseumDomainService(
     {
         if (ChannelKind(channel) != kind) return null;
         var owner = Owner(actor, kind);
-        var policy = rules.Load();
+        var terms = rules.EntryTerms();
         var now = clock.GetUtcNow();
         var day = days.GameDayOf(now);
         var current = await store.ReadAsync(owner, ct).ConfigureAwait(false);
         if (current is not null)
-            return !current.Complete && current.Recipient == actor.CharacterId
-                ? new(current, policy.EntranceItem, policy.EntranceCost, null) : null;
+            return rules.CanResume(current, actor.CharacterId) ? new(current, terms.Item, terms.Cost, null) : null;
 
         var qualified = kind == PvpColosseumKind.Individual
-            ? await duel.CanEnterColosseumAsync(actor.CharacterId, policy.MinimumRp, ct).ConfigureAwait(false)
+            ? await duel.CanEnterColosseumAsync(actor.CharacterId, terms.MinimumRp, ct).ConfigureAwait(false)
             : await traditional.CanEnterColosseumAsync(actor, now, ct).ConfigureAwait(false);
-        if (!qualified || await store.EntriesAsync(owner, day, ct).ConfigureAwait(false) >= policy.DailyLimit)
+        if (!qualified || !rules.CanStart(await store.EntriesAsync(owner, day, ct).ConfigureAwait(false)))
             return null;
-        var balance = await emblems.ChangeAsync(actor.CharacterId, -policy.EntranceCost, ct).ConfigureAwait(false);
+        var balance = await emblems.ChangeAsync(actor.CharacterId, -terms.Cost, ct).ConfigureAwait(false);
         if (balance is null) return null;
         var run = new PvpColosseumRun(Guid.NewGuid(), owner, actor.CharacterId, day, 0, 0, []);
         await store.InsertAsync(run, ct).ConfigureAwait(false);
-        return new(run, policy.EntranceItem, policy.EntranceCost, balance);
+        return new(run, terms.Item, terms.Cost, balance);
     }
 
     internal ValueTask<PvpColosseumRun?> ReadForQueueAsync(SelectedSessionIdentity actor, ChannelEntryIdentity channel,
@@ -66,7 +65,6 @@ internal sealed class PvpColosseumDomainService(
             || ChannelKind(battle.Channel) is not { } kind)
             return winners;
 
-        var policy = rules.Load();
         foreach (var fighter in battle.Fighters)
         {
             if (!battle.ColosseumRuns.TryGetValue(fighter.Seat, out var id)) continue;
@@ -74,9 +72,7 @@ internal sealed class PvpColosseumDomainService(
             if (run is null || run.Id != id || run.Complete || run.Recipient != fighter.CharacterId)
                 throw new InvalidOperationException($"Duel {battle.MatchId.Value} has a stale Colosseum run.");
             var won = !fighter.Fled && PvpSettlementDomainService.OutcomeOf(battle, fighter) == PvpOutcome.Win;
-            var updated = run with { Wins = run.Wins + (won ? 1 : 0), Losses = run.Losses + (won ? 0 : 1) };
-            if (updated.Wins >= policy.MaxWins || updated.Losses >= policy.MaxLosses)
-                updated = updated with { Prizes = rules.DrawPrizes(updated.Wins, policy) };
+            var updated = rules.Advance(run, won);
             await store.UpdateAsync(updated, ct).ConfigureAwait(false);
             if (updated.Complete && fighter.Fled && fighter.Departed)
                 _ = await DeliverAsync(updated, fighter.Session, ItemDeliveryMode.MailOnly, ct).ConfigureAwait(false);

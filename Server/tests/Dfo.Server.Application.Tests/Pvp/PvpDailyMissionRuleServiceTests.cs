@@ -36,6 +36,23 @@ public sealed class PvpDailyMissionRuleServiceTests
         Assert.False(Rules.CanReportWinPose(Peak, 203, 0));
     }
 
+    [Fact]
+    public void Streak_blocks_and_pose_sets_advance_at_their_content_defined_boundaries()
+    {
+        var streak = new PvpDailyMissionDefinition(205, PvpDailyMissionPool.Casual, 3, 1,
+            PvpDailyMissionCondition.WinStreak, 3, 2, 2, 100);
+        var pose = new PvpDailyMissionDefinition(206, PvpDailyMissionPool.Casual, 3, 1,
+            PvpDailyMissionCondition.WinPose, 2, 4, 2, 100);
+
+        Assert.Equal(2, Rules.TargetFor(streak));
+        Assert.Equal(0, Rules.ProgressFromMetric(streak, before: 1, count: 5, buckets: null));
+        Assert.Equal(1, Rules.ProgressFromMetric(streak, before: 1, count: 6, buckets: null));
+        Assert.Equal(0, Rules.ProgressFromMetric(pose, before: 1, count: 2,
+            new Dictionary<int, int> { [0] = 2, [1] = 2, [2] = 2, [3] = 1 }));
+        Assert.Equal(1, Rules.ProgressFromMetric(pose, before: 1, count: 2,
+            new Dictionary<int, int> { [0] = 2, [1] = 2, [2] = 2, [3] = 2 }));
+    }
+
     private sealed record Definitions(IReadOnlyList<PvpDailyMissionDefinition> Missions) : IPvpDailyMissionDefinitionSource
     {
         public IReadOnlyList<PvpDailyMissionDefinition> Load() => Missions;

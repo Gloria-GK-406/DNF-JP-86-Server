@@ -52,7 +52,8 @@ internal sealed class PvpTotalMatchCandidateQueryDomainService(
             // A reserve can be used before it has entered a duel channel. Derive its initial page without persisting it.
             var pages = await skillState.FindAsync(id, cancellationToken).ConfigureAwait(false) is { SkillsInitialized: not 0 }
                 ? await skillFacts.ReadDuelPagesAsync(id, cancellationToken).ConfigureAwait(false)
-                : await PvpSkillInitializer.BuildInitialPagesAsync(character, preparationRules, cancellationToken).ConfigureAwait(false);
+                : await preparationRules.InitialDuelSkillPagesAsync(character.Identity.Job, character.Identity.GrowType,
+                    character.Progression.Level, cancellationToken).ConfigureAwait(false);
             var build = (await builds.BuildsAsync(id, cancellationToken, SkillGroup.Duel).ConfigureAwait(false)).Active;
             candidates.Add(new(character, publicState, equipment, pages.Single(page => page.PageIndex == build.Value)));
         }

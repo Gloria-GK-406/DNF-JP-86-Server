@@ -20,7 +20,6 @@ internal sealed class PvpDailyMissions(
     ICharacterIdentityQueryDomainService identities,
     PvpMatchmakingRuleService matchmakingRules) : IPvpDailyMissionQueryDomainService
 {
-
     private readonly PvpVictoryEmblems emblems = new(transactions, inventory);
 
     public async ValueTask<IReadOnlyList<PvpDailyMission>> CurrentAsync(SelectedSessionIdentity session, ChannelEntryIdentity channel,
@@ -32,9 +31,9 @@ internal sealed class PvpDailyMissions(
         var result = new List<PvpDailyMission>();
         foreach (var mission in missionRules.Assigned(session.CharacterId, day, pool, progress))
         {
-            var goal = TargetFor(mission);
+            var goal = missionRules.TargetFor(mission);
             var value = progress.GetValueOrDefault(mission.Id);
-            if (mission.Condition == PvpDailyMissionCondition.WinStreak && mission.Parameter == 1 && value < goal)
+            if (missionRules.DisplaysCurrentWinRun(mission, value))
             {
                 var metrics = await missions.ReadMetricsAsync(session.CharacterId, day, mission.Id, cancellationToken)
                     .ConfigureAwait(false);
@@ -67,33 +66,18 @@ internal sealed class PvpDailyMissions(
             foreach (var mission in missionRules.Assigned(character, day, pool, progress))
             {
                 var before = progress.GetValueOrDefault(mission.Id);
-                var goal = TargetFor(mission);
-                if (before >= goal || fighter.Fled && mission.Condition != PvpDailyMissionCondition.WinStreak) continue;
-                var amount = mission.Condition switch
+                var (amount, metric) = missionRules.ProgressFor(mission, before, battle, fighter, won,
+                    colosseumWinners?.Contains(fighter.Seat) == true, profiles);
+                if (metric is { } update)
                 {
-                    PvpDailyMissionCondition.Participate => 1,
-                    PvpDailyMissionCondition.Win when won => 1,
-                    PvpDailyMissionCondition.ColosseumWin when won && colosseumWinners?.Contains(fighter.Seat) == true => 1,
-                    PvpDailyMissionCondition.DefeatJob when won && profiles is not null
-                        && battle.Fighters.Any(opponent => opponent.Team != fighter.Team && !opponent.Fled
-                            && profiles.TryGetValue(opponent.CharacterId, out var profile) && profile.Job == mission.Parameter) => 1,
-                    PvpDailyMissionCondition.Knockouts => fighter.Kills,
-                    PvpDailyMissionCondition.ColorlessSkills => battle.DailyColorlessSkills.GetValueOrDefault(fighter.Seat),
-                    PvpDailyMissionCondition.ReduceHealth or PvpDailyMissionCondition.RemainingHealth
-                        when (won || mission.Condition == PvpDailyMissionCondition.ReduceHealth)
-                            && battle.DailyHealthReports.TryGetValue(fighter.Seat, out var reports)
-                            => reports.GetValueOrDefault(mission.Id),
-                    PvpDailyMissionCondition.TotalMatchSurvivors when won && battle.Fighters.All(opponent => !opponent.Fled)
-                        && 3 - battle.TotalMatchAppearances.Count(role => role.Seat == fighter.Seat && role.Deaths > 0) >= mission.Parameter => 1,
-                    PvpDailyMissionCondition.TotalMatchSweep when won
-                        && battle.TotalMatchAppearances.Any(role => role.Seat == fighter.Seat && role.Kills >= 3) => 1,
-                    PvpDailyMissionCondition.WinStreak => await RecordStreakAsync(character, day, mission, won, before,
-                        cancellationToken).ConfigureAwait(false),
-                    PvpDailyMissionCondition.WinPose when won && battle.DailyWinPoses.TryGetValue(fighter.Seat, out var pose)
-                        => await RecordPoseAsync(character, day, mission, pose, before, cancellationToken).ConfigureAwait(false),
-                    _ => 0,
-                };
-                if (amount > 0 && await missions.AdvanceAsync(character, day, mission.Id, goal, battle.MatchId,
+                    var count = await missions.RecordMetricAsync(character, day, mission.Id, update.Bucket, update.Increment,
+                        cancellationToken).ConfigureAwait(false);
+                    var buckets = update.ReadAllBuckets
+                        ? await missions.ReadMetricsAsync(character, day, mission.Id, cancellationToken).ConfigureAwait(false)
+                        : null;
+                    amount = missionRules.ProgressFromMetric(mission, before, count, buckets);
+                }
+                if (amount > 0 && await missions.AdvanceAsync(character, day, mission.Id, missionRules.TargetFor(mission), battle.MatchId,
                         cancellationToken, amount).ConfigureAwait(false))
                     reward = checked(reward + mission.RewardCount);
             }
@@ -101,24 +85,5 @@ internal sealed class PvpDailyMissions(
                 awarded.Add(character, (await emblems.ChangeAsync(character, reward, cancellationToken).ConfigureAwait(false))!.Value);
         }
         return awarded;
-    }
-
-    private static int TargetFor(PvpDailyMissionDefinition mission) =>
-        mission.Condition == PvpDailyMissionCondition.WinStreak && mission.Parameter > 1 ? mission.Parameter : mission.Goal;
-
-    private async ValueTask<int> RecordStreakAsync(CharacterId character, DateOnly day, PvpDailyMissionDefinition mission,
-        bool won, int before, CancellationToken cancellationToken)
-    {
-        var run = await missions.RecordMetricAsync(character, day, mission.Id, 0, won, cancellationToken).ConfigureAwait(false);
-        return mission.Parameter == 1 ? run - before : run > 0 && run % mission.Goal == 0 ? 1 : 0;
-    }
-
-    private async ValueTask<int> RecordPoseAsync(CharacterId character, DateOnly day, PvpDailyMissionDefinition mission,
-        byte pose, int before, CancellationToken cancellationToken)
-    {
-        if (pose >= mission.Parameter) return 0;
-        await missions.RecordMetricAsync(character, day, mission.Id, pose, true, cancellationToken).ConfigureAwait(false);
-        var counts = await missions.ReadMetricsAsync(character, day, mission.Id, cancellationToken).ConfigureAwait(false);
-        return Enumerable.Range(0, mission.Parameter).Min(index => counts.GetValueOrDefault(index)) - before;
     }
 }

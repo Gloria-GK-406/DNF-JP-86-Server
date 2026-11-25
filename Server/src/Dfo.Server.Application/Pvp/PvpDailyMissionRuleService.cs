@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
@@ -58,6 +59,57 @@ internal sealed class PvpDailyMissionRuleService(IPvpDailyMissionDefinitionSourc
         PoolOf(channel) == PvpDailyMissionPool.Casual && definitions.Load().Any(mission =>
             mission.Id == missionId && mission.Pool == PvpDailyMissionPool.Casual
             && mission.Condition == PvpDailyMissionCondition.WinPose && ordinal < mission.Parameter);
+
+    public int TargetFor(PvpDailyMissionDefinition mission) =>
+        mission.Condition == PvpDailyMissionCondition.WinStreak && mission.Parameter > 1 ? mission.Parameter : mission.Goal;
+
+    public bool DisplaysCurrentWinRun(PvpDailyMissionDefinition mission, int progress) =>
+        mission.Condition == PvpDailyMissionCondition.WinStreak && mission.Parameter == 1 && progress < TargetFor(mission);
+
+    public (int Amount, MetricUpdate? Metric) ProgressFor(PvpDailyMissionDefinition mission, int before,
+        PvpMatchConclusion battle, PvpFighter fighter, bool won, bool colosseumWin,
+        IReadOnlyDictionary<CharacterId, CharacterPublicIdentity>? profiles)
+    {
+        if (before >= TargetFor(mission) || fighter.Fled && mission.Condition != PvpDailyMissionCondition.WinStreak)
+            return default;
+
+        return mission.Condition switch
+        {
+            PvpDailyMissionCondition.Participate => (1, null),
+            PvpDailyMissionCondition.Win when won => (1, null),
+            PvpDailyMissionCondition.ColosseumWin when won && colosseumWin => (1, null),
+            PvpDailyMissionCondition.DefeatJob when won && profiles is not null
+                && battle.Fighters.Any(opponent => opponent.Team != fighter.Team && !opponent.Fled
+                    && profiles.TryGetValue(opponent.CharacterId, out var profile) && profile.Job == mission.Parameter) => (1, null),
+            PvpDailyMissionCondition.Knockouts => (fighter.Kills, null),
+            PvpDailyMissionCondition.ColorlessSkills => (battle.DailyColorlessSkills.GetValueOrDefault(fighter.Seat), null),
+            PvpDailyMissionCondition.ReduceHealth or PvpDailyMissionCondition.RemainingHealth
+                when (won || mission.Condition == PvpDailyMissionCondition.ReduceHealth)
+                    && battle.DailyHealthReports.TryGetValue(fighter.Seat, out var reports)
+                    => (reports.GetValueOrDefault(mission.Id), null),
+            PvpDailyMissionCondition.TotalMatchSurvivors when won && battle.Fighters.All(opponent => !opponent.Fled)
+                && PvpTotalMatchTeam.MemberCount - battle.TotalMatchAppearances.Count(role => role.Seat == fighter.Seat && role.Deaths > 0)
+                    >= mission.Parameter => (1, null),
+            PvpDailyMissionCondition.TotalMatchSweep when won
+                && battle.TotalMatchAppearances.Any(role => role.Seat == fighter.Seat && role.Kills >= PvpTotalMatchTeam.MemberCount)
+                => (1, null),
+            PvpDailyMissionCondition.WinStreak => (0, new(0, won, ReadAllBuckets: false)),
+            PvpDailyMissionCondition.WinPose when won && battle.DailyWinPoses.TryGetValue(fighter.Seat, out var pose)
+                && pose < mission.Parameter => (0, new(pose, Increment: true, ReadAllBuckets: true)),
+            _ => default,
+        };
+    }
+
+    public int ProgressFromMetric(PvpDailyMissionDefinition mission, int before, int count,
+        IReadOnlyDictionary<int, int>? buckets)
+    {
+        if (buckets is not null)
+            return Enumerable.Range(0, mission.Parameter).Min(index => buckets.GetValueOrDefault(index)) - before;
+        if (mission.Parameter == 1) return count - before;
+        return count > 0 && count % mission.Goal == 0 ? 1 : 0;
+    }
+
+    internal readonly record struct MetricUpdate(int Bucket, bool Increment, bool ReadAllBuckets);
 
     private static bool CanAssign(PvpDailyMissionDefinition mission) => mission.Condition switch
     {
