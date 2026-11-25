@@ -265,6 +265,17 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         Assert.Equal(checked((byte)result.CharacterEntry.Public.Extras.SkillTreeIndex), frames[1][^3]);
         frames[1][^17] = 0;
         frames[1][^3] = 0xFF;
+
+        // The pinned USERINFO 1 used zero in the account honor fields. Check the live
+        // values before restoring the reference bytes for the rest of the frame.
+        var profile = frames[13];
+        Assert.Equal((ushort)0x0002, BinaryPrimitives.ReadUInt16LittleEndian(profile.AsSpan(1)));
+        Assert.Equal(1, profile[15]);
+        var honor = result.CharacterEntry.Public.Honor;
+        Assert.Equal(honor.Level, BinaryPrimitives.ReadUInt32LittleEndian(profile.AsSpan(24)));
+        Assert.Equal(honor.Experience, BinaryPrimitives.ReadUInt32LittleEndian(profile.AsSpan(28)));
+        profile.AsSpan(24, 8).Clear();
+
         var hashes = frames.Select(WithoutReferenceOnlyTitleExtension).Select(Sha256).ToArray();
 
         Assert.Equal(AcceptedKnightFrameSha256.Length, hashes.Length);

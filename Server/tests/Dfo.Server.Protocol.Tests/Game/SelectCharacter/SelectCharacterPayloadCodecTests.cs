@@ -711,6 +711,8 @@ public sealed class SelectCharacterPayloadCodecTests
             services.AddSingleton<IQuestParameterSource>(new NoQuestParameters());
             new ApplicationModule().ConfigureServices(
                 services, new ConfigurationBuilder().Build());
+            // The fixture loads the character from SQLite and represents a fresh account for honor.
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.InitialHonor));
             // This profile/quest fixture does not register dungeon or account-settings storage.
             services.Replace(ServiceDescriptor.Singleton<Dfo.Server.Abstractions.World.IHerasQuotaDomainService>(
                 new Dfo.Server.Application.Tests.Support.NoHerasEntries()));
