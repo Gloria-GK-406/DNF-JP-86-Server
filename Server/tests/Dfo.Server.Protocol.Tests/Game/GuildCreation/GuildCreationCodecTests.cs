@@ -8,8 +8,7 @@ public sealed class GuildCreationCodecTests
     [Fact]
     public void Name_and_created_notice_use_dstr_byte_length()
     {
-        // GBK for the two characters in the reference name field.
-        byte[] nameField = [4, 0, 0, 0, 0xB9, 0xAB, 0xBB, 0xE1];
+        byte[] nameField = [6, 0, 0, 0, .. "公会"u8];
         var request = Assert.IsType<GuildCreationRequest>(
             new GuildCheckNameDecoder().Decode(GameMessageMetadata.Empty, nameField));
         Assert.False(request.Malformed);
@@ -18,6 +17,8 @@ public sealed class GuildCreationCodecTests
             GuildCreationPayloadCodec.EncodeCreated(new(12), request.Text!));
         Assert.True(Assert.IsType<GuildCreationRequest>(
             new GuildCheckNameDecoder().Decode(GameMessageMetadata.Empty, [.. nameField, 0])).Malformed);
+        Assert.True(Assert.IsType<GuildCreationRequest>(
+            new GuildCheckNameDecoder().Decode(GameMessageMetadata.Empty, [4, 0, 0, 0, 0xB9, 0xAB, 0xBB, 0xE1])).Malformed);
     }
 
     [Fact]

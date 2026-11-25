@@ -25,11 +25,9 @@ internal sealed record GuildCreated(GuildId Guild, string Name) : IGameNotiMessa
 
 internal static class GuildCreationPayloadCodec
 {
-    // ServerS4A21 documents the A21 name check in GBK, and its same-client creation callback
-    // reads the resulting name as a DSTR. This is confined to guild wire texts.
-    private static readonly Encoding TextEncoding =
-        CodePagesEncodingProvider.Instance.GetEncoding(936, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback)
-        ?? throw new InvalidOperationException("The A21 guild text encoding is unavailable.");
+    // ClientHack 0020 changes A21's code page to UTF-8. The reference server supplies the
+    // length-prefixed layout, while the JP86 client's configured code page supplies the encoding.
+    private static readonly UTF8Encoding TextEncoding = new(false, true);
 
     internal static byte[] EncodeGuildText(string text) => TextEncoding.GetBytes(text);
 
