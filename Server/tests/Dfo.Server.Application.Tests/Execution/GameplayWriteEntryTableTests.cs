@@ -86,6 +86,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(CreatureRuntimeDomainService),
         typeof(PartyService),
         typeof(Dfo.Server.Application.Chat.ChatConversationDomainService),
+        typeof(Dfo.Server.Application.Guilds.GuildRecruitmentSessionDomainService),
         typeof(Dfo.Server.Application.PrivateStore.PrivateStoreDomainService),
         typeof(OnlineCharacterLocationDomainService),
         typeof(DungeonParticipationDomainService),
@@ -297,6 +298,11 @@ public sealed class GameplayWriteEntryTableTests
         ["ChatConversationDomainService.Find(ChatConversationId)"] = R,
         ["ChatConversationDomainService.Leave(ChatConversationId, SelectedSessionIdentity)"] = W,
         ["ChatConversationDomainService.Open(ChatConversationMember, ChatConversationMember)"] = W,
+        ["GuildRecruitmentSessionDomainService.StartAsync(SelectedSessionIdentity, String, CancellationToken)"] = W,
+        ["GuildRecruitmentSessionDomainService.SetPromotion(SelectedSessionIdentity, String)"] = W,
+        ["GuildRecruitmentSessionDomainService.Authorize(SelectedSessionIdentity)"] = W,
+        ["GuildRecruitmentSessionDomainService.AuthorizedCreation(SelectedSessionIdentity)"] = R,
+        ["GuildRecruitmentSessionDomainService.Cancel(SelectedSessionIdentity)"] = W,
 
         // OnlineCharacterLocationDomainService
         ["OnlineCharacterLocationDomainService.Arrive(SelectedSessionIdentity, TownAreaKey, CharacterPositionState, Boolean)"] = W,

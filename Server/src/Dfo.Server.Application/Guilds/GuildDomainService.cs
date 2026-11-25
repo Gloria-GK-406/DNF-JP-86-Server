@@ -20,12 +20,9 @@ internal sealed class GuildDomainService(
             return new(GuildMutationStatus.InvalidName);
         if (!rules.IsValidText(promotion))
             return new(GuildMutationStatus.InvalidText);
-        if (await characterTable.FindOwnerAsync(actor, ct).ConfigureAwait(false) is null)
-            return new(GuildMutationStatus.CharacterUnavailable);
-        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not null)
-            return new(GuildMutationStatus.AlreadyMember);
-        if (await store.NameTakenAsync(nameKey, ct).ConfigureAwait(false))
-            return new(GuildMutationStatus.NameTaken);
+        var eligibility = await CheckCreationEligibilityAsync(actor, nameKey, ct).ConfigureAwait(false);
+        if (eligibility != GuildMutationStatus.Success)
+            return new(eligibility);
         if (rules.CreationCost() is not { } cost)
             return new(GuildMutationStatus.CreationUnavailable);
         if (await characters.Get(actor).TrySpendGoldAsync(cost, ct).ConfigureAwait(false) is not { } remaining)
@@ -35,6 +32,23 @@ internal sealed class GuildDomainService(
         var guild = await store.InsertGuildAsync(name, nameKey, promotion, at, ct).ConfigureAwait(false);
         await AddMemberAsync(guild.Id, actor, isLeader: true, at, ct).ConfigureAwait(false);
         return new(GuildMutationStatus.Success, guild.Id, remaining, [actor]);
+    }
+
+    public ValueTask<GuildMutationStatus> CheckCreationAsync(CharacterId actor, string name, CancellationToken ct) =>
+        rules.NameKey(name) is { } key
+            ? CheckCreationEligibilityAsync(actor, key, ct)
+            : ValueTask.FromResult(GuildMutationStatus.InvalidName);
+
+    private async ValueTask<GuildMutationStatus> CheckCreationEligibilityAsync(
+        CharacterId actor, string nameKey, CancellationToken ct)
+    {
+        if (await characterTable.FindOwnerAsync(actor, ct).ConfigureAwait(false) is null)
+            return GuildMutationStatus.CharacterUnavailable;
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not null)
+            return GuildMutationStatus.AlreadyMember;
+        if (await store.NameTakenAsync(nameKey, ct).ConfigureAwait(false))
+            return GuildMutationStatus.NameTaken;
+        return GuildMutationStatus.Success;
     }
 
     public async ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct)

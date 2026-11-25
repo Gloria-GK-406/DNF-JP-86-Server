@@ -7,6 +7,7 @@ using Dfo.Server.Application.Guilds;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
+using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Guilds;
@@ -47,6 +48,25 @@ public sealed class GuildDomainTests : IDisposable
                 (11,900000),(12,900000),(13,100),(16,900000);
             UPDATE characters SET delete_flag=1 WHERE character_id=16;
             """);
+    }
+
+    [Fact]
+    public async Task Creation_permit_is_bound_to_the_exact_selected_session_and_cleared_by_cancel()
+    {
+        var recruitment = new GuildRecruitmentSessionDomainService(guilds, new(creationCost));
+        var original = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 1, 10011);
+        var replacement = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 2, 10011);
+        await TestGameplay.RunAsync(async () =>
+        {
+            Assert.Equal(GuildMutationStatus.Success, await recruitment.StartAsync(original, "Iris", default));
+            Assert.False(recruitment.Authorize(original));
+            Assert.True(recruitment.SetPromotion(original, ""));
+            Assert.True(recruitment.Authorize(original));
+            Assert.NotNull(recruitment.AuthorizedCreation(original));
+            Assert.Null(recruitment.AuthorizedCreation(replacement));
+            recruitment.Cancel(original);
+            Assert.Null(recruitment.AuthorizedCreation(original));
+        });
     }
 
     [Fact]

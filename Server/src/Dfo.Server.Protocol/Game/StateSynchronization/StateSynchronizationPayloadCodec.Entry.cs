@@ -762,12 +762,27 @@ internal static partial class StateSynchronizationPayloadCodec
         foreach (var part in appearance)
             WriteAppearancePart(writer, part);
         writer.Write(entry.Display?.TitleAppearanceItemId ?? entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
-        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty));
+        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina));
+        // The A21 reader at 013E758E sets the guild ID before the pet triple.
+        writer.Write(entry.GuildIdentity?.Id.Value ?? 0u);
         // Private store permission (70 make_basic_info: u8 IsPermissionPrivateStore after the guild key).
         // A21 reads it at 013E75A3 and builds the stall object a player clicks to open a store (01784A50).
         writer.Write(entry.HasPrivateStorePermission ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex, entry.Honor));
+        var tail = BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex, entry.Honor);
+        if (entry.GuildIdentity is { } guild)
+        {
+            // ServerS4A21's same-client builder replaces the empty union at +6..+15
+            // with name DSTR and u32 guild level, retaining the remaining tail.
+            writer.Write(tail.AsSpan(0, 6));
+            WriteDstr(writer, GuildCreation.GuildCreationPayloadCodec.EncodeGuildText(guild.Name));
+            writer.Write(checked((uint)guild.Level));
+            writer.Write(tail.AsSpan(16));
+        }
+        else
+        {
+            writer.Write(tail);
+        }
         return stream.ToArray();
     }
 
@@ -1038,10 +1053,9 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((byte)stats.EquippedCreatureLevel));
 
         writer.Write(new byte[inspectContextLength]);
-        // Guild identity is not modelled yet. The empty dstr is the A21-compatible no-guild
-        // shape; level remains projected from the target's current guild standing.
-        WriteDstr(writer, []);
-        writer.Write(checked((byte)publicState.Guild.Level));
+        var guild = publicState.GuildIdentity;
+        WriteDstr(writer, guild is null ? [] : GuildCreation.GuildCreationPayloadCodec.EncodeGuildText(guild.Name));
+        writer.Write(checked((byte)(guild?.Level ?? 0)));
         writer.Write((byte)0);
         writer.Write(inspectGuildMarker);
         writer.Write(checked((uint)extras.SpecialRewardQuestIds.Count));

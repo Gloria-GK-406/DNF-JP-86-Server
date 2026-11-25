@@ -388,6 +388,7 @@ public sealed record CharacterPublicEntryState(
 {
     public AccountHonorLevel Honor { get; init; } = AccountHonorLevel.Initial;
     public CharacterAppearance? Display { get; init; }
+    public Dfo.Server.Data.Guilds.GuildPublicIdentity? GuildIdentity { get; init; }
 }
 
 public sealed record CharacterSkillState(

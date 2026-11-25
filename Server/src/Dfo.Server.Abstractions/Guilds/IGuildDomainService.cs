@@ -5,6 +5,7 @@ namespace Dfo.Server.Abstractions.Guilds;
 
 public interface IGuildDomainService
 {
+    ValueTask<GuildMutationStatus> CheckCreationAsync(CharacterId actor, string name, CancellationToken ct);
     ValueTask<GuildMutationResult> CreateAsync(CharacterId actor, string name, string promotion, CancellationToken ct);
     ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct);
     ValueTask<GuildMutationResult> ApproveAsync(CharacterId actor, CharacterId applicant, CancellationToken ct);

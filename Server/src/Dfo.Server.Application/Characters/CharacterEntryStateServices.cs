@@ -239,6 +239,7 @@ internal sealed class CharacterEntryStateDomainService(
     IGoldSilverHornDomainService goldSilverHorn, ICharacterNameTagDomainService nameTags,
     IAdventureGroupDomainService adventureGroups,
     IAccountHonorDomainService honor,
+    Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService guilds,
     Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService privateStores) : ICharacterEntryStateDomainService
 {
     public async ValueTask<CharacterEntryState> LoadAsync(
@@ -274,6 +275,7 @@ internal sealed class CharacterEntryStateDomainService(
             HasBlackDiamond = await premiums.For(accountId)
                 .IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false),
             HasPrivateStorePermission = await privateStores.IsPermittedAsync(accountId, cancellationToken).ConfigureAwait(false),
+            GuildIdentity = await guilds.FindPublicIdentityAsync(characterId, cancellationToken).ConfigureAwait(false),
             Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,
