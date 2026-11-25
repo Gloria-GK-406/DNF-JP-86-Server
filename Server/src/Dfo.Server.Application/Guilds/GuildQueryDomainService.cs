@@ -17,6 +17,9 @@ internal sealed class GuildQueryDomainService(IGuildDomainStore store) : IGuildQ
     public ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct) =>
         store.FindApplicationAsync(applicant, ct);
 
+    public ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct) =>
+        store.ReadApplicationsAsync(leader, ct);
+
     public ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct) =>
         store.ReadRosterAsync(viewer, ct);
 }

@@ -30,8 +30,15 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
     public ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct) =>
         database.ReadFirstAsync("""
             SELECT guild_id,character_id,message,applied_at FROM guild_applications WHERE character_id=@character
-            """, p => BindCharacter(p, applicant), r => new GuildApplication(
-                ReadGuildId(r), new(r.GetInt32(1)), r.GetString(2), DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(3))), ct);
+            """, p => BindCharacter(p, applicant), ReadApplication, ct);
+
+    public ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT a.guild_id,a.character_id,a.message,a.applied_at
+            FROM guild_members self JOIN guild_applications a ON a.guild_id=self.guild_id
+            WHERE self.character_id=@character AND self.is_leader=1
+            ORDER BY a.applied_at,a.character_id
+            """, p => BindCharacter(p, leader), ReadApplication, ct);
 
     public ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct) =>
         database.ReadAllAsync("""
@@ -106,6 +113,9 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
 
     private static Guild ReadGuild(SqliteDataReader row) =>
         new(ReadGuildId(row), row.GetString(1), row.GetString(2), row.GetInt32(3));
+
+    private static GuildApplication ReadApplication(SqliteDataReader row) =>
+        new(ReadGuildId(row), new(row.GetInt32(1)), row.GetString(2), DateTimeOffset.FromUnixTimeSeconds(row.GetInt64(3)));
 
     private static GuildId ReadGuildId(SqliteDataReader row) => new(checked((uint)row.GetInt64(0)));
 

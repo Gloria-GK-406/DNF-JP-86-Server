@@ -105,6 +105,8 @@ public sealed class GuildDomainTests : IDisposable
         var application = Assert.IsType<GuildApplication>(await query.FindApplicationAsync(new(13), default));
         Assert.Equal(first, application.Guild);
         Assert.Equal("Let me in", application.Message);
+        Assert.Equal(application, Assert.Single(await query.ReadApplicationsAsync(new(11), default)));
+        Assert.Empty(await query.ReadApplicationsAsync(new(12), default));
         Assert.Equal(GuildMutationStatus.ApplicationPending,
             (await Write(() => guilds.ApplyAsync(new(13), second, "", default))).Status);
         Assert.Equal(GuildMutationStatus.LeaderRequired,
@@ -118,6 +120,9 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(GuildMutationStatus.AlreadyMember,
             (await Write(() => guilds.ApplyAsync(new(13), second, "", default))).Status);
         Assert.Null(await query.FindApplicationAsync(new(13), default));
+        await Write(() => guilds.ApplyAsync(new(14), first, "Another", default));
+        Assert.Equal(new CharacterId(14), Assert.Single(await query.ReadApplicationsAsync(new(11), default)).Character);
+        Assert.Empty(await query.ReadApplicationsAsync(new(13), default));
         Assert.Equal(first, (await query.FindPublicIdentityAsync(new(13), default))!.Id);
         Assert.Equal(new[] { 11, 13 }, (await query.ReadRosterAsync(new(13), default)).Select(member => member.Character.Value));
         Assert.Single(await query.ReadRosterAsync(new(12), default));
