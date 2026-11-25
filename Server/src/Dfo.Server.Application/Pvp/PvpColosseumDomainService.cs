@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Pvp;
-using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Pvp;
@@ -11,12 +11,10 @@ namespace Dfo.Server.Application.Pvp;
 internal sealed class PvpColosseumDomainService(
     IPvpColosseumStore store, PvpColosseumRuleService rules, IPvpSettlementRuleService settlement, TimeProvider clock,
     PvpDuelDomainService duel, PvpTraditionalDuelDomainService traditional,
-    IDomainTransactionAccessor transactions, IItemDomainStore inventory,
+    PvpVictoryEmblems emblems,
     IItemDeliveryDomainService delivery,
     PvpMatchmakingRuleService matchmakingRules) : IPvpColosseumDomainService
 {
-    private readonly PvpVictoryEmblems emblems = new(transactions, inventory);
-
     public async ValueTask<PvpColosseumLobbyState> ReadLobbyAsync(SelectedSessionIdentity actor, CancellationToken ct)
     {
         var individual = Owner(actor, PvpColosseumKind.Individual);
@@ -98,10 +96,10 @@ internal sealed class PvpColosseumDomainService(
         ItemDeliveryMode mode, CancellationToken ct)
     {
         // Delivery and closing the challenge belong to the caller's write unit.
-        var emblemCount = run.Prizes.Where(prize => prize.ItemId == PvpVictoryEmblems.ItemId).Sum(prize => prize.Count);
+        var emblemCount = run.Prizes.Where(prize => prize.ItemId == VictoryEmblemResource.ItemId).Sum(prize => prize.Count);
         var balance = emblemCount == 0 ? null
             : await emblems.ChangeAsync(actor.CharacterId, emblemCount, ct).ConfigureAwait(false);
-        var grants = run.Prizes.Where(prize => prize.ItemId != PvpVictoryEmblems.ItemId)
+        var grants = run.Prizes.Where(prize => prize.ItemId != VictoryEmblemResource.ItemId)
             .Select(prize => new ItemDeliveryGrant(prize.ItemId, prize.Count)).ToArray();
         var items = await delivery.DeliverAsync(actor.AccountId, actor.CharacterId, grants, "Colosseum", ct,
             mode, new(null, $"pvp-colosseum-{run.Id:N}")).ConfigureAwait(false);

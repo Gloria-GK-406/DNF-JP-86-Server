@@ -96,7 +96,8 @@ internal sealed class PvpBattleProjector(PvpRoomProjector rooms, ILogger logger)
                     frames = [new ColosseumContextNotice(member.Session.WireUserId, colosseum), .. frames];
                 if (settled.VictoryEmblemBalances.TryGetValue(member.CharacterId, out var balance))
                     frames = [.. frames, GameInventoryDelivery.VirtualResourceNotification(
-                        [new InventoryRuntimeValueState(2, 2, balance)], conclusion.Terminal.At)];
+                        [new InventoryRuntimeValueState(VictoryEmblemResource.Slot, VictoryEmblemResource.ItemId, balance)],
+                        conclusion.Terminal.At)];
                 await rooms.BroadcastAsync([member.Session], frames, cancellationToken).ConfigureAwait(false);
             }
         }

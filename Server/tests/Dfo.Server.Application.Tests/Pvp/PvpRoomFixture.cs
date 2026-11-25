@@ -56,12 +56,13 @@ internal sealed class PvpRoomFixture
         var duel = new PvpDuelDomainService(Records, PvpRatingSeason.First, matchmakingRules);
         var traditional = new PvpTraditionalDuelDomainService(Records, PvpRatingSeason.First, candidates, matchmakingRules);
         var missionRules = new PvpDailyMissionRuleService(TestRequired.Absent<IPvpDailyMissionDefinitionSource>());
+        var emblems = new PvpVictoryEmblems(transactions, TestRequired.Absent<IItemDomainStore>(),
+            TestRequired.Absent<IItemGrantDomainService>(), TestRequired.Absent<IItemLifecycleDomainService>());
         var daily = new PvpDailyMissions(missionRules, TestRequired.Absent<IPvpDailyMissionStore>(), BattleRules, Clock,
-            transactions, TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<ICharacterIdentityQueryDomainService>(),
-            matchmakingRules);
+            emblems, TestRequired.Absent<ICharacterIdentityQueryDomainService>(), matchmakingRules);
         var colosseum = new PvpColosseumDomainService(TestRequired.Absent<IPvpColosseumStore>(),
             new PvpColosseumRuleService(TestRequired.Absent<IPvpColosseumRuleSource>()), BattleRules, Clock,
-            duel, traditional, transactions, TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<IItemDeliveryDomainService>(), matchmakingRules);
+            duel, traditional, emblems, TestRequired.Absent<IItemDeliveryDomainService>(), matchmakingRules);
         Rooms = new PvpRoomDomainService(transactions, Sessions, new Channels(this), Parties, Relations, Lobby, Town,
             new Positions(), new PvpRoomRuleService(new Maps()), BattleRules, Wake, Clock, NullLogger<PvpRoomDomainService>.Instance,
             candidates, TestRequired.Absent<ICharacterIdentityQueryDomainService>(), traditional,

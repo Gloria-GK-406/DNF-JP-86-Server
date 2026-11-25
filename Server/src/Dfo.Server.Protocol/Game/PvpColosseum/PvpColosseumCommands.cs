@@ -51,7 +51,8 @@ internal sealed class ColosseumCommands(ISelectedSessionDomainService sessions, 
                 await new PvpColosseumProjection(colosseum, outbox).ProjectAsync(actor, channel, ct).ConfigureAwait(false);
                 if (result.Balance is { } balance)
                     await outbox.RegisterExplicitAsync(connection.ConnectionId, new([GameInventoryDelivery.VirtualResourceNotification(
-                        [new InventoryRuntimeValueState(2, 2, balance)], clock.GetUtcNow())], []), ct).ConfigureAwait(false);
+                        [new InventoryRuntimeValueState(VictoryEmblemResource.Slot, VictoryEmblemResource.ItemId, balance)],
+                        clock.GetUtcNow())], []), ct).ConfigureAwait(false);
             }
         }
         await outbox.RegisterCmdAsync(connection.ConnectionId, new EnterColosseumResponse(result), ct).ConfigureAwait(false);
@@ -83,7 +84,8 @@ internal sealed class ColosseumCommands(ISelectedSessionDomainService sessions, 
             await outbox.RegisterNotiAsync(connection.ConnectionId, frame, ct).ConfigureAwait(false);
         if (result.VictoryEmblemBalance is { } balance)
             await outbox.RegisterExplicitAsync(connection.ConnectionId, new([GameInventoryDelivery.VirtualResourceNotification(
-                [new InventoryRuntimeValueState(2, 2, balance)], clock.GetUtcNow())], []), ct).ConfigureAwait(false);
+                [new InventoryRuntimeValueState(VictoryEmblemResource.Slot, VictoryEmblemResource.ItemId, balance)],
+                clock.GetUtcNow())], []), ct).ConfigureAwait(false);
         await new PvpColosseumProjection(colosseum, outbox).ProjectAsync(actor, channel, ct).ConfigureAwait(false);
         return true;
     }

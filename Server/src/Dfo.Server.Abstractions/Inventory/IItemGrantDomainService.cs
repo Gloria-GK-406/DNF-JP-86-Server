@@ -14,6 +14,8 @@ public interface IItemGrantDomainService
         throw new NotSupportedException();
     ValueTask<ItemReference> PutNewAsync(ContainerId container, int slot, ItemSnapshot item, CancellationToken ct) =>
         throw new NotSupportedException();
+    ValueTask<ItemReference> PutNewVictoryEmblemsAsync(CharacterId character, int balance, CancellationToken ct) =>
+        throw new NotSupportedException();
     ValueTask<BusinessItemAdditionResult> GrantAsync(
         CharacterId characterId,
         ICharacterContainerDomainService containers,

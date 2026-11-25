@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Pvp;
 
@@ -114,12 +115,12 @@ internal sealed class PvpDailyMissionRuleService(IPvpDailyMissionDefinitionSourc
     private static bool CanAssign(PvpDailyMissionDefinition mission) => mission.Condition switch
     {
         PvpDailyMissionCondition.ColosseumWin => true,
-        PvpDailyMissionCondition.WinStreak or PvpDailyMissionCondition.WinPose => mission.RewardItemId == PvpVictoryEmblems.ItemId,
+        PvpDailyMissionCondition.WinStreak or PvpDailyMissionCondition.WinPose => mission.RewardItemId == VictoryEmblemResource.ItemId,
         PvpDailyMissionCondition.Participate or PvpDailyMissionCondition.Win or PvpDailyMissionCondition.Knockouts
             or PvpDailyMissionCondition.DefeatJob or PvpDailyMissionCondition.ColorlessSkills
             or PvpDailyMissionCondition.ReduceHealth or PvpDailyMissionCondition.RemainingHealth
             or PvpDailyMissionCondition.TotalMatchSurvivors or PvpDailyMissionCondition.TotalMatchSweep
-            => mission.RewardItemId == PvpVictoryEmblems.ItemId,
+            => mission.RewardItemId == VictoryEmblemResource.ItemId,
         _ => false,
     };
 }

@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Pvp;
-using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -15,13 +13,10 @@ internal sealed class PvpDailyMissions(
     IPvpDailyMissionStore missions,
     IPvpSettlementRuleService rules,
     TimeProvider clock,
-    IDomainTransactionAccessor transactions,
-    IItemDomainStore inventory,
+    PvpVictoryEmblems emblems,
     ICharacterIdentityQueryDomainService identities,
     PvpMatchmakingRuleService matchmakingRules) : IPvpDailyMissionQueryDomainService
 {
-    private readonly PvpVictoryEmblems emblems = new(transactions, inventory);
-
     public async ValueTask<IReadOnlyList<PvpDailyMission>> CurrentAsync(SelectedSessionIdentity session, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)
     {

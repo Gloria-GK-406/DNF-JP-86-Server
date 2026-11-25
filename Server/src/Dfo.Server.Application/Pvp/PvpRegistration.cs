@@ -21,6 +21,7 @@ internal static class PvpRegistration
         services.TryAddSingleton<PvpColosseumRuleService>();
         services.TryAddSingleton<PvpTotalMatchTeamRuleService>();
         services.TryAddSingleton<PvpDailyMissions>();
+        services.TryAddSingleton<PvpVictoryEmblems>();
         services.TryAddSingleton<PvpColosseumDomainService>();
         services.TryAddSingleton<IPvpColosseumDomainService>(sp => sp.GetRequiredService<PvpColosseumDomainService>());
         services.TryAddSingleton<IPvpDailyMissionQueryDomainService>(sp => sp.GetRequiredService<PvpDailyMissions>());
