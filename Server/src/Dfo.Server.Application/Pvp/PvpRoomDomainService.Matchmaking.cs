@@ -9,7 +9,6 @@ namespace Dfo.Server.Application.Pvp;
 
 internal sealed partial class PvpRoomDomainService
 {
-    private static readonly TimeSpan MatchAdmissionTimeout = TimeSpan.FromSeconds(90);
     private ImmutableArray<MatchTicket> matchmakingQueue = [];
 
     private sealed record MatchTicket(SelectedSessionIdentity Session, PvpBattleMode Mode, CharacterCareer Career,
@@ -118,7 +117,7 @@ internal sealed partial class PvpRoomDomainService
             PvpRoomOrigin.Matchmaking, null)
         {
             ColosseumRuns = colosseumRuns,
-            Admission = new(Now + MatchAdmissionTimeout, participants)
+            Admission = new(Now + rules.MatchAdmissionTimeout, participants)
             {
                 PreparedAt = preparedAt,
                 TotalMatchSides = sides,
@@ -198,7 +197,7 @@ internal sealed partial class PvpRoomDomainService
 
         return StartMatch(pending, room, snapshot, members, startedAt,
             startedAt + battles.BattleTimeLimit(snapshot.Mode) + rules.FightOverrun,
-            PvpBattleModeRules.For(snapshot.Mode).Start(startedAt));
+            rules.BattleMode(snapshot.Mode).Start(startedAt));
     }
 
     public bool CanEnterColosseum(SelectedSessionIdentity session)

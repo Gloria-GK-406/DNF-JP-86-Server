@@ -7,9 +7,6 @@ namespace Dfo.Server.Application.Pvp;
 internal sealed class PvpDuelDomainService(IPvpRecordDomainStore records, PvpRatingSeason season,
     PvpMatchmakingRuleService matchmakingRules)
 {
-    public static PvpChannelEntitlements Entitlements { get; } = new(false, false, 0, 0);
-    public static PvpChannelEntitlements ColosseumEntitlements { get; } = new(true, true, 50, 10);
-
     internal async ValueTask<bool> CanEnterColosseumAsync(CharacterId character, int minimumRp, CancellationToken ct)
     {
         var standing = await records.ReadRatingAsync(character, season.Id, ct).ConfigureAwait(false);

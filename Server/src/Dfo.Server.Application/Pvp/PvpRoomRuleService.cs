@@ -2,8 +2,33 @@ using Dfo.Server.Abstractions.Pvp;
 
 namespace Dfo.Server.Application.Pvp;
 
-internal sealed class PvpRoomRuleService(IPvpMapDefinitionSource maps) : IPvpRoomRuleService
+internal sealed class PvpRoomRuleService : IPvpRoomRuleService
 {
+    private readonly IPvpMapDefinitionSource maps;
+    private readonly IReadOnlyDictionary<PvpBattleMode, IPvpBattleModeRules> modes;
+
+    public PvpRoomRuleService(IPvpMapDefinitionSource maps)
+    {
+        this.maps = maps;
+        // The A21 countdown and KO animation must finish before candidates and relay fighters are assigned.
+        TotalMatch = new PvpTotalMatchBattleRules(openingDelay: TimeSpan.FromSeconds(2),
+            selectionWindow: TimeSpan.FromSeconds(6), roundIntro: TimeSpan.FromMilliseconds(2700 + 4640),
+            knockoutWindow: TimeSpan.FromSeconds(3));
+        modes = new Dictionary<PvpBattleMode, IPvpBattleModeRules>
+        {
+            [PvpBattleMode.Individual] = new PvpIndividualBattleRules(),
+            [PvpBattleMode.Team] = new PvpTeamBattleRules(),
+            [PvpBattleMode.Relay] = new PvpRelayBattleRules(firstTurnDelay: TimeSpan.FromSeconds(7),
+                replacementDelay: TimeSpan.FromSeconds(3), clientBattleTime: TimeSpan.FromMinutes(3),
+                clientRoundCountdown: TimeSpan.FromMilliseconds(4640)),
+            [PvpBattleMode.TotalMatch] = TotalMatch,
+        };
+    }
+
+    public IPvpBattleModeRules? FindBattleMode(PvpBattleMode mode) => modes.GetValueOrDefault(mode);
+    public IPvpBattleModeRules BattleMode(PvpBattleMode mode) => modes[mode];
+    public IPvpTotalMatchBattleRules TotalMatch { get; }
+
     public bool AcceptsMap(int index) => index >= 0 && index < maps.Load().Order.Count;
 
     public byte StartMap(int index, int seed)
@@ -17,6 +42,7 @@ internal sealed class PvpRoomRuleService(IPvpMapDefinitionSource maps) : IPvpRoo
         PvpRoomRules.AcceptsPassword(password.IsDefault ? 0 : password.Length);
     public TimeSpan FightOverrun => PvpRoomRules.FightOverrun;
     public TimeSpan HeartbeatTimeout => PvpRoomRules.HeartbeatTimeout;
+    public TimeSpan MatchAdmissionTimeout => TimeSpan.FromSeconds(90);
     public TimeSpan RankTimeout => PvpRoomRules.RankTimeout;
     public TimeSpan ResultTimeout(PvpRoomOrigin origin) => origin == PvpRoomOrigin.Matchmaking
         ? PvpRoomRules.MatchmakingResultTimeout

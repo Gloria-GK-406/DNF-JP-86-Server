@@ -3,18 +3,17 @@ using Dfo.Server.Abstractions.Pvp;
 
 namespace Dfo.Server.Application.Pvp;
 
-internal sealed class PvpTotalMatchBattleRules() : PvpBattleModeRules(PvpBattleMode.TotalMatch)
+internal sealed class PvpTotalMatchBattleRules(TimeSpan openingDelay, TimeSpan selectionWindow,
+    TimeSpan roundIntro, TimeSpan knockoutWindow) : PvpBattleModeRules(PvpBattleMode.TotalMatch), IPvpTotalMatchBattleRules
 {
-    // A21 enters the map and runs the initial 1700 ms fade-in before it can display selection.
-    internal static readonly TimeSpan OpeningDelay = TimeSpan.FromSeconds(2);
-    private static readonly TimeSpan SelectionWindow = TimeSpan.FromSeconds(6);
-    private static readonly TimeSpan RoundIntro = TimeSpan.FromMilliseconds(2700 + 4640);
-    // Let A21 finish the KO and report simultaneous eliminations before the next selection or the result.
-    private static readonly TimeSpan KnockoutWindow = TimeSpan.FromSeconds(3);
-
     public override int MaximumMembers => 2;
     public override bool AllowsObservation => false;
     public override bool AcceptsChannel(byte? loginEnvironment) => loginEnvironment is not 24;
+
+    public (PvpTotalMatchBattle State, DateTimeOffset Deadline) Open(ImmutableArray<PvpTotalMatchSide> sides,
+        DateTimeOffset preparedAt, DateTimeOffset startedAt, bool matchmaking, TimeSpan heartbeatTimeout, TimeSpan roundLimit) =>
+        (new PvpTotalMatchBattle(PvpTotalMatchPhase.Loading, sides, preparedAt, roundLimit)
+            { WaitForOpeningHeartbeats = matchmaking }, startedAt + (matchmaking ? heartbeatTimeout : openingDelay));
 
     public override bool IsActive(PvpMatch match, PvpFighter fighter) =>
         match.ModeState is PvpTotalMatchBattle { Phase: PvpTotalMatchPhase.Fighting or PvpTotalMatchPhase.BetweenRounds } state
@@ -54,13 +53,13 @@ internal sealed class PvpTotalMatchBattleRules() : PvpBattleModeRules(PvpBattleM
                 Sides = sides,
             },
             Fighters = scored.Fighters.SetItem(index, victim with { Alive = defeated.HasRemaining }),
-            PhaseDeadline = state.Phase == PvpTotalMatchPhase.BetweenRounds ? match.PhaseDeadline : now + KnockoutWindow,
+            PhaseDeadline = state.Phase == PvpTotalMatchPhase.BetweenRounds ? match.PhaseDeadline : now + knockoutWindow,
         };
     }
 
     // A live round can only leave Fighting through a death, a terminal result, or cancellation.
     // Record both participants before the first two paths change the round. Cancellation awards nothing.
-    internal static PvpMatch RecordAppearances(PvpMatch match, DateTimeOffset now)
+    public PvpMatch RecordAppearances(PvpMatch match, DateTimeOffset now)
     {
         if (match.ModeState is not PvpTotalMatchBattle { Phase: PvpTotalMatchPhase.Fighting } state
             || now < state.RoundOpensAt)
@@ -74,7 +73,7 @@ internal sealed class PvpTotalMatchBattleRules() : PvpBattleModeRules(PvpBattleM
         };
     }
 
-    internal static ImmutableArray<PvpTotalMatchAppearance> AppearancesOf(PvpMatchModeState? modeState)
+    public ImmutableArray<PvpTotalMatchAppearance> AppearancesOf(PvpMatchModeState? modeState)
     {
         if (modeState is not PvpTotalMatchBattle total) return [];
 
@@ -120,7 +119,7 @@ internal sealed class PvpTotalMatchBattleRules() : PvpBattleModeRules(PvpBattleM
 
     // On the matching channel A21 enables battle heartbeats when the matching UI hands off to PREPARE_BATTLE.
     // Let that state's map and spawn initialization run before 0x031E forcibly changes the client state.
-    internal static PvpMatch ReportOpeningHeartbeat(PvpMatch match, int seat, DateTimeOffset now)
+    public PvpMatch ReportOpeningHeartbeat(PvpMatch match, int seat, DateTimeOffset now)
     {
         if (match.ModeState is not PvpTotalMatchBattle { Phase: PvpTotalMatchPhase.Loading, WaitForOpeningHeartbeats: true } state
             || now >= match.PhaseDeadline)
@@ -132,11 +131,11 @@ internal sealed class PvpTotalMatchBattleRules() : PvpBattleModeRules(PvpBattleM
         return match with
         {
             ModeState = state with { OpeningHeartbeatSeats = heartbeatSeats, WaitForOpeningHeartbeats = !ready },
-            PhaseDeadline = ready ? now + OpeningDelay : match.PhaseDeadline,
+            PhaseDeadline = ready ? now + openingDelay : match.PhaseDeadline,
         };
     }
 
-    public static (PvpMatch? Match, PvpRoomRefusal Refusal) Choose(
+    public (PvpMatch? Match, PvpRoomRefusal Refusal) Choose(
         PvpMatch match, int seat, byte ordinal, DateTimeOffset now)
     {
         if (match.ModeState is not PvpTotalMatchBattle { Phase: PvpTotalMatchPhase.Selecting } state
@@ -156,21 +155,21 @@ internal sealed class PvpTotalMatchBattleRules() : PvpBattleModeRules(PvpBattleM
     private static PvpTotalMatchSide SideOf(PvpTotalMatchBattle state, int seat) =>
         state.Sides.Single(entry => entry.Seat == seat);
 
-    private static PvpMatch OpenSelection(PvpMatch match, PvpTotalMatchBattle state, DateTimeOffset now) => match with
+    private PvpMatch OpenSelection(PvpMatch match, PvpTotalMatchBattle state, DateTimeOffset now) => match with
     {
         ModeState = state with { Phase = PvpTotalMatchPhase.Selecting },
-        PhaseDeadline = now + SelectionWindow,
+        PhaseDeadline = now + selectionWindow,
     };
 
-    private static PvpMatch BeginRound(PvpMatch match, PvpTotalMatchBattle state, DateTimeOffset now) => match with
+    private PvpMatch BeginRound(PvpMatch match, PvpTotalMatchBattle state, DateTimeOffset now) => match with
     {
         ModeState = state with
         {
             Phase = PvpTotalMatchPhase.Fighting,
-            RoundOpensAt = now + RoundIntro,
+            RoundOpensAt = now + roundIntro,
             Sides = [.. state.Sides.Select(side => side.Choice is not null ? side
                 : side with { Choice = (byte)Enumerable.Range(0, side.Lineup.Candidates.Length).First(side.CanSelect) })],
         },
-        PhaseDeadline = now + RoundIntro + state.RoundLimit,
+        PhaseDeadline = now + roundIntro + state.RoundLimit,
     };
 }

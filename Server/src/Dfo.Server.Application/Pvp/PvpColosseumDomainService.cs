@@ -9,7 +9,7 @@ namespace Dfo.Server.Application.Pvp;
 
 /// <summary>One paid challenge per ordinary character or per total-match account.</summary>
 internal sealed class PvpColosseumDomainService(
-    IPvpColosseumStore store, PvpColosseumRuleService rules, IPvpSettlementRuleService days, TimeProvider clock,
+    IPvpColosseumStore store, PvpColosseumRuleService rules, IPvpSettlementRuleService settlement, TimeProvider clock,
     PvpDuelDomainService duel, PvpTraditionalDuelDomainService traditional,
     IDomainTransactionAccessor transactions, IItemDomainStore inventory,
     IItemDeliveryDomainService delivery,
@@ -21,7 +21,7 @@ internal sealed class PvpColosseumDomainService(
     {
         var individual = Owner(actor, PvpColosseumKind.Individual);
         var total = Owner(actor, PvpColosseumKind.TotalMatch);
-        var day = days.GameDayOf(clock.GetUtcNow());
+        var day = settlement.GameDayOf(clock.GetUtcNow());
         var individualRun = await store.ReadAsync(individual, ct).ConfigureAwait(false);
         var totalRun = await store.ReadAsync(total, ct).ConfigureAwait(false);
         return new(individualRun, totalRun?.Recipient == actor.CharacterId ? totalRun : null,
@@ -36,7 +36,7 @@ internal sealed class PvpColosseumDomainService(
         var owner = Owner(actor, kind);
         var terms = rules.EntryTerms();
         var now = clock.GetUtcNow();
-        var day = days.GameDayOf(now);
+        var day = settlement.GameDayOf(now);
         var current = await store.ReadAsync(owner, ct).ConfigureAwait(false);
         if (current is not null)
             return rules.CanResume(current, actor.CharacterId) ? new(current, terms.Item, terms.Cost, null) : null;
@@ -71,7 +71,7 @@ internal sealed class PvpColosseumDomainService(
             var run = await store.ReadAsync(Owner(fighter.Session, kind), ct).ConfigureAwait(false);
             if (run is null || run.Id != id || run.Complete || run.Recipient != fighter.CharacterId)
                 throw new InvalidOperationException($"Duel {battle.MatchId.Value} has a stale Colosseum run.");
-            var won = !fighter.Fled && PvpSettlementDomainService.OutcomeOf(battle, fighter) == PvpOutcome.Win;
+            var won = settlement.OutcomeOf(battle, fighter) == PvpOutcome.Win;
             var updated = rules.Advance(run, won);
             await store.UpdateAsync(updated, ct).ConfigureAwait(false);
             if (updated.Complete && fighter.Fled && fighter.Departed)

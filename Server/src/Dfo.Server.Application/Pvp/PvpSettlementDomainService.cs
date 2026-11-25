@@ -21,11 +21,8 @@ internal sealed class PvpSettlementDomainService(
     PvpTraditionalDuelDomainService traditional,
     PvpDailyMissions dailyMissions,
     IEventService events,
-    PvpColosseumDomainService colosseum,
-    PvpMatchmakingRuleService matchmakingRules) : IPvpSettlementDomainService
+    PvpColosseumDomainService colosseum) : IPvpSettlementDomainService
 {
-    private static readonly PvpChannelEntitlements NoRecord = new(false, false, 0, 0);
-
     public async ValueTask<PvpSettlementOutcome> SettleAsync(PvpMatchId match, CancellationToken cancellationToken)
     {
         GameplayWriteAssertion.Writing(nameof(PvpSettlementDomainService) + "." + nameof(SettleAsync));
@@ -66,43 +63,30 @@ internal sealed class PvpSettlementDomainService(
     internal async ValueTask<PvpMatchSettlementRecord> BuildSettlementAsync(
         PvpMatchConclusion conclusion, CancellationToken cancellationToken)
     {
-        var entitlements = rules.EntitlementsOf(conclusion.Channel, conclusion.Mode);
+        var participants = rules.ParticipantsFor(conclusion);
         var isTraditional = conclusion.Business == PvpDuelBusiness.Traditional;
-        var traditionalRecords = isTraditional && entitlements.RecordsResult
-            && PvpTraditionalDuelDomainService.RecordsResult(conclusion);
-        var individualColosseum = conclusion.Mode == PvpBattleMode.Individual
-            && !conclusion.ColosseumRuns.IsEmpty && matchmakingRules.AppliesTo(conclusion);
         // Spec RQ-052: a battle counts toward the game day it started on, whenever it ends.
         var gameDay = rules.GameDayOf(conclusion.StartedAt);
         var ratings = isTraditional ? null : await duel.RatingsAsync(conclusion, cancellationToken).ConfigureAwait(false);
-        var fighters = new List<PvpFighterSettlement>(conclusion.Fighters.Length);
-        foreach (var fighter in conclusion.Fighters)
+        var fighters = new List<PvpFighterSettlement>(participants.Fighters.Count);
+        foreach (var (fighter, character, kills, deaths, outcome, entitlements) in participants.Fighters)
         {
-            var outcome = fighter.Fled ? PvpOutcome.Loss : OutcomeOf(conclusion, fighter);
-            var colosseumFighter = individualColosseum && conclusion.ColosseumRuns.ContainsKey(fighter.Seat);
-            var fighterEntitlements = colosseumFighter ? PvpDuelDomainService.ColosseumEntitlements : entitlements;
-            var participants = isTraditional
-                ? PvpTraditionalDuelDomainService.SettlementCharacters(conclusion, fighter, traditionalRecords)
-                : [(fighter.CharacterId, fighter.Kills, fighter.Deaths, colosseumFighter)];
-            foreach (var (character, kills, deaths, updatesRecord) in participants)
+            var record = await records.ReadAsync(character, cancellationToken).ConfigureAwait(false);
+            var today = entitlements.RecordsResult
+                ? await records.DailyCountsAsync(character, gameDay, cancellationToken).ConfigureAwait(false)
+                : new PvpDailyCounts(0, 0);
+            var decision = rules.Decide(new PvpSettlementFacts(record.Grade, record.Experience, outcome, fighter.Fled,
+                today.Wins, today.Losses, entitlements));
+            fighters.Add(new PvpFighterSettlement(character, (byte)fighter.Seat, (byte)fighter.Team, outcome,
+                kills, deaths, fighter.Fled, decision, entitlements.RecordsResult)
             {
-                var record = await records.ReadAsync(character, cancellationToken).ConfigureAwait(false);
-                var today = updatesRecord
-                    ? await records.DailyCountsAsync(character, gameDay, cancellationToken).ConfigureAwait(false)
-                    : new PvpDailyCounts(0, 0);
-                var decision = rules.Decide(new PvpSettlementFacts(record.Grade, record.Experience, outcome, fighter.Fled,
-                    today.Wins, today.Losses, updatesRecord ? fighterEntitlements : NoRecord));
-                fighters.Add(new PvpFighterSettlement(character, (byte)fighter.Seat, (byte)fighter.Team, outcome,
-                    kills, deaths, fighter.Fled, decision, updatesRecord)
-                {
-                    Rating = ratings?.GetValueOrDefault(character),
-                });
-            }
+                Rating = ratings?.GetValueOrDefault(character),
+            });
         }
 
         return new PvpMatchSettlementRecord(conclusion.MatchId.Value, conclusion.RoomNumber,
             conclusion.Channel.ListenerPort, conclusion.Channel.LoginEnvironment, conclusion.Mode, conclusion.Terminal.Kind,
-            conclusion.Terminal.Winner, traditionalRecords || individualColosseum, gameDay, conclusion.Terminal.At, fighters)
+            conclusion.Terminal.Winner, participants.RecordsResult, gameDay, conclusion.Terminal.At, fighters)
         {
             TotalMatchRatings = isTraditional
                 ? await traditional.RatingsAsync(conclusion, cancellationToken).ConfigureAwait(false)
@@ -110,15 +94,4 @@ internal sealed class PvpSettlementDomainService(
         };
     }
 
-    /// <summary>A fighter who did not flee wins with the winning side and loses with every other; a draw is everyone's.</summary>
-    internal static PvpOutcome OutcomeOf(PvpMatchConclusion conclusion, PvpFighter fighter)
-    {
-        if (conclusion.Terminal is not { Kind: PvpMatchOutcomeKind.Decided, Winner: { } winner }) return PvpOutcome.Draw;
-        var side = PvpBattleModeCapabilities.Of(conclusion.Mode).Terminal switch
-        {
-            PvpBattleTerminal.LastFighterStanding => fighter.Seat,
-            PvpBattleTerminal.LastTeamStanding => (int)fighter.Team,
-        };
-        return side == winner ? PvpOutcome.Win : PvpOutcome.Loss;
-    }
 }

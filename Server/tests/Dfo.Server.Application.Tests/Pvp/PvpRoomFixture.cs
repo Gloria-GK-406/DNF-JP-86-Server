@@ -67,7 +67,7 @@ internal sealed class PvpRoomFixture
             candidates, TestRequired.Absent<ICharacterIdentityQueryDomainService>(), traditional,
             TestRequired.Absent<ICharacterSkillRuleService>(),
             TestRequired.Absent<ICharacterSkillStateDomainService>(), colosseum, matchmakingRules, missionRules);
-        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, duel, traditional, daily, Events, colosseum, matchmakingRules);
+        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, duel, traditional, daily, Events, colosseum);
     }
 
     public DomainTransactionScope? Scope { get; }

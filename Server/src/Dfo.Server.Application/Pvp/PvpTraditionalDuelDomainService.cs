@@ -13,8 +13,6 @@ internal sealed class PvpTraditionalDuelDomainService(
     IPvpTotalMatchCandidateQueryDomainService candidates,
     PvpMatchmakingRuleService matchmakingRules)
 {
-    public static PvpChannelEntitlements Entitlements { get; } = new(true, true, 50, 10);
-
     public async ValueTask<(PvpTotalMatchLineup? Lineup, bool MissingEquipment)> ReadMatchmakingLineupAsync(
         SelectedSessionIdentity session, DateTimeOffset preparedAt, CancellationToken cancellationToken)
     {
@@ -30,11 +28,6 @@ internal sealed class PvpTraditionalDuelDomainService(
             && (await ReadMatchmakingLineupAsync(actor, now, ct).ConfigureAwait(false)).Lineup is not null;
     }
 
-    public static bool RecordsResult(PvpMatchConclusion conclusion) =>
-        conclusion.Mode != PvpBattleMode.TotalMatch
-        || (!conclusion.TotalMatchAppearances.IsDefaultOrEmpty && !conclusion.Fighters.All(fighter => fighter.Fled)
-            && conclusion.Terminal.Kind != PvpMatchOutcomeKind.Cancelled);
-
     public async ValueTask<IReadOnlyDictionary<AccountId, PvpRatingChange>> RatingsAsync(
         PvpMatchConclusion battle, CancellationToken cancellationToken)
     {
@@ -48,20 +41,4 @@ internal sealed class PvpTraditionalDuelDomainService(
         return matchmakingRules.RateTotalMatch(battle, own, opponent, season);
     }
 
-    public static IEnumerable<(CharacterId Character, int Kills, int Deaths, bool UpdatesRecord)> SettlementCharacters(
-        PvpMatchConclusion conclusion, PvpFighter fighter, bool recordsResult)
-    {
-        if (conclusion.Mode != PvpBattleMode.TotalMatch || !recordsResult)
-        {
-            yield return (fighter.CharacterId, fighter.Kills, fighter.Deaths, recordsResult);
-            yield break;
-        }
-
-        var appearances = conclusion.TotalMatchAppearances.Where(role => role.Seat == fighter.Seat).ToArray();
-        foreach (var role in appearances)
-            yield return (role.Character, role.Kills, role.Deaths, true);
-        // The representative still needs a result-screen row if a reserve fought in their place.
-        if (!appearances.Any(role => role.Character == fighter.CharacterId))
-            yield return (fighter.CharacterId, 0, 0, false);
-    }
 }

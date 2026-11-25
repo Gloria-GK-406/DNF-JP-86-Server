@@ -110,7 +110,7 @@ internal sealed partial class PvpRoomDomainService(
         if (!sessions.IsInWorld(owner)) return Refuse(PvpRoomRefusal.SessionNotCurrent);
         var channel = await channels.ResolveAsync(owner.ListenerPort, cancellationToken).ConfigureAwait(false);
         if (!channel.IsPvp) return Refuse(PvpRoomRefusal.NotDuelChannel);
-        var mode = PvpBattleModeRules.Find(request.Mode);
+        var mode = rules.FindBattleMode(request.Mode);
         if (request.Mode != PvpBattleMode.Practice
             && (mode is not { CanSelectInFreeRoom: true } || !mode.AcceptsChannel(channel.LoginEnvironment)))
             return Refuse(PvpRoomRefusal.UnsupportedMode);
@@ -177,13 +177,13 @@ internal sealed partial class PvpRoomDomainService(
         {
             case PvpSeatAction.ChangeTeam:
                 if (seat != own) return Refused(PvpRoomRefusal.InvalidSeat);
-                if (!PvpBattleModeRules.For(snapshot.Mode).AcceptsTeam(team)) return Refused(PvpRoomRefusal.InvalidTeam);
+                if (!rules.BattleMode(snapshot.Mode).AcceptsTeam(team)) return Refused(PvpRoomRefusal.InvalidTeam);
                 return Changed(pending, room, snapshot with
                 {
                     Seats = snapshot.Seats.SetItem(seat, (PvpSeat.Taken)target with { Team = team, Observation = null }),
                 }, PvpRoomChangeKind.TeamChanged);
             case PvpSeatAction.Observe or PvpSeatAction.ObserveAlternate:
-                if (seat != own || !PvpBattleModeRules.For(snapshot.Mode).AllowsObservation) return Refused(PvpRoomRefusal.InvalidSeat);
+                if (seat != own || !rules.BattleMode(snapshot.Mode).AllowsObservation) return Refused(PvpRoomRefusal.InvalidSeat);
                 var observation = action == PvpSeatAction.Observe ? PvpObservation.Standard : PvpObservation.Alternate;
                 return Changed(pending, room, snapshot with
                 {
@@ -222,7 +222,7 @@ internal sealed partial class PvpRoomDomainService(
         if (OwnerActing(pending, actor) is not { } room) return Refused(OwnerRefusal(pending, actor));
         var snapshot = room.Snapshot;
         if (snapshot.Phase != PvpRoomPhase.Waiting) return Refused(PvpRoomRefusal.NotWaiting);
-        if (!snapshot.IsPublicLobbyRoom || PvpBattleModeRules.Find(mode) is not { CanSelectInFreeRoom: true } nextMode
+        if (!snapshot.IsPublicLobbyRoom || rules.FindBattleMode(mode) is not { CanSelectInFreeRoom: true } nextMode
             || !nextMode.AcceptsChannel(snapshot.Channel.LoginEnvironment))
             return Refused(PvpRoomRefusal.UnsupportedMode);
         if (snapshot.MemberCount > nextMode.MaximumMembers)
@@ -274,12 +274,12 @@ internal sealed partial class PvpRoomDomainService(
         var members = snapshot.PlayingMembers.ToArray();
         // Spec RQ-042: a battle started after shutdown cancelled the others could not end before the connections go.
         if (pending.Closing) return Refused(PvpRoomRefusal.ShuttingDown);
-        var mode = PvpBattleModeRules.For(snapshot.Mode);
+        var mode = rules.BattleMode(snapshot.Mode);
         if (mode.RefuseStart([.. members.Select(x => new PvpRoomMemberFacts(
                 x.Member.Team, x.Member.Ready, x.Seat == snapshot.OwnerSeat))]) is { } refusal)
             return Refused(refusal);
 
-        if (mode is PvpTotalMatchBattleRules)
+        if (mode is IPvpTotalMatchBattleRules)
             return StartTotalMatchAsync(pending, room, self, members, cancellationToken);
 
         var startedAt = Now;
@@ -312,13 +312,9 @@ internal sealed partial class PvpRoomDomainService(
         ImmutableArray<PvpTotalMatchSide> sides, DateTimeOffset preparedAt)
     {
         var startedAt = Now;
-        return StartMatch(pending, room, snapshot, members, startedAt,
-            startedAt + (snapshot.IsMatchmaking ? rules.HeartbeatTimeout : PvpTotalMatchBattleRules.OpeningDelay),
-            new PvpTotalMatchBattle(PvpTotalMatchPhase.Loading, sides, preparedAt,
-                battles.BattleTimeLimit(PvpBattleMode.TotalMatch) + rules.FightOverrun)
-            {
-                WaitForOpeningHeartbeats = snapshot.IsMatchmaking,
-            });
+        var (state, deadline) = rules.TotalMatch.Open(sides, preparedAt, startedAt, snapshot.IsMatchmaking,
+            rules.HeartbeatTimeout, battles.BattleTimeLimit(PvpBattleMode.TotalMatch) + rules.FightOverrun);
+        return StartMatch(pending, room, snapshot, members, startedAt, deadline, state);
     }
 
     private static PvpRoomSnapshot WithOwnerReady(PvpRoomSnapshot snapshot, PvpSeat.Taken owner) =>
@@ -418,7 +414,7 @@ internal sealed partial class PvpRoomDomainService(
             && !(password is { } offered && offered.AsSpan().SequenceEqual(expected.AsSpan())))
             return Refuse(PvpRoomRefusal.WrongPassword);
         if (!HasRoomForGuest(snapshot)) return Refuse(PvpRoomRefusal.Full);
-        var mode = PvpBattleModeRules.For(snapshot.Mode);
+        var mode = rules.BattleMode(snapshot.Mode);
         var seat = snapshot.Seats.IndexOf(PvpSeat.OpenSeat);
         var team = mode.TeamForNewcomer([.. snapshot.PlayingMembers.Select(x => x.Member.Team)]);
         var town = new TownMoves(snapshot.Channel.ChannelId, leaving: [session], returning: []);
@@ -428,8 +424,8 @@ internal sealed partial class PvpRoomDomainService(
         return new PvpRoomOutcome.Changed(kind, snapshot, after.Snapshot, [], town);
     }
 
-    private static bool HasRoomForGuest(PvpRoomSnapshot room) =>
-        room.MemberCount < PvpBattleModeRules.For(room.Mode).MaximumMembers && room.Seats.Contains(PvpSeat.OpenSeat);
+    private bool HasRoomForGuest(PvpRoomSnapshot room) =>
+        room.MemberCount < rules.BattleMode(room.Mode).MaximumMembers && room.Seats.Contains(PvpSeat.OpenSeat);
 
     /// <summary>Takes a member off a seat; the owner's seat passes on, and the last one out ends the room.</summary>
     private PvpRoomOutcome Release(Changes pending, Room room, int seat, PvpSeatReleaseReason reason) =>
@@ -445,7 +441,7 @@ internal sealed partial class PvpRoomDomainService(
             var now = Now;
             var fighter = match.Fighters[index];
             var next = room.Snapshot.IsMatchmaking
-                ? PvpTotalMatchBattleRules.ReportOpeningHeartbeat(match, fighter.Seat, now) : match;
+                ? rules.TotalMatch.ReportOpeningHeartbeat(match, fighter.Seat, now) : match;
             next = next with { Fighters = next.Fighters.SetItem(index, fighter with { LastHeartbeat = now }) };
             return Stage(pending, room, room.Snapshot with { Match = next }, PvpRoomChangeKind.Heartbeat);
         });
@@ -458,7 +454,7 @@ internal sealed partial class PvpRoomDomainService(
         return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(RequestRelayFightAsync), (pending, room, match, index) =>
         {
             var fighter = match.Fighters[index];
-            var (state, refusal) = PvpBattleModeRules.For(room.Snapshot.Mode).RequestNextTurn(match, fighter);
+            var (state, refusal) = rules.BattleMode(room.Snapshot.Mode).RequestNextTurn(match, fighter);
             if (state is null) return Ignore(nameof(RequestRelayFightAsync), session, refusal);
             return Stage(pending, room, room.Snapshot with { Match = match with { ModeState = state } },
                 PvpRoomChangeKind.RelayRequestChanged) with { RelayRequestSeat = fighter.Seat };
@@ -472,7 +468,7 @@ internal sealed partial class PvpRoomDomainService(
         return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(SelectTotalMatchCandidateAsync),
             (pending, room, match, index) =>
             {
-                var (next, refusal) = PvpTotalMatchBattleRules.Choose(match, match.Fighters[index].Seat, ordinal, Now);
+                var (next, refusal) = rules.TotalMatch.Choose(match, match.Fighters[index].Seat, ordinal, Now);
                 return next is null
                     ? Ignore(nameof(SelectTotalMatchCandidateAsync), session, refusal)
                     : Stage(pending, room, room.Snapshot with { Match = next }, PvpRoomChangeKind.TotalMatchChoiceChanged);
@@ -488,7 +484,7 @@ internal sealed partial class PvpRoomDomainService(
         {
             var victim = match.Fighters[index];
             if (!victim.Alive) return Ignore(nameof(ReportDeathAsync), session, PvpRoomRefusal.NotAlive);
-            var mode = PvpBattleModeRules.For(room.Snapshot.Mode);
+            var mode = rules.BattleMode(room.Snapshot.Mode);
             var now = Now;
             if (mode.RefuseDeath(match, victim, now) is { } refusal)
                 return Ignore(nameof(ReportDeathAsync), session, refusal);
@@ -515,7 +511,7 @@ internal sealed partial class PvpRoomDomainService(
         ArgumentNullException.ThrowIfNull(session);
         return Battle(Pending, session, PvpRoomPhase.Fighting, nameof(ReportTimeoutAsync), (pending, room, match, _) =>
         {
-            var mode = PvpBattleModeRules.For(room.Snapshot.Mode);
+            var mode = rules.BattleMode(room.Snapshot.Mode);
             var (end, refusal) = mode.ReportTimeout(match, Now, battles, rules.TimeoutReportLead);
             if (end is null) return Ignore(nameof(ReportTimeoutAsync), session, refusal);
             logger.LogInformation("Duel battle {Match} timed out on character {Character}'s report {Values}; drawn",
@@ -596,7 +592,7 @@ internal sealed partial class PvpRoomDomainService(
             || match.FighterOf(session) is not { } index || match.Fighters[index].Departed || match.Fighters[index].Fled)
             return false;
         if (room.Snapshot.Phase == PvpRoomPhase.Fighting
-            && !PvpBattleModeRules.For(room.Snapshot.Mode).IsActive(match, match.Fighters[index]))
+            && !rules.BattleMode(room.Snapshot.Mode).IsActive(match, match.Fighters[index]))
             return false;
 
         var previous = match.DailyHealthReports.GetValueOrDefault(seat) ?? ImmutableDictionary<ushort, int>.Empty;
@@ -644,7 +640,7 @@ internal sealed partial class PvpRoomDomainService(
             || room.Snapshot is not { Channel.SupportsMatchmaking: true, IsMatchmaking: true,
                 Phase: PvpRoomPhase.Fighting, Match: { } match }
             || match.FighterOf(session) is not { } index || match.Fighters[index].Departed || match.Fighters[index].Fled
-            || !PvpBattleModeRules.For(room.Snapshot.Mode).IsActive(match, match.Fighters[index]))
+            || !rules.BattleMode(room.Snapshot.Mode).IsActive(match, match.Fighters[index]))
             return false;
 
         byte job;
@@ -752,7 +748,7 @@ internal sealed partial class PvpRoomDomainService(
                 fighters = fighters.SetItem(index, Flee(fighters[index]));
                 silent = true;
             }
-        var mode = PvpBattleModeRules.For(snapshot.Mode);
+        var mode = rules.BattleMode(snapshot.Mode);
         var current = silent ? match with { Fighters = fighters } : match;
         var advanced = mode.AdvanceTurn(current, now, battles, rules.FightOverrun);
         var overrun = advanced is null && mode.Deadline(current) <= now;
@@ -868,7 +864,7 @@ internal sealed partial class PvpRoomDomainService(
     private PvpRoomSnapshot Conclude(PvpRoomSnapshot snapshot, PvpMatchTerminal end) => snapshot with
     {
         Phase = PvpRoomPhase.AwaitRank,
-        Match = PvpTotalMatchBattleRules.RecordAppearances(snapshot.Match!, end.At) with
+        Match = rules.TotalMatch.RecordAppearances(snapshot.Match!, end.At) with
         {
             Terminal = end,
             PhaseDeadline = Now + rules.RankTimeout,
@@ -885,7 +881,7 @@ internal sealed partial class PvpRoomDomainService(
             PvpRoomPhase.AwaitResult => match.PhaseDeadline,
             PvpRoomPhase.Fighting => match.Fighters.Where(fighter => !fighter.Departed)
                 .Select(fighter => fighter.LastHeartbeat + rules.HeartbeatTimeout)
-                .Append(PvpBattleModeRules.For(snapshot.Mode).Deadline(match)).Min(),
+                .Append(rules.BattleMode(snapshot.Mode).Deadline(match)).Min(),
             PvpRoomPhase.AwaitRank or PvpRoomPhase.Waiting => null,
         };
     }
@@ -903,7 +899,7 @@ internal sealed partial class PvpRoomDomainService(
         PvpMatchId? due = null;
         if (next.Phase == PvpRoomPhase.Fighting && next.Match is { } fight)
         {
-            var mode = PvpBattleModeRules.For(next.Mode);
+            var mode = rules.BattleMode(next.Mode);
             var now = Now;
             if (mode.TerminalOf(fight, now) is { } end)
                 next = Conclude(next, end);
@@ -917,7 +913,7 @@ internal sealed partial class PvpRoomDomainService(
                 concluded = new PvpMatchConclusion(match.Id, next.Id, next.Number, next.Channel, next.Mode, match.StartedAt,
                     terminal, match.Fighters, match.PhaseDeadline)
                 {
-                    TotalMatchAppearances = PvpTotalMatchBattleRules.AppearancesOf(match.ModeState),
+                    TotalMatchAppearances = rules.TotalMatch.AppearancesOf(match.ModeState),
                     DailyHealthReports = match.DailyHealthReports,
                     DailyColorlessSkills = match.DailyColorlessSkills,
                     DailyWinPoses = match.DailyWinPoses,
@@ -1119,7 +1115,7 @@ internal sealed partial class PvpRoomDomainService(
 
         public Room? FindQuickJoinable(int listenerPort) => Visible(listenerPort)
             .Where(room => room.Snapshot.IsPublicLobbyRoom && room.Password is null && room.Snapshot.Phase == PvpRoomPhase.Waiting
-                && HasRoomForGuest(room.Snapshot))
+                && owner.HasRoomForGuest(room.Snapshot))
             .MinBy(room => room.Snapshot.Number);
 
         /// <summary>The smallest positive number no room on the listener shows, as this transaction sees them.</summary>

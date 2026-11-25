@@ -3,17 +3,10 @@ using Dfo.Server.Abstractions.Pvp;
 
 namespace Dfo.Server.Application.Pvp;
 
-internal sealed class PvpRelayBattleRules() : PvpBattleModeRules(PvpBattleMode.Relay)
+internal sealed class PvpRelayBattleRules(TimeSpan firstTurnDelay, TimeSpan replacementDelay,
+    TimeSpan clientBattleTime, TimeSpan clientRoundCountdown) : PvpBattleModeRules(PvpBattleMode.Relay)
 {
-    // ServerS4A21 allows the client to finish its initial countdown or KO animation before assigning fighters.
-    private static readonly TimeSpan FirstTurnDelay = TimeSpan.FromSeconds(7);
-    private static readonly TimeSpan ReplacementDelay = TimeSpan.FromSeconds(3);
-
-    // A21 networked rooms select the second relay timer entry (180 s), even when pvp_ref says 120 s.
-    private static readonly TimeSpan ClientBattleTime = TimeSpan.FromMinutes(3);
-    private static readonly TimeSpan ClientRoundCountdown = TimeSpan.FromMilliseconds(4640);
-
-    public override PvpRelayBattle Start(DateTimeOffset now) => new(null, null, now + FirstTurnDelay, []);
+    public override PvpRelayBattle Start(DateTimeOffset now) => new(null, null, now + firstTurnDelay, []);
 
     private static PvpRelayBattle Round(PvpMatch match) => (PvpRelayBattle)match.ModeState!;
 
@@ -56,14 +49,15 @@ internal sealed class PvpRelayBattleRules() : PvpBattleModeRules(PvpBattleMode.R
         return replacement == relay ? match : match with { ModeState = replacement };
     }
 
-    private static TimeSpan MinimumTimeBeforeOverrun(TimeSpan configuredRoundTime) =>
-        ClientRoundCountdown + (configuredRoundTime < ClientBattleTime ? ClientBattleTime : configuredRoundTime);
+    // A21 networked rooms select the second relay timer entry even when pvp_ref gives a shorter duration.
+    private TimeSpan MinimumTimeBeforeOverrun(TimeSpan configuredRoundTime) =>
+        clientRoundCountdown + (configuredRoundTime < clientBattleTime ? clientBattleTime : configuredRoundTime);
 
-    private static PvpRelayBattle ScheduleReplacement(PvpRelayBattle relay, ImmutableArray<PvpFighter> fighters, DateTimeOffset now)
+    private PvpRelayBattle ScheduleReplacement(PvpRelayBattle relay, ImmutableArray<PvpFighter> fighters, DateTimeOffset now)
     {
         if (relay.TurnDue is not null) return relay;
         return fighters.Any(fighter => !fighter.Alive && relay.IsActive(fighter.Seat))
-            ? relay with { TurnDue = now + ReplacementDelay }
+            ? relay with { TurnDue = now + replacementDelay }
             : relay;
     }
 

@@ -3,17 +3,8 @@ using Dfo.Server.Abstractions.Pvp;
 namespace Dfo.Server.Application.Pvp;
 
 /// <summary>Decisions for one mode. All per-room and per-fight state lives in the snapshots.</summary>
-internal abstract class PvpBattleModeRules(PvpBattleMode mode)
+internal abstract class PvpBattleModeRules(PvpBattleMode mode) : IPvpBattleModeRules
 {
-    private static readonly IReadOnlyDictionary<PvpBattleMode, PvpBattleModeRules> Modes =
-        new Dictionary<PvpBattleMode, PvpBattleModeRules>
-        {
-            [PvpBattleMode.Individual] = new PvpIndividualBattleRules(),
-            [PvpBattleMode.Team] = new PvpTeamBattleRules(),
-            [PvpBattleMode.Relay] = new PvpRelayBattleRules(),
-            [PvpBattleMode.TotalMatch] = new PvpTotalMatchBattleRules(),
-        };
-
     private readonly PvpBattleModeCapabilities capabilities = PvpBattleModeCapabilities.Of(mode);
 
     public bool CanSelectInFreeRoom => capabilities.Supported;
@@ -23,10 +14,6 @@ internal abstract class PvpBattleModeRules(PvpBattleMode mode)
     public virtual bool AllowsObservation => true;
 
     public virtual bool AcceptsChannel(byte? loginEnvironment) => true;
-
-    public static PvpBattleModeRules? Find(PvpBattleMode mode) => Modes.GetValueOrDefault(mode);
-
-    public static PvpBattleModeRules For(PvpBattleMode mode) => Modes[mode];
 
     public PvpTeam TeamForNewcomer(IReadOnlyList<PvpTeam> seated) =>
         capabilities.TeamAssignment switch

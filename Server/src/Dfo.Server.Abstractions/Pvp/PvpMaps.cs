@@ -11,6 +11,12 @@ public sealed record PvpRoomMemberFacts(PvpTeam Team, bool Ready, bool IsOwner);
 
 public interface IPvpRoomRuleService
 {
+    IPvpBattleModeRules? FindBattleMode(PvpBattleMode mode);
+
+    IPvpBattleModeRules BattleMode(PvpBattleMode mode);
+
+    IPvpTotalMatchBattleRules TotalMatch { get; }
+
     /// <summary>Whether a room may be set to this map index.</summary>
     bool AcceptsMap(int index);
 
@@ -28,6 +34,8 @@ public interface IPvpRoomRuleService
 
     /// <summary>How long a fighting fighter may go without a heartbeat before it has left the battle.</summary>
     TimeSpan HeartbeatTimeout { get; }
+
+    TimeSpan MatchAdmissionTimeout { get; }
 
     /// <summary>How long the ranking screen waits for the fighters before the battle is settled.</summary>
     TimeSpan RankTimeout { get; }

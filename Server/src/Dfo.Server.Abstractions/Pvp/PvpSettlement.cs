@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.Pvp;
 
@@ -19,6 +20,11 @@ public enum PvpOutcome : byte
     Loss,
     Draw,
 }
+
+public sealed record PvpSettlementParticipant(PvpFighter Fighter, CharacterId Character, int Kills, int Deaths,
+    PvpOutcome Outcome, PvpChannelEntitlements Entitlements);
+
+public sealed record PvpSettlementParticipants(bool RecordsResult, IReadOnlyList<PvpSettlementParticipant> Fighters);
 
 /// <summary>Everything one fighter's settlement is decided from.</summary>
 /// <param name="Grade">
@@ -72,6 +78,10 @@ public interface IPvpSettlementRuleService
     /// as it does for a channel that is not a duel channel at all.
     /// </summary>
     PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel, PvpBattleMode? mode = null);
+
+    PvpSettlementParticipants ParticipantsFor(PvpMatchConclusion conclusion);
+
+    PvpOutcome OutcomeOf(PvpMatchConclusion conclusion, PvpFighter fighter);
 
     PvpSettlementDecision Decide(PvpSettlementFacts facts);
 

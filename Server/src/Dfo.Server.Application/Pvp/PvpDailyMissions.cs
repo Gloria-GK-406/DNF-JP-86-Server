@@ -61,7 +61,7 @@ internal sealed class PvpDailyMissions(
         {
             var character = fighter.CharacterId;
             var progress = await missions.ReadDayAsync(character, day, cancellationToken).ConfigureAwait(false);
-            var won = !fighter.Fled && PvpSettlementDomainService.OutcomeOf(battle, fighter) == PvpOutcome.Win;
+            var won = rules.OutcomeOf(battle, fighter) == PvpOutcome.Win;
             var reward = 0;
             foreach (var mission in missionRules.Assigned(character, day, pool, progress))
             {
