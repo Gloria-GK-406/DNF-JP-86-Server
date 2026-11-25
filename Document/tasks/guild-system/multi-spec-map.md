@@ -26,19 +26,19 @@ workspace:
 
 | SC | 要求 | 进度 | 已验收证据 | 缺口 | 约束 |
 | --- | --- | --- | --- | --- | --- |
-| SC-01 | 迁移、成员唯一和身份 | not_started | 无 | 核心存储和领域不变量、各入口投影 | aligned |
-| SC-02 | 创建与入会 | not_started | 无 | 事务行为和 A21 入口 | aligned |
-| SC-03 | 治理与退出 | not_started | 无 | 领域规则和 A21 管理入口 | aligned |
+| SC-01 | 迁移、成员唯一和身份 | in_progress | spec-001 基础验证 | A21 各入口投影 | aligned |
+| SC-02 | 创建与入会 | in_progress | spec-001 创建、申请与审批事务 | 创建许可、A21 入口、搜索推荐与剩余申请用例 | aligned |
+| SC-03 | 治理与退出 | in_progress | spec-001 退出、踢出、解散、删角保护 | 职务、资料管理等其余行为与 A21 入口 | aligned |
 | SC-04 | 社交与聊天 | not_started | 无 | 人群、协议、双端测试 | aligned |
 | SC-05 | 成长与权益 | not_started | 无 | PVF、周期、收益规则和实现 | aligned |
 | SC-06 | 设施、仓库和勋章 | not_started | 无 | 场景、资产、装备端到端 | aligned |
 | SC-07 | 支援、礼物和红包 | not_started | 无 | 资格、交付和结清 | aligned |
 | SC-08 | 公会地下城与公会战 | not_started | 无 | 玩法证据、周期与结算 | aligned |
 | SC-09 | 范围与证据 | not_started | 无 | 逐项归档和真实验收 | aligned |
-| SC-10 | 构建、测试与验收 | not_started | 无 | 分期测试和正式验收准备 | aligned |
+| SC-10 | 构建、测试与验收 | in_progress | spec-001 构建与 176 项相关回归 | 后续分期测试和正式验收准备 | aligned |
 
 ## 子任务
 
 | # | Attempt | TaskContract | 结果边界 | 贡献 | Result | Git result |
 | ---: | --- | --- | --- | --- | --- | --- |
-| 1 | spec-001 | [任务契约](attempts/spec-001-persist-guild-membership/TaskContract.md) | 公会创建和原子成员关系 | SC-01、SC-02、SC-03 | | |
+| 1 | spec-001 | [任务契约](attempts/spec-001-persist-guild-membership/TaskContract.md) | 公会创建和原子成员关系 | SC-01、SC-02、SC-03 | [完成](attempts/spec-001-persist-guild-membership/spec-result.md) | `872a4808c173d60ab05dd42d4852992049937369` |
