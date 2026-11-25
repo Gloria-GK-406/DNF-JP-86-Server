@@ -42,3 +42,4 @@ workspace:
 | # | Attempt | TaskContract | 结果边界 | 贡献 | Result | Git result |
 | ---: | --- | --- | --- | --- | --- | --- |
 | 1 | spec-001 | [任务契约](attempts/spec-001-persist-guild-membership/TaskContract.md) | 公会创建和原子成员关系 | SC-01、SC-02、SC-03 | [完成](attempts/spec-001-persist-guild-membership/spec-result.md) | `872a4808c173d60ab05dd42d4852992049937369` |
+| 2 | spec-002 | [任务契约](attempts/spec-002-create-guild-in-a21/TaskContract.md) | A21 原生单人建会与身份恢复 | SC-01、SC-02、SC-09、SC-10 | | |
