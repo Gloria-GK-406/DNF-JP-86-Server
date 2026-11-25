@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Sessions;
@@ -181,6 +182,20 @@ public sealed class CharacterRosterCommandFlowTests
     }
 
     [Fact]
+    public async Task Deletion_of_a_guild_member_rolls_back_and_reports_refusal()
+    {
+        await using var world = new World { IsGuildMember = true };
+        var result = await world.Bus.SendAsync(new GameDeleteCharacterCommand(
+            new(world.Connection), new(GameMessageMetadata.Empty, 2, [7, 8, 9])));
+        var response = Assert.IsType<DeleteCharacterResponse>(Assert.Single(world.Output.Entries.SelectMany(entry => entry.Messages)));
+        Assert.Equal(CharacterDeletionStatus.GuildMembership, result.Status);
+        Assert.Equal(result.Status, response.Status);
+        Assert.Equal(0, world.Characters.WriteCommits);
+        Assert.Equal(1, world.Characters.Rollbacks);
+        Assert.DoesNotContain("purge:True", world.Trace);
+    }
+
+    [Fact]
     public async Task A_roster_read_failure_after_creation_preserves_the_ACK_and_committed_unit_then_closes_source()
     {
         await using var world = new World();
@@ -223,6 +238,7 @@ public sealed class CharacterRosterCommandFlowTests
         public Characters Characters { get; private set; } = null!;
         public Output Output { get; }
         public SelectedSessionIdentity? Selected { get; set; }
+        public bool IsGuildMember { get; set; }
         public ICommandBus Bus => Services.GetRequiredService<ICommandBus>();
         public World()
         {
@@ -238,6 +254,9 @@ public sealed class CharacterRosterCommandFlowTests
             services.AddSingleton<ICharacterRosterDomainService>(p => (Characters)p.GetRequiredService<ICharacterDomainService>());
             services.AddSingleton<Dfo.Server.Abstractions.Relations.ICharacterRelationDomainService>(p => new Relations(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             services.AddSingleton<Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService>(new NoAuctions());
+            var guilds = DispatchProxy.Create<IGuildDomainService, Guilds>();
+            ((Guilds)(object)guilds).AllowDeletion = () => !IsGuildMember;
+            services.AddSingleton(guilds);
             services.AddSingleton<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>(new NoProjections());
             services.AddSingleton(TimeProvider.System);
             services.AddSingleton<INetworkConnectionContexts>(new Connections(Connection));
@@ -264,6 +283,16 @@ public sealed class CharacterRosterCommandFlowTests
         }
         public Task DispatchAsync(int kind) => Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(Connection), Request(kind), default).AsTask();
         public ValueTask DisposeAsync() => Services.DisposeAsync();
+    }
+
+    private class Guilds : DispatchProxy
+    {
+        public Func<bool> AllowDeletion { get; set; } = null!;
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
+            targetMethod?.Name == nameof(IGuildDomainService.PrepareCharacterDeletionAsync)
+                ? ValueTask.FromResult(AllowDeletion())
+                : throw new NotSupportedException();
     }
 
     /// <summary>Answers only which selection the account holds; anything else is out of this test's reach.</summary>

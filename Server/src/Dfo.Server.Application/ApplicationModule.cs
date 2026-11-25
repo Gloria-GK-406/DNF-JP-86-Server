@@ -87,6 +87,7 @@ public sealed class ApplicationModule : IServerModule
         services.AddChat();
         Dfo.Server.Application.ServerBroadcast.ServerBroadcastRegistration.AddServerBroadcast(services);
         services.AddRelations();
+        Dfo.Server.Application.Guilds.GuildRegistration.AddGuilds(services);
         Dfo.Server.Application.Auction.AuctionRegistration.AddAuction(services, configuration);
         Dfo.Server.Application.PrivateStore.PrivateStoreRegistration.AddPrivateStore(services);
         services.AddEvents(configuration);

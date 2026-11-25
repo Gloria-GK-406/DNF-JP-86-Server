@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -28,6 +29,7 @@ public sealed class GameDeleteCharacterCommandHandler(
     ICommandWorkUnits workUnits,
     ICharacterRelationDomainService relations,
     Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService auctions,
+    IGuildDomainService guilds,
     ICommandProjections projections,
     TimeProvider clock,
     ILogger<GameDeleteCharacterCommandHandler> logger) : ICommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult>
@@ -111,6 +113,11 @@ public sealed class GameDeleteCharacterCommandHandler(
         {
             unit.RequireRollback();
             return new(new CharacterDeletionResult(CharacterDeletionStatus.AuctionObligations, null), null);
+        }
+        if (!await guilds.PrepareCharacterDeletionAsync(deleted, ct).ConfigureAwait(false))
+        {
+            unit.RequireRollback();
+            return new(new CharacterDeletionResult(CharacterDeletionStatus.GuildMembership, null), null);
         }
         return new(result, await relations.PurgeAsync(deleted, ct).ConfigureAwait(false));
     }

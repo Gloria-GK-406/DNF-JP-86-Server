@@ -43,6 +43,7 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
   初始数量、成交记录、金币寄售及托管物品不变。迁移前检查活跃物品挂单与托管的数量、模板和物品保存形态，
   不一致时报出挂单 ID 并中止，不自动修补或选一边覆盖。列操作保留扩展列、索引及编号水位。
 - 版本 11 → 12（`GameplayParameterStorageRetirement.cs`）：删除疲劳免扣和掉落倍率两张派生控制表。
+- 版本 13 → 14（`Migrator.AddGuilds`）：新增公会、角色成员及申请关系。既有账号、角色、金币和物品数据保留，旧角色公会等级字段不参与成员关系迁移。
   活动配置、通知协调记录、角色疲劳账本和其他玩家数据不变；旧控制值不迁回活动配置。
 - 版本 12 → 13（`AntonRaidRewardUpgrade.cs`）：新增安图恩攻坚奖励记录，校正特定任务与成就的旧计数。
 - 版本 13 → 14（`PvpRecordSplitUpgrade.cs`）：拆分 `character_pvp` 并删除该表。段位、评级段位进决斗战绩表 `character_pvp_record`（胜负平、连胜、最高连胜为 0，段位经验为 NULL，读作所在段位的下限，由规则服务按 PVF 补值）；`skills_initialized` 进决斗技能状态表 `character_pvp_skill_state`；语义不明的 `pvp_rank_point`、`pvp_stat_a`、`pvp_win_streak`、`pvp_lose_streak` 只在任一非 0 时原样存入审计表 `character_pvp_legacy`，无读取方。新增对局表 `pvp_matches`、对局结果表 `pvp_match_results` 及按角色的索引。原来没有 `character_pvp` 行的角色迁移后也没有战绩行，不补造段位。迁移后只认表结构版本 13 的服务端无法再打开该库。

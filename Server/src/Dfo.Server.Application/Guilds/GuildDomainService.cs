@@ -1,0 +1,123 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Guilds;
+
+namespace Dfo.Server.Application.Guilds;
+
+internal sealed class GuildDomainService(
+    IGuildDomainStore store,
+    GuildRuleService rules,
+    ICharacterDomainService characters,
+    ICharacterTable characterTable,
+    TimeProvider time) : IGuildDomainService
+{
+    public async ValueTask<GuildMutationResult> CreateAsync(
+        CharacterId actor, string name, string promotion, CancellationToken ct)
+    {
+        if (rules.NameKey(name) is not { } nameKey)
+            return new(GuildMutationStatus.InvalidName);
+        if (!rules.IsValidText(promotion))
+            return new(GuildMutationStatus.InvalidText);
+        if (await characterTable.FindOwnerAsync(actor, ct).ConfigureAwait(false) is null)
+            return new(GuildMutationStatus.CharacterUnavailable);
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not null)
+            return new(GuildMutationStatus.AlreadyMember);
+        if (await store.NameTakenAsync(nameKey, ct).ConfigureAwait(false))
+            return new(GuildMutationStatus.NameTaken);
+        if (rules.CreationCost() is not { } cost)
+            return new(GuildMutationStatus.CreationUnavailable);
+        if (await characters.Get(actor).TrySpendGoldAsync(cost, ct).ConfigureAwait(false) is not { } remaining)
+            return new(GuildMutationStatus.InsufficientGold);
+
+        var at = time.GetUtcNow();
+        var guild = await store.InsertGuildAsync(name, nameKey, promotion, at, ct).ConfigureAwait(false);
+        await AddMemberAsync(guild.Id, actor, isLeader: true, at, ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild.Id, remaining, [actor]);
+    }
+
+    public async ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct)
+    {
+        if (!rules.IsValidText(message))
+            return new(GuildMutationStatus.InvalidText);
+        if (await characterTable.FindOwnerAsync(actor, ct).ConfigureAwait(false) is null)
+            return new(GuildMutationStatus.CharacterUnavailable);
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not null)
+            return new(GuildMutationStatus.AlreadyMember);
+        if (!await store.ExistsAsync(guild, ct).ConfigureAwait(false))
+            return new(GuildMutationStatus.GuildNotFound);
+        if (await store.FindApplicationAsync(actor, ct).ConfigureAwait(false) is not null)
+            return new(GuildMutationStatus.ApplicationPending);
+
+        await store.AddApplicationAsync(new(guild, actor, message, time.GetUtcNow()), ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild, AffectedCharacters: [actor]);
+    }
+
+    public async ValueTask<GuildMutationResult> ApproveAsync(CharacterId actor, CharacterId applicant, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return new(GuildMutationStatus.LeaderRequired);
+        var guild = membership.Guild.Id;
+        if (await store.FindApplicationAsync(applicant, ct).ConfigureAwait(false) is not { } application || application.Guild != guild)
+            return new(GuildMutationStatus.ApplicationNotFound);
+        if (await characterTable.FindOwnerAsync(applicant, ct).ConfigureAwait(false) is null)
+            return new(GuildMutationStatus.CharacterUnavailable);
+        if (await store.FindMembershipAsync(applicant, ct).ConfigureAwait(false) is not null)
+            return new(GuildMutationStatus.AlreadyMember);
+
+        await AddMemberAsync(guild, applicant, isLeader: false, time.GetUtcNow(), ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild, AffectedCharacters: [actor, applicant]);
+    }
+
+    public async ValueTask<GuildMutationResult> LeaveAsync(CharacterId actor, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { } membership)
+            return new(GuildMutationStatus.NotMember);
+        if (membership.Member.IsLeader)
+            return new(GuildMutationStatus.LeaderCannotLeave);
+
+        var guild = membership.Guild.Id;
+        await store.RemoveMemberAsync(guild, actor, ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild, AffectedCharacters: [actor]);
+    }
+
+    public async ValueTask<GuildMutationResult> RemoveMemberAsync(CharacterId actor, CharacterId target, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return new(GuildMutationStatus.LeaderRequired);
+        if (actor == target)
+            return new(GuildMutationStatus.LeaderCannotLeave);
+        var guild = membership.Guild.Id;
+        if (await store.FindMembershipAsync(target, ct).ConfigureAwait(false) is not { } member || member.Guild.Id != guild)
+            return new(GuildMutationStatus.NotMember);
+
+        await store.RemoveMemberAsync(guild, target, ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild, AffectedCharacters: [actor, target]);
+    }
+
+    public async ValueTask<GuildMutationResult> DisbandAsync(CharacterId actor, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return new(GuildMutationStatus.LeaderRequired);
+
+        var guild = membership.Guild.Id;
+        var affected = await store.AffectedCharactersAsync(guild, ct).ConfigureAwait(false);
+        await store.DisbandAsync(guild, ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild, AffectedCharacters: affected);
+    }
+
+    public async ValueTask<bool> PrepareCharacterDeletionAsync(CharacterId character, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(character, ct).ConfigureAwait(false) is not null)
+            return false;
+        await store.DeleteApplicationAsync(character, ct).ConfigureAwait(false);
+        return true;
+    }
+
+    private async ValueTask AddMemberAsync(GuildId guild, CharacterId member, bool isLeader, DateTimeOffset at, CancellationToken ct)
+    {
+        await store.AddMemberAsync(guild, member, isLeader, at, ct).ConfigureAwait(false);
+        await store.DeleteApplicationAsync(member, ct).ConfigureAwait(false);
+    }
+}
