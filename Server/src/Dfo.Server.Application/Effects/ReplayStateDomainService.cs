@@ -29,6 +29,7 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
     Dfo.Server.Abstractions.Characters.ICharacterAppearanceRuleService appearanceRules,
     IAccountInventoryEntryDomainService accountInventories,
     ICharacterEntryStateDomainService entries,
+    IAccountHonorDomainService honor,
     ICharacterDomainService characters,
     ICharacterRosterDomainService rosters,
     ICharacterSkillPointDomainService skillPoints,
@@ -176,7 +177,10 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,
             itemUsage, premiums, premiumUsage, appearance)
-        { Rental = needs.HasFlag(ReplayProjectionNeeds.Rental) ? await rentals.PanelAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
+        { Honor = needs.HasFlag(ReplayProjectionNeeds.Experience)
+            ? entry?.Public.Honor ?? await honor.ReadAsync(session.AccountId, ct).ConfigureAwait(false)
+            : AccountHonorLevel.Initial,
+          Rental = needs.HasFlag(ReplayProjectionNeeds.Rental) ? await rentals.PanelAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           CollectionBoxes = needs.HasFlag(ReplayProjectionNeeds.CollectionBox) ? await collectionBoxes.ReadAsync(session.CharacterId, ct).ConfigureAwait(false) : null,
           Capsules = needs.HasFlag(ReplayProjectionNeeds.CoupleCapsules) ? await coupleCapsules.ReadAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false) : null,
           Housing = (needs.HasFlag(ReplayProjectionNeeds.MarriageHousing) || appearanceNeeded)

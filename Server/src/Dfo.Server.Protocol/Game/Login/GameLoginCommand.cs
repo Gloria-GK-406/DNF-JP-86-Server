@@ -4,7 +4,6 @@ using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Application.Commands;
-using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Protocol.Game.AuctionService;
@@ -27,6 +26,7 @@ public sealed class GameLoginCommandHandler(
     IOnlineUserDomainService onlineUsers,
     IGameLoginAuthenticationDomainService authentication,
     IAccountEntryStateDomainService accountEntryState,
+    IAccountHonorDomainService honor,
     IChannelEntryDomainService channels,
     IClientSettingsDomainService clientSettings,
     ICommandWorkUnits workUnits,
@@ -130,11 +130,12 @@ public sealed class GameLoginCommandHandler(
         Dfo.Server.Data.Accounts.AccountId accountId,
         CancellationToken cancellationToken)
     {
-        // Settings only. The full account entry load demands a selectable roster and throws for an
+        // The full account entry load demands a selectable roster and throws for an
         // account that owns no character, which is exactly the account that is logging in for the
         // first time -- and that throw silently cost the connection.
         var settings = await accountEntryState.LoadSettingsAsync(accountId, cancellationToken)
             .ConfigureAwait(false);
+        var standing = await honor.ReadAsync(accountId, cancellationToken).ConfigureAwait(false);
 
         return
         [
@@ -142,7 +143,7 @@ public sealed class GameLoginCommandHandler(
             new LoginHotkeyStateMessage(settings),
             new AuctionServiceStateNotice(0x00, Open: true),
             new AuctionServiceStateNotice(0x01, Open: true),
-            new HonorLevelInfoNotice(AccountHonorLevel.Initial),
+            new HonorLevelInfoNotice(standing),
             new InformNoticeNotice(settings.SeenNotices),
         ];
     }

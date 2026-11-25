@@ -35,6 +35,7 @@ public sealed class AuraSkinSlotWireTests
         var source = SelectCharacter.SelectCharacterPayloadTestData.CreateComplete();
         var publicState = source.CharacterEntry.Public with
         {
+            Honor = new(10, 456) { Grade = 2 },
             Extras = source.CharacterEntry.Public.Extras with { AuraSkinSlotOpen = open },
         };
         var core = StackableItemCore.Create(8, 42609, 1234);
@@ -45,7 +46,9 @@ public sealed class AuraSkinSlotWireTests
 
         Assert.Equal(1, body[0]);
         Assert.Equal(expected, body[17]);
-        Assert.All(body[5..17], b => Assert.Equal(0, b));
+        Assert.All(body[5..9], b => Assert.Equal(0, b));
+        Assert.Equal(10u, BitConverter.ToUInt32(body, 9));
+        Assert.Equal(456u, BitConverter.ToUInt32(body, 13));
         Assert.Equal(checked((ushort)source.Character.Identity.CharacterId.Value), BitConverter.ToUInt16(body, 18));
     }
 }

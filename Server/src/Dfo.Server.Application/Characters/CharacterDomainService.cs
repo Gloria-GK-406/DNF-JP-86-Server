@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -22,9 +23,10 @@ internal sealed class CharacterDomainService(
     ICharacterSkillStateDomainService skillState,
     IExperienceRuleService experienceRules,
     IExperienceCapsuleDomainService capsules,
+    IAccountHonorDomainService honor,
     IDomainTransactionAccessor transactions,
     IEventService events) : ICharacterDomainService
 {
     public ICharacter Get(CharacterId characterId) => new PlayingCharacter(characterId, carriedGold, goldRules,
-        characters, skillPoints, statRules, skillState, experienceRules, capsules, transactions, events);
+        characters, skillPoints, statRules, skillState, experienceRules, capsules, honor, transactions, events);
 }

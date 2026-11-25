@@ -465,7 +465,7 @@ public sealed class SqliteEntryLifecycleRecoveryTests
             Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
         public DungeonExperienceProgressionPolicy Progression() => new(
             Enumerable.Range(1, 85).Select(value => checked((uint)(value * 1000))).ToArray(),
-            1_000_000, 10_000, 100);
+            new([new(1, 1, 0)], 1_000_000), 10_000, 100);
 
         public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
 

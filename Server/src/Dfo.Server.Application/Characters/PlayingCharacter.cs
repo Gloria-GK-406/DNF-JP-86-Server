@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -31,6 +32,7 @@ internal sealed partial class PlayingCharacter(
     ICharacterSkillStateDomainService skillState,
     IExperienceRuleService experienceRules,
     IExperienceCapsuleDomainService capsules,
+    IAccountHonorDomainService honor,
     Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor transactions,
     Dfo.Server.Abstractions.DomainEvents.IEventService events) : ICharacter
 {

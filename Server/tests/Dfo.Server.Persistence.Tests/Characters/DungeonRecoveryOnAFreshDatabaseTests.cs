@@ -116,7 +116,7 @@ public sealed class DungeonRecoveryOnAFreshDatabaseTests
         public uint MobReward(int level) => Dfo.Server.Application.World.MonsterExperienceWorth.For(level, Dfo.Server.Abstractions.World.MonsterWorthCurve.Recovered);
         public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(Dfo.Server.Data.Characters.CharacterProgressionState before,
             Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
-        public DungeonExperienceProgressionPolicy Progression() => new([], 0, 0, 0);
+        public DungeonExperienceProgressionPolicy Progression() => new([], new([new(1, 1, 0)], 0), 0, 0);
 
         public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
 

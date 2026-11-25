@@ -111,7 +111,10 @@ public sealed class PvfTypedProjectionTests
         using var file = new BuiltArchive(DungeonArchive());
         var policy = new PvfDungeonExperienceProgressionPolicySource(file.Provider).Load();
         Assert.Equal(85, policy.LevelThresholds.Count);
-        Assert.Equal((ulong)600, policy.MaximumHonorExperience);
+        Assert.Equal(500UL, policy.MaximumHonorExperience);
+        Assert.Equal(new Dfo.Server.Data.Characters.AccountHonorLevel(1, 199), policy.Honor.ProgressFor(199));
+        Assert.Equal(new Dfo.Server.Data.Characters.AccountHonorLevel(2, 0) { Grade = 2 }, policy.Honor.ProgressFor(200));
+        Assert.Equal(new Dfo.Server.Data.Characters.AccountHonorLevel(2, 300) { Grade = 2 }, policy.Honor.ProgressFor(ulong.MaxValue));
         Assert.Equal((uint)900, policy.GrowthCapsuleMaximum);
         Assert.Equal(25, policy.GrowthCapsuleRatePercent);
     }
@@ -181,7 +184,7 @@ public sealed class PvfTypedProjectionTests
         for (var index = 0; index < 85; index++) thresholds.Int(index);
         thresholds.End();
         var honor = builder.AddScript("etc", "honorlevel.etc").Tag("[grade]").Int(1)
-            .Quoted("animation").Quoted("medal").Int(0).Quoted("icon").Int(0).Int(1).Int(100);
+            .Quoted("animation").Quoted("medal").Int(0).Quoted("icon").Int(0).Int(1).Int(0);
         if (defect == "grade") honor.Quoted("bad");
         honor.Tag("[/grade]").Tag("[grade]").Int(2).Quoted("animation").Quoted("medal")
             .Int(1).Quoted("icon").Int(1).Int(2).Int(200).Tag("[/grade]")

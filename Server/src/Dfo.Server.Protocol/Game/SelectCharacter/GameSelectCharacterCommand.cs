@@ -526,14 +526,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             new CloneTitleStateMessage(result.CharacterEntry.Public.Display?.TitleAppearanceItemId ?? result.CharacterEntry.Public.CloneTitleItemId),
             new AccountRosterStateMessage(result.RosterEntry
                 ?? throw new InvalidDataException("Roster state is unavailable.")),
-            // The same account-wide standing the roster screen already received, not a character
-            // stat. The reference session sends 0x0289 twice with an identical body -- 01 00 00 00
-            // 00 00 00 00 at the roster and again here -- while this read two per-character derived
-            // stats, which are zero on a fresh character and disagreed with what login had just
-            // sent for the same account.
+            // Match the honor fields in the selected character's USERINFO snapshot.
             new HonorProgressStateMessage(
-                AccountHonorLevel.Initial.Level,
-                AccountHonorLevel.Initial.Experience),
+                result.CharacterEntry.Public.Honor.Level,
+                result.CharacterEntry.Public.Honor.Experience),
         };
         // NOTI 0x0025 GROWTH CAPSULE is not part of the A21 entry sequence. The reference sends
         // 0x0165, CMD 0x0239, the subtype-0x02 record and 0x0289 here and nothing else, and the

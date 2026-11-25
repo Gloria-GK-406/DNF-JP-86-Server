@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.IllusionTower;
@@ -48,6 +49,7 @@ public sealed class GameFinishQuestCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
     ICharacterDomainService characters,
+    IAccountHonorDomainService honor,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
     IQuestOfferRefreshDomainService offers,
@@ -203,8 +205,9 @@ public sealed class GameFinishQuestCommandHandler(
         }
         if (mirror is not null)
         {
+            var standing = await honor.ReadAsync(session.AccountId, cancellationToken).ConfigureAwait(false);
             frames.Add(new ExperienceNotification(
-                outcome.NewLevel, outcome.NotificationExperience, mirror, AccountHonorLevel.Initial,
+                outcome.NewLevel, outcome.NotificationExperience, mirror, standing,
                 // A quest pays its own table's figure and nothing on top, so there is no named
                 // line to declare. The client draws the whole gain as the base, which is what it
                 // is.

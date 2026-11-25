@@ -295,7 +295,7 @@ public sealed class GameLoginTests
         IGameLoginAuthenticationDomainService authentication, IAccountEntryStateDomainService settings,
         INetworkConnectionCloser closer, ILogger<GameLoginCommandHandler>? logger = null,
         IChannelEntryDomainService? channels = null) => new(new DirectLoginBus(new GameLoginCommandHandler(
-            users, authentication, settings, channels ?? new LoginChannelDomain(null), new Settings(),
+            users, authentication, settings, TestRequired.InitialHonor, channels ?? new LoginChannelDomain(null), new Settings(),
             new DirectWorkUnits(), new Outbox(sender), new Closures(closer),
             logger ?? NullLogger<GameLoginCommandHandler>.Instance), sender));
 

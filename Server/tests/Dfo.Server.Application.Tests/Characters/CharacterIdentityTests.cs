@@ -154,7 +154,7 @@ public sealed class CharacterIdentityTests
 
     private static ICharacter Character(MovableIdentityRow row) =>
         new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
-            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!);
+            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!);
 
     private static ICharacterItemUseDomainService ItemUse(
         MovableIdentityRow row,

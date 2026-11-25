@@ -16,16 +16,20 @@ internal sealed partial class PlayingCharacter
         if (expected is not null && before != expected)
             throw new InvalidOperationException("Character progression changed during settlement.");
         var award = experienceRules.DecideAward(before, reward).Award;
-        // Resolve ownership before accepting any changes. Missing capsule state aborts the use case.
+        var owner = await characters.FindOwnerAsync(Id, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Character owner is unavailable.");
+        AccountHonorLevel standing;
         if (award.Overflow > 0)
         {
-            var owner = await characters.FindOwnerAsync(Id, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException("Character owner is unavailable.");
-            await capsules.AddAsync(owner, award.Overflow, ct).ConfigureAwait(false);
+            var progress = await capsules.AddAsync(owner, award.Overflow, ct).ConfigureAwait(false);
+            standing = experienceRules.Progression().Honor.ProgressFor(progress.TotalHonor);
         }
+        else
+            standing = await honor.ReadAsync(owner, ct).ConfigureAwait(false);
+
         if (!await TrySetExpAsync(before, award.Total, ct).ConfigureAwait(false))
             throw new InvalidOperationException("Character progression changed during settlement.");
-        return award;
+        return award with { Honor = standing };
     }
 
     public ValueTask<CharacterProgressionState> SetLevelAsync(byte level, CancellationToken ct) =>

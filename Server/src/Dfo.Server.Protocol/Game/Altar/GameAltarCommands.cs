@@ -127,7 +127,7 @@ internal sealed class GameAltarCommandHandler(IAltarDungeonDomainService altars,
         var frames = new List<IGameServerMessage>
         {
             new ExperienceNotification(participant.Progress.Level, award?.NotificationTotal ?? participant.Progress.Experience,
-                participant.SkillPoints, AccountHonorLevel.Initial, ExperienceBonusLines.Of(award)), death,
+                participant.SkillPoints, participant.Honor, ExperienceBonusLines.Of(award)), death,
         };
         frames.AddRange(MonsterQuestFrames.Of(participant.Effects));
         if (participant.AvailableQuests is { } quests) frames.Add(new AvailableQuestListMessage(participant.Progress.Level, quests));

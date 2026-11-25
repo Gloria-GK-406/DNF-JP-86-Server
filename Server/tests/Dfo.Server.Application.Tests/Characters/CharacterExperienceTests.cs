@@ -283,7 +283,7 @@ public sealed class CharacterExperienceTests
         var row = new RecordingCharacterTable(level: 5, experience: 700);
         var characters =
             new Dfo.Server.Application.Characters.CharacterDomainService(null!, null!, row, null!, null!, null!,
-                new FixedProgression(Thresholds), null!, null!, null!);
+                new FixedProgression(Thresholds), null!, TestRequired.InitialHonor, null!, null!);
         var result = await Dfo.Server.Application.Tests.Support.TutorialGrantDriver.Grant(characters,Character,CancellationToken.None);
         Assert.Equal(Dfo.Server.Protocol.Game.TutorialLevelUp.TutorialLevelUpStatus.AlreadyPast, result.Status);
         Assert.Equal(5, (await row.FindProgressAsync(Character, CancellationToken.None))!.Level);
@@ -319,8 +319,10 @@ public sealed class CharacterExperienceTests
             var second = await fixture.AwardAsync(_ => Worth(57), default);
             Assert.Equal(700u, first!.Total);
             Assert.Equal(714u, first.NotificationTotal);
+            Assert.Equal(new AccountHonorLevel(1, 14), first.Honor);
             Assert.Equal(700u, second!.Total);
             Assert.Equal(757u, second.NotificationTotal);
+            Assert.Equal(new AccountHonorLevel(2, 21) { Grade = 2 }, second.Honor);
             Assert.Equal(71, fixture.Capsule);
             Assert.Equal(71, fixture.Honour);
             Assert.Null(fixture.LastWrite);
@@ -338,6 +340,8 @@ public sealed class CharacterExperienceTests
             Assert.Equal(720u, award.NotificationTotal);
             Assert.Equal(20u, award.Overflow);
             Assert.Equal(20, fixture.Capsule);
+            Assert.Equal(20, fixture.Honour);
+            Assert.Equal(new AccountHonorLevel(1, 20), award.Honor);
         });
     }
 
@@ -454,7 +458,8 @@ public sealed class CharacterExperienceTests
         public uint MobReward(int level) => Dfo.Server.Application.World.MonsterExperienceWorth.For(level, Dfo.Server.Abstractions.World.MonsterWorthCurve.Recovered);
         public Dfo.Server.Abstractions.Effects.ExperienceAwardDecision DecideAward(Dfo.Server.Data.Characters.CharacterProgressionState before,
             Dfo.Server.Abstractions.World.ExperienceBreakdown breakdown) => Dfo.Server.Application.World.ExperienceProgressionRules.Decide(before, breakdown, CharacterScale());
-        public DungeonExperienceProgressionPolicy Progression() => new(thresholds, 100000, 10000, 100);
+        public DungeonExperienceProgressionPolicy Progression() => new(
+            thresholds, new([new(1, 1, 0), new(2, 2, 50)], 99_950), 10_000, 100);
 
         public uint WorthOfKill(in KillCircumstances kill) => throw new NotSupportedException();
 

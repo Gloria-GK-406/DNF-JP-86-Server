@@ -135,6 +135,7 @@ internal sealed class CharacterSide
             new SqliteCharacterTable(this.database),
             experienceRules, rules, new CharacterDomainService(null!, null!, new SqliteCharacterTable(database), null!, null!, null!,
                 experienceRules, new ExperienceCapsuleDomainService(new SqliteAccountTable(database), experienceRules, rules, Scope),
+                new Dfo.Server.Application.Accounts.AccountHonorDomainService(new SqliteAccountTable(database), experienceRules),
                 Scope, new Dfo.Server.Testing.DiscardingEventService()),
             new Dfo.Server.Application.Rental.AccountLuckyStarDomainService(new SqliteLuckyStarDomainStore(database),
                 new Dfo.Server.Application.Rental.LuckyStarRuleService(new LuckyStarContent(),null!),null!,null!,Scope, events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>()));

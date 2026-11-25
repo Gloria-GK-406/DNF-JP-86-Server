@@ -140,7 +140,7 @@ public sealed class CarriedGoldCapTests
         var archive = new FlatFloor();
         return (
             new PlayingCharacter(Who, gold, new CarriedGoldRuleService(archive), CharacterRow.None,
-                new NoSkillPointLedger(), null!, null!, null!, null!, null!, null!),
+                new NoSkillPointLedger(), null!, null!, null!, null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!),
             archive);
     }
 

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -13,6 +14,7 @@ namespace Dfo.Server.Application.World;
 
 public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transactions,
     ISelectedSessionDomainService sessions,
+    IAccountHonorDomainService honor,
     ICharacterDomainService characters, IDungeonRunCombatDomainService runs, IMonsterKillDomainService kills,
     IMonsterKillRewardsDomainService rewards, IQuestOfferRefreshDomainService offers,
     IQuestItemDropDomainService questItems, IQuestProgressDomainService progress,
@@ -124,7 +126,9 @@ public sealed class MonsterDeathDomainService(IDomainTransactionAccessor transac
                     ?? throw new InvalidDataException("The updated skill point ledger is unavailable.");
                 available = await offers.ReadAvailableAsync(session.AccountId, session.CharacterId, progress.Level, ct).ConfigureAwait(false);
             }
-            result.Add(new(session, progress, points, applied, available));
+            var standing = applied.Award?.Honor
+                ?? await honor.ReadAsync(session.AccountId, ct).ConfigureAwait(false);
+            result.Add(new(session, progress, points, applied, available) { Honor = standing });
         }
         footprint.DemandEffects(new(request.Reporter.AccountId, request.Reporter.CharacterId, request.Reporter));
         var tournament = isTournament

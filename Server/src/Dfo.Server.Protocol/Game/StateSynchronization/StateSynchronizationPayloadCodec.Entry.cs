@@ -770,7 +770,7 @@ internal static partial class StateSynchronizationPayloadCodec
         // A21 reads it at 013E75A3 and builds the stall object a player clicks to open a store (01784A50).
         writer.Write(entry.HasPrivateStorePermission ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex));
+        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex, entry.Honor));
         return stream.ToArray();
     }
 
@@ -855,8 +855,9 @@ internal static partial class StateSynchronizationPayloadCodec
     /// the captured 64 bytes leaves exactly one difference -- offset 59, holding 2, which is that
     /// third patch point at its default. Everything else matches byte for byte.
     ///
-    /// The block remains transcribed, except offset 1 now carries the ClientStatic black-diamond
-    /// name marker. The remaining unknown bytes are not established here, and the fields this replaced are not gone from the domain -- they simply
+    /// Offset 1 carries the ClientStatic black-diamond name marker. At 39 and 43, A21's
+    /// honor setter consumes the level and progress for the described character's account.
+    /// The remaining unknown bytes are not established here, and the fields this replaced are not gone from the domain -- they simply
     /// have no known home on A21's wire. Writing them at the older client's offsets was not a
     /// partial answer but a wrong one: every field after the first sat at an offset A21 does not
     /// use, and the block being 17 bytes shorter means the frame ended in the wrong place too.
@@ -876,6 +877,8 @@ internal static partial class StateSynchronizationPayloadCodec
 
     private const int SubtypeZeroTailExpertJobTypeOffset = 23;
     private const int SubtypeZeroTailExpertJobExperienceOffset = 24;
+    private const int SubtypeZeroTailHonorLevelOffset = 39;
+    private const int SubtypeZeroTailHonorExperienceOffset = 43;
     private const int SubtypeZeroTailVisibilityOffset = 47;
     private const int SubtypeZeroTailChannelOffset = 59;
     private const int SubtypeZeroTailSkillTreeIndexOffset = 61;
@@ -891,7 +894,7 @@ internal static partial class StateSynchronizationPayloadCodec
     private const ushort SubtypeZeroTailChannel = 2;
 
     private static byte[] BuildSubtypeZeroTail(CharacterExpertJobStorageRecord job, bool hasBlackDiamond,
-        byte visibilityBits, int skillTreeIndex)
+        byte visibilityBits, int skillTreeIndex, AccountHonorLevel honor)
     {
         var tail = SubtypeZeroFixedTail.ToArray();
         // A21 read at VA013E2DB0 -> user info +0x2E8; name renderer selects diamond frame 3.
@@ -906,6 +909,8 @@ internal static partial class StateSynchronizationPayloadCodec
         var experience = job.Type == 0 ? 0u : checked((uint)Math.Max(0L, job.Experience));
         BinaryPrimitives.WriteUInt32LittleEndian(
             tail.AsSpan(SubtypeZeroTailExpertJobExperienceOffset), experience);
+        BinaryPrimitives.WriteUInt32LittleEndian(tail.AsSpan(SubtypeZeroTailHonorLevelOffset), honor.Level);
+        BinaryPrimitives.WriteUInt32LittleEndian(tail.AsSpan(SubtypeZeroTailHonorExperienceOffset), honor.Experience);
         BinaryPrimitives.WriteUInt16LittleEndian(
             tail.AsSpan(SubtypeZeroTailChannelOffset), SubtypeZeroTailChannel);
         tail[SubtypeZeroTailSkillTreeIndexOffset] = SkillTreeIndexOnTheWire(skillTreeIndex);
@@ -957,7 +962,6 @@ internal static partial class StateSynchronizationPayloadCodec
     /// stat-block length at twenty-four, maximum HP at twenty-eight -- and without them nothing
     /// after the version does.
     /// </remarks>
-    private const int ExtendedSubtypeReservedBlock = 15;
 
     /// <summary>The length the derived-stat block declares about itself.</summary>
     /// <remarks>Eighty-three on the older client, eighty-eight here. Read off the wire, not derived.</remarks>
@@ -1118,8 +1122,11 @@ internal static partial class StateSynchronizationPayloadCodec
         // The fifteen bytes from +3 land in one client global (VA 013E63DF reads them into 03A419E0);
         // the last of them, +17, is the aura skin slot flag: 013E6741 passes "> 0" to 019DB390, which
         // sets bit 3 of the character's +0x468 flags, and 015A473A checks that bit before it offers
-        // the ticket. The bytes in between stay zero.
-        writer.Write(new byte[ExtendedSubtypeReservedBlock - sizeof(ushort) - sizeof(byte)]);
+        // the ticket. A21 projects the two honor words at +9/+13 into the same character cache
+        // updated by EXP. Preserve the +3 routing word and the unidentified bytes through +8.
+        writer.Write(0u);
+        writer.Write(publicState.Honor.Level);
+        writer.Write(publicState.Honor.Experience);
         writer.Write(extras.AuraSkinSlotOpen ? (byte)1 : (byte)0);
         writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
         writer.Write(DerivedStatBlockLength); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));

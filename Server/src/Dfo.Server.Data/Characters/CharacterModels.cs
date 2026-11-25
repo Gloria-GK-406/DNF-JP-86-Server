@@ -169,9 +169,11 @@ public sealed record CharacterDeletionResult(
     CharacterId? CharacterId,
     ushort SlotIndex = 0);
 
-/// <summary>Account-wide honour standing, shown on the roster screen.</summary>
+/// <summary>Account-wide honor standing, with experience measured within the current level.</summary>
 public sealed record AccountHonorLevel(uint Level, uint Experience)
 {
+    public uint Grade { get; init; } = 1;
+
     /// <summary>What a brand new account has.</summary>
     /// <remarks>
     /// Level 1, not 0. The reference server derives honour level from experience and returns 1 for
@@ -387,6 +389,7 @@ public sealed record CharacterPublicEntryState(
     bool HasBlackDiamond = false,
     bool HasPrivateStorePermission = false)
 {
+    public AccountHonorLevel Honor { get; init; } = AccountHonorLevel.Initial;
     public CharacterAppearance? Display { get; init; }
 }
 

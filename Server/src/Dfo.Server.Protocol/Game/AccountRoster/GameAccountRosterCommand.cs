@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -20,6 +21,7 @@ public sealed record GameAccountRosterCommand(NetworkDispatchContext Dispatch, G
 public sealed class GameAccountRosterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ICharacterRosterDomainService characters,
+    IAccountHonorDomainService honor,
     IGameCommandOutbox outbox) : ICommandHandler<GameAccountRosterCommand, AccountCharacterRoster>
 {
     public async ValueTask<AccountCharacterRoster> HandleAsync(CommandExecutionContext context,
@@ -48,13 +50,10 @@ public sealed class GameAccountRosterCommandHandler(
             new HiddenCharacterInfoResponse(),
             cancellationToken).ConfigureAwait(false);
 
-        // The roster screen expects honour standing alongside the roster itself; the reference
-        // server sends both from this one request. There is no honour subsystem yet, so a fresh
-        // account's standing is reported -- see HonorLevelInfoNotice for why sending it is safe
-        // even though the client's handling of it is uncorroborated.
+        var standing = await honor.ReadAsync(accountId, cancellationToken).ConfigureAwait(false);
         await outbox.RegisterNotiAsync(
             command.Dispatch.Connection.ConnectionId,
-            new HonorLevelInfoNotice(AccountHonorLevel.Initial),
+            new HonorLevelInfoNotice(standing),
             cancellationToken).ConfigureAwait(false);
         return roster;
     }

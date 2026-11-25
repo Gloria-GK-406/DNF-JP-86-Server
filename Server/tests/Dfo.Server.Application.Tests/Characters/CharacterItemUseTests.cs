@@ -556,7 +556,7 @@ public sealed class CharacterItemUseTests
         IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IDungeonParticipationDomainService? seats = null) =>
         new(new CharacterItemUseDomainService(
             new CharacterDomainStub(id => new PlayingCharacter(id, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
-                new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
+                new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!)),
             judgement, runtime, town, seats ?? NobodyThere.Create<IDungeonParticipationDomainService>()));
 
     private static Usability Build(

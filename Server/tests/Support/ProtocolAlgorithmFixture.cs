@@ -160,6 +160,7 @@ internal static class ProtocolAlgorithmFixture
     internal static IOnlineUserQueryDomainService QueryFor(ISelectedSessionDomainService sessions, Func<NetworkConnectionId, NetworkConnectionContext>? physical = null) => new Users(sessions, physical);
     internal static object Default(Type type)
     {
+        if (type == typeof(Dfo.Server.Abstractions.Accounts.IAccountHonorDomainService)) return TestRequired.InitialHonor;
         if (type == typeof(Dfo.Server.Abstractions.Raids.IAntonRaidDomainService))
             return TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>();
         if (type == typeof(Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection))

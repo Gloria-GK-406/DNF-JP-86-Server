@@ -626,7 +626,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var slots = TestRequired.SlotsOver(containers);
         var characters = new CharacterItemUseDomainService(new OneCharacter(new PlayingCharacter(
             new CharacterId(60), new NoCarriedGold(), new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
-            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!)),
+            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!)),
             judgement, cooldowns, TestGameplay.Run(() => PresentCharacters.StandingInTown(new CharacterId(60))),
             NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([

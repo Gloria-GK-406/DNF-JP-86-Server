@@ -88,7 +88,7 @@ public sealed class LevelUpTicketCodecTests
             var request = (LevelUpTicketRequest)new LevelUpTicketDecoder().Decode(GameMessageMetadata.Empty, Convert.FromHexString(body));
             await SkillGrowthDirectDriver.Handle("LevelUpTicket","LevelUpTicket",
                 [null,null,null,null,sender,null,null,null,null,SkillGrowthDirectDriver.Logger,null],
-                [null,null,null,null,null,null,new SkillGrowthDirectDriver.Outbox(sender),null,null,null,null,SkillGrowthDirectDriver.Logger,null],
+                [null,null,null,null,null,null,new SkillGrowthDirectDriver.Outbox(sender),null,null,TestRequired.InitialHonor,null,null,SkillGrowthDirectDriver.Logger,null],
                 NetworkDispatchContext.Unknown,request);
             Assert.Equal(new LevelUpTicketResponse(request.SourceSlot, 1), Assert.Single(sender.Sent));
         });

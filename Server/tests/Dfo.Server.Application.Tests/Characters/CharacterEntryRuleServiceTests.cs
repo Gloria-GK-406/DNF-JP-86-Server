@@ -108,7 +108,7 @@ public sealed class CharacterEntryRuleServiceTests
     {
         private static readonly DungeonExperienceProgressionPolicy Policy = new(
             [.. Enumerable.Range(1, 85).Select(value => checked((uint)(value * 1000)))],
-            1_000_000, 10_000, 100);
+            new([new(1, 1, 0)], 1_000_000), 10_000, 100);
 
         [Fact]
         public void AnEffectThisServerKnowsIsCarriedOut() =>
@@ -180,7 +180,7 @@ public sealed class CharacterEntryRuleServiceTests
         [Fact]
         public void AnyHonourAtAllEarnsAtLeastOneCapsule()
         {
-            var stingy = new DungeonExperienceProgressionPolicy(Policy.LevelThresholds, 1_000_000, 10_000, 1);
+            var stingy = Policy with { GrowthCapsuleRatePercent = 1 };
 
             Assert.Equal(
                 new DungeonHonourOutcome(1, 1, 1),

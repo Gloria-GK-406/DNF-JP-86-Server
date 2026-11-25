@@ -244,7 +244,7 @@ internal sealed partial class GameMonsterDeathCommandHandler : ICommandHandler<G
         var total = award?.NotificationTotal ?? participant.Progress.Experience;
         var frames = new List<IGameServerMessage> { new ExperienceNotification(participant.Progress.Level,
             labelProbe ? checked(total + ExperienceDiagnostics.ProbeTotal) : total, participant.SkillPoints,
-            AccountHonorLevel.Initial, ExperienceBonusLines.Of(award), labelProbe), death };
+            participant.Honor, ExperienceBonusLines.Of(award), labelProbe), death };
         frames.AddRange(autoKilled.Select(MonsterDeathNotification.Empty));
         if (feverPercent is { } percent) frames.Add(new DungeonFeverGaugeMessage(percent));
         frames.AddRange(MonsterQuestFrames.Of(participant.Effects));
