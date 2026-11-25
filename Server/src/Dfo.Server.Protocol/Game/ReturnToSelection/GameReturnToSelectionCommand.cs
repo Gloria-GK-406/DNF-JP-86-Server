@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -56,6 +57,7 @@ public sealed record GameReturnToSelectionCommand(NetworkDispatchContext Dispatc
 }
 internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQueryDomainService users,
     ISelectedSessionDomainService sessions, ICharacterRosterDomainService rosterCharacters,
+    IAccountHonorDomainService honor,
     ICommandWorkUnits units, ICommandSelectedSessionCleanup cleanup, IGameCommandOutbox outbox,
     ICommandProjections projections, ICommandConnectionClosures closures, IPartyService parties,
     IPartyProjectionStateDomainService projectionState,
@@ -81,7 +83,8 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
                 await outbox.RegisterNotiAsync(connectionId, new KnightShieldDeckMessage([0,0,0,0,0]), ct).ConfigureAwait(false);
             await outbox.RegisterCmdAsync(connectionId, new ReturnToSelectionResponse(), ct).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(connectionId, new AccountCharacterRosterResponse(prepared.Roster, AnswersRosterQuery: false), ct).ConfigureAwait(false);
-            await outbox.RegisterNotiAsync(connectionId, new HonorLevelInfoNotice(Dfo.Server.Data.Characters.AccountHonorLevel.Initial), ct).ConfigureAwait(false);
+            var standing = await honor.ReadAsync(accountId, ct).ConfigureAwait(false);
+            await outbox.RegisterNotiAsync(connectionId, new HonorLevelInfoNotice(standing), ct).ConfigureAwait(false);
         }
         catch (Exception error)
         {

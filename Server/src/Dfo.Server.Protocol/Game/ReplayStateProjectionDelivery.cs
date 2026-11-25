@@ -137,7 +137,7 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
         {
             var progress = state.Progress ?? throw Missing("Progress");
             messages.Add(new ExperienceNotification(progress.Level, progress.Experience,
-                state.Points ?? throw Missing("Points"), AccountHonorLevel.Initial, ExperienceBonusLines.None));
+                state.Points ?? throw Missing("Points"), state.Honor, ExperienceBonusLines.None));
         }
         if (needs.HasFlag(ReplayProjectionNeeds.HerasQuota))
         {

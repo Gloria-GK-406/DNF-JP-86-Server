@@ -22,7 +22,7 @@ internal static class TournamentCompletionFrames
         var frames = new List<IGameServerMessage>();
         if (action.Fatigue is { } fatigue) frames.Add(new Fatigue.FatigueNotification(fatigue));
         if (action.Experience is { } exp && action.SkillPoints is { } points)
-            frames.Add(new ExperienceNotification(exp.Level, exp.NotificationTotal, points, AccountHonorLevel.Initial, ExperienceBonusLines.Of(exp)));
+            frames.Add(GameExperienceDelivery.Notification(exp, points));
         AddInventory(frames, action, clock);
         if (action.Quests is { } quests)
             frames.Add(new AcceptedQuestProgressMessage([.. quests.Quests.OrderBy(x => x.Slot)

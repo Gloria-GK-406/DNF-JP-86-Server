@@ -139,6 +139,7 @@ public sealed record ReplayStateSnapshot(SelectedSessionIdentity Session, Replay
     ImmutableArray<ItemUsageState> ItemUsage, ImmutableArray<AccountPremiumEntryState> Premiums,
     ImmutableArray<CharacterPremiumUsageSlotState> PremiumUsage, ReplayCharacterState? Appearance)
 {
+    public AccountHonorLevel Honor { get; init; } = AccountHonorLevel.Initial;
     public Dfo.Server.Abstractions.Rental.EquipmentRentalPanel? Rental { get; init; }
     public CollectionBoxSnapshot? CollectionBoxes { get; init; }
     public Dfo.Server.Data.Marriage.MarriageCapsuleSnapshot? Capsules { get; init; }

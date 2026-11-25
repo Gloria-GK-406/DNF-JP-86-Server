@@ -81,12 +81,7 @@ public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService
         }
         if (response.ExperienceAward is { } award && response.SkillPoints is { } points)
         {
-            messages.Add(new ExperienceNotification(
-                award.Level,
-                award.NotificationTotal,
-                points,
-                AccountHonorLevel.Initial,
-                ExperienceBonusLines.Of(award)));
+            messages.Add(GameExperienceDelivery.Notification(award, points));
         }
         else if (response.ExperienceAward is not null || response.SkillPoints is not null)
         {

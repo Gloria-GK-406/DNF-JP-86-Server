@@ -53,7 +53,7 @@ internal sealed class AltarStateChangedHandler(IAltarDungeonDomainService altars
         foreach (var award in action.Awards.Where(x => x.Participant.CharacterId == recipient.CharacterId))
         {
             if (award.Experience is { } experience && award.SkillPoints is { } points)
-                messages.Add(new ExperienceNotification(experience.Level, experience.NotificationTotal, points, AccountHonorLevel.Initial, ExperienceBonusLines.Of(experience)));
+                messages.Add(GameExperienceDelivery.Notification(experience, points));
             messages.Add(GameInventoryDelivery.CarriedGoldNotification(award.GoldBalance, notification.At));
             foreach (var group in (award.Delivery?.Inventory ?? []).GroupBy(x => A21InventoryLayout.ToGameSlot(x.Slot).Space))
                 messages.Add(new InventoryDeltaMessage(group.Key, group.GroupBy(x => x.Slot).Select(x =>

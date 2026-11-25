@@ -9,5 +9,5 @@ internal static class GameExperienceDelivery
 {
     public static IGameServerMessage Notification(ExperienceAward award, CharacterSkillProtocolMirrorState points) =>
         new ExperienceNotification(award.Level, award.NotificationTotal, points,
-            AccountHonorLevel.Initial, ExperienceBonusLines.Of(award));
+            award.Honor, ExperienceBonusLines.Of(award));
 }

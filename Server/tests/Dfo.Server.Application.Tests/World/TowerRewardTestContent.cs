@@ -23,7 +23,7 @@ internal sealed class TowerRewardTestContent : IExperienceParameterSource, IClea
     public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
         ValueTask.FromResult<EquipmentDefinition?>(itemId == 3000 ? new(1, 1, 1, "weapon", 35) : null);
     DungeonExperienceProgressionPolicy IDungeonExperienceProgressionPolicySource.Load() => new(
-        Enumerable.Range(1, 199).Select(x => (uint)x * 1000000).ToArray(), 0, 1, 100);
+        Enumerable.Range(1, 199).Select(x => (uint)x * 1000000).ToArray(), new([new(1, 1, 0)], 0), 1, 100);
     public static void Register(IServiceCollection services, TowerRewardTestContent? content = null)
     {
         content ??= new();

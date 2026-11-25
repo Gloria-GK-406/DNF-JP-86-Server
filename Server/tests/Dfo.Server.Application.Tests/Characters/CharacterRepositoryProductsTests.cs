@@ -104,7 +104,7 @@ public sealed class CharacterRepositoryProductsTests
         var presence = PresentCharacters.StandingInTown(new CharacterId(60), new CharacterId(61));
 
         return (new CharacterDomainService(new NoCarriedGold(), new StoredCarryLimitOnly(), new OnlyCharacterSixtysRow(),
-            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!), judgement, cooldowns, presence);
+            new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!), judgement, cooldowns, presence);
     }
 
     private static ICharacterDomainService Build() => Parts().Characters;

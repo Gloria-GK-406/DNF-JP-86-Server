@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Characters;
@@ -70,6 +71,7 @@ public sealed record GameLevelUpTicketCommand(NetworkDispatchContext Dispatch,Le
 public sealed class GameLevelUpTicketCommandHandler(ISelectedSessionDomainService sessions, IOnlineUserQueryDomainService onlineUsers,
     ILevelUpTicketDomainService tickets, TimeProvider clock, ICommandWorkUnits units, ICommandProjections notifications, IGameCommandOutbox outbox,
     ISelectedCharacterCurrentViewDomainService views, IQuestOfferRefreshDomainService offers,
+    IAccountHonorDomainService honor,
     ICharacterQuestLogDomainService quests, IDungeonRunQueryDomainService runs, ILogger<GameLevelUpTicketCommandHandler> logger,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
     : ICommandHandler<GameLevelUpTicketCommand,bool>
@@ -120,10 +122,11 @@ public sealed class GameLevelUpTicketCommandHandler(ISelectedSessionDomainServic
         }
         result=outcome is CommandWriteResult<ActionOutcome>.Returned {Value:{Result:{} value}} ? value
             : throw new InvalidOperationException("Level ticket returned no action outcome.");
+        var standing = await honor.ReadAsync(session.AccountId, ct).ConfigureAwait(false);
         var following = new List<IServerNetworkMessage>
         {
             new ExperienceNotification(result.Progress.Level, result.Progress.Experience, result.Points,
-                AccountHonorLevel.Initial, ExperienceBonusLines.None),
+                standing, ExperienceBonusLines.None),
         };
         try
         {

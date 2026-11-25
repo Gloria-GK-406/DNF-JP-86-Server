@@ -229,7 +229,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
                     level,
                     award?.NotificationTotal ?? total,
                     mirror,
-                    AccountHonorLevel.Initial,
+                    award?.Honor ?? result.CharacterEntry.Public.Honor,
                     ExperienceBonusLines.Of(award)),
             ];
 

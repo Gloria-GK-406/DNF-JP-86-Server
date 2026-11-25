@@ -230,6 +230,7 @@ public sealed class CharacterRosterCommandFlowTests
             services.AddNetworkMessageDispatching();
             Users = new(Connection);
             services.AddSingleton<IOnlineUserQueryDomainService>(Users);
+            services.AddSingleton(TestRequired.InitialHonor);
             var sessions = DispatchProxy.Create<ISelectedSessionDomainService, Sessions>();
             ((Sessions)(object)sessions).Find = account => Selected is { } held && held.AccountId == account ? held : null;
             services.AddSingleton(sessions);

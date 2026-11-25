@@ -831,7 +831,7 @@ CMD `0x01DE` / NOTI `0x01A1` = Primary；CMD `0x01F8` / NOTI `0x01B9` = Secondar
 | `0x01` CMD | `0x0040` | `BUY_CERASHOP_ITEM` response | Response | 实现服务端功能（A21，宠物蛋实机成功；装扮修复待复测） | [CMD-0x0040.md](game/server-to-client/CMD-0x0040.md) |
 | `0x01` CMD | `0x0041` | `GEN_CERATICKET` response | Response | 实现服务端功能（失败分支，待实机） | [0x0041.md](game/client-to-server/0x0041.md) |
 | `0x00` NOTI | `0x01F7` | `SERVER_NOTICE_MESSAGE` | Notification | 实现服务端功能（mode=0，商城反馈待实机） | [NOTI-0x01F7.md](game/server-to-client/NOTI-0x01F7.md) |
-| `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | 实现服务端功能 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
+| `0x00` NOTI | `0x0289` | `HONOR_LEVEL_INFO` | Notification | A21 ClientStatic、WireCaptured，已接入账号荣誉，实机显示待验 | [NOTI-0x0289.md](game/server-to-client/NOTI-0x0289.md) |
 | `0x00` NOTI | `0x0003` | `USER_STATE` | Notification | 实现服务端功能 | [NOTI-0x0003.md](game/server-to-client/NOTI-0x0003.md) |
 | `0x00` NOTI | `0x0002` | `USERINFO` | Notification | ClientVerified（A21 subtype 0 城镇同屏、subtype 1、subtype 3 角色详情） | [NOTI-0x0002.md](game/server-to-client/NOTI-0x0002.md) |
 | `0x00` NOTI | `0x0006` | `USER_LEAVE` | Notification | WireCaptured（A21 双客户端正常退出的 2B 离场通知；跨区使用已被实机反证） | [NOTI-0x0006.md](game/server-to-client/NOTI-0x0006.md) |

@@ -31,6 +31,7 @@ public sealed class CharacterEntryStateTests
             adventureGroups: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>((method, arguments) =>
                 method.Name == "ReadAsync" && (AccountId)arguments![0]! == accountId
                     ? ValueTask.FromResult(new AdventureGroupStanding(3, 21570)) : null),
+            honor: TestRequired.InitialHonor,
             privateStores: TestRequired.Absent<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService>((method, arguments) =>
                 method.Name == "IsPermittedAsync" ? ValueTask.FromResult(false) : null));
 

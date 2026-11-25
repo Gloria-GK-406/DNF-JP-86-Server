@@ -188,7 +188,8 @@ public sealed partial class AuctionCustodyAndStoreTests
         var characters = new CharacterDomainService(new SqliteCharacterCarriedGoldTable(database),
             TestRequired.Absent<ICarriedGoldRuleService>(), owners, TestRequired.Absent<ICharacterSkillPointDomainService>(),
             TestRequired.Absent<ICharacterStatRuleService>(), TestRequired.Absent<ICharacterSkillStateDomainService>(),
-            TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(), scope, events);
+            TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(),
+            TestRequired.InitialHonor, scope, events);
         var wallets = new AccountWalletDomainService(new SqliteAccountTable(database), new AccountWalletRuleService(), scope);
         var sendRules = TestRequired.Absent<IMailItemRuleService>();
         var inventories = TestRequired.Absent<ICharacterBusinessInventoryDomainService>();

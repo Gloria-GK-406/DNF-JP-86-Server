@@ -20,7 +20,10 @@ public sealed record MonsterKillEffects(ExperienceAward? Award, QuestProgressSna
 
 public sealed record MonsterDeathParticipantResult(SelectedSessionIdentity Session,
     CharacterProgressionState Progress, CharacterSkillProtocolMirrorState SkillPoints,
-    MonsterKillEffects Effects, AvailableQuestEntryState? AvailableQuests);
+    MonsterKillEffects Effects, AvailableQuestEntryState? AvailableQuests)
+{
+    public AccountHonorLevel Honor { get; init; } = AccountHonorLevel.Initial;
+}
 
 /// <summary>The runtime change becomes available only after the surrounding transaction commits.</summary>
 public interface ICommittedActorDeath

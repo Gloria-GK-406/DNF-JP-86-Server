@@ -152,7 +152,7 @@ public sealed class RemainingSkillPointTests
             Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterSkillPointDomainService>.Instance);
         return (
             new PlayingCharacter(Who, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
-                points, null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, null!, null!),
+                points, null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!),
             archive);
     }
 

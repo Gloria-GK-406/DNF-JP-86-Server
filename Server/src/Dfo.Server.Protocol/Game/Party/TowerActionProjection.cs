@@ -130,8 +130,7 @@ internal static class TowerActionProjection
         var skillPoints = await characters.Get(session.CharacterId)
             .RemainingSkillPointsAsync(token).ConfigureAwait(false);
         if (skillPoints is not null)
-            frames.Add(new ExperienceNotification(award.Level, award.NotificationTotal, skillPoints,
-                AccountHonorLevel.Initial, ExperienceBonusLines.Of(award)));
+            frames.Add(GameExperienceDelivery.Notification(award, skillPoints));
     }
 
     internal static void AppendInventory(List<IGameServerMessage> frames,

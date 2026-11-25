@@ -1,7 +1,10 @@
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Execution.Outbox;
 using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,6 +18,14 @@ namespace Dfo.Server.Testing;
 /// </remarks>
 internal static class TestRequired
 {
+    public static IAccountHonorDomainService InitialHonor { get; } = new FreshAccountHonor();
+
+    private sealed class FreshAccountHonor : IAccountHonorDomainService
+    {
+        public ValueTask<AccountHonorLevel> ReadAsync(AccountId accountId, CancellationToken ct) =>
+            ValueTask.FromResult(AccountHonorLevel.Initial);
+    }
+
     /// <summary>A transaction scope outside any job: no ambient outbox, so a write opens no outbox unit.</summary>
     public static DomainTransactionScope TransactionScope() =>
         new(NullLogger<DomainTransaction>.Instance, Outboxes());

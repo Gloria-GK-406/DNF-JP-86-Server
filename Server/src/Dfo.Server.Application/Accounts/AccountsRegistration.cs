@@ -28,6 +28,7 @@ internal static class AccountsRegistration
         services.TryAddSingleton<IAccountRelationCompatibilityEntryProjection, AccountRelationCompatibilityEntryProjection>();
         services.TryAddSingleton<IAccountEntryStateRepository, AccountEntryAssembly>();
         services.TryAddSingleton<IAccountEntryStateDomainService, AccountEntryStateDomainService>();
+        services.TryAddSingleton<IAccountHonorDomainService, AccountHonorDomainService>();
         services.TryAddSingleton<IAccountWalletRuleService, AccountWalletRuleService>();
         services.TryAddSingleton<IAccountWalletDomainService, AccountWalletDomainService>();
         return services;

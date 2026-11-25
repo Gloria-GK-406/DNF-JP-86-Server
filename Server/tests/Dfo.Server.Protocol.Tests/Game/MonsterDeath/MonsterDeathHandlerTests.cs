@@ -90,7 +90,7 @@ public sealed class MonsterDeathHandlerTests
     {
         _ = unusedView;
         var scope = new Dfo.Server.Application.Transactions.DomainTransactionScope(logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Transactions.DomainTransaction>.Instance, outboxes: TestRequired.Outboxes());
-        var service = new MonsterDeathDomainService(scope, sessions, characters,
+        var service = new MonsterDeathDomainService(scope, sessions, Dfo.Server.Testing.TestRequired.InitialHonor, characters,
             runs, kills, new RewardAdapter(rewards), new OfferAdapter(offers),
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<IQuestItemDropDomainService>(),
             Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Quests.IQuestProgressDomainService>(),
