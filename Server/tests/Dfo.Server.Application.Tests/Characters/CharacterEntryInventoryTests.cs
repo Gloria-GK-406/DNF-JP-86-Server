@@ -256,7 +256,7 @@ public sealed class CharacterEntryInventoryTests
             new StubCharacterDomainService(selected),
             new StubInventoryEntryService(EmptyInventory(accountId, selected.Identity.CharacterId)),
             new StubCharacterEntryStateDomainService(normal), new StubAccountEntryStateDomainService(EmptyAccountEntry(accountId)), skillPoints: new NormalSkillSource(),
-            pvpSkills: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
+            skillInitializer: new FixedPvpSkills(pvp), placement: new DuelAwarePlacement());
 
         var ordinary = await entry.EnterAsync(
             accountId, 2, StubChannelEntryPolicy.GeneralChannel, CancellationToken.None);
@@ -264,8 +264,10 @@ public sealed class CharacterEntryInventoryTests
             accountId, 2, StubChannelEntryPolicy.FreeDuelChannel, CancellationToken.None);
 
         Assert.Equal((ushort)777, Assert.Single(ordinary.CharacterEntry.Skills.Pages[0].Skills).SkillId);
+        Assert.Equal(normal.Public.Extras.SkillTreeIndex, ordinary.CharacterEntry.Public.Extras.SkillTreeIndex);
         var ordinaryPoints = Assert.IsType<CharacterSkillProtocolMirrorState>(ordinary.CharacterEntry.Skills.ProtocolMirror);
         Assert.Equal((ushort)888, Assert.Single(duel.CharacterEntry.Skills.Pages[0].Skills).SkillId);
+        Assert.Equal(1, duel.CharacterEntry.Public.Extras.SkillTreeIndex);
         var duelPoints = Assert.IsType<CharacterSkillProtocolMirrorState>(duel.CharacterEntry.Skills.ProtocolMirror);
         Assert.Equal(ordinaryPoints.Page0Sp - 20, duelPoints.Page0Sp);
         Assert.Equal((ushort)106, duelPoints.Page1Sp);
@@ -310,26 +312,23 @@ public sealed class CharacterEntryInventoryTests
     }
 
     [Fact]
-    public async Task PvpInitializer_PreservesInitialOrderAndUsesDarkKnightGroupAllocation()
+    public async Task InitialDuelSkillPages_PreserveInitialOrderAndUseDarkKnightGroupAllocation()
     {
         var darkKnight = Character(6021, 3) with
         {
             Identity = Character(6021, 3).Identity with { Job = 9 },
         };
-        var result = await Dfo.Server.Application.Characters.SelectCharacterPreparationService
-            .BuildInitialPvpSkillProfileAsync(
-                darkKnight, EmptyCharacterEntry(darkKnight.Identity.CharacterId).Skills,
-                new CharacterEntryPreparationRuleService(
-                    new AllocationSkillSource(),
-                    new UnusedExpertContracts(),
-                    new UnusedCreatureLifetimes(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-                CancellationToken.None);
+        var rules = new CharacterEntryPreparationRuleService(
+            new AllocationSkillSource(), new UnusedExpertContracts(), new UnusedCreatureLifetimes(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CharacterEntryPreparationRuleService>.Instance);
+        var result = await rules.InitialDuelSkillPagesAsync(darkKnight.Identity.Job, darkKnight.Identity.GrowType,
+            darkKnight.Progression.Level, CancellationToken.None);
 
         Assert.Equal([(short)0, (short)102, (short)150],
-            result.Pages[0].Skills.Select(value => value.Slot));
+            result[0].Skills.Select(value => value.Slot));
         Assert.Equal([(ushort)100, (ushort)101, (ushort)102],
-            result.Pages[0].Skills.Select(value => value.SkillId));
-        Assert.Equal(result.Pages[0].Skills, result.Pages[1].Skills);
+            result[0].Skills.Select(value => value.SkillId));
+        Assert.Equal(result[0].Skills, result[1].Skills);
     }
 
     [Fact]
@@ -651,7 +650,7 @@ public sealed class CharacterEntryInventoryTests
         new CharacterPublicEntryState(
             new CharacterConditionStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, CreatureBuffer: []),
             new CharacterSettingsStorageRecord(0),
-            new CharacterPvpStandingStorageRecord(0, 0, 0, 0, []),
+            new CharacterPvpStandingStorageRecord([]),
             new CharacterExpertJobStorageRecord(0, 0),
             new CharacterDerivedStatsStorageRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
             new CharacterGuildStandingStorageRecord(0, 0),
@@ -868,14 +867,13 @@ public sealed class CharacterEntryInventoryTests
     }
 
     private sealed class FixedPvpSkills(CharacterSkillsEntryState state)
-        : ICharacterPvpSkillProfileRepository
+        : ICharacterSkillGroupInitializer
     {
-        public ValueTask<CharacterSkillsEntryState> ReadAsync(
-            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(state);
-        public ValueTask<CharacterSkillsEntryState> LoadOrInitializeAsync(
-            AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
-            CancellationToken cancellationToken) => ValueTask.FromResult(state);
+        public SkillGroup Group => SkillGroup.Duel;
+
+        public ValueTask<(IReadOnlyList<CharacterSkillPageState> Pages, int SkillTreeIndex)> PrepareAsync(
+            AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken) =>
+            ValueTask.FromResult((state.Pages, 1));
     }
 
     private sealed class FixedExpertContracts : IExpertSkillContractDefinitionSource
@@ -906,7 +904,7 @@ public sealed class CharacterEntryInventoryTests
             int persistedTownId, CancellationToken cancellationToken) => ValueTask.FromResult(
                 new ChannelEntryPolicyState(channel.ChannelId,
                     new EntrySpawnState(1, 1, 10, 20, 5, 3, channel.IsTransient),
-                    !channel.IsTransient, channel.IsFreeDuel));
+                    !channel.IsTransient, channel.CharacterSkillGroup));
         public ValueTask<bool> CanEnterTownAsync(ChannelEntryIdentity channel, int townId,
             CancellationToken cancellationToken) => ValueTask.FromResult(true);
         public ValueTask<bool> DeclaresAreaAsync(int townId, int areaId,

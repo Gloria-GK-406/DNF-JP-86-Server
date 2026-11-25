@@ -53,3 +53,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-23 王者战编队用途
+
+**ClientStatic / High**。A21 NOTI handler VA `0x01164630`，尾部 `0x01164751`、`0x0116475C`、`0x01164767` 分别读一个字节，`0x01164796` 将这三项与此前处理的名称一起交给编队对象。同一方向的 `PVP_TOTAL_MATCH_TEAM_INFO` 是本路径的用途。参照服 `PvpTotalMatchTeamBodyBuilder` 写 `Dstr + 三个 u8 账号角色列表索引`，匹配可见读字段。A21 三索引与持久化角色的映射及发包时机仍需实机核对。
+
+**CurrentImplementation**。保存成功后先发送本通知，再确认 [CMD 0x035E](../client-to-server/0x035E.md)。保留代表且在王者战等待房时，候选装载排在确认之后。选角初始化在 `PVP_RECORD` 后发送有效队伍。持久化角色从当前花名册按 ID 换算位置，任一角色缺失时省略此通知。选角时机以参照服 `NewCharacterInitSequence` 为依据。
+
+**WireCaptured / Confirmed，2026-11-24**。CH68 保存「123」后收到[通知样本](samples/NOTI-0x031B-2026-11-24-01.hex)，载荷为队名 Dstr 和三名候选的花名册位置 `01 02 00`。随后换入代表角色的初始化批次也收到相同队伍通知。该样本确认载荷和读回，整段换角 UI 仍待复测。

@@ -48,6 +48,29 @@ public sealed class CommandRegistrationTests
         Assert.Single(row.ProtocolMessages!);
         _=new CommandHandlerRegistry([row]);
     }
+    /// <summary>
+    /// Spec RQ-022 / AC-020: REQUEST_PEER and RESPONSE_PEER stay one command each, dispatched on the request type
+    /// inside it; every duel room message binds exactly one command, and each command builds.
+    /// </summary>
+    [Fact]
+    public void Peer_and_duel_room_messages_each_bind_one_buildable_command()
+    {
+        using var provider = BuildProductionGraph();
+        var rows = provider.GetServices<CommandHandlerRegistration>().ToArray();
+        using var scope = provider.CreateScope();
+        foreach (var message in new[]
+                 {
+                     ClientMessageType.GameRequestPeer, ClientMessageType.GameResponsePeer, ClientMessageType.GamePvpChannelInfo,
+                     ClientMessageType.GameMakePvpRoom, ClientMessageType.GameEnterPvpRoom, ClientMessageType.GameSetPvpSeatState,
+                     ClientMessageType.GameSetPvpReadyState, ClientMessageType.GameSetPvpTeamMode, ClientMessageType.GameSetPvpMapIndex,
+                 })
+        {
+            var row = Assert.Single(rows, x => x.ProtocolMessages?.Any(binding => binding.MessageType == message) == true);
+            Assert.Single(row.ProtocolMessages!);
+            Assert.NotNull(scope.ServiceProvider.GetRequiredService(row.InvokerType));
+        }
+    }
+
     [Theory]
     [InlineData("Internal")]
     [InlineData("Effect")]

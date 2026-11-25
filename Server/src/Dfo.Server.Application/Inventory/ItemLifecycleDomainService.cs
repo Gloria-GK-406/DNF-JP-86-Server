@@ -34,7 +34,7 @@ internal sealed class ItemLifecycleDomainService : IItemLifecycleDomainService
 
     public async ValueTask<ItemSnapshot> PrepareNewAsync(ItemSnapshot snapshot, CancellationToken ct, DateTimeOffset? at = null)
     {
-        if (snapshot is not { LegacyKind: 0, ItemId: 1, Type: ItemTraits.None, IsPile: true })
+        if (snapshot is not { LegacyKind: 0, ItemId: 1 or VictoryEmblemResource.ItemId, Type: ItemTraits.None, IsPile: true })
         {
             var placement = await placements.PlacementForAsync(snapshot.ItemId, ct).ConfigureAwait(false);
             if (placement is null || snapshot.LegacyKind != placement.ItemKind || snapshot.Type != placement.Traits

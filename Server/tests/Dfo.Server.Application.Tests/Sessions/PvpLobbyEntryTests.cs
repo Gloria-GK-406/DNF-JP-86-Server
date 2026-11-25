@@ -39,7 +39,6 @@ public sealed class PvpLobbyEntryTests
 
             Assert.NotNull(result.PvpLobby);
             Assert.Empty(result.PvpLobby!.Participants);
-            Assert.Empty(result.PvpLobby.Rooms);
         });
     }
 
@@ -81,99 +80,6 @@ public sealed class PvpLobbyEntryTests
     }
 
     [Fact]
-    public async Task The_lobby_lists_the_rooms_on_offer()
-    {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(2));
-            lobby.Offer(Room(1));
-
-            var result = await Service(lobby)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
-
-            Assert.Equal([1, 2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
-        });
-    }
-
-    /// <remarks>
-    /// A room that has not finished being announced is withheld, because a character who
-    /// joined it now would race the announcement it is still making.
-    /// </remarks>
-    [Fact]
-    public async Task A_room_still_being_announced_is_not_offered()
-    {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(1, published: false));
-            lobby.Offer(Room(2));
-
-            var result = await Service(lobby)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
-
-            Assert.Equal([2], result.PvpLobby!.Rooms.Select(room => room.RoomId));
-        });
-    }
-
-    [Fact]
-    public async Task Rooms_on_another_listener_are_not_offered()
-    {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(1, listenerPort: 10011));
-
-            var result = await Service(lobby)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
-
-            Assert.Empty(result.PvpLobby!.Rooms);
-        });
-    }
-
-    [Fact]
-    public async Task A_room_carries_what_the_lobby_shows_about_it()
-    {
-        await TestGameplay.RunAsync(async () =>
-        {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(new PvpRoom(
-                RoomId: 7,
-                OwnerCharacterId: new CharacterId(10),
-                ListenerPort: 10068,
-                NameType: 3,
-                MapIndex: 42,
-                HasPassword: true,
-                BattleMode: 2,
-                Published: true));
-
-            var result = await Service(lobby)
-                .LoadAsync(Subject(StubChannelEntryPolicy.FreeDuelChannel), CancellationToken.None);
-
-            var room = Assert.Single(result.PvpLobby!.Rooms);
-            Assert.Equal(10, room.OwnerCharacterId.Value);
-            Assert.Equal(3, room.NameType);
-            Assert.Equal(42, room.MapIndex);
-            Assert.True(room.HasPassword);
-            Assert.Equal(2, room.BattleMode);
-        });
-    }
-
-    [Fact]
-    public void Withdrawing_removes_a_room_from_the_offers()
-    {
-        TestGameplay.Run(() =>
-        {
-            var lobby = new PvpLobbyDomainService();
-            lobby.Offer(Room(1));
-
-            Assert.True(lobby.Withdraw(1));
-            Assert.False(lobby.Withdraw(1));
-            Assert.Empty(lobby.OfferedOn(10068));
-        });
-    }
-
-    [Fact]
     public void Clearing_readiness_removes_a_participant()
     {
         TestGameplay.Run(() =>
@@ -185,6 +91,45 @@ public sealed class PvpLobbyEntryTests
             Assert.False(lobby.ClearReady(new CharacterId(10)));
             Assert.Empty(lobby.ReadyOn(10068, new CharacterId(99)));
         });
+    }
+
+    /// <remarks>
+    /// Spec AC-002: the lobby holds readiness only; rooms have one owner, the duel room domain service. The check
+    /// walks every field type (generic arguments included) and every member of the lobby's contract for a
+    /// <c>PvpRoom*</c> type, and is shown to catch a lobby that kept rooms.
+    /// </remarks>
+    [Fact]
+    public void The_lobby_keeps_no_room_state()
+    {
+        Assert.Empty(RoomTypesHeldBy(typeof(PvpLobbyDomainService)));
+        Assert.DoesNotContain(typeof(IPvpLobbyDomainService).GetMembers(),
+            member => member.Name.Contains("Room", StringComparison.Ordinal)
+                || (member is System.Reflection.MethodInfo method
+                    && method.GetParameters().Select(parameter => parameter.ParameterType).Append(method.ReturnType)
+                        .Any(type => Mentions(type, IsRoomType))));
+
+        // Counter-example: the same check fails for a lobby that keeps a room table.
+        Assert.NotEmpty(RoomTypesHeldBy(typeof(LobbyThatKeepsRooms)));
+    }
+
+    private static Type[] RoomTypesHeldBy(Type type) =>
+        [.. type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static
+                | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+            .Select(field => field.FieldType)
+            .Where(fieldType => Mentions(fieldType, IsRoomType))];
+
+    private static bool IsRoomType(Type type) => type.Name.StartsWith("PvpRoom", StringComparison.Ordinal);
+
+    private static bool Mentions(Type type, Func<Type, bool> match) =>
+        match(type)
+        || (type.HasElementType && Mentions(type.GetElementType()!, match))
+        || (type.IsGenericType && type.GetGenericArguments().Any(argument => Mentions(argument, match)));
+
+    private sealed class LobbyThatKeepsRooms
+    {
+#pragma warning disable CS0169 // Only read by reflection.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<int, Dfo.Server.Abstractions.Pvp.PvpRoomSnapshot>? rooms;
+#pragma warning restore CS0169
     }
 
     private static SessionAdjacentEntryDomainService Service(IPvpLobbyDomainService lobby) =>
@@ -199,7 +144,4 @@ public sealed class PvpLobbyEntryTests
 
     private static PvpLobbyParticipant Ready(int characterId, int listenerPort = 10068) =>
         new(new CharacterId(characterId), listenerPort);
-
-    private static PvpRoom Room(ushort roomId, int listenerPort = 10068, bool published = true) =>
-        new(roomId, new CharacterId(1), listenerPort, 0, 0, false, 0, published);
 }

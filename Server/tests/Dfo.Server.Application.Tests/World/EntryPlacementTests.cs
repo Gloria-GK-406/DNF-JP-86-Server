@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
@@ -22,7 +23,8 @@ public sealed class EntryPlacementTests
 
     [Theory]
     [InlineData(ChannelEntryKind.FreeDuel, 10)]
-    [InlineData(ChannelEntryKind.Pvp, 10)]
+    [InlineData(ChannelEntryKind.TraditionalDuel, 10)]
+    [InlineData(ChannelEntryKind.MatchmakingDuel, 10)]
     [InlineData(ChannelEntryKind.Raid, 19)]
     public async Task Special_channel_uses_its_own_town_without_overwriting_home(ChannelEntryKind kind, int town)
     {
@@ -118,8 +120,8 @@ public sealed class EntryPlacementTests
         var general = await placement.ResolveAsync(
             StubChannelEntryPolicy.GeneralChannel, 1, CancellationToken.None);
 
-        Assert.True(duel.PvpSkillProfileApplies);
-        Assert.False(general.PvpSkillProfileApplies);
+        Assert.Equal(SkillGroup.Duel, duel.SkillGroup);
+        Assert.Equal(SkillGroup.Pve, general.SkillGroup);
     }
 
     [Fact]

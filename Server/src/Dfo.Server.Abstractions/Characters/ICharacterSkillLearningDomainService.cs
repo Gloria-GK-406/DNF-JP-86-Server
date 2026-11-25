@@ -14,3 +14,18 @@ public interface ICharacterSkillLearningDomainService
     ValueTask<CharacterSkillLearningResult> LearnAsync(SelectedSessionIdentity session, int pageIndex,
         IReadOnlyList<CharacterSkillLearningChange> changes, byte mode, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }
+
+public interface ICharacterSkillGroupEditPolicy
+{
+    SkillGroup Group { get; }
+
+    ValueTask<CharacterSkillLearningRejection> RefuseEditAsync(
+        SelectedSessionIdentity session, CharacterSkillGroupEditOperation operation, CancellationToken cancellationToken);
+}
+
+public enum CharacterSkillGroupEditOperation
+{
+    Learn,
+    SwapSlots,
+    SwitchBuild,
+}

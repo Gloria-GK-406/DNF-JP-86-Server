@@ -13,5 +13,7 @@ public readonly record struct SkillBuildId
 public sealed record CharacterSkillBuild(SkillBuildId Id, bool IsUnlocked);
 public sealed record CharacterSkillBuilds(SkillBuildId Active, IReadOnlyList<CharacterSkillBuild> Builds)
 {
+    public int SkillTreeIndex => IsUnlocked(new(1)) ? Active.Value : -1;
+
     public bool IsUnlocked(SkillBuildId id) => Builds.Any(build => build.Id == id && build.IsUnlocked);
 }

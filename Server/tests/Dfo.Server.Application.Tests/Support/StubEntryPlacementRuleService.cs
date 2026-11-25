@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.World;
@@ -18,7 +19,7 @@ internal sealed class StubEntryPlacementRuleService(ChannelEntryPolicyState? sta
         ChannelId: 11,
         Spawn: new EntrySpawnState(1, 0, 474, 234, 5, 3, IsTransient: false),
         PersistsPosition: true,
-        PvpSkillProfileApplies: false);
+        SkillGroup: SkillGroup.Pve);
 
     public ValueTask<ChannelEntryPolicyState> ResolveAsync(
         ChannelEntryIdentity channel,

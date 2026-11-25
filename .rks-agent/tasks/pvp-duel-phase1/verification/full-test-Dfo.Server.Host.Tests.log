@@ -1,0 +1,10 @@
+project: Dfo.Server.Host.Tests
+command: dotnet test <project> --no-build -m:1 -- xUnit.MaxParallelThreads=1 (PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf)
+trx: E:\Project\DNF\DNF-JP-86-Server-pvp\Server\tests\Dfo.Server.Host.Tests\TestResults\Gloria_家庭台式机_2026-11-14_22_18_39_net10.0.trx
+start: 2026-11-14T22:18:26.6414406+08:00  finish: 2026-11-14T22:34:55.4756263+08:00
+total=327 passed=325 failed=1 skipped=1
+
+[Failed] Dfo.Server.Host.Tests.GmEventsHttpTests.Actual_A21_archive_uses_client_script_reward_order_and_delivers_declared_first_reward
+    Assert.Equal() Failure: Collections differ |                                                           ↓ (pos 0) | Expected: int[]                                          [490003187, 490003188, 490003189, 490003196, 490003190, ···]
+[NotExecuted] Dfo.Server.Host.Tests.HostShutdownOrderTests.Sigterm_with_an_open_game_connection_stops_the_executor_after_its_teardown_and_exits_cleanly
+    SIGTERM is not available on Windows.

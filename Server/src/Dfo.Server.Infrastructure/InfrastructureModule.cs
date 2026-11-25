@@ -34,6 +34,10 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IAltarDungeonContentSource, PvfAltarDungeonContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IGuardianAltarContentSource, PvfGuardianAltarContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerContentSource, PvfSaoTowerContentSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpGradeDefinitionSource, PvfPvpGradeDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpDailyMissionDefinitionSource, PvfPvpDailyMissionDefinitionSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpColosseumRuleSource, PvfPvpColosseumRuleSource>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpMapDefinitionSource, PvfPvpMapDefinitionSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISouthernDaleContentSource, PvfSouthernDaleContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDarkElfRuinsContentSource, PvfDarkElfRuinsContentSource>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ITauKingdomContentSource, PvfTauKingdomContentSource>();
@@ -203,6 +207,9 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<Dfo.Server.Abstractions.World.IGoldSilverHornContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IHellRewardDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.ISaoTowerContentSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Pvp.IPvpGradeDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Pvp.IPvpDailyMissionDefinitionSource>()
+        .AddContentWarmup<Dfo.Server.Abstractions.Pvp.IPvpMapDefinitionSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.World.IDarkElfRuinsContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageCeremonyContentSource>()
         .AddContentWarmup<Dfo.Server.Abstractions.Marriage.IMarriageProposalContentSource>()
@@ -293,7 +300,12 @@ public sealed class InfrastructureModule : IServerModule
                 : defaults.DefaultTownId,
             int.TryParse(section["SaintHornTownId"], out var restrictedTownId)
                 ? restrictedTownId
-                : defaults.SaintHornTownId);
+                : defaults.SaintHornTownId)
+        {
+            TotalMatchmakingChannelIds = section.GetSection("TotalMatchmakingChannelIds").GetChildren()
+                .Select(entry => int.Parse(entry.Value ?? "", System.Globalization.CultureInfo.InvariantCulture))
+                .ToArray(),
+        };
     }
 }
 

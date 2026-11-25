@@ -117,7 +117,7 @@ public sealed class CharacterEntryStateTests
             new CharacterConditionStorageRecord(7, 8, 1, 0, 0, 0, 0, 0, 5),
             new CharacterSettingsStorageRecord(3),
             new CharacterPvpStandingStorageRecord(
-                99, 0, 0, 0, [new CharacterPvpResultStorageRow(101, 102, 103)]),
+                [new CharacterPvpResultStorageRow(101, 102, 103)]),
             new CharacterExpertJobStorageRecord(2, 10),
             new CharacterDerivedStatsStorageRecord(
                 100, 90, 123, 50, 111, 40, 20, 30, 10, 120, 1, 2),

@@ -56,3 +56,37 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-14 决斗场一期实现（TASK-06，CurrentImplementation，待实机）
+
+`u16 房间号, u8 模式, u8 n`，再 `n × (u8 座位, u8 state, u16 uid)`；state 与 uid 同 [NOTI-0x0029](NOTI-0x0029.md)（空与关闭座位
+uid 为 `0xFFFF`）（上游
+`BuildSeatStateBody`/`BuildOccupiedSeatStatesBody`，静态下界 8 字节一致，High）。座位的占用者、阵营或开关状态变化时发给同端口
+大厅就绪者；模式变化时列出全部占用座位；房间销毁前把最后的占用座位发成空座。准备标志不在其中。
+
+实机前不标 ClientVerified；无 `.hex` 样本，布局来自上游转录与静态走图，字节由编码/解码测试固定。
+
+## 2026-11-14 对局期间的座位移除（TASK-07，CurrentImplementation，待实机）
+
+房间处于对局阶段（开局即对战，开局之后到回等待之前）时有成员离场，同端口大厅立即收到该座位的 `0x002B`（房主继任另有 `0x002A`），
+房内其余成员不收，改记为"欠帧"：客户端结果界面结束前仍引用对局角色（上游 `PvpRoomHandler.Departures` 注释），上游同样按接收者
+延后。欠帧在以下时刻以"当时房间"补发（一帧列全部 8 个座位的 `0x002B` → `0x002A`）：该成员的 `0x0039` 被领域接受、下一局开局
+（排在 `0x002C`/`0x002D` 之前）、该成员退房或被踢（排在其回城与本次房间帧之后）。该成员会话结束、房间销毁时丢弃；确认超时回等待
+不补发（Spec RQ-035）。Fighting 中离场也延后，依据同上（上游 `deferCombatDeparture` 按房间处于开战状态判定）。
+
+实机前不标 ClientVerified。
+
+## 2026-11-15 座位 uid 与对局阶段（Spec SA-1、SA-2，CurrentImplementation）
+
+- 座位 uid：空与关闭座位写 `0xFFFF`（客户端的"无人"），占用座位写会话 uid。客户端证据（b1 VA 与 ClientStatic/High）见
+  [NOTI-0x0029「客户端证据：座位 uid 0xFFFF 表示无人」](NOTI-0x0029.md#客户端证据座位-uid-0xffff-表示无人clientstatichigh)。
+  大厅增量、结果界面欠帧补发的 8 座位帧、房间销毁前的空座帧都经同一编码器，均按此写。
+- 对局阶段：服务端没有加载、P2P 连通阶段，开局即对战（Fighting），依据见 [0x012A](../client-to-server/0x012A.md)。
+
+## 2026-11-24 CH68 王者战切换
+
+**WireCaptured / Confirmed**。CH68 房间 1 的房主按下王者战后，服务端发送 [8 字节样本](samples/NOTI-0x002B-2026-11-24-01.hex)。房间号为 1、模式为 8、变更条目数为 1。该项为座位 0、第一队成员、用户 ID 2。房主与同频道另一客户端收到相同载荷。前置请求见 [CMD 0x0036](../client-to-server/0x0036.md)。
+
+## 房内观战
+
+**CurrentImplementation**。响应 [观战座位切换](../client-to-server/0x0034.md#房内观战)时，state 写 3 或 4，uid 保持为该观战会话的用户 ID。房间快照 `0x0029` 与增量使用同一个座位编码。观战者的 `0x0039` 可以释放其暂缓的座位通知，房间回到等待时也补发给仍在座的观战者。三客户端 TCP 回归覆盖，原生 A21 流程待实机验证。

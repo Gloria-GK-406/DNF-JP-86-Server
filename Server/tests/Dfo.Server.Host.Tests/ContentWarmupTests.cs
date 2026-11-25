@@ -21,7 +21,7 @@ public sealed partial class ContentWarmupTests
     [
         "achievement-catalog", "title-book-catalog", "character-skill-rules", "gold-carry-limits", "character-manage",
         "premium-service-rules", "quest-helper-puppets", "experience-rules", "drop-rules",
-        "gold-silver-horn", "hell-reward", "sao-tower", "dark-elf-ruins", "marriage-ceremony", "marriage-proposal",
+        "gold-silver-horn", "hell-reward", "sao-tower", "pvp-grade", "pvp-map", "dark-elf-ruins", "marriage-ceremony", "marriage-proposal",
         "marriage-capsule", "marriage-housing", "altar-dungeons", "guardian-altar", "joust", "tournament-dungeons",
         "initial-equipment", "initial-skills", "item-placement-index", "despair-tower", "towns",
         "daily-activities", "collection-boxes", "quests", "dungeon-index", "dungeon-map-index",
@@ -64,6 +64,8 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfGoldSilverHornContentSource")] = Warmed<Abstractions.World.IGoldSilverHornContentSource>(),
         [Infra("PvfHellRewardDefinitionSource")] = Warmed<Abstractions.World.IHellRewardDefinitionSource>(),
         [Infra("PvfSaoTowerContentSource")] = Warmed<Abstractions.World.ISaoTowerContentSource>(),
+        [Infra("PvfPvpGradeDefinitionSource")] = Warmed<Abstractions.Pvp.IPvpGradeDefinitionSource>(),
+        [Infra("PvfPvpMapDefinitionSource")] = Warmed<Abstractions.Pvp.IPvpMapDefinitionSource>(),
         [Infra("PvfDarkElfRuinsContentSource")] = Warmed<Abstractions.World.IDarkElfRuinsContentSource>(),
         [Infra("PvfMarriageCeremonyContentSource")] = Warmed<Abstractions.Marriage.IMarriageCeremonyContentSource>(),
         [Infra("PvfMarriageProposalContentSource")] = Warmed<Abstractions.Marriage.IMarriageProposalContentSource>(),

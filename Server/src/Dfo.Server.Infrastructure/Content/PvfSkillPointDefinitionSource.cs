@@ -146,7 +146,12 @@ internal sealed class PvfSkillPointDefinitionSource(PvfArchiveProvider provider)
             Math.Max(1, First(archive, sections, path, Fields.IntervalLevelField, 1)),
             Math.Max(1, First(archive, sections, path, Fields.AddLevelPerIntervalField, 1)),
             ReadStringSection(archive, path, Fields.TypeField).Contains("active", StringComparison.OrdinalIgnoreCase),
-            First(archive, sections, path, Fields.SkillClassField), Values(Fields.SkillFitnessGrowtypeField).Count);
+            First(archive, sections, path, Fields.SkillClassField), Values(Fields.SkillFitnessGrowtypeField).Count)
+        {
+            ConsumesColorlessCube = sections.TryGetValue("[consume item]", out var consume)
+                && consume.Count >= 3 && consume[0] is { Kind: PvfTokenKind.Int32, Value: 3037 }
+                && consume.Skip(1).Any(value => value is { Kind: PvfTokenKind.Int32, Value: > 0 }),
+        };
     }
 
     private static string ReadStringSection(PvfArchive archive, string path, PvfField<string> tag) =>

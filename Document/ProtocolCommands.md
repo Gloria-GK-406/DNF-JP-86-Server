@@ -85,7 +85,7 @@ handler 实现同一 `ICommandHandler<TCommand,TResult>`；内部命令使用 `I
 修改这些命令时保持“判陈旧 → 定位 → 单通道”的形状：不在通道里补陈旧判定或塔归属查询，也不在普通通道里再次定位。
 结构守护 [DungeonOwnerRoutingSourceTests](../Server/tests/Dfo.Server.Protocol.Tests/Game/Dungeons/DungeonOwnerRoutingSourceTests.cs)
 扫描协议层生产源码，每个允许位置都固定出现次数：
-- 陈旧判定只出现在 13 个命令的路由方法，以及 0x009F、0x0010 的入口；路由方法中先于会话查询与定位。
+- 13 个副本命令在路由方法入口判陈旧，0x009F、0x0010 在各自入口判定。匹配申请、取消、对阵确认和两种加载报告等独立用例在清单中单列。
 - 两塔服务的 `Find`、`IsInTower` 只出现在定位器，以及逐项注明理由的非路由清单中。
 - 占用登记的 `Find` 只出现在定位器。
 - `DungeonLocator.Locate`、`LocateParty` 只出现在路由方法与 `LocatePartyOf`，0x000F 也只定位一次。

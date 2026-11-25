@@ -234,6 +234,6 @@ public sealed class TeleportConsumableTests
     {
         public ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity session, CancellationToken ct) =>
             ValueTask.FromResult<SelectCharacterResult?>(new(null!, null!, null!, null!, null!,
-                new(DateTimeOffset.UnixEpoch, null!, new(1, new(0, 0, 12, 34, 5, 3, false), true, false)), null!));
+                new(DateTimeOffset.UnixEpoch, null!, new(1, new(0, 0, 12, 34, 5, 3, false), true, SkillGroup.Pve)), null!));
     }
 }

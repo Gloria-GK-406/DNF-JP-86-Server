@@ -4,10 +4,12 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.Pvp;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
@@ -54,6 +56,9 @@ internal sealed class SelectedSessionCleanupService(
     Dfo.Server.Abstractions.Chat.IChatConversationDomainService conversations,
     Dfo.Server.Abstractions.Relations.ICharacterRelationQueryDomainService relations,
     ICharacterIdentityQueryDomainService identities,
+    IPvpRoomDomainService pvpRooms,
+    IPvpSettlementDomainService pvpSettlement,
+    IEnumerable<IPvpRoomDepartureSink> pvpDepartures,
     ILogger<SelectedSessionCleanupService> logger,
     IAntonRaidDomainService raids) : ISelectedSessionCleanupDomainService
 {
@@ -63,6 +68,8 @@ internal sealed class SelectedSessionCleanupService(
         // A tower departure settles the members it leaves behind, so they are inside its footprint.
         foreach (var tower in new ITowerRunSnapshot?[] { illusionTower?.Find(session), bossTower?.Find(session) })
             if (tower is not null) affected.UnionWith(tower.Members.Select(member => member.Session));
+        // A duel room departure can end the battle, settle it or hand the room on, all of which its other members see.
+        if (SeatedRoom(session) is { } room) affected.UnionWith(room.Members.Select(member => member.Member.Session));
         return affected;
     }
 
@@ -216,6 +223,8 @@ internal sealed class SelectedSessionCleanupService(
         Run(() => expertStores.CloseExact(session));
         Run(() => { housing.CloseExact(session); return true; });
         Run(() => pvp.ClearReadyExact(session));
+        if (SeatedRoom(session) is not null)
+            await RunAsync(() => DepartRoomAsync(session));
         // Every conversation window this session had open closes with it. Whom to tell is asked now,
         // while the sessions the other members opened their windows on can still be compared.
         Run(() =>
@@ -283,6 +292,88 @@ internal sealed class SelectedSessionCleanupService(
             try { await action().ConfigureAwait(false); }
             catch (Exception error) { failures.Add(error); }
         }
+    }
+
+    /// <summary>The duel room this exact session holds a seat in, or null.</summary>
+    private PvpRoomSnapshot? SeatedRoom(SelectedSessionIdentity session) =>
+        pvpRooms.FindSeated(session.CharacterId) is { } room && room.SeatOf(session.CharacterId) is { } seat
+            && room.Seats[seat] is PvpSeat.Taken taken && taken.Session == session
+            ? room : null;
+
+    /// <summary>
+    /// The session leaves its duel room. The departure reaches its sinks only once it has committed, and never
+    /// when the caller's transaction it joined rolls back.
+    /// </summary>
+    /// <remarks>
+    /// Leaving and settling are separate steps: a settlement that fails must not take the departure back with it
+    /// and leave a seat held by a session that is gone. Alone (a disconnect), the departure commits first and a
+    /// battle nobody is left to acknowledge is then settled in a step of its own; a failed settlement is left to the
+    /// deadline scheduler, which the departure already made it due for. Inside a caller's transaction (a replacing
+    /// selection) only the departure joins it, and the scheduler settles right after that commit.
+    /// <para>
+    /// Once the departure has committed it is handed to every sink whatever the settlement did: a settlement whose
+    /// outcome is unknown hands it over as none, and is thrown afterwards. Each sink is on its own, so one that
+    /// fails neither keeps the others from the departure nor hides the settlement's own failure.
+    /// </para>
+    /// </remarks>
+    private async ValueTask DepartRoomAsync(SelectedSessionIdentity session)
+    {
+        if (transactions.Current is { } outer)
+        {
+            if (await pvpRooms.DepartAsync(session, PvpDepartureReason.Disconnected, CancellationToken.None).ConfigureAwait(false)
+                is not PvpRoomOutcome.Changed joined)
+                return;
+            foreach (var sink in pvpDepartures)
+                outer.RegisterAfterCommit(new object(), token => sink.DepartedAsync(joined, null, token));
+            return;
+        }
+
+        PvpRoomOutcome.Changed? departure = null;
+        await SettleStepAsync(async () => departure = await pvpRooms.DepartAsync(
+            session, PvpDepartureReason.Disconnected, CancellationToken.None).ConfigureAwait(false) as PvpRoomOutcome.Changed);
+        if (departure is null) return;
+        PvpSettlementOutcome? settled = null;
+        Exception? unsettled = null;
+        if (departure.SettlementDue is { } match)
+        {
+            try
+            {
+                await SettleStepAsync(async () =>
+                    settled = await pvpSettlement.SettleAsync(match, CancellationToken.None).ConfigureAwait(false));
+            }
+            catch (Exception error) when (error is not OperationCanceledException
+                && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(error))
+            {
+                settled = null;
+                logger.LogWarning(error, "Duel battle {Match} could not be settled when character {Character} left; the deadline scheduler retries it",
+                    match.Value, session.CharacterId.Value);
+            }
+            catch (Exception error)
+            {
+                // Whether it committed is unknown: the departure goes out as unsettled, and the scheduler finds the
+                // battle settled or still waiting.
+                settled = null;
+                unsettled = error;
+            }
+        }
+
+        var failures = new List<Exception>();
+        foreach (var sink in pvpDepartures)
+        {
+            try
+            {
+                await sink.DepartedAsync(departure, settled, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception error)
+            {
+                logger.LogError(error, "Duel departure sink {Sink} failed for character {Character}", sink.GetType().Name,
+                    session.CharacterId.Value);
+                failures.Add(error);
+            }
+        }
+        if (unsettled is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(unsettled);
+        if (failures.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(failures[0]);
+        if (failures.Count > 1) throw new AggregateException(failures);
     }
 
     /// <summary>The leaver's friends in the world, with its name, or nothing when there is nobody to tell.</summary>
@@ -370,6 +461,7 @@ internal sealed class SelectCharacterSessionEntryService(
     ISelectedCharacterCurrentViewDomainService currentViews,
     ITownAreaDomainService townAreas,
     IPvpLobbyDomainService pvp,
+    IPvpRoomQueryDomainService pvpRooms,
     IOnlineCharacterRuntimeDomainService runtime,
     ICreatureRuntimeDomainService creatures) : ISelectCharacterSessionEntryDomainService
 {
@@ -436,23 +528,9 @@ internal sealed class SelectCharacterSessionEntryService(
                 continue;
             identities.Add(CreatePvpParticipant(current));
         }
-        var offeredRooms = pvp.OfferedOn(session.ListenerPort).ToDictionary(value => value.RoomId);
-        var rooms = lobby.Rooms.Select(room =>
-        {
-            if (!offeredRooms.TryGetValue(room.RoomId, out var source))
-                throw new InvalidDataException($"PvP room {room.RoomId} is unavailable.");
-            return new PvpRoomSnapshotState(
-            room.RoomId, room.NameType,
-            (source.Name
-                ?? throw new InvalidDataException("PvP room name is unavailable.")),
-            source.RoomState,
-            source.ManagerSeat,
-            room.MapIndex, room.BattleMode,
-            source.Seats is { Count: 8 } seats
-                ? seats : throw new InvalidDataException("PvP room seats are unavailable."),
-            room.HasPassword,
-            source.MatchingType);
-        }).ToArray();
+        // Read again rather than taken from the adjacent state: the lobby snapshot is sent now, and a room
+        // committed or gone since the adjacent state was composed would otherwise be shown wrongly.
+        var rooms = pvpRooms.RoomsOn(session.ListenerPort).Select(PvpRoomLobbyView.Of).ToArray();
         return new PvpLobbySynchronizationState(
             identities, rooms, CreatePvpParticipant(result));
     }

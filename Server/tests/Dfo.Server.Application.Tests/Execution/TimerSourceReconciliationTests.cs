@@ -35,6 +35,7 @@ public sealed class TimerSourceReconciliationTests
         { "DungeonDeadlineScheduler", "timer:DungeonDeadlineScheduler/guardian-altar", GameplayCallSource.Timer },
         { "DungeonDeadlineScheduler", "timer:DungeonDeadlineScheduler/altar", GameplayCallSource.Timer },
         { "DungeonDeadlineScheduler", "timer:DungeonDeadlineScheduler/room-mechanism", GameplayCallSource.Timer },
+        { "PvpDeadlineScheduler", "timer:PvpDeadlineScheduler/rooms", GameplayCallSource.Timer },
         { "MarriageWeddingScheduler", "timer:MarriageWeddingScheduler", GameplayCallSource.Timer },
         { "TournamentRewardSweepService", "timer:TournamentRewardSweepService", GameplayCallSource.Timer },
         { "BossTowerReturnSweepService", "timer:BossTowerReturnSweepService", GameplayCallSource.Timer },

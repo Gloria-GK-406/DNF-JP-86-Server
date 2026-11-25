@@ -90,6 +90,8 @@ public enum TownAreaDepartureReason
     DungeonSelection,
     DungeonEntry,
     SessionEnded,
+    /// <summary>Entered a duel room, which is not a town area; the place left is kept for the way back.</summary>
+    PvpRoom,
 }
 
 /// <summary>The immutable result emitted by one committed membership mutation.</summary>

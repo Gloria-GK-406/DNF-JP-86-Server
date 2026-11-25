@@ -232,7 +232,7 @@ public sealed class SelectCharacterProductionStateTests
         Sources sources, SelectCharacterResult seed, IOnlineCharacterRuntimeDomainService positions, IAchievementDomainService? achievements = null, IDungeonParticipationDomainService? participation = null) =>
         new(sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-            sources, sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements ?? TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Absent<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), epicBook: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>((method, _) => method.Name == "GetAsync" ? ValueTask.FromResult<IReadOnlyList<CharacterTitleBookCategoryState>>(seed.CharacterEntry.Features.Collections.TitleBooks) : null), collections: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>(), dungeonParticipation: participation ?? new Participation());
+            TestRequired.Absent<ICharacterSkillStateDomainService>(), sources, sources, sources, positions, new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements ?? TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Absent<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), epicBook: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>((method, _) => method.Name == "GetAsync" ? ValueTask.FromResult<IReadOnlyList<CharacterTitleBookCategoryState>>(seed.CharacterEntry.Features.Collections.TitleBooks) : null), collections: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>(), dungeonParticipation: participation ?? new Participation());
 
     [Theory]
     [InlineData(false, 0)]
@@ -299,7 +299,7 @@ public sealed class SelectCharacterProductionStateTests
         var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-            sources, sources, sources, sources, sources, sources, sources,
+            [], sources, sources, sources, sources, sources, sources,
             new FixedTimeProvider(seed.World.PreparedAt), epicBook: new QueryOnlyEpicBook(), events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Unanswered<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), achievements: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>((method, _) => method.Name == "GetAsync" ? ValueTask.FromResult<IReadOnlyList<CharacterTitleBookCategoryState>>(seed.CharacterEntry.Features.Collections.TitleBooks) : null), marriage: TestRequired.Unanswered<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>(), weddingQuests: TestRequired.Unanswered<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), housing: TestRequired.Unanswered<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(), capsules: TestRequired.Unanswered<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>(), collections: TestRequired.Unanswered<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Unanswered<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Unanswered<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
 
@@ -410,7 +410,7 @@ public sealed class SelectCharacterProductionStateTests
         var handler = new SelectCharacterPreparationService(
             sources, sources, sources, sources, sources, new Dfo.Server.Application.Characters.CharacterAppearanceRuleService(), sources, sources,
             new CharacterEntryPreparationRuleService(sources, sources, sources, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-            sources, sources, sources, sources, sources, sources, sources,
+            [], sources, sources, sources, sources, sources, sources,
             new FixedTimeProvider(seed.World.PreparedAt), achievements: achievements ?? TestRequired.Absent<Dfo.Server.Abstractions.Achievements.IAchievementDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.Events.IEventManagementDomainService>(), attendance: TestRequired.Absent<Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService>(), joust: TestRequired.Absent<Dfo.Server.Abstractions.Events.IJoustProjectionDomainService>(), epicBook: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IEpicBookDomainService>(), titles: TestRequired.Absent<Dfo.Server.Abstractions.Achievements.ITitleBookDomainService>((method, _) => method.Name == "GetAsync" ? ValueTask.FromResult<IReadOnlyList<CharacterTitleBookCategoryState>>(seed.CharacterEntry.Features.Collections.TitleBooks) : null), marriage: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQueryDomainService>(), weddingQuests: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService>(), housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(), capsules: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageCapsuleQueryDomainService>(), collections: TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICollectionBoxDomainService>(), southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(), crystalExchange: TestRequired.Absent<Dfo.Server.Abstractions.Quests.IGiantDragonCrystalExchangeDomainService>());
         var channel = new ChannelEntryIdentity(1, 10011, ChannelEntryKind.General);
         var selected = await handler.PreflightAsync(
@@ -425,7 +425,7 @@ public sealed class SelectCharacterProductionStateTests
         ICharacterDomainService, ICharacterRosterDomainService, ICharacterInventoryEntryDomainService, IAccountInventoryEntryDomainService,
         ICharacterEntryStateDomainService, IAccountEntryStateDomainService, IEquippedCreatureQuery,
         IWorldContentEntryRuleService, ISkillPointDefinitionSource, IChannelEntryDomainService,
-        ICharacterPvpSkillProfileRepository, IDungeonPersistentEffectRecoveryRepository,
+        IDungeonPersistentEffectRecoveryRepository,
         IExpertSkillContractDefinitionSource, IExpertSkillContractReconciliationRepository,
         ICreatureEquipmentLifetimeSource, IEntryPlacementRuleService,
         ISessionAdjacentEntryDomainService,
@@ -525,12 +525,6 @@ public sealed class SelectCharacterProductionStateTests
                 new SkillPointDefinitionSet(200, 20, [], ids.ToDictionary(id => id,
                     id => new SkillPointCostDefinition(id, false, [10], false, 1, 100, 0, 1, 1))));
 
-        ValueTask<CharacterSkillsEntryState> ICharacterPvpSkillProfileRepository.LoadOrInitializeAsync(
-            AccountId accountId, CharacterId characterId, CharacterSkillsEntryState initialProfile,
-            CancellationToken cancellationToken) => ValueTask.FromResult(seed.CharacterEntry.Skills);
-        ValueTask<CharacterSkillsEntryState> ICharacterPvpSkillProfileRepository.ReadAsync(
-            AccountId accountId, CharacterId characterId, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(seed.CharacterEntry.Skills);
         public ValueTask<DungeonPersistentEffectRecoveryOutcome> RecoverAsync(
             AccountId accountId, CharacterId characterId, CancellationToken cancellationToken)
         {

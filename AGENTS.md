@@ -36,6 +36,7 @@ CMD 在唯一玩法执行器中划分事务并登记投影，作业结束后由�
 | 修改物品、容器、移动或生命周期 | [物品与容器](Document/ItemContainers.md) |
 | 新增或修改特殊地下城玩法、塔与活动副本 | [地下城玩法种类](Document/DungeonRunKinds.md) |
 | 修改地面掉落抽取或掉落倍率 | [掉落抽取倍率](Document/掉落抽取倍率.md) |
+| 修改决斗场（房间、对局、结算、离场、决斗大厅） | [决斗场](Document/PvpDuel.md) |
 | 修改领域事件、通知或多人投影 | [事件与通知](Document/EventsAndNotifications.md) |
 | 修改宿主、组件开关或启动顺序 | [组件组合](Document/host-component-composition.md) |
 | 修改网关／启动器 HTTP 接口、gate token 或其部署配置 | [gate 接口](Document/GateApi.md) |

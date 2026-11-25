@@ -577,7 +577,7 @@ public sealed class TownProjectionHandlerTests
                         TownId: 1, AreaId: 1, X: 100, Y: 100,
                         Direction: 0, AreaState: SpawnAreaState, IsTransient: false),
                     PersistsPosition: true,
-                    PvpSkillProfileApplies: false),
+                    SkillGroup: SkillGroup.Pve),
             },
         };
     }

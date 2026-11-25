@@ -11,6 +11,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 
@@ -34,7 +35,7 @@ internal static class EntryServices
         IAccountEntryStateDomainService accountEntries,
         IWorldContentEntryRuleService? worldContent = null,
         ISkillPointDefinitionSource? skillPoints = null,
-        ICharacterPvpSkillProfileRepository? pvpSkills = null,
+        ICharacterSkillGroupInitializer? skillInitializer = null,
         IDungeonPersistentEffectRecoveryRepository? dungeonEffects = null,
         IExpertSkillContractDefinitionSource? expertContracts = null,
         IExpertSkillContractReconciliationRepository? expertSkillReconciliation = null,
@@ -56,7 +57,7 @@ internal static class EntryServices
                 skillPoints ?? new StubSkillPointDefinitionSource(),
                 expertContracts ?? new StubExpertContractDefinitionSource(),
                 creatureLifetimes ?? new StubCreatureEquipmentLifetimeSource(), logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Characters.CharacterEntryPreparationRuleService>.Instance),
-            pvpSkills ?? new StubPvpSkillProfileRepository(),
+            skillInitializer is null ? [] : [skillInitializer],
             dungeonEffects ?? new StubDungeonEffectRecoveryRepository(),
             expertSkillReconciliation ?? new StubExpertSkillReconciliationRepository(),
             channels ?? new StubChannelEntryPolicy(),
@@ -84,17 +85,6 @@ internal static class EntryServices
         await handler.PrepareAsync(
             await handler.PreflightAsync(accountId, slotIndex, channel, cancellationToken),
             accountId, channel, cancellationToken);
-}
-
-internal sealed class StubPvpSkillProfileRepository : ICharacterPvpSkillProfileRepository
-{
-    public ValueTask<Dfo.Server.Data.Characters.CharacterSkillsEntryState> ReadAsync(
-        AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
-        CancellationToken cancellationToken) => throw new NotSupportedException();
-    public ValueTask<Dfo.Server.Data.Characters.CharacterSkillsEntryState> LoadOrInitializeAsync(
-        AccountId accountId, Dfo.Server.Data.Characters.CharacterId characterId,
-        Dfo.Server.Data.Characters.CharacterSkillsEntryState initialProfile,
-        CancellationToken cancellationToken) => ValueTask.FromResult(initialProfile);
 }
 
 internal sealed class StubDungeonEffectRecoveryRepository : IDungeonPersistentEffectRecoveryRepository

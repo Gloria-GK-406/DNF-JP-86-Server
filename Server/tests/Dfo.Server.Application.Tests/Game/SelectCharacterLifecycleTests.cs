@@ -113,7 +113,7 @@ public sealed partial class SelectCharacterLifecycleTests
             // USER_POSITION, ahead of the invisibility flags, the clone title, the roster payload and
             // the honour level.
             Assert.Equal(
-                WithSupplementalStages(["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                WithSupplementalStages(["prepare", "position", "static", "message", "inventory", "pre", "active", "publish",
                     "plan-pvp", "x11", "quest", "pet", "premium"]),
                 fixture.Ledger);
             AssertSupplementalDelivery(fixture);
@@ -158,7 +158,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None);
 
             Assert.Equal(
-                WithSupplementalStages(["prepare", "position", "static", "inventory", "delta", "pre", "active", "publish",
+                WithSupplementalStages(["prepare", "position", "static", "message", "inventory", "delta", "pre", "active", "publish",
                     "plan-pvp", "x11", "quest", "pet", "premium"]),
                 fixture.Ledger);
             AssertSupplementalDelivery(fixture);
@@ -177,7 +177,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     fixture.Context, fixture.Command, CancellationToken.None));
 
             Assert.Equal(
-                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                ["prepare", "position", "static", "message", "inventory", "pre", "active", "publish",
                     "plan-pvp", "x11", "cleanup", "close"],
                 fixture.Ledger);
             Assert.Null(fixture.Directory.Find(fixture.AccountId));
@@ -526,7 +526,7 @@ public sealed partial class SelectCharacterLifecycleTests
                     fixture.Context, fixture.Command, CancellationToken.None));
 
             Assert.Equal(
-                ["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                ["prepare", "position", "static", "message", "inventory", "pre", "active", "publish",
                     "plan-pvp", "pvp", "cleanup", "close"],
                 fixture.Ledger);
             Assert.DoesNotContain("ready", fixture.Ledger);
@@ -546,7 +546,7 @@ public sealed partial class SelectCharacterLifecycleTests
                 fixture.Context, fixture.Command, CancellationToken.None);
 
             Assert.Equal(
-                WithSupplementalStages(["prepare", "position", "static", "inventory", "pre", "active", "publish",
+                WithSupplementalStages(["prepare", "position", "static", "message", "inventory", "pre", "active", "publish",
                     "plan-pvp", "pvp", "ready", "target", "x11", "quest", "pet", "premium"]),
                 fixture.Ledger);
             AssertSupplementalDelivery(fixture);
@@ -1107,7 +1107,7 @@ public sealed partial class SelectCharacterLifecycleTests
         public ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
             Func<CancellationToken, ValueTask<T>> action, CancellationToken ct = default) where T : notnull
         {
-            Assert.Contains(declaration.Name, (string[])["ReadItemUsageSnapshot", "ReadSelectedCharacterRelations", "ReadFriendObservers"]);
+            Assert.Contains(declaration.Name, (string[])["ReadItemUsageSnapshot", "ReadSelectedCharacterRelations", "ReadSelectedCharacterPvpRecord", "ReadFriendObservers"]);
             return actual.ReadOnlyAsync(context, declaration, action, ct);
         }
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext context, CommandWorkUnitDeclaration declaration,
@@ -1650,6 +1650,10 @@ public sealed partial class SelectCharacterLifecycleTests
             TNotification notification,
             CancellationToken cancellationToken)
         {
+            // This fixture has no raid session to resume. An arrival check yields no frames.
+            if (notification is Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSessionArrived)
+                return ValueTask.FromResult(new NotificationDelivery([]));
+
             ledger.Add(notification is UsageQuotaViewChanged quota ? $"quota:{quota.Family}" : "target");
             Published.Add((audience, notification));
             var attempts = audience is NotificationAudience.TheseSessions exact

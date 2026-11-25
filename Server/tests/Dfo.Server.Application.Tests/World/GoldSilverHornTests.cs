@@ -139,7 +139,7 @@ public sealed class GoldSilverHornTests
         {
             Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
             await using var f = await Fixture();
-            f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT OR IGNORE INTO character_stats(character_id) VALUES(71); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+            f.Sql("INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT OR IGNORE INTO character_stats(character_id) VALUES(71); INSERT INTO character_pvp_record(character_id) VALUES(71); INSERT INTO character_pvp_skill_state(character_id) VALUES(71); INSERT INTO character_settings(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
             f.Sql("INSERT INTO character_dimensions(character_id,sort_order,dim_key,val1,val2) VALUES(71,0,4123,7,3),(71,1,4123,9,99)");
             var period = (await f.Services.GetRequiredService<IGoldSilverHornDomainService>().ReadQuotaAsync(new(71), default)).Period;
             await using (var tx = f.Scope.Begin())

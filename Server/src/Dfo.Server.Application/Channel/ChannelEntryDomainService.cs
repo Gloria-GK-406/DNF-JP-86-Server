@@ -40,12 +40,7 @@ internal sealed class ChannelEntryDomainService(
             foreach (var channel in catalog)
             {
                 if (channel.Port == listenerPort)
-                {
-                    return new ChannelEntryIdentity(
-                        channel.ChannelId,
-                        listenerPort,
-                        KindOf(channel), channel.LoginEnvironment);
-                }
+                    return EntryOf(channel, listenerPort);
             }
 
             return Unknown(listenerPort);
@@ -56,18 +51,17 @@ internal sealed class ChannelEntryDomainService(
         for (var index = 0; index < listeners.GamePorts.Count && index < catalog.Count; index++)
         {
             if (listeners.GamePorts[index] == listenerPort)
-            {
-                var channel = catalog[index];
-                return new ChannelEntryIdentity(
-                    channel.ChannelId,
-                    listenerPort,
-                    KindOf(channel), channel.LoginEnvironment);
-            }
+                return EntryOf(catalog[index], listenerPort);
         }
 
         // An unmatched listener is an ordinary one. Refusing entry here would take a
         // deployment that simply has not listed its channels and make it unplayable.
         return Unknown(listenerPort);
+    }
+
+    private ChannelEntryIdentity EntryOf(ChannelServerInfo channel, int listenerPort)
+    {
+        return new ChannelEntryIdentity(channel.ChannelId, listenerPort, KindOf(channel), channel.LoginEnvironment);
     }
 
     public async ValueTask<ChannelAdmissionRefusal?> RefuseAsync(
@@ -115,8 +109,12 @@ internal sealed class ChannelEntryDomainService(
 
         if (channel.LoginEnvironment == 13)
             return ChannelEntryKind.FreeDuel;
-        if (channel.LoginEnvironment is 8 or 24)
-            return ChannelEntryKind.Pvp;
+        if (channel.LoginEnvironment == 8)
+            return options.TotalMatchmakingChannelIds.Contains(channelId)
+                ? ChannelEntryKind.TotalMatchDuel
+                : ChannelEntryKind.MatchmakingDuel;
+        if (channel.LoginEnvironment == 24)
+            return ChannelEntryKind.TraditionalDuel;
         if (ChannelContentRuleService.IsRaidEnvironment(channel.LoginEnvironment))
             return ChannelEntryKind.Raid;
 

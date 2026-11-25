@@ -155,7 +155,7 @@ internal static class SupplementalSynchronizationCodec
     public static GameMessagePayload EncodeTownLeave(ushort userId) =>
         Payload(0x0006, BitConverter.GetBytes(userId));
 
-    private static GameMessagePayload EncodePvpIdentityRoster(
+    internal static GameMessagePayload EncodePvpIdentityRoster(
         IReadOnlyList<PvpParticipantEntryState> identities)
     {
         if (identities.Count > ushort.MaxValue)
@@ -207,35 +207,72 @@ internal static class SupplementalSynchronizationCodec
             participant.Pets);
 
     private static GameMessagePayload EncodePvpRoomSnapshot(
-        IReadOnlyList<PvpRoomSnapshotState> rooms)
+        IReadOnlyList<PvpRoomSnapshotState> rooms) => Payload(0x0029, EncodePvpRoomInfoBody(rooms));
+
+    /// <summary>NOTI <c>0x0029</c> body: the rooms in the order given.</summary>
+    /// <remarks>
+    /// Upstream <c>PvpRoomNotificationBuilder.WriteRoomInfo</c> and its A21 reader (<c>1173790</c> upstream,
+    /// <c>0x00D73790</c> here): each seat is a state byte and a user id and nothing else, so a byte more per
+    /// seat would shift every later seat and the password flag. The protocol page's static reads (u8 state at
+    /// +10, u16 user at +11 for the first seat) agree.
+    /// </remarks>
+    internal static byte[] EncodePvpRoomInfoBody(IReadOnlyList<PvpRoomSnapshotState> rooms)
     {
+        ArgumentNullException.ThrowIfNull(rooms);
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
         writer.Write(checked((ushort)rooms.Count));
         foreach (var room in rooms)
         {
-            var seats = room.Seats ?? throw Missing($"Pvp.Room[{room.RoomId}].Seats");
+            var seats = room.Seats ?? throw Missing($"Pvp.Room[{room.RoomNumber}].Seats");
             if (seats.Count != 8)
                 throw new InvalidDataException("PvP room requires exactly eight ordered seats.");
-            writer.Write(room.RoomId);
+            writer.Write(room.RoomNumber);
             writer.Write(room.NameType);
             if (room.NameType == 0)
                 WriteDstr(writer, room.Name);
-            writer.Write(room.RoomState);
-            writer.Write(room.ManagerSeat);
+            writer.Write(PvpRoomStateByte(room.Waiting));
+            writer.Write(room.OwnerSeat);
             writer.Write(room.MapIndex);
             writer.Write(room.BattleMode);
             foreach (var seat in seats)
             {
-                writer.Write(seat.State);
-                writer.Write(seat.UserId);
-                writer.Write((byte)0);
+                writer.Write(PvpSeatStateByte(seat));
+                writer.Write(PvpSeatUserId(seat));
             }
             writer.Write(room.HasPassword ? (byte)1 : (byte)0);
-            writer.Write(room.MatchingType);
+            // The matching type: 0 for a free room, the only kind the first phase opens.
+            writer.Write(0);
         }
-        return Payload(0x0029, stream.ToArray());
+        return stream.ToArray();
     }
+
+    /// <summary>A room's state byte: research.md §2 and upstream <c>FreeDuelRoom</c>, 1 waiting and 2 in battle.</summary>
+    internal static byte PvpRoomStateByte(bool waiting) => waiting ? (byte)1 : (byte)2;
+
+    /// <summary>
+    /// A seat's state byte: 0xFF empty, 0xFE closed, and for a taken seat its side, 0 an individual fighter and
+    /// 1 or 2 a team, and 3 or 4 an observer (A21 CNPVPRoom seat predicates).
+    /// </summary>
+    internal static byte PvpSeatStateByte(PvpRoomSeatState seat) => seat.Occupancy switch
+    {
+        PvpRoomSeatOccupancy.Open => 0xFF,
+        PvpRoomSeatOccupancy.Closed => 0xFE,
+        PvpRoomSeatOccupancy.Taken when seat.State <= 4 => seat.State,
+        PvpRoomSeatOccupancy.Taken => throw new InvalidDataException($"PvP occupied seat state {seat.State} has no wire state."),
+        _ => throw new InvalidDataException($"PvP seat occupancy {seat.Occupancy} has no wire state."),
+    };
+
+    /// <summary>The user id an unoccupied seat (open or closed) shows: the client's room object reads 0xFFFF as nobody.</summary>
+    /// <remarks>
+    /// The client initialises empty seats with 0xFFFF and counts the seated by it (b1 VA 0x01A6B970, 0x01A0573C,
+    /// 0x01A070A0; Static, High); a 0 there is somebody, and a room shows 8/8 (spec SA-2, observed 2026-11-15).
+    /// </remarks>
+    internal const ushort PvpVacantSeatUserId = 0xFFFF;
+
+    /// <summary>The user id a seat shows: its session's for a taken seat, <see cref="PvpVacantSeatUserId"/> otherwise.</summary>
+    internal static ushort PvpSeatUserId(PvpRoomSeatState seat) =>
+        seat.Occupancy == PvpRoomSeatOccupancy.Taken ? seat.UserId : PvpVacantSeatUserId;
 
     private static void WriteDstr(BinaryWriter writer, byte[]? value)
     {

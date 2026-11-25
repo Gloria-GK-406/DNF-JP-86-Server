@@ -8,7 +8,7 @@ internal sealed class CharacterSkillFactsReader(
     ICharacterSkillTable skills,
     ICharacterSkillBuildTable builds,
     ICharacterEntryTable entries,
-    ICharacterPvpTable pvp)
+    ICharacterPvpSkillStateTable pvpSkillState)
 {
     public async ValueTask<bool> CanEditAsync(CharacterId characterId, SkillGroup group, SkillBuildId build,
         CancellationToken ct)
@@ -20,7 +20,7 @@ internal sealed class CharacterSkillFactsReader(
             SkillGroup.Pve => (await builds.ReadAsync(characterId, ct).ConfigureAwait(false)).IsUnlocked(build),
             // Entry seeds the duel group once. Writes before seeding could collide with its initial skills.
             SkillGroup.Duel => build.Value <= 1
-                && (await pvp.FindAsync(characterId, ct).ConfigureAwait(false)) is { SkillsInitialized: not 0 },
+                && (await pvpSkillState.FindAsync(characterId, ct).ConfigureAwait(false)) is { SkillsInitialized: not 0 },
             _ => throw new ArgumentOutOfRangeException(nameof(group), group, null),
         };
     }

@@ -56,7 +56,8 @@ internal sealed class CharacterSide
         new SqliteCharacterSkillTable(this.database),
         new SqliteCharacterConditionTable(this.database),
         new SqliteCharacterStatsTable(this.database),
-        new SqliteCharacterPvpTable(this.database),
+        new SqliteCharacterPvpRecordTable(this.database),
+        new SqliteCharacterPvpSkillStateTable(this.database),
         new SqliteCharacterSettingsTable(this.database),
         new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
@@ -112,12 +113,15 @@ internal sealed class CharacterSide
     /// </remarks>
     public ICharacterTable Characters => new SqliteCharacterTable(this.database);
 
-    public ICharacterPvpSkillProfileRepository PvpProfile => new PvpSkillProfileService(
+    public Dfo.Server.Application.Pvp.PvpSkillInitializer PvpProfile => new(
         this.Characters,
         this.Skills,
-        new SqliteCharacterPvpTable(this.database),
+        new SqliteCharacterPvpSkillStateTable(this.database),
         new CharacterSkillFactsReader(this.Characters, this.Skills,
-            new SqliteCharacterSkillBuildTable(this.database), new SqliteCharacterEntryTable(this.database), null!));
+            new SqliteCharacterSkillBuildTable(this.database), new SqliteCharacterEntryTable(this.database),
+            new SqliteCharacterPvpSkillStateTable(this.database)),
+        TestRequired.Absent<ICharacterEntryPreparationRuleService>(),
+        TestRequired.Absent<ICharacterSkillStateDomainService>());
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>
@@ -191,7 +195,7 @@ internal sealed class CharacterSide
             new SqliteCharacterConditionTable(this.database),
             new SqliteCharacterStatsTable(this.database),
             new SqliteCharacterSettingsTable(this.database),
-            new SqliteCharacterPvpTable(this.database),
+            new SqliteCharacterPvpRecordTable(this.database),
             new SqliteCharacterHotkeyTable(this.database),
             new SqliteCharacterDimensionTable(this.database),
             new SqliteCharacterSkillTable(this.database),

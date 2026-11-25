@@ -71,19 +71,6 @@ internal sealed class SessionAdjacentEntryDomainService(
         foreach (var participant in ready)
             participants.Add(new PvpLobbyParticipantState(participant.CharacterId));
 
-        var offered = lobby.OfferedOn(listenerPort);
-        var rooms = new List<PvpRoomState>(offered.Count);
-        foreach (var room in offered)
-        {
-            rooms.Add(new PvpRoomState(
-                room.RoomId,
-                room.OwnerCharacterId,
-                room.NameType,
-                room.MapIndex,
-                room.HasPassword,
-                room.BattleMode));
-        }
-
-        return new PvpLobbyEntryState(participants, rooms);
+        return new PvpLobbyEntryState(participants);
     }
 }

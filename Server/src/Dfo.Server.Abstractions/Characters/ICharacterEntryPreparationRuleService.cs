@@ -22,6 +22,10 @@ public interface ICharacterEntryPreparationRuleService
         IReadOnlyCollection<int> learnedSkillIds,
         CancellationToken cancellationToken);
 
+    /// <summary>Derives both initial duel skill pages from the character's free grants.</summary>
+    ValueTask<IReadOnlyList<CharacterSkillPageState>> InitialDuelSkillPagesAsync(
+        byte job, byte packedGrowType, byte characterLevel, CancellationToken cancellationToken);
+
     /// <summary>
     /// What the character has left to spend, from what the archive grants and what they have spent.
     /// </summary>

@@ -112,7 +112,6 @@ internal static class CharactersRegistration
         // Both are decisions, so both are here.
         // The character side's decisions. Reading and writing stayed in persistence.
         services.TryAddSingleton<ICharacterRepository, CharacterRosterService>();
-        services.TryAddSingleton<ICharacterPvpSkillProfileRepository, PvpSkillProfileService>();
         services.TryAddSingleton<IExpertSkillContractReconciliationRepository,
             ExpertSkillContractReconciliationService>();
         services.TryAddSingleton<IDungeonPersistentEffectRecoveryRepository,

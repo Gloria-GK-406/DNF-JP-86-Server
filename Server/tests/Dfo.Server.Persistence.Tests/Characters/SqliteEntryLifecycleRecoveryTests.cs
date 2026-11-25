@@ -35,25 +35,21 @@ public sealed class SqliteEntryLifecycleRecoveryTests
                 INSERT INTO character_pvp(character_id) VALUES(7);
             """);
             var side = Adopted(path);
-            var empty = new CharacterSkillsEntryState(
-                [new CharacterSkillPageState(0, []), new CharacterSkillPageState(1, [])], [],
-                new CharacterSkillPointBasisState(0, 0), [], null);
-            var initializedEmpty = await side.InUseCaseAsync(token =>
-                side.PvpProfile.LoadOrInitializeAsync(
-                    new AccountId(3), new CharacterId(7), empty, token));
-            Assert.Empty(initializedEmpty.Pages[0].Skills);
+            var empty = await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
+                new AccountId(3), new CharacterId(7),
+                _ => ValueTask.FromResult<IReadOnlyList<CharacterSkillPageState>>([new(0, []), new(1, [])]), token));
+            Assert.Empty(empty[0].Skills);
             await ExecuteAsync(path, """
                 INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level,extra_values)
                 VALUES(7,'pvp',0,4,100,2,X'0102'),(7,'pvp',1,9,200,3,NULL);
                 """);
 
-            var profile = Assert.IsType<CharacterSkillsEntryState>(
-                await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
-                    new AccountId(3), new CharacterId(7), empty, token)));
-            Assert.Equal([100], profile.Pages[0].Skills.Select(value => (int)value.SkillId));
-            Assert.Equal([200], profile.Pages[1].Skills.Select(value => (int)value.SkillId));
-            Assert.Equal([1, 2], Assert.Single(profile.Pages[0].Skills).ExtraValues);
-            Assert.Null(profile.ProtocolMirror);
+            var profile = await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
+                new AccountId(3), new CharacterId(7),
+                _ => throw new InvalidOperationException("An initialized duel group must not rebuild its seed."), token));
+            Assert.Equal([100], profile[0].Skills.Select(value => (int)value.SkillId));
+            Assert.Equal([200], profile[1].Skills.Select(value => (int)value.SkillId));
+            Assert.Equal([1, 2], Assert.Single(profile[0].Skills).ExtraValues);
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }

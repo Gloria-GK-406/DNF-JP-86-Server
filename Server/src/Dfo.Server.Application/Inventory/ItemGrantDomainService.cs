@@ -55,6 +55,15 @@ internal sealed class ItemGrantDomainService(ICharacterBusinessInventoryDomainSe
             throw new InvalidOperationException("New item target is occupied.");
         return await session.PutAsync(container, slot, await lifecycle.CreateAsync(item, ct).ConfigureAwait(false), ct).ConfigureAwait(false);
     }
+
+    public ValueTask<ItemReference> PutNewVictoryEmblemsAsync(CharacterId character, int balance, CancellationToken ct)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(balance);
+        return PutNewAsync(ContainerId.ForCharacter(character, InventoryContainerType.Main), VictoryEmblemResource.Slot,
+            new ItemSnapshot { ItemId = VictoryEmblemResource.ItemId, LegacyKind = 0, Type = ItemTraits.None,
+                IsPile = true, Count = balance }, ct);
+    }
+
     public async ValueTask<BusinessItemAdditionResult> GrantAsync(CharacterId characterId,
         ICharacterContainerDomainService containers, int itemId, int count, CancellationToken cancellationToken, bool isDefault = false)
     {

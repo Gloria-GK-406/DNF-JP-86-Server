@@ -1,6 +1,9 @@
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Application.Commands;
+using Dfo.Server.Application.Pvp;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Game.AntonRaid;
+using Dfo.Server.Protocol.Game.PvpBattle;
 using Dfo.Server.Protocol.Game.RoomMechanisms;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,6 +28,13 @@ internal static class WorldMaintenanceCommandRegistration
         services.AddInternalCommandHandler<DepartAntonRaidMemberCommand, bool, AntonRaidDeadlineHandler>();
         services.AddInternalCommandHandler<MaintainRoomMechanismsCommand, RoomMechanismNextDeadline, MaintainRoomMechanismsCommandHandler>();
         services.AddInternalCommandHandler<ProjectRoomMechanismCommand, bool, MaintainRoomMechanismsCommandHandler>();
+        services.AddInternalCommandHandler<ScanPvpDeadlinesCommand, PvpDeadlineScan, PvpBattleDeadlineCommandHandler>();
+        services.AddInternalCommandHandler<AdvancePvpRoomCommand, bool, PvpBattleDeadlineCommandHandler>();
+        services.AddInternalCommandHandler<SettlePvpMatchCommand, bool, PvpBattleDeadlineCommandHandler>();
+        services.AddInternalCommandHandler<ListPendingPvpSettlementsCommand, IReadOnlyList<PvpMatchId>, PvpBattleDeadlineCommandHandler>();
+        services.AddInternalCommandHandler<CancelPvpBattlesForShutdownCommand, bool, PvpBattleDeadlineCommandHandler>();
+        services.AddInternalCommandHandler<AbandonPvpSettlementCommand, bool, PvpBattleDeadlineCommandHandler>();
+        services.AddPvpDeadlineSource<PvpBattleDeadlineSource>();
         return services;
     }
 }

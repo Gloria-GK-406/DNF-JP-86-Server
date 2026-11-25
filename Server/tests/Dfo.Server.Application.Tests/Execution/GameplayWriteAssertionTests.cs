@@ -558,16 +558,20 @@ public sealed class GameplayWriteAssertionTests
     }
 
     [Fact]
-    public void PvpLobbyDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
+    public void PvpRoomDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var lobby = new Dfo.Server.Application.Sessions.PvpLobbyDomainService();
+        var fixture = new Dfo.Server.Application.Tests.Pvp.PvpRoomFixture();
+        var rooms = fixture.Rooms;
+        var owner = fixture.Join(1);
         var seen = ViolationCapture.Attach();
 
-        Assert.Throws<GameplayOffExecutorException>(() => lobby.Withdraw(1));
+        Assert.Throws<GameplayOffExecutorException>(() => rooms.SetMapAsync(owner, 0, default));
 
-        AssertOneViolation(seen, "PvpLobbyDomainService.Withdraw");
-        Assert.Empty(lobby.OfferedOn(10011));
-        Assert.False(TestGameplay.Run(() => lobby.Withdraw(1)));
+        AssertOneViolation(seen, "PvpRoomDomainService.SetMapAsync");
+        Assert.Empty(rooms.RoomsOn(10068));
+        Assert.False(rooms.IsSeated(owner.CharacterId));
+        // On the executor the write still needs the caller's transaction.
+        TestGameplay.Run(() => Assert.Throws<InvalidOperationException>(() => rooms.SetMapAsync(owner, 0, default)));
     }
 
     [Fact]

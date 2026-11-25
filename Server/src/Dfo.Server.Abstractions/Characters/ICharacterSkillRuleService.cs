@@ -9,6 +9,7 @@ public interface ICharacterSkillRule
     int SkillId { get; }
     string Name { get; }
     string Description { get; }
+    bool ConsumesColorlessCube { get; }
     IReadOnlyList<SkillPrerequisite> Prerequisites { get; }
     int? GetMaxLevel(CharacterCareer career, int characterLevel);
     bool CanLearn(CharacterCareer career, int characterLevel, int targetLevel,

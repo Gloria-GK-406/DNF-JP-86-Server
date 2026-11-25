@@ -116,7 +116,7 @@ public sealed class ClientSettingsBlobTests
             await using var f = new LearningFixture(useArchive: true, configure: services => services.AddSingleton(
                 new Dfo.Server.Infrastructure.Content.PvfContentOptions { ArchivePath = ContentArchive.Path }));
             await f.SeedAsync();
-            f.Sql("INSERT INTO character_settings(character_id,user_state_bits) VALUES(71,3); INSERT INTO character_stats(character_id) VALUES(71); INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
+            f.Sql("INSERT INTO character_settings(character_id,user_state_bits) VALUES(71,3); INSERT INTO character_stats(character_id) VALUES(71); INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0); INSERT INTO character_pvp_record(character_id) VALUES(71); INSERT INTO character_pvp_skill_state(character_id) VALUES(71); INSERT INTO character_expert_job(character_id) VALUES(71)");
             var table = f.Services.GetRequiredService<IClientSettingsTable>();
             await using (var tx = f.Scope.Begin()) { await table.SaveMainAsync(new(1), new byte[150], default); await tx.CommitAsync(default); }
             var entry = await f.Services.GetRequiredService<Dfo.Server.Abstractions.Characters.ICharacterEntryStateDomainService>().LoadAsync(new(1), new(71), default);

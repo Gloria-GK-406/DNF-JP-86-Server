@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Tests.Channel;
 
@@ -9,21 +10,27 @@ namespace Dfo.Server.Application.Tests.Channel;
 public sealed class ChannelAdmissionTests
 {
     [Theory]
-    [InlineData(50, (byte)24, ChannelEntryKind.Pvp)]
-    [InlineData(60, (byte)8, ChannelEntryKind.Pvp)]
-    [InlineData(68, (byte)13, ChannelEntryKind.FreeDuel)]
-    [InlineData(70, (byte)13, ChannelEntryKind.FreeDuel)]
-    [InlineData(200, (byte)23, ChannelEntryKind.Raid)]
-    public async Task Script_channel_environment_controls_login_and_pvp_profile(int id, byte environment, ChannelEntryKind kind)
+    [InlineData(50, (byte)24, ChannelEntryKind.TraditionalDuel, SkillGroup.Duel)]
+    [InlineData(60, (byte)8, ChannelEntryKind.MatchmakingDuel, SkillGroup.Duel)]
+    [InlineData(161, (byte)24, ChannelEntryKind.TraditionalDuel, SkillGroup.Duel)]
+    [InlineData(162, (byte)8, ChannelEntryKind.MatchmakingDuel, SkillGroup.Duel)]
+    [InlineData(68, (byte)13, ChannelEntryKind.FreeDuel, SkillGroup.Duel)]
+    [InlineData(70, (byte)13, ChannelEntryKind.FreeDuel, SkillGroup.Duel)]
+    [InlineData(200, (byte)23, ChannelEntryKind.Raid, SkillGroup.Pve)]
+    [InlineData(82, (byte)8, ChannelEntryKind.TotalMatchDuel, SkillGroup.Duel)]
+    [InlineData(83, (byte)8, ChannelEntryKind.MatchmakingDuel, SkillGroup.Duel)]
+    public async Task Script_channel_environment_controls_login_and_skill_group(
+        int id, byte environment, ChannelEntryKind kind, SkillGroup group)
     {
         var policy = new ChannelEntryDomainService(new ChannelContentRuleService(new StubChannelCatalog(
             [new ChannelServerInfo(id, $"#ch.{id}", 100, 0, "127.0.0.1", 10000 + id, environment)]),
-            new NoChannelScript()), ChannelEntryOptions.Legacy,
+            new NoChannelScript()), ChannelEntryOptions.Legacy with { TotalMatchmakingChannelIds = [82] },
             new ChannelListenerOptions([10000 + id], AllowAdvertisedPortFallback: false), new UnusedDeployment(), new RecordingQuestLogs());
         var channel = await policy.ResolveAsync(10000 + id, default);
         Assert.Equal(environment, channel.LoginEnvironment);
         Assert.Equal(kind, channel.Kind);
         Assert.Equal(environment is 8 or 13 or 24, channel.IsPvp);
+        Assert.Equal(group, channel.CharacterSkillGroup);
     }
 
     [Fact]

@@ -116,3 +116,22 @@ internal sealed class RecordingPartyMutations(Action<CharacterId>? observed = nu
     public PartyMembershipSnapshot? FindByKey(PartyKey key) => directory.FindByKey(key);
     public PartyKey KeyOf(CharacterId characterId) => directory.KeyOf(characterId);
 }
+
+/// <summary>What the peer handlers take for duel rooms, for tests of their party path: nobody holds a seat.</summary>
+internal static class PeerRoomStandIns
+{
+    public static Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService Rooms => new Dfo.Server.Protocol.Tests.Game.PvpRoom.ScriptedPvpRooms();
+    public static Dfo.Server.Abstractions.Sessions.IPvpLobbyDomainService Lobby => new Dfo.Server.Protocol.Tests.Game.PvpRoom.FixedPvpLobby();
+    public static Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService Views =>
+        Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService>();
+    public static Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService Online =>
+        Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>();
+    public static Dfo.Server.Abstractions.OnlineUsers.IOnlineUserQueryDomainService OnlineUsers =>
+        Dfo.Server.Testing.ProtocolAlgorithmFixture.NoOnline();
+    public static Dfo.Server.Abstractions.OnlineUsers.IGameSessionEndpointDomainService Endpoints =>
+        Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.OnlineUsers.IGameSessionEndpointDomainService>();
+    public static Dfo.Server.Abstractions.Characters.IWeaknessDomainService Weakness =>
+        Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Characters.IWeaknessDomainService>();
+    public static Dfo.Server.Application.Commands.ICommandWorkUnits Units =>
+        Dfo.Server.Testing.ProtocolAlgorithmFixture.Default<Dfo.Server.Application.Commands.ICommandWorkUnits>();
+}

@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Characters;
 using System.Buffers.Binary;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
@@ -24,7 +25,7 @@ public sealed record GameUseStackableCommand(NetworkDispatchContext Dispatch, Us
 }
 
 public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService sessions, IBusinessInventorySlotDomainService inventory,
-    IItemUseEffectDomainService effects, ICommandWorkUnits units, IGameCommandOutbox outbox,
+    IItemUseEffectDomainService effects, IPvpRoomQueryDomainService rooms, ICommandWorkUnits units, IGameCommandOutbox outbox,
     ILogger<GameUseStackableCommandHandler> logger, TimeProvider timeProvider)
     : ICommandHandler<GameUseStackableCommand, ItemUseResult>
 {
@@ -104,6 +105,8 @@ public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService
         unit.Footprint.DemandActive(session);
         if (!sessions.IsInWorld(session))
             return ItemUseResult.Refused(ItemUseStatus.NoSession);
+        if (rooms.FindSeated(session.CharacterId) is { IsPractice: true })
+            return ItemUseResult.Refused(ItemUseStatus.PlaceNotAllowed);
 
         if (!slotAddress.Space.IsCarriedItemSpace()
             && slotAddress.Space != BusinessInventorySpace.CreatureConsumable)

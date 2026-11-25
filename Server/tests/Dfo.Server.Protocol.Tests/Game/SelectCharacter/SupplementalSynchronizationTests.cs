@@ -112,12 +112,17 @@ public sealed class SupplementalSynchronizationTests
         var existingB = Identity(3, 0xB2);
         var newcomer = Identity(7, 0xC3);
         var seats = Enumerable.Range(0, 8)
-            .Select(index => new PvpRoomSeatState((byte)index, (ushort)(100 + index)))
+            .Select(index => index switch
+            {
+                0 => new PvpRoomSeatState(PvpRoomSeatOccupancy.Taken, 2, 100, true),
+                1 => new PvpRoomSeatState(PvpRoomSeatOccupancy.Closed, 0, 0, false),
+                _ => new PvpRoomSeatState(PvpRoomSeatOccupancy.Open, 0, 0, false),
+            })
             .ToArray();
         PvpRoomSnapshotState[] rooms =
         [
-            new PvpRoomSnapshotState(20, 1, [], 2, 3, 4, 5, seats, true, 6),
-            new PvpRoomSnapshotState(10, 0, [0x51], 7, 1, 8, 2, seats, false, 9),
+            new PvpRoomSnapshotState(20, 1, [], false, 3, 4, 5, seats, true),
+            new PvpRoomSnapshotState(10, 0, [0x51], true, 1, 8, 2, seats, false),
         ];
 
         var batch = SupplementalSynchronizationCodec.EncodePvpLobby(
@@ -132,6 +137,14 @@ public sealed class SupplementalSynchronizationTests
         var roomBody = Body(batch.DirectPayloads[1]);
         Assert.Equal(2, BinaryPrimitives.ReadUInt16LittleEndian(roomBody));
         Assert.Equal(20, BinaryPrimitives.ReadUInt16LittleEndian(roomBody.AsSpan(2)));
+        // number, name type 1 (no name), state 2 (in battle), owner seat, map, mode, then the seats.
+        Assert.Equal([1, 2, 3, 4, 0, 5], roomBody[4..10]);
+        // Each seat is a state byte and a user id, nothing more (upstream WriteRoomInfo, A21 reader 0x00D73790).
+        // Spec SA-2: an open or a closed seat shows user id 0xFFFF, the client's "nobody".
+        Assert.Equal([2, 100, 0, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF], roomBody[10..22]);
+        // count, then 2+1+1+1+2+1+8*3+1+4 for the unnamed room and 4+1 more for the one-byte name.
+        Assert.Equal(2 + 37 + 42, roomBody.Length);
+        Assert.Equal([1, 0, 0, 0, 0], roomBody[34..39]);
         Assert.Equal([0xC3], newcomer.Character.Identity.Name);
     }
 

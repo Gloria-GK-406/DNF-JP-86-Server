@@ -249,6 +249,8 @@ public sealed class CharacterRosterCommandFlowTests
             var protocol = new ServiceCollection();
             new ProtocolModule().ConfigureServices(protocol, new ConfigurationBuilder().Build());
             ((IServiceCollection)services).Add(protocol.Single(row => row.ServiceType == typeof(IGameCommandOutbox)));
+            services.AddSingleton<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchRepresentativeSwitchDomainService,
+                Dfo.Server.Application.Pvp.PvpTotalMatchRepresentativeSwitchDomainService>();
             services.AddProtocolCommandHandler<GameAccountRosterCommand, AccountCharacterRoster, GameAccountRosterCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameGetAccountCharacterRoster, typeof(GetAccountCharacterRosterRequest)));
             services.AddProtocolCommandHandler<GameCheckCharacterNameCommand, CharacterNameStatus, GameCheckCharacterNameCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameCheckCharacterName, typeof(CheckCharacterNameRequest)));
             services.AddProtocolCommandHandler<GameCreateCharacterCommand, CharacterCreationResult, GameCreateCharacterCommandHandler>(new ProtocolCommandMessageBinding(ClientMessageType.GameCreateCharacter, typeof(CreateCharacterRequest)));

@@ -66,11 +66,23 @@ public sealed class CharacterBodyShapeTests
         "title_display_flag", "trailing_byte",
     ];
 
-    /// <summary>character_pvp -- 8 columns.</summary>
-    private static readonly string[] CharacterPvp =
+    /// <summary>character_pvp_record -- 9 columns.</summary>
+    private static readonly string[] CharacterPvpRecord =
     [
-        "character_id", "pvp_grade", "pvp_lose_streak", "pvp_rank_point", "pvp_rating_grade",
-        "pvp_stat_a", "pvp_win_streak", "skills_initialized",
+        "character_id", "draw", "grade", "grade_experience", "lose", "peak_win_streak",
+        "rating_grade", "win", "win_streak",
+    ];
+
+    /// <summary>character_pvp_skill_state -- 2 columns.</summary>
+    /// <remarks>
+    /// The ruling folded this flag into <c>character_pvp</c>. That table has since been split by
+    /// concept: the grades went to the duel record, and whether the duel skill pages were seeded is
+    /// the skill side's, not the record's, so it has a table of its own again -- one row per
+    /// character from creation, so the flag still replaces the presence of a row.
+    /// </remarks>
+    private static readonly string[] CharacterPvpSkillState =
+    [
+        "character_id", "skills_initialized",
     ];
 
     /// <summary>character_settings -- 3 columns.</summary>
@@ -86,17 +98,18 @@ public sealed class CharacterBodyShapeTests
         "enchanter_endurance", "expert_job_exp", "expert_job_type", "giveup_count",
     ];
 
-    /// <summary>The five tables whose columns move into the six above.</summary>
+    /// <summary>The tables whose columns moved into the ones above.</summary>
     /// <remarks>
     /// Each holds at most one row per character, and each one's columns belong to a concept that
-    /// already has a home. <c>character_expert_job</c> is a sixth table of that same shape and it
-    /// stays, because what it holds is a concept of its own -- which is why it is asserted present
-    /// here beside the five that go.
+    /// already has a home. <c>character_expert_job</c> is a table of that same shape and it stays,
+    /// because what it holds is a concept of its own -- which is why it is asserted present here
+    /// beside the ones that go. <c>character_pvp</c> went in schema version 11, split into the duel
+    /// record and the duel skill state.
     /// </remarks>
     private static readonly string[] FoldedAway =
     [
         "character_init_flags", "character_gold_limits", "character_crystal_contract",
-        "character_dimension_flags", "character_pvp_skill_state",
+        "character_dimension_flags", "character_pvp",
     ];
 
     [Theory]
@@ -116,7 +129,8 @@ public sealed class CharacterBodyShapeTests
         { "characters", Characters },
         { "character_stats", CharacterStats },
         { "character_condition", CharacterCondition },
-        { "character_pvp", CharacterPvp },
+        { "character_pvp_record", CharacterPvpRecord },
+        { "character_pvp_skill_state", CharacterPvpSkillState },
         { "character_settings", CharacterSettings },
         { "character_expert_job", CharacterExpertJob },
     };
@@ -138,13 +152,15 @@ public sealed class CharacterBodyShapeTests
     /// <remarks>
     /// Constraints are the part of a move that disappears quietly. A dropped foreign key refuses
     /// nothing and reports nothing; it shows up as an orphan row months later.
-    /// <c>character_pvp_skill_state</c> declared a cascading foreign key besides its key, and it
-    /// has to arrive on the table that absorbed it.
+    /// <c>character_pvp</c> carried a cascading foreign key besides its key, and both tables it was
+    /// split into have to keep it.
     /// </remarks>
-    [Fact]
-    public async Task TheCascadingForeignKeyArrivesOnTheTableThatAbsorbedIt()
+    [Theory]
+    [InlineData("character_pvp_record")]
+    [InlineData("character_pvp_skill_state")]
+    public async Task TheCascadingForeignKeyArrivesOnTheTableThatAbsorbedIt(string table)
     {
-        var sql = await DeclarationAsync("character_pvp");
+        var sql = await DeclarationAsync(table);
 
         Assert.Contains("FOREIGN KEY", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("REFERENCES characters", sql, StringComparison.OrdinalIgnoreCase);
@@ -152,14 +168,15 @@ public sealed class CharacterBodyShapeTests
     }
 
     /// <remarks>
-    /// Every one of the six holds exactly one row per character, so every one of them is keyed by
+    /// Every one of these holds exactly one row per character, so every one of them is keyed by
     /// the character and nothing else.
     /// </remarks>
     [Theory]
     [InlineData("characters")]
     [InlineData("character_stats")]
     [InlineData("character_condition")]
-    [InlineData("character_pvp")]
+    [InlineData("character_pvp_record")]
+    [InlineData("character_pvp_skill_state")]
     [InlineData("character_settings")]
     [InlineData("character_expert_job")]
     public async Task ACharacterBodyTableIsKeyedByTheCharacterAlone(string table)

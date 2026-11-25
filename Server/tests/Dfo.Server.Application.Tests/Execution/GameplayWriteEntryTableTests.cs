@@ -108,6 +108,7 @@ public sealed class GameplayWriteEntryTableTests
         typeof(HousingState),
         typeof(ExpertStoreDomainService),
         typeof(PvpLobbyDomainService),
+        typeof(Dfo.Server.Application.Pvp.PvpRoomDomainService),
         typeof(DungeonEntryIntentDomainService),
         typeof(Dfo.Server.Application.Events.JoustMaintenanceDomainService),
         typeof(Dfo.Server.Application.Sessions.SelectedSessionRefreshDomainService),
@@ -121,6 +122,8 @@ public sealed class GameplayWriteEntryTableTests
         typeof(PartyClientIdRegistry),
         typeof(BossTowerDepartureProjectionQueue),
         typeof(IllusionTowerDepartureProjectionQueue),
+        typeof(Dfo.Server.Protocol.Game.PvpBattle.PvpDepartureProjectionQueue),
+        typeof(Dfo.Server.Protocol.Game.PvpBattle.PvpResultScreenDeferrals),
         typeof(GameJoustBetCommandHandler),
     ];
 
@@ -472,10 +475,34 @@ public sealed class GameplayWriteEntryTableTests
         ["PvpLobbyDomainService.ClearReady(CharacterId)"] = W,
         ["PvpLobbyDomainService.ClearReadyExact(SelectedSessionIdentity)"] = W,
         ["PvpLobbyDomainService.MarkReady(PvpLobbyParticipant)"] = W,
-        ["PvpLobbyDomainService.Offer(PvpRoom)"] = W,
-        ["PvpLobbyDomainService.OfferedOn(Int32)"] = R,
         ["PvpLobbyDomainService.ReadyOn(Int32, CharacterId)"] = R,
-        ["PvpLobbyDomainService.Withdraw(UInt16)"] = W,
+
+        // PvpRoomDomainService
+        ["PvpRoomDomainService.AbandonSettlementAsync(PvpMatchId, CancellationToken)"] = W,
+        ["PvpRoomDomainService.AcceptInviteAsync(SelectedSessionIdentity, CharacterId, CancellationToken, Int32?)"] = W,
+        ["PvpRoomDomainService.AcknowledgeRankAsync(SelectedSessionIdentity, CancellationToken)"] = W,
+        ["PvpRoomDomainService.AcknowledgeResultAsync(SelectedSessionIdentity, CancellationToken)"] = W,
+        ["PvpRoomDomainService.AdvanceDueAsync(PvpRoomId, DateTimeOffset, CancellationToken)"] = W,
+        ["PvpRoomDomainService.CancelForShutdownAsync(CancellationToken)"] = W,
+        ["PvpRoomDomainService.CompleteSettlement(PvpMatchConclusion, IReadOnlyList<PvpFighterResult>)"] = W,
+        ["PvpRoomDomainService.CreateAsync(PvpRoomCreation, CancellationToken)"] = W,
+        ["PvpRoomDomainService.Deadlines(DateTimeOffset)"] = R,
+        ["PvpRoomDomainService.DepartAsync(SelectedSessionIdentity, PvpDepartureReason, CancellationToken)"] = W,
+        ["PvpRoomDomainService.EnterAsync(SelectedSessionIdentity, UInt16, ImmutableArray<Byte>?, CancellationToken)"] = W,
+        ["PvpRoomDomainService.Find(PvpRoomId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.FindConclusion(PvpMatchId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.FindSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.HeartbeatAsync(SelectedSessionIdentity, CancellationToken)"] = W,
+        ["PvpRoomDomainService.InviteAsync(SelectedSessionIdentity, SelectedSessionIdentity, CancellationToken, Int32)"] = W,
+        ["PvpRoomDomainService.IsSeated(CharacterId)"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.PendingConclusions()"] = ReadNote(ConditionalEnlist),
+        ["PvpRoomDomainService.ReportDeathAsync(SelectedSessionIdentity, CharacterId?, CancellationToken)"] = W,
+        ["PvpRoomDomainService.ReportTimeoutAsync(SelectedSessionIdentity, ImmutableArray<Byte>, CancellationToken)"] = W,
+        ["PvpRoomDomainService.RoomsOn(Int32)"] = R,
+        ["PvpRoomDomainService.SetMapAsync(SelectedSessionIdentity, Int32, CancellationToken)"] = W,
+        ["PvpRoomDomainService.SetModeAsync(SelectedSessionIdentity, PvpBattleMode, CancellationToken)"] = W,
+        ["PvpRoomDomainService.SetReadyAsync(SelectedSessionIdentity, Boolean, CancellationToken)"] = W,
+        ["PvpRoomDomainService.SetSeatAsync(SelectedSessionIdentity, Int32, PvpSeatAction, PvpTeam, CancellationToken)"] = W,
 
         // DungeonEntryIntentDomainService
         ["DungeonEntryIntentDomainService.Authorize(SelectedSessionIdentity, Int32, Boolean)"] = R,
@@ -543,6 +570,15 @@ public sealed class GameplayWriteEntryTableTests
         ["TowerDepartureProjectionQueue.Enqueue(TowerActionResult)"] = W,
         ["TowerDepartureProjectionQueue.TryClaim(TowerDepartureEntryId, TowerActionResult&)"] = W,
         ["TowerDepartureProjectionQueue.DepartedAsync(TowerActionResult, CancellationToken)"] = W,
+        // PvpDepartureProjectionQueue
+        ["PvpDepartureProjectionQueue.DepartedAsync(Changed, PvpSettlementOutcome, CancellationToken)"] = W,
+        ["PvpDepartureProjectionQueue.SnapshotPending()"] = R,
+        ["PvpDepartureProjectionQueue.TryClaim(PvpDepartureEntryId, PvpCommittedDeparture&)"] = W,
+        // PvpResultScreenDeferrals
+        ["PvpResultScreenDeferrals.Defer(SelectedSessionIdentity, PvpRoomId)"] = W,
+        ["PvpResultScreenDeferrals.DropRoom(PvpRoomId)"] = W,
+        ["PvpResultScreenDeferrals.Owes(SelectedSessionIdentity, PvpRoomId)"] = R,
+        ["PvpResultScreenDeferrals.Release(SelectedSessionIdentity)"] = W,
 
         ["GameJoustBetCommandHandler.HandleAsync(CommandExecutionContext, GameJoustBetCommand, CancellationToken)"] = W,
     };

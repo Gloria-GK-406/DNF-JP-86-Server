@@ -91,6 +91,18 @@ public sealed class CharacterSkillRuleServiceTests
     }
 
     [Fact]
+    public async Task Duel_seed_and_player_grant_preserve_their_distinct_fallbacks_when_hotkeys_are_full()
+    {
+        var rules = Service([Definition(1) with { IsActive = true }], [new(1, 1, 1, 0)]);
+        var definitions = await rules.GetAsync(Career.Job, 1, 86, [], CancellationToken.None);
+        var occupied = Enumerable.Range(0, 6).Concat(Enumerable.Range(198, 6)).ToHashSet();
+
+        Assert.Equal((short)150, rules.Get(Career.Job, 1)!.FindAvailableSlot(occupied));
+        Assert.Equal((short)6, CharacterSkillRule.FindDuelSeedSlot(occupied, Career.Job, definitions.Skills[1],
+            initialGrant: false));
+    }
+
+    [Fact]
     public void Existing_balance_projection_logs_missing_cost_definitions()
     {
         var logger = new LedgerLogger();

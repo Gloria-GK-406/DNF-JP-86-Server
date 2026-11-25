@@ -1,0 +1,76 @@
+project: Dfo.Server.Application.Tests
+command: dotnet test <project> --no-build -m:1 -- xUnit.MaxParallelThreads=1 (PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf)
+trx: E:\Project\DNF\DNF-JP-86-Server-pvp\Server\tests\Dfo.Server.Application.Tests\TestResults\Gloria_家庭台式机_2026-11-14_22_41_05_net10.0.trx
+start: 2026-11-14T22:41:00.7488317+08:00  finish: 2026-11-14T22:53:55.8087750+08:00
+total=6995 passed=6960 failed=27 skipped=8
+
+[Failed] Dfo.Server.Application.Tests.Inventory.PackageOpeningTests.Archive_package_referencing_missing_equipment_is_refused_without_consumption
+    Assert.Equal() Failure: Values differ | Expected: UnsupportedContent | Actual:   ItemUnusable
+[Failed] Dfo.Server.Application.Tests.Quests.QuestMapClearTests.Actual_awakening_quest_975_targets_the_map_of_death_tower_floor_30
+    Assert.Equal() Failure: Values differ | Expected: 30030 | Actual:   null
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Entry_cost_and_daily_limit_are_atomic_persistent_and_reset_at_six
+    DungeonEntryAttempt { Entry = , Failure = MissingRequiredItem, BlockedSlot = 0, Detail =  }
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Licensed_star_selects_effective_difficulty_even_when_client_keeps_another_ordinary_tier(license: 2, requested: 0, cost: 20)
+    DungeonEntryAttempt { Entry = , Failure = MissingRequiredItem, BlockedSlot = 0, Detail =  }
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Licensed_star_selects_effective_difficulty_even_when_client_keeps_another_ordinary_tier(license: 2, requested: 4, cost: 20)
+    DungeonEntryAttempt { Entry = , Failure = MissingRequiredItem, BlockedSlot = 0, Detail =  }
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Licensed_star_selects_effective_difficulty_even_when_client_keeps_another_ordinary_tier(license: 3, requested: 0, cost: 40)
+    DungeonEntryAttempt { Entry = , Failure = MissingRequiredItem, BlockedSlot = 0, Detail =  }
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Licensed_star_selects_effective_difficulty_even_when_client_keeps_another_ordinary_tier(license: 4, requested: 0, cost: 80)
+    DungeonEntryAttempt { Entry = , Failure = MissingRequiredItem, BlockedSlot = 0, Detail =  }
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Monthly_quota_resets_at_the_first_daily_boundary_without_resetting_license
+    Assert.NotNull() Failure: Value is null
+[Failed] Dfo.Server.Application.Tests.World.DarkElfRuinsTests.Party_admission_refusal_does_not_charge_any_member_and_success_commits_both
+    Assert.NotNull() Failure: Value is null
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Each_member_must_have_the_restored_unlock_and_the_whole_party_is_refused_before_spending
+    Requires restored task PVF.
+[Failed] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy(dungeon: 3536, quest: 20720, requirement: Cleared, directed: False)
+    System.IO.InvalidDataException : Giant dragon dungeon or native entrance is missing/incompatible.
+[Failed] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy(dungeon: 3537, quest: 20722, requirement: Cleared, directed: False)
+    System.IO.InvalidDataException : Giant dragon dungeon or native entrance is missing/incompatible.
+[Failed] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy(dungeon: 3538, quest: 20728, requirement: ActiveOrCleared, directed: False)
+    System.IO.InvalidDataException : Giant dragon dungeon or native entrance is missing/incompatible.
+[Failed] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy(dungeon: 3539, quest: 20728, requirement: Cleared, directed: False)
+    System.IO.InvalidDataException : Giant dragon dungeon or native entrance is missing/incompatible.
+[Failed] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Entry_plan_owns_each_quest_mode_and_directed_maze_policy(dungeon: 3540, quest: 20727, requirement: Active, directed: True)
+    System.IO.InvalidDataException : Giant dragon dungeon or native entrance is missing/incompatible.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Giant_dragon_room_creation_failure_rolls_back_a_real_quest_ticket
+    Requires restored task PVF.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Restored_resource_preserves_original_gate_and_links_both_dragon_regions
+    Run this native-restoration oracle with the task-generated PVF.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Restored_variants_require_their_own_quest_and_ticket_and_materialize_every_declared_room(dungeon: 3536, quest: 20720, active: False, ticket: 0, difficulty: 0)
+    Use task-restored PVF for restored-variant tests.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Restored_variants_require_their_own_quest_and_ticket_and_materialize_every_declared_room(dungeon: 3537, quest: 20722, active: False, ticket: 0, difficulty: 0)
+    Use task-restored PVF for restored-variant tests.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Restored_variants_require_their_own_quest_and_ticket_and_materialize_every_declared_room(dungeon: 3538, quest: 20728, active: True, ticket: 10002520, difficulty: 2)
+    Use task-restored PVF for restored-variant tests.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Restored_variants_require_their_own_quest_and_ticket_and_materialize_every_declared_room(dungeon: 3539, quest: 20728, active: False, ticket: 10002519, difficulty: 2)
+    Use task-restored PVF for restored-variant tests.
+[NotExecuted] Dfo.Server.Application.Tests.World.GiantDragonDungeonTests.Restored_variants_require_their_own_quest_and_ticket_and_materialize_every_declared_room(dungeon: 3540, quest: 20727, active: True, ticket: 0, difficulty: 0)
+    Use task-restored PVF for restored-variant tests.
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.All_36_ordinary_stage_difficulties_finish_with_independent_unlocks_and_72_stars
+    Assert.Equal() Failure: Values differ | Expected: 67 | Actual:   73
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Center_death_is_failure_and_death_rollback_does_not_kill_or_reward
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Energy_upgrades_summon_cost_cooldown_and_abandon_obey_the_run_transaction
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Entry_and_progress_rollback_together_and_daily_refill_preserves_extra_tickets
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Loading_timeout_fails_without_reward_and_departure_cleans_pending_callbacks
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Managed_disable_blocks_admission_and_old_selected_session_cannot_continue_or_mutate_progress
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Real_stage_runs_all_phases_pause_fences_old_callbacks_and_clear_awards_once
+    Assert.Equal() Failure: Values differ | Expected: 2 | Actual:   8
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Survival_retains_the_center_without_loading_again_and_consumes_one_reward_ticket_per_clear(extraTickets: 0, expectedRounds: 3)
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.GuardianAltarLifecycleTests.Survival_retains_the_center_without_loading_again_and_consumes_one_reward_ticket_per_clear(extraTickets: 100, expectedRounds: 99)
+    Assert.Equal() Failure: Values differ | Expected: 4 | Actual:   10
+[Failed] Dfo.Server.Application.Tests.World.IllusionTowerDomainServiceTests.Apc_kill_grants_real_quest_950_material_once_inside_the_tower_transaction
+    Assert.InRange() Failure: Value not in range | Range:  (1 - 3) | Actual: 0
+[Failed] Dfo.Server.Application.Tests.World.IllusionTowerDomainServiceTests.Quest_950_drop_respects_active_task_cap_and_a_full_quest_page
+    Assert.Equal() Failure: Values differ | Expected: 10 | Actual:   9
+[Failed] Dfo.Server.Application.Tests.World.IllusionTowerDomainServiceTests.Quest_material_kill_sql_failure_rolls_back_actor_experience_material_and_progress_then_retries
+    Assert.InRange() Failure: Value not in range | Range:  (1 - 3) | Actual: 0
+[Failed] Dfo.Server.Application.Tests.World.IndependentDropRuleServiceTests.A21_entire_cache_prewarms_with_one_warning_and_preserves_all_rows
+    Assert.Equal() Failure: Values differ | Expected: 3046 | Actual:   3179

@@ -8,10 +8,22 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterSkillStateDomainService(
     ICharacterTable characters, ICharacterSkillTable skills, CharacterSkillFactsReader skillFacts,
     ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds,
-    IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules)
+    IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules,
+    ICharacterPvpSkillStateTable duelBuilds)
     : ICharacterSkillStateDomainService
 {
-    public ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId id, CancellationToken ct) => builds.ReadAsync(id, ct);
+    public async ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId id, CancellationToken ct,
+        SkillGroup group = SkillGroup.Pve)
+    {
+        var ordinary = await builds.ReadAsync(id, ct).ConfigureAwait(false);
+        if (group == SkillGroup.Pve)
+            return ordinary;
+
+        var duel = await duelBuilds.FindAsync(id, ct).ConfigureAwait(false);
+        var unlocked = ordinary.IsUnlocked(new(1));
+        return new(new(unlocked ? duel?.ActiveSkillBuild ?? 0 : 0),
+            [new(new(0), true), new(new(1), unlocked)]);
+    }
 
     public async ValueTask UnlockAsync(CharacterId id, SkillBuildId build, CancellationToken ct)
     {
@@ -20,10 +32,19 @@ internal sealed class CharacterSkillStateDomainService(
         await ReconcileAsync(id, ct);
     }
 
-    public async ValueTask ActivateAsync(CharacterId id, SkillBuildId build, CancellationToken ct)
+    public async ValueTask ActivateAsync(CharacterId id, SkillBuildId build, CancellationToken ct,
+        SkillGroup group = SkillGroup.Pve)
     {
         RequireTransaction();
-        await builds.SetActiveAsync(id, build, ct);
+        if (group == SkillGroup.Pve)
+        {
+            await builds.SetActiveAsync(id, build, ct).ConfigureAwait(false);
+            return;
+        }
+
+        if (!(await BuildsAsync(id, ct, group).ConfigureAwait(false)).IsUnlocked(build)
+            || !await duelBuilds.SetActiveBuildAsync(id, build, ct).ConfigureAwait(false))
+            throw new InvalidOperationException("Duel skill build is locked or unavailable.");
     }
 
     public async ValueTask ResetAsync(CharacterId id, SkillBuildId build, CancellationToken ct)

@@ -1,0 +1,6 @@
+project: Dfo.Server.Protocol.Tests
+command: dotnet test <project> --no-build -m:1 -- xUnit.MaxParallelThreads=1 (PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf)
+trx: E:\Project\DNF\DNF-JP-86-Server-pvp\Server\tests\Dfo.Server.Protocol.Tests\TestResults\Gloria_家庭台式机_2026-11-14_22_34_59_net10.0.trx
+start: 2026-11-14T22:34:56.6445325+08:00  finish: 2026-11-14T22:35:18.7729146+08:00
+total=2488 passed=2488 failed=0 skipped=0
+

@@ -56,3 +56,11 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## 2026-11-14 决斗场一期实现（TASK-06，CurrentImplementation，待实机）
+
+11 字节：`u16 房间号, u8 state(1 等待/2 战斗), u8 房主座位, i16 地图, u8 模式, i32 匹配类型(0)`（上游 `BuildRoomStateBody`，
+静态下界 11 字节一致，High）。房间销毁时发 `state 0, 房主 0, 地图 0, 模式 2, 匹配 0`（上游 `BuildDestroyedRoomStateBody`）。
+房主、地图或等待/战斗状态变化时发给同端口大厅就绪者；开局时成员收到它排在 `0x002D` 之后。
+
+实机前不标 ClientVerified；无 `.hex` 样本，布局来自上游转录与静态走图，字节由编码/解码测试固定。

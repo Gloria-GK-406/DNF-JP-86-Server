@@ -1,3 +1,5 @@
+using Dfo.Server.Data.Characters;
+
 namespace Dfo.Server.Data.Channel;
 
 public sealed record ChannelServerInfo(
@@ -32,11 +34,17 @@ public enum ChannelEntryKind
     /// <summary>The duelling channel, which carries its own skill profile.</summary>
     FreeDuel,
 
-    /// <summary>A ranked or practice duelling channel declared by the channel script.</summary>
-    Pvp,
+    /// <summary>A traditional duelling channel with a room list.</summary>
+    TraditionalDuel,
 
     /// <summary>An assault channel with its own transient town.</summary>
     Raid,
+
+    /// <summary>A duelling channel whose lobby uses automatic matchmaking.</summary>
+    MatchmakingDuel,
+
+    /// <summary>A channel configured for ranked total-match entry and its daily mission pool.</summary>
+    TotalMatchDuel,
 }
 
 /// <summary>
@@ -50,11 +58,17 @@ public enum ChannelEntryKind
 public sealed record ChannelEntryIdentity(int ChannelId, int ListenerPort, ChannelEntryKind Kind,
     byte? LoginEnvironment = null)
 {
+    public bool AllowsTotalMatchmaking => Kind == ChannelEntryKind.TotalMatchDuel;
+
+    public bool SupportsMatchmaking => Kind is ChannelEntryKind.MatchmakingDuel or ChannelEntryKind.TotalMatchDuel;
+
     /// <summary>True for the free-duelling channel type.</summary>
     public bool IsFreeDuel => Kind is ChannelEntryKind.FreeDuel;
 
     /// <summary>True for every channel that uses duelling skills and entry projections.</summary>
-    public bool IsPvp => Kind is ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp;
+    public bool IsPvp => SupportsMatchmaking || Kind is ChannelEntryKind.FreeDuel or ChannelEntryKind.TraditionalDuel;
+
+    public SkillGroup CharacterSkillGroup => IsPvp ? SkillGroup.Duel : SkillGroup.Pve;
 
     /// <summary>True when a character's position on this channel is not persisted.</summary>
     /// <remarks>
@@ -62,8 +76,7 @@ public sealed record ChannelEntryIdentity(int ChannelId, int ListenerPort, Chann
     /// they were before entering them, so writing the transient position back would strand
     /// them there.
     /// </remarks>
-    public bool IsTransient => Kind is ChannelEntryKind.SaintHorn or ChannelEntryKind.Raid
-        or ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp;
+    public bool IsTransient => IsPvp || Kind is ChannelEntryKind.SaintHorn or ChannelEntryKind.Raid;
 }
 
 /// <summary>Why a character was refused entry to a channel.</summary>

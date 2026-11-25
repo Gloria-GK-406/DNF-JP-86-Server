@@ -606,7 +606,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                             TownId: 1, AreaId: 1, X: 100, Y: 100,
                             Direction: 0, AreaState: 7, IsTransient: false),
                         PersistsPosition: true,
-                        PvpSkillProfileApplies: false),
+                        SkillGroup: SkillGroup.Pve),
                 },
             });
             var areas = new SessionPresenceDomainService();

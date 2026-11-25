@@ -1,0 +1,44 @@
+project: Dfo.Server.Infrastructure.Tests
+command: dotnet test <project> --no-build -m:1 -- xUnit.MaxParallelThreads=1 (PVF_ARCHIVE_PATH=E:\Project\DNF\DNFClient-A21-protocol\Script.pvf)
+trx: E:\Project\DNF\DNF-JP-86-Server-pvp\Server\tests\Dfo.Server.Infrastructure.Tests\TestResults\Gloria_家庭台式机_2026-11-14_22_15_02_net10.0.trx
+start: 2026-11-14T22:15:00.1513948+08:00  finish: 2026-11-14T22:17:46.6844435+08:00
+total=1066 passed=1047 failed=17 skipped=2
+
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfClearRewardRateSourceTests.The_closing_invariant_holds_here_and_in_the_monster_table_but_in_no_abyss_group
+    Assert.Equal() Failure: Collections differ |                                        ↓ (pos 3) | Expected: <generated> [···, 0, 599000, 993000, 993000, 1000000, ···]
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfDarkElfRuinsContentSourceTests.Every_ruins_tier_has_enterable_ordinary_and_declared_guardian_topologies
+    Assert.Equal() Failure: Values differ | Expected: DungeonRequiredItem { ItemId = 3033, Count = 10, Consume = True, AllowSharedMaterial = True } | Actual:   DungeonRequiredItem { ItemId = 490002384, Count = 1, Consume = True, AllowSharedMaterial = True }
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfDropItemPoolSourceTests.A_dropped_piece_carries_the_durability_its_own_file_declares
+    Assert.Equal() Failure: Values differ | Expected: 6062 | Actual:   5266
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfDropItemPoolSourceTests.The_equipment_pool_comes_from_the_equipment_files
+    Assert.Equal() Failure: Values differ | Expected: 6062 | Actual:   5266
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfEntryLifecycleContentSourceTests.DailyRefill_RealArchiveProducesAuthoritativeRulesWithStackLimits
+    Assert.All() Failure: 1 out of 12 items in the collection did not pass. | [11]: Item:  DailyRefillRule { ItemId = 490002948, Quantity = 1, ExpiresAt = 2030/1/1 6:00:00 +08:00, Mode = RefillToTarget, StackLimit = 1000, ItemKind = 3, Destination = BusinessSlotRange { Space = Material, FirstIndex = 0, LastIndex = 55 } } |       Error: Assert.Equal() Failure: Values differ
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfExtraDropContentSourceTests.A21_extra_table_and_empty_tagged_pool_initialize_and_are_cached
+    Assert.Equal() Failure: Values differ | Expected: 1047 | Actual:   1051
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfGuardianAltarContentTests.Units_skills_towers_gage_and_achievements_come_from_their_own_tables
+    Assert.Equal() Failure: Values differ | Expected: 3 | Actual:   9
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfIndependentDropTableSourceTests.A21_complete_table_is_retained_including_unresolved_types
+    Assert.Equal() Failure: Values differ | Expected: 3046 | Actual:   3179
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfItemLifetimeTests.Actual_item_placement_exposes_the_declared_lifetime(id: 490002925, days: 0, daily: False)
+    Assert.Equal() Failure: Values differ | Expected: 1479333600 | Actual:   0
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfNpcShopDefinitionSourceTests.The_two_sampled_npcs_resolve_their_actual_shop_pages
+    Assert.Contains() Failure: Filter not matched in collection | Collection: [NpcShopPage { Job = , ItemIds = System.Int32[] }, NpcShopPage { Job = , ItemIds = System.Int32[] }, NpcShopPage { Job = , ItemIds = System.Int32[] }, NpcShopPage { Job = , ItemIds = System.Int32[] }, NpcShopPage { Job = , ItemIds = System.Int32[] }]
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfPremiumDurationTests.A21_contract_levels_and_short_term_products_are_read_from_the_archive
+    Assert.Equal() Failure: Values differ | Expected: 0.20000000000000001 | Actual:   2
+[NotExecuted] Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.A_missing_archive_fails_with_an_actionable_message
+    An archive is reachable from this working tree.
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfQuestDefinitionSourceTests.Projects_every_neutral_eligibility_input_from_the_real_archive
+    Assert.Equal() Failure: Values differ | Expected: 3295 | Actual:   3255
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfQuestEnemyRewardTests.A21_APC_object_and_repeated_candidate_declarations_are_preserved
+    Assert.Equal() Failure: Values differ | Expected: 3295 | Actual:   3255
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfQuestHelperTests.A21_helper_values_and_mixed_quest_requirements_keep_materials_separate
+    Assert.NotNull() Failure: Value is null
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfStackableActionDefinitionSourceTests.Batch_coupon_has_action_and_level_ceiling_independent_of_item_id
+    Assert.Equal() Failure: Values differ | Expected: 84 | Actual:   86
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfTeleportConsumableDefinitionSourceTests.Real_potion_selection_destinations_and_Shonan_gate_are_typed
+    Assert.Equal() Failure: Values differ | Expected: 60 | Actual:   0
+[NotExecuted] Dfo.Server.Infrastructure.Tests.Content.PvfTownDefinitionSourceTests.A_missing_archive_fails_rather_than_yielding_an_empty_town_catalog
+    An archive is reachable from this working tree.
+[Failed] Dfo.Server.Infrastructure.Tests.Content.PvfWorldDropTableSourceTests.A21_archive_resolves_all_active_references_and_preserves_level_values
+    Assert.Equal() Failure: Values differ | Expected: 8947 | Actual:   37447

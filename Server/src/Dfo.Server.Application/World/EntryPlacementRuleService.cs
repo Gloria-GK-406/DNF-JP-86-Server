@@ -45,7 +45,7 @@ internal sealed class EntryPlacementRuleService(
             channel.ChannelId,
             spawn,
             PersistsPosition: !channel.IsTransient,
-            PvpSkillProfileApplies: channel.IsPvp);
+            SkillGroup: channel.CharacterSkillGroup);
     }
 
     public ValueTask<bool> CanEnterTownAsync(
@@ -150,11 +150,10 @@ internal sealed class EntryPlacementRuleService(
     private bool IsSpecialTown(int townId) =>
         townId == options.SaintHornTownId || townId == options.PvpTownId || townId == options.RaidTownId;
 
-    private int SpecialTownOf(ChannelEntryIdentity channel) => channel.Kind switch
+    private int SpecialTownOf(ChannelEntryIdentity channel) => channel.IsPvp ? options.PvpTownId : channel.Kind switch
     {
         ChannelEntryKind.SaintHorn => options.SaintHornTownId,
         ChannelEntryKind.Raid => options.RaidTownId,
-        ChannelEntryKind.FreeDuel or ChannelEntryKind.Pvp => options.PvpTownId,
         _ => throw new InvalidOperationException("Channel has no transient town."),
     };
 

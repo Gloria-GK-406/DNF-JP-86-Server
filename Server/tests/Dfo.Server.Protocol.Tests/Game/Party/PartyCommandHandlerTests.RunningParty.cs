@@ -203,6 +203,9 @@ public sealed partial class PartyCommandHandlerTests
             await new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions, town, Parties,
                     new FixedPartyMemberStatus(), new TestCommandProjections(projection.Events), projection.Streams,
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
+                    new Dfo.Server.Protocol.Tests.Game.PvpRoom.ScriptedPvpRooms(),
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService>(),
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Application.Commands.ICommandWorkUnits>(),
                     NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
                 .SendAsync(new GameRequestPeerCommand(Dispatch(from),
                     new RequestPeerRequest(GameMessageMetadata.Empty, to.WireUserId, 0, 64, [])));
@@ -211,7 +214,10 @@ public sealed partial class PartyCommandHandlerTests
             await new DirectBus<GameResponsePeerCommand>(new GameResponsePeerCommandHandler(sessions, town, Parties,
                     new TestCommandProjections(projection.Events), projection.Streams,
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
-                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
+                    PeerRoomStandIns.Rooms, PeerRoomStandIns.Lobby, PeerRoomStandIns.Views, PeerRoomStandIns.Online,
+                    PeerRoomStandIns.OnlineUsers, PeerRoomStandIns.Endpoints, PeerRoomStandIns.Weakness, PeerRoomStandIns.Units,
+                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(),
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System))
                 .SendAsync(new GameResponsePeerCommand(Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, 0, 0, [])));
 

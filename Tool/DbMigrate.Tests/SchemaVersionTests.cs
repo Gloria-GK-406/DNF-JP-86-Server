@@ -6,6 +6,146 @@ namespace DbMigrate.Tests;
 public sealed class SchemaVersionTests
 {
     [Fact]
+    public void Version_twenty_adds_colosseum_state_without_rewriting_existing_accounts()
+    {
+        var path = Unversioned.NewPath("pvp-colosseum-v20");
+        try
+        {
+            _ = Unversioned.Open(path);
+            var freshShape = ShapeOf(path);
+            Execute(path, """
+                DROP TABLE pvp_colosseum_runs;
+                PRAGMA user_version=20;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((20L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(freshShape, ShapeOf(path));
+            Assert.Equal(1, Scalar(path, "SELECT COUNT(*) FROM accounts WHERE account_id=7"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM pvp_colosseum_runs"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_eighteen_adds_daily_missions_and_keeps_existing_gp()
+    {
+        var path = Unversioned.NewPath("pvp-mission-v18");
+        try
+        {
+            _ = Unversioned.Open(path);
+            var freshShape = ShapeOf(path);
+            Execute(path, """
+                DROP TABLE pvp_daily_mission_metrics;
+                DROP TABLE pvp_daily_missions;
+                PRAGMA user_version=18;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO pvp_matches(match_id,room_id,listener_port,channel_env,battle_mode,outcome_kind,winner,
+                    records_result,game_day,completed_at)
+                VALUES('old-total-match',1,44081,8,8,0,0,1,'2026-11-25',1795564800000);
+                INSERT INTO account_pvp_total_match_rating_results
+                    (match_id,account_id,season_id,placement_games,gp_before,gp_after,peak_gp)
+                VALUES('old-total-match',7,1,1,1000,1020,0);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((18L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(freshShape, ShapeOf(path));
+            Assert.Equal(1020, Scalar(path, "SELECT gp_after FROM account_pvp_total_match_rating_results WHERE account_id=7"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM pvp_daily_missions"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_sixteen_upgrade_preserves_old_match_results_and_starts_an_empty_rating_journal()
+    {
+        var path = Unversioned.NewPath("pvp-rating-v16");
+        try
+        {
+            _ = Unversioned.Open(path);
+            var freshShape = ShapeOf(path);
+            Execute(path, """
+                DROP TABLE IF EXISTS pvp_match_rating_results;
+                PRAGMA user_version=16;
+                INSERT INTO pvp_matches(match_id,room_id,listener_port,channel_env,battle_mode,outcome_kind,winner,
+                    records_result,game_day,completed_at)
+                VALUES('old-match',1,44060,8,1,0,0,0,'2026-11-25',1795564800000);
+                INSERT INTO pvp_match_results(match_id,character_id,seat,team,outcome,kills,deaths,fled,
+                    counts_toward_daily,previous_grade,grade,experience_change,experience,win_streak)
+                VALUES('old-match',71,0,0,0,1,0,0,0,7,7,0,1250,0);
+                """);
+
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((16L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(freshShape, ShapeOf(path));
+            Assert.Equal(1, Scalar(path, "SELECT COUNT(*) FROM pvp_match_results WHERE match_id='old-match' AND experience=1250"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM pvp_match_rating_results"));
+
+            const string insert = """
+                PRAGMA foreign_keys=ON;
+                INSERT INTO pvp_match_rating_results(match_id,character_id,season_id,placement_games,rp_before,rp_after,peak_rp)
+                """;
+            Assert.Throws<SqliteException>(() => Execute(path, insert + " VALUES('old-match',72,1,1,1000,1020,0);"));
+            Assert.Throws<SqliteException>(() => Execute(path, insert + " VALUES('old-match',71,1,21,1000,1020,0);"));
+            Execute(path, insert + " VALUES('old-match',71,1,1,1000,1020,0);");
+            Assert.Throws<SqliteException>(() => Execute(path, insert + " VALUES('old-match',71,1,2,1020,1040,0);"));
+            Assert.Equal(1020, Scalar(path, "SELECT rp_after FROM pvp_match_rating_results WHERE match_id='old-match' AND character_id=71"));
+            Execute(path, "PRAGMA foreign_keys=ON; DELETE FROM pvp_match_results WHERE match_id='old-match';");
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM pvp_match_rating_results"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_seventeen_upgrade_adds_empty_account_gp_journal()
+    {
+        var path = Unversioned.NewPath("pvp-total-match-rating-v17");
+        try
+        {
+            _ = Unversioned.Open(path);
+            var freshShape = ShapeOf(path);
+            Execute(path, """
+                DROP TABLE account_pvp_total_match_rating_results;
+                PRAGMA user_version=17;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO account_pvp_total_match_teams
+                    (account_id,name,name_key,first_character_id,second_character_id,third_character_id)
+                VALUES(7,'team','TEAM',71,72,73);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((17L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(freshShape, ShapeOf(path));
+            Assert.Equal(1, Scalar(path, "SELECT COUNT(*) FROM account_pvp_total_match_teams WHERE account_id=7"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM account_pvp_total_match_rating_results"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_fifteen_upgrade_adds_empty_total_match_teams_and_preserves_the_roster()
+    {
+        var path = Unversioned.NewPath("pvp-total-match-v15");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE account_pvp_total_match_teams;
+                PRAGMA user_version=15;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,slot_index) VALUES
+                    (71,7,'one',1,0,70,0,0),(72,7,'two',2,0,70,0,2),(73,7,'three',3,0,70,0,4);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal(15L, migrated.From);
+            Assert.Equal(CharacterDatabaseSchema.Version, migrated.To);
+            Assert.Equal(3, Scalar(path, "SELECT COUNT(*) FROM characters WHERE account_id=7"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM account_pvp_total_match_teams"));
+            _ = Unversioned.Open(path);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
     public void Version_two_upgrade_adds_activity_state_without_changing_character_fatigue()
     {
         var path = Unversioned.NewPath("activity-v2");

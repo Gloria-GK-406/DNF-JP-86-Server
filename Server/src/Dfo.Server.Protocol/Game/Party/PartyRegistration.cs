@@ -50,6 +50,7 @@ internal static class PartyRegistration
         services.AddGameCmdMessageDecoder<SetPartyInfoDecoder>(ClientMessageType.GameSetPartyInfo);
         services.AddGameNotiMessageEncoder<PartyInviteRequestMessage, PartyInviteRequestEncoder>();
         services.AddGameNotiMessageEncoder<PartyInviteAcceptedMessage, PartyInviteAcceptedEncoder>();
+        services.AddGameNotiMessageEncoder<PvpRoomInviteRequestMessage, PvpRoomInviteRequestEncoder>();
         services.AddGameNotiMessageEncoder<PartyRealtimeMessage, PartyRealtimeEncoder>();
         services.AddGameNotiMessageEncoder<PartyEndpointsMessage, PartyEndpointsEncoder>();
         services.AddGameNotiMessageEncoder<PartyRosterMessage, PartyRosterEncoder>();

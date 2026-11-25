@@ -32,11 +32,26 @@ internal static class TownReturnProjection
     /// <summary>The user's state byte for standing in a town, which is where this puts them.</summary>
     private const byte StandingInTown = 0x00;
 
+    /// <param name="ownState">
+    /// Whether the frames open with the character's own USER_STATE 0. A dungeon return does; leaving a duel room does
+    /// not (upstream <c>PublishTownReturnAsync</c>: USER_AREA, then the area roster), its state 0 going to the lobby.
+    /// </param>
     public static IReadOnlyList<IGameServerMessage> Frames(
         SelectedSessionIdentity session,
         SelectCharacterResult result,
         CharacterPositionState position,
-        IReadOnlyList<TownParticipantEntryState>? visiblePeers = null)
+        IReadOnlyList<TownParticipantEntryState>? visiblePeers = null,
+        bool ownState = true)
+    {
+        var frames = FramesWithState(session, result, position, visiblePeers);
+        return ownState ? frames : [.. frames.Skip(1)];
+    }
+
+    private static IReadOnlyList<IGameServerMessage> FramesWithState(
+        SelectedSessionIdentity session,
+        SelectCharacterResult result,
+        CharacterPositionState position,
+        IReadOnlyList<TownParticipantEntryState>? visiblePeers)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(result);

@@ -54,7 +54,6 @@ public sealed class RegistryExistenceTests
             Assert.False(result.ExpertStore.OwnsOpenStore);
             Assert.NotNull(result.PvpLobby);
             Assert.Empty(result.PvpLobby!.Participants);
-            Assert.Empty(result.PvpLobby.Rooms);
         });
     }
 

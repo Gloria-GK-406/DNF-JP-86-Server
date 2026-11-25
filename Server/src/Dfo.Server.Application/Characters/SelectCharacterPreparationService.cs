@@ -25,7 +25,7 @@ public sealed class SelectCharacterPreparationService(
     IEquippedCreatureQuery equippedCreature,
     IWorldContentEntryRuleService worldContent,
     ICharacterEntryPreparationRuleService preparationRules,
-    ICharacterPvpSkillProfileRepository pvpSkills,
+    IEnumerable<ICharacterSkillGroupInitializer> skillGroupInitializers,
     IDungeonPersistentEffectRecoveryRepository dungeonEffects,
     IExpertSkillContractReconciliationRepository expertSkillReconciliation,
     IChannelEntryDomainService channels,
@@ -180,15 +180,19 @@ public sealed class SelectCharacterPreparationService(
             channel,
             character.LastInnTownId != 0 ? character.LastInnTownId : character.Position.TownId,
             cancellationToken).ConfigureAwait(false);
-        if (channelPolicy.PvpSkillProfileApplies)
+        if (channelPolicy.SkillGroup != SkillGroup.Pve)
         {
-            var initial = await BuildInitialPvpSkillProfileAsync(
-                character, characterEntry.Skills, preparationRules, cancellationToken).ConfigureAwait(false);
-            var profile = await pvpSkills.LoadOrInitializeAsync(
-                accountId, character.Identity.CharacterId, initial, cancellationToken).ConfigureAwait(false);
+            var initializer = skillGroupInitializers.SingleOrDefault(value => value.Group == channelPolicy.SkillGroup)
+                ?? throw new InvalidOperationException($"Skill group {channelPolicy.SkillGroup} has no entry initializer.");
+            var (pages, skillTreeIndex) = await initializer.PrepareAsync(accountId, character, cancellationToken)
+                .ConfigureAwait(false);
             characterEntry = characterEntry with
             {
-                Skills = characterEntry.Skills with { Pages = profile.Pages },
+                Public = characterEntry.Public with
+                {
+                    Extras = characterEntry.Public.Extras with { SkillTreeIndex = skillTreeIndex },
+                },
+                Skills = characterEntry.Skills with { Pages = pages },
             };
         }
         characterEntry = await CharacterStateProjection.CompleteSkillProjectionAsync(
@@ -237,49 +241,4 @@ public sealed class SelectCharacterPreparationService(
 
         return result with { CollectionBoxes = await collections.ReadAsync(character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Capsules = await capsules.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false), Housing = await housing.ReadAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false) };
     }
-
-    internal static async ValueTask<CharacterSkillsEntryState> BuildInitialPvpSkillProfileAsync(
-        ActiveCharacterState character, CharacterSkillsEntryState basis,
-        ICharacterEntryPreparationRuleService rules, CancellationToken cancellationToken)
-    {
-        var definitions = await rules.SkillPointsAsync(character.Identity.Job, character.Identity.GrowType,
-            character.Progression.Level, [], cancellationToken).ConfigureAwait(false);
-        var grants = definitions.FreeGrants.GroupBy(value => value.SkillId)
-            .Select(group => group.OrderByDescending(value => value.Level).First()).ToArray();
-        var occupied = new HashSet<int>();
-        var skills = new List<CharacterSkillState>();
-        foreach (var grant in grants.OrderBy(value => value.IsInitial ? 0 : 1))
-        {
-            definitions.Skills.TryGetValue(grant.SkillId, out var definition);
-            var active = definition?.IsActive == true;
-            var grantLevel = grant.Level;
-            if (definition is not null)
-                grantLevel = checked((byte)Math.Clamp(SkillPointLedgerRules.FreeLevel(
-                    definition, grantLevel, character.Progression.Level), 0, byte.MaxValue));
-            int slot;
-            if (grant.IsInitial)
-                slot = FirstFree(active ? 0 : 102, active ? 102 : 204);
-            else
-            {
-                var group = ReformGroup(definition?.RawGroup ?? 0, active, definition?.NumberOfGrowTypes ?? 0);
-                slot = active && character.Identity.Job != 9
-                    ? FirstFree(0, 6) is var primary && primary >= 0 ? primary : FirstFree(198, 204)
-                    : FirstFree(new[] { 6, 54, 102, 150 }[Math.Clamp(group, 0, 3)],
-                        new[] { 54, 102, 150, 198 }[Math.Clamp(group, 0, 3)]);
-            }
-            if (slot < 0) slot = FirstFree(0, 204);
-            if (slot < 0) throw new InvalidDataException("PvP initial skill profile has no free slot.");
-            occupied.Add(slot);
-            skills.Add(new CharacterSkillState(checked((short)slot), checked((ushort)grant.SkillId), grantLevel, []));
-        }
-        return new CharacterSkillsEntryState(
-            [new CharacterSkillPageState(0, skills), new CharacterSkillPageState(1, skills)], [],
-            basis.SkillPointBasis, basis.DarkKnightCombos, basis.KnightShieldDeck);
-
-        int FirstFree(int start, int end)
-        { for (var index = start; index < end; index++) if (!occupied.Contains(index)) return index; return -1; }
-        static int ReformGroup(int raw, bool active, int grows) => active ? 3
-            : raw is >= 0 and <= 3 ? grows <= 2 ? 1 : 0 : raw == 4 ? 2 : raw;
-    }
-
 }

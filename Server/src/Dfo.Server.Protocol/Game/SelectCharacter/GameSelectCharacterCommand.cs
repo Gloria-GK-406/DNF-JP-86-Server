@@ -26,6 +26,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Parties;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -50,6 +51,8 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.AntonRaid;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.PvpDailyMission;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
 
@@ -97,6 +100,11 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly ICharacterRelationQueryDomainService relations;
     private readonly ICharacterIdentityQueryDomainService identities;
     private readonly AntonRaidSquadProjection raidSquads;
+    private readonly IPvpRecordDomainService pvpRecords;
+    private readonly IPvpTotalMatchTeamDomainService pvpTotalMatchTeams;
+    private readonly IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch;
+    private readonly PvpTotalMatchCandidateProjection totalMatchCandidates;
+    private readonly PvpDailyMissionProjection dailyMissions;
     public GameSelectCharacterCommandHandler(IOnlineUserQueryDomainService users, IChannelEntryDomainService channels,
         ISelectedCharacterStateMessageFactory stateMessages, ISelectedSessionDomainService selectedSessions,
         IGameCommandOutbox outbox, ICommandProjections projections, ICommandConnectionClosures closures,
@@ -112,7 +120,11 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         ISaoTowerDomainService sao, IEnumerable<OnlineTicketRefillRegistration> ticketRefills,
         IOutboundOrdering ordering, IDarkElfRuinsDomainService ruins,
         ICharacterRelationQueryDomainService relations, ICharacterIdentityQueryDomainService identities,
-        AntonRaidSquadProjection raidSquads)
+        AntonRaidSquadProjection raidSquads,
+        IPvpRecordDomainService pvpRecords, IPvpTotalMatchTeamDomainService pvpTotalMatchTeams,
+        IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch, IPvpRoomQueryDomainService pvpRooms,
+        IPvpTotalMatchCandidateQueryDomainService totalMatchCandidates, IPvpDailyMissionQueryDomainService dailyMissions,
+        IPvpColosseumDomainService colosseum)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -128,6 +140,11 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.ruins = ruins;
         this.relations = relations; this.identities = identities;
         this.raidSquads = raidSquads;
+        this.pvpRecords = pvpRecords;
+        this.pvpTotalMatchTeams = pvpTotalMatchTeams;
+        this.representativeSwitch = representativeSwitch;
+        this.totalMatchCandidates = new(pvpRooms, totalMatchCandidates, outbox, clock);
+        this.dailyMissions = new(dailyMissions, outbox, colosseum);
     }
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -147,6 +164,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         var channel = await channels
             .ResolveAsync(context.Connection.ListenerPort, cancellationToken)
             .ConfigureAwait(false);
+        // RETURN_SELECT_CHARACTER already sent the roster that started this automatic selection.
+        // While the A21 representative index is still pending, another roster restarts selection.
+        var refreshRoster = !(representativeSwitch.Consume(context.Connection, accountId, message.RosterIndex)
+            && channel.IsPvp && selectedSessions.Find(accountId) is null);
         var pendingCloses = new List<NetworkConnectionId>();
         SelectedSessionIdentity? session = null;
         ExceptionDispatchInfo? failure = null;
@@ -189,7 +210,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await InitializeHousingAsync(execution, session, cancellationToken).ConfigureAwait(false);
             var state = await PrepareStateAsync(execution, session, prepared.Selected, prepared.Channel, cancellationToken)
                 .ConfigureAwait(false);
-            await ExecuteAcceptedWorkflowAsync(execution, session, state, prepared.Channel, cancellationToken)
+            await ExecuteAcceptedWorkflowAsync(execution, session, state, prepared.Channel, refreshRoster, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (ChannelAdmissionRefusedException refusal)
@@ -294,12 +315,13 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
 
     private async ValueTask ExecuteAcceptedWorkflowAsync(
         CommandExecutionContext execution, SelectedSessionIdentity session,
-        SelectCharacterResult prepared, ChannelEntryIdentity channel,
+        SelectCharacterResult prepared, ChannelEntryIdentity channel, bool refreshRoster,
         CancellationToken cancellationToken)
     {
         var friends = await ReadRelationsAsync(execution, session, cancellationToken).ConfigureAwait(false);
-        var messages = stateMessages.CreateValidated(prepared, friends);
-        ValidateSupplementalMessages(BuildPrePublicationMessages(session, prepared));
+        var (record, team) = await ReadPvpEntryAsync(execution, session, cancellationToken).ConfigureAwait(false);
+        var messages = WithPvpRecord(stateMessages.CreateValidated(prepared, friends), record, team);
+        ValidateSupplementalMessages(BuildPrePublicationMessages(session, prepared, refreshRoster));
         ValidateSupplementalMessages(
             [new TrailingEquipmentLockSnapshotMessage(
                 prepared.CharacterInventory, prepared.AccountInventory)]);
@@ -335,7 +357,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         if (SendsFramesAfterTheCompletionMarker)
         {
             // Built here, not before the refill: the refill replaces `prepared`, and a message set
-            // composed from the older value would be stale by construction. None of these four
+            // composed from the older value would be stale by construction. None of these
             // frames reads anything the refill touches today, so this is not a fix -- it is the
             // difference between that being guaranteed and it being a coincidence. They are also
             // validated once above, before anything is sent, so a malformed set still fails before
@@ -343,7 +365,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await outbox.RegisterExplicitAsync(
                 session.ConnectionId,
                 new GameExplicitMessageDelivery(
-                    BuildPrePublicationMessages(session, prepared),
+                    BuildPrePublicationMessages(session, prepared, refreshRoster),
                     []),
                 cancellationToken).ConfigureAwait(false);
         }
@@ -405,6 +427,16 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             EnsureCurrent(session);
             var pvpPublication = await MarkPvpReadyAsync(session, prepared, cancellationToken).ConfigureAwait(false);
             EnsureCurrent(session);
+            if (team?.Representative == session.CharacterId)
+            {
+                await totalMatchCandidates.ProjectLobbyAsync(session, channel, cancellationToken).ConfigureAwait(false);
+                EnsureCurrent(session);
+            }
+            if (channel.SupportsMatchmaking)
+            {
+                await dailyMissions.ProjectAsync(session, channel, cancellationToken).ConfigureAwait(false);
+                EnsureCurrent(session);
+            }
             // The command decided who; telling them is a separate step, and this is the shape
             // that pairing takes everywhere from here on. What this used to do instead was build
             // a delivery plan out of connections the domain service had looked up for it.
@@ -516,7 +548,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
 
     private static IReadOnlyList<SupplementalSynchronizationMessage> BuildPrePublicationMessages(
             SelectedSessionIdentity session,
-            SelectCharacterResult result)
+            SelectCharacterResult result, bool refreshRoster)
     {
         var messages = new List<SupplementalSynchronizationMessage>
         {
@@ -524,13 +556,14 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
                 session.WireUserId,
                 result.CharacterEntry.Public.Display?.VisibilityBits ?? checked((byte)result.CharacterEntry.Public.VisibilityBits)),
             new CloneTitleStateMessage(result.CharacterEntry.Public.Display?.TitleAppearanceItemId ?? result.CharacterEntry.Public.CloneTitleItemId),
-            new AccountRosterStateMessage(result.RosterEntry
-                ?? throw new InvalidDataException("Roster state is unavailable.")),
-            // Match the honor fields in the selected character's USERINFO snapshot.
-            new HonorProgressStateMessage(
-                result.CharacterEntry.Public.Honor.Level,
-                result.CharacterEntry.Public.Honor.Experience),
         };
+        if (refreshRoster)
+            messages.Add(new AccountRosterStateMessage(result.RosterEntry
+                ?? throw new InvalidDataException("Roster state is unavailable.")));
+        // Match the honor fields in the selected character's USERINFO snapshot.
+        messages.Add(new HonorProgressStateMessage(
+            result.CharacterEntry.Public.Honor.Level,
+            result.CharacterEntry.Public.Honor.Experience));
         // NOTI 0x0025 GROWTH CAPSULE is not part of the A21 entry sequence. The reference sends
         // 0x0165, CMD 0x0239, the subtype-0x02 record and 0x0289 here and nothing else, and the
         // client overruns a stack buffer while reading this body -- a 66-thousand-element copy off
@@ -794,6 +827,33 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
             await outbox.RegisterNotiAsync(session.ConnectionId, message, ct).ConfigureAwait(false);
         }
     }
+    /// <summary>The selected character's record and the account's current total-match team projection.</summary>
+    private ValueTask<(PvpRecordView Record, PvpTotalMatchTeamView? Team)> ReadPvpEntryAsync(CommandExecutionContext execution,
+        SelectedSessionIdentity session, CancellationToken ct) =>
+        units.ReadOnlyAsync(execution, new("ReadSelectedCharacterPvpRecord", []),
+            async token =>
+            {
+                var record = await pvpRecords.ViewAsync(session.CharacterId, token).ConfigureAwait(false);
+                var team = await pvpTotalMatchTeams.ReadAsync(session.AccountId, token).ConfigureAwait(false);
+                return (record, team);
+            }, ct);
+
+    /// <summary>
+    /// NOTI <c>0x0030</c> right after HOTKEY_OPTION, as upstream <c>NewCharacterInitSequence</c> places it (after both
+    /// USERINFO0 and the hotkeys): without it the client's grade bar reads 0/0. Every channel gets it, a duel lobby or not.
+    /// </summary>
+    internal static IReadOnlyList<IGameServerMessage> WithPvpRecord(
+        IReadOnlyList<IGameServerMessage> messages, PvpRecordView record, PvpTotalMatchTeamView? team = null)
+    {
+        // A batch without the hotkeys (only a test's factory makes one) carries the record last.
+        var after = messages.Count;
+        for (var index = 0; index < messages.Count; index++)
+            if (messages[index] is HotkeyStateMessage) after = index + 1;
+        return team is null
+            ? [.. messages.Take(after), new PvpBattle.PvpRecordMessage(record), .. messages.Skip(after)]
+            : [.. messages.Take(after), new PvpBattle.PvpRecordMessage(record), new PvpTotalMatchTeamInfo(team), .. messages.Skip(after)];
+    }
+
     // The entry batch carries the real friend list and the blacklist behind it (RQ-038). Read here,
     // after preparation committed and before the batch is composed, in a read-only unit of its own:
     // every friend's channel is where that friend is at this moment.

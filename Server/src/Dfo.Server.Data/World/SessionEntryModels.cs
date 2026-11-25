@@ -66,19 +66,6 @@ public sealed record ExpertStoreEntryState(bool OwnsOpenStore)
     public static ExpertStoreEntryState None { get; } = new(false);
 }
 
-/// <summary>A duel room currently offered in the lobby.</summary>
-/// <param name="NameType">
-/// Which of the client's preset room names is shown. Rooms are named by selection rather
-/// than free text.
-/// </param>
-public sealed record PvpRoomState(
-    ushort RoomId,
-    CharacterId OwnerCharacterId,
-    byte NameType,
-    short MapIndex,
-    bool HasPassword,
-    byte BattleMode);
-
 /// <summary>Someone waiting in the duelling lobby.</summary>
 /// <remarks>
 /// Carries no location. A lobby participant is in the lobby, not standing anywhere, and
@@ -93,15 +80,14 @@ public sealed record PvpLobbyParticipantState(CharacterId CharacterId);
 /// <remarks>
 /// A null lobby on the composed state means duelling does not apply to this entry at all,
 /// which is different from a lobby that applies and happens to be empty. Only the second
-/// is a lobby the character could join.
+/// is a lobby the character could join. The rooms are not carried here: the room owner is
+/// their one source, and the selection's lobby snapshot reads them when it is sent.
 /// </remarks>
 public sealed record PvpLobbyEntryState(
-    IReadOnlyList<PvpLobbyParticipantState> Participants,
-    IReadOnlyList<PvpRoomState> Rooms)
+    IReadOnlyList<PvpLobbyParticipantState> Participants)
 {
     public static PvpLobbyEntryState Empty { get; } = new(
-        Array.Empty<PvpLobbyParticipantState>(),
-        Array.Empty<PvpRoomState>());
+        Array.Empty<PvpLobbyParticipantState>());
 }
 
 /// <summary>

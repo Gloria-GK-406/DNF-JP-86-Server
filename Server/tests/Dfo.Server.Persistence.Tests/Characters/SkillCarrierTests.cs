@@ -239,38 +239,34 @@ public sealed class SkillCarrierTests
             var side = new CharacterSide(path);
 
             var seeded = await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
-                Account, new CharacterId(1), Profile(700, 800), token));
+                Account, new CharacterId(1), _ => ValueTask.FromResult(Profile(700, 800)), token));
 
-            Assert.Equal([700], seeded.Pages[0].Skills.Select(skill => (int)skill.SkillId));
-            Assert.Equal([800], seeded.Pages[1].Skills.Select(skill => (int)skill.SkillId));
+            Assert.Equal([700], seeded[0].Skills.Select(skill => (int)skill.SkillId));
+            Assert.Equal([800], seeded[1].Skills.Select(skill => (int)skill.SkillId));
             Assert.Equal(2L, await ScalarAsync(
                 path, "SELECT COUNT(*) FROM character_skills WHERE mode='pvp'"));
             Assert.Equal(0L, await ScalarAsync(
                 path, "SELECT COUNT(*) FROM character_skills WHERE mode='pve'"));
             Assert.Equal(1L, await ScalarAsync(
-                path, "SELECT skills_initialized FROM character_pvp WHERE character_id=1"));
+                path, "SELECT skills_initialized FROM character_pvp_skill_state WHERE character_id=1"));
 
             // A second seeding is refused by the marker rather than written and deduplicated.
             var again = await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
-                Account, new CharacterId(1), Profile(701, 801), token));
+                Account, new CharacterId(1), _ => throw new InvalidOperationException("A second seed is unexpected."), token));
 
-            Assert.Equal([700], again.Pages[0].Skills.Select(skill => (int)skill.SkillId));
-            Assert.Equal([800], again.Pages[1].Skills.Select(skill => (int)skill.SkillId));
+            Assert.Equal([700], again[0].Skills.Select(skill => (int)skill.SkillId));
+            Assert.Equal([800], again[1].Skills.Select(skill => (int)skill.SkillId));
             Assert.Equal(2L, await ScalarAsync(
                 path, "SELECT COUNT(*) FROM character_skills WHERE mode='pvp'"));
         });
     }
 
     /// <summary>One skill on each duel page, so that a write has something to get wrong.</summary>
-    private static CharacterSkillsEntryState Profile(uint first, uint second) => new(
+    private static IReadOnlyList<CharacterSkillPageState> Profile(uint first, uint second) =>
         [
             new CharacterSkillPageState(0, [new CharacterSkillState(3, first, 4, [])]),
             new CharacterSkillPageState(1, [new CharacterSkillState(5, second, 6, [])]),
-        ],
-        [],
-        new CharacterSkillPointBasisState(0, 0),
-        [],
-        null);
+        ];
 
     /// <summary>
     /// Each read answers with its own mode's rows and none of the other's.
@@ -297,17 +293,12 @@ public sealed class SkillCarrierTests
             var duel = await side.InUseCaseAsync(token => side.PvpProfile.LoadOrInitializeAsync(
                 Account,
                 new CharacterId(1),
-                new CharacterSkillsEntryState(
-                    [new CharacterSkillPageState(0, []), new CharacterSkillPageState(1, [])],
-                    [],
-                    new CharacterSkillPointBasisState(0, 0),
-                    [],
-                    null),
+                _ => ValueTask.FromResult<IReadOnlyList<CharacterSkillPageState>>([new(0, []), new(1, [])]),
                 token));
 
             Assert.Equal([100], entry.Skill.Skills.Select(row => row.SkillId));
-            Assert.Equal([200], duel.Pages[0].Skills.Select(skill => (int)skill.SkillId));
-            Assert.Equal([300], duel.Pages[1].Skills.Select(skill => (int)skill.SkillId));
+            Assert.Equal([200], duel[0].Skills.Select(skill => (int)skill.SkillId));
+            Assert.Equal([300], duel[1].Skills.Select(skill => (int)skill.SkillId));
         });
     }
 
