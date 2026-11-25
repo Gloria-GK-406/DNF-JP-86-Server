@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-11-26 公会创建（#62，CurrentImplementation，待 A21 实机）
+
+公会分支已接 [验名](game/client-to-server/0x009C.md)、[宣传](game/client-to-server/0x02E2.md)、[单人许可请求](game/client-to-server/0x02E4.md)、取消与 [创建提交](game/client-to-server/0x0044.md)，并发送 [许可通知](game/server-to-client/NOTI-0x02AE.md) 和 [创建通知](game/server-to-client/NOTI-0x0047.md)。同版本上游记录提供创建布局，JP86 隔离线路已核对中文 UTF-8、一次扣费和重复提交拒绝。窗口、换角、重登的实际显示见进行中的 [A21 验收](../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。
+
 ## 2026-11-23 CH50 决斗技能编辑
 
 A21 在环境 24 发出第 0 页的 [加点 CMD001D](game/client-to-server/0x001D.md#2026-11-23-ch50-决斗加点) 和 [换槽 CMD001C](game/client-to-server/0x001C.md#2026-11-23-ch50-决斗换槽)。取证构建均回 `00 03`。现实现让该环境的决斗大厅和等待房走决斗组的技能与点数规则，开战和结算阶段拒绝编辑。成功应答、显示与重登待 A21 复验。
