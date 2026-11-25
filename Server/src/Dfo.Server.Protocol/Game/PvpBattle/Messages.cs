@@ -27,6 +27,12 @@ public sealed record PvpHeartbeatRequest(GameMessageMetadata Metadata, int Lengt
     public ClientMessageType MessageType => ClientMessageType.GamePvpHeartbeat;
 }
 
+/// <summary>CMD <c>0x0070</c>: an empty request to toggle a reserve fighter's request to go on next.</summary>
+public sealed record PvpRequestFightRequest(GameMessageMetadata Metadata, int Length) : IClientNetworkMessage
+{
+    public ClientMessageType MessageType => ClientMessageType.GamePvpRequestFight;
+}
+
 /// <summary>
 /// CMD <c>0x0037</c> <c>DIE_PVP_CHARACTER</c>: <c>u16 victim user id, u16 killer user id, u8 flag</c>, exactly five
 /// bytes (Spec RQ-075).
@@ -64,6 +70,18 @@ public sealed record PvpDeathMessage(int VictimSeat, int? KillerSeat) : IGameNot
     public ServerMessageType MessageType => ServerMessageType.GameDiePvpCharacter;
 }
 
+/// <summary>NOTI <c>0x0070</c>: each team's fighter in the next relay turn.</summary>
+public sealed record PvpTurnPlayerMessage(int FirstSeat, int SecondSeat) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GamePvpTurnPlayer;
+}
+
+/// <summary>NOTI <c>0x0071</c>: toggle the request indicator for one seat.</summary>
+public sealed record PvpRequestFightMessage(int Seat) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GamePvpRequestFight;
+}
+
 /// <summary>NOTI <c>0x0031</c> <c>REQ_PVP_RANK</c>: empty; the battle is over and the ranking opens.</summary>
 public sealed record PvpRankRequestMessage : IGameNotiMessage
 {
@@ -73,7 +91,10 @@ public sealed record PvpRankRequestMessage : IGameNotiMessage
 }
 
 /// <summary>One fighter of the frozen battle roster, as <c>0x002F</c> lists them.</summary>
-public sealed record EndPvpFighter(ushort WireUserId, int Kills, byte Grade, long Experience);
+public sealed record EndPvpFighter(ushort WireUserId, int Kills, byte Grade, long Experience)
+{
+    public PvpRatingStanding Rating { get; init; } = PvpRatingStanding.Initial;
+}
 
 /// <summary>NOTI <c>0x002F</c> <c>END_PVP</c>: one recipient's result screen; <c>26 + 19n</c> bytes.</summary>
 /// <param name="WinnerSeat">The winning seat, for a team the first standing seat of the winning team; 0xFF for a draw.</param>
@@ -86,8 +107,12 @@ public sealed record EndPvpMessage(
     public ServerMessageType MessageType => ServerMessageType.GameEndPvp;
 }
 
-/// <summary>NOTI <c>0x0030</c> <c>PVP_RECORD</c>: the recipient's duel record, 51 bytes.</summary>
+/// <summary>NOTI <c>0x0030</c> <c>PVP_RECORD</c>: the recipient's duel record.</summary>
 public sealed record PvpRecordMessage(PvpRecordView Record) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GamePvpRecord;
+    public IReadOnlyList<PvpCandidateExperience> TotalMatchExperience { get; init; } = [];
 }
+
+public sealed record PvpCandidateExperience(long Before, long After, byte PreviousGrade, byte Grade,
+    PvpExperienceBand PreviousBand, PvpExperienceBand Band);

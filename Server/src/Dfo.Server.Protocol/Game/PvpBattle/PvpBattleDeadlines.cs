@@ -10,6 +10,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Pvp;
+using Dfo.Server.Protocol.Game.PvpDailyMission;
 using Dfo.Server.Protocol.Game.PvpRoom;
 using Microsoft.Extensions.Logging;
 
@@ -66,6 +67,8 @@ public sealed class PvpBattleDeadlineCommandHandler(
     ICommandProjections projections,
     IGameCommandOutbox outbox,
     TimeProvider clock,
+    IPvpDailyMissionQueryDomainService dailyMissions,
+    IPvpColosseumDomainService colosseum,
     ILogger<PvpBattleDeadlineCommandHandler> logger)
     : ICommandHandler<ScanPvpDeadlinesCommand, PvpDeadlineScan>,
         ICommandHandler<AdvancePvpRoomCommand, bool>,
@@ -169,7 +172,7 @@ public sealed class PvpBattleDeadlineCommandHandler(
     }
 
     private PvpBattleProjector Projector() => new(new PvpRoomProjector(sessions, lobby, currentViews, online, onlineUsers, endpoints,
-        townAreas, parties, projectionState, weakness, projections, outbox, logger, deferrals), logger);
+        townAreas, parties, projectionState, weakness, projections, outbox, logger, deferrals, dailyMissions: new PvpDailyMissionProjection(dailyMissions, outbox, colosseum)), logger);
 }
 
 /// <summary>

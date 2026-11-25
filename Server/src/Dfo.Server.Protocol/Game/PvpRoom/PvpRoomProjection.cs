@@ -17,6 +17,9 @@ using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.PvpDailyMission;
+using Dfo.Server.Protocol.Game.PvpMatchmaking;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.TownProjection;
 using Microsoft.Extensions.Logging;
@@ -81,7 +84,7 @@ public static class PvpRoomLobbyFrames
 
     /// <summary>Whether a fresh snapshot shows the seat the same, the ready flag aside.</summary>
     private static bool SameSeat(PvpRoomSeatState left, PvpRoomSeatState right) =>
-        left.Occupancy == right.Occupancy && left.Team == right.Team && left.UserId == right.UserId;
+        left.Occupancy == right.Occupancy && left.State == right.State && left.UserId == right.UserId;
 }
 
 /// <summary>
@@ -117,7 +120,9 @@ internal sealed class PvpRoomProjector(
     ICommandProjections projections,
     IGameCommandOutbox outbox,
     ILogger logger,
-    IPvpResultScreenDeferralDomainService? deferrals = null)
+    IPvpResultScreenDeferralDomainService? deferrals = null,
+    PvpTotalMatchCandidateProjection? totalMatchCandidates = null,
+    PvpDailyMissionProjection? dailyMissions = null)
 {
     /// <summary>USER_STATE of a character in a duel room (upstream <c>PvpUserState</c>).</summary>
     public const byte InRoomUserState = 0x02;
@@ -128,17 +133,79 @@ internal sealed class PvpRoomProjector(
     /// <summary>The area a character in a duel room is shown in (upstream <c>PvpAreaId</c>).</summary>
     public const byte RoomAreaId = 0xFE;
 
-    public ValueTask ProjectAsync(PvpRoomOutcome.Changed change, CancellationToken cancellationToken)
+    public async ValueTask ProjectAsync(PvpRoomOutcome.Changed change, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(change);
-        return change.Kind switch
+        var projection = change.Kind switch
         {
             PvpRoomChangeKind.Created => CreatedAsync(change, cancellationToken),
             PvpRoomChangeKind.Entered => EnteredAsync(change, invited: false, cancellationToken),
             PvpRoomChangeKind.InviteAccepted => EnteredAsync(change, invited: true, cancellationToken),
             PvpRoomChangeKind.MatchStarted => StartedAsync(change, cancellationToken),
+            PvpRoomChangeKind.MatchAdmissionChanged => MatchAdmissionAsync(change, cancellationToken),
             _ => ChangedAsync(change, cancellationToken),
         };
+        await projection.ConfigureAwait(false);
+        if (totalMatchCandidates is not null)
+            await totalMatchCandidates.ProjectRoomChangeAsync(change, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask ProjectMatchedPairAsync(PvpRoomOutcome.Changed change,
+        IReadOnlyDictionary<CharacterId, PvpRecordView> records, CancellationToken cancellationToken)
+    {
+        var room = change.After ?? throw new InvalidOperationException("A paired duel has a room.");
+        var members = room.Members.Select(entry => entry.Member.Session).ToArray();
+        var views = new List<(SelectedSessionIdentity Session, SelectCharacterResult View)>(members.Length);
+        foreach (var member in members)
+        {
+            if (await currentViews.TryLoadAsync(member, cancellationToken).ConfigureAwait(false) is not { } view)
+            {
+                logger.LogWarning("Paired duel {Room} could not publish character {Character} before admission",
+                    room.Number, member.CharacterId.Value);
+                return;
+            }
+            views.Add((member, view));
+        }
+
+        var lobbyView = PvpRoomLobbyView.Of(room);
+        var participants = new PvpParticipantRosterMessage([.. views.Select(item => Identity(item.View))]);
+        var peerEndpoints = Endpoints(members);
+        var roomInfo = new PvpRoomInfoMessage([lobbyView]);
+        var states = new UserStateNotification([.. members.Select(member => member.WireUserId)], InRoomUserState);
+        var seats = new PvpSeatStateMessage(room.Number, lobbyView.BattleMode,
+            [.. room.Members.Select(entry => (entry.Seat, lobbyView.Seats[entry.Seat]))]);
+        var candidates = room.Admission is { TotalMatchSides.IsEmpty: false } admission
+            ? TotalMatchStartFrames(room, admission.TotalMatchSides, admission.PreparedAt)
+            : [];
+        var versus = new PvpMatchmakingRoster(room.Number, [.. room.Members.Select(entry =>
+        {
+            var record = records[entry.Member.CharacterId];
+            return new PvpMatchmakingOpponent(entry.Member.Session.WireUserId, (byte)entry.Member.Team,
+                record.Grade, room.Mode == PvpBattleMode.TotalMatch
+                    ? record.TotalMatchRating.OfficialPoints : record.Rating.OfficialPoints);
+        })]);
+        foreach (var receiver in members)
+        {
+            await outbox.RegisterExplicitAsync(receiver.ConnectionId, new GameExplicitMessageDelivery(
+                [participants, .. views.Select(item => Full(item.View,
+                    item.Session == receiver ? null : item.Session.WireUserId)),
+                    peerEndpoints, roomInfo, states, seats, .. candidates, versus], []), cancellationToken).ConfigureAwait(false);
+        }
+        await DepartTownAsync(change, cancellationToken).ConfigureAwait(false);
+    }
+
+    private ValueTask MatchAdmissionAsync(PvpRoomOutcome.Changed change, CancellationToken cancellationToken)
+    {
+        var room = change.After ?? throw new InvalidOperationException("A duel admission change has a room.");
+        var before = change.Before?.Admission ?? throw new InvalidOperationException("A duel admission change has a prior admission.");
+        var after = room.Admission ?? throw new InvalidOperationException("A duel admission change has an admission.");
+        var audience = room.Members.Select(entry => entry.Member.Session).ToArray();
+        if (!before.Preloading && after.Preloading)
+            return BroadcastAsync(audience, [PvpMatchmakingStateNotice.Preload], cancellationToken);
+        var loaded = after.Loaded & ~before.Loaded;
+        return BroadcastAsync(audience,
+            [.. room.Members.Where(entry => (loaded & (1 << entry.Seat)) != 0)
+                .Select(entry => new PvpActorLoaded(entry.Member.Session.WireUserId))], cancellationToken);
     }
 
     /// <summary>The owner: own USERINFO1, the room, out of town; the rest of the listener: the room and the owner's state.</summary>
@@ -153,8 +220,9 @@ internal sealed class PvpRoomProjector(
         else
             logger.LogWarning("Duel room {Room} created by character {Character} whose current view is gone; owner frames skipped",
                 room.Number, owner.CharacterId.Value);
+        var roomFrames = room.IsPractice ? [] : PvpRoomLobbyFrames.For(null, room);
         await BroadcastAsync(Listener(room.ListenerPort, except: [owner]),
-            [.. PvpRoomLobbyFrames.For(null, room), new UserStateNotification(owner.WireUserId, InRoomUserState)],
+            [.. roomFrames, new UserStateNotification(owner.WireUserId, InRoomUserState)],
             cancellationToken).ConfigureAwait(false);
         await DepartTownAsync(change, cancellationToken).ConfigureAwait(false);
     }
@@ -220,19 +288,45 @@ internal sealed class PvpRoomProjector(
         var match = room.Match ?? throw new InvalidOperationException("A started duel room has a battle.");
         var state = PvpRoomStateMessage.Of(PvpRoomLobbyView.Of(room));
         var members = room.Members.Select(x => x.Member.Session).ToArray();
+        if (room.IsMatchmaking)
+        {
+            await BroadcastAsync(members,
+                [PvpActorsConnected.Instance, PvpMatchmakingComplete.Instance,
+                    .. room.Members.Select(entry => new PvpReadyStateMessage(entry.Seat, true)),
+                    state, new StartPvpMessage(checked((byte)match.Map), (byte)room.Mode)], cancellationToken).ConfigureAwait(false);
+            return;
+        }
         // A new battle settles what the last one still owed its members, the room as it waited.
         foreach (var member in members)
             await ReleaseAsync(member, change.Before, cancellationToken).ConfigureAwait(false);
-        await BroadcastAsync(members,
-            [new PvpReadyStateMessage(room.OwnerSeat, true), new StartPvpMessage(checked((byte)match.Map), (byte)room.Mode), state],
-            cancellationToken).ConfigureAwait(false);
+        List<IGameServerMessage> start = [new PvpReadyStateMessage(room.OwnerSeat, true)];
+        if (match.ModeState is PvpTotalMatchBattle total)
+            start.AddRange(TotalMatchStartFrames(room, total.Sides, total.PreparedAt));
+        start.Add(new StartPvpMessage(checked((byte)match.Map), (byte)room.Mode));
+        start.Add(state);
+        await BroadcastAsync(members, start, cancellationToken).ConfigureAwait(false);
         await BroadcastAsync(Listener(room.ListenerPort, except: members), [state], cancellationToken).ConfigureAwait(false);
+    }
+
+    private static IReadOnlyList<IGameServerMessage> TotalMatchStartFrames(PvpRoomSnapshot room,
+        ImmutableArray<PvpTotalMatchSide> sides, DateTimeOffset preparedAt)
+    {
+        var participants = sides.Select(side => new PvpTotalMatchParticipant(
+            ((PvpSeat.Taken)room.Seats[side.Seat]).Session.WireUserId,
+            room.IsMatchmaking ? side.Lineup : side.Lineup with { GroupPoints = 0 })).ToImmutableArray();
+        return
+        [
+            new PvpTotalMatchCharacterInfo(
+                [.. participants.Select(participant => new PvpTotalMatchCharacterGroup(
+                    participant.WireUserId, participant.Lineup.Candidates))], preparedAt),
+            new PvpTotalMatchInfo(participants),
+        ];
     }
 
     /// <summary>
     /// Any other change: ready flags to the members of a room still waiting, then what the lobby sees (members taken
-    /// off their seats first shown as back in town), then the town return of those sent back, and only after it the
-    /// room's change to them.
+    /// off their seats first shown as back in town), then the town return of those sent back and their room update.
+    /// A closing matched room sends its teardown to returning clients before their town transition.
     /// </summary>
     private async ValueTask ChangedAsync(PvpRoomOutcome.Changed change, CancellationToken cancellationToken)
     {
@@ -246,6 +340,11 @@ internal sealed class PvpRoomProjector(
                 .ToArray();
             if (flags.Length > 0)
                 await BroadcastAsync([.. after.Members.Select(x => x.Member.Session)], flags, cancellationToken).ConfigureAwait(false);
+
+            // A21 requests unready after switching modes and refreshes its button on receiving this confirmation.
+            if (change.ReadyConfirmationSeat is { } seat && after.Seats[seat] is PvpSeat.Taken member)
+                await BroadcastAsync([member.Session], [new PvpReadyStateMessage(seat, member.Ready)], cancellationToken)
+                    .ConfigureAwait(false);
         }
 
         // Upstream (PvpRoomHandler leave, CompleteKickedMemberExitAsync, CompleteOwnerExitAsync): the lobby, the one
@@ -257,18 +356,38 @@ internal sealed class PvpRoomProjector(
         SelectedSessionIdentity[] owed = deferrals is not null && change.Released.Count > 0
             && change.After is { Phase: not PvpRoomPhase.Waiting } fighting
             // A member who already closed its result screen has left the battle's actors behind: it is shown the seat now.
-            ? [.. fighting.Members.Select(x => x.Member.Session).Where(member => fighting.Match?.FighterOf(member) is not { } index
-                || !fighting.Match.Fighters[index].Reports.HasFlag(PvpFighterReports.ResultAcknowledged))]
+            ? [.. fighting.Members.Where(entry => fighting.Match?.ObserverResultAcknowledgements.Contains(entry.Seat) != true
+                && (fighting.Match?.FighterOf(entry.Member.Session) is not { } index
+                    || !fighting.Match.Fighters[index].Reports.HasFlag(PvpFighterReports.ResultAcknowledged)))
+                .Select(entry => entry.Member.Session)]
             : [];
         foreach (var member in owed) deferrals!.Defer(member, change.After!.Id);
         List<IGameServerMessage> lobbyFrames = [];
         lobbyFrames.AddRange(returning.Select(x => (IGameServerMessage)new UserStateNotification(x.WireUserId, InTownUserState)));
-        lobbyFrames.AddRange(roomFrames);
+        if (anchor.IsPublicLobbyRoom)
+            lobbyFrames.AddRange(roomFrames);
         if (lobbyFrames.Count > 0)
             await BroadcastAsync(Listener(anchor.ListenerPort, except: [.. returning, .. owed]), lobbyFrames, cancellationToken)
                 .ConfigureAwait(false);
+
+        // A21 handles a cleared local seat (0x002B) using its old room membership.
+        // Close a temporary matched room before cancelling admission or moving its players back to town.
+        var closesMatchedRoom = anchor.IsMatchmaking && change.After is null;
+        if (closesMatchedRoom)
+            await BroadcastAsync(returning, roomFrames, cancellationToken).ConfigureAwait(false);
+        if (change.Kind == PvpRoomChangeKind.MatchAdmissionCancelled)
+            foreach (var member in returning.Where(sessions.IsInWorld))
+                await outbox.RegisterExplicitAsync(member.ConnectionId, new GameExplicitMessageDelivery(
+                    [PvpMatchmakingStateNotice.Cancelled, new CancelPvpMatchmakingResponse(true)], []), cancellationToken)
+                    .ConfigureAwait(false);
         await ReturnToTownAsync(change, cancellationToken).ConfigureAwait(false);
-        if (returning.Length > 0)
+        if (dailyMissions is not null && closesMatchedRoom && anchor.Phase == PvpRoomPhase.AwaitResult
+            && anchor.Channel.SupportsMatchmaking)
+        {
+            foreach (var member in returning.Where(sessions.IsInWorld))
+                await dailyMissions.ProjectAsync(member, anchor.Channel, cancellationToken).ConfigureAwait(false);
+        }
+        if (!closesMatchedRoom)
             await BroadcastAsync(returning, roomFrames, cancellationToken).ConfigureAwait(false);
         if (deferrals is null) return;
         // Leaving the room settles what it owed: one sent back to the lobby is shown the room as it now stands there,
@@ -276,6 +395,9 @@ internal sealed class PvpRoomProjector(
         foreach (var released in change.Released)
             await ReleaseAsync(released.Session, released.Reason == PvpSeatReleaseReason.Departed ? null : change.After,
                 cancellationToken).ConfigureAwait(false);
+        if (change is { Before: { Phase: not PvpRoomPhase.Waiting }, After: { Phase: PvpRoomPhase.Waiting } waiting })
+            foreach (var (_, member) in waiting.Members.Where(entry => entry.Member.Observation is not null))
+                await ReleaseAsync(member.Session, waiting, cancellationToken).ConfigureAwait(false);
         if (change is { After: null, Before: { } gone }) deferrals.DropRoom(gone.Id);
     }
 

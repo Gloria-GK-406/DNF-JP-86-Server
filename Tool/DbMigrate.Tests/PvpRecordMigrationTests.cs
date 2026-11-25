@@ -41,7 +41,6 @@ public sealed class PvpRecordMigrationTests
             var migrated = Migrator.Migrate(path, backup: false);
 
             Assert.Equal((13L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
-            Assert.Equal(14, CharacterDatabaseSchema.Version);
             Assert.Equal(ShapeOf(fresh), ShapeOf(path));
             Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM sqlite_master WHERE name='character_pvp'"));
             Assert.Equal(
@@ -70,6 +69,43 @@ public sealed class PvpRecordMigrationTests
             SqliteConnection.ClearAllPools();
             File.Delete(path);
             File.Delete(fresh);
+        }
+    }
+
+    [Fact]
+    public void Version_fourteen_defaults_the_duel_build_and_keeps_ordinary_build_and_skill_rows()
+    {
+        var path = Unversioned.NewPath("pvp-build-v14");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                ALTER TABLE character_pvp_skill_state DROP COLUMN active_skill_build;
+                PRAGMA user_version=14;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp,active_skill_build)
+                    VALUES(71,7,'kept',0,0,70,0,1);
+                INSERT INTO character_pvp_skill_state(character_id,skills_initialized) VALUES(71,1);
+                INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level)
+                    VALUES(71,'pve',1,7,1,3),(71,'pvp',1,2,1,2);
+                """);
+
+            var migrated = Migrator.Migrate(path, backup: false);
+
+            Assert.Equal((14L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(new[] { "1|0" }, Rows(path, """
+                SELECT c.active_skill_build,p.active_skill_build
+                FROM characters c JOIN character_pvp_skill_state p USING(character_id)
+                WHERE c.character_id=71 AND p.skills_initialized=1
+                """));
+            Assert.Equal(new[] { "pve|1|7|3", "pvp|1|2|2" }, Rows(path, """
+                SELECT mode,page_index,slot,level FROM character_skills WHERE character_id=71 ORDER BY mode
+                """));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
         }
     }
 

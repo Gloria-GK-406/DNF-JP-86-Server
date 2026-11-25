@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -45,6 +46,7 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.AccountRoster;
 using Dfo.Server.Protocol.Game.HonorLevel;
 using Dfo.Server.Protocol.Game.Party;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
@@ -62,6 +64,7 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
     ICommandProjections projections, ICommandConnectionClosures closures, IPartyService parties,
     IPartyProjectionStateDomainService projectionState,
     IOutboundOrdering ordering,
+    IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch,
     Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection raidSquads) : ICommandHandler<GameReturnToSelectionCommand, bool>
 {
 
@@ -83,6 +86,8 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
                 await outbox.RegisterNotiAsync(connectionId, new KnightShieldDeckMessage([0,0,0,0,0]), ct).ConfigureAwait(false);
             await outbox.RegisterCmdAsync(connectionId, new ReturnToSelectionResponse(), ct).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(connectionId, new AccountCharacterRosterResponse(prepared.Roster, AnswersRosterQuery: false), ct).ConfigureAwait(false);
+            if (prepared.Session is not null)
+                representativeSwitch.PublishRoster(context.Connection, accountId);
             var standing = await honor.ReadAsync(accountId, ct).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(connectionId, new HonorLevelInfoNotice(standing), ct).ConfigureAwait(false);
         }

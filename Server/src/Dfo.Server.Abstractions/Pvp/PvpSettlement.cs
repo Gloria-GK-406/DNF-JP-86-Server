@@ -59,7 +59,8 @@ public sealed record PvpGradeCatalog(
     IReadOnlyList<PvpGradeStep> Grades,
     byte MaximumGrade,
     TimeSpan NormalBattleTime,
-    TimeSpan RelayBattleTime);
+    TimeSpan RelayBattleTime,
+    TimeSpan? TournamentRelayBattleTime = null);
 
 public interface IPvpGradeDefinitionSource { PvpGradeCatalog Load(); }
 
@@ -70,7 +71,7 @@ public interface IPvpSettlementRuleService
     /// practice duel channel answers by its login environment, and throws for an environment without a row,
     /// as it does for a channel that is not a duel channel at all.
     /// </summary>
-    PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel);
+    PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel, PvpBattleMode? mode = null);
 
     PvpSettlementDecision Decide(PvpSettlementFacts facts);
 

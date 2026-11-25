@@ -9,6 +9,7 @@ public enum PvpBattleMode : byte
     DeathMatchIndividual = 4,
     DeathMatchTeam = 5,
     Practice = 6,
+    TotalMatch = 8,
 }
 
 /// <summary>How a room's seats are split into sides when its mode is chosen.</summary>
@@ -48,10 +49,11 @@ public sealed record PvpBattleModeCapabilities(
             PvpBattleTerminal.LastFighterStanding, true),
         PvpBattleMode.Team => new(true, PvpTeamAssignment.AlternatingTwoTeams, true,
             PvpBattleTerminal.LastTeamStanding, true),
-        // The remaining modes are named so a room can refuse them; their battle rules are not
-        // implemented, so they neither run nor settle.
-        PvpBattleMode.Relay => new(false, PvpTeamAssignment.AlternatingTwoTeams, true,
+        PvpBattleMode.Relay => new(true, PvpTeamAssignment.AlternatingTwoTeams, true,
+            PvpBattleTerminal.LastTeamStanding, true),
+        PvpBattleMode.TotalMatch => new(true, PvpTeamAssignment.AlternatingTwoTeams, true,
             PvpBattleTerminal.LastTeamStanding, false),
+        // The remaining modes do not start or settle a match.
         PvpBattleMode.DeathMatchIndividual => new(false, PvpTeamAssignment.Individual, false,
             PvpBattleTerminal.LastFighterStanding, false),
         PvpBattleMode.DeathMatchTeam => new(false, PvpTeamAssignment.AlternatingTwoTeams, true,

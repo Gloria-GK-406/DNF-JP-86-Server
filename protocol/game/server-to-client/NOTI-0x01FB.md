@@ -49,5 +49,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic / Confirmed。** RVA `00E13BE5–00E13C48` 读取单字节状态，`02` 经 `00E0E250` 推进客户端的对阵界面并触发预加载。
+
+**ThirdPartyReference / CurrentImplementation。** 双方确认对阵后发送 `02`。入场阶段中断后向仍在线的一方发送 `01` 并退回大厅。

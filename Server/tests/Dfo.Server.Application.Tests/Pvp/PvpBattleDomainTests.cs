@@ -19,7 +19,137 @@ namespace Dfo.Server.Application.Tests.Pvp;
 /// </summary>
 public sealed class PvpBattleDomainTests
 {
-    private static readonly ChannelEntryIdentity Ranked = new(70, PvpRoomFixture.Port, ChannelEntryKind.Pvp, 24);
+    private static readonly ChannelEntryIdentity Ranked = new(70, PvpRoomFixture.Port, ChannelEntryKind.TraditionalDuel, 24);
+
+    [Fact]
+    public async Task Changing_one_room_to_relay_does_not_change_the_other_rooms_battle()
+    {
+        var f = new PvpRoomFixture();
+        var owner = f.Join(5);
+        var guest = f.Join(6);
+        var waiting = await f.CreateAsync(owner);
+        await f.EnterAsync(guest, waiting);
+        var (individual, fighters) = await f.FightAsync(2, PvpBattleMode.Individual);
+
+        await f.Commit(rooms => rooms.SetModeAsync(owner, PvpBattleMode.Relay, default));
+        await f.ReadyAsync(guest);
+        await f.ReadyAsync(owner);
+        Refused(await f.Commit(rooms => rooms.ReportDeathAsync(guest, owner.CharacterId, default)), PvpRoomRefusal.NotFighter);
+        var individualDeath = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default)));
+        Assert.Equal((byte)0, individualDeath.Concluded!.Terminal.Winner);
+        Assert.Equal(PvpRoomPhase.AwaitRank, f.Committed(individual).Phase);
+        Assert.Equal(PvpRoomPhase.Fighting, f.Committed(waiting).Phase);
+
+        f.Clock.Now = f.Clock.Now.AddSeconds(7);
+        Assert.NotNull(await f.Commit(rooms => rooms.AdvanceDueAsync(waiting.Id, f.Clock.Now, default)));
+        var relayDeath = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(guest, owner.CharacterId, default)));
+        Assert.Equal((byte)PvpTeam.First, relayDeath.Concluded!.Terminal.Winner);
+    }
+
+    [Fact]
+    public async Task Relay_replaces_a_knocked_out_fighter_and_settles_only_after_the_team_is_exhausted()
+    {
+        var f = new PvpRoomFixture { DuelChannel = Ranked };
+        var (room, fighters) = await f.FightAsync(4, PvpBattleMode.Relay);
+        var match = room.Match!.Id;
+        var firstTurnAt = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        f.Clock.Now = firstTurnAt;
+        Assert.NotNull(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
+
+        var firstDeath = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default)));
+        Assert.Null(firstDeath.Concluded);
+        Assert.Equal(PvpRoomPhase.Fighting, firstDeath.After!.Phase);
+        Assert.Empty(f.Rooms.PendingConclusions());
+
+        Refused(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[3], fighters[0].CharacterId, default)), PvpRoomRefusal.NotFighter);
+        f.Clock.Now = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        Assert.NotNull(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
+
+        var lastDeath = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[3], fighters[0].CharacterId, default)));
+        Assert.Equal(match, lastDeath.Concluded!.MatchId);
+        Assert.Equal(PvpRoomPhase.AwaitRank, lastDeath.After!.Phase);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.AcknowledgeRankAsync(fighter, default));
+        var settled = Assert.IsType<PvpSettlementOutcome.Settled>(await f.SettleAsync(match));
+        Assert.Equal([PvpOutcome.Win, PvpOutcome.Loss, PvpOutcome.Win, PvpOutcome.Loss], settled.Stored.Results.Select(result => result.Outcome));
+        Assert.Equal(2, lastDeath.Concluded.Fighters[0].Kills);
+        Assert.Equal(1, f.Records.Of(fighters[0]).Wins);
+        Assert.IsType<PvpSettlementOutcome.NotPending>(await f.SettleAsync(match));
+    }
+
+    [Fact]
+    public async Task Relay_prefers_a_live_reserve_who_requests_the_next_turn()
+    {
+        var f = new PvpRoomFixture();
+        var (room, fighters) = await f.FightAsync(6, PvpBattleMode.Relay);
+        f.Clock.Now = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default));
+
+        await f.Commit(rooms => rooms.RequestRelayFightAsync(fighters[3], default));
+        await f.Commit(rooms => rooms.RequestRelayFightAsync(fighters[3], default));
+        await f.Commit(rooms => rooms.RequestRelayFightAsync(fighters[5], default));
+        await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default));
+        f.Clock.Now = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default));
+
+        Refused(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[3], fighters[0].CharacterId, default)), PvpRoomRefusal.NotFighter);
+        Assert.Equal(new PvpDeath(5, 0), Changed(await f.Commit(rooms =>
+            rooms.ReportDeathAsync(fighters[5], fighters[0].CharacterId, default))).Death);
+    }
+
+    [Fact]
+    public async Task Relay_second_turn_can_finish_after_the_first_turn_watchdog_would_have_expired()
+    {
+        var f = new PvpRoomFixture();
+        var (room, fighters) = await f.FightAsync(4, PvpBattleMode.Relay);
+        var start = f.Clock.Now;
+        f.Clock.Now = f.Rooms.Deadlines(start).Next!.Value;
+        await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default));
+
+        f.Clock.Now = start.AddSeconds(100);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.HeartbeatAsync(fighter, default));
+        await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], fighters[0].CharacterId, default));
+        f.Clock.Now = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default));
+        var secondTurn = f.Clock.Now;
+
+        f.Clock.Now = start.AddSeconds(157);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.HeartbeatAsync(fighter, default));
+        Assert.Null(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
+        Assert.Equal(PvpRoomPhase.Fighting, f.Committed(room).Phase);
+
+        f.Clock.Now = secondTurn.AddMinutes(2);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.HeartbeatAsync(fighter, default));
+        Refused(await f.Commit(rooms => rooms.ReportTimeoutAsync(fighters[0], [.. new byte[32]], default)), PvpRoomRefusal.UnsupportedMode);
+        var ended = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[3], null, default)));
+        Assert.Equal(PvpMatchOutcomeKind.Decided, ended.Concluded!.Terminal.Kind);
+        Assert.Equal((byte)PvpTeam.First, ended.Concluded.Terminal.Winner);
+    }
+
+    [Fact]
+    public async Task Relay_waits_for_the_a21_first_round_to_finish_before_using_the_watchdog()
+    {
+        var f = new PvpRoomFixture { DuelChannel = Ranked };
+        var (room, fighters) = await f.FightAsync(4, PvpBattleMode.Relay);
+        f.Clock.Now = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default));
+        var firstTurn = f.Clock.Now;
+
+        f.Clock.Now = firstTurn.AddSeconds(150);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.HeartbeatAsync(fighter, default));
+        Assert.Null(await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default)));
+
+        f.Clock.Now = firstTurn.AddMilliseconds(184640);
+        foreach (var fighter in fighters) await f.Commit(rooms => rooms.HeartbeatAsync(fighter, default));
+        Assert.Equal(PvpRoomPhase.Fighting, f.Committed(room).Phase);
+        var timedOut = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[1], null, default)));
+        Assert.Null(timedOut.Concluded);
+        f.Clock.Now = f.Rooms.Deadlines(f.Clock.Now).Next!.Value;
+        var changedTurn = await f.Commit(rooms => rooms.AdvanceDueAsync(room.Id, f.Clock.Now, default));
+        Assert.NotNull(changedTurn);
+        var eliminated = Changed(await f.Commit(rooms => rooms.ReportDeathAsync(fighters[3], null, default)));
+        Assert.Equal(PvpMatchOutcomeKind.Decided, eliminated.Concluded!.Terminal.Kind);
+        Assert.Equal((byte)PvpTeam.First, eliminated.Concluded.Terminal.Winner);
+    }
 
     // ---- AC-030: the phases, and reports outside them
 
@@ -439,8 +569,8 @@ public sealed class PvpBattleDomainTests
 
     [Theory]
     [InlineData(ChannelEntryKind.FreeDuel, (byte)13, false)]
-    [InlineData(ChannelEntryKind.Pvp, (byte)8, false)]
-    [InlineData(ChannelEntryKind.Pvp, (byte)24, true)]
+    [InlineData(ChannelEntryKind.MatchmakingDuel, (byte)8, false)]
+    [InlineData(ChannelEntryKind.TraditionalDuel, (byte)24, true)]
     public async Task Only_the_ranked_channel_changes_records(ChannelEntryKind kind, byte environment, bool records)
     {
         var f = new PvpRoomFixture { DuelChannel = new ChannelEntryIdentity(70, PvpRoomFixture.Port, kind, environment) };
@@ -725,11 +855,11 @@ public sealed class PvpBattleDomainTests
         var character = new CharacterId(77);
         f.Records.Records[character] = new PvpRecord(2, 1, null, 4, 3, 0, 0, 0);
 
-        var view = await new PvpRecordDomainService(f.Records, f.BattleRules, NullLogger<PvpRecordDomainService>.Instance).ViewAsync(character, default);
+        var view = await new PvpRecordDomainService(f.Records, f.BattleRules, PvpRatingSeason.First, NullLogger<PvpRecordDomainService>.Instance).ViewAsync(character, default);
 
         Assert.Equal(new PvpRecordView(2, 1, f.BattleRules.LowerBound(2), f.BattleRules.LowerBound(2), f.BattleRules.UpperBound(2), 4, 3), view);
         f.Records.Records[character] = new PvpRecord(2, 1, f.BattleRules.LowerBound(2) + 7, 4, 3, 0, 0, 0);
-        Assert.Equal(f.BattleRules.LowerBound(2) + 7, (await new PvpRecordDomainService(f.Records, f.BattleRules, NullLogger<PvpRecordDomainService>.Instance).ViewAsync(character, default)).Experience);
+        Assert.Equal(f.BattleRules.LowerBound(2) + 7, (await new PvpRecordDomainService(f.Records, f.BattleRules, PvpRatingSeason.First, NullLogger<PvpRecordDomainService>.Instance).ViewAsync(character, default)).Experience);
     }
 
     /// <summary>
@@ -761,7 +891,7 @@ public sealed class PvpBattleDomainTests
         f.Records.Records[character] = stored;
         var log = new Dfo.Server.Application.Tests.Execution.RecordingExecutionLogger<PvpRecordDomainService>();
 
-        var view = await new PvpRecordDomainService(f.Records, f.BattleRules, log).ViewAsync(character, default);
+        var view = await new PvpRecordDomainService(f.Records, f.BattleRules, PvpRatingSeason.First, log).ViewAsync(character, default);
 
         Assert.Equal(new PvpRecordView(25, 1, f.BattleRules.LowerBound(top), f.BattleRules.LowerBound(top),
             f.BattleRules.UpperBound(top), 4, 3), view);
@@ -771,7 +901,7 @@ public sealed class PvpBattleDomainTests
         // Counter-check: a grade inside the table is shown in its own band and logs nothing.
         f.Records.Records[character] = stored with { Grade = top };
         Assert.Equal(f.BattleRules.UpperBound(top),
-            (await new PvpRecordDomainService(f.Records, f.BattleRules, log).ViewAsync(character, default)).UpperBound);
+            (await new PvpRecordDomainService(f.Records, f.BattleRules, PvpRatingSeason.First, log).ViewAsync(character, default)).UpperBound);
         Assert.Single(log.Entries);
     }
 

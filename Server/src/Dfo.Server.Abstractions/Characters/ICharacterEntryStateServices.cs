@@ -47,7 +47,7 @@ public interface ICharacterSkillGroupInitializer
 {
     SkillGroup Group { get; }
 
-    ValueTask<IReadOnlyList<CharacterSkillPageState>> PrepareAsync(
+    ValueTask<(IReadOnlyList<CharacterSkillPageState> Pages, int SkillTreeIndex)> PrepareAsync(
         AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken);
 }
 

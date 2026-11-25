@@ -432,6 +432,67 @@ public sealed class CharacterSkillLearningTests
     }
 
     [Theory]
+    [InlineData(60, (byte)8)]
+    [InlineData(162, null)]
+    public async Task Matchmaking_duel_lobby_can_learn_on_its_active_page_without_changing_other_builds(
+        int channelId, byte? loginEnvironment)
+    {
+        await using var fixture = new LearningFixture(skillGroup: SkillGroup.Duel, configure: services =>
+            services.AddSingleton<IChannelEntryDomainService>(TestRequired.Absent<IChannelEntryDomainService>(
+                (method, _) => method.Name == nameof(IChannelEntryDomainService.ResolveAsync)
+                    ? ValueTask.FromResult(new ChannelEntryIdentity(
+                        channelId, 10011, ChannelEntryKind.MatchmakingDuel, loginEnvironment)) : null)));
+        await fixture.SeedAsync();
+        fixture.Sql("""
+            INSERT INTO character_pvp_skill_state(character_id,skills_initialized,active_skill_build) VALUES(71,1,1);
+            INSERT INTO character_skill_builds(character_id,build_id,unlocked) VALUES(71,0,1),(71,1,1);
+            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level)
+            VALUES(71,'pvp',0,2,1,1),(71,'pvp',1,2,1,1);
+            """);
+
+        Assert.Equal(CharacterSkillLearningRejection.PageUnavailable,
+            (await fixture.LearnAsync([new(1, 0, 1)], page: 0)).Rejection);
+        var result = await fixture.LearnAsync([new(1, 0, 1)], page: 1);
+        Assert.Equal(CharacterSkillLearningRejection.None, result.Rejection);
+        Assert.Equal(2, Assert.Single(result.Receipt!.Skills).Level);
+        Assert.False(await fixture.SwapAsync(page: 1, first: 2, second: 4));
+        Assert.Null(await fixture.ToggleAsync());
+        Assert.Equal(1, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND mode='pvp' AND page_index=0 AND skill_id=1"));
+        Assert.Equal(2, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND mode='pvp' AND page_index=1 AND skill_id=1"));
+        Assert.Equal(1, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND mode='pve' AND page_index=1 AND skill_id=1"));
+    }
+
+    [Fact]
+    public async Task Duel_toggle_requires_an_unlocked_build_and_edits_only_the_new_active_duel_page()
+    {
+        await using var fixture = new LearningFixture(skillGroup: SkillGroup.Duel);
+        await fixture.SeedAsync();
+        fixture.Sql("""
+            UPDATE characters SET active_skill_build=1 WHERE character_id=71;
+            INSERT INTO character_pvp_skill_state(character_id,skills_initialized) VALUES(71,1);
+            INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level)
+            VALUES(71,'pvp',0,2,1,1),(71,'pvp',1,2,1,1);
+            INSERT INTO character_skill_builds(character_id,build_id,unlocked) VALUES(71,0,1),(71,1,0);
+            """);
+        Assert.Null(await fixture.ToggleAsync());
+        fixture.Sql("UPDATE character_skill_builds SET unlocked=1 WHERE character_id=71 AND build_id=1");
+
+        Assert.Equal(1, await fixture.ToggleAsync());
+        Assert.Equal(1, (await fixture.State.BuildsAsync(new(71), default, SkillGroup.Duel)).SkillTreeIndex);
+        Assert.Null(await fixture.ToggleAsync(expectedCurrent: 0));
+        Assert.Equal(CharacterSkillLearningRejection.PageUnavailable,
+            (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
+        Assert.Equal(CharacterSkillLearningRejection.None,
+            (await fixture.LearnAsync([new(1, 0, 1)], page: 1)).Rejection);
+        Assert.True(await fixture.SwapAsync(page: 1, first: 2, second: 4));
+        Assert.Equal(0, await fixture.ToggleAsync());
+        Assert.Equal(1, fixture.Scalar("SELECT active_skill_build FROM characters WHERE character_id=71"));
+        Assert.Equal(1, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND mode='pvp' AND page_index=0 AND slot=2"));
+        Assert.Equal(2, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND mode='pvp' AND page_index=1 AND slot=4"));
+        Assert.Equal(1, fixture.Scalar("SELECT level FROM character_skills WHERE character_id=71 AND mode='pve' AND page_index=1 AND slot=15"));
+    }
+
+    [Theory]
     [InlineData(PvpRoomPhase.Fighting)]
     [InlineData(PvpRoomPhase.AwaitRank)]
     [InlineData(PvpRoomPhase.AwaitResult)]
@@ -444,10 +505,11 @@ public sealed class CharacterSkillLearningTests
         await fixture.SeedAsync();
         fixture.Sql("""
             INSERT INTO character_pvp_skill_state(character_id, skills_initialized) VALUES(71,1);
+            INSERT INTO character_skill_builds(character_id,build_id,unlocked) VALUES(71,0,1),(71,1,1);
             INSERT INTO character_skills(character_id,mode,page_index,slot,skill_id,level)
             VALUES(71,'pvp',0,2,1,1);
             """);
-        room = new(new(Guid.NewGuid()), 1, new(50, fixture.Session.ListenerPort, ChannelEntryKind.Pvp, 24),
+        room = new(new(Guid.NewGuid()), 1, new(50, fixture.Session.ListenerPort, ChannelEntryKind.TraditionalDuel, 24),
             0, [], false, 1, PvpBattleMode.Individual, 0,
             [new PvpSeat.Taken(fixture.Session, PvpTeam.Individual, false)],
             phase, 1, PvpRoomOrigin.PlayerCreated, null);
@@ -455,6 +517,7 @@ public sealed class CharacterSkillLearningTests
         Assert.Equal(CharacterSkillLearningRejection.UnsupportedScenario,
             (await fixture.LearnAsync([new(1, 0, 1)])).Rejection);
         Assert.False(await fixture.SwapAsync(page: 0, first: 2, second: 4));
+        Assert.Null(await fixture.ToggleAsync());
         Assert.Equal(1, fixture.Scalar("""
             SELECT COUNT(*) FROM character_skills
             WHERE character_id=71 AND mode='pvp' AND page_index=0 AND skill_id=1 AND slot=2 AND level=1
@@ -498,7 +561,7 @@ internal sealed class LearningFixture : IAsyncDisposable
         if (skillGroup == SkillGroup.Duel)
             services.AddSingleton<IChannelEntryDomainService>(TestRequired.Absent<IChannelEntryDomainService>(
                 (method, _) => method.Name == nameof(IChannelEntryDomainService.ResolveAsync)
-                    ? ValueTask.FromResult(new ChannelEntryIdentity(50, 10011, ChannelEntryKind.Pvp, 24)) : null));
+                    ? ValueTask.FromResult(new ChannelEntryIdentity(50, 10011, ChannelEntryKind.TraditionalDuel)) : null));
         if (!useArchive)
         {
             services.AddSingleton<ISkillRuleDefinitionSource>(Content);
@@ -589,6 +652,15 @@ internal sealed class LearningFixture : IAsyncDisposable
         await transaction.CommitAsync(default);
         return changed;
     });
+    public Task<int?> ToggleAsync(int? expectedCurrent = null) => TestGameplay.RunAsync(Services, async () =>
+    {
+        await using var transaction = Scope.Begin();
+        var active = await Services.GetRequiredService<ICharacterSkillLearningDomainService>()
+            .ToggleAsync(Session, expectedCurrent, default);
+        await transaction.CommitAsync(default);
+        return active;
+    });
+
     public int Scalar(string sql)
     {
         using var db = new SqliteConnection(ConnectionString);

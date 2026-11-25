@@ -25,26 +25,17 @@ public sealed class PvpSettlementRuleServiceTests
     }
 
     [Fact]
-    public void The_practice_duel_channel_records_nothing()
+    public void The_matchmaking_duel_channel_records_nothing()
     {
-        Assert.Equal(new PvpChannelEntitlements(false, false, 0, 0), Unarchived().EntitlementsOf(Duel(8)));
+        Assert.Equal(new PvpChannelEntitlements(false, false, 0, 0),
+            Unarchived().EntitlementsOf(new(60, 10060, ChannelEntryKind.MatchmakingDuel)));
     }
 
     [Fact]
     public void The_ranked_duel_channel_records_and_caps_daily_experience()
     {
-        Assert.Equal(new PvpChannelEntitlements(true, true, 50, 10), Unarchived().EntitlementsOf(Duel(24)));
-    }
-
-    [Theory]
-    [InlineData((byte)0)]
-    [InlineData((byte)13)]
-    [InlineData((byte)23)]
-    [InlineData((byte)25)]
-    [InlineData(null)]
-    public void A_duel_channel_environment_without_a_row_has_no_entitlements(byte? environment)
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Unarchived().EntitlementsOf(Duel(environment)));
+        Assert.Equal(new PvpChannelEntitlements(true, true, 50, 10),
+            Unarchived().EntitlementsOf(new(50, 10050, ChannelEntryKind.TraditionalDuel)));
     }
 
     [Theory]
@@ -72,15 +63,14 @@ public sealed class PvpSettlementRuleServiceTests
         Assert.Equal(new byte[] { 8, 13, 24 }, duelling);
     }
 
-    private static ChannelEntryIdentity Duel(byte? environment) => new(70, 10070, ChannelEntryKind.Pvp, environment);
-
     [SkippableFact]
     public void Battle_time_limits_come_from_the_archive()
     {
         var rules = PvpGradeRulesTests.Rules();
-        foreach (var mode in Enum.GetValues<PvpBattleMode>())
+        foreach (var mode in Enum.GetValues<PvpBattleMode>().Where(mode => mode != PvpBattleMode.TotalMatch))
             Assert.Equal(mode == PvpBattleMode.Relay ? TimeSpan.FromSeconds(120) : TimeSpan.FromSeconds(180),
                 rules.BattleTimeLimit(mode));
+        Assert.Equal(TimeSpan.FromSeconds(180), rules.BattleTimeLimit(PvpBattleMode.TotalMatch));
     }
 
     [Theory]

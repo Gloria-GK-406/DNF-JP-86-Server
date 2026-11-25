@@ -178,7 +178,7 @@ internal sealed class CharacterEntryAssembly(
         }
 
         var builds = await skillBuilds.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
-        var projectedTree = builds.IsUnlocked(new(1)) ? builds.Active.Value : -1;
+        var projectedTree = builds.SkillTreeIndex;
         RequireProfileInRange(conditionState, settingsState, expertJobState,
             statsState, guildState, projectedTree,
             row.NameTagItemId, row.NameTagExpireTime);

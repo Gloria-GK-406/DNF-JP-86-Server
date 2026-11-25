@@ -43,5 +43,6 @@
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic / Confirmed。** RVA `00E0F8D0` 及其后续 `00E0F800–00E0F8C8` 不读取包体，更新匹配完成提示。
+
+**ThirdPartyReference / CurrentImplementation。** 双方加载和 P2P 报告齐全后发送空载荷，与 [NOTI 0x011A](NOTI-0x011A.md) 和房间开战通知同批投递。

@@ -179,7 +179,8 @@ public sealed class PvpRoomInviteTests
                     DefaultAnswers.Create<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(), Outbox, Rooms, rooms.Lobby, rooms.Views, DefaultAnswers.Create<IOnlineCharacterRuntimeDomainService>(),
                     ProtocolAlgorithmFixture.NoOnline(), DefaultAnswers.Create<IGameSessionEndpointDomainService>(),
                     ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
-                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()),
+                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(),
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System),
                 new GameResponsePeerCommand(PvpRoomCommandTests.Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, type, peer, tail ?? [])));
 

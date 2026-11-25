@@ -4,8 +4,6 @@ using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Application.Channel;
 using Dfo.Server.Application.Pvp;
-using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Tests.Pvp;
@@ -16,6 +14,7 @@ public sealed class PvpStartupVerificationTests
     private static readonly ChannelServerInfo Ordinary = new(1, "#1", 100, 0, "127.0.0.1", 10011);
     private static readonly ChannelServerInfo Ranked = new(2, "#2", 100, 0, "127.0.0.1", 10024, 24);
     private static readonly ChannelServerInfo Free = new(3, "#3", 100, 0, "127.0.0.1", 10013, 13);
+    private static readonly ChannelServerInfo Matchmaking = new(4, "#4", 100, 0, "127.0.0.1", 10008, 8);
 
     [Fact]
     public async Task Every_duel_channel_is_asked_for_its_entitlements_and_the_content_is_loaded()
@@ -23,7 +22,7 @@ public sealed class PvpStartupVerificationTests
         var grades = new Grades();
         var maps = new Maps();
 
-        Assert.Equal(2, await Verification([Ordinary, Ranked, Free], grades, maps).VerifyAsync(default));
+        Assert.Equal(3, await Verification([Ordinary, Ranked, Free, Matchmaking], grades, maps).VerifyAsync(default));
         Assert.True(grades.Loaded);
         Assert.True(maps.Loaded);
     }
@@ -40,12 +39,12 @@ public sealed class PvpStartupVerificationTests
     [Fact]
     public async Task A_duel_channel_without_entitlements_fails()
     {
-        var verification = new PvpStartupVerification(
-            new ChannelContentRuleService(new Catalog([Ordinary, Ranked]), new NoScript()),
-            new UnknownDuelEnvironment(), new ChannelListenerOptions([10011, 10024], AllowAdvertisedPortFallback: false),
-            new PvpSettlementRuleService(new Grades(), PvpSettlementRuleServiceTests.Days), new PvpRoomRuleService(new Maps()));
+        var refusal = new ArgumentOutOfRangeException(nameof(ChannelEntryKind.TraditionalDuel));
+        var settlement = TestRequired.Absent<IPvpSettlementRuleService>((method, _) =>
+            method.Name == nameof(IPvpSettlementRuleService.EntitlementsOf) ? throw refusal : null);
+        var verification = Verification([Ordinary, Ranked], new Grades(), new Maps(), settlement: settlement);
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => verification.VerifyAsync(default).AsTask());
+        Assert.Same(refusal, await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => verification.VerifyAsync(default).AsTask()));
     }
 
     [Fact]
@@ -63,14 +62,16 @@ public sealed class PvpStartupVerificationTests
     }
 
     private static PvpStartupVerification Verification(
-        IReadOnlyList<ChannelServerInfo> channels, Grades grades, Maps maps, ChannelEntryOptions? options = null)
+        IReadOnlyList<ChannelServerInfo> channels, Grades grades, Maps maps, ChannelEntryOptions? options = null,
+        IPvpSettlementRuleService? settlement = null)
     {
         var content = new ChannelContentRuleService(new Catalog(channels), new NoScript());
         var listeners = new ChannelListenerOptions([.. channels.Select(channel => channel.Port)], AllowAdvertisedPortFallback: false);
         return new PvpStartupVerification(content,
             new ChannelEntryDomainService(content, options ?? ChannelEntryOptions.Legacy, listeners, new NoDeployment(),
                 TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>()),
-            listeners, new PvpSettlementRuleService(grades, PvpSettlementRuleServiceTests.Days), new PvpRoomRuleService(maps));
+            listeners, settlement ?? new PvpSettlementRuleService(grades, PvpSettlementRuleServiceTests.Days),
+            new PvpRoomRuleService(maps));
     }
 
     private sealed class Grades(bool broken = false) : IPvpGradeDefinitionSource
@@ -96,20 +97,6 @@ public sealed class PvpStartupVerificationTests
             Loaded = true;
             return new([0, 101]);
         }
-    }
-
-    /// <summary>A channel entry service that classifies every channel as a duel channel of an environment nobody registered.</summary>
-    private sealed class UnknownDuelEnvironment : IChannelEntryDomainService
-    {
-        public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ChannelEntryIdentity(listenerPort - 10000, listenerPort, ChannelEntryKind.Pvp, 99));
-
-        public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,
-            CharacterId characterId, int characterLevel, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<ChannelAdmissionRefusal?>(null);
-
-        public ValueTask<ChannelLoginEntry> ResolveLoginAsync(int listenerPort, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
     }
 
     private sealed class Catalog(IReadOnlyList<ChannelServerInfo> channels) : IChannelCatalog

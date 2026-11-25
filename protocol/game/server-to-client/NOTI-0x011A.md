@@ -41,5 +41,4 @@
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic / ThirdPartyReference。** RVA `00D616B0–00D616DA` 不读取包体。自动匹配 1vs1 向双方确认 P2P 全部就绪，随后投递匹配完成与开局帧。

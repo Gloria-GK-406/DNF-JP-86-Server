@@ -165,6 +165,12 @@ internal static class ProtocolAlgorithmFixture
             return TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>();
         if (type == typeof(Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection))
             return Create<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>();
+        if (type == typeof(Dfo.Server.Abstractions.Pvp.IPvpTotalMatchRepresentativeSwitchDomainService))
+            return new Dfo.Server.Application.Pvp.PvpTotalMatchRepresentativeSwitchDomainService();
+        if (type == typeof(Dfo.Server.Abstractions.Pvp.IPvpDailyMissionQueryDomainService))
+            return TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpDailyMissionQueryDomainService>((method, _) =>
+                method.Name == nameof(Dfo.Server.Abstractions.Pvp.IPvpDailyMissionQueryDomainService.CurrentAsync)
+                    ? ValueTask.FromResult<IReadOnlyList<Dfo.Server.Abstractions.Pvp.PvpDailyMission>>([]) : null);
         if (type == typeof(ICommandProjections)) return new ArrivalOnlyProjections();
         if (type == typeof(Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions)) return new Dfo.Server.Protocol.Game.StateSynchronization.LotteryCounterExperimentOptions(false, 0, 0);
         if (type == typeof(Dfo.Server.Abstractions.Parties.IPartyService)) return new Dfo.Server.Application.Parties.PartyService(
@@ -194,6 +200,7 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(IWeaknessDomainService)) return new NoWeakness();
         if (type == typeof(ICommandWorkUnits)) return new Units();
         if (type == typeof(Dfo.Server.Abstractions.Pvp.IPvpRecordDomainService)) return new UntouchedPvpRecord();
+        if (type == typeof(Dfo.Server.Abstractions.Pvp.IPvpTotalMatchTeamDomainService)) return new NoPvpTotalMatchTeam();
         if (type == typeof(ILogger)) return NullLogger.Instance;
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ILogger<>))
             return typeof(NullLogger<>).MakeGenericType(type.GenericTypeArguments).GetField("Instance")!.GetValue(null)!;
@@ -232,6 +239,19 @@ internal static class ProtocolAlgorithmFixture
     {
         public ValueTask<Dfo.Server.Abstractions.Pvp.PvpRecordView> ViewAsync(Dfo.Server.Data.Characters.CharacterId character,
             CancellationToken cancellationToken) => ValueTask.FromResult(new Dfo.Server.Abstractions.Pvp.PvpRecordView(0, 0, 0, 0, 100, 0, 0));
+        public Dfo.Server.Abstractions.Pvp.PvpExperienceBand ExperienceBandOf(byte grade) => new(0, 100);
+    }
+    private sealed class NoPvpTotalMatchTeam : Dfo.Server.Abstractions.Pvp.IPvpTotalMatchTeamDomainService
+    {
+        public ValueTask<Dfo.Server.Abstractions.Pvp.PvpTotalMatchTeamView?> ReadAsync(
+            Dfo.Server.Data.Accounts.AccountId account, CancellationToken cancellationToken) => ValueTask.FromResult<Dfo.Server.Abstractions.Pvp.PvpTotalMatchTeamView?>(null);
+
+        public ValueTask<Dfo.Server.Abstractions.Pvp.PvpTotalMatchTeamRefusal> CheckNameAsync(
+            SelectedSessionIdentity session, byte[] name, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public ValueTask<(Dfo.Server.Abstractions.Pvp.PvpTotalMatchTeamView? Team, Dfo.Server.Abstractions.Pvp.PvpTotalMatchTeamRefusal? Refusal)> SaveAsync(
+            SelectedSessionIdentity session, byte[] name, System.Collections.Immutable.ImmutableArray<byte> positions,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
     private sealed class NoUsers : IOnlineUserQueryDomainService
     {

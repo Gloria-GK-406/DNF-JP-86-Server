@@ -191,6 +191,7 @@ public sealed class CurrentCharacterStateTests
             new InfrastructureModule().ConfigureServices(services, configuration);
             new PersistenceModule().ConfigureServices(services, configuration);
             new ApplicationModule().ConfigureServices(services, configuration);
+            services.AddSingleton(Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
             Services = services.BuildServiceProvider();
             _ = Services.GetRequiredService<SqliteDatabase>();
             Character = Services.GetRequiredService<ICharacterDomainService>().Get(Id);

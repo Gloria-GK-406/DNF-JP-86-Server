@@ -108,9 +108,9 @@ internal sealed partial class SqliteCharacterPvpSkillStateTable(SqliteDatabase d
     public ValueTask<CharacterPvpSkillStateRow?> FindAsync(
         CharacterId characterId, CancellationToken cancellationToken) =>
         database.ReadFirstAsync(
-            "SELECT skills_initialized FROM character_pvp_skill_state WHERE character_id=@cid;",
+            "SELECT skills_initialized,active_skill_build FROM character_pvp_skill_state WHERE character_id=@cid;",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
-            reader => new CharacterPvpSkillStateRow(reader.GetInt32(0)),
+            reader => new CharacterPvpSkillStateRow(reader.GetInt32(0), reader.GetInt32(1)),
             cancellationToken);
 }
 
@@ -215,6 +215,17 @@ internal sealed partial class SqliteCharacterPvpSkillStateTable
             "UPDATE character_pvp_skill_state SET skills_initialized=1 WHERE character_id=@cid",
             parameters => parameters.AddWithValue("@cid", characterId.Value),
             cancellationToken).ConfigureAwait(false);
+
+    public async ValueTask<bool> SetActiveBuildAsync(
+        CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken) =>
+        await database.ExecuteAsync(
+            "UPDATE character_pvp_skill_state SET active_skill_build=@build WHERE character_id=@cid AND skills_initialized<>0",
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", characterId.Value);
+                parameters.AddWithValue("@build", build.Value);
+            },
+            cancellationToken).ConfigureAwait(false) == 1;
 }
 
 /// <summary>The <c>character_settings</c> table, written.</summary>

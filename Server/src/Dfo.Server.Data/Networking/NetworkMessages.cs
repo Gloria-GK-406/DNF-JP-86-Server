@@ -261,6 +261,8 @@ public enum ClientMessageType
     // The reports the reference server answers with nothing. One handler, six wire keys, and the
     // silence is a decision rather than a gap. See Game/UnansweredReports.
     GameUseSkill = 0x0001_0026,
+    GamePvpMissionHpPercent = 0x0001_0178,
+    GamePvpMissionWinPose = 0x0001_0179,
     GameSyncItemSpace = 0x0001_035C,
     GameDecreaseDurability = 0x0001_0030,
     GameOverflowInfo = 0x0001_00D9,
@@ -325,8 +327,18 @@ public enum ClientMessageType
 
     // A duel battle's reports, from the fight to closing the result screen. See Game/PvpBattle.
     GameCompleteLoadPvp = 0x0001_012A,
+    GameJoinPvpMatchmaking = 0x0001_0209,
+    GameCancelPvpMatchmaking = 0x0001_020A,
+    GameEnterPvpColosseum = 0x0001_020F,
+    GameUpdatePvpColosseumReward = 0x0001_0210,
+    GameConfirmPvpMatchmaking = 0x0001_023B,
+    GamePvpMatchmakingCount = 0x0001_023D,
     GameConnectP2pPvp = 0x0001_012B,
     GamePvpHeartbeat = 0x0001_006E,
+    GamePvpRequestFight = 0x0001_0070,
+    GameSetPvpTotalMatchTeam = 0x0001_035E,
+    GameCheckPvpTotalMatchTeamName = 0x0001_035F,
+    GameSelectPvpTotalMatchCandidate = 0x0001_0361,
     GameDiePvpCharacter = 0x0001_0037,
     GamePvpTimeOut = 0x0001_0038,
     GamePvpRankResponse = 0x0001_003A,
@@ -681,12 +693,33 @@ public enum ServerMessageType
     GamePvpSeatState = 0x0000_002B,
     GamePvpReadyState = 0x0000_002C,
     GameStartPvp = 0x0000_002D,
+    GameJoinPvpMatchmakingResponse = 0x0001_0209,
+    GameCancelPvpMatchmakingResponse = 0x0001_020A,
+    GameEnterPvpColosseumResponse = 0x0001_020F,
+    GamePvpColosseumContext = 0x0000_0262,
+    GamePvpColosseumRewards = 0x0000_0263,
+    GamePvpMatchmakingRoster = 0x0000_01F9,
+    GamePvpMatchmakingComplete = 0x0000_01FA,
+    GamePvpMatchmakingState = 0x0000_01FB,
+    GamePvpMatchmakingCountNotice = 0x0000_01FE,
+    GamePvpActorLoaded = 0x0000_0119,
+    GamePvpActorsConnected = 0x0000_011A,
 
     // What a duel battle shows its fighters: deaths, the ranking, the results and the record. See Game/PvpBattle.
     GameDiePvpCharacter = 0x0000_002E,
+    GamePvpTurnPlayer = 0x0000_0070,
+    GamePvpRequestFight = 0x0000_0071,
     GameRequestPvpRank = 0x0000_0031,
     GameEndPvp = 0x0000_002F,
     GamePvpRecord = 0x0000_0030,
+    GamePvpDailyMissionList = 0x0000_0143,
+    GamePvpTotalMatchCharacterInfo = 0x0000_031A,
+    GamePvpTotalMatchTeamInfo = 0x0000_031B,
+    GamePvpTotalMatchInfo = 0x0000_031C,
+    GamePvpTotalMatchFight = 0x0000_031D,
+    GamePvpTotalMatchSelectionStarted = 0x0000_031E,
+    GameSetPvpTotalMatchTeam = 0x0001_035E,
+    GameCheckPvpTotalMatchTeamName = 0x0001_035F,
 }
 
 public interface IClientNetworkMessage

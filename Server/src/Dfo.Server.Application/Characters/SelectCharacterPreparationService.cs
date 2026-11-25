@@ -184,9 +184,14 @@ public sealed class SelectCharacterPreparationService(
         {
             var initializer = skillGroupInitializers.SingleOrDefault(value => value.Group == channelPolicy.SkillGroup)
                 ?? throw new InvalidOperationException($"Skill group {channelPolicy.SkillGroup} has no entry initializer.");
-            var pages = await initializer.PrepareAsync(accountId, character, cancellationToken).ConfigureAwait(false);
+            var (pages, skillTreeIndex) = await initializer.PrepareAsync(accountId, character, cancellationToken)
+                .ConfigureAwait(false);
             characterEntry = characterEntry with
             {
+                Public = characterEntry.Public with
+                {
+                    Extras = characterEntry.Public.Extras with { SkillTreeIndex = skillTreeIndex },
+                },
                 Skills = characterEntry.Skills with { Pages = pages },
             };
         }

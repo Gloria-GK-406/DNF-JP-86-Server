@@ -4,6 +4,7 @@ using System.Text.Json;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -759,11 +760,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(character.Identity.Job); writer.Write(character.Identity.GrowType); writer.Write(character.Progression.Level);
         writer.Write(identity.PvpGrade); writer.Write(identity.PvpRatingGrade); writer.Write(identity.UserState); writer.Write(checked((byte)appearance.Count));
         foreach (var part in appearance)
-        {
-            writer.Write(part.Slot); writer.Write(part.DisplayItemId); writer.Write(part.ExpansionLength); writer.Write(part.ExpansionData);
-            writer.Write(part.State);
-            writer.Write(part.LinkItemId); writer.Write(part.EnchantValue); writer.Write(part.Flag20);
-        }
+            WriteAppearancePart(writer, part);
         writer.Write(entry.Display?.TitleAppearanceItemId ?? entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
         writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty));
         // Private store permission (70 make_basic_info: u8 IsPermissionPrivateStore after the guild key).
@@ -1129,17 +1126,12 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(publicState.Honor.Experience);
         writer.Write(extras.AuraSkinSlotOpen ? (byte)1 : (byte)0);
         writer.Write(checked((ushort)character.Identity.CharacterId.Value)); writer.Write(checked((uint)extras.CharacterExperience));
-        writer.Write(DerivedStatBlockLength); writer.Write(checked((uint)stats.HpMaximum)); writer.Write(checked((uint)stats.MpMaximum)); writer.Write(checked((short)stats.PhysicalAttack)); writer.Write(checked((short)stats.PhysicalDefense));
-        writer.Write(checked((short)stats.MagicalAttack)); writer.Write(checked((short)stats.MagicalDefense)); writer.Write(checked((short)stats.FireResistance)); writer.Write(checked((short)stats.WaterResistance)); writer.Write(checked((short)stats.DarkResistance)); writer.Write(checked((short)stats.LightResistance));
-        writer.Write(new byte[32]); writer.Write(UnnamedStatBeforeInventoryLimit); writer.Write(checked((uint)stats.InventoryLimit)); writer.Write(checked((ushort)stats.HpRegenSpeed)); writer.Write(checked((ushort)stats.MpRegenSpeed)); writer.Write(checked((uint)stats.MoveSpeed));
-        writer.Write(checked((ushort)stats.AttackSpeed)); writer.Write(checked((ushort)stats.CastSpeed)); writer.Write(checked((ushort)stats.HitRecovery)); writer.Write(checked((ushort)stats.JumpPower)); writer.Write(checked((uint)stats.Weight));
-        writer.Write(FullHpMpPercentOnTheWire); writer.Write((byte)0); writer.Write((byte)0);
+        WriteExtendedCombatStats(writer, stats);
         // A21 VA 013E6370 reads the 88-byte block (013E1CB0), then this u8 on its own (013E6532,
         // stored at +0x19C), then the equipment (01182850). Inside the block it would be ignored.
         writer.Write(checked((byte)extras.ExtraEquipmentSlotState));
-        if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8"); writer.Write(checked((byte)equipment.Count));
-        foreach (var item in equipment.OrderBy(item => item.SlotIndex)) WriteNoti2EquippedItem(writer, item, preparedAt);
-        writer.Write(publicState.CloneTitleItemId); writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));
+        WriteNoti2Equipment(writer, equipment, publicState.CloneTitleItemId, preparedAt);
+        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(SkillTreeIndexOnTheWire(extras.SkillTreeIndex));
         var page0 = LearnedForSubtypeOne(skills, 0);
         var page1 = LearnedForSubtypeOne(skills, 1);
         WriteSubtypeOneSkillPage(writer, page0);
@@ -1147,6 +1139,61 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((byte)stats.EquippedCreatureLevel));
         WriteSubtypeOneDimensionTail(writer, extras);
         return stream.ToArray();
+    }
+
+    internal static void WriteAppearancePart(BinaryWriter writer, CharacterRosterAppearanceState part,
+        bool hasLinkedAvatarExpansion = false)
+    {
+        writer.Write(part.Slot);
+        writer.Write(part.DisplayItemId);
+        writer.Write(part.ExpansionLength);
+        writer.Write(part.ExpansionData);
+        writer.Write(part.State);
+        writer.Write(part.LinkItemId);
+        if (hasLinkedAvatarExpansion)
+            WriteBlob(writer, part.ExpansionData);
+        writer.Write(part.EnchantValue);
+        writer.Write(part.Flag20);
+    }
+
+    internal static void WriteNoti2Equipment(BinaryWriter writer, IReadOnlyList<InventoryItemState> equipment,
+        uint cloneTitleItemId, DateTimeOffset preparedAt)
+    {
+        if (equipment.Count > byte.MaxValue) throw CountError("equipped item", "u8");
+        writer.Write(checked((byte)equipment.Count));
+        foreach (var item in equipment.OrderBy(item => item.SlotIndex))
+            WriteNoti2EquippedItem(writer, item, preparedAt);
+        // A21's equipment reader consumes the trailing title word even for an empty list.
+        writer.Write(cloneTitleItemId);
+    }
+
+    internal static void WriteExtendedCombatStats(BinaryWriter writer, CharacterDerivedStatsStorageRecord stats)
+    {
+        writer.Write(DerivedStatBlockLength);
+        writer.Write(checked((uint)stats.HpMaximum));
+        writer.Write(checked((uint)stats.MpMaximum));
+        writer.Write(checked((short)stats.PhysicalAttack));
+        writer.Write(checked((short)stats.PhysicalDefense));
+        writer.Write(checked((short)stats.MagicalAttack));
+        writer.Write(checked((short)stats.MagicalDefense));
+        writer.Write(checked((short)stats.FireResistance));
+        writer.Write(checked((short)stats.WaterResistance));
+        writer.Write(checked((short)stats.DarkResistance));
+        writer.Write(checked((short)stats.LightResistance));
+        writer.Write(new byte[32]);
+        writer.Write(UnnamedStatBeforeInventoryLimit);
+        writer.Write(checked((uint)stats.InventoryLimit));
+        writer.Write(checked((ushort)stats.HpRegenSpeed));
+        writer.Write(checked((ushort)stats.MpRegenSpeed));
+        writer.Write(checked((uint)stats.MoveSpeed));
+        writer.Write(checked((ushort)stats.AttackSpeed));
+        writer.Write(checked((ushort)stats.CastSpeed));
+        writer.Write(checked((ushort)stats.HitRecovery));
+        writer.Write(checked((ushort)stats.JumpPower));
+        writer.Write(checked((uint)stats.Weight));
+        writer.Write(FullHpMpPercentOnTheWire);
+        writer.Write((byte)0);
+        writer.Write((byte)0);
     }
 
     private static CharacterSkillState[] LearnedForSubtypeOne(

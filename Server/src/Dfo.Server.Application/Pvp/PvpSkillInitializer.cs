@@ -12,14 +12,20 @@ internal sealed class PvpSkillInitializer(
     ICharacterSkillTable skills,
     ICharacterPvpSkillStateTable skillState,
     CharacterSkillFactsReader skillFacts,
-    ICharacterEntryPreparationRuleService rules) : ICharacterSkillGroupInitializer
+    ICharacterEntryPreparationRuleService rules,
+    ICharacterSkillStateDomainService builds) : ICharacterSkillGroupInitializer
 {
     public SkillGroup Group => SkillGroup.Duel;
 
-    public ValueTask<IReadOnlyList<CharacterSkillPageState>> PrepareAsync(
-        AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken) =>
-        LoadOrInitializeAsync(accountId, character.Identity.CharacterId,
+    public async ValueTask<(IReadOnlyList<CharacterSkillPageState> Pages, int SkillTreeIndex)> PrepareAsync(
+        AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken)
+    {
+        var pages = await LoadOrInitializeAsync(accountId, character.Identity.CharacterId,
             ct => BuildInitialPagesAsync(character, rules, ct), cancellationToken);
+        var skillBuilds = await builds.BuildsAsync(character.Identity.CharacterId, cancellationToken, Group)
+            .ConfigureAwait(false);
+        return (pages, skillBuilds.SkillTreeIndex);
+    }
 
     internal async ValueTask<IReadOnlyList<CharacterSkillPageState>> LoadOrInitializeAsync(
         AccountId accountId, CharacterId characterId,

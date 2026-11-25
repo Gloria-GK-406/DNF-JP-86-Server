@@ -15,10 +15,11 @@ namespace Dfo.Server.Protocol.Tests.Game.PvpRoom;
 public sealed class PvpChannelInfoTests
 {
     [Theory]
-    [InlineData(ChannelEntryKind.Pvp, true, true)]
+    [InlineData(ChannelEntryKind.TraditionalDuel, true, true)]
+    [InlineData(ChannelEntryKind.MatchmakingDuel, true, true)]
     [InlineData(ChannelEntryKind.FreeDuel, true, true)]
     [InlineData(ChannelEntryKind.General, true, false)]
-    [InlineData(ChannelEntryKind.Pvp, false, false)]
+    [InlineData(ChannelEntryKind.TraditionalDuel, false, false)]
     public Task Channel_info_is_available_only_on_a_duel_channel(ChannelEntryKind kind, bool wellFormed, bool available) =>
         TestGameplay.RunAsync(async () =>
         {
@@ -41,7 +42,7 @@ public sealed class PvpChannelInfoTests
     private sealed class Channels(ChannelEntryKind kind) : IChannelEntryDomainService
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(new ChannelEntryIdentity(1, listenerPort, kind, kind == ChannelEntryKind.Pvp ? (byte)8 : null));
+            ValueTask.FromResult(new ChannelEntryIdentity(1, listenerPort, kind));
 
         public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,
             CharacterId characterId, int characterLevel, CancellationToken cancellationToken) =>

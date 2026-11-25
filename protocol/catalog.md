@@ -4,6 +4,8 @@
 
 A21 在环境 24 发出第 0 页的 [加点 CMD001D](game/client-to-server/0x001D.md#2026-11-23-ch50-决斗加点) 和 [换槽 CMD001C](game/client-to-server/0x001C.md#2026-11-23-ch50-决斗换槽)。取证构建均回 `00 03`。现实现让该环境的决斗大厅和等待房走决斗组的技能与点数规则，开战和结算阶段拒绝编辑。成功应答、显示与重登待 A21 复验。
 
+2026-11-25，A21 在 CH60（环境 8）提交第 2 套决斗技能学习，记录到旧服拒绝。修正版按自动匹配决斗类型放行当前决斗技能页的加点，A21 实机已确认成功。[CH60 加点 CMD001D](game/client-to-server/0x001D.md#2026-11-25-ch60-决斗加点)
+
 ## 2026-11-19 安图恩攻坚（A21 招募主流程已实测）
 
 A21 实机完成了进频道、建团、申请、批准和编入第 6 队，其余招募分支见[验收记录](../Document/tasks/anton-raid/recruitment/acceptance.md)。阶段业务、实机场景和保留项见[攻坚服务设计](../Document/tasks/anton-raid/design.md#82-a21-实机取证)。
@@ -66,7 +68,55 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 
 ## 2026-11-14 决斗场一期 房间侧（TASK-06，CurrentImplementation，待实机）
 
-2026-11-23 A21 实机确认，CH50 的「立即开始」发出 [快速加入 CMD0062](game/client-to-server/0x0062.md#2026-11-23-ch50立即开始)，1 字节包体为 `00`。服务端按房号加入同频道第一个有开放空座的无密码等待房，无合适房间回 `00 BF`。A21 成功显示待实机。
+2026-11-23 A21 实机确认，CH50 的「立即开始」发出 [快速加入 CMD0062](game/client-to-server/0x0062.md#2026-11-23-ch50立即开始)，1 字节包体为 `00`。公开等待房成功入座，空大厅和密码房均显示「没有合适的房间」。
+
+同轮的「练习决斗」发出 [建房 CMD0032](game/client-to-server/0x0032.md#2026-11-23-ch50练习决斗)，尾字段为 `1`。服务端已接通模式 6 单人练习房，隔离 TCP 测试验证了建房、房间隔离和离房。用户确认 A21 可进场并完成练习。
+
+2026-11-23 擂台战（CurrentImplementation / ClientVerified）。[CMD 0x0036](game/client-to-server/0x0036.md) 接受模式 3，[CMD 0x0070](game/client-to-server/0x0070.md) 接受候场成员的空体请求。[NOTI 0x0070](game/server-to-client/NOTI-0x0070.md) 发送两队出战座位，[NOTI 0x0071](game/server-to-client/NOTI-0x0071.md) 广播请求座位。CH50 2 对 2 实机验证开局、KO 和 [180 秒到点](game/client-to-server/0x0038.md) 补位、整场结算及回房，断线补位和 3 对 3 的申请顺序由自动化覆盖。
+
+2026-11-23 王者战可行性取证（ClientStatic / PVF）。已定位 [模式 8 发送分支](game/client-to-server/0x0036.md)、[编队通知 `0x031B`](game/server-to-client/NOTI-0x031B.md)、[选择阶段 `0x031E`](game/server-to-client/NOTI-0x031E.md)、[选择请求 `0x0361`](game/client-to-server/0x0361.md) 和 [出战处理 `0x031D`](game/server-to-client/NOTI-0x031D.md)。现用 PVF 配置 `totalMatch` 为综合匹配、两名玩家、每边三名角色。普通自由房是否可达及比赛初始化帧序待取证，见 [可行性方案](../Document/tasks/pvp-duel/王者战可行性方案.md)。
+
+2026-11-24 王者战续查。普通房模式切换已接入服务端，CH68 环境 13 允许选模式 8，环境 24 拒绝，候选装载验证前房间保持等待。[角色装载 `0x031A`](game/server-to-client/NOTI-0x031A.md) 与 [对局信息 `0x031C`](game/server-to-client/NOTI-0x031C.md) 已补充 A21 读包路径，[选人 `0x031E`](game/server-to-client/NOTI-0x031E.md) 为无体通知，会开始 5 秒选人计时。[选项 `0x0321`](game/server-to-client/NOTI-0x0321.md)、[技能指令 `0x0322`](game/server-to-client/NOTI-0x0322.md) 与 [连招 `0x0323`](game/server-to-client/NOTI-0x0323.md) 处理本机候选，技能指令与连招读包依赖已有候选对象。比赛帧序和联动仍待实机。
+
+王者战账号编队（CurrentImplementation）。已接 [队名检查 `0x035F`](game/client-to-server/0x035F.md)、[队伍保存 `0x035E`](game/client-to-server/0x035E.md) 和 [编队回显 `0x031B`](game/server-to-client/NOTI-0x031B.md)。A21 实机待测。
+
+2026-11-24 王者战房间入口（ClientStatic / WireCaptured）。已定位 [`Btn_TotalMatch` 的启用条件](game/client-to-server/0x0036.md#2026-11-24-房间王者战按钮的启用条件)：本机是房主，且登录环境不为 24。环境 20 有独立窗口分支。更新后的 CH68 实测收到 [`0x0036: 08`](game/client-to-server/samples/0x0036-2026-11-24-01.hex)，成功切换并向两个客户端推送 [模式 8 座位更新](game/server-to-client/NOTI-0x002B.md)。后续实机已确认准备、开局和三角色轮换。
+
+2026-11-24 王者战编队入口（ClientVerified）。CH68 模式 8 房间的「更换队员」可打开队伍构成面板，界面有队名、代表角色和两个队员栏。此次操作未产生编队提交样本，见 [CMD 0x035E](game/client-to-server/0x035E.md#王者战编队)。
+
+2026-11-24 王者战编队提交（WireCaptured / ClientStatic）。[队名检查 `0x035F`](game/client-to-server/0x035F.md)、[三人保存 `0x035E`](game/client-to-server/0x035E.md) 和[队伍回显 `0x031B`](game/server-to-client/NOTI-0x031B.md) 已有 CH68 样本。首次设置另一名代表时客户端发起返回选角，实机出现两轮决斗场初始化，详见 [代表角色重入](game/client-to-server/0x035E.md#2026-11-24-保存成功与代表角色重入)。
+
+2026-11-24 王者战代表重入复查（WireCaptured）。CH68 两次换代表中，两份相同的角色名单先于两条相同的选角请求，新角色资料随后重复初始化。当前实现识别返回选角已送达名单的代表切换，避免再次答复同一份名单。人物显示需复测，见[两份名单都在选角前到达](game/client-to-server/0x035E.md#2026-11-24-两份名单都在选角前到达)。
+
+2026-11-24 王者战换角通过与准备按钮取证（WireCaptured / ClientVerified / ClientStatic）。修复后换代表只有一次选角和一次入场，用户确认大厅人物显示恢复。模式 8 房间的准备按钮在客户端要求本机三名候选对象已由 [`0x031A`](game/server-to-client/NOTI-0x031A.md) 装载，未装载时不会发 [`0x0035: 01`](game/client-to-server/0x0035.md)。
+
+王者战等待房候选装载（CurrentImplementation）。切模式、进入王者战房及保留代表重新编队时，以 [`0x031A`](game/server-to-client/NOTI-0x031A.md#等待房实现) 装载接收者自己的三名候选。测试中用户确认换队后可准备、开局并完成三角色对战。
+
+王者战候选装载纠错（WireCaptured / ClientStatic / CurrentImplementation）。补齐宠物装备剩余有效期和装备列表末尾的克隆称号 ID，防止 [`0x031A`](game/server-to-client/NOTI-0x031A.md#等待房实现) 编码失败及客户端字段错位。
+
+2026-11-24 王者战准备实机通过（WireCaptured / ClientVerified）。补齐候选外观扩展后，CH68 房主完成三名候选装载，来宾使用代表角色进房后发 [`0x0035: 01`](game/client-to-server/0x0035.md)，双方收到 [`0x002C: 01 01`](game/server-to-client/NOTI-0x002C.md)。本轮未捕获房主开局请求或地图启动通知。
+
+王者战首轮实机通过（WireCaptured / ClientVerified）。CH68 的 A21 修正版已验证[房内改队后准备](game/client-to-server/0x035E.md#2026-11-24-房内保留代表并更换队员)、[开图与线程启动](game/server-to-client/NOTI-0x031C.md)、[`0x031E`](game/server-to-client/NOTI-0x031E.md) 开始选人、双方提交 [`0x0361`](game/client-to-server/0x0361.md) 及 [`0x031D`](game/server-to-client/NOTI-0x031D.md) 指定两位不同替补出战，并取得[首轮死亡上报](game/client-to-server/0x0037.md#2026-11-24-ch68-王者战首轮)。
+
+王者战完整对局（ClientVerified / WireCaptured）。CH68 已完成 [三轮淘汰、结算与回房](game/server-to-client/NOTI-0x002F.md#ch68-王者战结果与回房)，胜者留场，败方补位。一轮到点使用 [PVF 赛事擂台时限](game/client-to-server/0x0038.md#ch68-王者战到点)。同次测试复现了[房内切换后自动取消准备缺确认](game/client-to-server/0x0035.md#房内切换王者战后的准备确认)，已补充回包路径，待 A21 复验。
+
+普通房观战（ClientStatic / WireCaptured / CurrentImplementation）。服务端受理 [座位状态 3、4](game/client-to-server/0x0034.md#房内观战)，使用 [0x002B](game/server-to-client/NOTI-0x002B.md#房内观战) 同步占用座位。CH68 已实测状态 4 的个人战观战及结果流程，[观战者的结果确认](game/client-to-server/0x0039.md#ch68-房内观战的结果确认) 晚于参战者，房间统一回等待。
+
+A21 决斗入口对照（ClientVerified）。[传统决斗场](game/client-to-server/0x00C3.md#a21-三种决斗场入口) 能选 CH50（环境 24）。原测试服没有公告环境 8 的频道，中间的普通决斗场提示无可用频道。增加 CH60（环境 8）后已进入自动匹配大厅。
+
+普通决斗 1vs1（CurrentImplementation、ClientVerified）。[申请 0x0209](game/client-to-server/0x0209.md)、[取消 0x020A](game/client-to-server/0x020A.md)、[人数查询 0x023D](game/client-to-server/0x023D.md) 与 [人数通知 0x01FE](game/server-to-client/NOTI-0x01FE.md) 支持同频道队列。[对阵名单 0x01F9](game/server-to-client/NOTI-0x01F9.md)、[双方确认 0x023B](game/client-to-server/0x023B.md)、[预加载 0x01FB](game/server-to-client/NOTI-0x01FB.md)、[加载通知 0x0119](game/server-to-client/NOTI-0x0119.md)、[连通通知 0x011A](game/server-to-client/NOTI-0x011A.md) 和 [匹配完成 0x01FA](game/server-to-client/NOTI-0x01FA.md) 接入临时匹配房入场。真实 TCP 覆盖排队、取消、配对、开战及离场。[职业过滤](game/client-to-server/0x0209.md#职业过滤) 已实机确认可阻止剑魂配对，取消过滤后恢复。A21 在 CH60 完成两次配对、开战和结算，中间重新排队。[入场观战误报](game/server-to-client/NOTI-0x0029.md#2026-11-25-匹配进场的观战提示) 已定位，[20 场定级和 RP](game/server-to-client/NOTI-0x0030.md#2026-11-25-普通决斗定级场) 已接到选角、对阵和结算，A21 已确认重登读回 4/20、双端结算显示 5/20，以及第 20 场后切为正式 RP。
+
+普通决斗 3v3 擂台赛（CurrentImplementation / ClientVerified）。[类别 1](game/client-to-server/0x0209.md#普通擂台赛) 与 1vs1 分开排队，六端完成对阵确认、加载和座位连通后复用模式 3 开战。整局共用 [定级和 RP](game/server-to-client/NOTI-0x0030.md#2026-11-25-普通决斗定级场)。用户已实测确认六端擂台赛流程通过。
+
+决斗匹配的[防具精通提示与排队申请](game/client-to-server/0x0209.md#防具精通提示与排队申请)（ClientStatic、ClientVerified、CurrentImplementation）。A21 在原始点击处理内显示防具提示并继续申请流程。修正版实机确认已有进行中斗兽场挑战时，仍可完成普通匹配，挑战进度保持不变。
+
+正式巅峰王者战（ClientStatic、WireCaptured、ClientVerified、CurrentImplementation）。大厅模式选择会检查 [`NOTI 0x0001` 的频道编号](game/server-to-client/NOTI-0x0001.md#频道编号与巅峰王者战入口) 在 81 至 86 之间。CH81 实机已验证[匹配类别 7](game/client-to-server/0x0209.md#2026-11-25-ch81-巅峰王者战) 可完成对局，用户确认左右出生点、结算经验栏和 [VS 入场战斗力](game/server-to-client/NOTI-0x01F9.md#a21-入场页战斗力) 显示符合预期。排队、取消、模式 8 三轮对局、账号定级结算和替补重登读回通过双端 TCP 测试。
+
+2026-11-25 CH81 实机配对、三轮补位、定级结算和再次排队已取样（WireCaptured）。两端进入战斗后角色重叠于左上角，[已排除两条出战记录指向同一 UID](game/server-to-client/NOTI-0x031D.md#2026-11-23-王者战出战处理)。[结果页三角色数据](game/server-to-client/NOTI-0x0030.md#2026-11-25-ch81-王者战三角色经验栏)缺少王者战专用尾部，实际入账与页面显示不一致。
+
+CH81 修正版已复验（ClientVerified / WireCaptured）。用户确认左右站位正确，两端均收到 129 字节的王者战战绩，定级进度为 3/20。[今日任务](game/server-to-client/NOTI-0x0244.md#2026-11-25-ch81-今日任务)的客户端点击未产生任务请求，随后接入任务列表和结算后大厅刷新。
+
+CH81 今日任务列表（ClientVerified / WireCaptured）。[主动发送 `0x0143` 的一个任务 ID 136](game/server-to-client/NOTI-0x0143.md#2026-11-25-ch81-今日任务首次下发)后，A21 显示「对战」卡片及奖励 80。点击详情未见任务请求。ClientStatic 确认字段为当前进度、目标次数。服务端已接入巅峰结算及大厅刷新。普通和巅峰的非零进度已获实机确认。任务达成后的奖励显示仍待取证。
 
 频道信息 `0x00C3` 在 `Game/PvpChannelInfo/`；建房、进房、座位、准备、模式、地图在 `Game/PvpRoom/`，六条 CMD 由同一个
 `GamePvpRoomCommandHandler` 处理，房间状态由领域 `PvpRoomDomainService` 持有，每条命令一个写工作单元，返回后由 `PvpRoomProjector`
@@ -83,6 +133,10 @@ A21 handler 的 27 个子类型、布局与简中文案见 [NOTI-0x0056](game/se
 | `0x01` | `0x0034` `0x0035` `0x0036` `0x003B` | 同一切片 | 解码、帧序测试；`0x0036` 只收 1 字节；待实机 | [0x0034](game/client-to-server/0x0034.md) |
 | `0x00` NOTI | `0x0029` `0x002A` `0x002B` `0x002C` `0x002D` | `PvpRoomInfoMessage` 等五个编码器 | 编码测试与大厅增量累积=快照测试；待实机 | [NOTI-0x0029](game/server-to-client/NOTI-0x0029.md) |
 | `0x01` / `0x00` NOTI | `0x000A` `0x000B` / `0x0007` type 2 | 组队 CMD 内分派；`PvpRoomInviteRequestMessage`（7 字节） | 命令测试；A21 只验证过 type 0 | [0x000A](game/client-to-server/0x000A.md) |
+
+2026-11-25 普通与巅峰斗兽场（ClientStatic / PVF / CurrentImplementation）。共享入场请求 [0x020F](game/client-to-server/0x020F.md)，继续挑战复用 [0x0209](game/client-to-server/0x0209.md) 的末字节标志。大厅双模式状态见 [NOTI 0x0262](game/server-to-client/NOTI-0x0262.md)，奖励见 [NOTI 0x0263](game/server-to-client/NOTI-0x0263.md) 和 [CMD 0x0210](game/client-to-server/0x0210.md)。已实测入场、对局和大厅挑战进度；终局完整领奖及到账仍待实机。
+
+CH81 入场页战斗力（ClientStatic / CurrentImplementation / ClientVerified）。A21 从 [NOTI 0x01F9](game/server-to-client/NOTI-0x01F9.md#a21-入场页战斗力) 的成员首个 `u32` 取得入场分数。普通匹配填正式 RP，巅峰王者战填正式 GP；用户已确认 CH81 VS 页双方显示正常。
 
 ## 2026-11-14 个人商店（#43，CurrentImplementation，开店与上架已实机抓包，其余待实机）
 
@@ -467,7 +521,7 @@ action1求婚、接受、拒绝与客户端超时已接入；action2婚礼预约
 
 ## 2026-11-18 A21 第二技能页状态（CurrentImplementation，ClientVerified）
 
-[USERINFO](game/server-to-client/NOTI-0x0002.md) 子类型 0 的 64 字节尾部 `+61` 和子类型 1 使用同一技能页投影。包级测试验证锁定 `0xFF`、当前第 1 页 `0` 和当前第 2 页 `1`。A21 普通频道实测 [切页请求 0x0104](game/client-to-server/0x0104.md) 有 5 字节，服务端以已保存的当前页为准切换。Client-01 在 CH11 切页通过，重进时当前页与存档一致。
+[USERINFO](game/server-to-client/NOTI-0x0002.md) 子类型 0 的 64 字节尾部 `+61` 和子类型 1 使用同一技能页投影。包级测试验证锁定 `0xFF`、当前第 1 页 `0` 和当前第 2 页 `1`。A21 的 [切页请求 0x0104](game/client-to-server/0x0104.md) 在 CH11 和 CH50 都采得 5 字节请求。Client-01 在 CH11 切页通过。CH50 旧服回应失败，修正版保存独立决斗活动页，实机成功复验待补。
 
 ## 2026-10-14 职业外观与显示设置（CurrentImplementation，待实机验收）
 

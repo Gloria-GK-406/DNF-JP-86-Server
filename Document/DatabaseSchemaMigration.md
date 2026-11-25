@@ -46,6 +46,12 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
   活动配置、通知协调记录、角色疲劳账本和其他玩家数据不变；旧控制值不迁回活动配置。
 - 版本 12 → 13（`AntonRaidRewardUpgrade.cs`）：新增安图恩攻坚奖励记录，校正特定任务与成就的旧计数。
 - 版本 13 → 14（`PvpRecordSplitUpgrade.cs`）：拆分 `character_pvp` 并删除该表。段位、评级段位进决斗战绩表 `character_pvp_record`（胜负平、连胜、最高连胜为 0，段位经验为 NULL，读作所在段位的下限，由规则服务按 PVF 补值）；`skills_initialized` 进决斗技能状态表 `character_pvp_skill_state`；语义不明的 `pvp_rank_point`、`pvp_stat_a`、`pvp_win_streak`、`pvp_lose_streak` 只在任一非 0 时原样存入审计表 `character_pvp_legacy`，无读取方。新增对局表 `pvp_matches`、对局结果表 `pvp_match_results` 及按角色的索引。原来没有 `character_pvp` 行的角色迁移后也没有战绩行，不补造段位。迁移后只认表结构版本 13 的服务端无法再打开该库。
+- 版本 15 → 16（`PvpTotalMatchTeamsUpgrade.cs`）新增 `account_pvp_total_match_teams`，按账号保存队名和三个稳定的角色 ID。迁移只建空表。
+- 版本 16 → 17（`PvpMatchRatingResultsUpgrade.cs`）为普通决斗场 1 对 1 新增 `pvp_match_rating_results`，按战绩保存角色的赛季、定级场次和 RP 变化。新增索引支持按角色和赛季查询最近一次结算。保留已有战绩，新表从空表开始。升级前的服务端无法打开版本 17 的数据库。
+- 版本 17 → 18（`PvpTotalMatchRatingResultsUpgrade.cs`）新增 `account_pvp_total_match_rating_results`。它按对局与账号记录巅峰王者战的赛季、定级场数和 GP 变化，索引支持读取账号当前赛季的最新场次。迁移保留队伍、已有对局和普通决斗 RP，新表从空表开始。
+- 版本 18 → 19（`PvpDailyMissionsUpgrade.cs`）新增 `pvp_daily_missions`，按角色、游戏日和任务记录进度与完成奖励对应的对局。迁移仅建空表，保留队伍、战绩、RP、GP 和背包数据。
+- 版本 19 → 20（`PvpDailyMissionMetricsUpgrade.cs`）新增 `pvp_daily_mission_metrics`，保存连胜的当前长度与胜利姿势的分项计数。原有任务进度和奖励凭据保留。
+- 版本 20 → 21（`PvpColosseumUpgrade.cs`）新增 `pvp_colosseum_runs`，记录入场归属、游戏日、挑战进度、抽取后的奖励和领取状态。迁移仅建空表及索引。
 - 迁移工具不认识的表和列原样保留。
 
 ## 修改表结构时

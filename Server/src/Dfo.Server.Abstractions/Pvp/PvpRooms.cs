@@ -31,10 +31,11 @@ public enum PvpRoomPhase : byte
     AwaitResult,
 }
 
-/// <summary>How a room came to exist; every room of the first phase is opened by a player.</summary>
+/// <summary>How a room came to exist.</summary>
 public enum PvpRoomOrigin : byte
 {
     PlayerCreated,
+    Matchmaking,
 }
 
 /// <summary>The side a seated fighter is on.</summary>
@@ -44,6 +45,12 @@ public enum PvpTeam : byte
     Individual = 0,
     First = 1,
     Second = 2,
+}
+
+public enum PvpObservation : byte
+{
+    Standard = 3,
+    Alternate = 4,
 }
 
 /// <summary>One of a room's eight seats.</summary>
@@ -66,6 +73,7 @@ public abstract record PvpSeat
     public sealed record Taken(SelectedSessionIdentity Session, PvpTeam Team, bool Ready) : PvpSeat
     {
         public CharacterId CharacterId => Session.CharacterId;
+        public PvpObservation? Observation { get; init; }
     }
 }
 
@@ -95,8 +103,15 @@ public sealed record PvpFighter(int Seat, CharacterId CharacterId, SelectedSessi
 /// <summary>What a battle mode keeps for itself while a battle runs; the first phase's modes keep nothing.</summary>
 public abstract record PvpMatchModeState;
 
+/// <summary>Current fighters and the next scheduled turn in a relay battle.</summary>
+public sealed record PvpRelayBattle(int? FirstSeat, int? SecondSeat, DateTimeOffset? TurnDue,
+    ImmutableHashSet<int> Requests) : PvpMatchModeState
+{
+    public bool IsActive(int seat) => seat == FirstSeat || seat == SecondSeat;
+}
+
 /// <summary>A started battle.</summary>
-/// <param name="Fighters">Every seat that was taken when the battle started, frozen; later seat changes do not touch it.</param>
+/// <param name="Fighters">The competing seats at the start; later seat changes do not touch this roster.</param>
 /// <param name="Map">The map index the battle is played on; never the random choice.</param>
 /// <param name="PhaseDeadline">When the room's current phase is due to be advanced by the server.</param>
 public sealed record PvpMatch(
@@ -112,6 +127,14 @@ public sealed record PvpMatch(
 
     /// <summary>Every fighter's settled result, once settlement wrote them; empty before.</summary>
     public ImmutableArray<PvpFighterResult> Results { get; init; } = [];
+
+    public ImmutableHashSet<int> ObserverResultAcknowledgements { get; init; } = [];
+
+    public ImmutableDictionary<int, ImmutableDictionary<ushort, int>> DailyHealthReports { get; init; } =
+        ImmutableDictionary<int, ImmutableDictionary<ushort, int>>.Empty;
+
+    public ImmutableDictionary<int, int> DailyColorlessSkills { get; init; } = ImmutableDictionary<int, int>.Empty;
+    public ImmutableDictionary<int, byte> DailyWinPoses { get; init; } = ImmutableDictionary<int, byte>.Empty;
 
     /// <summary>The index of this exact session's fighter, if it is one.</summary>
     public int? FighterOf(SelectedSessionIdentity session)
@@ -150,12 +173,23 @@ public sealed record PvpRoomSnapshot(
 {
     public const int SeatCount = 8;
 
+    public PvpDuelBusiness Business => PvpDuelBusinessRoute.Of(Channel, Origin, Mode);
+
     public int ListenerPort => Channel.ListenerPort;
+
+    public bool IsPractice => Mode == PvpBattleMode.Practice;
+    public bool IsMatchmaking => Origin == PvpRoomOrigin.Matchmaking;
+    public bool IsPublicLobbyRoom => !IsPractice && !IsMatchmaking;
+    public PvpMatchAdmission? Admission { get; init; }
+    public ImmutableDictionary<int, Guid> ColosseumRuns { get; init; } = ImmutableDictionary<int, Guid>.Empty;
 
     /// <summary>The taken seats in seat order.</summary>
     public IEnumerable<(int Seat, PvpSeat.Taken Member)> Members =>
         Seats.Select((seat, index) => (index, seat)).Where(x => x.seat is PvpSeat.Taken)
             .Select(x => (x.index, (PvpSeat.Taken)x.seat));
+
+    public IEnumerable<(int Seat, PvpSeat.Taken Member)> PlayingMembers =>
+        Members.Where(entry => entry.Member.Observation is null);
 
     public int MemberCount => Seats.Count(seat => seat is PvpSeat.Taken);
 
@@ -233,6 +267,8 @@ public enum PvpRoomChangeKind
     ReadyChanged,
     MatchStarted,
     Heartbeat,
+    RelayRequestChanged,
+    TotalMatchChoiceChanged,
     Died,
     TimedOut,
     RankAcknowledged,
@@ -246,6 +282,9 @@ public enum PvpRoomChangeKind
     CancelledForShutdown,
     /// <summary>Settlement kept failing past the give-up time; the battle is dropped unsettled and the room waits again.</summary>
     SettlementAbandoned,
+    MatchPaired,
+    MatchAdmissionChanged,
+    MatchAdmissionCancelled,
 }
 
 public enum PvpSeatReleaseReason
@@ -284,6 +323,8 @@ public abstract record PvpRoomOutcome
 
     public sealed record Refused(PvpRoomRefusal Reason) : PvpRoomOutcome;
 
+    public sealed record Ignored : PvpRoomOutcome;
+
     /// <param name="Before">The room before the change; null when the change created it.</param>
     /// <param name="After">The room after the change; null when the change destroyed it.</param>
     /// <param name="Released">Members taken off their seats by this change.</param>
@@ -300,6 +341,11 @@ public abstract record PvpRoomOutcome
     {
         /// <summary>The death this change recorded, if it recorded one.</summary>
         public PvpDeath? Death { get; init; }
+
+        /// <summary>The requester whose existing ready flag must be confirmed without a seat change.</summary>
+        public int? ReadyConfirmationSeat { get; init; }
+
+        public int? RelayRequestSeat { get; init; }
 
         /// <summary>The battle end this change froze; it outlives the room when the room is gone.</summary>
         public PvpMatchConclusion? Concluded { get; init; }
@@ -357,13 +403,15 @@ public enum PvpSeatAction
     Close,
     /// <summary>The owner opens a closed seat.</summary>
     Open,
+    Observe,
+    ObserveAlternate,
 }
 
 /// <summary>The duel rooms, as everyone else reads them.</summary>
 /// <remarks>Reads inside a writable use case see that use case's own uncommitted changes.</remarks>
 public interface IPvpRoomQueryDomainService
 {
-    /// <summary>The committed rooms on a listener, by number.</summary>
+    /// <summary>The committed public lobby rooms on a listener, by number.</summary>
     IReadOnlyList<PvpRoomSnapshot> RoomsOn(int listenerPort);
 
     PvpRoomSnapshot? Find(PvpRoomId id);
@@ -420,6 +468,12 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
 
     ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
 
+    /// <summary>A living reserve fighter toggles the request to be selected for the next relay turn.</summary>
+    ValueTask<PvpRoomOutcome> RequestRelayFightAsync(SelectedSessionIdentity session, CancellationToken cancellationToken);
+
+    ValueTask<PvpRoomOutcome> SelectTotalMatchCandidateAsync(
+        SelectedSessionIdentity session, byte ordinal, CancellationToken cancellationToken);
+
     /// <summary>
     /// The reporting fighter died. The kill counts only for a killer of this battle who is alive and on another
     /// side; the battle ends when its mode says nobody is left to fight.
@@ -429,8 +483,8 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
         SelectedSessionIdentity session, CharacterId? killer, CancellationToken cancellationToken);
 
     /// <summary>
-    /// A fighter's client reports the battle time ran out. The first report once the time limit is close
-    /// enough ends the battle in a draw.
+    /// A fighter reports that an ordinary battle ran out of time. The first report once the time limit is close
+    /// enough ends the battle in a draw. Relay turns time out through the client's death reports.
     /// </summary>
     /// <param name="clientValues">What the client sent with it; only logged.</param>
     ValueTask<PvpRoomOutcome> ReportTimeoutAsync(
@@ -458,6 +512,11 @@ public interface IPvpRoomDomainService : IPvpRoomQueryDomainService
         PvpRoomId room, DateTimeOffset now, CancellationToken cancellationToken);
 
     /// <summary>The ended battles not settled yet, whether or not their rooms still stand.</summary>
+    /// <summary>Records daily HP threshold reports from the selected fighter of an active ranked match.</summary>
+    bool RecordDailyHealth(SelectedSessionIdentity session, IReadOnlyList<ushort> missionIds);
+    bool RecordDailyWinPose(SelectedSessionIdentity session, ushort missionId, byte ordinal);
+    ValueTask<bool> RecordDailySkillAsync(SelectedSessionIdentity session, ushort skillId, CancellationToken cancellationToken);
+
     IReadOnlyList<PvpMatchConclusion> PendingConclusions();
 
     /// <summary>

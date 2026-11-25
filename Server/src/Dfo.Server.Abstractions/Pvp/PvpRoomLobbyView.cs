@@ -23,7 +23,8 @@ public static class PvpRoomLobbyView
 
     public static PvpRoomSeatState Seat(PvpSeat seat) => seat switch
     {
-        PvpSeat.Taken taken => new(PvpRoomSeatOccupancy.Taken, (byte)taken.Team, taken.Session.WireUserId, taken.Ready),
+        PvpSeat.Taken taken => new(PvpRoomSeatOccupancy.Taken,
+            taken.Observation is { } observation ? (byte)observation : (byte)taken.Team, taken.Session.WireUserId, taken.Ready),
         PvpSeat.Closed => new(PvpRoomSeatOccupancy.Closed, 0, 0, false),
         PvpSeat.Open => new(PvpRoomSeatOccupancy.Open, 0, 0, false),
         _ => throw new ArgumentOutOfRangeException(nameof(seat)),

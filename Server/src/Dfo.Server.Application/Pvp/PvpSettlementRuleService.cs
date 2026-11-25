@@ -7,27 +7,18 @@ namespace Dfo.Server.Application.Pvp;
 internal sealed class PvpSettlementRuleService(IPvpGradeDefinitionSource grades, IDailyResetRuleService days)
     : IPvpSettlementRuleService
 {
-    private static readonly PvpChannelEntitlements Unrecorded = new(false, false, 0, 0);
-    private static readonly PvpChannelEntitlements Ranked = new(true, true, 50, 10);
-
     // Every channel ChannelEntryDomainService classifies as a duel channel must have a row here; the host's
     // startup verification asks for each one before any listener starts.
-    public PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel)
+    public PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel, PvpBattleMode? mode = null)
     {
         ArgumentNullException.ThrowIfNull(channel);
+        if (mode is { } matchMode && PvpTraditionalDuelDomainService.AllowsMatchmaking(channel, matchMode))
+            return PvpTraditionalDuelDomainService.Entitlements;
         return channel.Kind switch
         {
-            // A free-duel channel may be one named by channel id, with any environment or none.
-            ChannelEntryKind.FreeDuel => Unrecorded,
-            ChannelEntryKind.Pvp => channel.LoginEnvironment switch
-            {
-                8 => Unrecorded,
-                24 => Ranked,
-                _ => throw new ArgumentOutOfRangeException(nameof(channel), channel.LoginEnvironment,
-                    "No duel channel entitlements are defined for this login environment."),
-            },
-            ChannelEntryKind.General or ChannelEntryKind.SaintHorn or ChannelEntryKind.Raid =>
-                throw new ArgumentOutOfRangeException(nameof(channel), channel.Kind, "The channel is not a duel channel."),
+            ChannelEntryKind.FreeDuel or ChannelEntryKind.MatchmakingDuel or ChannelEntryKind.TotalMatchDuel => PvpDuelDomainService.Entitlements,
+            ChannelEntryKind.TraditionalDuel => PvpTraditionalDuelDomainService.Entitlements,
+            _ => throw new ArgumentOutOfRangeException(nameof(channel), channel.Kind, "No duel channel entitlements are defined for this channel type."),
         };
     }
 
@@ -42,6 +33,8 @@ internal sealed class PvpSettlementRuleService(IPvpGradeDefinitionSource grades,
         PvpBattleMode.Relay => grades.Load().RelayBattleTime,
         PvpBattleMode.Individual or PvpBattleMode.Team or PvpBattleMode.DeathMatchIndividual
             or PvpBattleMode.DeathMatchTeam or PvpBattleMode.Practice => grades.Load().NormalBattleTime,
+        // The free-duel client uses the tournament relay entry when it starts mode 8.
+        PvpBattleMode.TotalMatch => grades.Load().TournamentRelayBattleTime ?? TimeSpan.FromMinutes(3),
     };
 
     public DateOnly GameDayOf(DateTimeOffset startedAt) => days.PeriodDay(startedAt);

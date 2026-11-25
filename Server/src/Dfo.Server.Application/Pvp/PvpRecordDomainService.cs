@@ -17,6 +17,7 @@ namespace Dfo.Server.Application.Pvp;
 internal sealed class PvpRecordDomainService(
     IPvpRecordDomainStore records,
     IPvpSettlementRuleService rules,
+    PvpRatingSeason season,
     ILogger<PvpRecordDomainService> logger) : IPvpRecordDomainService
 {
     public async ValueTask<PvpRecordView> ViewAsync(CharacterId character, CancellationToken cancellationToken)
@@ -27,8 +28,18 @@ internal sealed class PvpRecordDomainService(
             logger.LogWarning(
                 "Character {CharacterId} has duel grade {Grade}, above the archive's top grade {MaximumGrade}; its record is shown with the top grade's band.",
                 character.Value, record.Grade, band);
-        var lower = rules.LowerBound(band);
-        return new PvpRecordView(record.Grade, record.RatingGrade, record.Experience ?? lower, lower,
-            rules.UpperBound(band), record.Wins, record.Losses);
+        var experienceBand = ExperienceBandOf(band);
+        return new PvpRecordView(record.Grade, record.RatingGrade, record.Experience ?? experienceBand.LowerBound,
+            experienceBand.LowerBound, experienceBand.UpperBound, record.Wins, record.Losses)
+        {
+            Rating = await records.ReadRatingAsync(character, season.Id, cancellationToken).ConfigureAwait(false),
+            TotalMatchRating = await records.ReadTotalMatchRatingAsync(character, season.Id, cancellationToken).ConfigureAwait(false),
+        };
+    }
+
+    public PvpExperienceBand ExperienceBandOf(byte grade)
+    {
+        var supported = Math.Min(grade, rules.MaximumGrade);
+        return new(rules.LowerBound(supported), rules.UpperBound(supported));
     }
 }

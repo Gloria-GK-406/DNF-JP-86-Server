@@ -1,5 +1,6 @@
 using System.Globalization;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Persistence.Database;
 using Microsoft.Data.Sqlite;
@@ -32,6 +33,39 @@ internal sealed class SqlitePvpRecordDomainStore(SqliteDatabase database) : IPvp
                 reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), reader.GetInt32(6), reader.GetInt32(7)),
             cancellationToken).ConfigureAwait(false)
         ?? throw new InvalidDataException($"Character {character.Value} has no duel record.");
+
+    public async ValueTask<PvpRatingStanding> ReadRatingAsync(CharacterId character, int seasonId, CancellationToken cancellationToken) =>
+        await database.ReadFirstAsync(
+            """
+            SELECT placement_games,rp_after,peak_rp
+            FROM pvp_match_rating_results
+            WHERE character_id=@cid AND season_id=@season
+            ORDER BY rating_result_id DESC LIMIT 1
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", character.Value);
+                parameters.AddWithValue("@season", seasonId);
+            },
+            reader => new PvpRatingStanding(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
+            cancellationToken).ConfigureAwait(false) ?? PvpRatingStanding.Initial;
+
+    public async ValueTask<PvpRatingStanding> ReadTotalMatchRatingAsync(CharacterId character, int seasonId,
+        CancellationToken cancellationToken) =>
+        await database.ReadFirstAsync(
+            """
+            SELECT r.placement_games,r.gp_after,r.peak_gp
+            FROM characters c JOIN account_pvp_total_match_rating_results r ON r.account_id=c.account_id
+            WHERE c.character_id=@cid AND r.season_id=@season
+            ORDER BY r.rating_result_id DESC LIMIT 1
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@cid", character.Value);
+                parameters.AddWithValue("@season", seasonId);
+            },
+            reader => new PvpRatingStanding(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
+            cancellationToken).ConfigureAwait(false) ?? PvpRatingStanding.Initial;
 
     public async ValueTask<PvpDailyCounts> DailyCountsAsync(
         CharacterId character, DateOnly gameDay, CancellationToken cancellationToken) =>
@@ -82,20 +116,48 @@ internal sealed class SqlitePvpRecordDomainStore(SqliteDatabase database) : IPvp
         foreach (var fighter in Ordered(settlement.Fighters))
         {
             var before = await this.ReadAsync(fighter.Character, cancellationToken).ConfigureAwait(false);
-            var streak = !settlement.RecordsResult ? before.WinStreak
+            var updatesRecord = settlement.RecordsResult && fighter.UpdatesRecord;
+            var streak = !updatesRecord ? before.WinStreak
                 : fighter.Outcome == PvpOutcome.Win ? checked(before.WinStreak + 1) : 0;
-            if (settlement.RecordsResult)
+            if (updatesRecord)
                 await RecordAsync(fighter, streak, cancellationToken).ConfigureAwait(false);
             var result = new PvpFighterResult(
                 fighter.Character, fighter.Seat, fighter.Team, fighter.Outcome, fighter.Kills, fighter.Deaths,
                 fighter.Fled, fighter.Decision.CountsTowardDaily, before.Grade, fighter.Decision.Grade,
-                fighter.Decision.ExperienceChange, fighter.Decision.Experience, streak);
+                fighter.Decision.ExperienceChange, fighter.Decision.Experience, streak)
+            {
+                Rating = fighter.Rating,
+            };
             await InsertResultAsync(match, result, cancellationToken).ConfigureAwait(false);
+            if (result.Rating is { } rating)
+                await InsertRatingAsync(match, result.Character, rating, cancellationToken).ConfigureAwait(false);
             results.Add(result);
         }
 
+        foreach (var (account, rating) in settlement.TotalMatchRatings)
+            await InsertTotalMatchRatingAsync(match, account, rating, cancellationToken).ConfigureAwait(false);
         return new PvpSettleOutcome.Created(results);
     }
+
+    private async ValueTask InsertTotalMatchRatingAsync(string match, AccountId account, PvpRatingChange rating,
+        CancellationToken cancellationToken) =>
+        _ = await database.ExecuteAsync(
+            """
+            INSERT INTO account_pvp_total_match_rating_results
+                (match_id,account_id,season_id,placement_games,gp_before,gp_after,peak_gp)
+            VALUES(@match,@account,@season,@games,@before,@after,@peak)
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@match", match);
+                parameters.AddWithValue("@account", account.Value);
+                parameters.AddWithValue("@season", rating.SeasonId);
+                parameters.AddWithValue("@games", rating.Standing.PlacementGames);
+                parameters.AddWithValue("@before", rating.PreviousPoints);
+                parameters.AddWithValue("@after", rating.Standing.Points);
+                parameters.AddWithValue("@peak", rating.Standing.PeakPoints);
+            },
+            cancellationToken).ConfigureAwait(false);
 
     private async ValueTask RecordAsync(PvpFighterSettlement fighter, int streak, CancellationToken cancellationToken)
     {
@@ -144,9 +206,32 @@ internal sealed class SqlitePvpRecordDomainStore(SqliteDatabase database) : IPvp
             },
             cancellationToken).ConfigureAwait(false);
 
+    private async ValueTask InsertRatingAsync(string match, CharacterId character, PvpRatingChange rating,
+        CancellationToken cancellationToken) =>
+        _ = await database.ExecuteAsync(
+            """
+            INSERT INTO pvp_match_rating_results(match_id,character_id,season_id,placement_games,rp_before,rp_after,peak_rp)
+            VALUES(@match,@cid,@season,@games,@before,@after,@peak)
+            """,
+            parameters =>
+            {
+                parameters.AddWithValue("@match", match);
+                parameters.AddWithValue("@cid", character.Value);
+                parameters.AddWithValue("@season", rating.SeasonId);
+                parameters.AddWithValue("@games", rating.Standing.PlacementGames);
+                parameters.AddWithValue("@before", rating.PreviousPoints);
+                parameters.AddWithValue("@after", rating.Standing.Points);
+                parameters.AddWithValue("@peak", rating.Standing.PeakPoints);
+            },
+            cancellationToken).ConfigureAwait(false);
+
     private ValueTask<IReadOnlyList<PvpFighterResult>> ResultsAsync(string match, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
-            $"SELECT {ResultColumns} FROM pvp_match_results WHERE match_id=@match ORDER BY seat,character_id",
+            $"""
+            SELECT {ResultColumns},season_id,rp_before,placement_games,rp_after,peak_rp
+            FROM pvp_match_results LEFT JOIN pvp_match_rating_results USING(match_id,character_id)
+            WHERE match_id=@match ORDER BY seat,character_id
+            """,
             parameters => parameters.AddWithValue("@match", match),
             Result,
             cancellationToken);
@@ -155,7 +240,12 @@ internal sealed class SqlitePvpRecordDomainStore(SqliteDatabase database) : IPvp
         new CharacterId(reader.GetInt32(0)), Narrow(reader.GetInt64(1), "seat"), Narrow(reader.GetInt64(2), "team"),
         (PvpOutcome)reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5), reader.GetInt32(6) != 0,
         reader.GetInt32(7) != 0, Narrow(reader.GetInt64(8), "previous grade"), Narrow(reader.GetInt64(9), "grade"),
-        reader.GetInt64(10), reader.GetInt64(11), reader.GetInt32(12));
+        reader.GetInt64(10), reader.GetInt64(11), reader.GetInt32(12))
+    {
+        Rating = reader.IsDBNull(13) ? null
+            : new PvpRatingChange(reader.GetInt32(13), reader.GetInt32(14),
+                new PvpRatingStanding(reader.GetInt32(15), reader.GetInt32(16), reader.GetInt32(17))),
+    };
 
     /// <summary>The order results are stored and read back in, so a first settlement and a repeat answer alike.</summary>
     private static IEnumerable<PvpFighterSettlement> Ordered(IReadOnlyList<PvpFighterSettlement> fighters) =>
@@ -169,15 +259,24 @@ internal sealed class SqlitePvpRecordDomainStore(SqliteDatabase database) : IPvp
             throw new ArgumentException("A battle needs an identity to be settled once.", nameof(settlement));
         if (settlement.OutcomeKind == PvpMatchOutcomeKind.Cancelled && settlement.RecordsResult)
             throw new ArgumentException("A cancelled battle changes no record.", nameof(settlement));
-        if (settlement.Fighters.Select(fighter => fighter.Character).Distinct().Count() != settlement.Fighters.Count
-            || settlement.Fighters.Select(fighter => fighter.Seat).Distinct().Count() != settlement.Fighters.Count)
-            throw new ArgumentException("Each fighter settles once, from a seat of their own.", nameof(settlement));
+        if (settlement.Fighters.Select(fighter => fighter.Character).Distinct().Count() != settlement.Fighters.Count)
+            throw new ArgumentException("Each character settles once.", nameof(settlement));
+        var ratings = settlement.Fighters.Where(fighter => fighter.Rating is not null).ToArray();
+        if (ratings.Length > 0 && (ratings.Length != PvpMatchAdmission.FighterCount(settlement.Mode)
+            || ratings.Length != settlement.Fighters.Count || settlement.OutcomeKind == PvpMatchOutcomeKind.Cancelled
+            || ratings.All(fighter => fighter.Fled) || ratings.Any(fighter => fighter.Rating!.SeasonId != ratings[0].Rating!.SeasonId)))
+            throw new ArgumentException("A rated match writes one change per fighter in the same season.", nameof(settlement));
+        foreach (var seat in settlement.Fighters.GroupBy(fighter => fighter.Seat))
+            if (seat.Count() > 1 && (settlement.Mode != PvpBattleMode.TotalMatch
+                || seat.Count() > PvpTotalMatchTeam.MemberCount || seat.Select(fighter => fighter.Team).Distinct().Count() != 1))
+                throw new ArgumentException("Only members of the same total-match team may share a seat.", nameof(settlement));
         foreach (var fighter in settlement.Fighters)
         {
             ArgumentNullException.ThrowIfNull(fighter.Decision);
             if (fighter.Kills < 0 || fighter.Deaths < 0 || fighter.Decision.Experience < 0
                 || (fighter.Fled && fighter.Outcome != PvpOutcome.Loss)
-                || (fighter.Decision.CountsTowardDaily && !settlement.RecordsResult)
+                || (fighter.Decision.CountsTowardDaily && (!settlement.RecordsResult || !fighter.UpdatesRecord))
+                || (!fighter.UpdatesRecord && fighter.Decision.ExperienceChange != 0)
                 || !Enum.IsDefined(fighter.Outcome))
                 throw new ArgumentException(
                     $"Character {fighter.Character.Value}'s settlement is not one a battle can produce.", nameof(settlement));

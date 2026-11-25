@@ -18,14 +18,12 @@ internal sealed class PvpRoomRuleService(IPvpMapDefinitionSource maps) : IPvpRoo
     public TimeSpan FightOverrun => PvpRoomRules.FightOverrun;
     public TimeSpan HeartbeatTimeout => PvpRoomRules.HeartbeatTimeout;
     public TimeSpan RankTimeout => PvpRoomRules.RankTimeout;
-    public TimeSpan ResultTimeout => PvpRoomRules.ResultTimeout;
+    public TimeSpan ResultTimeout(PvpRoomOrigin origin) => origin == PvpRoomOrigin.Matchmaking
+        ? PvpRoomRules.MatchmakingResultTimeout
+        : PvpRoomRules.ResultTimeout;
     public TimeSpan TimeoutReportLead => PvpRoomRules.TimeoutReportLead;
     public TimeSpan SettlementGiveUp => PvpRoomRules.SettlementGiveUp;
     public TimeSpan InvitationLifetime => PvpRoomRules.InvitationLifetime;
-    public PvpTeam TeamForNewcomer(PvpBattleMode mode, IReadOnlyList<PvpTeam> seated) => PvpRoomRules.TeamForNewcomer(mode, seated);
-    public IReadOnlyList<PvpTeam> Reassign(PvpBattleMode mode, int members) => PvpRoomRules.Reassign(mode, members);
-    public bool AcceptsTeam(PvpBattleMode mode, PvpTeam team) => PvpRoomRules.AcceptsTeam(mode, team);
-    public PvpRoomRefusal? RefuseStart(PvpBattleMode mode, IReadOnlyList<PvpRoomMemberFacts> members) => PvpRoomRules.RefuseStart(mode, members);
     public bool AllowsClosing(int members, int openSeats) => PvpRoomRules.AllowsClosing(members, openSeats);
     public int? Successor(int ownerSeat, IReadOnlyList<int> remainingSeats) => PvpRoomRules.Successor(ownerSeat, remainingSeats);
 }

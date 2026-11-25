@@ -47,8 +47,10 @@ internal sealed class PvfPvpGradeDefinitionSource(PvfArchiveProvider provider) :
             grades[grade] = new((byte)grade, thresholds[grade], thresholds[grade + 1], points[row + 1], points[row + 2]);
         }
 
-        return new(Array.AsReadOnly(grades), maximum,
-            BattleTime(root, "[pvp normal battle time]"), BattleTime(root, "[pvp relay battle time]"));
+        var tournamentRelay = root.TryRead(PvfField.Int32("[pvp relay battle time for tournament]", optional: true, minimum: 1),
+            out var milliseconds) ? TimeSpan.FromMilliseconds(milliseconds) : (TimeSpan?)null;
+        return new(Array.AsReadOnly(grades), maximum, BattleTime(root, "[pvp normal battle time]"),
+            BattleTime(root, "[pvp relay battle time]"), tournamentRelay);
     }
 
     private static TimeSpan BattleTime(PvfDocument root, string name) =>

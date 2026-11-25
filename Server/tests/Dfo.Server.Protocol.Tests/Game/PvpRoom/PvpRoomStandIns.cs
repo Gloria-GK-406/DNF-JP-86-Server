@@ -69,6 +69,9 @@ internal sealed class ScriptedPvpRooms : IPvpRoomDomainService
         return Answer(nameof(AcceptInviteAsync));
     }
     public ValueTask<PvpRoomOutcome> HeartbeatAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(HeartbeatAsync));
+    public ValueTask<PvpRoomOutcome> RequestRelayFightAsync(SelectedSessionIdentity session, CancellationToken cancellationToken) => Answer(nameof(RequestRelayFightAsync));
+    public ValueTask<PvpRoomOutcome> SelectTotalMatchCandidateAsync(SelectedSessionIdentity session, byte ordinal, CancellationToken cancellationToken) =>
+        Answer(nameof(SelectTotalMatchCandidateAsync));
 
     /// <summary>The killer the last death report named.</summary>
     public CharacterId? LastKiller { get; private set; }
@@ -101,6 +104,12 @@ internal sealed class ScriptedPvpRooms : IPvpRoomDomainService
         Calls.Add(nameof(AdvanceDueAsync));
         return ValueTask.FromResult(NextAdvance);
     }
+    public bool RecordDailyHealth(SelectedSessionIdentity session, IReadOnlyList<ushort> missionIds) => false;
+    public bool RecordDailyWinPose(SelectedSessionIdentity session, ushort missionId, byte ordinal) => false;
+
+    public ValueTask<bool> RecordDailySkillAsync(SelectedSessionIdentity session, ushort skillId, CancellationToken cancellationToken) =>
+        ValueTask.FromResult(false);
+
     public IReadOnlyList<PvpMatchConclusion> PendingConclusions() => throw new NotSupportedException();
     public ValueTask<IReadOnlyList<PvpRoomOutcome.Changed>> CancelForShutdownAsync(CancellationToken cancellationToken)
     {
@@ -184,7 +193,7 @@ internal static class PvpRooms
         var all = Enumerable.Repeat(PvpSeat.OpenSeat, PvpRoomSnapshot.SeatCount).ToImmutableArray();
         foreach (var (seat, state) in seats) all = all.SetItem(seat, state);
         return new PvpRoomSnapshot(new PvpRoomId(new Guid(number, 0, 0, new byte[8])), number,
-            new ChannelEntryIdentity(1, Port, ChannelEntryKind.Pvp, 8), 0, [0x41, 0x42], false, map, mode, ownerSeat, all,
+            new ChannelEntryIdentity(1, Port, ChannelEntryKind.MatchmakingDuel, 8), 0, [0x41, 0x42], false, map, mode, ownerSeat, all,
             phase, 1, PvpRoomOrigin.PlayerCreated, null);
     }
 

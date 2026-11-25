@@ -123,7 +123,7 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
             var state = skillStates;
             var facts = await state.ReadAsync(session.CharacterId, ct, skillGroup).ConfigureAwait(false)
                 ?? throw new InvalidDataException("Current skills are unavailable.");
-            builds = await state.BuildsAsync(session.CharacterId, ct).ConfigureAwait(false);
+            builds = await state.BuildsAsync(session.CharacterId, ct, skillGroup).ConfigureAwait(false);
             skills = new(entry!.Skills with { Pages = facts.Pages, SkillPointBasis = facts.PointBasis, ProtocolMirror = points });
         }
         ImmutableArray<ReplayPetState> pets = [];
@@ -172,7 +172,7 @@ internal sealed class ReplayStateDomainService(IDomainTransactionAccessor transa
             appearance = new(character with { Identity = identity, Progression = progress!,
                 Fatigue = new(fatigue!.Value.Total, fatigue.Value.Used) { ConsumedToday = fatigue.Value.ConsumedToday } },
                 entry!.Public with { Extras = entry.Public.Extras with { CharacterExperience = progress!.Experience,
-                    SkillTreeIndex = builds!.IsUnlocked(new(1)) ? builds.Active.Value : -1 } });
+                    SkillTreeIndex = builds!.SkillTreeIndex } });
         }
         safety.DemandCurrent(recipient);
         return new(session, request, at, inventory, pets, skills, quests, progress, points, fatigue,

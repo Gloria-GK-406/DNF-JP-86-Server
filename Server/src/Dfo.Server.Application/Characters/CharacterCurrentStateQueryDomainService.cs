@@ -100,8 +100,14 @@ internal sealed class CharacterCurrentStateQueryDomainService(
         {
             var profile = await skillState.ReadAsync(session.CharacterId, cancellationToken, channelPolicy.SkillGroup)
                 .ConfigureAwait(false) ?? throw new InvalidDataException("Character skills are unavailable.");
+            var builds = await skillState.BuildsAsync(session.CharacterId, cancellationToken, channelPolicy.SkillGroup)
+                .ConfigureAwait(false);
             characterEntry = characterEntry with
             {
+                Public = characterEntry.Public with
+                {
+                    Extras = characterEntry.Public.Extras with { SkillTreeIndex = builds.SkillTreeIndex },
+                },
                 Skills = characterEntry.Skills with { Pages = profile.Pages },
             };
         }

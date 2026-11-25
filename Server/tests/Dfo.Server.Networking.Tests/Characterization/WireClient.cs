@@ -175,21 +175,23 @@ internal sealed class WireClient(string label, TcpClient client) : IDisposable
         await FenceAsync(cancellationToken);
     }
 
-    /// <summary>CREATE_CHARACTER with job 0, the body WireSmoke's wireclient.py sends.</summary>
-    public async Task CreateCharacterAsync(string name, CancellationToken cancellationToken)
+    /// <summary>CREATE_CHARACTER with the body WireSmoke's wireclient.py sends.</summary>
+    public async Task CreateCharacterAsync(string name, CancellationToken cancellationToken, byte job = 0)
     {
         Step("create character");
-        await SendAsync(0x0005, [0x00, .. DStrings(name), 0, 0, 0, 0], cancellationToken);
+        await SendAsync(0x0005, [job, .. DStrings(name), 0, 0, 0, 0], cancellationToken);
         var answer = await ReadUntilAsync(frame => frame.Is(0x01, 0x0005), cancellationToken);
         Assert.True(answer.Body.Length > 0 && answer.Body[0] == 1, $"{Label}: CREATE_CHARACTER was refused.");
         await FenceAsync(cancellationToken);
     }
 
-    /// <summary>SELECT_CHARACTER for roster slot 0. Its answer is the first frame of the entry batch.</summary>
-    public async Task SelectCharacterAsync(CancellationToken cancellationToken)
+    /// <summary>SELECT_CHARACTER for a roster position. Its answer is the first frame of the entry batch.</summary>
+    public async Task SelectCharacterAsync(CancellationToken cancellationToken, ushort rosterIndex = 0)
     {
         Step("select character");
-        await SendAsync(0x0004, [0, 0], cancellationToken);
+        var body = new byte[sizeof(ushort)];
+        BinaryPrimitives.WriteUInt16LittleEndian(body, rosterIndex);
+        await SendAsync(0x0004, body, cancellationToken);
         var answer = await ReadUntilAsync(frame => frame.Is(0x01, 0x0004), cancellationToken);
         Assert.True(answer.Body.Length > 10 && answer.Body[0] == 1, $"{Label}: SELECT_CHARACTER was refused.");
         WireUserId = BinaryPrimitives.ReadUInt16LittleEndian(answer.Body[9..]);

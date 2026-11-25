@@ -24,6 +24,7 @@ using Dfo.Server.Protocol.Game.IllusionTowerInfo;
 using Dfo.Server.Protocol.Game.IllusionTowerMap;
 using Dfo.Server.Protocol.Game.IllusionTowerRanking;
 using Dfo.Server.Protocol.Game.IllusionTowerReward;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Dfo.Server.Protocol.Game.MonsterDeath;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.StateSynchronization;
@@ -329,7 +330,9 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
     IPvpRoomDomainService rooms, IPvpLobbyDomainService lobby, ISelectedCharacterCurrentViewDomainService currentViews,
     IOnlineCharacterRuntimeDomainService online, IOnlineUserQueryDomainService onlineUsers,
     IGameSessionEndpointDomainService endpoints, IWeaknessDomainService weakness, ICommandWorkUnits units,
-    ILogger<GameResponsePeerCommandHandler> logger, AntonRaidSquadProjection raidSquads)
+    ILogger<GameResponsePeerCommandHandler> logger, AntonRaidSquadProjection raidSquads,
+    IPvpTotalMatchCandidateQueryDomainService totalMatchCandidates,
+    TimeProvider clock)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -468,7 +471,8 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
                 logger.LogInformation("RESPONSE_PEER type 2 invitee={Invitee} inviter={Inviter} room={Room}: entered",
                     invitee.WireUserId, message.InviterWireUserId, changed.After?.Number);
                 await new PvpRoomProjector(sessions, lobby, currentViews, online, onlineUsers, endpoints, townAreas, parties,
-                    projectionState, weakness, projections, outbox, logger).ProjectAsync(changed, cancellationToken).ConfigureAwait(false);
+                    projectionState, weakness, projections, outbox, logger, totalMatchCandidates: new PvpTotalMatchCandidateProjection(rooms, totalMatchCandidates, outbox, clock))
+                    .ProjectAsync(changed, cancellationToken).ConfigureAwait(false);
                 return true;
             default:
                 throw new InvalidOperationException($"Unknown duel room outcome {outcome.GetType().Name}.");

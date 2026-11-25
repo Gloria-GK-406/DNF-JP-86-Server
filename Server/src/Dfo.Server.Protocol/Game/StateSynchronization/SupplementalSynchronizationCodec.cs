@@ -252,19 +252,14 @@ internal static class SupplementalSynchronizationCodec
 
     /// <summary>
     /// A seat's state byte: 0xFF empty, 0xFE closed, and for a taken seat its side, 0 an individual fighter and
-    /// 1 or 2 a team (research.md §2, upstream <c>FreeDuelRoom</c> seat states).
+    /// 1 or 2 a team, and 3 or 4 an observer (A21 CNPVPRoom seat predicates).
     /// </summary>
     internal static byte PvpSeatStateByte(PvpRoomSeatState seat) => seat.Occupancy switch
     {
         PvpRoomSeatOccupancy.Open => 0xFF,
         PvpRoomSeatOccupancy.Closed => 0xFE,
-        PvpRoomSeatOccupancy.Taken => seat.Team switch
-        {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            _ => throw new InvalidDataException($"PvP seat side {seat.Team} has no wire state."),
-        },
+        PvpRoomSeatOccupancy.Taken when seat.State <= 4 => seat.State,
+        PvpRoomSeatOccupancy.Taken => throw new InvalidDataException($"PvP occupied seat state {seat.State} has no wire state."),
         _ => throw new InvalidDataException($"PvP seat occupancy {seat.Occupancy} has no wire state."),
     };
 

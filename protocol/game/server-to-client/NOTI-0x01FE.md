@@ -53,5 +53,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic / Confirmed。** RVA `00E955C0–00E9564B` 读取 `u32 + u8 n + n×(u32 label,u32 count)`。类别显示取项目下标。
+
+**CurrentImplementation。** 首字段为 0，按顺序发送 `label=0` 的 1vs1 排队人数和 `label=1` 的擂台排队人数。A21 擂台人数显示待实机验证。

@@ -264,8 +264,10 @@ public sealed class CharacterEntryInventoryTests
             accountId, 2, StubChannelEntryPolicy.FreeDuelChannel, CancellationToken.None);
 
         Assert.Equal((ushort)777, Assert.Single(ordinary.CharacterEntry.Skills.Pages[0].Skills).SkillId);
+        Assert.Equal(normal.Public.Extras.SkillTreeIndex, ordinary.CharacterEntry.Public.Extras.SkillTreeIndex);
         var ordinaryPoints = Assert.IsType<CharacterSkillProtocolMirrorState>(ordinary.CharacterEntry.Skills.ProtocolMirror);
         Assert.Equal((ushort)888, Assert.Single(duel.CharacterEntry.Skills.Pages[0].Skills).SkillId);
+        Assert.Equal(1, duel.CharacterEntry.Public.Extras.SkillTreeIndex);
         var duelPoints = Assert.IsType<CharacterSkillProtocolMirrorState>(duel.CharacterEntry.Skills.ProtocolMirror);
         Assert.Equal(ordinaryPoints.Page0Sp - 20, duelPoints.Page0Sp);
         Assert.Equal((ushort)106, duelPoints.Page1Sp);
@@ -872,9 +874,9 @@ public sealed class CharacterEntryInventoryTests
     {
         public SkillGroup Group => SkillGroup.Duel;
 
-        public ValueTask<IReadOnlyList<CharacterSkillPageState>> PrepareAsync(
+        public ValueTask<(IReadOnlyList<CharacterSkillPageState> Pages, int SkillTreeIndex)> PrepareAsync(
             AccountId accountId, ActiveCharacterState character, CancellationToken cancellationToken) =>
-            ValueTask.FromResult(state.Pages);
+            ValueTask.FromResult((state.Pages, 1));
     }
 
     private sealed class FixedExpertContracts : IExpertSkillContractDefinitionSource

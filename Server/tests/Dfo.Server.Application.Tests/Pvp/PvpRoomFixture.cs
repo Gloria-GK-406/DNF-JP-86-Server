@@ -47,11 +47,25 @@ internal sealed class PvpRoomFixture
         IDomainTransactionAccessor transactions = scope is null ? Transactions : scope;
         Sessions = TestSessions.Directory(out state);
         BattleRules = new PvpSettlementRuleService(new FixedGrades(), PvpSettlementRuleServiceTests.Days);
-        Rooms = new PvpRoomDomainService(transactions, Sessions, new Channels(this), Parties, Relations, Lobby, Town,
-            new Positions(), new PvpRoomRuleService(new Maps()), BattleRules, Wake, Clock, NullLogger<PvpRoomDomainService>.Instance);
         Records = new PvpRecordStore(transactions);
         Events = new RecordedEvents(transactions);
-        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, Events);
+        var candidates = TestRequired.Absent<IPvpTotalMatchCandidateQueryDomainService>((method, _) =>
+            method.Name == nameof(IPvpTotalMatchCandidateQueryDomainService.ReadAsync)
+                ? ValueTask.FromResult<PvpTotalMatchLineup?>(null) : null);
+        var duel = new PvpDuelDomainService(Records, PvpRatingSeason.First);
+        var traditional = new PvpTraditionalDuelDomainService(Records, PvpRatingSeason.First, candidates);
+        var daily = new PvpDailyMissions(new PvpDailyMissionRuleService(TestRequired.Absent<IPvpDailyMissionDefinitionSource>()),
+            TestRequired.Absent<IPvpDailyMissionStore>(), BattleRules, Clock, transactions,
+            TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<ICharacterIdentityQueryDomainService>());
+        var colosseum = new PvpColosseumDomainService(TestRequired.Absent<IPvpColosseumStore>(),
+            new PvpColosseumRuleService(TestRequired.Absent<IPvpColosseumRuleSource>()), BattleRules, Clock,
+            duel, traditional, transactions, TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<IItemDeliveryDomainService>());
+        Rooms = new PvpRoomDomainService(transactions, Sessions, new Channels(this), Parties, Relations, Lobby, Town,
+            new Positions(), new PvpRoomRuleService(new Maps()), BattleRules, Wake, Clock, NullLogger<PvpRoomDomainService>.Instance,
+            candidates, TestRequired.Absent<ICharacterIdentityQueryDomainService>(), traditional,
+            TestRequired.Absent<ICharacterSkillRuleService>(),
+            TestRequired.Absent<ICharacterSkillStateDomainService>(), colosseum);
+        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, duel, traditional, daily, Events, colosseum);
     }
 
     public DomainTransactionScope? Scope { get; }
@@ -209,6 +223,7 @@ internal sealed class PvpRoomFixture
         private static readonly PvpRecord Fresh = new(0, 0, null, 0, 0, 0, 0, 0);
 
         public Dictionary<CharacterId, PvpRecord> Records { get; } = [];
+        public Dictionary<(CharacterId Character, int Season), PvpRatingStanding> Ratings { get; } = [];
         public Dictionary<Guid, (PvpMatchSettlementRecord Settlement, PvpFighterResult[] Results)> Matches { get; } = [];
 
         /// <summary>Makes every settlement write fail, as a database that refuses it would.</summary>
@@ -218,6 +233,12 @@ internal sealed class PvpRoomFixture
 
         public ValueTask<PvpRecord> ReadAsync(CharacterId character, CancellationToken cancellationToken) =>
             ValueTask.FromResult(Records.GetValueOrDefault(character) ?? Fresh);
+
+        public ValueTask<PvpRatingStanding> ReadRatingAsync(CharacterId character, int seasonId, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(Ratings.GetValueOrDefault((character, seasonId)) ?? PvpRatingStanding.Initial);
+
+        public ValueTask<PvpRatingStanding> ReadTotalMatchRatingAsync(CharacterId character, int seasonId,
+            CancellationToken cancellationToken) => ValueTask.FromResult(PvpRatingStanding.Initial);
 
         public ValueTask<PvpDailyCounts> DailyCountsAsync(CharacterId character, DateOnly gameDay, CancellationToken cancellationToken)
         {
@@ -236,10 +257,11 @@ internal sealed class PvpRoomFixture
             var results = settlement.Fighters.OrderBy(x => x.Seat).Select(fighter =>
             {
                 var before = Records.GetValueOrDefault(fighter.Character) ?? Fresh;
-                var streak = !settlement.RecordsResult ? before.WinStreak : fighter.Outcome == PvpOutcome.Win ? before.WinStreak + 1 : 0;
+                var streak = !settlement.RecordsResult || !fighter.UpdatesRecord ? before.WinStreak
+                    : fighter.Outcome == PvpOutcome.Win ? before.WinStreak + 1 : 0;
                 return new PvpFighterResult(fighter.Character, fighter.Seat, fighter.Team, fighter.Outcome, fighter.Kills,
                     fighter.Deaths, fighter.Fled, fighter.Decision.CountsTowardDaily, before.Grade, fighter.Decision.Grade,
-                    fighter.Decision.ExperienceChange, fighter.Decision.Experience, streak);
+                    fighter.Decision.ExperienceChange, fighter.Decision.Experience, streak) { Rating = fighter.Rating };
             }).ToArray();
             transaction.Enlist(this, () => new Writes(this)).Add(settlement, results);
             return ValueTask.FromResult<PvpSettleOutcome>(new PvpSettleOutcome.Created(results));
@@ -258,9 +280,13 @@ internal sealed class PvpRoomFixture
                 foreach (var (settlement, results) in pending)
                 {
                     store.Matches[settlement.MatchId] = (settlement, results);
+                    foreach (var result in results)
+                        if (result.Rating is { } rating)
+                            store.Ratings[(result.Character, rating.SeasonId)] = rating.Standing;
                     if (!settlement.RecordsResult) continue;
                     foreach (var result in results)
                     {
+                        if (!settlement.Fighters.Single(fighter => fighter.Character == result.Character).UpdatesRecord) continue;
                         var before = store.Records.GetValueOrDefault(result.Character) ?? Fresh;
                         store.Records[result.Character] = before with
                         {

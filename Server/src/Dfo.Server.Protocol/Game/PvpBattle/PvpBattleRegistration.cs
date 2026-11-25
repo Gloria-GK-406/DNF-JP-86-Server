@@ -31,11 +31,14 @@ internal static class PvpBattleRegistration
         services.AddGameCmdMessageDecoder<CompleteLoadPvpDecoder>(ClientMessageType.GameCompleteLoadPvp);
         services.AddGameCmdMessageDecoder<ConnectP2pPvpDecoder>(ClientMessageType.GameConnectP2pPvp);
         services.AddGameCmdMessageDecoder<PvpHeartbeatDecoder>(ClientMessageType.GamePvpHeartbeat);
+        services.AddGameCmdMessageDecoder<PvpRequestFightDecoder>(ClientMessageType.GamePvpRequestFight);
         services.AddGameCmdMessageDecoder<DiePvpCharacterDecoder>(ClientMessageType.GameDiePvpCharacter);
         services.AddGameCmdMessageDecoder<PvpTimeOutDecoder>(ClientMessageType.GamePvpTimeOut);
         services.AddGameCmdMessageDecoder<PvpRankResponseDecoder>(ClientMessageType.GamePvpRankResponse);
         services.AddGameCmdMessageDecoder<EndPvpResultDecoder>(ClientMessageType.GameEndPvpResult);
         services.AddGameNotiMessageEncoder<PvpDeathMessage, PvpDeathEncoder>();
+        services.AddGameNotiMessageEncoder<PvpTurnPlayerMessage, PvpTurnPlayerEncoder>();
+        services.AddGameNotiMessageEncoder<PvpRequestFightMessage, PvpRequestFightEncoder>();
         services.AddGameNotiMessageEncoder<PvpRankRequestMessage, PvpRankRequestEncoder>();
         services.AddGameNotiMessageEncoder<EndPvpMessage, EndPvpEncoder>();
         services.AddGameNotiMessageEncoder<PvpRecordMessage, PvpRecordEncoder>();
@@ -45,6 +48,8 @@ internal static class PvpBattleRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameConnectP2pPvp, typeof(ConnectP2pPvpRequest)));
         services.AddProtocolCommandHandler<GamePvpHeartbeatCommand, bool, GamePvpBattleCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GamePvpHeartbeat, typeof(PvpHeartbeatRequest)));
+        services.AddProtocolCommandHandler<GamePvpRequestFightCommand, bool, GamePvpBattleCommandHandler>(
+            new ProtocolCommandMessageBinding(ClientMessageType.GamePvpRequestFight, typeof(PvpRequestFightRequest)));
         services.AddProtocolCommandHandler<GameDiePvpCharacterCommand, bool, GamePvpBattleCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameDiePvpCharacter, typeof(DiePvpCharacterRequest)));
         services.AddProtocolCommandHandler<GamePvpTimeOutCommand, bool, GamePvpBattleCommandHandler>(
@@ -56,6 +61,7 @@ internal static class PvpBattleRegistration
         services.RegisterProtocolMessageHandler<CompleteLoadPvpHandler, CompleteLoadPvpRequest, GameCompleteLoadPvpCommand>(ClientMessageType.GameCompleteLoadPvp);
         services.RegisterProtocolMessageHandler<ConnectP2pPvpHandler, ConnectP2pPvpRequest, GameConnectP2pPvpCommand>(ClientMessageType.GameConnectP2pPvp);
         services.RegisterProtocolMessageHandler<PvpHeartbeatHandler, PvpHeartbeatRequest, GamePvpHeartbeatCommand>(ClientMessageType.GamePvpHeartbeat);
+        services.RegisterProtocolMessageHandler<PvpRequestFightHandler, PvpRequestFightRequest, GamePvpRequestFightCommand>(ClientMessageType.GamePvpRequestFight);
         services.RegisterProtocolMessageHandler<DiePvpCharacterHandler, DiePvpCharacterRequest, GameDiePvpCharacterCommand>(ClientMessageType.GameDiePvpCharacter);
         services.RegisterProtocolMessageHandler<PvpTimeOutHandler, PvpTimeOutRequest, GamePvpTimeOutCommand>(ClientMessageType.GamePvpTimeOut);
         services.RegisterProtocolMessageHandler<PvpRankResponseHandler, PvpRankResponseRequest, GamePvpRankResponseCommand>(ClientMessageType.GamePvpRankResponse);

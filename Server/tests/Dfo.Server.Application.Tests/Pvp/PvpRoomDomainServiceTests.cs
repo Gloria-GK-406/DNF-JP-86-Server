@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Pvp;
 using Dfo.Server.Application.Transactions;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Testing;
 
@@ -67,6 +68,31 @@ public sealed class PvpRoomDomainServiceTests
     }
 
     [Fact]
+    public async Task An_observing_owner_needs_two_fighters_and_can_leave_without_causing_a_forfeit()
+    {
+        var f = new PvpRoomFixture();
+        var (owner, first, second) = (f.Join(1), f.Join(2), f.Join(3));
+        var room = await f.CreateAsync(owner, PvpBattleMode.Team);
+        await f.EnterAsync(first, room);
+        await AssertRefused(f, PvpRoomRefusal.InvalidSeat, rooms =>
+            rooms.SetSeatAsync(first, seat: 0, PvpSeatAction.Observe, PvpTeam.Individual, default));
+        await f.SeatAsync(owner, 0, PvpSeatAction.Observe);
+        await f.ReadyAsync(first);
+        await AssertRefused(f, PvpRoomRefusal.TooFewMembers, rooms => rooms.SetReadyAsync(owner, true, default));
+        await f.EnterAsync(second, room);
+        await f.ReadyAsync(second);
+
+        var started = Assert.IsType<PvpRoomOutcome.Changed>(await f.ReadyAsync(owner)).After!;
+        Assert.Equal(new[] { first.CharacterId, second.CharacterId }, started.Match!.Fighters.Select(fighter => fighter.CharacterId));
+        var left = Assert.IsType<PvpRoomOutcome.Changed>(await f.SeatAsync(owner, 0, PvpSeatAction.Leave));
+        Assert.Equal(PvpRoomPhase.Fighting, left.After!.Phase);
+        Assert.Null(left.Concluded);
+        Assert.Equal(first, left.After.Owner.Session);
+        Assert.Equal(started.Match.Fighters, left.After.Match!.Fighters);
+        Assert.Contains(owner.CharacterId, f.Town.InTown);
+    }
+
+    [Fact]
     public async Task A_password_room_admits_the_right_password_only()
     {
         var f = new PvpRoomFixture();
@@ -111,12 +137,10 @@ public sealed class PvpRoomDomainServiceTests
     }
 
     [Theory]
-    [InlineData(PvpBattleMode.Relay)]
     [InlineData(PvpBattleMode.DeathMatchIndividual)]
     [InlineData(PvpBattleMode.DeathMatchTeam)]
-    [InlineData(PvpBattleMode.Practice)]
     [InlineData((PvpBattleMode)9)]
-    public async Task Creating_refuses_the_modes_the_first_phase_does_not_play(PvpBattleMode mode)
+    public async Task Creating_refuses_unsupported_battle_modes(PvpBattleMode mode)
     {
         var f = new PvpRoomFixture();
         var owner = f.Join(1);
@@ -254,6 +278,40 @@ public sealed class PvpRoomDomainServiceTests
     // ---- AC-012: mode, map, start
 
     [Fact]
+    public async Task Total_match_mode_on_channel_68_keeps_one_player_per_side()
+    {
+        var f = new PvpRoomFixture { DuelChannel = new(68, PvpRoomFixture.Port, ChannelEntryKind.FreeDuel, 13) };
+        var (owner, guest, third) = (f.Join(1), f.Join(2), f.Join(3));
+        var room = await f.CreateAsync(owner);
+        await f.EnterAsync(guest, room);
+        var changed = Assert.IsType<PvpRoomOutcome.Changed>(
+            await f.Commit(rooms => rooms.SetModeAsync(owner, PvpBattleMode.TotalMatch, default)));
+
+        Assert.Equal(PvpBattleMode.TotalMatch, changed.After!.Mode);
+        Assert.Equal([PvpTeam.First, PvpTeam.Second], changed.After.Members.Select(x => x.Member.Team));
+        await AssertRefused(f, PvpRoomRefusal.Full, rooms => rooms.EnterAsync(third, room.Number, null, default));
+        await f.ReadyAsync(guest);
+        await AssertRefused(f, PvpRoomRefusal.InvalidTeam, rooms => rooms.SetReadyAsync(owner, true, default));
+        Assert.Equal(PvpRoomPhase.Waiting, f.Committed(room).Phase);
+
+        await f.Commit(rooms => rooms.SetModeAsync(owner, PvpBattleMode.Individual, default));
+        await f.EnterAsync(third, room);
+        await AssertRefused(f, PvpRoomRefusal.Full, rooms => rooms.SetModeAsync(owner, PvpBattleMode.TotalMatch, default));
+        Assert.Equal(PvpBattleMode.Individual, f.Committed(room).Mode);
+    }
+
+    [Fact]
+    public async Task Integrated_manual_matching_channel_refuses_total_match_mode()
+    {
+        var f = new PvpRoomFixture { DuelChannel = new(50, PvpRoomFixture.Port, ChannelEntryKind.TraditionalDuel, 24) };
+        var owner = f.Join(1);
+        await AssertRefused(f, PvpRoomRefusal.UnsupportedMode,
+            rooms => rooms.CreateAsync(PvpRoomFixture.Creation(owner, PvpBattleMode.TotalMatch), default));
+        await f.CreateAsync(owner);
+        await AssertRefused(f, PvpRoomRefusal.UnsupportedMode, rooms => rooms.SetModeAsync(owner, PvpBattleMode.TotalMatch, default));
+    }
+
+    [Fact]
     public async Task Switching_mode_reassigns_teams_and_unsupported_modes_are_refused()
     {
         var f = new PvpRoomFixture();
@@ -263,7 +321,7 @@ public sealed class PvpRoomDomainServiceTests
         await f.EnterAsync(f.Join(3), room);
         Assert.All(f.Committed(room).Members, x => Assert.Equal(PvpTeam.Individual, x.Member.Team));
 
-        foreach (var mode in new[] { PvpBattleMode.Relay, PvpBattleMode.DeathMatchIndividual, PvpBattleMode.DeathMatchTeam, PvpBattleMode.Practice })
+        foreach (var mode in new[] { PvpBattleMode.DeathMatchIndividual, PvpBattleMode.DeathMatchTeam, PvpBattleMode.Practice })
             await AssertRefused(f, PvpRoomRefusal.UnsupportedMode, rooms => rooms.SetModeAsync(owner, mode, default));
 
         var team = Assert.IsType<PvpRoomOutcome.Changed>(await f.Commit(rooms => rooms.SetModeAsync(owner, PvpBattleMode.Team, default)));

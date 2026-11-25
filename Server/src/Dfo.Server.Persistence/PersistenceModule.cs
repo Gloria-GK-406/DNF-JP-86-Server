@@ -140,6 +140,9 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterPvpSkillStateTable>(
             provider => new SqliteCharacterPvpSkillStateTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpRecordDomainStore, Dfo.Server.Persistence.Pvp.SqlitePvpRecordDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpDailyMissionStore, Dfo.Server.Persistence.Pvp.SqlitePvpDailyMissionStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpColosseumStore, Dfo.Server.Persistence.Pvp.SqlitePvpColosseumStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchTeamDomainStore, Dfo.Server.Persistence.Pvp.SqlitePvpTotalMatchTeamDomainStore>();
         services.TryAddSingleton<ICharacterSettingsTable>(
             provider => new SqliteCharacterSettingsTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterExpertJobTable>(

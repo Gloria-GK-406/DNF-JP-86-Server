@@ -20,5 +20,12 @@ public interface ICharacterSkillGroupEditPolicy
     SkillGroup Group { get; }
 
     ValueTask<CharacterSkillLearningRejection> RefuseEditAsync(
-        SelectedSessionIdentity session, SkillBuildId build, CancellationToken cancellationToken);
+        SelectedSessionIdentity session, CharacterSkillGroupEditOperation operation, CancellationToken cancellationToken);
+}
+
+public enum CharacterSkillGroupEditOperation
+{
+    Learn,
+    SwapSlots,
+    SwitchBuild,
 }

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Pvp;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.OnlineUsers;
@@ -8,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
 using Dfo.Server.Protocol.Game.HonorLevel;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 
 namespace Dfo.Server.Protocol.Game.AccountRoster;
 
@@ -22,6 +24,7 @@ public sealed class GameAccountRosterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ICharacterRosterDomainService characters,
     IAccountHonorDomainService honor,
+    IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch,
     IGameCommandOutbox outbox) : ICommandHandler<GameAccountRosterCommand, AccountCharacterRoster>
 {
     public async ValueTask<AccountCharacterRoster> HandleAsync(CommandExecutionContext context,
@@ -35,10 +38,13 @@ public sealed class GameAccountRosterCommandHandler(
         }
 
         var roster = await characters.GetAccountRosterWithAppearanceAsync(accountId, cancellationToken).ConfigureAwait(false);
-        await outbox.RegisterNotiAsync(
-            command.Dispatch.Connection.ConnectionId,
-            new AccountCharacterRosterResponse(roster, AnswersRosterQuery: true),
-            cancellationToken).ConfigureAwait(false);
+        // A21 can query again while handling the return roster. A second roster makes the client
+        // select the newly saved representative twice before the first selection completes.
+        if (!representativeSwitch.HasPublishedRoster(command.Dispatch.Connection, accountId))
+            await outbox.RegisterNotiAsync(
+                command.Dispatch.Connection.ConnectionId,
+                new AccountCharacterRosterResponse(roster, AnswersRosterQuery: true),
+                cancellationToken).ConfigureAwait(false);
 
         // Pushed, not awaited. The client does send its own 0x0286 request and this server answers
         // that too, but the reference server does not wait to be asked: it puts the reply straight

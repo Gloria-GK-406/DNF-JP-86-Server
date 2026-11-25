@@ -120,7 +120,8 @@ internal sealed class CharacterSide
         new CharacterSkillFactsReader(this.Characters, this.Skills,
             new SqliteCharacterSkillBuildTable(this.database), new SqliteCharacterEntryTable(this.database),
             new SqliteCharacterPvpSkillStateTable(this.database)),
-        TestRequired.Absent<ICharacterEntryPreparationRuleService>());
+        TestRequired.Absent<ICharacterEntryPreparationRuleService>(),
+        TestRequired.Absent<ICharacterSkillStateDomainService>());
 
     public IExpertSkillContractReconciliationRepository ExpertContracts(
         IExpertSkillContractRuleService rules) =>

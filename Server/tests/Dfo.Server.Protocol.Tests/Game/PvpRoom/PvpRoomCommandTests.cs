@@ -67,13 +67,11 @@ public sealed class PvpRoomCommandTests
         AssertRefused(world, world.A, ServerMessageType.GameMakePvpRoom, reason);
     });
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public Task A_practice_room_or_a_malformed_request_never_reaches_the_room_owner(bool practice) => Run(async world =>
+    [Fact]
+    public Task A_malformed_request_never_reaches_the_room_owner() => Run(async world =>
     {
         Assert.False(await world.SendAsync(new GameMakePvpRoomCommand(Dispatch(world.A), new(GameMessageMetadata.Empty,
-            practice ? new MakePvpRoomInput(1, [], 0, null, 1) : null))));
+            null))));
         Assert.Empty(world.Rooms.Calls);
         AssertRefused(world, world.A, ServerMessageType.GameMakePvpRoom, 19);
     });
@@ -155,11 +153,11 @@ public sealed class PvpRoomCommandTests
     });
 
     [Theory]
-    [InlineData(1, 3, true)]
-    [InlineData(1, 4, true)]
+    [InlineData(1, 5, true)]
+    [InlineData(1, 6, true)]
     [InlineData(8, 0xFE, true)]
     [InlineData(0, 0, false)]
-    public Task An_observer_seat_or_a_malformed_seat_request_is_refused_8_without_the_room_owner(int seat, int state, bool wellFormed) =>
+    public Task An_unsupported_or_malformed_seat_request_is_refused_8_without_the_room_owner(int seat, int state, bool wellFormed) =>
         Run(async world =>
         {
             Assert.False(await world.SendAsync(new GameSetPvpSeatStateCommand(Dispatch(world.A),
@@ -290,7 +288,7 @@ public sealed class PvpRoomCommandTests
         var seats = Assert.IsType<PvpSeatStateMessage>(Assert.Single(world.Projections.FramesFor(world.C)));
         Assert.Equal((byte)1, seats.Mode);
         Assert.Equal([0, 1], seats.Seats.Select(x => x.Seat));
-        Assert.All(seats.Seats, x => Assert.Equal(0, x.State.Team));
+        Assert.All(seats.Seats, x => Assert.Equal(0, x.State.State));
     });
 
     [Fact]
@@ -435,7 +433,8 @@ public sealed class PvpRoomCommandTests
             ProtocolAlgorithmFixture.Default<IPartyService>(), ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),
             ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
             (Dfo.Server.Abstractions.DomainEvents.ICommandProjections?)Timeline ?? Projections, (IGameCommandOutbox?)Timeline ?? Outbox,
-            Deferrals, NullLogger<GamePvpRoomCommandHandler>.Instance);
+            Deferrals, NullLogger<GamePvpRoomCommandHandler>.Instance,
+            ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System);
 
         public async Task<bool> SendAsync<TCommand>(TCommand command) where TCommand : class, IProtocolCommand<bool>
         {

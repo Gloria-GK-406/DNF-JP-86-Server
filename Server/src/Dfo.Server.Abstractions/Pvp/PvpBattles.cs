@@ -49,7 +49,19 @@ public sealed record PvpMatchConclusion(
     DateTimeOffset StartedAt,
     PvpMatchTerminal Terminal,
     ImmutableArray<PvpFighter> Fighters,
-    DateTimeOffset SettleBy);
+    DateTimeOffset SettleBy)
+{
+    public PvpRoomOrigin Origin { get; init; }
+    public ImmutableDictionary<int, Guid> ColosseumRuns { get; init; } = ImmutableDictionary<int, Guid>.Empty;
+    public PvpDuelBusiness Business => PvpDuelBusinessRoute.Of(Channel, Origin, Mode);
+    public ImmutableArray<PvpTotalMatchAppearance> TotalMatchAppearances { get; init; } = [];
+
+    public ImmutableDictionary<int, ImmutableDictionary<ushort, int>> DailyHealthReports { get; init; } =
+        ImmutableDictionary<int, ImmutableDictionary<ushort, int>>.Empty;
+
+    public ImmutableDictionary<int, int> DailyColorlessSkills { get; init; } = ImmutableDictionary<int, int>.Empty;
+    public ImmutableDictionary<int, byte> DailyWinPoses { get; init; } = ImmutableDictionary<int, byte>.Empty;
+}
 
 /// <summary>What the duel deadline scheduler finds due.</summary>
 /// <param name="Abandoned">Ended battles whose settlement kept failing past the give-up time; they are dropped unsettled.</param>
@@ -93,7 +105,13 @@ public abstract record PvpSettlementOutcome
     /// </param>
     /// <param name="Room">The room moving to its result screen; null when the room is gone.</param>
     public sealed record Settled(PvpMatchConclusion Conclusion, PvpSettleOutcome Stored, PvpRoomOutcome.Changed? Room)
-        : PvpSettlementOutcome;
+        : PvpSettlementOutcome
+    {
+        public IReadOnlyDictionary<CharacterId, int> VictoryEmblemBalances { get; init; }
+            = ImmutableDictionary<CharacterId, int>.Empty;
+        public IReadOnlyDictionary<int, PvpColosseumLobbyState> ColosseumStates { get; init; }
+            = ImmutableDictionary<int, PvpColosseumLobbyState>.Empty;
+    }
 }
 
 /// <summary>Settles ended battles: decides every fighter's result, writes it once, and publishes it once.</summary>

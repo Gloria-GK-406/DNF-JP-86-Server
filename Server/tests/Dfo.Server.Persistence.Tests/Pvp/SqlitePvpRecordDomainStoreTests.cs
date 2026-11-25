@@ -57,6 +57,69 @@ public sealed class SqlitePvpRecordDomainStoreTests
     }
 
     [Fact]
+    public async Task Rating_rolls_back_with_the_match_and_replays_the_original_season_result()
+    {
+        await WithStoreAsync(async (store, scope, path) =>
+        {
+            var season = new PvpRatingSeason(7);
+            var winningStanding = new PvpRatingStanding(20, 1030, 1030);
+            var losingStanding = new PvpRatingStanding(20, 970, 970);
+            var match = Decided(Guid.NewGuid()) with
+            {
+                ChannelEnvironment = 8,
+                RecordsResult = false,
+                Fighters =
+                [
+                    Fighter(Winner, 0, PvpOutcome.Win, new(3, 3000, 0, false)) with { Rating = new(season.Id, 1000, winningStanding) },
+                    Fighter(Loser, 1, PvpOutcome.Loss, new(2, 2000, 0, false)) with { Rating = new(season.Id, 1000, losingStanding) },
+                ],
+            };
+            await using (var transaction = scope.Begin())
+                Assert.IsType<PvpSettleOutcome.Created>(await store.SettleAsync(match, default));
+            Assert.Equal(0L, Scalar(path, "SELECT COUNT(*) FROM pvp_match_rating_results"));
+
+            var created = Assert.IsType<PvpSettleOutcome.Created>(await SettleAsync(scope, store, match));
+            var repeated = Assert.IsType<PvpSettleOutcome.AlreadySettled>(await SettleAsync(scope, store, match with
+            {
+                Fighters = [.. match.Fighters.Select(fighter => fighter with { Rating = null })],
+            }));
+            Assert.Equal(created.Results, repeated.Results);
+            Assert.Equal(winningStanding, await store.ReadRatingAsync(Winner, season.Id, default));
+            Assert.Equal(losingStanding, await store.ReadRatingAsync(Loser, season.Id, default));
+            Assert.Equal(PvpRatingStanding.Initial, await store.ReadRatingAsync(Winner, PvpRatingSeason.First.Id, default));
+            Assert.Equal(2L, Scalar(path, "SELECT COUNT(*) FROM pvp_match_rating_results"));
+            Assert.Equal(new PvpRecord(3, 4, null, 0, 0, 0, 0, 0), await store.ReadAsync(Winner, default));
+        });
+    }
+
+    [Fact]
+    public async Task A_total_match_writes_a_reserve_and_a_display_only_representative_from_the_same_seat()
+    {
+        await WithStoreAsync(async (store, scope, path) =>
+        {
+            var match = Decided(Guid.NewGuid()) with
+            {
+                Mode = PvpBattleMode.TotalMatch,
+                Fighters =
+                [
+                    Fighter(Winner, 0, PvpOutcome.Win, new(3, 3000, 0, false)) with { UpdatesRecord = false },
+                    Fighter(Loser, 0, PvpOutcome.Win, new(3, 3000, 1000, true)),
+                ],
+            };
+            var first = await SettleAsync(scope, store, match);
+            var second = await SettleAsync(scope, store, match);
+
+            Assert.IsType<PvpSettleOutcome.Created>(first);
+            Assert.Equal(first.Results, Assert.IsType<PvpSettleOutcome.AlreadySettled>(second).Results);
+            Assert.Equal(2L, Scalar(path, "SELECT COUNT(*) FROM pvp_match_results"));
+            Assert.Equal(new PvpRecord(3, 4, null, 0, 0, 0, 0, 0), await store.ReadAsync(Winner, default));
+            Assert.Equal(new PvpRecord(3, 0, 3000, 1, 0, 0, 1, 1), await store.ReadAsync(Loser, default));
+            Assert.Equal(new PvpDailyCounts(0, 0), await store.DailyCountsAsync(Winner, Today, default));
+            Assert.Equal(new PvpDailyCounts(1, 0), await store.DailyCountsAsync(Loser, Today, default));
+        });
+    }
+
+    [Fact]
     public async Task A_settlement_that_is_rolled_back_leaves_nothing_and_can_be_settled_afterwards()
     {
         await WithStoreAsync(async (store, scope, path) =>

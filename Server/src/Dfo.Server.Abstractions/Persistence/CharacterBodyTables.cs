@@ -93,7 +93,7 @@ public sealed record CharacterStatsRow(
 public sealed record CharacterPvpGradeRow(int Grade, int RatingGrade);
 
 /// <summary>One row of <c>character_pvp_skill_state</c>.</summary>
-public sealed record CharacterPvpSkillStateRow(int SkillsInitialized);
+public sealed record CharacterPvpSkillStateRow(int SkillsInitialized, int ActiveSkillBuild);
 
 /// <summary>One row of <c>character_settings</c>.</summary>
 public sealed record CharacterSettingsRow(
@@ -182,6 +182,9 @@ public interface ICharacterPvpSkillStateTable
     /// </remarks>
     ValueTask MarkSkillsInitializedAsync(
         CharacterId characterId, CancellationToken cancellationToken);
+
+    ValueTask<bool> SetActiveBuildAsync(
+        CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken);
 }
 
 /// <summary>The <c>character_settings</c> table.</summary>

@@ -5,9 +5,11 @@ public interface ICharacterSkillStateDomainService
 {
     ValueTask ResetAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken);
     ValueTask ResetAllAsync(CharacterId characterId, CancellationToken cancellationToken);
-    ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId characterId, CancellationToken cancellationToken);
+    ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId characterId, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve);
     ValueTask UnlockAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken);
-    ValueTask ActivateAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken);
+    ValueTask ActivateAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken,
+        SkillGroup group = SkillGroup.Pve);
 
     ValueTask ReconcileLevelAsync(CharacterId characterId, CancellationToken cancellationToken);
 

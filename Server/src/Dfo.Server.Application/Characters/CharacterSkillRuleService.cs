@@ -120,6 +120,7 @@ internal sealed class CharacterSkillRule : ICharacterSkillRule
     public int SkillId => definition.SkillId;
     public string Name => definition.Name;
     public string Description => definition.Description;
+    public bool ConsumesColorlessCube => definition.ConsumesColorlessCube;
     public IReadOnlyList<SkillPrerequisite> Prerequisites => definition.Prerequisites;
 
     private int StaticMaximum(CharacterCareer career)

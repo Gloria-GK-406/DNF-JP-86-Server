@@ -216,7 +216,8 @@ public sealed partial class PartyCommandHandlerTests
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), Runs, RaidMembership, Refusals,
                     PeerRoomStandIns.Rooms, PeerRoomStandIns.Lobby, PeerRoomStandIns.Views, PeerRoomStandIns.Online,
                     PeerRoomStandIns.OnlineUsers, PeerRoomStandIns.Endpoints, PeerRoomStandIns.Weakness, PeerRoomStandIns.Units,
-                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
+                    NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(),
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System))
                 .SendAsync(new GameResponsePeerCommand(Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, 0, 0, [])));
 

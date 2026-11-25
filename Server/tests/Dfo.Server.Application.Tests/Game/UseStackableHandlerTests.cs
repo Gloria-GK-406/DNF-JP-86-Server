@@ -650,6 +650,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         services.AddSingleton<TimeProvider>(clock);
         services.AddSingleton<IBusinessInventorySlotDomainService>(slots);
         services.AddSingleton<IItemUseEffectDomainService>(useEffects);
+        services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomQueryDomainService>((_, _) => null));
         services.AddProtocolCommandHandler<GameUseStackableCommand, ItemUseResult, GameUseStackableCommandHandler>(
             new[] { CommandRegistrationExit.SettledRequiredExplicit, CommandRegistrationExit.CommittedReplayCurrentStateBatch },
             new ProtocolCommandMessageBinding(ClientMessageType.GameUseStackable, typeof(UseStackableRequest)));

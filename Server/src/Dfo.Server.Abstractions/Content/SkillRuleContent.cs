@@ -15,7 +15,10 @@ public sealed record SkillRuleDefinition(
     IReadOnlyList<int> AwakeningMaximumLevels, int RequiredLevel, int LevelInterval,
     IReadOnlyList<SkillPrerequisite> Prerequisites, bool IsFixedLevel,
     int FixedLevelBase, int FixedLevelInterval, int FixedLevelAddPerInterval,
-    bool IsActive, int RawGroup, int NumberOfGrowTypes);
+    bool IsActive, int RawGroup, int NumberOfGrowTypes)
+{
+    public bool ConsumesColorlessCube { get; init; }
+}
 
 public sealed record SkillRuleCatalog(
     IReadOnlyDictionary<int, SkillRuleDefinition> Skills,

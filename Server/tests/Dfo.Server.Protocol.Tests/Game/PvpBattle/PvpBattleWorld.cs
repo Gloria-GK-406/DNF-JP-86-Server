@@ -66,26 +66,30 @@ internal sealed class PvpBattleWorld
 
     public IReadOnlyList<IGameServerMessage> For(SelectedSessionIdentity session) => Timeline.For(session);
 
-    public GamePvpBattleCommandHandler Battle() => new(Sessions, Rooms, Settlement, Records, Deferrals, Lobby, Views,
+    public GamePvpBattleCommandHandler Battle() => new(Sessions, Rooms, DefaultAnswers.Create<IPvpMatchmakingDomainService>(),
+        Settlement, Records, Deferrals, Lobby, Views,
         DefaultAnswers.Create<IOnlineCharacterRuntimeDomainService>(), ProtocolAlgorithmFixture.NoOnline(),
         DefaultAnswers.Create<IGameSessionEndpointDomainService>(), ProtocolAlgorithmFixture.Default<ITownAreaDomainService>(),
         ProtocolAlgorithmFixture.Default<IPartyService>(), ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),
         ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
-        Projections ?? Timeline, Timeline, NullLogger<GamePvpBattleCommandHandler>.Instance);
+        Projections ?? Timeline, Timeline, ProtocolAlgorithmFixture.Default<IPvpDailyMissionQueryDomainService>(),
+        ProtocolAlgorithmFixture.Default<IPvpColosseumDomainService>(), NullLogger<GamePvpBattleCommandHandler>.Instance);
 
     public PvpBattleDeadlineCommandHandler Deadlines() => new(Rooms, Settlement, Records, Departures, Deferrals, Sessions, Lobby, Views,
         DefaultAnswers.Create<IOnlineCharacterRuntimeDomainService>(), ProtocolAlgorithmFixture.NoOnline(),
         DefaultAnswers.Create<IGameSessionEndpointDomainService>(), ProtocolAlgorithmFixture.Default<ITownAreaDomainService>(),
         ProtocolAlgorithmFixture.Default<IPartyService>(), ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),
         ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
-        Projections ?? Timeline, Timeline, TimeProvider.System, NullLogger<PvpBattleDeadlineCommandHandler>.Instance);
+        Projections ?? Timeline, Timeline, TimeProvider.System, ProtocolAlgorithmFixture.Default<IPvpDailyMissionQueryDomainService>(),
+        ProtocolAlgorithmFixture.Default<IPvpColosseumDomainService>(), NullLogger<PvpBattleDeadlineCommandHandler>.Instance);
 
     public GamePvpRoomCommandHandler Room() => new(Sessions, Rooms, Lobby, Views,
         DefaultAnswers.Create<IOnlineCharacterRuntimeDomainService>(), ProtocolAlgorithmFixture.NoOnline(),
         DefaultAnswers.Create<IGameSessionEndpointDomainService>(), ProtocolAlgorithmFixture.Default<ITownAreaDomainService>(),
         ProtocolAlgorithmFixture.Default<IPartyService>(), ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),
         ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
-        Projections ?? Timeline, Timeline, Deferrals, NullLogger<GamePvpRoomCommandHandler>.Instance);
+        Projections ?? Timeline, Timeline, Deferrals, NullLogger<GamePvpRoomCommandHandler>.Instance,
+        ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System);
 
     public async Task<bool> SendAsync<TCommand>(object handler, TCommand command) where TCommand : class, IProtocolCommand<bool>
     {
@@ -175,6 +179,11 @@ internal sealed class FixedRecords : IPvpRecordDomainService
 
     public ValueTask<PvpRecordView> ViewAsync(CharacterId character, CancellationToken cancellationToken) =>
         ValueTask.FromResult(Views[character]);
+    public PvpExperienceBand ExperienceBandOf(byte grade)
+    {
+        var view = Views.Values.First(record => record.Grade == grade);
+        return new(view.LowerBound, view.UpperBound);
+    }
 }
 
 internal sealed class CountingWake : IPvpDeadlineWake

@@ -19,12 +19,109 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 14;
+    public const int Version = 21;
 
-    private static readonly string[] Tables = TableDeclarations
+    internal const string PvpTotalMatchTeamsDeclaration = """
+        CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
+            account_id INTEGER PRIMARY KEY REFERENCES accounts(account_id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            name_key TEXT NOT NULL UNIQUE,
+            first_character_id INTEGER NOT NULL,
+            second_character_id INTEGER NOT NULL,
+            third_character_id INTEGER NOT NULL,
+            CHECK (first_character_id <> second_character_id AND first_character_id <> third_character_id
+                AND second_character_id <> third_character_id)
+        );
+        """;
+
+    internal const string PvpMatchRatingResultsDeclaration = """
+        CREATE TABLE IF NOT EXISTS pvp_match_rating_results (
+            rating_result_id INTEGER PRIMARY KEY,
+            match_id TEXT NOT NULL,
+            character_id INTEGER NOT NULL,
+            season_id INTEGER NOT NULL CHECK (season_id > 0),
+            placement_games INTEGER NOT NULL CHECK (placement_games BETWEEN 1 AND 20),
+            rp_before INTEGER NOT NULL CHECK (rp_before >= 100),
+            rp_after INTEGER NOT NULL CHECK (rp_after >= 100),
+            peak_rp INTEGER NOT NULL CHECK (peak_rp >= 0),
+            UNIQUE (match_id, character_id),
+            FOREIGN KEY (match_id, character_id) REFERENCES pvp_match_results(match_id, character_id) ON DELETE CASCADE
+        );
+        """;
+
+    internal const string PvpMatchRatingResultsIndexDeclaration = """
+        CREATE INDEX IF NOT EXISTS ix_pvp_match_rating_results_latest
+        ON pvp_match_rating_results(character_id, season_id, rating_result_id DESC);
+        """;
+
+    internal const string PvpTotalMatchRatingResultsDeclaration = """
+        CREATE TABLE IF NOT EXISTS account_pvp_total_match_rating_results (
+            rating_result_id INTEGER PRIMARY KEY,
+            match_id TEXT NOT NULL REFERENCES pvp_matches(match_id) ON DELETE CASCADE,
+            account_id INTEGER NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE,
+            season_id INTEGER NOT NULL CHECK (season_id > 0),
+            placement_games INTEGER NOT NULL CHECK (placement_games BETWEEN 1 AND 20),
+            gp_before INTEGER NOT NULL CHECK (gp_before >= 100),
+            gp_after INTEGER NOT NULL CHECK (gp_after >= 100),
+            peak_gp INTEGER NOT NULL CHECK (peak_gp >= 0),
+            UNIQUE (match_id, account_id)
+        );
+        """;
+
+    internal const string PvpTotalMatchRatingResultsIndexDeclaration = """
+        CREATE INDEX IF NOT EXISTS ix_pvp_total_match_rating_results_latest
+        ON account_pvp_total_match_rating_results(account_id, season_id, rating_result_id DESC);
+        """;
+
+    internal const string PvpDailyMissionsDeclaration = """
+        CREATE TABLE IF NOT EXISTS pvp_daily_missions (
+            character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            game_day TEXT NOT NULL,
+            mission_id INTEGER NOT NULL,
+            progress INTEGER NOT NULL CHECK (progress > 0),
+            reward_match_id TEXT,
+            PRIMARY KEY (character_id, game_day, mission_id)
+        );
+        """;
+
+    internal const string PvpDailyMissionMetricsDeclaration = """
+        CREATE TABLE IF NOT EXISTS pvp_daily_mission_metrics (
+            character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            game_day TEXT NOT NULL,
+            mission_id INTEGER NOT NULL,
+            metric INTEGER NOT NULL,
+            value INTEGER NOT NULL CHECK (value >= 0),
+            PRIMARY KEY (character_id, game_day, mission_id, metric)
+        );
+        """;
+
+    internal const string PvpColosseumDeclaration = """
+        CREATE TABLE IF NOT EXISTS pvp_colosseum_runs (
+            run_id TEXT PRIMARY KEY,
+            kind INTEGER NOT NULL CHECK(kind IN (0,7)),
+            owner_id INTEGER NOT NULL,
+            recipient INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+            entry_day TEXT NOT NULL,
+            wins INTEGER NOT NULL CHECK(wins>=0) DEFAULT 0,
+            losses INTEGER NOT NULL CHECK(losses>=0) DEFAULT 0,
+            prizes TEXT NOT NULL DEFAULT '[]',
+            closed INTEGER NOT NULL CHECK(closed IN (0,1)) DEFAULT 0
+        );
+        """;
+    internal const string PvpColosseumIndex = """
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_pvp_colosseum_open
+        ON pvp_colosseum_runs(kind, owner_id) WHERE closed=0;
+        CREATE INDEX IF NOT EXISTS ix_pvp_colosseum_entry_day
+        ON pvp_colosseum_runs(kind, owner_id, entry_day);
+        """;
+
+    private static readonly string[] Tables = (TableDeclarations + "\n" + PvpTotalMatchTeamsDeclaration + "\n"
+        + PvpMatchRatingResultsDeclaration + "\n" + PvpTotalMatchRatingResultsDeclaration + "\n" + PvpDailyMissionsDeclaration
+        + "\n" + PvpDailyMissionMetricsDeclaration + "\n" + PvpColosseumDeclaration)
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static readonly string[] Indexes = IndexDeclarations
+    private static readonly string[] Indexes = (IndexDeclarations + "\n" + PvpMatchRatingResultsIndexDeclaration + "\n"
+        + PvpTotalMatchRatingResultsIndexDeclaration + "\n" + PvpColosseumIndex)
         .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>Builds an empty database, or checks that an existing one is in this shape.</summary>
@@ -443,7 +540,7 @@ internal static class CharacterDatabaseSchema
         CREATE TABLE IF NOT EXISTS character_knight_shield_deck(character_id INTEGER, slot_index INTEGER, shield_item_id INTEGER, PRIMARY KEY(character_id,slot_index));
         CREATE TABLE IF NOT EXISTS character_mercenary_support(owner_character_id INTEGER NOT NULL,slot INTEGER NOT NULL,support_character_id INTEGER NOT NULL,skill_id INTEGER NOT NULL,striker_skill_id INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_character_id,slot));
         CREATE TABLE IF NOT EXISTS character_pvp_record ( character_id INTEGER PRIMARY KEY, grade INTEGER NOT NULL DEFAULT 0, rating_grade INTEGER NOT NULL DEFAULT 0, grade_experience INTEGER CHECK (grade_experience >= 0), win INTEGER NOT NULL DEFAULT 0 CHECK (win >= 0), lose INTEGER NOT NULL DEFAULT 0 CHECK (lose >= 0), draw INTEGER NOT NULL DEFAULT 0 CHECK (draw >= 0), win_streak INTEGER NOT NULL DEFAULT 0 CHECK (win_streak >= 0), peak_win_streak INTEGER NOT NULL DEFAULT 0 CHECK (peak_win_streak >= win_streak), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
-        CREATE TABLE IF NOT EXISTS character_pvp_skill_state ( character_id INTEGER PRIMARY KEY, skills_initialized INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
+        CREATE TABLE IF NOT EXISTS character_pvp_skill_state ( character_id INTEGER PRIMARY KEY, skills_initialized INTEGER NOT NULL DEFAULT 0, active_skill_build INTEGER NOT NULL DEFAULT 0 CHECK (active_skill_build IN (0, 1)), FOREIGN KEY (character_id) REFERENCES characters(character_id) ON DELETE CASCADE );
         CREATE TABLE IF NOT EXISTS character_pvp_legacy ( character_id INTEGER PRIMARY KEY, rank_point INTEGER NOT NULL, stat_a INTEGER NOT NULL, win_streak INTEGER NOT NULL, lose_streak INTEGER NOT NULL );
         CREATE TABLE IF NOT EXISTS pvp_matches ( match_id TEXT PRIMARY KEY, room_id INTEGER NOT NULL, listener_port INTEGER NOT NULL, channel_env INTEGER, battle_mode INTEGER NOT NULL, outcome_kind INTEGER NOT NULL CHECK (outcome_kind IN (0, 1, 2)), winner INTEGER, records_result INTEGER NOT NULL CHECK (records_result IN (0, 1)), game_day TEXT NOT NULL, completed_at INTEGER NOT NULL, CHECK (outcome_kind <> 2 OR records_result = 0) );
         CREATE TABLE IF NOT EXISTS pvp_match_results ( match_id TEXT NOT NULL REFERENCES pvp_matches(match_id), character_id INTEGER NOT NULL, seat INTEGER NOT NULL, team INTEGER NOT NULL, outcome INTEGER NOT NULL CHECK (outcome IN (0, 1, 2)), kills INTEGER NOT NULL CHECK (kills >= 0), deaths INTEGER NOT NULL CHECK (deaths >= 0), fled INTEGER NOT NULL CHECK (fled IN (0, 1)), counts_toward_daily INTEGER NOT NULL CHECK (counts_toward_daily IN (0, 1)), previous_grade INTEGER NOT NULL, grade INTEGER NOT NULL, experience_change INTEGER NOT NULL, experience INTEGER NOT NULL CHECK (experience >= 0), win_streak INTEGER NOT NULL CHECK (win_streak >= 0), PRIMARY KEY (match_id, character_id), CHECK (fled = 0 OR outcome = 1) );

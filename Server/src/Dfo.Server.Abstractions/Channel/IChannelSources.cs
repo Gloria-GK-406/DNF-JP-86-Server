@@ -32,6 +32,8 @@ public sealed record ChannelEntryOptions(
     int DefaultTownId,
     int SaintHornTownId)
 {
+    public IReadOnlyList<int> TotalMatchmakingChannelIds { get; init; } = [];
+
     public int PvpTownId { get; init; } = 10;
 
     public int RaidTownId { get; init; } = 19;

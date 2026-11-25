@@ -42,7 +42,6 @@ internal static class UnansweredReportsRegistration
 
         // Known reports that this server intentionally does not answer. A durability request is
         // not one of them: it changes a persisted equipment instance and has its own CMD reply.
-        services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameUseSkill);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameSyncItemSpace);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameOverflowInfo);
         services.RegisterTelemetryMessageHandler<UnansweredReportHandler>(ClientMessageType.GameLogDomainConnect);

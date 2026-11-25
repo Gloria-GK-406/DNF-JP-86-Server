@@ -6,9 +6,9 @@ namespace Dfo.Server.Application.Tests.Pvp;
 public sealed class PvpBattleModeTests
 {
     [Fact]
-    public void Only_individual_and_team_battles_are_supported()
+    public void Individual_team_and_relay_battles_are_supported()
     {
-        Assert.Equal([PvpBattleMode.Individual, PvpBattleMode.Team],
+        Assert.Equal([PvpBattleMode.Individual, PvpBattleMode.Team, PvpBattleMode.Relay, PvpBattleMode.TotalMatch],
             Enum.GetValues<PvpBattleMode>().Where(mode => PvpBattleModeCapabilities.Of(mode).Supported));
     }
 

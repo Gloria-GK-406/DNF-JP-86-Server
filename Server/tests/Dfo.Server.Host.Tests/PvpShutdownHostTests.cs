@@ -164,7 +164,7 @@ public sealed class PvpShutdownHostTests
     {
         public ValueTask<ChannelEntryIdentity> ResolveAsync(int listenerPort, CancellationToken cancellationToken) =>
             ValueTask.FromResult(listenerPort == DuelPort
-                ? new ChannelEntryIdentity(70, DuelPort, ChannelEntryKind.Pvp, 24)
+                ? new ChannelEntryIdentity(70, DuelPort, ChannelEntryKind.TraditionalDuel, 24)
                 : new ChannelEntryIdentity(11, listenerPort, ChannelEntryKind.General));
 
         public ValueTask<ChannelAdmissionRefusal?> RefuseAsync(ChannelEntryIdentity channel, AccountId accountId,

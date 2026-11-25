@@ -33,7 +33,7 @@ public interface IPvpRoomRuleService
     TimeSpan RankTimeout { get; }
 
     /// <summary>How long the result screen waits for the fighters before the room waits again.</summary>
-    TimeSpan ResultTimeout { get; }
+    TimeSpan ResultTimeout(PvpRoomOrigin origin);
 
     /// <summary>How long before the battle's time limit a client's time-out report is already taken.</summary>
     TimeSpan TimeoutReportLead { get; }
@@ -43,18 +43,6 @@ public interface IPvpRoomRuleService
 
     /// <summary>How long an invitation into a room stays open.</summary>
     TimeSpan InvitationLifetime { get; }
-
-    /// <summary>The team a member joining the room takes, given the teams of those already seated.</summary>
-    PvpTeam TeamForNewcomer(PvpBattleMode mode, IReadOnlyList<PvpTeam> seated);
-
-    /// <summary>The teams of the seated members, in seat order, once the room switches to <paramref name="mode"/>.</summary>
-    IReadOnlyList<PvpTeam> Reassign(PvpBattleMode mode, int members);
-
-    /// <summary>Whether a member may move to <paramref name="team"/> in a room of this mode.</summary>
-    bool AcceptsTeam(PvpBattleMode mode, PvpTeam team);
-
-    /// <summary>Why the owner may not start a battle now, or null when it may.</summary>
-    PvpRoomRefusal? RefuseStart(PvpBattleMode mode, IReadOnlyList<PvpRoomMemberFacts> members);
 
     /// <summary>Whether the owner may close one more seat, given how many members and open seats the room has.</summary>
     bool AllowsClosing(int members, int openSeats);

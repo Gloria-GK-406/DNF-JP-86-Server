@@ -13,7 +13,9 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.PvpDailyMission;
 using Dfo.Server.Protocol.Game.PvpRoom;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.PvpBattle;
@@ -31,6 +33,12 @@ public sealed record GameConnectP2pPvpCommand(NetworkDispatchContext Dispatch, C
 }
 
 public sealed record GamePvpHeartbeatCommand(NetworkDispatchContext Dispatch, PvpHeartbeatRequest Input) : IProtocolCommand<bool>
+{
+    public IClientNetworkMessage Message => Input;
+    public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
+}
+
+public sealed record GamePvpRequestFightCommand(NetworkDispatchContext Dispatch, PvpRequestFightRequest Input) : IProtocolCommand<bool>
 {
     public IClientNetworkMessage Message => Input;
     public ProtocolFrameMetadata Frame => new ProtocolFrameMetadata.Game(Input.Metadata);
@@ -70,11 +78,12 @@ internal sealed record PvpBattleStep(PvpRoomOutcome Outcome, PvpSettlementOutcom
 /// <remarks>
 /// No report has a command reply. A report the room owner ignores (a phase it does not belong to, a late or second
 /// one) and a malformed one are logged and change nothing; a malformed one never reaches the room owner.
-/// <c>COMPLETE_LOAD_PVP</c> and <c>CONNECT_P2P_PVP</c> never reach it at all (spec SA-1).
+/// Load and link reports affect automatic matchmaking admission only.
 /// </remarks>
 internal sealed class GamePvpBattleCommandHandler(
     ISelectedSessionDomainService sessions,
     IPvpRoomDomainService rooms,
+    IPvpMatchmakingDomainService matchmaking,
     IPvpSettlementDomainService settlements,
     IPvpRecordDomainService records,
     IPvpResultScreenDeferralDomainService deferrals,
@@ -90,32 +99,51 @@ internal sealed class GamePvpBattleCommandHandler(
     ICommandWorkUnits units,
     ICommandProjections projections,
     IGameCommandOutbox outbox,
+    IPvpDailyMissionQueryDomainService dailyMissions,
+    IPvpColosseumDomainService colosseum,
     ILogger<GamePvpBattleCommandHandler> logger)
     : ICommandHandler<GameCompleteLoadPvpCommand, bool>,
         ICommandHandler<GameConnectP2pPvpCommand, bool>,
         ICommandHandler<GamePvpHeartbeatCommand, bool>,
+        ICommandHandler<GamePvpRequestFightCommand, bool>,
+        ICommandHandler<GameSelectPvpTotalMatchCandidateCommand, bool>,
         ICommandHandler<GameDiePvpCharacterCommand, bool>,
         ICommandHandler<GamePvpTimeOutCommand, bool>,
         ICommandHandler<GamePvpRankResponseCommand, bool>,
         ICommandHandler<GameEndPvpResultCommand, bool>
 {
     /// <summary>
-    /// Only logged: the fight is on from the start (spec SA-1, 70Reference <c>start_pvp</c>), and an A21 client in an
-    /// ordinary room was not seen sending it.
+    /// Traditional rooms start on ready. Matchmaking waits for both clients to report loading and their peer link.
     /// </summary>
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameCompleteLoadPvpCommand command, CancellationToken ct)
     {
         var connection = command.Dispatch.Connection.ConnectionId;
+        if (!GameRequestFreshness.IsStale(command.Input.Metadata) && command.Input.Length == 0
+            && sessions.FindByConnection(connection) is { } actor
+            && rooms.FindSeated(actor.CharacterId)?.Admission is not null)
+            return RunAsync(execution, command.Dispatch, command.Input.Metadata, "MATCHED_COMPLETE_LOAD_PVP", null,
+                (session, token) => matchmaking.ReportTransportAsync(session, null, token), ct);
         logger.LogInformation("COMPLETE_LOAD_PVP connection={Connection} character={Character} length={Length}: logged only",
             connection, sessions.FindByConnection(connection)?.CharacterId.Value, command.Input.Length);
         return ValueTask.FromResult(false);
     }
 
-    /// <summary>Only logged, as <c>COMPLETE_LOAD_PVP</c> is.</summary>
+    /// <summary>A matched player reports its actual opponent's seat linked after completing its own load.</summary>
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameConnectP2pPvpCommand command, CancellationToken ct)
     {
         var input = command.Input;
         var connection = command.Dispatch.Connection.ConnectionId;
+        if (!GameRequestFreshness.IsStale(input.Metadata) && input.WellFormed && input.Peers.Length == PvpRoomSnapshot.SeatCount
+            && input.Peers.Select(peer => peer.Seat).Distinct().Count() == PvpRoomSnapshot.SeatCount
+            && sessions.FindByConnection(connection) is { } actor
+            && rooms.FindSeated(actor.CharacterId)?.Admission is not null)
+        {
+            byte peers = 0;
+            foreach (var peer in input.Peers)
+                if (peer.Status == 1) peers |= (byte)(1 << peer.Seat);
+            return RunAsync(execution, command.Dispatch, input.Metadata, "MATCHED_CONNECT_P2P_PVP", null,
+                (session, token) => matchmaking.ReportTransportAsync(session, peers, token), ct);
+        }
         logger.LogInformation("CONNECT_P2P_PVP connection={Connection} character={Character} peers={Peers}: logged only",
             connection, sessions.FindByConnection(connection)?.CharacterId.Value,
             input.WellFormed ? string.Join(",", input.Peers.Select(peer => $"{peer.Seat}:{peer.Status}")) : $"malformed {input.Length}-byte body");
@@ -126,6 +154,16 @@ internal sealed class GamePvpBattleCommandHandler(
         RunAsync(execution, command.Dispatch, command.Input.Metadata, "PVP_HEART_BEAT",
             command.Input.Length == 0 ? null : $"body is {command.Input.Length} bytes, not empty",
             (actor, token) => rooms.HeartbeatAsync(actor, token), ct, quiet: true);
+
+    public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GamePvpRequestFightCommand command, CancellationToken ct) =>
+        RunAsync(execution, command.Dispatch, command.Input.Metadata, "PVP_REQUEST_FIGHT",
+            command.Input.Length == 0 ? null : $"body is {command.Input.Length} bytes, not empty",
+            (actor, token) => rooms.RequestRelayFightAsync(actor, token), ct);
+
+    public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSelectPvpTotalMatchCandidateCommand command, CancellationToken ct) =>
+        RunAsync(execution, command.Dispatch, command.Input.Metadata, "SET_PVP_TOTAL_MATCH_CHARAC_ORDER",
+            command.Input.WellFormed ? null : "body is not exactly one byte",
+            (actor, token) => rooms.SelectTotalMatchCandidateAsync(actor, command.Input.Ordinal, token), ct);
 
     /// <summary>
     /// The sender must be the victim it names; the killer it names counts only as the fighter of this battle holding
@@ -221,24 +259,33 @@ internal sealed class GamePvpBattleCommandHandler(
     }
 
     private PvpBattleProjector Projector() => new(new PvpRoomProjector(sessions, lobby, currentViews, online, onlineUsers, endpoints,
-        townAreas, parties, projectionState, weakness, projections, outbox, logger, deferrals), logger);
+        townAreas, parties, projectionState, weakness, projections, outbox, logger, deferrals, dailyMissions: new PvpDailyMissionProjection(dailyMissions, outbox, colosseum)), logger);
 }
 
 /// <summary>Reads the records a settlement's <c>0x0030</c> frames show, after the settlement committed.</summary>
+internal sealed record PvpBattleResultViews(
+    IReadOnlyDictionary<CharacterId, PvpRecordView> Records, IReadOnlyDictionary<byte, PvpExperienceBand> PreviousBands);
+
 internal static class PvpBattleRecords
 {
-    public static async ValueTask<IReadOnlyDictionary<CharacterId, PvpRecordView>> ReadAsync(ICommandWorkUnits units,
+    public static async ValueTask<PvpBattleResultViews> ReadAsync(ICommandWorkUnits units,
         IPvpRecordDomainService records, CommandExecutionContext execution, PvpSettlementOutcome? settled, CancellationToken ct)
     {
         var characters = PvpBattleProjector.RecordsFor(settled);
-        if (characters.Count == 0) return ImmutableDictionary<CharacterId, PvpRecordView>.Empty;
-        return await units.ReadOnlyAsync<IReadOnlyDictionary<CharacterId, PvpRecordView>>(execution,
+        if (characters.Count == 0)
+            return new(ImmutableDictionary<CharacterId, PvpRecordView>.Empty, ImmutableDictionary<byte, PvpExperienceBand>.Empty);
+        return await units.ReadOnlyAsync<PvpBattleResultViews>(execution,
             new CommandWorkUnitDeclaration("pvp.records", []), async token =>
             {
                 var views = new Dictionary<CharacterId, PvpRecordView>();
                 foreach (var character in characters)
                     views[character] = await records.ViewAsync(character, token).ConfigureAwait(false);
-                return views;
+                IReadOnlyDictionary<byte, PvpExperienceBand> previousBands =
+                    settled is PvpSettlementOutcome.Settled { Conclusion.Mode: PvpBattleMode.TotalMatch } written
+                    ? written.Stored.Results.Select(result => result.PreviousGrade).Distinct()
+                        .ToDictionary(grade => grade, records.ExperienceBandOf)
+                    : ImmutableDictionary<byte, PvpExperienceBand>.Empty;
+                return new(views, previousBands);
             }, ct).ConfigureAwait(false);
     }
 }
@@ -262,6 +309,13 @@ public sealed class PvpHeartbeatHandler(ICommandBus commands) : ClientMessageHan
 {
     protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, PvpHeartbeatRequest message, CancellationToken ct) =>
         _ = await commands.SendAsync(new GamePvpHeartbeatCommand(context, message), ct).ConfigureAwait(false);
+}
+
+public sealed class PvpRequestFightHandler(ICommandBus commands) : ClientMessageHandler<PvpRequestFightRequest>,
+    IProtocolCommandMessageHandler<GamePvpRequestFightCommand>
+{
+    protected override async ValueTask HandleMessageAsync(NetworkDispatchContext context, PvpRequestFightRequest message, CancellationToken cancellationToken) =>
+        _ = await commands.SendAsync(new GamePvpRequestFightCommand(context, message), cancellationToken).ConfigureAwait(false);
 }
 
 public sealed class DiePvpCharacterHandler(ICommandBus commands) : ClientMessageHandler<DiePvpCharacterRequest>,

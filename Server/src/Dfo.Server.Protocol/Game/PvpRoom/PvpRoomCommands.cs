@@ -10,6 +10,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.PvpRoom;
@@ -58,7 +59,7 @@ public sealed record GameSetPvpMapIndexCommand(NetworkDispatchContext Dispatch, 
 
 /// <summary>The duel room commands: one room change in one write unit each, projected once the unit has returned.</summary>
 /// <remarks>
-/// A refusal, from the room owner or for a request it never sees (malformed, a practice room, an observer
+/// A refusal, from the room owner or for a request it never sees (malformed, an unknown
 /// seat), answers <c>00 reason</c> on the command's own number (<see cref="PvpRoomRefusalCode"/>). A success
 /// answers only through the projection; making a room has no reply of its own (upstream), entering one has
 /// <c>01 + 8 × ready</c> in the newcomer's own frames. Quick join first acknowledges its own request.
@@ -79,7 +80,9 @@ internal sealed class GamePvpRoomCommandHandler(
     ICommandProjections projections,
     IGameCommandOutbox outbox,
     IPvpResultScreenDeferralDomainService deferrals,
-    ILogger<GamePvpRoomCommandHandler> logger)
+    ILogger<GamePvpRoomCommandHandler> logger,
+    IPvpTotalMatchCandidateQueryDomainService totalMatchCandidates,
+    TimeProvider clock)
     : ICommandHandler<GameMakePvpRoomCommand, bool>,
         ICommandHandler<GameEnterPvpRoomCommand, bool>,
         ICommandHandler<GameQuickJoinPvpRoomCommand, bool>,
@@ -98,15 +101,10 @@ internal sealed class GamePvpRoomCommandHandler(
     {
         var input = command.Input.Input;
         return RunAsync(execution, command.Dispatch, command.Input.Metadata, "MAKE_PVP_ROOM", PvpRoomCommandRefusal.MakeRoom,
-            input switch
-            {
-                null => "malformed body",
-                // design-r1 §5: the practice room is not opened in the first phase.
-                { Special: 1 } => "practice room",
-                _ => null,
-            },
+            input is null ? "malformed body" : null,
             (actor, token) => rooms.CreateAsync(new PvpRoomCreation(
-                actor, input!.NameType, input.Name, input.Password, input.MapIndex, PvpBattleMode.Team), token), ct);
+                actor, input!.NameType, input.Name, input.Password, input.MapIndex,
+                input.Special == 1 ? PvpBattleMode.Practice : PvpBattleMode.Team), token), ct);
     }
 
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameEnterPvpRoomCommand command, CancellationToken ct) =>
@@ -125,8 +123,7 @@ internal sealed class GamePvpRoomCommandHandler(
         var team = PvpRoomPayloadCodec.TeamOf(input.State);
         var rejected = !input.WellFormed ? "malformed body"
             : input.Seat >= PvpRoomSnapshot.SeatCount ? "seat out of range"
-            : team is null && input.State is not (CloseOrLeave or OpenSeat)
-                // 3 and 4 are the observer states; the first phase has no observers.
+            : team is null && input.State is not ((byte)PvpObservation.Standard or (byte)PvpObservation.Alternate or CloseOrLeave or OpenSeat)
                 ? $"seat state {input.State} not supported" : null;
         return RunAsync(execution, command.Dispatch, input.Metadata, "SET_PVP_SEAT_STATE", PvpRoomCommandRefusal.SeatState, rejected,
             (actor, token) =>
@@ -161,8 +158,13 @@ internal sealed class GamePvpRoomCommandHandler(
     private (PvpSeatAction Action, PvpTeam Team) SeatAction(SelectedSessionIdentity actor, byte seat, byte state, PvpTeam? team)
     {
         if (team is { } side) return (PvpSeatAction.ChangeTeam, side);
-        if (state == OpenSeat) return (PvpSeatAction.Open, PvpTeam.Individual);
+        if (state == (byte)PvpObservation.Standard) return (PvpSeatAction.Observe, PvpTeam.Individual);
+        if (state == (byte)PvpObservation.Alternate) return (PvpSeatAction.ObserveAlternate, PvpTeam.Individual);
         var room = rooms.FindSeated(actor.CharacterId);
+        if (state == OpenSeat)
+            return room is { Admission: not null } && room.SeatOf(actor.CharacterId) == seat
+                ? (PvpSeatAction.Leave, PvpTeam.Individual)
+                : (PvpSeatAction.Open, PvpTeam.Individual);
         if (room is null || room.SeatOf(actor.CharacterId) == seat) return (PvpSeatAction.Leave, PvpTeam.Individual);
         return room.Seats[seat] is PvpSeat.Taken ? (PvpSeatAction.Kick, PvpTeam.Individual) : (PvpSeatAction.Close, PvpTeam.Individual);
     }
@@ -198,6 +200,9 @@ internal sealed class GamePvpRoomCommandHandler(
             (_, token) => act(actor, token), ct).ConfigureAwait(false);
         switch (outcome)
         {
+            case PvpRoomOutcome.Ignored:
+                logger.LogInformation("{Command} character={Character} ignored in practice room", name, actor.CharacterId.Value);
+                return true;
             case PvpRoomOutcome.Refused refused:
                 logger.LogInformation("{Command} character={Character} refused: {Refusal}", name, actor.CharacterId.Value, refused.Reason);
                 await outbox.RegisterCmdAsync(connection, refusal(PvpRoomRefusalCode.Of(refused.Reason)), ct).ConfigureAwait(false);
@@ -215,7 +220,8 @@ internal sealed class GamePvpRoomCommandHandler(
     }
 
     private PvpRoomProjector Projector() => new(sessions, lobby, currentViews, online, onlineUsers, endpoints, townAreas, parties,
-        projectionState, weakness, projections, outbox, logger, deferrals);
+        projectionState, weakness, projections, outbox, logger, deferrals,
+        new PvpTotalMatchCandidateProjection(rooms, totalMatchCandidates, outbox, clock));
 }
 
 public sealed class MakePvpRoomHandler(ICommandBus commands) : ClientMessageHandler<MakePvpRoomRequest>,
