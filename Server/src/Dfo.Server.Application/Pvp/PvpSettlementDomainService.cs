@@ -21,7 +21,8 @@ internal sealed class PvpSettlementDomainService(
     PvpTraditionalDuelDomainService traditional,
     PvpDailyMissions dailyMissions,
     IEventService events,
-    PvpColosseumDomainService colosseum) : IPvpSettlementDomainService
+    PvpColosseumDomainService colosseum,
+    PvpMatchmakingRuleService matchmakingRules) : IPvpSettlementDomainService
 {
     private static readonly PvpChannelEntitlements NoRecord = new(false, false, 0, 0);
 
@@ -70,7 +71,7 @@ internal sealed class PvpSettlementDomainService(
         var traditionalRecords = isTraditional && entitlements.RecordsResult
             && PvpTraditionalDuelDomainService.RecordsResult(conclusion);
         var individualColosseum = conclusion.Mode == PvpBattleMode.Individual
-            && !conclusion.ColosseumRuns.IsEmpty && PvpRatingRules.AppliesTo(conclusion);
+            && !conclusion.ColosseumRuns.IsEmpty && matchmakingRules.AppliesTo(conclusion);
         // Spec RQ-052: a battle counts toward the game day it started on, whenever it ends.
         var gameDay = rules.GameDayOf(conclusion.StartedAt);
         var ratings = isTraditional ? null : await duel.RatingsAsync(conclusion, cancellationToken).ConfigureAwait(false);

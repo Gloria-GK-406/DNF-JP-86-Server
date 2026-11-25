@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Pvp;
@@ -25,6 +26,38 @@ internal sealed class PvpDailyMissionRuleService(IPvpDailyMissionDefinitionSourc
             }
         }
     }
+
+    public PvpDailyMissionPool? PoolOf(ChannelEntryIdentity channel) => channel.Kind switch
+    {
+        ChannelEntryKind.MatchmakingDuel => PvpDailyMissionPool.Casual,
+        ChannelEntryKind.TotalMatchDuel => PvpDailyMissionPool.TotalMatch,
+        _ => null,
+    };
+
+    public IEnumerable<(ushort MissionId, int Limit)> HealthReportLimits(ChannelEntryIdentity channel,
+        PvpBattleMode mode, int opposingFighters, IReadOnlyList<ushort> missionIds)
+    {
+        var pool = mode == PvpBattleMode.TotalMatch ? PvpDailyMissionPool.TotalMatch : PvpDailyMissionPool.Casual;
+        if (PoolOf(channel) != pool) yield break;
+        var missions = definitions.Load();
+        var opponents = mode == PvpBattleMode.TotalMatch ? PvpTotalMatchTeam.MemberCount : opposingFighters;
+        foreach (var missionId in missionIds.Distinct())
+        {
+            var mission = missions.FirstOrDefault(value => value.Id == missionId && value.Pool == pool);
+            var limit = mission?.Condition switch
+            {
+                PvpDailyMissionCondition.ReduceHealth => opponents,
+                PvpDailyMissionCondition.RemainingHealth => 1,
+                _ => 0,
+            };
+            if (limit > 0) yield return (missionId, limit);
+        }
+    }
+
+    public bool CanReportWinPose(ChannelEntryIdentity channel, ushort missionId, byte ordinal) =>
+        PoolOf(channel) == PvpDailyMissionPool.Casual && definitions.Load().Any(mission =>
+            mission.Id == missionId && mission.Pool == PvpDailyMissionPool.Casual
+            && mission.Condition == PvpDailyMissionCondition.WinPose && ordinal < mission.Parameter);
 
     private static bool CanAssign(PvpDailyMissionDefinition mission) => mission.Condition switch
     {

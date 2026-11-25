@@ -17,7 +17,8 @@ internal sealed class PvpDailyMissions(
     TimeProvider clock,
     IDomainTransactionAccessor transactions,
     IItemDomainStore inventory,
-    ICharacterIdentityQueryDomainService identities) : IPvpDailyMissionQueryDomainService
+    ICharacterIdentityQueryDomainService identities,
+    PvpMatchmakingRuleService matchmakingRules) : IPvpDailyMissionQueryDomainService
 {
 
     private readonly PvpVictoryEmblems emblems = new(transactions, inventory);
@@ -25,7 +26,7 @@ internal sealed class PvpDailyMissions(
     public async ValueTask<IReadOnlyList<PvpDailyMission>> CurrentAsync(SelectedSessionIdentity session, ChannelEntryIdentity channel,
         CancellationToken cancellationToken)
     {
-        if (session.ListenerPort != channel.ListenerPort || PoolOf(channel) is not { } pool) return [];
+        if (session.ListenerPort != channel.ListenerPort || missionRules.PoolOf(channel) is not { } pool) return [];
         var day = rules.GameDayOf(clock.GetUtcNow());
         var progress = await missions.ReadDayAsync(session.CharacterId, day, cancellationToken).ConfigureAwait(false);
         var result = new List<PvpDailyMission>();
@@ -48,8 +49,8 @@ internal sealed class PvpDailyMissions(
     public async ValueTask<IReadOnlyDictionary<CharacterId, int>> AdvanceAsync(PvpMatchConclusion battle, DateOnly day,
         CancellationToken cancellationToken, IReadOnlySet<int>? colosseumWinners = null)
     {
-        if (PoolOf(battle.Channel) is not { } pool || (pool == PvpDailyMissionPool.TotalMatch
-                ? !PvpRatingRules.AppliesToTotalMatch(battle) : !PvpRatingRules.AppliesTo(battle)))
+        if (missionRules.PoolOf(battle.Channel) is not { } pool || (pool == PvpDailyMissionPool.TotalMatch
+                ? !matchmakingRules.AppliesToTotalMatch(battle) : !matchmakingRules.AppliesTo(battle)))
             return ImmutableDictionary<CharacterId, int>.Empty;
 
         var awarded = new Dictionary<CharacterId, int>();
@@ -120,11 +121,4 @@ internal sealed class PvpDailyMissions(
         var counts = await missions.ReadMetricsAsync(character, day, mission.Id, cancellationToken).ConfigureAwait(false);
         return Enumerable.Range(0, mission.Parameter).Min(index => counts.GetValueOrDefault(index)) - before;
     }
-
-    private static PvpDailyMissionPool? PoolOf(ChannelEntryIdentity channel) => channel.Kind switch
-    {
-        ChannelEntryKind.MatchmakingDuel => PvpDailyMissionPool.Casual,
-        ChannelEntryKind.TotalMatchDuel => PvpDailyMissionPool.TotalMatch,
-        _ => null,
-    };
 }

@@ -81,7 +81,7 @@ public sealed class PvpSettlementRuleServiceTests
         Assert.Equal(DateOnly.Parse(day), Unarchived().GameDayOf(DateTimeOffset.Parse(startedAt)));
     }
 
-    private static PvpSettlementRuleService Unarchived() => new(new NoGrades(), Days);
+    private static PvpSettlementRuleService Unarchived() => new(new NoGrades(), Days, new PvpMatchmakingRuleService());
 
     private static ValueTask<ChannelEntryIdentity> Classify(byte environment)
     {

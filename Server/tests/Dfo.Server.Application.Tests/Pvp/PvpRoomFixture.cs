@@ -46,26 +46,28 @@ internal sealed class PvpRoomFixture
         Scope = scope;
         IDomainTransactionAccessor transactions = scope is null ? Transactions : scope;
         Sessions = TestSessions.Directory(out state);
-        BattleRules = new PvpSettlementRuleService(new FixedGrades(), PvpSettlementRuleServiceTests.Days);
+        var matchmakingRules = new PvpMatchmakingRuleService();
+        BattleRules = new PvpSettlementRuleService(new FixedGrades(), PvpSettlementRuleServiceTests.Days, matchmakingRules);
         Records = new PvpRecordStore(transactions);
         Events = new RecordedEvents(transactions);
         var candidates = TestRequired.Absent<IPvpTotalMatchCandidateQueryDomainService>((method, _) =>
             method.Name == nameof(IPvpTotalMatchCandidateQueryDomainService.ReadAsync)
                 ? ValueTask.FromResult<PvpTotalMatchLineup?>(null) : null);
-        var duel = new PvpDuelDomainService(Records, PvpRatingSeason.First);
-        var traditional = new PvpTraditionalDuelDomainService(Records, PvpRatingSeason.First, candidates);
-        var daily = new PvpDailyMissions(new PvpDailyMissionRuleService(TestRequired.Absent<IPvpDailyMissionDefinitionSource>()),
-            TestRequired.Absent<IPvpDailyMissionStore>(), BattleRules, Clock, transactions,
-            TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<ICharacterIdentityQueryDomainService>());
+        var duel = new PvpDuelDomainService(Records, PvpRatingSeason.First, matchmakingRules);
+        var traditional = new PvpTraditionalDuelDomainService(Records, PvpRatingSeason.First, candidates, matchmakingRules);
+        var missionRules = new PvpDailyMissionRuleService(TestRequired.Absent<IPvpDailyMissionDefinitionSource>());
+        var daily = new PvpDailyMissions(missionRules, TestRequired.Absent<IPvpDailyMissionStore>(), BattleRules, Clock,
+            transactions, TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<ICharacterIdentityQueryDomainService>(),
+            matchmakingRules);
         var colosseum = new PvpColosseumDomainService(TestRequired.Absent<IPvpColosseumStore>(),
             new PvpColosseumRuleService(TestRequired.Absent<IPvpColosseumRuleSource>()), BattleRules, Clock,
-            duel, traditional, transactions, TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<IItemDeliveryDomainService>());
+            duel, traditional, transactions, TestRequired.Absent<IItemDomainStore>(), TestRequired.Absent<IItemDeliveryDomainService>(), matchmakingRules);
         Rooms = new PvpRoomDomainService(transactions, Sessions, new Channels(this), Parties, Relations, Lobby, Town,
             new Positions(), new PvpRoomRuleService(new Maps()), BattleRules, Wake, Clock, NullLogger<PvpRoomDomainService>.Instance,
             candidates, TestRequired.Absent<ICharacterIdentityQueryDomainService>(), traditional,
             TestRequired.Absent<ICharacterSkillRuleService>(),
-            TestRequired.Absent<ICharacterSkillStateDomainService>(), colosseum);
-        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, duel, traditional, daily, Events, colosseum);
+            TestRequired.Absent<ICharacterSkillStateDomainService>(), colosseum, matchmakingRules, missionRules);
+        Settlement = new PvpSettlementDomainService(Rooms, Records, BattleRules, duel, traditional, daily, Events, colosseum, matchmakingRules);
     }
 
     public DomainTransactionScope? Scope { get; }

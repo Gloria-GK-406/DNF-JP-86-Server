@@ -12,7 +12,8 @@ internal sealed class PvpColosseumDomainService(
     IPvpColosseumStore store, PvpColosseumRuleService rules, IPvpSettlementRuleService days, TimeProvider clock,
     PvpDuelDomainService duel, PvpTraditionalDuelDomainService traditional,
     IDomainTransactionAccessor transactions, IItemDomainStore inventory,
-    IItemDeliveryDomainService delivery) : IPvpColosseumDomainService
+    IItemDeliveryDomainService delivery,
+    PvpMatchmakingRuleService matchmakingRules) : IPvpColosseumDomainService
 {
     private readonly PvpVictoryEmblems emblems = new(transactions, inventory);
 
@@ -61,7 +62,7 @@ internal sealed class PvpColosseumDomainService(
     {
         var winners = new HashSet<int>();
         if (battle.ColosseumRuns.IsEmpty || battle.Terminal.Kind != PvpMatchOutcomeKind.Decided
-            || !(PvpRatingRules.AppliesTo(battle) || PvpRatingRules.AppliesToTotalMatch(battle))
+            || !(matchmakingRules.AppliesTo(battle) || matchmakingRules.AppliesToTotalMatch(battle))
             || ChannelKind(battle.Channel) is not { } kind)
             return winners;
 

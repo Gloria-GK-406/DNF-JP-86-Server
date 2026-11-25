@@ -42,7 +42,9 @@ internal sealed partial class PvpRoomDomainService(
     PvpTraditionalDuelDomainService traditional,
     ICharacterSkillRuleService skillRules,
     ICharacterSkillStateDomainService skillStates,
-    PvpColosseumDomainService colosseum) : IPvpRoomDomainService, IPvpMatchmakingDomainService
+    PvpColosseumDomainService colosseum,
+    PvpMatchmakingRuleService matchmakingRules,
+    PvpDailyMissionRuleService missionRules) : IPvpRoomDomainService, IPvpMatchmakingDomainService
 {
     // A due item still waiting after a failed attempt is retried after a quarter of how long it has been
     // overdue, within these bounds: neither forgotten nor spun on.
@@ -599,19 +601,10 @@ internal sealed partial class PvpRoomDomainService(
 
         var previous = match.DailyHealthReports.GetValueOrDefault(seat) ?? ImmutableDictionary<ushort, int>.Empty;
         var next = previous;
-        var isTotal = room.Snapshot.Mode == PvpBattleMode.TotalMatch;
-        var opponentLimit = isTotal
-            ? 3
-            : match.Fighters.Count(fighter => fighter.Team != match.Fighters[index].Team);
-        foreach (var missionId in missionIds.Distinct())
+        var opponents = match.Fighters.Count(fighter => fighter.Team != match.Fighters[index].Team);
+        foreach (var (missionId, limit) in missionRules.HealthReportLimits(room.Snapshot.Channel,
+                     room.Snapshot.Mode, opponents, missionIds))
         {
-            var limit = missionId switch
-            {
-                116 when !isTotal => opponentLimit,
-                117 when !isTotal => 1,
-                138 when isTotal => opponentLimit,
-                _ => 0,
-            };
             var count = next.GetValueOrDefault(missionId);
             if (count < limit) next = next.SetItem(missionId, count + 1);
         }
@@ -628,12 +621,11 @@ internal sealed partial class PvpRoomDomainService(
     {
         GameplayWriteAssertion.Writing(nameof(RecordDailyWinPose));
         var pending = Pending;
-        if (missionId != 133 || ordinal >= 3
-            || Acting(pending, session) is not (var room, var seat)
-            || room.Snapshot is not { Channel.Kind: ChannelEntryKind.MatchmakingDuel, IsMatchmaking: true, Match: { } match }
+        if (Acting(pending, session) is not (var room, var seat)
+            || room.Snapshot is not { Channel.SupportsMatchmaking: true, IsMatchmaking: true, Match: { } match }
             || room.Snapshot.Phase is not (PvpRoomPhase.Fighting or PvpRoomPhase.AwaitRank)
             || match.FighterOf(session) is not { } index || match.Fighters[index].Departed || match.Fighters[index].Fled
-            || match.DailyWinPoses.ContainsKey(seat))
+            || match.DailyWinPoses.ContainsKey(seat) || !missionRules.CanReportWinPose(room.Snapshot.Channel, missionId, ordinal))
             return false;
         var poses = match.DailyWinPoses.Add(seat, ordinal);
         var snapshot = room.Snapshot with { Match = match with { DailyWinPoses = poses } };

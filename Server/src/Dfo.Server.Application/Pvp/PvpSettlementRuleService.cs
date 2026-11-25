@@ -4,7 +4,8 @@ using Dfo.Server.Data.Channel;
 
 namespace Dfo.Server.Application.Pvp;
 
-internal sealed class PvpSettlementRuleService(IPvpGradeDefinitionSource grades, IDailyResetRuleService days)
+internal sealed class PvpSettlementRuleService(IPvpGradeDefinitionSource grades, IDailyResetRuleService days,
+    PvpMatchmakingRuleService matchmakingRules)
     : IPvpSettlementRuleService
 {
     // Every channel ChannelEntryDomainService classifies as a duel channel must have a row here; the host's
@@ -12,7 +13,7 @@ internal sealed class PvpSettlementRuleService(IPvpGradeDefinitionSource grades,
     public PvpChannelEntitlements EntitlementsOf(ChannelEntryIdentity channel, PvpBattleMode? mode = null)
     {
         ArgumentNullException.ThrowIfNull(channel);
-        if (mode is { } matchMode && PvpTraditionalDuelDomainService.AllowsMatchmaking(channel, matchMode))
+        if (mode is { } matchMode && matchmakingRules.AllowsTotalMatchQueue(channel, matchMode))
             return PvpTraditionalDuelDomainService.Entitlements;
         return channel.Kind switch
         {

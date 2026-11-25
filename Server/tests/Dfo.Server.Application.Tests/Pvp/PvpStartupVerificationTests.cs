@@ -70,7 +70,7 @@ public sealed class PvpStartupVerificationTests
         return new PvpStartupVerification(content,
             new ChannelEntryDomainService(content, options ?? ChannelEntryOptions.Legacy, listeners, new NoDeployment(),
                 TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>()),
-            listeners, settlement ?? new PvpSettlementRuleService(grades, PvpSettlementRuleServiceTests.Days),
+            listeners, settlement ?? new PvpSettlementRuleService(grades, PvpSettlementRuleServiceTests.Days, new PvpMatchmakingRuleService()),
             new PvpRoomRuleService(maps));
     }
 

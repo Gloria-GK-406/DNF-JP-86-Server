@@ -23,9 +23,9 @@ internal sealed partial class PvpRoomDomainService
         var pending = Pending;
         var fighterCount = PvpMatchAdmission.FighterCount(mode);
         // Keep each player's two rating updates in fight order even when that player reconnects before settlement.
-        var awaitingRating = pending.Conclusions().Where(PvpRatingRules.AppliesTo)
+        var awaitingRating = pending.Conclusions().Where(matchmakingRules.AppliesTo)
             .SelectMany(battle => battle.Fighters).Select(fighter => fighter.CharacterId).ToHashSet();
-        var awaitingGroupRating = pending.Conclusions().Where(PvpRatingRules.AppliesToTotalMatch)
+        var awaitingGroupRating = pending.Conclusions().Where(matchmakingRules.AppliesToTotalMatch)
             .SelectMany(battle => battle.Fighters).Select(fighter => fighter.Session.AccountId).ToHashSet();
         if (fighterCount == 0) return new(PvpMatchmakingDecision.UnsupportedMode);
         if (pending.Closing) return new(PvpMatchmakingDecision.ServerClosing);
@@ -33,9 +33,9 @@ internal sealed partial class PvpRoomDomainService
         if (!CanQueue(pending, session)) return new(PvpMatchmakingDecision.UnavailableInLobby);
         if (await MatchmakingChannelAsync(session, cancellationToken).ConfigureAwait(false) is not { } channel)
             return new(PvpMatchmakingDecision.ChannelUnavailable);
-        if (!PvpDuelDomainService.AllowsMatchmaking(channel, mode))
+        if (!matchmakingRules.AllowsOrdinaryQueue(channel, mode))
         {
-            if (!PvpTraditionalDuelDomainService.AllowsMatchmaking(channel, mode))
+            if (!matchmakingRules.AllowsTotalMatchQueue(channel, mode))
                 return new(PvpMatchmakingDecision.ModeUnavailableInChannel);
             if (awaitingGroupRating.Contains(session.AccountId))
                 return new(PvpMatchmakingDecision.PriorResultPending);
@@ -136,8 +136,8 @@ internal sealed partial class PvpRoomDomainService
         var pending = Pending;
         if (!InWorld(session) || pending.FindSeated(session.CharacterId)?.Snapshot.IsMatchmaking == true
             || await MatchmakingChannelAsync(session, cancellationToken).ConfigureAwait(false) is not { } channel
-            || !(PvpDuelDomainService.AllowsMatchmaking(channel, mode)
-                || PvpTraditionalDuelDomainService.AllowsMatchmaking(channel, mode)))
+            || !(matchmakingRules.AllowsOrdinaryQueue(channel, mode)
+                || matchmakingRules.AllowsTotalMatchQueue(channel, mode)))
             return false;
         pending.RemoveMatchTicket(session, mode);
         return true;

@@ -1,12 +1,29 @@
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Pvp;
 
-internal static class PvpRatingRules
+internal sealed class PvpMatchmakingRuleService
 {
-    public static bool AppliesTo(PvpMatchConclusion battle) =>
+    public bool AllowsOrdinaryQueue(ChannelEntryIdentity channel, PvpBattleMode mode) =>
+        channel.SupportsMatchmaking && mode is PvpBattleMode.Individual or PvpBattleMode.Relay;
+
+    public bool AllowsTotalMatchQueue(ChannelEntryIdentity channel, PvpBattleMode mode) =>
+        channel.AllowsTotalMatchmaking && mode == PvpBattleMode.TotalMatch;
+
+    public bool HasCompletedPlacement(PvpRatingStanding standing) =>
+        standing.PlacementGames >= PvpRatingStanding.PlacementLimit;
+
+    public bool MeetsRatingFloor(PvpRatingStanding standing, int minimumRp) =>
+        HasCompletedPlacement(standing) && standing.Points >= minimumRp;
+
+    public bool HasRequiredTotalMatchEquipment(PvpTotalMatchLineup lineup) =>
+        lineup.Candidates.All(candidate =>
+            Enumerable.Range(12, 10).All(slot => candidate.Equipment.Any(item => item.SlotIndex == slot)));
+
+    public bool AppliesTo(PvpMatchConclusion battle) =>
         battle.Origin == PvpRoomOrigin.Matchmaking
         && battle.Channel.SupportsMatchmaking
         && battle.Mode is PvpBattleMode.Individual or PvpBattleMode.Relay
@@ -14,13 +31,13 @@ internal static class PvpRatingRules
         && battle.Terminal.Kind != PvpMatchOutcomeKind.Cancelled
         && !battle.Fighters.All(fighter => fighter.Fled);
 
-    public static bool AppliesToTotalMatch(PvpMatchConclusion battle) =>
+    public bool AppliesToTotalMatch(PvpMatchConclusion battle) =>
         battle.Mode == PvpBattleMode.TotalMatch && battle.Origin == PvpRoomOrigin.Matchmaking
         && battle.Channel.AllowsTotalMatchmaking
         && battle.Fighters.Length == 2 && !battle.TotalMatchAppearances.IsDefaultOrEmpty
         && battle.Terminal.Kind != PvpMatchOutcomeKind.Cancelled && !battle.Fighters.All(fighter => fighter.Fled);
 
-    public static Dictionary<CharacterId, PvpRatingChange> Rate(PvpMatchConclusion battle,
+    public Dictionary<CharacterId, PvpRatingChange> Rate(PvpMatchConclusion battle,
         IReadOnlyDictionary<CharacterId, PvpRatingStanding> standings, PvpRatingSeason season)
     {
         var fighters = battle.Fighters;
@@ -53,7 +70,23 @@ internal static class PvpRatingRules
         };
     }
 
-    internal static PvpRatingChange Update(PvpRatingStanding own, double opponentAdvantage, double score, PvpRatingSeason season)
+    public IReadOnlyDictionary<AccountId, PvpRatingChange> RateTotalMatch(PvpMatchConclusion battle,
+        PvpRatingStanding own, PvpRatingStanding opponent, PvpRatingSeason season)
+    {
+        var first = battle.Fighters[0];
+        var second = battle.Fighters[1];
+        var score = first.Fled ? 0.0 : second.Fled ? 1.0
+            : battle.Terminal.Kind == PvpMatchOutcomeKind.Draw ? 0.5
+            : battle.Terminal.Winner == (byte)first.Team ? 1.0 : 0.0;
+        var advantage = (double)opponent.Points - own.Points;
+        return new Dictionary<AccountId, PvpRatingChange>
+        {
+            [first.Session.AccountId] = Update(own, advantage, score, season),
+            [second.Session.AccountId] = Update(opponent, -advantage, 1 - score, season),
+        };
+    }
+
+    private static PvpRatingChange Update(PvpRatingStanding own, double opponentAdvantage, double score, PvpRatingSeason season)
     {
         var placing = own.PlacementGames < PvpRatingStanding.PlacementLimit;
         var expected = 1 / (1 + Math.Pow(10, opponentAdvantage / 400));

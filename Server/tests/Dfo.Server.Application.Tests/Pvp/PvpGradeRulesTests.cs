@@ -178,7 +178,7 @@ public sealed class PvpGradeRulesTests
     {
         Skip.IfNot(ContentArchive.Available, ContentArchive.SkipReason);
         return new PvpSettlementRuleService(Archive.Value.GetRequiredService<IPvpGradeDefinitionSource>(),
-            PvpSettlementRuleServiceTests.Days);
+            PvpSettlementRuleServiceTests.Days, new PvpMatchmakingRuleService());
     }
 
     private static readonly Lazy<ServiceProvider> Archive = new(ContentArchive.CreateContentProvider);

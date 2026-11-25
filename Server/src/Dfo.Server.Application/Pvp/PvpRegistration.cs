@@ -14,6 +14,7 @@ internal static class PvpRegistration
     {
         // One owner behind two faces: readers take the query face only.
         services.TryAddSingleton<PvpRoomDomainService>();
+        services.TryAddSingleton<PvpMatchmakingRuleService>();
         services.TryAddSingleton<PvpDuelDomainService>();
         services.TryAddSingleton<PvpTraditionalDuelDomainService>();
         services.TryAddSingleton<PvpDailyMissionRuleService>();
