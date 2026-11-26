@@ -43,3 +43,4 @@ workspace:
 | ---: | --- | --- | --- | --- | --- | --- |
 | 1 | spec-001 | [任务契约](attempts/spec-001-persist-guild-membership/TaskContract.md) | 公会创建和原子成员关系 | SC-01、SC-02、SC-03 | [完成](attempts/spec-001-persist-guild-membership/spec-result.md) | `872a4808c173d60ab05dd42d4852992049937369` |
 | 2 | spec-002 | [任务契约](attempts/spec-002-create-guild-in-a21/TaskContract.md) | A21 单人建会、身份恢复与推荐频道验收 | SC-01、SC-02、SC-04、SC-09、SC-10 | [完成](attempts/spec-002-create-guild-in-a21/spec-result.md) | `0d1e7dbb8eebbe3f9c3232a91a2aa598b0c4169d` |
+| 3 | spec-003 | [任务契约](attempts/spec-003-view-guild-roster/TaskContract.md) | A21 公会成员名单 | SC-01、SC-02、SC-09、SC-10 | | |
