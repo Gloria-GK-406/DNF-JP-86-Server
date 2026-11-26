@@ -10,52 +10,71 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Game.GuildDonationHistory;
 
-public sealed record GuildDonationHistoryRequest(GameMessageMetadata Metadata, bool IsEmpty) : IClientNetworkMessage
-{
-    public ClientMessageType MessageType => ClientMessageType.GameGuildDonationHistory;
-}
+public sealed record GuildDonationHistoryRequest(ClientMessageType MessageType, GameMessageMetadata Metadata, bool IsEmpty)
+    : IClientNetworkMessage;
 
-internal sealed class GuildDonationHistoryDecoder : IGameMessageDecoder
+internal abstract class EmptyGuildDonationHistoryDecoder(ClientMessageType type) : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body) =>
-        new GuildDonationHistoryRequest(metadata, body.IsEmpty);
+        new GuildDonationHistoryRequest(type, metadata, body.IsEmpty);
 }
 
-internal sealed record GuildDonationHistoryReply(IReadOnlyList<GuildDonationEntry>? Entries = null) : IGameCmdMessage
-{
-    public ServerMessageType MessageType => ServerMessageType.GameGuildDonationHistory;
-}
+internal sealed class GuildDonationHistoryDecoder() : EmptyGuildDonationHistoryDecoder(ClientMessageType.GameGuildDonationHistory);
+internal sealed class GuildMileageHistoryDecoder() : EmptyGuildDonationHistoryDecoder(ClientMessageType.GameGuildMileageHistory);
+
+internal sealed record GuildDonationHistoryReply(ServerMessageType MessageType, IReadOnlyList<GuildDonationEntry>? Entries = null)
+    : IGameCmdMessage;
 
 internal sealed class GuildDonationHistoryEncoder : GameCmdMessageEncoder<GuildDonationHistoryReply>
 {
     internal const int Capacity = 50;
-    private const int NameWidth = 32;
-    private const int RowWidth = sizeof(int) + NameWidth + 2 * sizeof(int);
-    private const int GoldDonationKind = 3;
+    private const int RowWidth = 44;
+    private const int ContributionNameWidth = 32;
+    private const int MileageNameWidth = 30;
+    private const int ContributionGoldDonationKind = 3;
+    private const byte MileageGoldDonationKind = 4;
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GuildDonationHistoryReply message)
     {
         if (message.Entries is not { } entries)
             return OnePayload(message, GameCmdEnvelope.Refuse(0));
 
-        // A21 copies all 50 slots and skips any row whose kind is zero.
-        var body = new byte[Capacity * RowWidth];
+        var mileage = message.MessageType == ServerMessageType.GameGuildMileageHistory;
         var count = Math.Min(entries.Count, Capacity);
+        // The GM window reads a count. The other history window copies 50 slots and skips zero kinds.
+        var rowOffset = mileage ? sizeof(int) : 0;
+        var body = new byte[rowOffset + (mileage ? count : Capacity) * RowWidth];
+        if (mileage)
+            BinaryPrimitives.WriteInt32LittleEndian(body, count);
+
         for (var i = 0; i < count; i++)
         {
             var entry = entries[i];
-            var row = body.AsSpan(i * RowWidth, RowWidth);
-            BinaryPrimitives.WriteInt32LittleEndian(row, checked((int)entry.DonatedAt.ToUnixTimeSeconds()));
-            var length = Math.Min(entry.DonorName.Length, NameWidth - 1);
-            // Keep the C-string terminator and leave any UTF-8 sequence crossing it out.
-            while (length < entry.DonorName.Length && length > 0 && (entry.DonorName[length] & 0xC0) == 0x80)
-                length--;
-            entry.DonorName.AsSpan(0, length).CopyTo(row.Slice(sizeof(int), NameWidth));
-            BinaryPrimitives.WriteInt32LittleEndian(row[(sizeof(int) + NameWidth)..], entry.Points);
-            BinaryPrimitives.WriteInt32LittleEndian(row[^sizeof(int)..], GoldDonationKind);
+            var row = body.AsSpan(rowOffset + i * RowWidth, RowWidth);
+            WriteIdentity(row, entry, mileage ? MileageNameWidth : ContributionNameWidth);
+            if (mileage)
+            {
+                row[34] = MileageGoldDonationKind;
+                BinaryPrimitives.WriteInt32LittleEndian(row[40..], entry.Points);
+            }
+            else
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(row[36..], entry.Points);
+                BinaryPrimitives.WriteInt32LittleEndian(row[40..], ContributionGoldDonationKind);
+            }
         }
 
         return OnePayload(message, GameCmdEnvelope.Accept(body));
+    }
+
+    private static void WriteIdentity(Span<byte> row, GuildDonationEntry entry, int nameWidth)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(row, checked((int)entry.DonatedAt.ToUnixTimeSeconds()));
+        var length = Math.Min(entry.DonorName.Length, nameWidth - 1);
+        // Keep the C-string terminator and leave any UTF-8 sequence crossing it out.
+        while (length < entry.DonorName.Length && length > 0 && (entry.DonorName[length] & 0xC0) == 0x80)
+            length--;
+        entry.DonorName.AsSpan(0, length).CopyTo(row.Slice(sizeof(int), nameWidth));
     }
 }
 
@@ -84,12 +103,15 @@ internal sealed class GameGuildDonationHistoryCommandHandler(
         CommandExecutionContext context, GameGuildDonationHistoryCommand command, CancellationToken ct)
     {
         var connection = command.Dispatch.Connection;
-        var reply = new GuildDonationHistoryReply();
+        var replyType = command.Request.MessageType == ClientMessageType.GameGuildMileageHistory
+            ? ServerMessageType.GameGuildMileageHistory
+            : ServerMessageType.GameGuildDonationHistory;
+        var reply = new GuildDonationHistoryReply(replyType);
         if (command.Request.IsEmpty && sessions.TryGetInWorld(connection.ConnectionId, out var viewer))
         {
             var recipient = new SelectedSessionRecipient(viewer, connection, command.Request.Metadata);
             reply = await units.ReadOnlyAsync(context, new("guild-donation-history", [recipient]), async token =>
-                new GuildDonationHistoryReply(await guilds.ReadDonationHistoryAsync(
+                new GuildDonationHistoryReply(replyType, await guilds.ReadDonationHistoryAsync(
                     viewer.CharacterId, GuildDonationHistoryEncoder.Capacity, token).ConfigureAwait(false)), ct)
                 .ConfigureAwait(false);
         }
@@ -104,10 +126,14 @@ internal static class GuildDonationHistoryRegistration
     internal static void AddGuildDonationHistorySlice(this IServiceCollection services)
     {
         services.AddGameCmdMessageDecoder<GuildDonationHistoryDecoder>(ClientMessageType.GameGuildDonationHistory);
+        services.AddGameCmdMessageDecoder<GuildMileageHistoryDecoder>(ClientMessageType.GameGuildMileageHistory);
         services.AddGameCmdMessageEncoder<GuildDonationHistoryReply, GuildDonationHistoryEncoder>();
         services.AddProtocolCommandHandler<GameGuildDonationHistoryCommand, bool, GameGuildDonationHistoryCommandHandler>(
-            new ProtocolCommandMessageBinding(ClientMessageType.GameGuildDonationHistory, typeof(GuildDonationHistoryRequest)));
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuildDonationHistory, typeof(GuildDonationHistoryRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuildMileageHistory, typeof(GuildDonationHistoryRequest)));
         services.RegisterProtocolMessageHandler<GuildDonationHistoryRequestHandler, GuildDonationHistoryRequest, GameGuildDonationHistoryCommand>(
             ClientMessageType.GameGuildDonationHistory);
+        services.RegisterProtocolMessageHandler<GuildDonationHistoryRequestHandler, GuildDonationHistoryRequest, GameGuildDonationHistoryCommand>(
+            ClientMessageType.GameGuildMileageHistory);
     }
 }
