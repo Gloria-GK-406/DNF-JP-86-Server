@@ -18,6 +18,7 @@ public sealed record GuildRosterEntry(GuildMember Membership, AccountId Account,
     int Level, int Job, int GrowType);
 
 public sealed record GuildApplication(GuildId Guild, CharacterId Character, string Message, DateTimeOffset AppliedAt);
+public sealed record GuildDonationEntry(byte[] DonorName, int Gold, int Points, DateTimeOffset DonatedAt);
 
 public enum GuildMutationStatus
 {

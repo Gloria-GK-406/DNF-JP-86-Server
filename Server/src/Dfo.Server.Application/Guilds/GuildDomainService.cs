@@ -69,7 +69,7 @@ internal sealed class GuildDomainService(
         if (await characters.Get(actor).TrySpendGoldAsync(amount, ct).ConfigureAwait(false) is not { } remaining)
             return new(GuildMutationStatus.InsufficientGold);
 
-        await store.AddDonationAsync(membership.Guild.Id, actor, points, ct).ConfigureAwait(false);
+        await store.AddDonationAsync(membership.Guild.Id, actor, amount, points, time.GetUtcNow(), ct).ConfigureAwait(false);
         return new(GuildMutationStatus.Success, membership.Guild.Id, remaining);
     }
 

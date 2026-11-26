@@ -25,4 +25,12 @@ internal sealed class GuildQueryDomainService(IGuildDomainStore store) : IGuildQ
 
     public ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct) =>
         store.ReadRosterEntriesAsync(viewer, ct);
+
+    public async ValueTask<IReadOnlyList<GuildDonationEntry>?> ReadDonationHistoryAsync(
+        CharacterId viewer, int limit, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(viewer, ct).ConfigureAwait(false) is not { } membership)
+            return null;
+        return await store.ReadDonationHistoryAsync(membership.Guild.Id, limit, ct).ConfigureAwait(false);
+    }
 }

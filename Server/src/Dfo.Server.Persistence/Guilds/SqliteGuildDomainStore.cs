@@ -58,6 +58,17 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
                 ReadMember(r, ReadGuildId(r), 1),
                 new(r.GetInt32(5)), (byte[])r.GetValue(6), r.GetInt32(7), r.GetInt32(8), r.GetInt32(9)), ct);
 
+    public ValueTask<IReadOnlyList<GuildDonationEntry>> ReadDonationHistoryAsync(GuildId guild, int limit, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT donor_name, gold, points, donated_at FROM guild_gold_donations
+            WHERE guild_id=@guild ORDER BY donated_at DESC, donation_id DESC LIMIT @limit
+            """, p =>
+            {
+                BindGuild(p, guild);
+                p.AddWithValue("@limit", limit);
+            }, r => new GuildDonationEntry((byte[])r.GetValue(0), r.GetInt32(1), r.GetInt32(2),
+                DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(3))), ct);
+
     public ValueTask<IReadOnlyList<CharacterId>> AffectedCharactersAsync(GuildId guild, CancellationToken ct) =>
         database.ReadAllAsync("""
             SELECT character_id FROM guild_members WHERE guild_id=@guild
@@ -129,7 +140,8 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             throw new InvalidOperationException("Guild channel update did not persist a guild.");
     }
 
-    public async ValueTask AddDonationAsync(GuildId guild, CharacterId donor, int points, CancellationToken ct)
+    public async ValueTask AddDonationAsync(
+        GuildId guild, CharacterId donor, int gold, int points, DateTimeOffset at, CancellationToken ct)
     {
         var guildChanged = await database.ExecuteAsync("""
             UPDATE guilds SET gm_points=gm_points+@points WHERE guild_id=@guild
@@ -152,6 +164,21 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             }, ct).ConfigureAwait(false);
         if (donorChanged != 1)
             throw new InvalidOperationException("Guild donation did not update the donor.");
+
+        var recorded = await database.ExecuteAsync("""
+            INSERT INTO guild_gold_donations(guild_id, donor_character_id, donor_name, gold, points, donated_at)
+            SELECT @guild, character_id, COALESCE(name_bytes, CAST(name AS BLOB)), @gold, @points, @at
+            FROM characters WHERE character_id=@character AND delete_flag=0
+            """, p =>
+            {
+                BindGuild(p, guild);
+                BindCharacter(p, donor);
+                p.AddWithValue("@gold", gold);
+                p.AddWithValue("@points", points);
+                p.AddWithValue("@at", at.ToUnixTimeSeconds());
+            }, ct).ConfigureAwait(false);
+        if (recorded != 1)
+            throw new InvalidOperationException("Guild donation did not record the history entry.");
     }
 
     private static Guild ReadGuild(SqliteDataReader row) =>

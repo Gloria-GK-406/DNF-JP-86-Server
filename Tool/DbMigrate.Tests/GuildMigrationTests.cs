@@ -6,6 +6,41 @@ namespace DbMigrate.Tests;
 public sealed class GuildMigrationTests
 {
     [Fact]
+    public void Upgrading_v16_keeps_donation_totals_and_starts_with_an_empty_history()
+    {
+        var path = Unversioned.NewPath("guild-donation-history-v16");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TABLE guild_gold_donations;
+                INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-donation');
+                INSERT INTO characters(character_id,account_id,name) VALUES(11,1,'Leader');
+                INSERT INTO character_stats(character_id,carried_gold) VALUES(11,600000);
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points)
+                    VALUES(42,'Iris','iris','Hello',1,70);
+                INSERT INTO guild_members(character_id,guild_id,is_leader,joined_at,donation_points)
+                    VALUES(11,42,1,1,40);
+                PRAGMA user_version=16;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((16L, 17L), (result.From, result.To));
+            Assert.Equal(70L, Execute(connection, "SELECT gm_points FROM guilds WHERE guild_id=42"));
+            Assert.Equal(40L, Execute(connection, "SELECT donation_points FROM guild_members WHERE character_id=11"));
+            Assert.Equal(600_000L, Execute(connection, "SELECT carried_gold FROM character_stats"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_gold_donations"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Upgrading_v15_preserves_guilds_and_role_gold_and_initializes_donation_points()
     {
         var path = Unversioned.NewPath("guild-donation-v15");
@@ -28,7 +63,7 @@ public sealed class GuildMigrationTests
                 """);
 
             var result = Migrator.Migrate(path, backup: false);
-            Assert.Equal((15L, 16L), (result.From, result.To));
+            Assert.Equal((15L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
             Assert.Equal(0L, Execute(connection, "SELECT gm_points FROM guilds WHERE guild_id=42 AND recommended_channel=10"));
             Assert.Equal(2L, Execute(connection, "SELECT COUNT(*) FROM guild_members WHERE guild_id=42 AND donation_points=0"));
             Assert.Equal(11L, Execute(connection, "SELECT character_id FROM guild_members WHERE guild_id=42 AND is_leader=1"));
@@ -86,6 +121,7 @@ public sealed class GuildMigrationTests
             if (upgrade)
             {
                 Execute(connection, """
+                    DROP TABLE IF EXISTS guild_gold_donations;
                     DROP TABLE IF EXISTS guild_applications;
                     DROP TABLE IF EXISTS guild_members;
                     DROP TABLE IF EXISTS guilds;

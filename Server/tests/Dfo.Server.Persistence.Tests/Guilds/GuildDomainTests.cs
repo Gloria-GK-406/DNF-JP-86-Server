@@ -164,6 +164,8 @@ public sealed class GuildDomainTests : IDisposable
     public async Task Leaving_removing_and_disbanding_clear_the_right_relations()
     {
         var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => guilds.DonateGoldAsync(new(11), 1000, default))).Status);
         await Join(new(13));
         await Join(new(14));
         Assert.Equal(GuildMutationStatus.LeaderCannotLeave, (await Write(() => guilds.LeaveAsync(new(11), default))).Status);
@@ -183,6 +185,7 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Null(await query.FindMembershipAsync(new(14), default));
         Assert.Null(await query.FindApplicationAsync(new(15), default));
         Assert.Equal(0L, Execute("SELECT COUNT(*) FROM guilds"));
+        Assert.Equal(0L, Execute("SELECT COUNT(*) FROM guild_gold_donations"));
 
         async Task Join(CharacterId applicant)
         {
@@ -237,6 +240,27 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(13, member.Guild.GmPoints);
         Assert.Equal(10, member.Member.DonationPoints);
         Assert.Equal(3, (await query.FindMembershipAsync(new(11), default))!.Member.DonationPoints);
+
+        Execute("UPDATE characters SET name='NewName' WHERE character_id=12");
+        var history = (await query.ReadDonationHistoryAsync(new(11), 50, default))!;
+        Assert.Collection(history,
+            entry =>
+            {
+                Assert.Equal("Leader"u8.ToArray(), entry.DonorName);
+                Assert.Equal((3000, 3), (entry.Gold, entry.Points));
+            },
+            entry =>
+            {
+                Assert.Equal("Other"u8.ToArray(), entry.DonorName);
+                Assert.Equal((10000, 10), (entry.Gold, entry.Points));
+            });
+        Assert.All(history, entry => Assert.True(entry.DonatedAt > DateTimeOffset.UnixEpoch));
+        Assert.Single((await query.ReadDonationHistoryAsync(new(12), 1, default))!);
+        Assert.Null(await query.ReadDonationHistoryAsync(new(13), 50, default));
+        Execute("UPDATE character_stats SET carried_gold=900000 WHERE character_id=13");
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => guilds.CreateAsync(new(13), "Violet", "", default))).Status);
+        Assert.Empty((await query.ReadDonationHistoryAsync(new(13), 50, default))!);
     }
 
     [Theory]
@@ -294,11 +318,24 @@ public sealed class GuildDomainTests : IDisposable
         AssertInitialDonationBalances();
     }
 
+    [Fact]
+    public async Task Failure_recording_donation_history_rolls_back_the_payment_and_both_points_updates()
+    {
+        await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        Execute("""
+            CREATE TRIGGER fail_guild_donation_history BEFORE INSERT ON guild_gold_donations
+            BEGIN SELECT RAISE(ABORT,'forced guild donation history fault'); END;
+            """);
+        await Assert.ThrowsAsync<SqliteException>(() => Write(() => guilds.DonateGoldAsync(new(11), 1000, default)));
+        AssertInitialDonationBalances();
+    }
+
     private void AssertInitialDonationBalances()
     {
         Assert.Equal(600_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
         Assert.Equal(0L, Execute("SELECT gm_points FROM guilds"));
         Assert.Equal(0L, Execute("SELECT donation_points FROM guild_members"));
+        Assert.Equal(0L, Execute("SELECT COUNT(*) FROM guild_gold_donations"));
     }
 
     private Task<T> Write<T>(Func<ValueTask<T>> action) => TestGameplay.RunAsync(async () =>
