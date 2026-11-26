@@ -1,11 +1,21 @@
 using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.Guilds;
 
-internal sealed class GuildQueryDomainService(IGuildDomainStore store) : IGuildQueryDomainService
+internal sealed class GuildQueryDomainService(IGuildDomainStore store, GuildRuleService rules) : IGuildQueryDomainService
 {
+    public ValueTask<GuildDiscoveryDetails?> FindGuildAsync(string name, CancellationToken ct) =>
+        rules.NameKey(name) is { } key ? store.FindGuildByNameKeyAsync(key, ct) : ValueTask.FromResult<GuildDiscoveryDetails?>(null);
+
+    public ValueTask<IReadOnlyList<GuildAccountEntry>> ReadAccountGuildsAsync(AccountId account, CancellationToken ct) =>
+        store.ReadAccountGuildsAsync(account, byte.MaxValue, ct);
+
+    public ValueTask<IReadOnlyList<GuildRecommendation>> ReadRecommendationsAsync(CancellationToken ct) =>
+        store.ReadRecommendationsAsync(10, ct);
+
     public async ValueTask<GuildPublicIdentity?> FindPublicIdentityAsync(CharacterId character, CancellationToken ct) =>
         await store.FindMembershipAsync(character, ct).ConfigureAwait(false) is { Guild: var guild }
             ? new(guild.Id, guild.Name, guild.Level)

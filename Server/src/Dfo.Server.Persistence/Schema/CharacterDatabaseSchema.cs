@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 19;
+    public const int Version = 20;
 
     internal const string PvpTotalMatchTeamsDeclaration = """
         CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
@@ -212,7 +212,8 @@ internal static class CharacterDatabaseSchema
                 character_id INTEGER PRIMARY KEY REFERENCES characters(character_id),
                 guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
                 is_leader INTEGER NOT NULL CHECK(is_leader IN (0,1)), joined_at INTEGER NOT NULL,
-                donation_points INTEGER NOT NULL DEFAULT 0 CHECK(donation_points BETWEEN 0 AND 2147483647))
+                donation_points INTEGER NOT NULL DEFAULT 0 CHECK(donation_points BETWEEN 0 AND 2147483647),
+                member_rank INTEGER NOT NULL DEFAULT 4 CHECK(member_rank BETWEEN 2 AND 5))
             """,
             """
             CREATE TABLE IF NOT EXISTS guild_applications (

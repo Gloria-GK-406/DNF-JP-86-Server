@@ -10,7 +10,10 @@ public sealed record Guild(GuildId Id, string Name, string Promotion, int Level,
 public sealed record GuildPublicIdentity(GuildId Id, string Name, int Level);
 
 public sealed record GuildMember(GuildId Guild, CharacterId Character, bool IsLeader, DateTimeOffset JoinedAt,
-    int DonationPoints = 0);
+    int DonationPoints = 0, byte MemberRank = GuildRankSettings.Member)
+{
+    public byte Rank => IsLeader ? GuildRankSettings.Leader : MemberRank;
+}
 
 public sealed record GuildMembership(Guild Guild, GuildMember Member);
 
@@ -28,6 +31,11 @@ public sealed record GuildPresenceAudience(CharacterId Character, byte[] Name, I
             [.. roster.Select(row => row.Membership.Character).Where(id => id != character)]);
     }
 }
+
+public sealed record GuildRankAssignmentResult(CharacterId Character, byte Rank, bool Changed);
+public sealed record GuildDiscoveryDetails(GuildId Guild, string Name, int MemberCount, string Promotion);
+public sealed record GuildAccountEntry(byte[] CharacterName, string GuildName);
+public sealed record GuildRecommendation(GuildId Guild, string Name, byte[] LeaderName);
 
 public sealed record GuildApplication(GuildId Guild, CharacterId Character, string Message, DateTimeOffset AppliedAt);
 public sealed record GuildDonationEntry(byte[] DonorName, int Gold, int Points, DateTimeOffset DonatedAt);

@@ -40,7 +40,7 @@ public sealed class GuildDomainTests : IDisposable
             TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(),
             scope, new DiscardingEventService());
         guilds = new(store, new(economy), players, characters, TimeProvider.System);
-        query = new(store);
+        query = new(store, new(economy));
         Execute("""
             INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-test');
             INSERT INTO characters(character_id,account_id,name) VALUES
@@ -120,6 +120,62 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal("本会宣传", (await query.FindMembershipAsync(new(13), default))!.Guild.Promotion);
         Assert.Equal("Another", (await query.FindMembershipAsync(new(12), default))!.Guild.Promotion);
         Assert.Equal(defaults[4], (await query.ReadRankSettingsAsync(another, default))[4]);
+    }
+
+    [Fact]
+    public async Task Guild_appointment_requires_a_leader_or_a_delegated_vice_leader()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.CreateAsync(new(12), "Outside", "", default));
+        foreach (var member in new[] { new CharacterId(13), new CharacterId(14) })
+        {
+            await Write(() => guilds.ApplyAsync(member, guild, "", default));
+            await Write(() => guilds.ApproveAsync(new(11), member, default));
+        }
+
+        var promoted = await Write(() => guilds.AssignRankAsync(new(11), "Applicant"u8.ToArray(), 2, default));
+        Assert.Equal(new GuildRankAssignmentResult(new(13), 2, true), promoted);
+        Assert.Equal(2, (await query.FindMembershipAsync(new(13), default))!.Member.Rank);
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(11), "Other"u8.ToArray(), 2, default)));
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(11), "Member"u8.ToArray(), 1, default)));
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(14), "Applicant"u8.ToArray(), 4, default)));
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(13), "Member"u8.ToArray(), 3, default)));
+
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetRankPermissionsAsync(
+            new(11), 2, GuildRankSettings.AppointMembersPermission, default)));
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(13), "Member"u8.ToArray(), 2, default)));
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(13), "Applicant"u8.ToArray(), 4, default)));
+        Assert.Null(await Write(() => guilds.AssignRankAsync(new(13), "Leader"u8.ToArray(), 4, default)));
+        Assert.Equal(new GuildRankAssignmentResult(new(14), 3, true),
+            await Write(() => guilds.AssignRankAsync(new(13), "Member"u8.ToArray(), 3, default)));
+        Assert.Equal(new GuildRankAssignmentResult(new(14), 3, false),
+            await Write(() => guilds.AssignRankAsync(new(13), "Member"u8.ToArray(), 3, default)));
+        var roster = await query.ReadRosterEntriesAsync(new(11), default);
+        Assert.Equal(new byte[] { 1, 2, 3 }, roster.Select(row => row.Membership.Rank).ToArray());
+    }
+
+    [Fact]
+    public async Task Guild_discovery_reads_public_details_and_private_account_memberships()
+    {
+        Execute("""
+            INSERT INTO accounts(account_id,m_id) VALUES(2,'guild-other-account');
+            UPDATE characters SET account_id=2 WHERE character_id=12;
+            """);
+        var first = (await Write(() => guilds.CreateAsync(new(11), "Iris", "First", default))).Guild!.Value;
+        var second = (await Write(() => guilds.CreateAsync(new(12), "Violet", "Second", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), second, "", default));
+        await Write(() => guilds.ApproveAsync(new(12), new(13), default));
+
+        Assert.Equal(new GuildDiscoveryDetails(second, "Violet", 2, "Second"), await query.FindGuildAsync("vIOLET", default));
+        Assert.Null(await query.FindGuildAsync("Vio", default));
+        Assert.Null(await query.FindMembershipAsync(new(14), default));
+        Assert.Collection(await query.ReadAccountGuildsAsync(new(1), default),
+            row => { Assert.Equal("Leader"u8.ToArray(), row.CharacterName); Assert.Equal("Iris", row.GuildName); },
+            row => { Assert.Equal("Applicant"u8.ToArray(), row.CharacterName); Assert.Equal("Violet", row.GuildName); });
+        var other = Assert.Single(await query.ReadAccountGuildsAsync(new(2), default));
+        Assert.Equal("Other"u8.ToArray(), other.CharacterName);
+        Assert.Equal("Violet", other.GuildName);
+        Assert.Equal(new[] { second, first }, (await query.ReadRecommendationsAsync(default)).Select(row => row.Guild));
     }
 
     private sealed class AttendanceClock : TimeProvider

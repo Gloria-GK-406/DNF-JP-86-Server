@@ -50,6 +50,37 @@ internal sealed class GuildDomainService(
         return GuildMutationStatus.Success;
     }
 
+    public async ValueTask<GuildRankAssignmentResult?> AssignRankAsync(
+        CharacterId actor, byte[] name, byte rank, CancellationToken ct)
+    {
+        if (rank is < GuildRankSettings.ViceLeader or > GuildRankSettings.LastRank ||
+            name.Length is 0 or > 62 ||
+            await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { } actorMembership)
+            return null;
+
+        var guild = actorMembership.Guild.Id;
+        var target = await store.FindRosterMemberAsync(guild, name, ct).ConfigureAwait(false);
+        if (target is null || target.IsLeader || target.Character == actor)
+            return null;
+
+        if (!actorMembership.Member.IsLeader)
+        {
+            if (actorMembership.Member.Rank != GuildRankSettings.ViceLeader ||
+                target.Rank <= GuildRankSettings.ViceLeader || rank <= GuildRankSettings.ViceLeader)
+                return null;
+
+            var settings = await store.ReadRankSettingsAsync(guild, ct).ConfigureAwait(false);
+            var permissions = settings.FirstOrDefault(setting => setting.Rank == GuildRankSettings.ViceLeader)?.PermissionMask ?? 0;
+            if ((permissions & GuildRankSettings.AppointMembersPermission) == 0)
+                return null;
+        }
+
+        var changed = target.Rank != rank;
+        if (changed)
+            await store.SetMemberRankAsync(guild, target.Character, rank, ct).ConfigureAwait(false);
+        return new(target.Character, rank, changed);
+    }
+
     public async ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct)
     {
         if (!GuildRankSettings.IsMemberRank(rank) || !rules.IsValidRankName(name))

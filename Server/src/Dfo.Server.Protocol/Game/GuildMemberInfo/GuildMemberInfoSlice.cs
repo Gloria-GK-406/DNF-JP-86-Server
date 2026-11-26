@@ -7,8 +7,11 @@ namespace Dfo.Server.Protocol.Game.GuildMemberInfo;
 internal enum GuildRank : byte
 {
     NoGuild = 0,
-    Leader = 1,
-    Member = 4,
+    Leader = GuildRankSettings.Leader,
+    ViceLeader = GuildRankSettings.ViceLeader,
+    SeniorMember = 3,
+    Member = GuildRankSettings.Member,
+    EliteMember = GuildRankSettings.LastRank,
 }
 
 internal sealed record GuildMemberInfoMessage(GuildRank Rank) : IGameNotiMessage
@@ -17,12 +20,7 @@ internal sealed record GuildMemberInfoMessage(GuildRank Rank) : IGameNotiMessage
 
     internal static GuildMemberInfoMessage From(GuildMember? member) => new(RankOf(member));
 
-    internal static GuildRank RankOf(GuildMember? member) => member switch
-    {
-        null => GuildRank.NoGuild,
-        { IsLeader: true } => GuildRank.Leader,
-        _ => GuildRank.Member,
-    };
+    internal static GuildRank RankOf(GuildMember? member) => member is null ? GuildRank.NoGuild : (GuildRank)member.Rank;
 }
 
 internal sealed class GuildMemberInfoEncoder : GameNotiMessageEncoder<GuildMemberInfoMessage>

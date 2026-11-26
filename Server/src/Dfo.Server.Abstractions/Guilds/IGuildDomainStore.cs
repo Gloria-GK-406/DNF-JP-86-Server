@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 
@@ -8,6 +9,11 @@ public interface IGuildDomainStore
     ValueTask<bool> ExistsAsync(GuildId guild, CancellationToken ct);
     ValueTask<bool> NameTakenAsync(string nameKey, CancellationToken ct);
     ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct);
+    ValueTask<GuildMember?> FindRosterMemberAsync(GuildId guild, byte[] name, CancellationToken ct);
+    ValueTask SetMemberRankAsync(GuildId guild, CharacterId character, byte rank, CancellationToken ct);
+    ValueTask<GuildDiscoveryDetails?> FindGuildByNameKeyAsync(string nameKey, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildAccountEntry>> ReadAccountGuildsAsync(AccountId account, int limit, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildRecommendation>> ReadRecommendationsAsync(int limit, CancellationToken ct);
     ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct);

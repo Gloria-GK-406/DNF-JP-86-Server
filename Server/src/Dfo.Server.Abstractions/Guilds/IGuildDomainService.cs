@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 
@@ -8,6 +9,7 @@ public interface IGuildDomainService
     ValueTask<GuildMutationStatus> CheckCreationAsync(CharacterId actor, string name, CancellationToken ct);
     ValueTask<GuildMutationResult> CreateAsync(CharacterId actor, string name, string promotion, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetPromotionAsync(CharacterId actor, string promotion, CancellationToken ct);
+    ValueTask<GuildRankAssignmentResult?> AssignRankAsync(CharacterId actor, byte[] name, byte rank, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetRankPermissionsAsync(CharacterId actor, byte rank, uint permissions, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetRecommendedChannelAsync(CharacterId actor, int channel, CancellationToken ct);
@@ -24,6 +26,9 @@ public interface IGuildDomainService
 
 public interface IGuildQueryDomainService
 {
+    ValueTask<GuildDiscoveryDetails?> FindGuildAsync(string name, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildAccountEntry>> ReadAccountGuildsAsync(AccountId account, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildRecommendation>> ReadRecommendationsAsync(CancellationToken ct);
     ValueTask<GuildPublicIdentity?> FindPublicIdentityAsync(CharacterId character, CancellationToken ct);
     ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct);
     ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct);

@@ -34,6 +34,7 @@ public static class Migrator
             [16] = AddGuildDonationHistory,
             [17] = AddGuildAttendance,
             [18] = AddGuildRankSettings,
+            [19] = AddGuildMemberRank,
         };
 
     private static void AddGuilds(SqliteConnection connection)
@@ -103,6 +104,19 @@ public static class Migrator
         using var transaction = connection.BeginTransaction();
         CharacterDatabaseSchema.DeclareGuildRankSettings(connection, transaction);
         transaction.Commit();
+    }
+
+    private static void AddGuildMemberRank(SqliteConnection connection)
+    {
+        if (Shape.HasColumn(connection, null, "guild_members", "member_rank"))
+            return;
+
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            ALTER TABLE guild_members ADD COLUMN member_rank INTEGER NOT NULL DEFAULT 4
+                CHECK(member_rank BETWEEN 2 AND 5);
+            """;
+        command.ExecuteNonQuery();
     }
 
     /// <summary>The outcome of one run, for the caller to report.</summary>

@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Persistence.Database;
@@ -19,13 +20,71 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
     public ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct) =>
         database.ReadFirstAsync("""
             SELECT g.guild_id,g.name,g.promotion,g.level,g.recommended_channel,g.gm_points,
-                   m.character_id,m.is_leader,m.joined_at,m.donation_points
+                   m.character_id,m.is_leader,m.joined_at,m.donation_points,m.member_rank
             FROM guild_members m JOIN guilds g ON g.guild_id=m.guild_id WHERE m.character_id=@character
             """, p => BindCharacter(p, character), r =>
             {
                 var guild = ReadGuild(r);
                 return new GuildMembership(guild, ReadMember(r, guild.Id, 6));
             }, ct);
+
+    public ValueTask<GuildMember?> FindRosterMemberAsync(GuildId guild, byte[] name, CancellationToken ct) =>
+        database.ReadFirstAsync("""
+            SELECT m.character_id,m.is_leader,m.joined_at,m.donation_points,m.member_rank
+            FROM guild_members m JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
+            WHERE m.guild_id=@guild AND COALESCE(c.name_bytes,CAST(c.name AS BLOB))=@name
+            """, p =>
+            {
+                BindGuild(p, guild);
+                p.AddWithValue("@name", name);
+            }, r => ReadMember(r, guild, 0), ct);
+
+    public async ValueTask SetMemberRankAsync(GuildId guild, CharacterId character, byte rank, CancellationToken ct)
+    {
+        var updated = await database.ExecuteAsync("""
+            UPDATE guild_members SET member_rank=@rank
+            WHERE guild_id=@guild AND character_id=@character AND is_leader=0
+            """, p =>
+            {
+                BindGuild(p, guild);
+                BindCharacter(p, character);
+                p.AddWithValue("@rank", rank);
+            }, ct).ConfigureAwait(false);
+        if (updated != 1)
+            throw new InvalidOperationException("Guild rank update did not persist an eligible member.");
+    }
+
+    public ValueTask<GuildDiscoveryDetails?> FindGuildByNameKeyAsync(string nameKey, CancellationToken ct) =>
+        database.ReadFirstAsync("""
+            SELECT g.guild_id,g.name,g.promotion,(
+                SELECT COUNT(*) FROM guild_members m JOIN characters c ON c.character_id=m.character_id
+                WHERE m.guild_id=g.guild_id AND c.delete_flag=0)
+            FROM guilds g WHERE g.name_key=@name
+            """, p => p.AddWithValue("@name", nameKey),
+            r => new GuildDiscoveryDetails(ReadGuildId(r), r.GetString(1), r.GetInt32(3), r.GetString(2)), ct);
+
+    public ValueTask<IReadOnlyList<GuildAccountEntry>> ReadAccountGuildsAsync(AccountId account, int limit, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT COALESCE(c.name_bytes,CAST(c.name AS BLOB)),g.name
+            FROM characters c JOIN guild_members m ON m.character_id=c.character_id
+            JOIN guilds g ON g.guild_id=m.guild_id
+            WHERE c.account_id=@account AND c.delete_flag=0
+            ORDER BY c.slot_index,c.character_id LIMIT @limit
+            """, p =>
+            {
+                p.AddWithValue("@account", account.Value);
+                p.AddWithValue("@limit", limit);
+            }, r => new GuildAccountEntry((byte[])r.GetValue(0), r.GetString(1)), ct);
+
+    public ValueTask<IReadOnlyList<GuildRecommendation>> ReadRecommendationsAsync(int limit, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT g.guild_id,g.name,COALESCE(c.name_bytes,CAST(c.name AS BLOB))
+            FROM guilds g JOIN guild_members m ON m.guild_id=g.guild_id AND m.is_leader=1
+            JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
+            ORDER BY (SELECT COUNT(*) FROM guild_members n WHERE n.guild_id=g.guild_id) DESC,g.guild_id
+            LIMIT @limit
+            """, p => p.AddWithValue("@limit", limit),
+            r => new GuildRecommendation(ReadGuildId(r), r.GetString(1), (byte[])r.GetValue(2)), ct);
 
     public ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct) =>
         database.ReadFirstAsync("""
@@ -42,21 +101,21 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
 
     public ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct) =>
         database.ReadAllAsync("""
-            SELECT m.guild_id,m.character_id,m.is_leader,m.joined_at,m.donation_points
+            SELECT m.guild_id,m.character_id,m.is_leader,m.joined_at,m.donation_points,m.member_rank
             FROM guild_members self JOIN guild_members m ON m.guild_id=self.guild_id
             WHERE self.character_id=@character ORDER BY m.character_id
             """, p => BindCharacter(p, viewer), r => ReadMember(r, ReadGuildId(r), 1), ct);
 
     public ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct) =>
         database.ReadAllAsync("""
-            SELECT m.guild_id,m.character_id,m.is_leader,m.joined_at,m.donation_points,
+            SELECT m.guild_id,m.character_id,m.is_leader,m.joined_at,m.donation_points,m.member_rank,
                    c.account_id,COALESCE(c.name_bytes,CAST(c.name AS BLOB)),c.level,c.job,c.grow_type
             FROM guild_members self JOIN guild_members m ON m.guild_id=self.guild_id
             JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
             WHERE self.character_id=@character ORDER BY m.character_id
             """, p => BindCharacter(p, viewer), r => new GuildRosterEntry(
                 ReadMember(r, ReadGuildId(r), 1),
-                new(r.GetInt32(5)), (byte[])r.GetValue(6), r.GetInt32(7), r.GetInt32(8), r.GetInt32(9)), ct);
+                new(r.GetInt32(6)), (byte[])r.GetValue(7), r.GetInt32(8), r.GetInt32(9), r.GetInt32(10)), ct);
 
     public ValueTask<IReadOnlyList<GuildDonationEntry>> ReadDonationHistoryAsync(GuildId guild, int limit, CancellationToken ct) =>
         database.ReadAllAsync("""
@@ -252,7 +311,8 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
 
     private static GuildMember ReadMember(SqliteDataReader row, GuildId guild, int offset) =>
         new(guild, new(row.GetInt32(offset)), row.GetBoolean(offset + 1),
-            DateTimeOffset.FromUnixTimeSeconds(row.GetInt64(offset + 2)), row.GetInt32(offset + 3));
+            DateTimeOffset.FromUnixTimeSeconds(row.GetInt64(offset + 2)), row.GetInt32(offset + 3),
+            checked((byte)row.GetInt32(offset + 4)));
 
     private static GuildApplication ReadApplication(SqliteDataReader row) =>
         new(ReadGuildId(row), new(row.GetInt32(1)), row.GetString(2), DateTimeOffset.FromUnixTimeSeconds(row.GetInt64(3)));

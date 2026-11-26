@@ -16,6 +16,8 @@
 
 公会管理通过 [公会信息](game/server-to-client/NOTI-0x0046.md) 返回职级名称和权限，写入口为 [宣传](game/client-to-server/0x02E3.md)、[职级权限](game/client-to-server/0x02EB.md) 和 [职级名称](game/client-to-server/0x02EC.md)。会长写入、普通成员拒绝、两端刷新及重登已通过线路，原生管理页待实机复测。
 
+A21 [成员任命](game/client-to-server/0x007E.md)及[目标职级更新](game/server-to-client/NOTI-0x008C.md)已接入。查找页支持[账号角色公会](game/client-to-server/0x02E7.md)、[按名称查看](game/client-to-server/0x02E8.md)和[推荐列表](game/client-to-server/0x02F9.md)。隔离线路通过，原生界面待复测。
+
 [金币捐赠](game/client-to-server/0x015A.md) 已接入。当前 PVF 每 1,000 金币兑换 1 点 GM。隔离线路核对捐赠回执、随身金币与公会详情刷新、不同查看者的累计贡献和重登恢复。A21 实机记录了 50,000 金币换 50 GM。
 
 [公会积分内容](game/client-to-server/0x02EA.md) 实机确认发送空请求。修正后沿用原有捐赠明细，按条数返回所属公会最近 50 条。用户确认 A21 列表已显示。

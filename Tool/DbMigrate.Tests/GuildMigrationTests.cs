@@ -6,6 +6,40 @@ namespace DbMigrate.Tests;
 public sealed class GuildMigrationTests
 {
     [Fact]
+    public void Upgrading_v19_sets_ordinary_ranks_without_changing_leader_identity()
+    {
+        var path = Unversioned.NewPath("guild-appointment-v19");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                ALTER TABLE guild_members DROP COLUMN member_rank;
+                INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-rank');
+                INSERT INTO characters(character_id,account_id,name) VALUES(11,1,'Leader'),(12,1,'Member');
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points)
+                    VALUES(42,'Iris','iris','',1,50);
+                INSERT INTO guild_members(character_id,guild_id,is_leader,joined_at,donation_points)
+                    VALUES(11,42,1,1,50),(12,42,0,1,0);
+                INSERT INTO guild_rank_settings(guild_id,rank,permission_mask) VALUES(42,2,2048);
+                PRAGMA user_version=19;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((19L, 20L), (result.From, result.To));
+            Assert.Equal(11L, Execute(connection, "SELECT character_id FROM guild_members WHERE is_leader=1"));
+            Assert.Equal(2L, Execute(connection, "SELECT COUNT(*) FROM guild_members WHERE member_rank=4"));
+            Assert.Equal(2048L, Execute(connection, "SELECT permission_mask FROM guild_rank_settings WHERE rank=2"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Upgrading_v18_preserves_guild_attendance_and_adds_rank_settings()
     {
         var path = Unversioned.NewPath("guild-management-v18");
@@ -28,7 +62,7 @@ public sealed class GuildMigrationTests
                 """);
 
             var result = Migrator.Migrate(path, backup: false);
-            Assert.Equal((18L, 19L), (result.From, result.To));
+            Assert.Equal((18L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
             Assert.Equal("Before", Execute(connection, "SELECT promotion FROM guilds WHERE guild_id=42"));
             Assert.Equal(50L, Execute(connection, "SELECT gm_points FROM guilds WHERE guild_id=42"));
             Assert.Equal(1L, Execute(connection, "SELECT COUNT(*) FROM guild_attendance WHERE guild_id=42"));

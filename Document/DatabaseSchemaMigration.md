@@ -58,6 +58,7 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
 - 版本 16 → 17（`Migrator.AddGuildDonationHistory`）新增公会金币捐赠明细表。累计 GM、成员贡献和金币余额保持原值，明细从升级后记录。
 - 版本 17 → 18（`Migrator.AddGuildAttendance`）新增公会每日签到表。已有公会、成员及金币捐赠保持原值，升级后从空签到表开始。
 - 版本 18 → 19（`Migrator.AddGuildRankSettings`）新增公会职级配置表。既有公会按默认职级和权限显示，签到、GM 和捐赠记录保持原值。
+- 版本 19 → 20（`Migrator.AddGuildMemberRank`）增加 `guild_members.member_rank`。已有成员默认为 4，真实会长继续由唯一会长关系识别。签到、捐赠和职级权限覆盖保留。
 - 迁移工具不认识的表和列原样保留。
 
 ## 修改表结构时
