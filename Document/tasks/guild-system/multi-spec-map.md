@@ -30,7 +30,7 @@ workspace:
 | SC-02 | 创建与入会 | in_progress | spec-001 事务、spec-002 A21 单人创建、spec-003 A21 成员名单 | 搜索、推荐与申请审批的客户端入口 | aligned |
 | SC-03 | 治理与退出 | in_progress | spec-001 退出、踢出、解散、删角保护 | 职务、资料管理等其余行为与 A21 入口 | aligned |
 | SC-04 | 社交与聊天 | in_progress | spec-002 推荐频道设置、spec-005 上下线提示与名单实时更新通过实机 | 聊天、邀请、频道跳转及其他社交 | aligned |
-| SC-05 | 成长与权益 | in_progress | spec-004 金币捐赠实机入账，用户确认明细已显示 | 后续成长、权益机制 | aligned |
+| SC-05 | 成长与权益 | in_progress | spec-004 金币捐赠和明细、spec-006 自动签到和明细实机通过 | 后续成长、权益机制 | aligned |
 | SC-06 | 设施、仓库和勋章 | not_started | 无 | 场景、资产、装备端到端 | aligned |
 | SC-07 | 支援、礼物和红包 | not_started | 无 | 资格、交付和结清 | aligned |
 | SC-08 | 公会地下城与公会战 | not_started | 无 | 玩法证据、周期与结算 | aligned |
@@ -46,4 +46,4 @@ workspace:
 | 3 | spec-003 | [任务契约](attempts/spec-003-view-guild-roster/TaskContract.md) | A21 公会成员名单 | SC-01、SC-02、SC-09、SC-10 | [完成](attempts/spec-003-view-guild-roster/spec-result.md) | `da6f8a02e14ea7c114765e6125b91da39ab26774` |
 | 4 | spec-004 | [任务契约](attempts/spec-004-donate-gold-for-gm/TaskContract.md) | A21 金币捐赠、公会 GM 和个人贡献 | SC-05、SC-09、SC-10 | [完成](attempts/spec-004-donate-gold-for-gm/spec-result.md) | `79ecd013c9b13db117137fa4e929496344733ac8` |
 | 5 | spec-005 | [任务契约](attempts/spec-005-guild-member-presence/TaskContract.md) | A21 上下线提示与实时名单 | SC-01、SC-02、SC-04、SC-09、SC-10 | [完成](attempts/spec-005-guild-member-presence/spec-result.md) | `f2809adf9a70108b4b785b9f5b4d71fc37b2b220` |
-| 6 | spec-006 | [任务契约](attempts/spec-006-guild-attendance/TaskContract.md) | A21 每日自动签到、进度与明细 | SC-05、SC-09、SC-10 | 执行中 |  |
+| 6 | spec-006 | [任务契约](attempts/spec-006-guild-attendance/TaskContract.md) | A21 每日自动签到、进度与明细 | SC-05、SC-09、SC-10 | [完成](attempts/spec-006-guild-attendance/spec-result.md) | `f14cf4cd9` |
