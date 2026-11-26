@@ -25,4 +25,5 @@ public interface IGuildQueryDomainService
     ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct);
 }

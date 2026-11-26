@@ -22,4 +22,7 @@ internal sealed class GuildQueryDomainService(IGuildDomainStore store) : IGuildQ
 
     public ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct) =>
         store.ReadRosterAsync(viewer, ct);
+
+    public ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct) =>
+        store.ReadRosterEntriesAsync(viewer, ct);
 }

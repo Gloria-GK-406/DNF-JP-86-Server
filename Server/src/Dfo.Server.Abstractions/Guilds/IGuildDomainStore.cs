@@ -11,6 +11,7 @@ public interface IGuildDomainStore
     ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterId>> AffectedCharactersAsync(GuildId guild, CancellationToken ct);
     ValueTask<Guild> InsertGuildAsync(string name, string nameKey, string promotion, DateTimeOffset at, CancellationToken ct);
     ValueTask SetRecommendedChannelAsync(GuildId guild, int channel, CancellationToken ct);

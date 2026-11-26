@@ -6,6 +6,8 @@
 
 公会频道设置使用 [公会详情刷新](game/client-to-server/0x0153.md)、[查看者会长标志](game/server-to-client/NOTI-0x0046.md) 和 [保存当前频道](game/client-to-server/0x033B.md)。详情回包修正后用户实测通过，隔离库确认保存 CH10。
 
+公会 [普通名单](game/client-to-server/0x0043.md) 和 [首次全量名单](game/client-to-server/0x008C.md) 已接入。隔离线路核对同公会跨频道、断线显示、请求限制及全量回包尾部。两种名单的 A21 界面仍待验收。
+
 ## 2026-11-23 CH50 决斗技能编辑
 
 A21 在环境 24 发出第 0 页的 [加点 CMD001D](game/client-to-server/0x001D.md#2026-11-23-ch50-决斗加点) 和 [换槽 CMD001C](game/client-to-server/0x001C.md#2026-11-23-ch50-决斗换槽)。取证构建均回 `00 03`。现实现让该环境的决斗大厅和等待房走决斗组的技能与点数规则，开战和结算阶段拒绝编辑。成功应答、显示与重登待 A21 复验。

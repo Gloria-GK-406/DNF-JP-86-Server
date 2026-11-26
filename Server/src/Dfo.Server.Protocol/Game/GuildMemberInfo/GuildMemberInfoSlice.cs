@@ -15,12 +15,14 @@ internal sealed record GuildMemberInfoMessage(GuildRank Rank) : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameGuildMemberInfo;
 
-    internal static GuildMemberInfoMessage From(GuildMember? member) => new(member switch
+    internal static GuildMemberInfoMessage From(GuildMember? member) => new(RankOf(member));
+
+    internal static GuildRank RankOf(GuildMember? member) => member switch
     {
         null => GuildRank.NoGuild,
         { IsLeader: true } => GuildRank.Leader,
         _ => GuildRank.Member,
-    });
+    };
 }
 
 internal sealed class GuildMemberInfoEncoder : GameNotiMessageEncoder<GuildMemberInfoMessage>

@@ -146,6 +146,18 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(first, (await query.FindPublicIdentityAsync(new(13), default))!.Id);
         Assert.Equal(new[] { 11, 13 }, (await query.ReadRosterAsync(new(13), default)).Select(member => member.Character.Value));
         Assert.Single(await query.ReadRosterAsync(new(12), default));
+        var roster = await query.ReadRosterEntriesAsync(new(13), default);
+        Assert.Equal(new[] { 11, 13 }, roster.Select(entry => entry.Membership.Character.Value));
+        Assert.All(roster, entry =>
+        {
+            Assert.Equal(first, entry.Membership.Guild);
+            Assert.True(entry.Account.Value > 0);
+            Assert.NotEmpty(entry.Name);
+        });
+        Assert.True(roster[0].Membership.IsLeader);
+        Assert.False(roster[1].Membership.IsLeader);
+        Assert.Equal(second, Assert.Single(await query.ReadRosterEntriesAsync(new(12), default)).Membership.Guild);
+        Assert.Empty(await query.ReadRosterEntriesAsync(new(14), default));
     }
 
     [Fact]

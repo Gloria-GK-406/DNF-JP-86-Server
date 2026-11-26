@@ -48,6 +48,17 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             """, p => BindCharacter(p, viewer), r => new GuildMember(ReadGuildId(r), new(r.GetInt32(1)),
                 r.GetBoolean(2), DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(3))), ct);
 
+    public ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT m.guild_id,m.character_id,m.is_leader,m.joined_at,
+                   c.account_id,COALESCE(c.name_bytes,CAST(c.name AS BLOB)),c.level,c.job,c.grow_type
+            FROM guild_members self JOIN guild_members m ON m.guild_id=self.guild_id
+            JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
+            WHERE self.character_id=@character ORDER BY m.character_id
+            """, p => BindCharacter(p, viewer), r => new GuildRosterEntry(
+                new(ReadGuildId(r), new(r.GetInt32(1)), r.GetBoolean(2), DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(3))),
+                new(r.GetInt32(4)), (byte[])r.GetValue(5), r.GetInt32(6), r.GetInt32(7), r.GetInt32(8)), ct);
+
     public ValueTask<IReadOnlyList<CharacterId>> AffectedCharactersAsync(GuildId guild, CancellationToken ct) =>
         database.ReadAllAsync("""
             SELECT character_id FROM guild_members WHERE guild_id=@guild

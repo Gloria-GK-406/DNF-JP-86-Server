@@ -1,3 +1,4 @@
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Data.Guilds;
@@ -11,6 +12,9 @@ public sealed record GuildPublicIdentity(GuildId Id, string Name, int Level);
 public sealed record GuildMember(GuildId Guild, CharacterId Character, bool IsLeader, DateTimeOffset JoinedAt);
 
 public sealed record GuildMembership(Guild Guild, GuildMember Member);
+
+public sealed record GuildRosterEntry(GuildMember Membership, AccountId Account, byte[] Name,
+    int Level, int Job, int GrowType);
 
 public sealed record GuildApplication(GuildId Guild, CharacterId Character, string Message, DateTimeOffset AppliedAt);
 
