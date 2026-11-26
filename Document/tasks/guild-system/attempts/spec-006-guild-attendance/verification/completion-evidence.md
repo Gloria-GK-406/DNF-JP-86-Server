@@ -1,6 +1,6 @@
 ---
 kind: rks-verification
-decision: manual_required
+decision: pass
 ---
 
 # A21 公会签到验证
@@ -11,6 +11,6 @@ decision: manual_required
 - 完整协议测试 2,413 项、迁移测试 44 项通过。公会持久化、相关会话和通知架构定向测试通过。命令注册测试原来会读取默认路径中遗留的 schema 17 库，改用各自临时库后完整协议回归通过。
 - [独立代码审查](../reviews/change-review.md) 已通过。
 
-## 待实机确认
+## A21 用户验收
 
-按 [双端验收步骤](../a21-user-test.md) 确认公会信息已打开时计数能更新，以及点开明细出现正确的角色名。
+用户在独立服双端测试后反馈「ok，符合预期」。[双端验收步骤](../a21-user-test.md)
