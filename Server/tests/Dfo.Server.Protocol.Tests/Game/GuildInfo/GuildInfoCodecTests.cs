@@ -18,6 +18,18 @@ public sealed class GuildInfoCodecTests
         Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body[^20..]));
     }
 
+    [Fact]
+    public void Panel_writes_attendance_separately_from_guild_member_count()
+    {
+        var frame = Assert.Single(new GuildInfoEncoder().Encode(
+            new GuildInfoMessage(new(new(2), "Iris", "Promotion", 1), true, 3, AttendanceCount: 2)));
+        var body = frame.AsSpan(15);
+        var prefix = body[(4 + BinaryPrimitives.ReadInt32LittleEndian(body))..];
+        Assert.Equal((ushort)3, BinaryPrimitives.ReadUInt16LittleEndian(prefix[2..]));
+        Assert.Equal((ushort)2, BinaryPrimitives.ReadUInt16LittleEndian(prefix[30..]));
+        Assert.Equal(9, BinaryPrimitives.ReadInt32LittleEndian(prefix[32..]));
+    }
+
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 11)]

@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.GuildCreation;
@@ -11,7 +12,8 @@ namespace Dfo.Server.Protocol.Game.GuildInfo;
 public sealed record GuildInfoRequest(ClientMessageType MessageType, GameMessageMetadata Metadata, bool IsEmpty)
     : IClientNetworkMessage;
 
-internal sealed record GuildInfoMessage(Guild Guild, bool ViewerIsLeader, int MemberCount, int ViewerDonationPoints = 0)
+internal sealed record GuildInfoMessage(
+    Guild Guild, bool ViewerIsLeader, int MemberCount, int ViewerDonationPoints = 0, int AttendanceCount = 0)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameGuildInfo;
@@ -43,7 +45,7 @@ internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage
         writer.Write(0u);
         WriteText(writer, "");
         WriteText(writer, "");
-        writer.Write((ushort)0);
+        writer.Write(checked((ushort)message.AttendanceCount));
         WriteText(writer, guild.Promotion);
 
         // Six permission/name records, followed by empty purchases, alliance and contribution state.
@@ -105,6 +107,7 @@ internal static class GuildInfoRegistration
         services.AddGameCmdMessageDecoder<RefreshGuildInfoDecoder>(ClientMessageType.GameGuildRefreshInfo);
         services.AddGameCmdMessageDecoder<SetGuildChannelDecoder>(ClientMessageType.GameGuildSetRecommendedChannel);
         services.AddGameNotiMessageEncoder<GuildInfoMessage, GuildInfoEncoder>();
+        services.AddNotificationHandler<GuildInfoPanel, GuildInfoPanelHandler>();
         services.AddGameCmdMessageEncoder<GuildSetChannelReply, GuildSetChannelReplyEncoder>();
         services.AddProtocolCommandHandler<GameGuildInfoCommand, bool, GameGuildInfoCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildRefreshInfo, typeof(GuildInfoRequest)),

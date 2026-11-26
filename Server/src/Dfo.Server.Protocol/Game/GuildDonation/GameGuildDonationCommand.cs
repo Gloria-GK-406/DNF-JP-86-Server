@@ -19,6 +19,7 @@ internal sealed class GameGuildDonationCommandHandler(
     ISelectedSessionDomainService sessions,
     IGuildDomainService guilds,
     IGuildQueryDomainService query,
+    IGuildProgressDomainService progress,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
     TimeProvider clock) : ICommandHandler<GameGuildDonationCommand, bool>
@@ -41,10 +42,10 @@ internal sealed class GameGuildDonationCommandHandler(
             if (donation.Status != GuildMutationStatus.Success)
                 return (donation, (GuildInfoMessage?)null);
 
-            var refreshed = await GuildInfoPanel.ReadAsync(query, actor.CharacterId, token).ConfigureAwait(false);
-            var membership = refreshed.Membership
+            var refreshed = await GuildInfoPanel.ReadAsync(query, progress, actor.CharacterId, token).ConfigureAwait(false);
+            var member = refreshed.FindMember(actor.CharacterId)
                 ?? throw new InvalidOperationException("The donating member's guild panel could not be read.");
-            return (donation, GuildInfoPanel.CreateMessage(membership, refreshed.Count));
+            return (donation, refreshed.CreateMessage(member));
         }, ct).ConfigureAwait(false);
 
         if (result is not { Status: GuildMutationStatus.Success, RemainingGold: { } gold } || panel is null)

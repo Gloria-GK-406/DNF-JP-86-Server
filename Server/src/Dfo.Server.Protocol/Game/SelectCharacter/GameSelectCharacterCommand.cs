@@ -52,6 +52,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.AntonRaid;
+using Dfo.Server.Protocol.Game.GuildInfo;
 using Dfo.Server.Protocol.Game.GuildPresence;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.PvpDailyMission;
@@ -103,6 +104,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly ICharacterRelationQueryDomainService relations;
     private readonly ICharacterIdentityQueryDomainService identities;
     private readonly IGuildQueryDomainService guilds;
+    private readonly IGuildProgressDomainService guildProgress;
     private readonly AntonRaidSquadProjection raidSquads;
     private readonly IPvpRecordDomainService pvpRecords;
     private readonly IPvpTotalMatchTeamDomainService pvpTotalMatchTeams;
@@ -129,7 +131,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch, IPvpRoomQueryDomainService pvpRooms,
         IPvpTotalMatchCandidateQueryDomainService totalMatchCandidates, IPvpDailyMissionQueryDomainService dailyMissions,
         IPvpColosseumDomainService colosseum,
-        IGuildQueryDomainService guilds)
+        IGuildQueryDomainService guilds, IGuildProgressDomainService guildProgress)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -150,6 +152,7 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.representativeSwitch = representativeSwitch;
         this.totalMatchCandidates = new(pvpRooms, totalMatchCandidates, outbox, clock);
         this.dailyMissions = new(dailyMissions, outbox, colosseum);
+        this.guildProgress = guildProgress;
         this.guilds = guilds;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
@@ -552,7 +555,8 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
                 session.CharacterId, experiment.Current, experiment.Threshold);
         }
 
-
+        if (prepared.CharacterEntry.GuildMember is not null)
+            await RecordGuildAttendanceAsync(execution, session, cancellationToken).ConfigureAwait(false);
     }
 
     private static IReadOnlyList<SupplementalSynchronizationMessage> BuildPrePublicationMessages(
@@ -895,6 +899,55 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     }
     private ValueTask<NotificationDelivery> ProjectQuotaAsync(SelectedSessionIdentity session, UsageQuotaFamily family, CancellationToken ct) =>
         projections.ProjectAsync(new NotificationAudience.TheseSessions([session]), new UsageQuotaViewChanged(session.CharacterId, family), ct);
+
+    private async ValueTask RecordGuildAttendanceAsync(
+        CommandExecutionContext execution, SelectedSessionIdentity session, CancellationToken ct)
+    {
+        if (!selectedSessions.IsInWorld(session))
+            return;
+
+        Exception? actionFailure = null;
+        var write = await units.WriteResultAsync(execution, new("RecordGuildAttendance", []), async (unit, token) =>
+        {
+            try
+            {
+                return await guildProgress.RecordAttendanceAsync(session.CharacterId, token).ConfigureAwait(false);
+            }
+            catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
+            {
+                actionFailure = error;
+                unit.RequireRollback(error);
+                return false;
+            }
+        }, ct).ConfigureAwait(false);
+        var failure = write is CommandWriteResult<bool>.CommitRolledBack rollback ? rollback.Cause : actionFailure;
+        if (failure is not null)
+        {
+            logger.LogWarning(failure, "Guild attendance could not be recorded for character {Character}", session.CharacterId.Value);
+            return;
+        }
+        if (write is not CommandWriteResult<bool>.Returned { Value: true })
+            return;
+
+        var panel = await units.ReadOnlyAsync(execution, new("ReadGuildAttendancePanel", []), async token =>
+        {
+            try
+            {
+                return await GuildInfoPanel.ReadAsync(guilds, guildProgress, session.CharacterId, token).ConfigureAwait(false);
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                logger.LogWarning(error, "Guild attendance was recorded but the panel could not be read for character {Character}",
+                    session.CharacterId.Value);
+                return GuildInfoPanel.Empty;
+            }
+        }, ct).ConfigureAwait(false);
+        if (panel.Members.Count != 0)
+        {
+            await projections.ProjectAsync(new NotificationAudience.TheseCharacters(
+                panel.Members.Select(member => member.Character).ToArray()), panel, ct).ConfigureAwait(false);
+        }
+    }
 
     private async ValueTask AnnounceToGuildAsync(
         CommandExecutionContext execution, SelectedSessionIdentity session, byte channel, CancellationToken ct)

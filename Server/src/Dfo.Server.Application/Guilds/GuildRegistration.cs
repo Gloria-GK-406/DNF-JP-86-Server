@@ -11,6 +11,7 @@ internal static class GuildRegistration
         services.TryAddSingleton<GuildRuleService>();
         services.TryAddSingleton<IGuildDomainService, GuildDomainService>();
         services.TryAddSingleton<IGuildQueryDomainService, GuildQueryDomainService>();
+        services.TryAddSingleton<IGuildProgressDomainService, GuildProgressDomainService>();
         services.TryAddSingleton<IGuildRecruitmentSessionDomainService, GuildRecruitmentSessionDomainService>();
     }
 }

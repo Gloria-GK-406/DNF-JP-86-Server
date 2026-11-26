@@ -23,6 +23,7 @@ public sealed class GuildDomainTests : IDisposable
     private const int Fee = 300_000;
     private readonly string path = Path.Combine(Path.GetTempPath(), $"dfo-guild-{Guid.NewGuid():N}.db");
     private readonly DomainTransactionScope scope = TestRequired.TransactionScope();
+    private readonly SqliteGuildDomainStore store;
     private readonly SqliteCharacterTable characters;
     private readonly GuildDomainService guilds;
     private readonly GuildQueryDomainService query;
@@ -31,7 +32,7 @@ public sealed class GuildDomainTests : IDisposable
     public GuildDomainTests()
     {
         var database = new SqliteDatabase(path, scope);
-        var store = new SqliteGuildDomainStore(database);
+        store = new SqliteGuildDomainStore(database);
         characters = new(database);
         var players = new CharacterDomainService(new SqliteCharacterCarriedGoldTable(database),
             TestRequired.Absent<ICarriedGoldRuleService>(), characters, TestRequired.Absent<ICharacterSkillPointDomainService>(),
@@ -48,6 +49,45 @@ public sealed class GuildDomainTests : IDisposable
                 (11,900000),(12,900000),(13,100),(16,900000);
             UPDATE characters SET delete_flag=1 WHERE character_id=16;
             """);
+    }
+
+    [Fact]
+    public async Task Guild_attendance_is_per_guild_character_and_local_date()
+    {
+        var first = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.CreateAsync(new(12), "Violet", "", default));
+        await Write(() => guilds.ApplyAsync(new(13), first, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        var clock = new AttendanceClock();
+        var progress = new GuildProgressDomainService(store, clock);
+
+        Assert.Empty(await progress.ReadAttendanceTodayAsync(new(11), default));
+        Assert.False(await Write(() => progress.RecordAttendanceAsync(new(14), default)));
+        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(11), default)));
+        Assert.False(await Write(() => progress.RecordAttendanceAsync(new(11), default)));
+        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(13), default)));
+        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(12), default)));
+        Assert.Collection(await progress.ReadAttendanceTodayAsync(new(11), default),
+            name => Assert.Equal("Leader"u8.ToArray(), name),
+            name => Assert.Equal("Applicant"u8.ToArray(), name));
+        Assert.Equal("Other"u8.ToArray(), Assert.Single(await progress.ReadAttendanceTodayAsync(new(12), default)));
+        Assert.Empty(await progress.ReadAttendanceTodayAsync(new(14), default));
+        await Write(() => guilds.LeaveAsync(new(13), default));
+        Assert.Equal("Leader"u8.ToArray(), Assert.Single(await progress.ReadAttendanceTodayAsync(new(11), default)));
+
+        clock.Now = clock.Now.AddMinutes(2);
+        Assert.Empty(await progress.ReadAttendanceTodayAsync(new(11), default));
+        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(11), default)));
+        Assert.Equal(4L, Execute("SELECT COUNT(*) FROM guild_attendance"));
+        Assert.Equal(2L, Execute("SELECT COUNT(DISTINCT day) FROM guild_attendance"));
+    }
+
+    private sealed class AttendanceClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = new(2026, 11, 26, 15, 59, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => Now;
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.CreateCustomTimeZone(
+            "Guild attendance tests", TimeSpan.FromHours(8), "UTC+8", "UTC+8");
     }
 
     [Fact]

@@ -69,6 +69,32 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             }, r => new GuildDonationEntry((byte[])r.GetValue(0), r.GetInt32(1), r.GetInt32(2),
                 DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(3))), ct);
 
+    public async ValueTask<bool> RecordAttendanceAsync(CharacterId character, DateOnly day, CancellationToken ct) =>
+        await database.ExecuteAsync("""
+            INSERT INTO guild_attendance(guild_id, day, character_id)
+            SELECT m.guild_id, @day, m.character_id FROM guild_members m
+            JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
+            WHERE m.character_id=@character
+            ON CONFLICT(guild_id, day, character_id) DO NOTHING
+            """, p =>
+            {
+                BindCharacter(p, character);
+                p.AddWithValue("@day", day.DayNumber);
+            }, ct).ConfigureAwait(false) == 1;
+
+    public ValueTask<IReadOnlyList<byte[]>> ReadAttendanceAsync(CharacterId viewer, DateOnly day, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT COALESCE(c.name_bytes, CAST(c.name AS BLOB))
+            FROM guild_members self JOIN guild_attendance a ON a.guild_id=self.guild_id AND a.day=@day
+            JOIN guild_members m ON m.guild_id=a.guild_id AND m.character_id=a.character_id
+            JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
+            WHERE self.character_id=@character ORDER BY a.character_id
+            """, p =>
+            {
+                BindCharacter(p, viewer);
+                p.AddWithValue("@day", day.DayNumber);
+            }, r => (byte[])r.GetValue(0), ct);
+
     public ValueTask<IReadOnlyList<CharacterId>> AffectedCharactersAsync(GuildId guild, CancellationToken ct) =>
         database.ReadAllAsync("""
             SELECT character_id FROM guild_members WHERE guild_id=@guild

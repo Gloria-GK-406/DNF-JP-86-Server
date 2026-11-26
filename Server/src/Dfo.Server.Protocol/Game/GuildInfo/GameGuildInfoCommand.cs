@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Channel;
@@ -20,6 +21,7 @@ public sealed record GameGuildInfoCommand(NetworkDispatchContext Dispatch, Guild
 internal sealed class GameGuildInfoCommandHandler(
     ISelectedSessionDomainService sessions,
     IGuildQueryDomainService query,
+    IGuildProgressDomainService progress,
     IGuildDomainService guilds,
     IChannelEntryDomainService channels,
     ICommandWorkUnits units,
@@ -57,29 +59,45 @@ internal sealed class GameGuildInfoCommandHandler(
         }
 
         var panel = await units.ReadOnlyAsync(context, new("guild-panel", [recipient]),
-            token => GuildInfoPanel.ReadAsync(query, actor.CharacterId, token), ct).ConfigureAwait(false);
-        if (panel.Membership is not { } current)
+            token => GuildInfoPanel.ReadAsync(query, progress, actor.CharacterId, token), ct).ConfigureAwait(false);
+        if (panel.FindMember(actor.CharacterId) is not { } member)
             return false;
 
-        await outbox.RegisterNotiAsync(connection.ConnectionId, GuildMemberInfoMessage.From(current.Member), ct)
+        await outbox.RegisterNotiAsync(connection.ConnectionId, GuildMemberInfoMessage.From(member), ct)
             .ConfigureAwait(false);
-        await outbox.RegisterNotiAsync(connection.ConnectionId, GuildInfoPanel.CreateMessage(current, panel.Count), ct)
+        await outbox.RegisterNotiAsync(connection.ConnectionId, panel.CreateMessage(member), ct)
             .ConfigureAwait(false);
         return true;
     }
 }
 
-internal static class GuildInfoPanel
+internal sealed record GuildInfoPanel(Guild? Guild, IReadOnlyList<GuildMember> Members, int AttendanceCount)
+    : INotification<GuildInfoPanel>
 {
-    public static GuildInfoMessage CreateMessage(GuildMembership membership, int count) =>
-        new(membership.Guild, membership.Member.IsLeader, count, membership.Member.DonationPoints);
+    public static GuildInfoPanel Empty { get; } = new(null, [], 0);
 
-    public static async ValueTask<(GuildMembership? Membership, int Count)> ReadAsync(
-        IGuildQueryDomainService query, CharacterId viewer, CancellationToken ct)
+    public GuildMember? FindMember(CharacterId character) => Members.FirstOrDefault(member => member.Character == character);
+
+    public GuildInfoMessage CreateMessage(GuildMember member) =>
+        new(Guild ?? throw new InvalidOperationException("An empty guild panel has no message."),
+            member.IsLeader, Members.Count, member.DonationPoints, AttendanceCount);
+
+    public static async ValueTask<GuildInfoPanel> ReadAsync(
+        IGuildQueryDomainService query, IGuildProgressDomainService progress, CharacterId viewer, CancellationToken ct)
     {
         if (await query.FindMembershipAsync(viewer, ct).ConfigureAwait(false) is not { } membership)
-            return (null, 0);
+            return Empty;
+
         var members = await query.ReadRosterAsync(viewer, ct).ConfigureAwait(false);
-        return (membership, members.Count);
+        var attended = await progress.ReadAttendanceTodayAsync(viewer, ct).ConfigureAwait(false);
+        return new(membership.Guild, members, attended.Count);
     }
+}
+
+internal sealed class GuildInfoPanelHandler : INotificationHandler<GuildInfoPanel>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
+        NotificationRecipient recipient, GuildInfoPanel panel, CancellationToken ct) =>
+        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+            panel.FindMember(recipient.CharacterId) is { } member ? [panel.CreateMessage(member)] : []);
 }

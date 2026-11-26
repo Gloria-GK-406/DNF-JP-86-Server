@@ -32,6 +32,7 @@ public static class Migrator
             [14] = AddRecommendedGuildChannel,
             [15] = AddGuildDonationPoints,
             [16] = AddGuildDonationHistory,
+            [17] = AddGuildAttendance,
         };
 
     private static void AddGuilds(SqliteConnection connection)
@@ -86,6 +87,13 @@ public static class Migrator
     {
         using var transaction = connection.BeginTransaction();
         CharacterDatabaseSchema.DeclareGuildDonationHistory(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildAttendance(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildAttendance(connection, transaction);
         transaction.Commit();
     }
 

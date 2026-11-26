@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 17;
+    public const int Version = 18;
 
     internal const string PvpTotalMatchTeamsDeclaration = """
         CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
@@ -169,6 +169,7 @@ internal static class CharacterDatabaseSchema
         DeclareAntonRaidRewards(connection, transaction);
         DeclareGuilds(connection, transaction);
         DeclareGuildDonationHistory(connection, transaction);
+        DeclareGuildAttendance(connection, transaction);
         Apply(connection, transaction,
             ["CREATE TRIGGER IF NOT EXISTS equipment_rental_item_deleted AFTER DELETE ON items BEGIN DELETE FROM equipment_rental_instances WHERE item_uid=OLD.item_uid; END"]);
     }
@@ -221,6 +222,20 @@ internal static class CharacterDatabaseSchema
             "CREATE UNIQUE INDEX IF NOT EXISTS guild_members_one_leader ON guild_members(guild_id) WHERE is_leader=1",
             "CREATE INDEX IF NOT EXISTS guild_members_by_guild ON guild_members(guild_id,character_id)",
             "CREATE INDEX IF NOT EXISTS guild_applications_by_guild ON guild_applications(guild_id,applied_at,character_id)",
+        ]);
+    }
+
+    internal static void DeclareGuildAttendance(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_attendance (
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                day INTEGER NOT NULL,
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                PRIMARY KEY (guild_id, day, character_id))
+            """,
         ]);
     }
 

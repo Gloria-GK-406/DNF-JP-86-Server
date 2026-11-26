@@ -149,7 +149,8 @@ internal static class ProductionSelectionStages
             totalMatchCandidates: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(),
             dailyMissions: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpDailyMissionQueryDomainService>(),
             colosseum: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpColosseumDomainService>(),
-            guilds: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>());
+            guilds: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>(),
+            guildProgress: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Guilds.IGuildProgressDomainService>());
     internal static GameReturnToSelectionCommandHandler Return(IOnlineUserQueryDomainService users,ISelectedSessionDomainService sessions,
         ICharacterRosterDomainService characters,ISelectedSessionCleanupDomainService cleanup) =>
         new(users,sessions,characters,TestRequired.InitialHonor,null!,new CleanupAdapter(cleanup),null!,null!,null!,null!,

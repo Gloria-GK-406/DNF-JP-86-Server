@@ -354,6 +354,7 @@ public sealed class ProtocolModule : IServerModule
         Dfo.Server.Protocol.Game.GuildCreation.GuildCreationRegistration.AddGuildCreationSlice(services);
         Dfo.Server.Protocol.Game.GuildMemberInfo.GuildMemberInfoRegistration.AddGuildMemberInfoSlice(services);
         Dfo.Server.Protocol.Game.GuildInfo.GuildInfoRegistration.AddGuildInfoSlice(services);
+        Dfo.Server.Protocol.Game.GuildAttendance.GuildAttendanceRegistration.AddGuildAttendanceSlice(services);
         Dfo.Server.Protocol.Game.GuildDonation.GuildDonationRegistration.AddGuildDonationSlice(services);
         Dfo.Server.Protocol.Game.GuildDonationHistory.GuildDonationHistoryRegistration.AddGuildDonationHistorySlice(services);
         Dfo.Server.Protocol.Game.GuildRoster.GuildRosterRegistration.AddGuildRosterSlice(services);
