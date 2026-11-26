@@ -53,6 +53,7 @@ dotnet run --project Tool/DbMigrate -- <数据库路径>
 - 版本 18 → 19（`PvpDailyMissionsUpgrade.cs`）新增 `pvp_daily_missions`，按角色、游戏日和任务记录进度与完成奖励对应的对局。迁移仅建空表，保留队伍、战绩、RP、GP 和背包数据。
 - 版本 19 → 20（`PvpDailyMissionMetricsUpgrade.cs`）新增 `pvp_daily_mission_metrics`，保存连胜的当前长度与胜利姿势的分项计数。原有任务进度和奖励凭据保留。
 - 版本 20 → 21（`PvpColosseumUpgrade.cs`）新增 `pvp_colosseum_runs`，记录入场归属、游戏日、挑战进度、抽取后的奖励和领取状态。迁移仅建空表及索引。
+- 版本 14 → 15（`Migrator.AddRecommendedGuildChannel`）为公会增加推荐频道，既有公会初始为未设置。
 - 迁移工具不认识的表和列原样保留。
 
 ## 修改表结构时

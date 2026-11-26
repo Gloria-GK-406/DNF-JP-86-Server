@@ -5,6 +5,37 @@ namespace DbMigrate.Tests;
 
 public sealed class GuildMigrationTests
 {
+    [Fact]
+    public void Upgrading_existing_guilds_preserves_the_leader_and_defaults_to_no_channel()
+    {
+        var path = Unversioned.NewPath("guild-channel-v14");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                ALTER TABLE guilds DROP COLUMN recommended_channel;
+                INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-channel');
+                INSERT INTO characters(character_id,account_id,name) VALUES(11,1,'Leader');
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at) VALUES(42,'Iris','iris','Hello',1);
+                INSERT INTO guild_members(character_id,guild_id,is_leader,joined_at) VALUES(11,42,1,1);
+                PRAGMA user_version=14;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal(14, result.From);
+            Assert.Equal(CharacterDatabaseSchema.Version, result.To);
+            Assert.Equal(0L, Execute(connection, "SELECT recommended_channel FROM guilds WHERE guild_id=42 AND name='Iris'"));
+            Assert.Equal(1L, Execute(connection, "SELECT is_leader FROM guild_members WHERE guild_id=42 AND character_id=11"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

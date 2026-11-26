@@ -618,4 +618,7 @@ public sealed record CharacterEntryState(
     CharacterSkillsEntryState Skills,
     CharacterQuestEntryState Quests,
     CharacterProgressionEntryState Progression,
-    CharacterFeaturesEntryState Features);
+    CharacterFeaturesEntryState Features)
+{
+    public Dfo.Server.Data.Guilds.GuildMember? GuildMember { get; init; }
+}

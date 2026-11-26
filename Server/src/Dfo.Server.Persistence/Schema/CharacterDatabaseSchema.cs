@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 14;
+    public const int Version = 15;
 
     internal const string PvpTotalMatchTeamsDeclaration = """
         CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
@@ -200,7 +200,8 @@ internal static class CharacterDatabaseSchema
                 guild_id INTEGER PRIMARY KEY AUTOINCREMENT CHECK(guild_id BETWEEN 1 AND 4294967295),
                 name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE,
                 promotion TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 1 CHECK(level > 0),
-                created_at INTEGER NOT NULL)
+                created_at INTEGER NOT NULL,
+                recommended_channel INTEGER NOT NULL DEFAULT 0 CHECK(recommended_channel >= 0))
             """,
             """
             CREATE TABLE IF NOT EXISTS guild_members (

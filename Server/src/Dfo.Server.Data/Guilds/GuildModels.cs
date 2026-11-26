@@ -4,7 +4,7 @@ namespace Dfo.Server.Data.Guilds;
 
 public readonly record struct GuildId(uint Value);
 
-public sealed record Guild(GuildId Id, string Name, string Promotion, int Level);
+public sealed record Guild(GuildId Id, string Name, string Promotion, int Level, int RecommendedChannel = 0);
 
 public sealed record GuildPublicIdentity(GuildId Id, string Name, int Level);
 

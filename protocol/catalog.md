@@ -1,8 +1,10 @@
 # 协议清单
 
-## 2026-11-26 公会创建（#62，CurrentImplementation，待 A21 实机）
+## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
-公会分支已接 [验名](game/client-to-server/0x009C.md)、[宣传](game/client-to-server/0x02E2.md)、[单人许可请求](game/client-to-server/0x02E4.md)、取消与 [创建提交](game/client-to-server/0x0044.md)，并发送 [许可通知](game/server-to-client/NOTI-0x02AE.md) 和 [创建通知](game/server-to-client/NOTI-0x0047.md)。同版本上游记录提供创建布局，JP86 隔离线路已核对中文 UTF-8、一次扣费和重复提交拒绝。窗口、换角、重登的实际显示见进行中的 [A21 验收](../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。
+公会分支已接 [验名](game/client-to-server/0x009C.md)、[宣传](game/client-to-server/0x02E2.md)、[单人许可请求](game/client-to-server/0x02E4.md)、取消与 [创建提交](game/client-to-server/0x0044.md)，并发送 [许可通知](game/server-to-client/NOTI-0x02AE.md) 和 [创建通知](game/server-to-client/NOTI-0x0047.md)。A21 实测创建了中文公会，库中记录唯一会长并扣除一次创建费。隔离线路已验证补发的 [当前角色职级](game/server-to-client/NOTI-0x007F.md)。身份相关的换角与重登观测见 [A21 验收](../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。
+
+公会频道设置使用 [公会详情刷新](game/client-to-server/0x0153.md)、[查看者会长标志](game/server-to-client/NOTI-0x0046.md) 和 [保存当前频道](game/client-to-server/0x033B.md)。详情回包修正后用户实测通过，隔离库确认保存 CH10。
 
 ## 2026-11-23 CH50 决斗技能编辑
 

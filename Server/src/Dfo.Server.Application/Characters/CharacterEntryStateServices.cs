@@ -269,13 +269,14 @@ internal sealed class CharacterEntryStateDomainService(
             if (definition?.HasSpecialRewardStatus == true)
                 specialRewardQuestIds.Add(clearFlag.SlotIndex);
         }
+        var membership = await guilds.FindMembershipAsync(characterId, cancellationToken).ConfigureAwait(false);
         var publicState = profile.Public with
         {
             Honor = await honor.ReadAsync(accountId, cancellationToken).ConfigureAwait(false),
             HasBlackDiamond = await premiums.For(accountId)
                 .IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false),
             HasPrivateStorePermission = await privateStores.IsPermittedAsync(accountId, cancellationToken).ConfigureAwait(false),
-            GuildIdentity = await guilds.FindPublicIdentityAsync(characterId, cancellationToken).ConfigureAwait(false),
+            GuildIdentity = membership is { Guild: var guild } ? new(guild.Id, guild.Name, guild.Level) : null,
             Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,
@@ -334,6 +335,9 @@ internal sealed class CharacterEntryStateDomainService(
             skillQuest.Skills,
             skillQuest.Quests,
             progression.Build(storage.Progression),
-            featureState);
+            featureState)
+        {
+            GuildMember = membership?.Member,
+        };
     }
 }

@@ -29,6 +29,7 @@ public static class Migrator
             [11] = GameplayParameterStorageRetirement.Apply,
             [12] = AntonRaidRewardUpgrade.Apply,
             [13] = AddGuilds,
+            [14] = AddRecommendedGuildChannel,
         };
 
     private static void AddGuilds(SqliteConnection connection)
@@ -42,6 +43,16 @@ public static class Migrator
     {
         using var command = connection.CreateCommand();
         command.CommandText = "CREATE TABLE IF NOT EXISTS drop_draw_multiplier(entry_key TEXT PRIMARY KEY,multiplier INTEGER NOT NULL CHECK(multiplier BETWEEN 1 AND 100));";
+        command.ExecuteNonQuery();
+    }
+
+    private static void AddRecommendedGuildChannel(SqliteConnection connection)
+    {
+        if (Shape.HasColumn(connection, null, "guilds", "recommended_channel")) return;
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            ALTER TABLE guilds ADD COLUMN recommended_channel INTEGER NOT NULL DEFAULT 0 CHECK(recommended_channel >= 0);
+            """;
         command.ExecuteNonQuery();
     }
 

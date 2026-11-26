@@ -1,5 +1,6 @@
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Protocol.Game.GuildMemberInfo;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.SelectCharacter;
@@ -16,9 +17,16 @@ internal sealed class SelectedCharacterStateMessageFactoryService
     public IReadOnlyList<IGameServerMessage> CreateValidated(SelectCharacterResult result, FriendListRefresh relations)
     {
         var messages = SelectedCharacterStateMessageFactory.Create(result, relations);
+        var entry = new List<IGameServerMessage>(messages.Count + 1);
         foreach (var message in messages)
+        {
             _ = message.EncodeBody();
-        return messages;
+            entry.Add(message);
+            // The client can apply its private guild rank after the selected actor exists.
+            if (message is CurrentUserStateMessage)
+                entry.Add(GuildMemberInfoMessage.From(result.CharacterEntry.GuildMember));
+        }
+        return entry;
     }
 }
 

@@ -18,13 +18,13 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
 
     public ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct) =>
         database.ReadFirstAsync("""
-            SELECT g.guild_id,g.name,g.promotion,g.level,m.character_id,m.is_leader,m.joined_at
+            SELECT g.guild_id,g.name,g.promotion,g.level,g.recommended_channel,m.character_id,m.is_leader,m.joined_at
             FROM guild_members m JOIN guilds g ON g.guild_id=m.guild_id WHERE m.character_id=@character
             """, p => BindCharacter(p, character), r =>
             {
                 var guild = ReadGuild(r);
-                return new GuildMembership(guild, new(guild.Id, new(r.GetInt32(4)),
-                    r.GetBoolean(5), DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(6))));
+                return new GuildMembership(guild, new(guild.Id, new(r.GetInt32(5)),
+                    r.GetBoolean(6), DateTimeOffset.FromUnixTimeSeconds(r.GetInt64(7))));
             }, ct);
 
     public ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct) =>
@@ -59,7 +59,7 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
         string name, string nameKey, string promotion, DateTimeOffset at, CancellationToken ct) =>
         await database.WriteReturningAsync("""
             INSERT INTO guilds(name,name_key,promotion,created_at) VALUES(@name,@key,@promotion,@at)
-            RETURNING guild_id,name,promotion,level
+            RETURNING guild_id,name,promotion,level,recommended_channel
             """, p =>
             {
                 p.AddWithValue("@name", name);
@@ -111,8 +111,16 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             DELETE FROM guilds WHERE guild_id=@guild;
             """, p => BindGuild(p, guild), ct).ConfigureAwait(false);
 
+    public async ValueTask SetRecommendedChannelAsync(GuildId guild, int channel, CancellationToken ct)
+    {
+        var changed = await database.ExecuteAsync("UPDATE guilds SET recommended_channel=@channel WHERE guild_id=@guild",
+            p => { BindGuild(p, guild); p.AddWithValue("@channel", channel); }, ct).ConfigureAwait(false);
+        if (changed != 1)
+            throw new InvalidOperationException("Guild channel update did not persist a guild.");
+    }
+
     private static Guild ReadGuild(SqliteDataReader row) =>
-        new(ReadGuildId(row), row.GetString(1), row.GetString(2), row.GetInt32(3));
+        new(ReadGuildId(row), row.GetString(1), row.GetString(2), row.GetInt32(3), row.GetInt32(4));
 
     private static GuildApplication ReadApplication(SqliteDataReader row) =>
         new(ReadGuildId(row), new(row.GetInt32(1)), row.GetString(2), DateTimeOffset.FromUnixTimeSeconds(row.GetInt64(3)));

@@ -33,7 +33,7 @@ public sealed class CharacterEntryStateTests
                     ? ValueTask.FromResult(new AdventureGroupStanding(3, 21570)) : null),
             honor: TestRequired.InitialHonor,
             guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>((method, _) =>
-                method.Name == "FindPublicIdentityAsync" ? ValueTask.FromResult<Dfo.Server.Data.Guilds.GuildPublicIdentity?>(null) : null),
+                method.Name == "FindMembershipAsync" ? ValueTask.FromResult<Dfo.Server.Data.Guilds.GuildMembership?>(null) : null),
             privateStores: TestRequired.Absent<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService>((method, arguments) =>
                 method.Name == "IsPermittedAsync" ? ValueTask.FromResult(false) : null));
 

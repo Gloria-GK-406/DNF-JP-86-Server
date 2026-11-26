@@ -49,5 +49,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic 与同版本上游参照 · High。** A21 handler VA `0118EC10` 读取一个 `u8`。ServerS4A21 `1870c85` 的 `GuildJoinPacketBuilder.Rank` 和《服务端业务开发规范》记录，客户端经 `01833DA0` 将它写到当前角色的 `+0x5C14`，管理权限判断读取该字段。
+
+| 字节值 | 上游含义 |
+| --- | --- |
+| `00` | 无公会，清除上一角色的职级 |
+| `01` | 会长 |
+| `04` | 普通成员 |
+
+**CurrentImplementation / WireCaptured。** 2026-11-26 的隔离线路探针收到 `GuildPilot` 选角的 `01`、`GuildAlt` 选角的 `00`，以及新建公会后、最终 ACK 前的 `01`。使用真实 A21 客户端确认按钮状态仍待完成。复测入口见 [公会创建验收](../../../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。

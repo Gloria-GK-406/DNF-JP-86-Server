@@ -39,6 +39,16 @@ internal sealed class GuildDomainService(
             ? CheckCreationEligibilityAsync(actor, key, ct)
             : ValueTask.FromResult(GuildMutationStatus.InvalidName);
 
+    public async ValueTask<GuildMutationStatus> SetRecommendedChannelAsync(CharacterId actor, int channel, CancellationToken ct)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(channel);
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return GuildMutationStatus.LeaderRequired;
+
+        await store.SetRecommendedChannelAsync(membership.Guild.Id, channel, ct).ConfigureAwait(false);
+        return GuildMutationStatus.Success;
+    }
+
     private async ValueTask<GuildMutationStatus> CheckCreationEligibilityAsync(
         CharacterId actor, string nameKey, CancellationToken ct)
     {

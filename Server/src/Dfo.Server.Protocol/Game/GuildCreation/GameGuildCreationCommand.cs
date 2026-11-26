@@ -7,6 +7,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
+using Dfo.Server.Protocol.Game.GuildMemberInfo;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.GuildCreation;
@@ -75,6 +76,8 @@ internal sealed class GameGuildCreationCommandHandler(
                 await projections.ProjectAsync(new NotificationAudience.TheseSessions(visibility.Resolve(actor)),
                     new CharacterUserStateRefresh(actor), ct).ConfigureAwait(false);
                 await outbox.RegisterNotiAsync(connection.ConnectionId, new GuildCreated(id, authorization.Name), ct)
+                    .ConfigureAwait(false);
+                await outbox.RegisterNotiAsync(connection.ConnectionId, new GuildMemberInfoMessage(GuildRank.Leader), ct)
                     .ConfigureAwait(false);
                 return await ReplyAsync(null, ct).ConfigureAwait(false);
 
