@@ -20,12 +20,13 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
     public ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct) =>
         database.ReadFirstAsync("""
             SELECT g.guild_id,g.name,g.promotion,g.level,g.recommended_channel,g.gm_points,
+                   g.announcement,g.mark_id,g.spent_gm_points,
                    m.character_id,m.is_leader,m.joined_at,m.donation_points,m.member_rank
             FROM guild_members m JOIN guilds g ON g.guild_id=m.guild_id WHERE m.character_id=@character
             """, p => BindCharacter(p, character), r =>
             {
                 var guild = ReadGuild(r);
-                return new GuildMembership(guild, ReadMember(r, guild.Id, 6));
+                return new GuildMembership(guild, ReadMember(r, guild.Id, 9));
             }, ct);
 
     public ValueTask<GuildMember?> FindRosterMemberAsync(GuildId guild, byte[] name, CancellationToken ct) =>
@@ -174,7 +175,7 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
         string name, string nameKey, string promotion, DateTimeOffset at, CancellationToken ct) =>
         await database.WriteReturningAsync("""
             INSERT INTO guilds(name,name_key,promotion,created_at) VALUES(@name,@key,@promotion,@at)
-            RETURNING guild_id,name,promotion,level,recommended_channel,gm_points
+            RETURNING guild_id,name,promotion,level,recommended_channel,gm_points,announcement,mark_id,spent_gm_points
             """, p =>
             {
                 p.AddWithValue("@name", name);
@@ -243,6 +244,28 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
         if (updated != 1)
             throw new InvalidOperationException("Guild promotion update did not persist a guild.");
     }
+
+    public async ValueTask SetAnnouncementAsync(GuildId guild, string announcement, CancellationToken ct)
+    {
+        var updated = await database.ExecuteAsync("UPDATE guilds SET announcement=@text WHERE guild_id=@guild", p =>
+        {
+            BindGuild(p, guild);
+            p.AddWithValue("@text", announcement);
+        }, ct).ConfigureAwait(false);
+        if (updated != 1)
+            throw new InvalidOperationException("Guild announcement update did not persist a guild.");
+    }
+
+    public async ValueTask<bool> TrySetMarkAsync(GuildId guild, byte mark, int cost, CancellationToken ct) =>
+        await database.ExecuteAsync("""
+            UPDATE guilds SET mark_id=@mark,gm_points=gm_points-@cost,spent_gm_points=spent_gm_points+@cost
+            WHERE guild_id=@guild AND mark_id<>@mark AND gm_points>=@cost
+            """, p =>
+            {
+                BindGuild(p, guild);
+                p.AddWithValue("@mark", mark);
+                p.AddWithValue("@cost", cost);
+            }, ct).ConfigureAwait(false) == 1;
 
     public async ValueTask SetRankNameAsync(GuildId guild, byte rank, string name, CancellationToken ct) =>
         _ = await database.ExecuteAsync("""
@@ -316,7 +339,8 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
     }
 
     private static Guild ReadGuild(SqliteDataReader row) =>
-        new(ReadGuildId(row), row.GetString(1), row.GetString(2), row.GetInt32(3), row.GetInt32(4), row.GetInt32(5));
+        new(ReadGuildId(row), row.GetString(1), row.GetString(2), row.GetInt32(3), row.GetInt32(4), row.GetInt32(5),
+            row.GetString(6), checked((byte)row.GetInt32(7)), row.GetInt32(8));
 
     private static GuildMember ReadMember(SqliteDataReader row, GuildId guild, int offset) =>
         new(guild, new(row.GetInt32(offset)), row.GetBoolean(offset + 1),

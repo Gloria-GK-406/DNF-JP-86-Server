@@ -30,6 +30,23 @@ public sealed class GuildManagementCodecTests
     }
 
     [Fact]
+    public void Announcement_and_mark_decode_their_own_payloads()
+    {
+        var announcement = new GuildAnnouncementDecoder();
+        Assert.Equal("Hi", Decode(announcement, [2, 0, 0, 0, 72, 105]).Text);
+        Assert.False(Decode(announcement, [1, 0, 0, 0, 0xff]).Valid);
+        var mark = new GuildMarkDecoder();
+        Assert.True(Decode(mark, [0]).Valid);
+        Assert.Equal(15, Decode(mark, [15]).Mark);
+        Assert.False(Decode(mark, [16]).Valid);
+        Assert.False(Decode(mark, [0, 1]).Valid);
+
+        var frame = Assert.Single(new GuildAnnouncementEncoder().Encode(new GuildAnnouncementUpdated("Hi")));
+        Assert.Equal(0x008D, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal("020000004869", Convert.ToHexString(frame[15..]));
+    }
+
+    [Fact]
     public void Reply_selector_and_flag_follow_client_command_envelope()
     {
         var encoder = new GuildManagementReplyEncoder();

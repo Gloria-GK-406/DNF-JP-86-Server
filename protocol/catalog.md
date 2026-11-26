@@ -22,6 +22,8 @@ A21 已捕获[申请提交](game/client-to-server/0x015C.md)、[查询个人待�
 
 [金币捐赠](game/client-to-server/0x015A.md) 已接入。当前 PVF 每 1,000 金币兑换 1 点 GM。隔离线路核对捐赠回执、随身金币与公会详情刷新、不同查看者的累计贡献和重登恢复。A21 实机记录了 50,000 金币换 50 GM。
 
+A21 真实点击已捕获[更换图标](game/client-to-server/0x0312.md)与[编辑公告](game/client-to-server/0x009A.md)。会长写入后刷新[公会信息](game/server-to-client/NOTI-0x0046.md)，公告同时推送[通知](game/server-to-client/NOTI-0x008D.md)。隔离双端线路已验证会长权限、公告推送、图标刷新、扣费及余额不足。用户反馈 A21 验收通过，隔离库确认已保存付费图标并扣 2,000 GM。[验收记录](../Document/tasks/guild-system/a21-guild-appearance.md)。
+
 [公会积分内容](game/client-to-server/0x02EA.md) 实机确认发送空请求。修正后沿用原有捐赠明细，按条数返回所属公会最近 50 条。用户确认 A21 列表已显示。
 
 | Command | Type | 方向 | 状态 | 文档 |

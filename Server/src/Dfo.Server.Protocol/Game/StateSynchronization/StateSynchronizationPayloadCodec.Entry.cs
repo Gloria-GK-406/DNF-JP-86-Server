@@ -773,10 +773,10 @@ internal static partial class StateSynchronizationPayloadCodec
         if (entry.GuildIdentity is { } guild)
         {
             // ServerS4A21's same-client builder replaces the empty union at +6..+15
-            // with name DSTR and u32 guild level, retaining the remaining tail.
+            // with name DSTR and u32 guild mark, retaining the remaining tail.
             writer.Write(tail.AsSpan(0, 6));
             WriteDstr(writer, GuildCreation.GuildCreationPayloadCodec.EncodeGuildText(guild.Name));
-            writer.Write(checked((uint)guild.Level));
+            writer.Write((uint)guild.Mark);
             writer.Write(tail.AsSpan(16));
         }
         else
@@ -1056,7 +1056,7 @@ internal static partial class StateSynchronizationPayloadCodec
         var guild = publicState.GuildIdentity;
         WriteDstr(writer, guild is null ? [] : GuildCreation.GuildCreationPayloadCodec.EncodeGuildText(guild.Name));
         writer.Write(checked((byte)(guild?.Level ?? 0)));
-        writer.Write((byte)0);
+        writer.Write(guild?.Mark ?? (byte)0);
         writer.Write(inspectGuildMarker);
         writer.Write(checked((uint)extras.SpecialRewardQuestIds.Count));
         foreach (var questId in extras.SpecialRewardQuestIds)

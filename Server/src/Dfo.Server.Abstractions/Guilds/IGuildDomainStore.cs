@@ -26,6 +26,8 @@ public interface IGuildDomainStore
     ValueTask<Guild> InsertGuildAsync(string name, string nameKey, string promotion, DateTimeOffset at, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildRankOverride>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct);
     ValueTask SetPromotionAsync(GuildId guild, string promotion, CancellationToken ct);
+    ValueTask SetAnnouncementAsync(GuildId guild, string announcement, CancellationToken ct);
+    ValueTask<bool> TrySetMarkAsync(GuildId guild, byte mark, int cost, CancellationToken ct);
     ValueTask SetRankNameAsync(GuildId guild, byte rank, string name, CancellationToken ct);
     ValueTask SetRankPermissionsAsync(GuildId guild, byte rank, uint permissions, CancellationToken ct);
     ValueTask SetRecommendedChannelAsync(GuildId guild, int channel, CancellationToken ct);
@@ -41,4 +43,5 @@ public interface IGuildEconomySource
 {
     int? ReadGoldCost();
     int? ReadDonationGoldPerPoint();
+    GuildMarkPricing? ReadMarkPricing();
 }

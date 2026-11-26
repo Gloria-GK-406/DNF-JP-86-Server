@@ -18,7 +18,7 @@ internal sealed class GuildQueryDomainService(IGuildDomainStore store, GuildRule
 
     public async ValueTask<GuildPublicIdentity?> FindPublicIdentityAsync(CharacterId character, CancellationToken ct) =>
         await store.FindMembershipAsync(character, ct).ConfigureAwait(false) is { Guild: var guild }
-            ? new(guild.Id, guild.Name, guild.Level)
+            ? new(guild.Id, guild.Name, guild.Level, guild.Mark)
             : null;
 
     public ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct) =>

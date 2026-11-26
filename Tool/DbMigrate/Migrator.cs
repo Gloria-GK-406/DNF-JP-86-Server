@@ -35,6 +35,7 @@ public static class Migrator
             [17] = AddGuildAttendance,
             [18] = AddGuildRankSettings,
             [19] = AddGuildMemberRank,
+            [20] = AddGuildAppearance,
         };
 
     private static void AddGuilds(SqliteConnection connection)
@@ -117,6 +118,33 @@ public static class Migrator
                 CHECK(member_rank BETWEEN 2 AND 5);
             """;
         command.ExecuteNonQuery();
+    }
+
+    private static void AddGuildAppearance(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+
+        if (!Shape.HasColumn(connection, transaction, "guilds", "announcement"))
+        {
+            command.CommandText = "ALTER TABLE guilds ADD COLUMN announcement TEXT NOT NULL DEFAULT '';";
+            command.ExecuteNonQuery();
+        }
+        if (!Shape.HasColumn(connection, transaction, "guilds", "mark_id"))
+        {
+            command.CommandText = "ALTER TABLE guilds ADD COLUMN mark_id INTEGER NOT NULL DEFAULT 1 CHECK(mark_id BETWEEN 0 AND 15);";
+            command.ExecuteNonQuery();
+        }
+        if (!Shape.HasColumn(connection, transaction, "guilds", "spent_gm_points"))
+        {
+            command.CommandText = """
+                ALTER TABLE guilds ADD COLUMN spent_gm_points INTEGER NOT NULL DEFAULT 0
+                    CHECK(spent_gm_points BETWEEN 0 AND 2147483647);
+                """;
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
     }
 
     /// <summary>The outcome of one run, for the caller to report.</summary>

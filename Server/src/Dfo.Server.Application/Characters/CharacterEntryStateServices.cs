@@ -276,7 +276,7 @@ internal sealed class CharacterEntryStateDomainService(
             HasBlackDiamond = await premiums.For(accountId)
                 .IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false),
             HasPrivateStorePermission = await privateStores.IsPermittedAsync(accountId, cancellationToken).ConfigureAwait(false),
-            GuildIdentity = membership is { Guild: var guild } ? new(guild.Id, guild.Name, guild.Level) : null,
+            GuildIdentity = membership is { Guild: var guild } ? new(guild.Id, guild.Name, guild.Level, guild.Mark) : null,
             Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,

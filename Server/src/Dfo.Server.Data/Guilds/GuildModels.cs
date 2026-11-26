@@ -5,9 +5,19 @@ namespace Dfo.Server.Data.Guilds;
 
 public readonly record struct GuildId(uint Value);
 
-public sealed record Guild(GuildId Id, string Name, string Promotion, int Level, int RecommendedChannel = 0, int GmPoints = 0);
+public sealed record Guild(GuildId Id, string Name, string Promotion, int Level, int RecommendedChannel = 0,
+    int GmPoints = 0, string Announcement = "", byte Mark = 1, int SpentGmPoints = 0)
+{
+    public int ContributionPoints => checked(GmPoints + SpentGmPoints);
+}
 
-public sealed record GuildPublicIdentity(GuildId Id, string Name, int Level);
+public sealed record GuildPublicIdentity(GuildId Id, string Name, int Level, byte Mark = 1);
+
+public sealed record GuildMarkPricing(int FirstPaidMark, int PointCost)
+{
+    public const int MarkCount = 16;
+    public int Price(byte mark) => mark >= FirstPaidMark ? PointCost : 0;
+}
 
 public sealed record GuildMember(GuildId Guild, CharacterId Character, bool IsLeader, DateTimeOffset JoinedAt,
     int DonationPoints = 0, byte MemberRank = GuildRankSettings.Member)
@@ -63,6 +73,9 @@ public enum GuildMutationStatus
     DonationUnavailable,
     ContributionLimit,
     InvalidRankSetting,
+    InvalidMark,
+    MarkPricingUnavailable,
+    InsufficientGuildPoints,
 }
 
 public sealed record GuildMutationResult(

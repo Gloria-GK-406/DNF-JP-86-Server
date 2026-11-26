@@ -6,6 +6,39 @@ namespace DbMigrate.Tests;
 public sealed class GuildMigrationTests
 {
     [Fact]
+    public void Upgrading_v20_adds_default_mark_and_preserves_existing_gm_and_promotion()
+    {
+        var path = Unversioned.NewPath("guild-appearance-v20");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                ALTER TABLE guilds DROP COLUMN announcement;
+                ALTER TABLE guilds DROP COLUMN mark_id;
+                ALTER TABLE guilds DROP COLUMN spent_gm_points;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points)
+                    VALUES(42,'Iris','iris','Before',1,50);
+                PRAGMA user_version=20;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((20L, 21L), (result.From, result.To));
+            Assert.Equal(1L, Execute(connection, """
+                SELECT COUNT(*) FROM guilds
+                WHERE guild_id=42 AND announcement='' AND mark_id=1 AND spent_gm_points=0 AND gm_points=50
+                    AND promotion='Before';
+                """));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Upgrading_v19_sets_ordinary_ranks_without_changing_leader_identity()
     {
         var path = Unversioned.NewPath("guild-appointment-v19");
@@ -28,7 +61,7 @@ public sealed class GuildMigrationTests
                 """);
 
             var result = Migrator.Migrate(path, backup: false);
-            Assert.Equal((19L, 20L), (result.From, result.To));
+            Assert.Equal((19L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
             Assert.Equal(11L, Execute(connection, "SELECT character_id FROM guild_members WHERE is_leader=1"));
             Assert.Equal(2L, Execute(connection, "SELECT COUNT(*) FROM guild_members WHERE member_rank=4"));
             Assert.Equal(2048L, Execute(connection, "SELECT permission_mask FROM guild_rank_settings WHERE rank=2"));

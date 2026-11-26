@@ -52,6 +52,40 @@ public sealed class GuildDomainTests : IDisposable
     }
 
     [Fact]
+    public async Task Leader_edits_announcement_and_changes_marks_without_losing_contribution()
+    {
+        var created = await Write(() => guilds.CreateAsync(new(11), "Iris", "Promotion", default));
+        var guildId = created.Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guildId, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        Execute("UPDATE guilds SET gm_points=2100;");
+
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            await Write(() => guilds.SetAnnouncementAsync(new(13), "Other", default)));
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            await Write(() => guilds.SetMarkAsync(new(13), 5, default)));
+        Assert.Equal(GuildMutationStatus.InvalidText,
+            await Write(() => guilds.SetAnnouncementAsync(new(11), new string('测', 41), default)));
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetAnnouncementAsync(new(11), "公会公告", default)));
+        Assert.Equal(GuildMutationStatus.InvalidMark, await Write(() => guilds.SetMarkAsync(new(11), 16, default)));
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetMarkAsync(new(11), 0, default)));
+        Assert.Equal(2100, (await query.FindMembershipAsync(new(13), default))!.Guild.GmPoints);
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetMarkAsync(new(11), 5, default)));
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetMarkAsync(new(11), 5, default)));
+        Assert.Equal(GuildMutationStatus.InsufficientGuildPoints,
+            await Write(() => guilds.SetMarkAsync(new(11), 6, default)));
+
+        var guild = (await query.FindMembershipAsync(new(13), default))!.Guild;
+        Assert.Equal("公会公告", guild.Announcement);
+        Assert.Equal("Promotion", guild.Promotion);
+        Assert.Equal(5, guild.Mark);
+        Assert.Equal(100, guild.GmPoints);
+        Assert.Equal(2100, guild.ContributionPoints);
+        Assert.Equal(5, (await query.FindPublicIdentityAsync(new(13), default))!.Mark);
+    }
+
+    [Fact]
     public async Task Application_review_uses_the_rank_permission_and_scopes_cancel_and_reject()
     {
         var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
@@ -544,5 +578,6 @@ public sealed class GuildDomainTests : IDisposable
         public int? DonationGold { get; set; } = 1000;
         public int? ReadGoldCost() => CreationGold;
         public int? ReadDonationGoldPerPoint() => DonationGold;
+        public GuildMarkPricing? ReadMarkPricing() => new(5, 2000);
     }
 }

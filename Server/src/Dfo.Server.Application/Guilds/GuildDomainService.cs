@@ -81,6 +81,33 @@ internal sealed class GuildDomainService(
         return new(target.Character, rank, changed);
     }
 
+    public async ValueTask<GuildMutationStatus> SetAnnouncementAsync(
+        CharacterId actor, string announcement, CancellationToken ct)
+    {
+        if (!rules.IsValidAnnouncement(announcement))
+            return GuildMutationStatus.InvalidText;
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return GuildMutationStatus.LeaderRequired;
+
+        await store.SetAnnouncementAsync(membership.Guild.Id, announcement, ct).ConfigureAwait(false);
+        return GuildMutationStatus.Success;
+    }
+
+    public async ValueTask<GuildMutationStatus> SetMarkAsync(CharacterId actor, byte mark, CancellationToken ct)
+    {
+        if (mark >= GuildMarkPricing.MarkCount)
+            return GuildMutationStatus.InvalidMark;
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return GuildMutationStatus.LeaderRequired;
+        if (membership.Guild.Mark == mark)
+            return GuildMutationStatus.Success;
+        if (rules.MarkPrice(mark) is not { } cost)
+            return GuildMutationStatus.MarkPricingUnavailable;
+
+        return await store.TrySetMarkAsync(membership.Guild.Id, mark, cost, ct).ConfigureAwait(false)
+            ? GuildMutationStatus.Success : GuildMutationStatus.InsufficientGuildPoints;
+    }
+
     public async ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct)
     {
         if (!GuildRankSettings.IsMemberRank(rank) || !rules.IsValidRankName(name))
@@ -130,7 +157,7 @@ internal sealed class GuildDomainService(
             return new(GuildMutationStatus.NotMember);
 
         var points = amount / rate;
-        if (membership.Guild.GmPoints > int.MaxValue - points ||
+        if (membership.Guild.ContributionPoints > int.MaxValue - points ||
             membership.Member.DonationPoints > int.MaxValue - points)
             return new(GuildMutationStatus.ContributionLimit);
         if (await characters.Get(actor).TrySpendGoldAsync(amount, ct).ConfigureAwait(false) is not { } remaining)

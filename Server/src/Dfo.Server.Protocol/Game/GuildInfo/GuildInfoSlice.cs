@@ -40,9 +40,9 @@ internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage
         writer.Write(checked((byte)guild.Level));
         writer.Write(0u);
         writer.Write((byte)0);
-        WriteText(writer, "");
+        WriteText(writer, guild.Announcement);
         writer.Write(new byte[3]); // Optional features, including the guild base.
-        writer.Write(checked((byte)guild.Level));
+        writer.Write(guild.Mark);
         writer.Write(0u);
         WriteText(writer, "");
         WriteText(writer, "");
@@ -65,7 +65,7 @@ internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage
         writer.Write((byte)0);
         writer.Write(checked((uint)guild.RecommendedChannel));
         writer.Write((byte)0);
-        writer.Write(checked((uint)guild.GmPoints)); // GM credits are exclusively donations in this phase.
+        writer.Write(checked((uint)guild.ContributionPoints)); // Lifetime guild contribution.
         writer.Write(0u); // Monthly guild contribution.
         writer.Write(checked((uint)message.ViewerDonationPoints));
         writer.Write(0u); // Monthly personal contribution.

@@ -22,6 +22,13 @@ internal sealed class GuildRuleService(IGuildEconomySource content)
     public bool IsValidPromotion(string text) =>
         IsValidText(text) && StrictUtf8.GetByteCount(text) <= 80;
 
+    public bool IsValidAnnouncement(string text) =>
+        text.Length <= 60 && IsWellFormed(text) && StrictUtf8.GetByteCount(text) <= 120;
+
+    public int? MarkPrice(byte mark) =>
+        content.ReadMarkPricing() is { FirstPaidMark: >= 0 and <= GuildMarkPricing.MarkCount, PointCost: > 0 } pricing
+            ? pricing.Price(mark) : null;
+
     public bool IsValidRankName(string text) =>
         text.Length <= 20 && !string.IsNullOrWhiteSpace(text) && IsWellFormed(text)
         && StrictUtf8.GetByteCount(text) <= Dfo.Server.Data.Guilds.GuildRankSettings.MaximumNameBytes;
