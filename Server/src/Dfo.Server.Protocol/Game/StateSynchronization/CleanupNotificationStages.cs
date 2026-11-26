@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.AntonRaid;
+using Dfo.Server.Protocol.Game.GuildPresence;
 using Dfo.Server.Protocol.Game.Party;
 
 namespace Dfo.Server.Protocol.Game.StateSynchronization;
@@ -49,5 +50,9 @@ internal static class CleanupNotificationStages
             await projections.ProjectAsync(audience, left, cancellationToken).ConfigureAwait(false);
         foreach (var (audience, offline) in FriendDepartureNotices.For(plan))
             await projections.ProjectAsync(audience, offline, cancellationToken).ConfigureAwait(false);
+        if (plan.GuildDeparture is { } departure)
+            await projections.ProjectAsync(new NotificationAudience.TheseCharacters(departure.OtherMembers),
+                new GuildMemberPresenceChanged(departure.Character, departure.Name, Channel: 0), cancellationToken)
+                .ConfigureAwait(false);
     }
 }

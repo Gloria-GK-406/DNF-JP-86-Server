@@ -357,6 +357,7 @@ public sealed class ProtocolModule : IServerModule
         Dfo.Server.Protocol.Game.GuildDonation.GuildDonationRegistration.AddGuildDonationSlice(services);
         Dfo.Server.Protocol.Game.GuildDonationHistory.GuildDonationHistoryRegistration.AddGuildDonationHistorySlice(services);
         Dfo.Server.Protocol.Game.GuildRoster.GuildRosterRegistration.AddGuildRosterSlice(services);
+        Dfo.Server.Protocol.Game.GuildPresence.GuildPresenceRegistration.AddGuildPresenceSlice(services);
         services.AddMirrorDungeonEntrySlice();
         services.AddCycleDungeonEntrySlice();
         services.TryAddSingleton<BossTowerDepartureProjectionQueue>();

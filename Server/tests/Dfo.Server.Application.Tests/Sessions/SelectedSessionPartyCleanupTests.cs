@@ -265,6 +265,38 @@ public sealed class SelectedSessionPartyCleanupTests
         });
     }
 
+    [Fact]
+    public async Task Guild_departure_captures_member_identity_only_when_the_session_left_the_world()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var fixture = new Fixture();
+            var member = fixture.SelectOnly(1);
+            var peer = fixture.Admit(2);
+            fixture.GuildRoster =
+            [
+                new(new(new(5), member.CharacterId, true, DateTimeOffset.UnixEpoch), member.AccountId, [0x61], 30, 0, 0),
+                new(new(new(5), peer.CharacterId, false, DateTimeOffset.UnixEpoch), peer.AccountId, [0x62], 30, 0, 0),
+            ];
+
+            var unentered = await TestEffectFootprints.Run(member, cap =>
+                fixture.Cleanup.CleanupAsync(member, includeOwner: false, cap, CancellationToken.None));
+            Assert.Null(unentered.GuildDeparture);
+
+            var active = fixture.Admit(1, "guild-active");
+            var cleanup = await TestEffectFootprints.Run(active, cap =>
+                fixture.Cleanup.CleanupAsync(active, includeOwner: false, cap, CancellationToken.None));
+            var departure = Assert.IsType<Dfo.Server.Data.Guilds.GuildPresenceAudience>(cleanup.GuildDeparture);
+            Assert.Equal(active.CharacterId, departure.Character);
+            Assert.Equal(new byte[] { 0x61 }, departure.Name);
+            Assert.Equal(peer.CharacterId, Assert.Single(departure.OtherMembers));
+
+            var repeated = await TestEffectFootprints.Run(active, cap =>
+                fixture.Cleanup.CleanupAsync(active, includeOwner: false, cap, CancellationToken.None));
+            Assert.Null(repeated.GuildDeparture);
+        });
+    }
+
     private sealed class Fixture
     {
         private readonly SelectedSessionDomainService sessions;
@@ -294,7 +326,9 @@ public sealed class SelectedSessionPartyCleanupTests
                 Parties.Service,
                 TestParties.Runs(),
                 [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations, relations: Friends, identities: Friends, pvpRooms: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService>(), pvpSettlement: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpSettlementDomainService>(), pvpDepartures: [], logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
-                raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
+                raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(),
+            guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>((_, _) =>
+                    ValueTask.FromResult(GuildRoster)));
         }
 
         public PartyServiceTestAdapter Parties { get; }
@@ -302,6 +336,7 @@ public sealed class SelectedSessionPartyCleanupTests
         public Dfo.Server.Application.Chat.ChatConversationDomainService Conversations { get; } = new();
 
         public TestCharacterRelations Friends { get; } = new();
+        public IReadOnlyList<Dfo.Server.Data.Guilds.GuildRosterEntry> GuildRoster { get; set; } = [];
 
         public bool IsSelected(SelectedSessionIdentity session) => sessions.StandingOf(session) is not null;
 

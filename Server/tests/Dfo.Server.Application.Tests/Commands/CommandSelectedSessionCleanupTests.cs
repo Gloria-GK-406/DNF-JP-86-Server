@@ -93,7 +93,8 @@ public sealed class CommandSelectedSessionCleanupTests
             [new(Actor,0,true,false),new(third,1,false,false)],null!,[],null,DateTimeOffset.UtcNow);
         var cleanup = new Dfo.Server.Application.Sessions.SelectedSessionCleanupService(null!, null!, null!, null!, null!, [], null!, null!,
             null!, null!, [], TestRequired.TransactionScope(), illusionTower: illusion, bossTower: boss, creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), pvpRooms: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService>(), pvpSettlement: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpSettlementDomainService>(), pvpDepartures: [], logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.Sessions.SelectedSessionCleanupService>.Instance,
-            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
+            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(),
+            guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>());
         Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor, Peer, third }, cleanup.AffectedSessions(Actor));
         ((TowerProxy)(object)boss).Snapshot = null; ((TowerProxy)(object)illusion).Snapshot = null;
         Assert.Equal(new HashSet<SelectedSessionIdentity> { Actor }, cleanup.AffectedSessions(Actor));

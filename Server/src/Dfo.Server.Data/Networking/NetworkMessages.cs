@@ -500,6 +500,7 @@ public enum ServerMessageType
     GameGuildCheckPromotion = 0x0001_02E2,
     GameGuildRequestCreationPermit = 0x0001_02E4,
     GameGuildCreated = 0x0000_0047,
+    GameGuildMemberPresence = 0x0000_0040,
     GameGuildMemberInfo = 0x0000_007F,
     GameGuildCreationPermit = 0x0000_02AE,
     GameGuildInfo = 0x0000_0046,
