@@ -30,6 +30,21 @@ public sealed class GuildInfoCodecTests
         Assert.Equal(9, BinaryPrimitives.ReadInt32LittleEndian(prefix[32..]));
     }
 
+    [Fact]
+    public void Rank_records_contain_fixed_names_and_permission_masks_before_purchases()
+    {
+        var frame = Assert.Single(new GuildInfoEncoder().Encode(
+            new GuildInfoMessage(new(new(2), "Iris", "", 1), true, 3)));
+        var ranks = frame.AsSpan(15 + sizeof(int) + 4 + 36);
+        const int width = sizeof(uint) + 24;
+        Assert.Equal(0x8DF6u, BinaryPrimitives.ReadUInt32LittleEndian(ranks[width..]));
+        Assert.Equal("会长"u8.ToArray(), ranks.Slice(width + sizeof(uint), "会长"u8.Length).ToArray());
+        Assert.Equal(0, ranks[width + sizeof(uint) + "会长"u8.Length]);
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(ranks[(width * 4)..]));
+        Assert.Equal("普通成员"u8.ToArray(), ranks.Slice(width * 4 + sizeof(uint), "普通成员"u8.Length).ToArray());
+        Assert.Equal(0, ranks[width * 6]);
+    }
+
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 11)]

@@ -82,6 +82,46 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(2L, Execute("SELECT COUNT(DISTINCT day) FROM guild_attendance"));
     }
 
+    [Fact]
+    public async Task Guild_management_edits_are_leader_only_and_preserve_both_rank_fields()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "Original", default))).Guild!.Value;
+        var another = (await Write(() => guilds.CreateAsync(new(12), "Violet", "Another", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+
+        var defaults = await query.ReadRankSettingsAsync(guild, default);
+        Assert.Equal(6, defaults.Count);
+        Assert.Equal(GuildRankSettings.LeaderDefaultPermissions, defaults[1].PermissionMask);
+        Assert.Equal("普通成员", defaults[4].Name);
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            await Write(() => guilds.SetRankPermissionsAsync(new(13), 4, 0xFFFF, default)));
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            await Write(() => guilds.SetRankNameAsync(new(13), 4, "forbidden", default)));
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            await Write(() => guilds.SetPromotionAsync(new(13), "forbidden", default)));
+        Assert.Equal(GuildMutationStatus.InvalidRankSetting,
+            await Write(() => guilds.SetRankPermissionsAsync(new(11), 4, 0x10000, default)));
+        Assert.Equal(GuildMutationStatus.InvalidRankSetting,
+            await Write(() => guilds.SetRankNameAsync(new(11), 4, new string('会', 8), default)));
+
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetRankNameAsync(new(11), 4, "考察成员", default)));
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetRankPermissionsAsync(new(11), 4, 0x40, default)));
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetRankPermissionsAsync(new(11), 1, 0, default)));
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetPromotionAsync(new(11), "本会宣传", default)));
+
+        var settings = await query.ReadRankSettingsAsync(guild, default);
+        Assert.Equal(new GuildRankSetting(4, 0x40, "考察成员"), settings[4]);
+        Assert.Equal(GuildRankSettings.LeaderDefaultPermissions, settings[1].PermissionMask);
+        Assert.Equal("本会宣传", (await query.FindMembershipAsync(new(13), default))!.Guild.Promotion);
+        Assert.Equal("Another", (await query.FindMembershipAsync(new(12), default))!.Guild.Promotion);
+        Assert.Equal(defaults[4], (await query.ReadRankSettingsAsync(another, default))[4]);
+    }
+
     private sealed class AttendanceClock : TimeProvider
     {
         public DateTimeOffset Now { get; set; } = new(2026, 11, 26, 15, 59, 0, TimeSpan.Zero);

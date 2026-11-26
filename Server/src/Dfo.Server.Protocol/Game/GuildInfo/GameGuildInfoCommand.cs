@@ -71,16 +71,17 @@ internal sealed class GameGuildInfoCommandHandler(
     }
 }
 
-internal sealed record GuildInfoPanel(Guild? Guild, IReadOnlyList<GuildMember> Members, int AttendanceCount)
+internal sealed record GuildInfoPanel(
+    Guild? Guild, IReadOnlyList<GuildMember> Members, int AttendanceCount, IReadOnlyList<GuildRankSetting> Ranks)
     : INotification<GuildInfoPanel>
 {
-    public static GuildInfoPanel Empty { get; } = new(null, [], 0);
+    public static GuildInfoPanel Empty { get; } = new(null, [], 0, GuildRankSettings.Defaults);
 
     public GuildMember? FindMember(CharacterId character) => Members.FirstOrDefault(member => member.Character == character);
 
     public GuildInfoMessage CreateMessage(GuildMember member) =>
         new(Guild ?? throw new InvalidOperationException("An empty guild panel has no message."),
-            member.IsLeader, Members.Count, member.DonationPoints, AttendanceCount);
+            member.IsLeader, Members.Count, member.DonationPoints, AttendanceCount, Ranks);
 
     public static async ValueTask<GuildInfoPanel> ReadAsync(
         IGuildQueryDomainService query, IGuildProgressDomainService progress, CharacterId viewer, CancellationToken ct)
@@ -90,7 +91,8 @@ internal sealed record GuildInfoPanel(Guild? Guild, IReadOnlyList<GuildMember> M
 
         var members = await query.ReadRosterAsync(viewer, ct).ConfigureAwait(false);
         var attended = await progress.ReadAttendanceTodayAsync(viewer, ct).ConfigureAwait(false);
-        return new(membership.Guild, members, attended.Count);
+        var ranks = await query.ReadRankSettingsAsync(membership.Guild.Id, ct).ConfigureAwait(false);
+        return new(membership.Guild, members, attended.Count, ranks);
     }
 }
 

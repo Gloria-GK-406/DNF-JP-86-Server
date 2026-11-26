@@ -52,6 +52,7 @@ public enum GuildMutationStatus
     DonationTooLarge,
     DonationUnavailable,
     ContributionLimit,
+    InvalidRankSetting,
 }
 
 public sealed record GuildMutationResult(

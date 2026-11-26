@@ -7,6 +7,9 @@ public interface IGuildDomainService
 {
     ValueTask<GuildMutationStatus> CheckCreationAsync(CharacterId actor, string name, CancellationToken ct);
     ValueTask<GuildMutationResult> CreateAsync(CharacterId actor, string name, string promotion, CancellationToken ct);
+    ValueTask<GuildMutationStatus> SetPromotionAsync(CharacterId actor, string promotion, CancellationToken ct);
+    ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct);
+    ValueTask<GuildMutationStatus> SetRankPermissionsAsync(CharacterId actor, byte rank, uint permissions, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetRecommendedChannelAsync(CharacterId actor, int channel, CancellationToken ct);
     ValueTask<GuildMutationResult> DonateGoldAsync(CharacterId actor, int amount, CancellationToken ct);
     ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct);
@@ -27,5 +30,6 @@ public interface IGuildQueryDomainService
     ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildRankSetting>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildDonationEntry>?> ReadDonationHistoryAsync(CharacterId viewer, int limit, CancellationToken ct);
 }

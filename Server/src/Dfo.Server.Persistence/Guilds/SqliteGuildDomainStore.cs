@@ -158,6 +158,46 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             DELETE FROM guilds WHERE guild_id=@guild;
             """, p => BindGuild(p, guild), ct).ConfigureAwait(false);
 
+    public ValueTask<IReadOnlyList<GuildRankOverride>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct) =>
+        database.ReadAllAsync("""
+            SELECT rank, permission_mask, name FROM guild_rank_settings WHERE guild_id=@guild ORDER BY rank
+            """, p => BindGuild(p, guild), r => new GuildRankOverride(
+                checked((byte)r.GetInt32(0)), r.IsDBNull(1) ? null : checked((uint)r.GetInt64(1)),
+                r.IsDBNull(2) ? null : r.GetString(2)), ct);
+
+    public async ValueTask SetPromotionAsync(GuildId guild, string promotion, CancellationToken ct)
+    {
+        var updated = await database.ExecuteAsync("UPDATE guilds SET promotion=@promotion WHERE guild_id=@guild", p =>
+        {
+            BindGuild(p, guild);
+            p.AddWithValue("@promotion", promotion);
+        }, ct).ConfigureAwait(false);
+        if (updated != 1)
+            throw new InvalidOperationException("Guild promotion update did not persist a guild.");
+    }
+
+    public async ValueTask SetRankNameAsync(GuildId guild, byte rank, string name, CancellationToken ct) =>
+        _ = await database.ExecuteAsync("""
+            INSERT INTO guild_rank_settings(guild_id, rank, name) VALUES(@guild, @rank, @name)
+            ON CONFLICT(guild_id, rank) DO UPDATE SET name=excluded.name
+            """, p =>
+            {
+                BindGuild(p, guild);
+                p.AddWithValue("@rank", rank);
+                p.AddWithValue("@name", name);
+            }, ct).ConfigureAwait(false);
+
+    public async ValueTask SetRankPermissionsAsync(GuildId guild, byte rank, uint permissions, CancellationToken ct) =>
+        _ = await database.ExecuteAsync("""
+            INSERT INTO guild_rank_settings(guild_id, rank, permission_mask) VALUES(@guild, @rank, @permissions)
+            ON CONFLICT(guild_id, rank) DO UPDATE SET permission_mask=excluded.permission_mask
+            """, p =>
+            {
+                BindGuild(p, guild);
+                p.AddWithValue("@rank", rank);
+                p.AddWithValue("@permissions", (long)permissions);
+            }, ct).ConfigureAwait(false);
+
     public async ValueTask SetRecommendedChannelAsync(GuildId guild, int channel, CancellationToken ct)
     {
         var changed = await database.ExecuteAsync("UPDATE guilds SET recommended_channel=@channel WHERE guild_id=@guild",

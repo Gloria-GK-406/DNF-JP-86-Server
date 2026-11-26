@@ -13,7 +13,8 @@ public sealed record GuildInfoRequest(ClientMessageType MessageType, GameMessage
     : IClientNetworkMessage;
 
 internal sealed record GuildInfoMessage(
-    Guild Guild, bool ViewerIsLeader, int MemberCount, int ViewerDonationPoints = 0, int AttendanceCount = 0)
+    Guild Guild, bool ViewerIsLeader, int MemberCount, int ViewerDonationPoints = 0, int AttendanceCount = 0,
+    IReadOnlyList<GuildRankSetting>? Ranks = null)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameGuildInfo;
@@ -48,8 +49,15 @@ internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage
         writer.Write(checked((ushort)message.AttendanceCount));
         WriteText(writer, guild.Promotion);
 
-        // Six permission/name records, followed by empty purchases, alliance and contribution state.
-        writer.Write(new byte[6 * (sizeof(uint) + 24)]);
+        foreach (var rank in message.Ranks ?? GuildRankSettings.Defaults)
+        {
+            writer.Write(rank.PermissionMask);
+            var name = GuildCreationPayloadCodec.EncodeGuildText(rank.Name);
+            writer.Write(name);
+            writer.Write(new byte[GuildRankSettings.MaximumNameBytes + 1 - name.Length]);
+        }
+
+        // Empty purchases and alliance, followed by contribution state.
         writer.Write((byte)0);
         writer.Write(0u);
         writer.Write((byte)0);

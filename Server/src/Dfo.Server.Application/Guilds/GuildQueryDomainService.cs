@@ -26,6 +26,25 @@ internal sealed class GuildQueryDomainService(IGuildDomainStore store) : IGuildQ
     public ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct) =>
         store.ReadRosterEntriesAsync(viewer, ct);
 
+    public async ValueTask<IReadOnlyList<GuildRankSetting>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct)
+    {
+        var overrides = await store.ReadRankSettingsAsync(guild, ct).ConfigureAwait(false);
+        if (overrides.Count == 0)
+            return GuildRankSettings.Defaults;
+
+        var settings = GuildRankSettings.Defaults.ToArray();
+        foreach (var setting in overrides)
+        {
+            var defaultRank = settings[setting.Rank];
+            settings[setting.Rank] = defaultRank with
+            {
+                PermissionMask = setting.PermissionMask ?? defaultRank.PermissionMask,
+                Name = setting.Name ?? defaultRank.Name,
+            };
+        }
+        return settings;
+    }
+
     public async ValueTask<IReadOnlyList<GuildDonationEntry>?> ReadDonationHistoryAsync(
         CharacterId viewer, int limit, CancellationToken ct)
     {

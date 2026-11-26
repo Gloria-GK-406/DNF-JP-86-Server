@@ -39,6 +39,42 @@ internal sealed class GuildDomainService(
             ? CheckCreationEligibilityAsync(actor, key, ct)
             : ValueTask.FromResult(GuildMutationStatus.InvalidName);
 
+    public async ValueTask<GuildMutationStatus> SetPromotionAsync(CharacterId actor, string promotion, CancellationToken ct)
+    {
+        if (!rules.IsValidPromotion(promotion))
+            return GuildMutationStatus.InvalidText;
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return GuildMutationStatus.LeaderRequired;
+
+        await store.SetPromotionAsync(membership.Guild.Id, promotion, ct).ConfigureAwait(false);
+        return GuildMutationStatus.Success;
+    }
+
+    public async ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct)
+    {
+        if (!GuildRankSettings.IsMemberRank(rank) || !rules.IsValidRankName(name))
+            return GuildMutationStatus.InvalidRankSetting;
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return GuildMutationStatus.LeaderRequired;
+
+        await store.SetRankNameAsync(membership.Guild.Id, rank, name, ct).ConfigureAwait(false);
+        return GuildMutationStatus.Success;
+    }
+
+    public async ValueTask<GuildMutationStatus> SetRankPermissionsAsync(
+        CharacterId actor, byte rank, uint permissions, CancellationToken ct)
+    {
+        if (!GuildRankSettings.IsMemberRank(rank) || (permissions & ~GuildRankSettings.ValidPermissionMask) != 0)
+            return GuildMutationStatus.InvalidRankSetting;
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            return GuildMutationStatus.LeaderRequired;
+
+        if (rank == GuildRankSettings.Leader)
+            permissions |= GuildRankSettings.LeaderDefaultPermissions;
+        await store.SetRankPermissionsAsync(membership.Guild.Id, rank, permissions, ct).ConfigureAwait(false);
+        return GuildMutationStatus.Success;
+    }
+
     public async ValueTask<GuildMutationStatus> SetRecommendedChannelAsync(CharacterId actor, int channel, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(channel);

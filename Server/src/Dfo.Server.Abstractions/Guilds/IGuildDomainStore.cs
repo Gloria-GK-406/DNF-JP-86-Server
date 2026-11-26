@@ -17,6 +17,10 @@ public interface IGuildDomainStore
     ValueTask<IReadOnlyList<byte[]>> ReadAttendanceAsync(CharacterId viewer, DateOnly day, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterId>> AffectedCharactersAsync(GuildId guild, CancellationToken ct);
     ValueTask<Guild> InsertGuildAsync(string name, string nameKey, string promotion, DateTimeOffset at, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildRankOverride>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct);
+    ValueTask SetPromotionAsync(GuildId guild, string promotion, CancellationToken ct);
+    ValueTask SetRankNameAsync(GuildId guild, byte rank, string name, CancellationToken ct);
+    ValueTask SetRankPermissionsAsync(GuildId guild, byte rank, uint permissions, CancellationToken ct);
     ValueTask SetRecommendedChannelAsync(GuildId guild, int channel, CancellationToken ct);
     ValueTask AddDonationAsync(GuildId guild, CharacterId donor, int gold, int points, DateTimeOffset at, CancellationToken ct);
     ValueTask AddMemberAsync(GuildId guild, CharacterId member, bool isLeader, DateTimeOffset at, CancellationToken ct);

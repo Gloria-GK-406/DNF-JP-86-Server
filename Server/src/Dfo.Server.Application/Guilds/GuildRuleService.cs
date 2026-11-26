@@ -17,6 +17,13 @@ internal sealed class GuildRuleService(IGuildEconomySource content)
 
     public bool IsValidText(string text) => text.Length <= 40 && IsWellFormed(text);
 
+    public bool IsValidPromotion(string text) =>
+        IsValidText(text) && StrictUtf8.GetByteCount(text) <= 80;
+
+    public bool IsValidRankName(string text) =>
+        text.Length <= 20 && !string.IsNullOrWhiteSpace(text) && IsWellFormed(text)
+        && StrictUtf8.GetByteCount(text) <= Dfo.Server.Data.Guilds.GuildRankSettings.MaximumNameBytes;
+
     private static bool IsWellFormed(string text)
     {
         try
