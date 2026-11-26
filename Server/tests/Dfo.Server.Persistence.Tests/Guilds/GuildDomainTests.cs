@@ -26,7 +26,7 @@ public sealed class GuildDomainTests : IDisposable
     private readonly SqliteCharacterTable characters;
     private readonly GuildDomainService guilds;
     private readonly GuildQueryDomainService query;
-    private readonly CreationCost creationCost = new();
+    private readonly EconomyRules economy = new();
 
     public GuildDomainTests()
     {
@@ -38,7 +38,7 @@ public sealed class GuildDomainTests : IDisposable
             TestRequired.Absent<ICharacterStatRuleService>(), TestRequired.Absent<ICharacterSkillStateDomainService>(),
             TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(),
             scope, new DiscardingEventService());
-        guilds = new(store, new(creationCost), players, characters, TimeProvider.System);
+        guilds = new(store, new(economy), players, characters, TimeProvider.System);
         query = new(store);
         Execute("""
             INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-test');
@@ -53,7 +53,7 @@ public sealed class GuildDomainTests : IDisposable
     [Fact]
     public async Task Creation_permit_is_bound_to_the_exact_selected_session_and_cleared_by_cancel()
     {
-        var recruitment = new GuildRecruitmentSessionDomainService(guilds, new(creationCost));
+        var recruitment = new GuildRecruitmentSessionDomainService(guilds, new(economy));
         var original = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 1, 10011);
         var replacement = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 2, 10011);
         await TestGameplay.RunAsync(async () =>
@@ -107,7 +107,7 @@ public sealed class GuildDomainTests : IDisposable
     [Fact]
     public async Task Missing_creation_price_cannot_create_a_free_guild()
     {
-        creationCost.Value = null;
+        economy.CreationGold = null;
         var result = await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
         Assert.Equal(GuildMutationStatus.CreationUnavailable, result.Status);
         Assert.Null(await query.FindMembershipAsync(new(11), default));
@@ -216,6 +216,91 @@ public sealed class GuildDomainTests : IDisposable
         });
     }
 
+    [Fact]
+    public async Task Donations_charge_each_donor_and_accumulate_shared_and_personal_points()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(12), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(12), default));
+
+        var memberDonation = await Write(() => guilds.DonateGoldAsync(new(12), 10_000, default));
+        Assert.Equal(GuildMutationStatus.Success, memberDonation.Status);
+        Assert.Equal(890_000, memberDonation.RemainingGold);
+        var leader = Assert.IsType<GuildMembership>(await query.FindMembershipAsync(new(11), default));
+        Assert.Equal(10, leader.Guild.GmPoints);
+        Assert.Equal(0, leader.Member.DonationPoints);
+
+        var leaderDonation = await Write(() => guilds.DonateGoldAsync(new(11), 3_000, default));
+        Assert.Equal(GuildMutationStatus.Success, leaderDonation.Status);
+        Assert.Equal(597_000, leaderDonation.RemainingGold);
+        var member = Assert.IsType<GuildMembership>(await query.FindMembershipAsync(new(12), default));
+        Assert.Equal(13, member.Guild.GmPoints);
+        Assert.Equal(10, member.Member.DonationPoints);
+        Assert.Equal(3, (await query.FindMembershipAsync(new(11), default))!.Member.DonationPoints);
+    }
+
+    [Theory]
+    [InlineData(0, GuildMutationStatus.InvalidDonationAmount)]
+    [InlineData(-1000, GuildMutationStatus.InvalidDonationAmount)]
+    [InlineData(1500, GuildMutationStatus.InvalidDonationAmount)]
+    [InlineData(10_001_000, GuildMutationStatus.DonationTooLarge)]
+    [InlineData(601_000, GuildMutationStatus.InsufficientGold)]
+    public async Task Rejected_donation_leaves_all_balances_unchanged(int amount, GuildMutationStatus expected)
+    {
+        await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        Assert.Equal(expected, (await Write(() => guilds.DonateGoldAsync(new(11), amount, default))).Status);
+        AssertInitialDonationBalances();
+    }
+
+    [Fact]
+    public async Task Donation_requires_membership_and_a_configured_rate()
+    {
+        await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        Assert.Equal(GuildMutationStatus.NotMember,
+            (await Write(() => guilds.DonateGoldAsync(new(12), 1000, default))).Status);
+        Assert.Equal(900_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=12"));
+
+        economy.DonationGold = null;
+        Assert.Equal(GuildMutationStatus.DonationUnavailable,
+            (await Write(() => guilds.DonateGoldAsync(new(11), 1000, default))).Status);
+        AssertInitialDonationBalances();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Donation_that_would_overflow_either_points_balance_is_rejected(bool guildLimit)
+    {
+        await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        Execute(guildLimit
+            ? "UPDATE guilds SET gm_points=2147483647"
+            : "UPDATE guild_members SET donation_points=2147483647");
+        Assert.Equal(GuildMutationStatus.ContributionLimit,
+            (await Write(() => guilds.DonateGoldAsync(new(11), 1000, default))).Status);
+        Assert.Equal(600_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
+        Assert.Equal(guildLimit ? int.MaxValue : 0L, Execute("SELECT gm_points FROM guilds"));
+        Assert.Equal(guildLimit ? 0L : int.MaxValue, Execute("SELECT donation_points FROM guild_members"));
+    }
+
+    [Fact]
+    public async Task Failure_updating_the_donor_rolls_back_gold_and_shared_points()
+    {
+        await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        Execute("""
+            CREATE TRIGGER fail_guild_donation BEFORE UPDATE OF donation_points ON guild_members
+            BEGIN SELECT RAISE(ABORT,'forced guild donation fault'); END;
+            """);
+        await Assert.ThrowsAsync<SqliteException>(() => Write(() => guilds.DonateGoldAsync(new(11), 1000, default)));
+        AssertInitialDonationBalances();
+    }
+
+    private void AssertInitialDonationBalances()
+    {
+        Assert.Equal(600_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
+        Assert.Equal(0L, Execute("SELECT gm_points FROM guilds"));
+        Assert.Equal(0L, Execute("SELECT donation_points FROM guild_members"));
+    }
+
     private Task<T> Write<T>(Func<ValueTask<T>> action) => TestGameplay.RunAsync(async () =>
     {
         await using var unit = scope.Begin();
@@ -239,9 +324,11 @@ public sealed class GuildDomainTests : IDisposable
         File.Delete(path);
     }
 
-    private sealed class CreationCost : IGuildCreationCostSource
+    private sealed class EconomyRules : IGuildEconomySource
     {
-        public int? Value { get; set; } = Fee;
-        public int? ReadGoldCost() => Value;
+        public int? CreationGold { get; set; } = Fee;
+        public int? DonationGold { get; set; } = 1000;
+        public int? ReadGoldCost() => CreationGold;
+        public int? ReadDonationGoldPerPoint() => DonationGold;
     }
 }

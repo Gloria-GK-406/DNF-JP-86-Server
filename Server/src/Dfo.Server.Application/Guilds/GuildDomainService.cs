@@ -49,6 +49,30 @@ internal sealed class GuildDomainService(
         return GuildMutationStatus.Success;
     }
 
+    public async ValueTask<GuildMutationResult> DonateGoldAsync(CharacterId actor, int amount, CancellationToken ct)
+    {
+        if (amount <= 0)
+            return new(GuildMutationStatus.InvalidDonationAmount);
+        if (amount > GuildRuleService.MaximumDonationGold)
+            return new(GuildMutationStatus.DonationTooLarge);
+        if (rules.DonationGoldPerPoint() is not { } rate)
+            return new(GuildMutationStatus.DonationUnavailable);
+        if (amount % rate != 0)
+            return new(GuildMutationStatus.InvalidDonationAmount);
+        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { } membership)
+            return new(GuildMutationStatus.NotMember);
+
+        var points = amount / rate;
+        if (membership.Guild.GmPoints > int.MaxValue - points ||
+            membership.Member.DonationPoints > int.MaxValue - points)
+            return new(GuildMutationStatus.ContributionLimit);
+        if (await characters.Get(actor).TrySpendGoldAsync(amount, ct).ConfigureAwait(false) is not { } remaining)
+            return new(GuildMutationStatus.InsufficientGold);
+
+        await store.AddDonationAsync(membership.Guild.Id, actor, points, ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, membership.Guild.Id, remaining);
+    }
+
     private async ValueTask<GuildMutationStatus> CheckCreationEligibilityAsync(
         CharacterId actor, string nameKey, CancellationToken ct)
     {

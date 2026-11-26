@@ -6,7 +6,9 @@
 
 公会频道设置使用 [公会详情刷新](game/client-to-server/0x0153.md)、[查看者会长标志](game/server-to-client/NOTI-0x0046.md) 和 [保存当前频道](game/client-to-server/0x033B.md)。详情回包修正后用户实测通过，隔离库确认保存 CH10。
 
-公会 [普通名单](game/client-to-server/0x0043.md) 和 [首次全量名单](game/client-to-server/0x008C.md) 已接入。隔离线路核对同公会跨频道、断线显示、请求限制及全量回包尾部。两种名单的 A21 界面仍待验收。
+公会 [普通名单](game/client-to-server/0x0043.md) 和 [首次全量名单](game/client-to-server/0x008C.md) 已接入。隔离线路核对同公会跨频道、断线显示、请求限制及全量回包尾部。用户在 A21 确认两名在线成员在同一区域时亮起。
+
+[金币捐赠](game/client-to-server/0x015A.md) 已接入。当前 PVF 每 1,000 金币兑换 1 点 GM。隔离线路核对捐赠回执、随身金币与公会详情刷新、不同查看者的累计贡献和重登恢复。A21 界面待验收。
 
 ## 2026-11-23 CH50 决斗技能编辑
 

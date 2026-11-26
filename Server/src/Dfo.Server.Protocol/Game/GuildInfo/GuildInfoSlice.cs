@@ -11,7 +11,8 @@ namespace Dfo.Server.Protocol.Game.GuildInfo;
 public sealed record GuildInfoRequest(ClientMessageType MessageType, GameMessageMetadata Metadata, bool IsEmpty)
     : IClientNetworkMessage;
 
-internal sealed record GuildInfoMessage(Guild Guild, bool ViewerIsLeader, int MemberCount) : IGameNotiMessage
+internal sealed record GuildInfoMessage(Guild Guild, bool ViewerIsLeader, int MemberCount, int ViewerDonationPoints = 0)
+    : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameGuildInfo;
 }
@@ -50,11 +51,14 @@ internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage
         writer.Write((byte)0);
         writer.Write(0u);
         writer.Write((byte)0);
-        writer.Write(0u);
+        writer.Write(checked((uint)guild.GmPoints));
         writer.Write((byte)0);
         writer.Write(checked((uint)guild.RecommendedChannel));
         writer.Write((byte)0);
-        writer.Write(new byte[4 * sizeof(uint)]);
+        writer.Write(checked((uint)guild.GmPoints)); // GM credits are exclusively donations in this phase.
+        writer.Write(0u); // Monthly guild contribution.
+        writer.Write(checked((uint)message.ViewerDonationPoints));
+        writer.Write(0u); // Monthly personal contribution.
         // The client looks up the channel using the server group followed by the channel ID.
         // JP86's channel script advertises channels in server group 1.
         writer.Write(guild.RecommendedChannel > 0 ? 1u : 0u);

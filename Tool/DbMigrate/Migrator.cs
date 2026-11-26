@@ -30,6 +30,7 @@ public static class Migrator
             [12] = AntonRaidRewardUpgrade.Apply,
             [13] = AddGuilds,
             [14] = AddRecommendedGuildChannel,
+            [15] = AddGuildDonationPoints,
         };
 
     private static void AddGuilds(SqliteConnection connection)
@@ -54,6 +55,30 @@ public static class Migrator
             ALTER TABLE guilds ADD COLUMN recommended_channel INTEGER NOT NULL DEFAULT 0 CHECK(recommended_channel >= 0);
             """;
         command.ExecuteNonQuery();
+    }
+
+    private static void AddGuildDonationPoints(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        if (!Shape.HasColumn(connection, transaction, "guilds", "gm_points"))
+        {
+            command.CommandText = """
+                ALTER TABLE guilds ADD COLUMN gm_points INTEGER NOT NULL DEFAULT 0
+                    CHECK(gm_points BETWEEN 0 AND 2147483647);
+                """;
+            command.ExecuteNonQuery();
+        }
+        if (!Shape.HasColumn(connection, transaction, "guild_members", "donation_points"))
+        {
+            command.CommandText = """
+                ALTER TABLE guild_members ADD COLUMN donation_points INTEGER NOT NULL DEFAULT 0
+                    CHECK(donation_points BETWEEN 0 AND 2147483647);
+                """;
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
     }
 
     /// <summary>The outcome of one run, for the caller to report.</summary>

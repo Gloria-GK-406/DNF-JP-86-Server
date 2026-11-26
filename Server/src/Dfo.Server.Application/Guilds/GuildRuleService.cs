@@ -3,9 +3,12 @@ using Dfo.Server.Abstractions.Guilds;
 
 namespace Dfo.Server.Application.Guilds;
 
-internal sealed class GuildRuleService(IGuildCreationCostSource content)
+internal sealed class GuildRuleService(IGuildEconomySource content)
 {
+    public const int MaximumDonationGold = 10_000_000;
+
     public int? CreationCost() => content.ReadGoldCost() is > 0 and var cost ? cost : null;
+    public int? DonationGoldPerPoint() => content.ReadDonationGoldPerPoint() is > 0 and var rate ? rate : null;
 
     public string? NameKey(string name) =>
         name.Length is > 0 and <= 24 && name.Trim() == name && IsWellFormed(name)

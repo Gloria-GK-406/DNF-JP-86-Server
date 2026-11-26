@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Channel;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.GuildMemberInfo;
@@ -55,21 +56,30 @@ internal sealed class GameGuildInfoCommandHandler(
                 return false;
         }
 
-        var panel = await units.ReadOnlyAsync<(GuildMembership? Membership, int Count)>(context, new("guild-panel", [recipient]), async token =>
-        {
-            if (await query.FindMembershipAsync(actor.CharacterId, token).ConfigureAwait(false) is not { } membership)
-                return (null, 0);
-            var members = await query.ReadRosterAsync(actor.CharacterId, token).ConfigureAwait(false);
-            return (membership, members.Count);
-        }, ct).ConfigureAwait(false);
+        var panel = await units.ReadOnlyAsync(context, new("guild-panel", [recipient]),
+            token => GuildInfoPanel.ReadAsync(query, actor.CharacterId, token), ct).ConfigureAwait(false);
         if (panel.Membership is not { } current)
             return false;
 
         await outbox.RegisterNotiAsync(connection.ConnectionId, GuildMemberInfoMessage.From(current.Member), ct)
             .ConfigureAwait(false);
-        await outbox.RegisterNotiAsync(connection.ConnectionId,
-            new GuildInfoMessage(current.Guild, current.Member.IsLeader, panel.Count), ct)
+        await outbox.RegisterNotiAsync(connection.ConnectionId, GuildInfoPanel.CreateMessage(current, panel.Count), ct)
             .ConfigureAwait(false);
         return true;
+    }
+}
+
+internal static class GuildInfoPanel
+{
+    public static GuildInfoMessage CreateMessage(GuildMembership membership, int count) =>
+        new(membership.Guild, membership.Member.IsLeader, count, membership.Member.DonationPoints);
+
+    public static async ValueTask<(GuildMembership? Membership, int Count)> ReadAsync(
+        IGuildQueryDomainService query, CharacterId viewer, CancellationToken ct)
+    {
+        if (await query.FindMembershipAsync(viewer, ct).ConfigureAwait(false) is not { } membership)
+            return (null, 0);
+        var members = await query.ReadRosterAsync(viewer, ct).ConfigureAwait(false);
+        return (membership, members.Count);
     }
 }

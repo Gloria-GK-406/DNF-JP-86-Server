@@ -15,6 +15,7 @@ public interface IGuildDomainStore
     ValueTask<IReadOnlyList<CharacterId>> AffectedCharactersAsync(GuildId guild, CancellationToken ct);
     ValueTask<Guild> InsertGuildAsync(string name, string nameKey, string promotion, DateTimeOffset at, CancellationToken ct);
     ValueTask SetRecommendedChannelAsync(GuildId guild, int channel, CancellationToken ct);
+    ValueTask AddDonationAsync(GuildId guild, CharacterId donor, int points, CancellationToken ct);
     ValueTask AddMemberAsync(GuildId guild, CharacterId member, bool isLeader, DateTimeOffset at, CancellationToken ct);
     ValueTask AddApplicationAsync(GuildApplication application, CancellationToken ct);
     ValueTask DeleteApplicationAsync(CharacterId applicant, CancellationToken ct);
@@ -22,7 +23,8 @@ public interface IGuildDomainStore
     ValueTask DisbandAsync(GuildId guild, CancellationToken ct);
 }
 
-public interface IGuildCreationCostSource
+public interface IGuildEconomySource
 {
     int? ReadGoldCost();
+    int? ReadDonationGoldPerPoint();
 }

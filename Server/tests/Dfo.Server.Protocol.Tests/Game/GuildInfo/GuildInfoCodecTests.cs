@@ -5,6 +5,19 @@ namespace Dfo.Server.Protocol.Tests.Game.GuildInfo;
 
 public sealed class GuildInfoCodecTests
 {
+    [Fact]
+    public void Panel_writes_available_gm_and_the_viewers_lifetime_contribution()
+    {
+        var frame = Assert.Single(new GuildInfoEncoder().Encode(
+            new GuildInfoMessage(new(new(2), "测试工会", "", 1, 10, GmPoints: 13), false, 3, ViewerDonationPoints: 10)));
+        var body = frame.AsSpan(15);
+        Assert.Equal(13u, BinaryPrimitives.ReadUInt32LittleEndian(body[^42..]));
+        Assert.Equal(13u, BinaryPrimitives.ReadUInt32LittleEndian(body[^32..]));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body[^28..]));
+        Assert.Equal(10u, BinaryPrimitives.ReadUInt32LittleEndian(body[^24..]));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body[^20..]));
+    }
+
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 11)]
