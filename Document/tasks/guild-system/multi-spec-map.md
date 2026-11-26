@@ -48,3 +48,4 @@ workspace:
 | 5 | spec-005 | [任务契约](attempts/spec-005-guild-member-presence/TaskContract.md) | A21 上下线提示与实时名单 | SC-01、SC-02、SC-04、SC-09、SC-10 | [完成](attempts/spec-005-guild-member-presence/spec-result.md) | `f2809adf9a70108b4b785b9f5b4d71fc37b2b220` |
 | 6 | spec-006 | [任务契约](attempts/spec-006-guild-attendance/TaskContract.md) | A21 每日自动签到、进度与明细 | SC-05、SC-09、SC-10 | [完成](attempts/spec-006-guild-attendance/spec-result.md) | `f14cf4cd9` |
 | 7 | spec-007 | [任务契约](attempts/spec-007-guild-management/TaskContract.md) | A21 会长管理权限、宣传与等级配置 | SC-03、SC-09、SC-10 | [完成](attempts/spec-007-guild-management/spec-result.md) | `63804bc8f` |
+| 8 | spec-008 | [任务契约](attempts/spec-008-guild-role-and-discovery/TaskContract.md) | A21 成员任命、公会查找、账号公会与推荐 | SC-01、SC-02、SC-03、SC-09、SC-10 | 执行中 |  |
