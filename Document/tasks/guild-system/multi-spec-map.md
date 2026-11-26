@@ -45,3 +45,4 @@ workspace:
 | 2 | spec-002 | [任务契约](attempts/spec-002-create-guild-in-a21/TaskContract.md) | A21 单人建会、身份恢复与推荐频道验收 | SC-01、SC-02、SC-04、SC-09、SC-10 | [完成](attempts/spec-002-create-guild-in-a21/spec-result.md) | `0d1e7dbb8eebbe3f9c3232a91a2aa598b0c4169d` |
 | 3 | spec-003 | [任务契约](attempts/spec-003-view-guild-roster/TaskContract.md) | A21 公会成员名单 | SC-01、SC-02、SC-09、SC-10 | [完成](attempts/spec-003-view-guild-roster/spec-result.md) | `da6f8a02e14ea7c114765e6125b91da39ab26774` |
 | 4 | spec-004 | [任务契约](attempts/spec-004-donate-gold-for-gm/TaskContract.md) | A21 金币捐赠、公会 GM 和个人贡献 | SC-05、SC-09、SC-10 | [完成](attempts/spec-004-donate-gold-for-gm/spec-result.md) | `79ecd013c9b13db117137fa4e929496344733ac8` |
+| 5 | spec-005 | [任务契约](attempts/spec-005-guild-member-presence/TaskContract.md) | A21 上下线提示与实时名单 | SC-01、SC-02、SC-04、SC-09、SC-10 | 执行中 |  |
