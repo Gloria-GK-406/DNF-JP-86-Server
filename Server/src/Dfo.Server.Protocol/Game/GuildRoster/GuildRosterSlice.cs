@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
@@ -96,6 +97,7 @@ internal static class GuildRosterRegistration
         services.AddGameCmdMessageDecoder<GuildMemberListDecoder>(ClientMessageType.GameGuildMemberList);
         services.AddGameCmdMessageDecoder<GuildAllMemberListDecoder>(ClientMessageType.GameGuildAllMemberList);
         services.AddGameCmdMessageEncoder<GuildRosterReply, GuildRosterReplyEncoder>();
+        services.AddNotificationHandler<GuildRosterChanged, GuildRosterChangedHandler>();
         services.AddProtocolCommandHandler<GameGuildRosterCommand, bool, GameGuildRosterCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildMemberList, typeof(GuildRosterRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildAllMemberList, typeof(GuildRosterRequest)));

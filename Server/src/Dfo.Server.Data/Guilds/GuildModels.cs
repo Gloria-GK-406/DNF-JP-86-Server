@@ -38,6 +38,8 @@ public sealed record GuildAccountEntry(byte[] CharacterName, string GuildName);
 public sealed record GuildRecommendation(GuildId Guild, string Name, byte[] LeaderName);
 
 public sealed record GuildApplication(GuildId Guild, CharacterId Character, string Message, DateTimeOffset AppliedAt);
+public sealed record GuildPendingApplication(GuildApplication Application, string GuildName);
+public sealed record GuildApplicationEntry(GuildApplication Application, byte[] Name, int Job, int GrowType, int Level);
 public sealed record GuildDonationEntry(byte[] DonorName, int Gold, int Points, DateTimeOffset DonatedAt);
 
 public enum GuildMutationStatus

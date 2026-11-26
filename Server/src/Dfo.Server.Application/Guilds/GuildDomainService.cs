@@ -154,7 +154,7 @@ internal sealed class GuildDomainService(
 
     public async ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct)
     {
-        if (!rules.IsValidText(message))
+        if (!rules.IsValidPromotion(message))
             return new(GuildMutationStatus.InvalidText);
         if (await characterTable.FindOwnerAsync(actor, ct).ConfigureAwait(false) is null)
             return new(GuildMutationStatus.CharacterUnavailable);
@@ -171,9 +171,8 @@ internal sealed class GuildDomainService(
 
     public async ValueTask<GuildMutationResult> ApproveAsync(CharacterId actor, CharacterId applicant, CancellationToken ct)
     {
-        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+        if (await GuildRuleService.FindApplicationReviewGuildAsync(store, actor, ct).ConfigureAwait(false) is not { } guild)
             return new(GuildMutationStatus.LeaderRequired);
-        var guild = membership.Guild.Id;
         if (await store.FindApplicationAsync(applicant, ct).ConfigureAwait(false) is not { } application || application.Guild != guild)
             return new(GuildMutationStatus.ApplicationNotFound);
         if (await characterTable.FindOwnerAsync(applicant, ct).ConfigureAwait(false) is null)
@@ -183,6 +182,25 @@ internal sealed class GuildDomainService(
 
         await AddMemberAsync(guild, applicant, isLeader: false, time.GetUtcNow(), ct).ConfigureAwait(false);
         return new(GuildMutationStatus.Success, guild, AffectedCharacters: [actor, applicant]);
+    }
+
+    public async ValueTask<GuildMutationResult> RejectApplicationAsync(CharacterId actor, CharacterId applicant, CancellationToken ct)
+    {
+        if (await GuildRuleService.FindApplicationReviewGuildAsync(store, actor, ct).ConfigureAwait(false) is not { } guild)
+            return new(GuildMutationStatus.LeaderRequired);
+        return await ClearApplicationAsync(applicant, guild, ct).ConfigureAwait(false);
+    }
+
+    public ValueTask<GuildMutationResult> CancelApplicationAsync(CharacterId actor, GuildId guild, CancellationToken ct) =>
+        ClearApplicationAsync(actor, guild, ct);
+
+    private async ValueTask<GuildMutationResult> ClearApplicationAsync(CharacterId applicant, GuildId guild, CancellationToken ct)
+    {
+        if (await store.FindApplicationAsync(applicant, ct).ConfigureAwait(false) is not { } application || application.Guild != guild)
+            return new(GuildMutationStatus.ApplicationNotFound);
+
+        await store.DeleteApplicationAsync(applicant, ct).ConfigureAwait(false);
+        return new(GuildMutationStatus.Success, guild, AffectedCharacters: [applicant]);
     }
 
     public async ValueTask<GuildMutationResult> LeaveAsync(CharacterId actor, CancellationToken ct)

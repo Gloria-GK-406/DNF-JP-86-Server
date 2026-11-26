@@ -11,6 +11,7 @@ public static class GuildRankSettings
     public const byte Member = 4;
     public const byte LastRank = 5;
     public const int MaximumNameBytes = 23;
+    public const uint ReviewApplicationsPermission = 1u << 1;
     public const uint AppointMembersPermission = 1u << 11;
     public const uint ValidPermissionMask = ushort.MaxValue;
     public const uint LeaderDefaultPermissions = 0x8DF6;

@@ -91,13 +91,22 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             SELECT guild_id,character_id,message,applied_at FROM guild_applications WHERE character_id=@character
             """, p => BindCharacter(p, applicant), ReadApplication, ct);
 
-    public ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct) =>
+    public ValueTask<GuildPendingApplication?> FindPendingApplicationAsync(CharacterId applicant, CancellationToken ct) =>
+        database.ReadFirstAsync("""
+            SELECT a.guild_id,a.character_id,a.message,a.applied_at,g.name
+            FROM guild_applications a JOIN guilds g ON g.guild_id=a.guild_id
+            WHERE a.character_id=@character
+            """, p => BindCharacter(p, applicant), r => new GuildPendingApplication(ReadApplication(r), r.GetString(4)), ct);
+
+    public ValueTask<IReadOnlyList<GuildApplicationEntry>> ReadApplicationEntriesAsync(GuildId guild, CancellationToken ct) =>
         database.ReadAllAsync("""
-            SELECT a.guild_id,a.character_id,a.message,a.applied_at
-            FROM guild_members self JOIN guild_applications a ON a.guild_id=self.guild_id
-            WHERE self.character_id=@character AND self.is_leader=1
+            SELECT a.guild_id,a.character_id,a.message,a.applied_at,
+                   COALESCE(c.name_bytes,CAST(c.name AS BLOB)),c.job,c.grow_type,c.level
+            FROM guild_applications a JOIN characters c ON c.character_id=a.character_id AND c.delete_flag=0
+            WHERE a.guild_id=@guild
             ORDER BY a.applied_at,a.character_id
-            """, p => BindCharacter(p, leader), ReadApplication, ct);
+            """, p => BindGuild(p, guild), r => new GuildApplicationEntry(
+                ReadApplication(r), (byte[])r.GetValue(4), r.GetInt32(5), r.GetInt32(6), r.GetInt32(7)), ct);
 
     public ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct) =>
         database.ReadAllAsync("""

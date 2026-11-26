@@ -27,8 +27,17 @@ internal sealed class GuildQueryDomainService(IGuildDomainStore store, GuildRule
     public ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct) =>
         store.FindApplicationAsync(applicant, ct);
 
-    public ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId leader, CancellationToken ct) =>
-        store.ReadApplicationsAsync(leader, ct);
+    public ValueTask<GuildPendingApplication?> FindPendingApplicationAsync(CharacterId applicant, CancellationToken ct) =>
+        store.FindPendingApplicationAsync(applicant, ct);
+
+    public async ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId reviewer, CancellationToken ct) =>
+        (await ReadApplicationEntriesAsync(reviewer, ct).ConfigureAwait(false))?.Select(row => row.Application).ToArray() ?? [];
+
+    public async ValueTask<IReadOnlyList<GuildApplicationEntry>?> ReadApplicationEntriesAsync(CharacterId reviewer, CancellationToken ct)
+    {
+        var guild = await GuildRuleService.FindApplicationReviewGuildAsync(store, reviewer, ct).ConfigureAwait(false);
+        return guild.HasValue ? await store.ReadApplicationEntriesAsync(guild.Value, ct).ConfigureAwait(false) : null;
+    }
 
     public ValueTask<IReadOnlyList<GuildMember>> ReadRosterAsync(CharacterId viewer, CancellationToken ct) =>
         store.ReadRosterAsync(viewer, ct);

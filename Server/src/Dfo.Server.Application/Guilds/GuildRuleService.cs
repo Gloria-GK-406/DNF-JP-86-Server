@@ -1,5 +1,7 @@
 using System.Text;
 using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.Guilds;
 
@@ -23,6 +25,21 @@ internal sealed class GuildRuleService(IGuildEconomySource content)
     public bool IsValidRankName(string text) =>
         text.Length <= 20 && !string.IsNullOrWhiteSpace(text) && IsWellFormed(text)
         && StrictUtf8.GetByteCount(text) <= Dfo.Server.Data.Guilds.GuildRankSettings.MaximumNameBytes;
+
+    public static async ValueTask<GuildId?> FindApplicationReviewGuildAsync(
+        IGuildDomainStore store, CharacterId reviewer, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(reviewer, ct).ConfigureAwait(false) is not { } membership)
+            return null;
+        if (membership.Member.IsLeader)
+            return membership.Guild.Id;
+
+        var rank = membership.Member.Rank;
+        var ranks = await store.ReadRankSettingsAsync(membership.Guild.Id, ct).ConfigureAwait(false);
+        var permissions = ranks.FirstOrDefault(setting => setting.Rank == rank)?.PermissionMask
+            ?? GuildRankSettings.Defaults[rank].PermissionMask;
+        return (permissions & GuildRankSettings.ReviewApplicationsPermission) != 0 ? membership.Guild.Id : null;
+    }
 
     private static bool IsWellFormed(string text)
     {

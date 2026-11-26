@@ -35,33 +35,14 @@ internal sealed class GameGuildRosterCommandHandler(
         var entries = await units.ReadOnlyAsync(context, new("guild-roster", [recipient]),
             token => guilds.ReadRosterEntriesAsync(viewer.CharacterId, token), ct).ConfigureAwait(false);
         var ownEntry = entries.FirstOrDefault(entry => entry.Membership.Character == viewer.CharacterId);
-        var leader = entries.FirstOrDefault(entry => entry.Membership.IsLeader);
-        if (ownEntry is null || leader is null)
+        if (ownEntry is null || await GuildRosterProjection.BuildAsync(entries, sessions, channels, ct)
+                .ConfigureAwait(false) is not { } snapshot)
             return await RefuseAsync().ConfigureAwait(false);
-
-        var channelByListener = new Dictionary<int, byte>();
-        var rows = new List<GuildRosterRow>(entries.Count);
-        foreach (var entry in entries)
-        {
-            var channel = byte.MaxValue;
-            if (sessions.TryGetInWorld(entry.Membership.Character, out var online))
-            {
-                if (!channelByListener.TryGetValue(online.ListenerPort, out channel))
-                {
-                    var resolved = await channels.ResolveAsync(online.ListenerPort, ct).ConfigureAwait(false);
-                    channel = resolved.ChannelId is > 0 and < byte.MaxValue ? (byte)resolved.ChannelId : byte.MaxValue;
-                    channelByListener.Add(online.ListenerPort, channel);
-                }
-                if (!sessions.IsInWorld(online))
-                    channel = byte.MaxValue;
-            }
-            rows.Add(new GuildRosterRow(entry, channel));
-        }
 
         await outbox.RegisterNotiAsync(connection.ConnectionId, GuildMemberInfoMessage.From(ownEntry.Membership), ct)
             .ConfigureAwait(false);
         await outbox.RegisterCmdAsync(connection.ConnectionId,
-            new GuildRosterReply(replyType, new(ownEntry.Membership.Guild, leader.Name, rows)), ct).ConfigureAwait(false);
+            new GuildRosterReply(replyType, snapshot), ct).ConfigureAwait(false);
         return true;
 
         async ValueTask<bool> RefuseAsync()

@@ -52,6 +52,47 @@ public sealed class GuildDomainTests : IDisposable
     }
 
     [Fact]
+    public async Task Application_review_uses_the_rank_permission_and_scopes_cancel_and_reject()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var other = (await Write(() => guilds.CreateAsync(new(12), "Violet", "", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        await Write(() => guilds.AssignRankAsync(new(11), "Applicant"u8.ToArray(), GuildRankSettings.ViceLeader, default));
+        await Write(() => guilds.ApplyAsync(new(15), guild, "Join", default));
+
+        Assert.Null(await query.ReadApplicationEntriesAsync(new(13), default));
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            (await Write(() => guilds.RejectApplicationAsync(new(13), new(15), default))).Status);
+        Assert.Equal(GuildMutationStatus.ApplicationNotFound,
+            (await Write(() => guilds.RejectApplicationAsync(new(12), new(15), default))).Status);
+        Assert.Equal(GuildMutationStatus.ApplicationNotFound,
+            (await Write(() => guilds.CancelApplicationAsync(new(15), other, default))).Status);
+        Assert.Equal("Iris", (await query.FindPendingApplicationAsync(new(15), default))!.GuildName);
+
+        await Write(() => guilds.SetRankPermissionsAsync(new(11), GuildRankSettings.ViceLeader,
+            GuildRankSettings.ReviewApplicationsPermission, default));
+        var entry = Assert.Single((await query.ReadApplicationEntriesAsync(new(13), default))!);
+        Assert.Equal("Pending"u8.ToArray(), entry.Name);
+        Assert.Equal("Join", entry.Application.Message);
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => guilds.RejectApplicationAsync(new(13), new(15), default))).Status);
+        Assert.Null(await query.FindMembershipAsync(new(15), default));
+        Assert.Null(await query.FindPendingApplicationAsync(new(15), default));
+
+        Assert.Equal(GuildMutationStatus.Success, (await Write(() => guilds.ApplyAsync(new(15), guild, "", default))).Status);
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => guilds.CancelApplicationAsync(new(15), guild, default))).Status);
+        Assert.Empty((await query.ReadApplicationEntriesAsync(new(13), default))!);
+
+        await Write(() => guilds.ApplyAsync(new(15), guild, "", default));
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => guilds.ApproveAsync(new(13), new(15), default))).Status);
+        Assert.Null(await query.FindPendingApplicationAsync(new(15), default));
+        Assert.Equal(GuildRankSettings.Member, (await query.FindMembershipAsync(new(15), default))!.Member.Rank);
+    }
+
+    [Fact]
     public async Task Guild_attendance_is_per_guild_character_and_local_date()
     {
         var first = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
