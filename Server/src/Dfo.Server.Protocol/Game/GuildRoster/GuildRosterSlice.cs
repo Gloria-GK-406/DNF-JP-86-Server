@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
@@ -43,6 +44,7 @@ internal sealed class GuildRosterReplyEncoder : GameCmdMessageEncoder<GuildRoste
         var count = (ushort)roster.Members.Count;
         writer.Write(count);
         writer.Write(count);
+        var representedAccounts = new HashSet<AccountId>();
         foreach (var row in roster.Members)
         {
             var entry = row.Entry;
@@ -59,7 +61,8 @@ internal sealed class GuildRosterReplyEncoder : GameCmdMessageEncoder<GuildRoste
             writer.Write((byte)GuildMemberInfoMessage.RankOf(entry.Membership));
             writer.Write(0u); // No persisted offline duration.
             writer.Write(entry.Account.Value);
-            writer.Write((byte)0); // Representative character.
+            // A21 uses the first designated role as the header when the entire account is offline.
+            writer.Write(representedAccounts.Add(entry.Account));
             WriteText(writer, []); // Account alias.
         }
 
