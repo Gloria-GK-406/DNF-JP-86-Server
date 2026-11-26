@@ -1,6 +1,6 @@
 ---
 kind: rks-verification
-decision: manual_required
+decision: pass
 ---
 
 # 金币捐赠验证
@@ -13,7 +13,7 @@ decision: manual_required
 - 完整协议项目 2,326 通过、69 跳过。迁移项目全部 42 通过。公会定向运行中，17 项持久化、2 项真实 PVF 和 4 项 Application 测试均通过。Application 扩展架构检查 118 项通过、1 项失败，失败的模块测试夹具缺少落地物配置 `DropMaterializationLimits`。已核对该夹具和依赖在子任务基线相同，隔离发布服成功进入游戏并完成捐赠。
 - Host 与 DbMigrate 已发布至独立目录。代码通过[独立审查](../reviews/change-review.md)。独立验收服通过监听端口和 Launcher 网关状态确认，测试数据从零准备。
 
-## 待验证
+## 首次实机
 
 - AC-1 的 A21 真实界面与列表显示。初次实机的持久化结果为 GuildViewer 金币 50,000、个人贡献和公会 GM 均为 50，用户指出「公会积分内容」窗口未列出明细。以下修订已部署供复测。[实机验收步骤](../a21-user-test.md)
 
@@ -27,4 +27,4 @@ decision: manual_required
 
 - 前一版用户已捐出 50,000 金币，库中公会 GM 为 100，明细有 GuildViewer、50 GM 与时间戳。服务日志对应连接的序号 33、45 为未注册的空请求 `0x02EA`。A21 静态路径确认该窗口读取 `u32` 条数及 44 字节记录。
 - 修正版的独立 TCP 复测用这笔实际捐赠的数据快照。会长和普通成员均收到 49 字节成功正文并读回同一条 50 GM，名称、动作类型和时间与库相符。畸形请求和非成员拒绝，`0x0328` 原布局保持有效。协议完整回归 2,330 通过、69 跳过。
-- [独立代码审查](../reviews/guild-mileage-history-review.md)已通过。修正验收服 `127.0.0.1:48580` 保留该笔实际捐赠。真实客户端渲染仍需复测。[更新后的验收步骤](../a21-user-test.md)
+- [独立代码审查](../reviews/guild-mileage-history-review.md)已通过。修正验收服 `127.0.0.1:48580` 保留该笔实际捐赠。用户确认列表已显示，并继续测试成员名单。[实机记录](../a21-user-test.md)
