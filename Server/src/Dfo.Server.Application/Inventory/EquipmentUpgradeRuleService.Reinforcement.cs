@@ -7,12 +7,37 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed partial class EquipmentUpgradeRuleService
 {
+    private static bool AllowsMedalUpgrade(EquipmentUpgradeKind kind, bool hasProtection) =>
+        kind == EquipmentUpgradeKind.Reinforcement && !hasProtection;
+
+    public static bool AcceptsReinforcementSlot(BusinessInventorySpace space, EquipmentUpgradeKind kind, bool hasProtection) =>
+        space == BusinessInventorySpace.GuildMedal ? AllowsMedalUpgrade(kind, hasProtection)
+            : space.IsCarriedItemSpace() || space.IsWornEquipmentSpace();
+
+    public static bool AcceptsTarget(BusinessInventorySpace space, ItemSnapshot target, DateTimeOffset now)
+    {
+        var medal = target.Type.HasFlag(ItemTraits.GuildMedal);
+        return medal == (space == BusinessInventorySpace.GuildMedal)
+            && (!medal || !target.IsMirror && !target.Lifetime.IsExpired(now));
+    }
+
+    public static bool AcceptsMaterial(ItemSnapshot target, ItemSnapshot material, DateTimeOffset now) =>
+        !target.Type.HasFlag(ItemTraits.GuildMedal) || material.EquipmentLockId == 0
+            && material.SortLockFlag == 0 && !material.Lifetime.IsExpired(now);
+
     public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(ItemSnapshot core, CancellationToken ct,
-        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement, int? materialItemId = null, bool hasProtection = false)
     {
         var medal = core.Type.HasFlag(ItemTraits.GuildMedal);
+        if (!medal && materialItemId is { } material)
+        {
+            var ticket = await QuoteTicketAsync(core, material, ct, kind).ConfigureAwait(false);
+            if (ticket.IsTicket)
+                return hasProtection && ticket.Rejection == EquipmentReinforcementRejection.None
+                    ? new(EquipmentReinforcementRejection.InvalidRequest, IsTicket: true) : ticket;
+        }
         if (kind is not (EquipmentUpgradeKind.Reinforcement or EquipmentUpgradeKind.Amplification)
-            || medal && kind != EquipmentUpgradeKind.Reinforcement)
+            || medal && !AllowsMedalUpgrade(kind, hasProtection))
             return new(EquipmentReinforcementRejection.InvalidRequest);
         if (kind == EquipmentUpgradeKind.Amplification)
         {
