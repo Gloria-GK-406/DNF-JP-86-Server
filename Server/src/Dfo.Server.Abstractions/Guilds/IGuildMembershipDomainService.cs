@@ -9,7 +9,7 @@ public interface IGuildMembershipDomainService
     ValueTask<GuildMutationResult> CreateAsync(CharacterId actor, string name, string promotion, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetMemberMemoAsync(CharacterId actor, string memo, CancellationToken ct);
     ValueTask<GuildRankAssignmentResult?> AssignRankAsync(CharacterId actor, byte[] name, byte rank, CancellationToken ct);
-    ValueTask<CharacterId?> TransferLeadershipAsync(CharacterId actor, byte[] targetName, CancellationToken ct);
+    ValueTask<GuildLeadershipTransfer?> TransferLeadershipAsync(CharacterId actor, byte[] targetName, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct);
     ValueTask<GuildMutationStatus> SetRankPermissionsAsync(CharacterId actor, byte rank, uint permissions, CancellationToken ct);
     ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct);

@@ -68,20 +68,20 @@ internal sealed class GuildMembershipDomainService(
         return new(target.Character, rank, changed);
     }
 
-    public async ValueTask<CharacterId?> TransferLeadershipAsync(
+    public async ValueTask<GuildLeadershipTransfer?> TransferLeadershipAsync(
         CharacterId actor, byte[] targetName, CancellationToken ct)
     {
         if (targetName.Length is < 1 or > 62 ||
-            await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
+            await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { } membership)
             return null;
 
         var guild = membership.Guild.Id;
         var target = await store.FindRosterMemberAsync(guild, targetName, ct).ConfigureAwait(false);
-        if (target is null || target.IsLeader)
+        if (target is null || GuildRankRuleService.EvaluateLeadershipTransfer(membership.Member, target) is not { } transfer)
             return null;
 
-        await store.TransferLeadershipAsync(guild, actor, target.Character, ct).ConfigureAwait(false);
-        return target.Character;
+        await store.TransferLeadershipAsync(transfer, ct).ConfigureAwait(false);
+        return transfer;
     }
 
     public async ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct)

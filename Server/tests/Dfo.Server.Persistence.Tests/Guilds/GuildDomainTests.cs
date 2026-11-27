@@ -360,18 +360,24 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Null(await Write(() => guilds.TransferLeadershipAsync(new(11), "Leader"u8.ToArray(), default)));
         await Assert.ThrowsAsync<InvalidOperationException>(() => Write(async () =>
         {
-            await store.TransferLeadershipAsync(guild, new(11), new(15), default);
+            var invalidTransfer = new GuildLeadershipTransfer(
+                new(guild, new(11), false, clock.Now), new(guild, new(15), true, clock.Now));
+            await store.TransferLeadershipAsync(invalidTransfer, default);
             return true;
         }));
         Assert.Equal(new CharacterId(11), Assert.Single(await query.ReadRosterAsync(new(11), default),
             member => member.IsLeader).Character);
 
-        Assert.Equal(new CharacterId(13), await Write(() => guilds.TransferLeadershipAsync(new(11), target, default)));
+        var transfer = Assert.IsType<GuildLeadershipTransfer>(await Write(() => guilds.TransferLeadershipAsync(new(11), target, default)));
+        Assert.Equal(new CharacterId(13), transfer.NewLeader.Character);
         Assert.Null(await Write(() => guilds.TransferLeadershipAsync(new(11), target, default)));
         var roster = await query.ReadRosterAsync(new(11), default);
         Assert.Equal(new CharacterId(13), Assert.Single(roster, member => member.IsLeader).Character);
         Assert.Equal(GuildRankSettings.Member, roster.Single(member => member.Character == new CharacterId(11)).Rank);
         Assert.Equal(GuildRankSettings.Leader, (await query.FindMembershipAsync(new(13), default))!.Member.Rank);
+        Assert.Equal(transfer.FormerLeader, roster.Single(member => member.Character == new CharacterId(11)));
+        Assert.Equal(transfer.NewLeader, roster.Single(member => member.Character == new CharacterId(13)));
+        Assert.Equal(GuildRankSettings.Member, transfer.NewLeader.MemberRank);
     }
 
     [Fact]

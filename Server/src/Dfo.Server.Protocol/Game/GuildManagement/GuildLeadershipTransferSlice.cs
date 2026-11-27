@@ -8,7 +8,6 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Notifications;
-using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.GuildInfo;
@@ -95,24 +94,24 @@ internal sealed class GameGuildLeadershipTransferCommandHandler(
         var recipient = new SelectedSessionRecipient(actor, connection, request.Metadata);
         var write = await units.WriteResultAsync(context, new("guild-leadership-transfer", [recipient]), async (_, token) =>
         {
-            var successor = await guilds.TransferLeadershipAsync(actor.CharacterId, name, token).ConfigureAwait(false);
-            if (successor is null)
+            var transfer = await guilds.TransferLeadershipAsync(actor.CharacterId, name, token).ConfigureAwait(false);
+            if (transfer is null)
                 return new TransferResult(null, GuildInfoPanel.Empty, []);
 
             var panel = await GuildInfoPanel.ReadAsync(overviews, actor.CharacterId, token).ConfigureAwait(false);
             var roster = await query.ReadRosterEntriesAsync(actor.CharacterId, token).ConfigureAwait(false);
-            return new TransferResult(successor, panel, roster);
+            return new TransferResult(transfer, panel, roster);
         }, ct).ConfigureAwait(false);
 
         if (write is not CommandWriteResult<TransferResult>.Returned { Value: var result }
-            || result.Successor is not { } leader)
+            || result.Transfer is not { } change)
             return await ReplyAsync(0x22).ConfigureAwait(false);
 
         await ReplyAsync(null).ConfigureAwait(false);
-        await projections.ProjectAsync(new NotificationAudience.TheseCharacters([actor.CharacterId]),
-            new GuildMemberRankAssigned(actor.CharacterId, GuildRankSettings.Member), ct).ConfigureAwait(false);
-        await projections.ProjectAsync(new NotificationAudience.TheseCharacters([leader]),
-            new GuildMemberRankAssigned(leader, GuildRankSettings.Leader), ct).ConfigureAwait(false);
+        await projections.ProjectAsync(new NotificationAudience.TheseCharacters([change.FormerLeader.Character]),
+            new GuildMemberRankAssigned(change.FormerLeader.Character, change.FormerLeader.Rank), ct).ConfigureAwait(false);
+        await projections.ProjectAsync(new NotificationAudience.TheseCharacters([change.NewLeader.Character]),
+            new GuildMemberRankAssigned(change.NewLeader.Character, change.NewLeader.Rank), ct).ConfigureAwait(false);
 
         var audience = new NotificationAudience.TheseCharacters(result.Roster.Select(row => row.Membership.Character).ToArray());
         await projections.ProjectAsync(audience, result.Panel, ct).ConfigureAwait(false);
@@ -132,7 +131,7 @@ internal sealed class GameGuildLeadershipTransferCommandHandler(
         }
     }
 
-    private sealed record TransferResult(CharacterId? Successor, GuildInfoPanel Panel, IReadOnlyList<GuildRosterEntry> Roster);
+    private sealed record TransferResult(GuildLeadershipTransfer? Transfer, GuildInfoPanel Panel, IReadOnlyList<GuildRosterEntry> Roster);
 }
 
 internal static class GuildLeadershipTransferRegistration

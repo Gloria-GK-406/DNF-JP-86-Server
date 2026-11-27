@@ -60,6 +60,7 @@ public sealed record GuildPresenceAudience(CharacterId Character, byte[] Name, I
 }
 
 public sealed record GuildRankAssignmentResult(CharacterId Character, byte Rank, bool Changed);
+public sealed record GuildLeadershipTransfer(GuildMember FormerLeader, GuildMember NewLeader);
 public sealed record GuildDiscoveryDetails(GuildId Guild, string Name, int MemberCount, string Promotion);
 public sealed record GuildAccountEntry(byte[] CharacterName, string GuildName);
 public sealed record GuildRecommendation(GuildId Guild, string Name, byte[] LeaderName);

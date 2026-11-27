@@ -69,24 +69,27 @@ internal sealed class SqliteGuildDomainStore(SqliteDatabase database) : IGuildDo
             throw new InvalidOperationException("Guild rank update did not persist an eligible member.");
     }
 
-    public ValueTask TransferLeadershipAsync(GuildId guild, CharacterId leader, CharacterId successor, CancellationToken ct) =>
+    public ValueTask TransferLeadershipAsync(GuildLeadershipTransfer transfer, CancellationToken ct) =>
         database.WriteAsync(async (command, token) =>
         {
-            BindGuild(command.Parameters, guild);
-            command.Parameters.AddWithValue("@leader", leader.Value);
-            command.Parameters.AddWithValue("@successor", successor.Value);
-            command.Parameters.AddWithValue("@member", GuildRankSettings.Member);
+            BindGuild(command.Parameters, transfer.FormerLeader.Guild);
+            command.Parameters.AddWithValue("@leader", transfer.FormerLeader.Character.Value);
+            command.Parameters.AddWithValue("@successor", transfer.NewLeader.Character.Value);
+            command.Parameters.AddWithValue("@formerIsLeader", transfer.FormerLeader.IsLeader);
+            command.Parameters.AddWithValue("@successorIsLeader", transfer.NewLeader.IsLeader);
+            command.Parameters.AddWithValue("@formerRank", transfer.FormerLeader.MemberRank);
+            command.Parameters.AddWithValue("@successorRank", transfer.NewLeader.MemberRank);
 
             // The partial unique index checks each update immediately, so demote before promoting in this transaction.
             command.CommandText = """
-                UPDATE guild_members SET is_leader=0,member_rank=@member
+                UPDATE guild_members SET is_leader=@formerIsLeader,member_rank=@formerRank
                 WHERE guild_id=@guild AND character_id=@leader AND is_leader=1
                 """;
             if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)
                 throw new InvalidOperationException("The current guild leader changed during the transfer.");
 
             command.CommandText = """
-                UPDATE guild_members SET is_leader=1,member_rank=@member
+                UPDATE guild_members SET is_leader=@successorIsLeader,member_rank=@successorRank
                 WHERE guild_id=@guild AND character_id=@successor AND is_leader=0
                 """;
             if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)

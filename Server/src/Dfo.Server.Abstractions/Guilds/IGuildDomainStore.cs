@@ -12,7 +12,7 @@ public interface IGuildDomainStore
     ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct);
     ValueTask<GuildMember?> FindRosterMemberAsync(GuildId guild, byte[] name, CancellationToken ct);
     ValueTask SetMemberRankAsync(GuildId guild, CharacterId character, byte rank, CancellationToken ct);
-    ValueTask TransferLeadershipAsync(GuildId guild, CharacterId leader, CharacterId successor, CancellationToken ct);
+    ValueTask TransferLeadershipAsync(GuildLeadershipTransfer transfer, CancellationToken ct);
     ValueTask<GuildDiscoveryDetails?> FindGuildByNameKeyAsync(string nameKey, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildAccountEntry>> ReadAccountGuildsAsync(AccountId account, int limit, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildRecommendation>> ReadRecommendationsAsync(CharacterId viewer, int limit, CancellationToken ct);

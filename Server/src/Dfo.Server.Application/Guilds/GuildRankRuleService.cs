@@ -7,6 +7,12 @@ internal static class GuildRankRuleService
     public static bool AllowsRankName(byte rank, string name) =>
         GuildRankSettings.IsMemberRank(rank) && GuildTextRules.IsValidRankName(name);
 
+    public static GuildLeadershipTransfer? EvaluateLeadershipTransfer(GuildMember actor, GuildMember target) =>
+        actor.IsLeader && !target.IsLeader && actor.Guild == target.Guild && actor.Character != target.Character
+            ? new(actor with { IsLeader = false, MemberRank = GuildRankSettings.Member },
+                target with { IsLeader = true, MemberRank = GuildRankSettings.Member })
+            : null;
+
     public static bool CanTransferWarehouseItems(GuildMember member) =>
         member.Rank is >= GuildRankSettings.Leader and < GuildRankSettings.Member;
 
