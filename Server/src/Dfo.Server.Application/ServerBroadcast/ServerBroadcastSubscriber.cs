@@ -108,7 +108,7 @@ internal sealed class ServerBroadcastSubscriber(
         if (!rules.Announces(kind)) return;
         var name = (await characters.Get(actor).IdentityAsync(ct).ConfigureAwait(false))?.Name;
         if (name is not { Length: > 0 }) return;
-        var members = scopes.MembersOf(new ChatScope.Server());
+        var members = await scopes.MembersOfAsync(new ChatScope.Server(), ct).ConfigureAwait(false);
         if (members.Count == 0) return;
         _ = await events.ProjectAsync(new NotificationAudience.TheseCharacters(members),
             new ServerBroadcastPosted(name.ToImmutableArray(), content), ct).ConfigureAwait(false);

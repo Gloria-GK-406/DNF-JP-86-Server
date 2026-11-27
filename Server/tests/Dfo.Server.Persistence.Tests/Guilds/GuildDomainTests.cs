@@ -1,12 +1,14 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Guilds;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
+using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
@@ -24,23 +26,39 @@ public sealed class GuildDomainTests : IDisposable
     private readonly string path = Path.Combine(Path.GetTempPath(), $"dfo-guild-{Guid.NewGuid():N}.db");
     private readonly DomainTransactionScope scope = TestRequired.TransactionScope();
     private readonly SqliteGuildDomainStore store;
+    private readonly SqliteGuildPointAccount points;
+    private readonly SqliteGuildWarehouseStore warehouse;
     private readonly SqliteCharacterTable characters;
-    private readonly GuildDomainService guilds;
-    private readonly GuildQueryDomainService query;
+    private readonly GuildMembershipDomainService guilds;
+    private readonly GuildProfileDomainService profiles;
+    private readonly GuildDonationDomainService donations;
+    private readonly CharacterDomainService players;
+    private readonly GuildBenefitDomainService benefits;
+    private readonly GuildContentPurchaseDomainService purchases;
+    private readonly GuildMembershipQueryDomainService query;
+    private readonly GuildDiscoveryDomainService discovery;
     private readonly EconomyRules economy = new();
+    private readonly GuildTestClock clock = new();
 
     public GuildDomainTests()
     {
         var database = new SqliteDatabase(path, scope);
         store = new SqliteGuildDomainStore(database);
+        points = new(database);
+        warehouse = new(database);
         characters = new(database);
-        var players = new CharacterDomainService(new SqliteCharacterCarriedGoldTable(database),
+        players = new CharacterDomainService(new SqliteCharacterCarriedGoldTable(database),
             TestRequired.Absent<ICarriedGoldRuleService>(), characters, TestRequired.Absent<ICharacterSkillPointDomainService>(),
             TestRequired.Absent<ICharacterStatRuleService>(), TestRequired.Absent<ICharacterSkillStateDomainService>(),
             TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(),
             scope, new DiscardingEventService());
-        guilds = new(store, new(economy), players, characters, TimeProvider.System);
-        query = new(store, new(economy));
+        guilds = new(store, warehouse, new(economy), players, characters, TimeProvider.System);
+        profiles = new(store, points, new(economy));
+        donations = new(store, points, new(economy), players, TimeProvider.System);
+        query = new(store);
+        discovery = new(store);
+        benefits = new(store, new(economy), clock);
+        purchases = new(store, points, new(economy), benefits, new(warehouse, new(economy)));
         Execute("""
             INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-test');
             INSERT INTO characters(character_id,account_id,name) VALUES
@@ -49,6 +67,362 @@ public sealed class GuildDomainTests : IDisposable
                 (11,900000),(12,900000),(13,100),(16,900000);
             UPDATE characters SET delete_flag=1 WHERE character_id=16;
             """);
+    }
+
+    [Fact]
+    public async Task Medal_aura_is_shared_by_current_members_and_only_the_leader_can_change_it()
+    {
+        var created = await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        var id = created.Guild!.Value;
+        await Write(async () =>
+        {
+            await store.AddMemberAsync(id, new(14), false, DateTimeOffset.UtcNow, default);
+            return true;
+        });
+        var style = new GuildMedalAura(2, 5);
+        Assert.Equal(GuildMutationStatus.LeaderRequired, await Write(() => profiles.SetMedalAuraAsync(new(14), style, default)));
+        Assert.Equal(GuildMutationStatus.InvalidMedalAura, await Write(() => profiles.SetMedalAuraAsync(new(11), new(25, 3), default)));
+        Assert.Equal(GuildMutationStatus.InvalidMedalAura, await Write(() => profiles.SetMedalAuraAsync(new(11), new(-1, 3), default)));
+        Assert.Equal(GuildMedalAura.None, (await query.FindMembershipAsync(new(14), default))!.Guild.MedalAura);
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMedalAuraAsync(new(11), style, default)));
+        Assert.Equal(style, (await query.FindMembershipAsync(new(14), default))!.Guild.MedalAura);
+        Assert.Equal(GuildMutationStatus.Success, (await Write(() => guilds.LeaveAsync(new(14), default))).Status);
+        Assert.Null(await query.FindMembershipAsync(new(14), default));
+        Assert.Equal(style, (await query.FindMembershipAsync(new(11), default))!.Guild.MedalAura);
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMedalAuraAsync(new(11), GuildMedalAura.None, default)));
+        Assert.Equal(GuildMedalAura.None, (await query.FindMembershipAsync(new(11), default))!.Guild.MedalAura);
+    }
+
+    [Fact]
+    public async Task Dungeon_extension_preserves_the_same_progress_for_one_reset_only()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var otherGuild = (await Write(() => guilds.CreateAsync(new(12), "Other", "", default))).Guild!.Value;
+        var reset = new DateTimeOffset(2026, 12, 1, 6, 0, 0, TimeSpan.FromHours(8));
+        var calendar = GuildDungeonPeriod.At(reset.AddSeconds(-1));
+        var extended = calendar.SkipNextReset();
+        var dungeons = new SqliteGuildDungeonStore(new(path, scope), points);
+        Assert.Equal(calendar, await dungeons.ResolvePeriodAsync(guild, calendar, default));
+        await Write(async () =>
+        {
+            Assert.True(await dungeons.TryRecordClearAsync(Guid.NewGuid(), new(11), new(guild, 0, calendar), 8500, 0, default));
+            await dungeons.AddExtensionAsync(guild, extended, default);
+            return true;
+        });
+
+        var december = GuildDungeonPeriod.At(reset);
+        Assert.Equal(extended, await dungeons.ResolvePeriodAsync(guild, calendar, default));
+        Assert.Equal(extended, await dungeons.ResolvePeriodAsync(guild, december, default));
+        Assert.Equal(december, await dungeons.ResolvePeriodAsync(otherGuild, december, default));
+        var initialShop = new GuildDungeonAdmission(guild, 0, calendar).MedalShopId;
+        Assert.Equal(initialShop, new GuildDungeonAdmission(guild, 0, extended).MedalShopId);
+        Assert.Equal(1, (await dungeons.ReadProgressAsync(new(guild, 0, extended), default))[8500]);
+        var january = GuildDungeonPeriod.At(reset.AddMonths(1));
+        Assert.Equal(january, await dungeons.ResolvePeriodAsync(guild, january, default));
+        Assert.NotEqual(initialShop, new GuildDungeonAdmission(guild, 0, january).MedalShopId);
+        Assert.Empty(await dungeons.ReadProgressAsync(new(guild, 0, january), default));
+    }
+
+    [Fact]
+    public async Task Monthly_contribution_uses_the_six_am_boundary_and_pays_each_qualifying_character_once()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        var boundary = new DateTimeOffset(2026, 12, 1, 6, 0, 0, TimeSpan.FromHours(8));
+        var start = boundary.AddMonths(-1);
+        Execute($"UPDATE guild_members SET joined_at={start.AddDays(-1).ToUnixTimeSeconds()}");
+        var monthlyStore = new SqliteGuildMonthlyContributionStore(new(path, scope));
+        economy.Monthly = new(10, 1100, 10153528, 1);
+        var mail = new List<(CharacterId Recipient, ItemDeliveryGrant Grant, string Key)>();
+        var delivery = TestRequired.Absent<IItemDeliveryDomainService>((method, args) =>
+        {
+            if (method.Name != nameof(IItemDeliveryDomainService.DeliverAsync))
+                return null;
+            Assert.Equal(ItemDeliveryMode.MailOnly, args![5]);
+            mail.Add(((CharacterId)args[1]!, Assert.Single((IReadOnlyList<ItemDeliveryGrant>)args[2]!),
+                ((ItemDeliveryOptions)args[6]!).MailDeliveryKey));
+            return ValueTask.FromResult(new ItemDeliveryReceipt([], [1], 1));
+        });
+        var monthly = new GuildMonthlyContributionDomainService(store, monthlyStore, new(economy,
+            TestRequired.Absent<IDungeonDefinitionSource>()), delivery, clock);
+
+        clock.Now = boundary.AddSeconds(-1);
+        Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
+        Assert.False(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
+        Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(13), clock.Now, default)));
+        await Write(async () =>
+        {
+            await store.AddDonationAsync(guild, new(11), 990_000, 990, clock.Now, default);
+            await store.AddDonationAsync(guild, new(13), 1_089_000, 1089, clock.Now, default);
+            Assert.True(await monthlyStore.RecordAsync(guild, new(11), GuildContributionSource.RecommendedClear,
+                "run", 10, clock.Now, default));
+            Assert.False(await monthlyStore.RecordAsync(guild, new(11), GuildContributionSource.RecommendedClear,
+                "run", 10, clock.Now, default));
+            return true;
+        });
+        var november = await monthly.ReadTotalsAsync(guild, default);
+        Assert.Equal(new(2199, 2199), november.Guild);
+        Assert.Equal(new(1100, 1100), november.Members[new(11)]);
+        Assert.Equal(new(1099, 1099), november.Members[new(13)]);
+
+        clock.Now = boundary;
+        Assert.Equal(boundary, new GuildContributionMonth().LastOccurrence(clock.Now));
+        Assert.Equal(boundary, new GuildContributionMonth().NextOccurrence(clock.Now.AddSeconds(-1)));
+        Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
+        var december = await monthly.ReadTotalsAsync(guild, default);
+        Assert.Equal(new(2299, 100), december.Guild);
+        Assert.Equal(new(1200, 100), december.Members[new(11)]);
+        Assert.Equal(new(1099, 0), december.Members[new(13)]);
+
+        Assert.Equal(1, await Write(() => monthly.SettleBatchAsync(boundary, 64, default)));
+        Assert.Equal(0, await Write(() => monthly.SettleBatchAsync(boundary, 64, default)));
+        var sent = Assert.Single(mail);
+        Assert.Equal(new CharacterId(11), sent.Recipient);
+        Assert.Equal(new ItemDeliveryGrant(10153528, 1), sent.Grant);
+        Assert.Equal("guild-monthly-contribution:202611:11", sent.Key);
+    }
+
+    [Fact]
+    public async Task Same_second_rejoin_keeps_guild_history_and_dedupe_keys_but_starts_a_new_personal_ledger()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var database = new SqliteDatabase(path, scope);
+        var monthly = new SqliteGuildMonthlyContributionStore(database);
+        var daily = new SqliteGuildContributionStore(database);
+        var actor = new CharacterId(13);
+        var at = clock.Now;
+        var run = Guid.NewGuid();
+        await Write(async () =>
+        {
+            await store.AddMemberAsync(guild, actor, false, at, default);
+            await store.AddDonationAsync(guild, actor, 1000, 1, at, default);
+            Assert.True(await monthly.RecordAsync(guild, actor, GuildContributionSource.Attendance, "day", 10, at, default));
+            Assert.True(await daily.TryRecordDailyAsync(guild, actor, GuildDailyContributionKind.Chat, 1, at.ToUnixTimeSeconds(), 2, default));
+            Assert.Equal(4, await daily.RecordClearAsync(guild, actor, run, GuildClearContributionKind.PartyDungeon,
+                1, at.ToUnixTimeSeconds(), 0, 4, default));
+            return true;
+        });
+        var previous = (await query.FindMembershipAsync(actor, default))!.Member;
+        Assert.True(previous.MembershipId > 0);
+        Assert.Equal(new(11, 11), (await monthly.ReadTotalsAsync(guild, at, at.AddDays(1), default)).Members[actor]);
+        Assert.Single(await monthly.ReadUnpaidAsync(at, at.AddDays(1), 11, 10, default));
+        Assert.Equal(6, (await daily.ReadLeaderboardAsync(guild, default)).Single(row => row.Character == actor).Contribution);
+
+        await Write(async () =>
+        {
+            await store.RemoveMemberAsync(guild, actor, default);
+            await store.AddMemberAsync(guild, actor, false, at, default);
+            return true;
+        });
+        var current = (await query.FindMembershipAsync(actor, default))!.Member;
+        Assert.Equal(previous.JoinedAt, current.JoinedAt);
+        Assert.NotEqual(previous.MembershipId, current.MembershipId);
+        Assert.Equal(current.MembershipId, (await query.ReadRosterAsync(actor, default)).Single(member => member.Character == actor).MembershipId);
+        var totals = await monthly.ReadTotalsAsync(guild, at, at.AddDays(1), default);
+        Assert.Equal(new(11, 11), totals.Guild);
+        Assert.Equal(new(0, 0), totals.Members[actor]);
+        Assert.Empty(await monthly.ReadUnpaidAsync(at, at.AddDays(1), 1, 10, default));
+        Assert.Equal(0, (await daily.ReadLeaderboardAsync(guild, default)).Single(row => row.Character == actor).Contribution);
+        await Write(async () =>
+        {
+            Assert.False(await monthly.RecordAsync(guild, actor, GuildContributionSource.Attendance, "day", 10, at, default));
+            Assert.False(await daily.TryRecordDailyAsync(guild, actor, GuildDailyContributionKind.Chat, 1, at.ToUnixTimeSeconds(), 2, default));
+            Assert.Equal(0, await daily.RecordClearAsync(guild, actor, run, GuildClearContributionKind.PartyDungeon,
+                1, at.ToUnixTimeSeconds(), 0, 4, default));
+            await store.AddDonationAsync(guild, actor, 2000, 2, at, default);
+            return true;
+        });
+        totals = await monthly.ReadTotalsAsync(guild, at, at.AddDays(1), default);
+        Assert.Equal(new(13, 13), totals.Guild);
+        Assert.Equal(new(2, 2), totals.Members[actor]);
+    }
+
+    [Fact]
+    public async Task Guild_gift_limits_each_direction_by_local_day_and_preserves_unclaimed_gifts()
+    {
+        var database = new SqliteDatabase(path, scope);
+        var gifts = new GuildGiftDomainService(store, points, new SqliteGuildAllianceStore(database), new SqliteGuildGiftStore(database),
+            benefits, new(economy), clock);
+        var first = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var second = (await Write(() => guilds.CreateAsync(new(12), "Violet", "", default))).Guild!.Value;
+        Execute($"""
+            INSERT INTO guild_alliances(first_id,second_id) VALUES({first.Value},{second.Value});
+            UPDATE guilds SET gm_points=1000;
+            """);
+
+        var sent = await Write(() => gifts.SendAsync(new(11), second, 3, default));
+        Assert.Equal(GuildGiftStatus.Success, sent.Status);
+        Assert.Equal(800L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={first.Value}"));
+        Assert.Equal(GuildGiftStatus.DailyLimit, (await Write(() => gifts.SendAsync(new(11), second, 2, default))).Status);
+        Assert.Empty((await gifts.ReadAsync(new(11), true, default))!.Rows);
+        Assert.Equal(GuildGiftStatus.Success, (await Write(() => gifts.SendAsync(new(12), first, 2, default))).Status);
+        Assert.Equal(second, Assert.Single((await gifts.ReadAsync(new(11), true, default))!.Rows).Sender);
+        Assert.Equal(first, Assert.Single((await gifts.ReadAsync(new(12), true, default))!.Rows).Sender);
+        clock.Now = clock.Now.AddDays(1);
+        Assert.Equal(GuildGiftStatus.Success, (await Write(() => gifts.SendAsync(new(11), second, 3, default))).Status);
+
+        Execute("DELETE FROM guild_alliances");
+        var key = new GuildGiftKey(first, 3, (byte)GuildContentKind.Experience, checked((uint)sent.Gift!.SentAt));
+        Assert.Equal(GuildGiftStatus.Success, (await Write(() => gifts.ClaimAsync(new(12), key, default))).Status);
+        Assert.Equal(GuildGiftStatus.MissingGift, (await Write(() => gifts.ClaimAsync(new(12), key, default))).Status);
+        Assert.Equal(800L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={second.Value}"));
+        Assert.Single((await gifts.ReadAsync(new(12), false, default))!.Rows);
+        Assert.Equal(2, (await gifts.ReadAsync(new(12), true, default))!.Rows.Count);
+        Assert.Equal(clock.Now.AddDays(1).ToUnixTimeSeconds(),
+            Assert.Single(await benefits.ReadContentsAsync(second, default)).ExpiresAtUnixSeconds);
+    }
+
+    [Fact]
+    public async Task A_member_can_change_and_clear_only_their_own_roster_memo()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetMemberMemoAsync(new(13), "周末组队", default)));
+        Assert.Equal(GuildMutationStatus.NotMember,
+            await Write(() => guilds.SetMemberMemoAsync(new(12), "Not a member", default)));
+        Assert.Equal(GuildMutationStatus.InvalidText,
+            await Write(() => guilds.SetMemberMemoAsync(new(13), new string('测', 21), default)));
+
+        var roster = await query.ReadRosterEntriesAsync(new(11), default);
+        Assert.Equal("", roster.Single(row => row.Membership.Character == new CharacterId(11)).Membership.Memo);
+        Assert.Equal("周末组队", roster.Single(row => row.Membership.Character == new CharacterId(13)).Membership.Memo);
+
+        Assert.Equal(GuildMutationStatus.Success,
+            await Write(() => guilds.SetMemberMemoAsync(new(13), "", default)));
+        Assert.Equal("", (await query.FindMembershipAsync(new(13), default))!.Member.Memo);
+    }
+
+    [Fact]
+    public async Task Leadership_transfer_requires_the_current_leader_and_commits_both_ranks()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.CreateAsync(new(12), "Other Guild", "", default));
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        await Write(() => guilds.AssignRankAsync(new(11), "Applicant"u8.ToArray(), GuildRankSettings.ViceLeader, default));
+        var target = "Applicant"u8.ToArray();
+
+        Assert.Null(await Write(() => guilds.TransferLeadershipAsync(new(13), "Leader"u8.ToArray(), default)));
+        Assert.Null(await Write(() => guilds.TransferLeadershipAsync(new(11), "Other"u8.ToArray(), default)));
+        Assert.Null(await Write(() => guilds.TransferLeadershipAsync(new(11), "Leader"u8.ToArray(), default)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Write(async () =>
+        {
+            await store.TransferLeadershipAsync(guild, new(11), new(15), default);
+            return true;
+        }));
+        Assert.Equal(new CharacterId(11), Assert.Single(await query.ReadRosterAsync(new(11), default),
+            member => member.IsLeader).Character);
+
+        Assert.Equal(new CharacterId(13), await Write(() => guilds.TransferLeadershipAsync(new(11), target, default)));
+        Assert.Null(await Write(() => guilds.TransferLeadershipAsync(new(11), target, default)));
+        var roster = await query.ReadRosterAsync(new(11), default);
+        Assert.Equal(new CharacterId(13), Assert.Single(roster, member => member.IsLeader).Character);
+        Assert.Equal(GuildRankSettings.Member, roster.Single(member => member.Character == new CharacterId(11)).Rank);
+        Assert.Equal(GuildRankSettings.Leader, (await query.FindMembershipAsync(new(13), default))!.Member.Rank);
+    }
+
+    [Fact]
+    public async Task Content_purchase_preserves_contributions_and_counts_teleport_uses()
+    {
+        var created = await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        var guild = created.Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        Execute("UPDATE guilds SET gm_points=98000,spent_gm_points=2000;");
+        Assert.Equal(GuildMutationStatus.LeaderRequired,
+            (await Write(() => purchases.PurchaseAsync(new(13), 13, default))).Status);
+        Assert.Equal(GuildMutationStatus.UnsupportedContent,
+            (await Write(() => purchases.PurchaseAsync(new(11), 4, default))).Status);
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => purchases.PurchaseAsync(new(11), 1, default))).Status);
+        Assert.Equal(GuildMutationStatus.ContentAlreadyActive,
+            (await Write(() => purchases.PurchaseAsync(new(11), 1, default))).Status);
+        Assert.Equal(GuildMutationStatus.Success,
+            (await Write(() => purchases.PurchaseAsync(new(11), 13, default))).Status);
+        var balance = (await query.FindMembershipAsync(new(13), default))!.Guild;
+        Assert.Equal(61_700, balance.GmPoints);
+        Assert.Equal(100_000, balance.ContributionPoints);
+        Assert.Equal(169, Assert.Single(await benefits.ReadAttributeBonusesAsync(guild, default)).BuffId);
+        Assert.Equal(10, (await benefits.ReadContentsAsync(guild, default)).Single(x => x.Kind == GuildContentKind.PartyTeleport).RemainingUses);
+
+        Assert.Equal(GuildMutationStatus.Success, (await Write(() => benefits.ConsumeTeleportAsync(new(13), default))).Status);
+        Assert.Equal(9, (await benefits.ReadContentsAsync(guild, default)).Single(x => x.Kind == GuildContentKind.PartyTeleport).RemainingUses);
+        for (var i = 0; i < 9; i++)
+            Assert.Equal(GuildMutationStatus.Success, (await Write(() => benefits.ConsumeTeleportAsync(new(11), default))).Status);
+        Assert.Equal(GuildMutationStatus.UnsupportedContent, (await Write(() => benefits.ConsumeTeleportAsync(new(11), default))).Status);
+        Assert.Single(await benefits.ReadContentsAsync(guild, default));
+
+        await Write(() => guilds.RemoveMemberAsync(new(11), new(13), default));
+        Assert.Null(await query.FindMembershipAsync(new(13), default));
+        Assert.Equal(GuildMutationStatus.NotMember,
+            (await Write(() => benefits.ConsumeTeleportAsync(new(13), default))).Status);
+    }
+
+    [Fact]
+    public async Task Purchase_checks_the_benefit_before_funds_and_keeps_a_rejected_purchase_atomic()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        Assert.Equal(GuildMutationStatus.InsufficientGuildPoints,
+            (await Write(() => purchases.PurchaseAsync(new(11), 2, default))).Status);
+        Assert.Empty(await benefits.ReadContentsAsync(guild, default));
+
+        clock.Now = DateTimeOffset.FromUnixTimeSeconds(int.MaxValue - 60);
+        Assert.Equal(GuildMutationStatus.ContentDurationLimit,
+            (await Write(() => purchases.PurchaseAsync(new(11), 2, default))).Status);
+
+        Execute("UPDATE guilds SET gm_points=500");
+        Execute("""
+            CREATE TRIGGER reject_guild_content BEFORE INSERT ON guild_contents
+            BEGIN SELECT RAISE(ABORT, 'reject grant'); END
+            """);
+        await Assert.ThrowsAsync<SqliteException>(() => Write(() => purchases.PurchaseAsync(new(11), 13, default)));
+        Assert.Equal(500L, Execute("SELECT gm_points FROM guilds"));
+        Assert.Equal(0L, Execute("SELECT spent_gm_points FROM guilds"));
+        Assert.Empty(await benefits.ReadContentsAsync(guild, default));
+    }
+
+    [Fact]
+    public async Task Timed_attributes_renew_without_adding_another_buff_and_expire_independently_of_experience()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        Execute("UPDATE guilds SET gm_points=98000;");
+        foreach (uint product in new uint[] { 1, 2, 2, 3 })
+            Assert.Equal(GuildMutationStatus.Success,
+                (await Write(() => purchases.PurchaseAsync(new(11), product, default))).Status);
+
+        Assert.Equal(new[] { 167, 169 }, (await benefits.ReadAttributeBonusesAsync(guild, default)).Select(bonus => bonus.BuffId));
+        Assert.Equal(0.1, await benefits.ReadMonsterExperienceRateAsync(new(11), default));
+        Assert.Equal(0, await benefits.ReadMonsterExperienceRateAsync(new(13), default));
+        Assert.Equal(61_400, (await query.FindMembershipAsync(new(11), default))!.Guild.GmPoints);
+        clock.Now = clock.Now.AddDays(1);
+        Assert.Equal(0, await benefits.ReadMonsterExperienceRateAsync(new(11), default));
+        Assert.Equal(2, (await benefits.ReadAttributeBonusesAsync(guild, default)).Count);
+        clock.Now = clock.Now.AddDays(1);
+        var removed = await Write(() => benefits.RemoveExpiredAsync(clock.Now.ToUnixTimeSeconds(), 64, default));
+        Assert.Equal(2, removed.Count);
+        Assert.Equal(169, Assert.Single(await benefits.ReadAttributeBonusesAsync(guild, default)).BuffId);
+        Assert.Empty(await Write(() => benefits.RemoveExpiredAsync(clock.Now.ToUnixTimeSeconds(), 64, default)));
+    }
+
+    [Fact]
+    public async Task Warehouse_expansions_use_shared_capacity_and_refuse_overflow_without_charging()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        Execute("UPDATE guilds SET gm_points=98000;");
+        Assert.Equal(0, await warehouse.ReadWarehouseCapacityAsync(guild, default));
+        foreach (uint product in new uint[] { 12, 11, 11, 11 })
+            Assert.Equal(GuildMutationStatus.Success,
+                (await Write(() => purchases.PurchaseAsync(new(11), product, default))).Status);
+
+        Assert.Equal(56, await warehouse.ReadWarehouseCapacityAsync(guild, default));
+        Assert.Equal(GuildMutationStatus.WarehouseCapacityLimit,
+            (await Write(() => purchases.PurchaseAsync(new(11), 12, default))).Status);
+        Assert.Equal(63_000, (await query.FindMembershipAsync(new(11), default))!.Guild.GmPoints);
+        Assert.Empty(await benefits.ReadContentsAsync(guild, default));
     }
 
     [Fact]
@@ -61,20 +435,20 @@ public sealed class GuildDomainTests : IDisposable
         Execute("UPDATE guilds SET gm_points=2100;");
 
         Assert.Equal(GuildMutationStatus.LeaderRequired,
-            await Write(() => guilds.SetAnnouncementAsync(new(13), "Other", default)));
+            await Write(() => profiles.SetAnnouncementAsync(new(13), "Other", default)));
         Assert.Equal(GuildMutationStatus.LeaderRequired,
-            await Write(() => guilds.SetMarkAsync(new(13), 5, default)));
+            await Write(() => profiles.SetMarkAsync(new(13), 5, default)));
         Assert.Equal(GuildMutationStatus.InvalidText,
-            await Write(() => guilds.SetAnnouncementAsync(new(11), new string('测', 41), default)));
+            await Write(() => profiles.SetAnnouncementAsync(new(11), new string('测', 41), default)));
         Assert.Equal(GuildMutationStatus.Success,
-            await Write(() => guilds.SetAnnouncementAsync(new(11), "公会公告", default)));
-        Assert.Equal(GuildMutationStatus.InvalidMark, await Write(() => guilds.SetMarkAsync(new(11), 16, default)));
-        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetMarkAsync(new(11), 0, default)));
+            await Write(() => profiles.SetAnnouncementAsync(new(11), "公会公告", default)));
+        Assert.Equal(GuildMutationStatus.InvalidMark, await Write(() => profiles.SetMarkAsync(new(11), 16, default)));
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMarkAsync(new(11), 0, default)));
         Assert.Equal(2100, (await query.FindMembershipAsync(new(13), default))!.Guild.GmPoints);
-        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetMarkAsync(new(11), 5, default)));
-        Assert.Equal(GuildMutationStatus.Success, await Write(() => guilds.SetMarkAsync(new(11), 5, default)));
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMarkAsync(new(11), 5, default)));
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMarkAsync(new(11), 5, default)));
         Assert.Equal(GuildMutationStatus.InsufficientGuildPoints,
-            await Write(() => guilds.SetMarkAsync(new(11), 6, default)));
+            await Write(() => profiles.SetMarkAsync(new(11), 6, default)));
 
         var guild = (await query.FindMembershipAsync(new(13), default))!.Guild;
         Assert.Equal("公会公告", guild.Announcement);
@@ -134,27 +508,33 @@ public sealed class GuildDomainTests : IDisposable
         await Write(() => guilds.ApplyAsync(new(13), first, "", default));
         await Write(() => guilds.ApproveAsync(new(11), new(13), default));
         var clock = new AttendanceClock();
-        var progress = new GuildProgressDomainService(store, clock);
+        var attendance = new GuildAttendanceDomainService(store, clock);
 
-        Assert.Empty(await progress.ReadAttendanceTodayAsync(new(11), default));
-        Assert.False(await Write(() => progress.RecordAttendanceAsync(new(14), default)));
-        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(11), default)));
-        Assert.False(await Write(() => progress.RecordAttendanceAsync(new(11), default)));
-        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(13), default)));
-        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(12), default)));
-        Assert.Collection(await progress.ReadAttendanceTodayAsync(new(11), default),
+        Assert.Empty(await attendance.ReadAttendanceTodayAsync(new(11), default));
+        Assert.False(await Write(() => attendance.RecordAttendanceAsync(new(14), clock.Now, default)));
+        Assert.True(await Write(() => attendance.RecordAttendanceAsync(new(11), clock.Now, default)));
+        Assert.False(await Write(() => attendance.RecordAttendanceAsync(new(11), clock.Now, default)));
+        Assert.True(await Write(() => attendance.RecordAttendanceAsync(new(13), clock.Now, default)));
+        Assert.True(await Write(() => attendance.RecordAttendanceAsync(new(12), clock.Now, default)));
+        Assert.Collection(await attendance.ReadAttendanceTodayAsync(new(11), default),
             name => Assert.Equal("Leader"u8.ToArray(), name),
             name => Assert.Equal("Applicant"u8.ToArray(), name));
-        Assert.Equal("Other"u8.ToArray(), Assert.Single(await progress.ReadAttendanceTodayAsync(new(12), default)));
-        Assert.Empty(await progress.ReadAttendanceTodayAsync(new(14), default));
+        Assert.Equal("Other"u8.ToArray(), Assert.Single(await attendance.ReadAttendanceTodayAsync(new(12), default)));
+        Assert.Empty(await attendance.ReadAttendanceTodayAsync(new(14), default));
+        Assert.Equal(2, await attendance.CountWeeklyVisitorsAsync(first, default));
         await Write(() => guilds.LeaveAsync(new(13), default));
-        Assert.Equal("Leader"u8.ToArray(), Assert.Single(await progress.ReadAttendanceTodayAsync(new(11), default)));
+        Assert.Equal("Leader"u8.ToArray(), Assert.Single(await attendance.ReadAttendanceTodayAsync(new(11), default)));
 
         clock.Now = clock.Now.AddMinutes(2);
-        Assert.Empty(await progress.ReadAttendanceTodayAsync(new(11), default));
-        Assert.True(await Write(() => progress.RecordAttendanceAsync(new(11), default)));
+        Assert.Empty(await attendance.ReadAttendanceTodayAsync(new(11), default));
+        Assert.True(await Write(() => attendance.RecordAttendanceAsync(new(11), clock.Now, default)));
         Assert.Equal(4L, Execute("SELECT COUNT(*) FROM guild_attendance"));
         Assert.Equal(2L, Execute("SELECT COUNT(DISTINCT day) FROM guild_attendance"));
+        Assert.Equal(1, await attendance.CountWeeklyVisitorsAsync(first, default));
+        clock.Now = clock.Now.AddDays(6);
+        Assert.Equal(1, await attendance.CountWeeklyVisitorsAsync(first, default));
+        clock.Now = clock.Now.AddDays(1);
+        Assert.Equal(0, await attendance.CountWeeklyVisitorsAsync(first, default));
     }
 
     [Fact]
@@ -174,7 +554,7 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(GuildMutationStatus.LeaderRequired,
             await Write(() => guilds.SetRankNameAsync(new(13), 4, "forbidden", default)));
         Assert.Equal(GuildMutationStatus.LeaderRequired,
-            await Write(() => guilds.SetPromotionAsync(new(13), "forbidden", default)));
+            await Write(() => profiles.SetPromotionAsync(new(13), "forbidden", default)));
         Assert.Equal(GuildMutationStatus.InvalidRankSetting,
             await Write(() => guilds.SetRankPermissionsAsync(new(11), 4, 0x10000, default)));
         Assert.Equal(GuildMutationStatus.InvalidRankSetting,
@@ -187,7 +567,7 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(GuildMutationStatus.Success,
             await Write(() => guilds.SetRankPermissionsAsync(new(11), 1, 0, default)));
         Assert.Equal(GuildMutationStatus.Success,
-            await Write(() => guilds.SetPromotionAsync(new(11), "本会宣传", default)));
+            await Write(() => profiles.SetPromotionAsync(new(11), "本会宣传", default)));
 
         var settings = await query.ReadRankSettingsAsync(guild, default);
         Assert.Equal(new GuildRankSetting(4, 0x40, "考察成员"), settings[4]);
@@ -241,16 +621,24 @@ public sealed class GuildDomainTests : IDisposable
         await Write(() => guilds.ApplyAsync(new(13), second, "", default));
         await Write(() => guilds.ApproveAsync(new(12), new(13), default));
 
-        Assert.Equal(new GuildDiscoveryDetails(second, "Violet", 2, "Second"), await query.FindGuildAsync("vIOLET", default));
-        Assert.Null(await query.FindGuildAsync("Vio", default));
+        Assert.Equal(new GuildDiscoveryDetails(second, "Violet", 2, "Second"), await discovery.FindGuildAsync("vIOLET", default));
+        Assert.Null(await discovery.FindGuildAsync("Vio", default));
         Assert.Null(await query.FindMembershipAsync(new(14), default));
-        Assert.Collection(await query.ReadAccountGuildsAsync(new(1), default),
+        Assert.Collection(await discovery.ReadAccountGuildsAsync(new(1), default),
             row => { Assert.Equal("Leader"u8.ToArray(), row.CharacterName); Assert.Equal("Iris", row.GuildName); },
             row => { Assert.Equal("Applicant"u8.ToArray(), row.CharacterName); Assert.Equal("Violet", row.GuildName); });
-        var other = Assert.Single(await query.ReadAccountGuildsAsync(new(2), default));
+        var other = Assert.Single(await discovery.ReadAccountGuildsAsync(new(2), default));
         Assert.Equal("Other"u8.ToArray(), other.CharacterName);
         Assert.Equal("Violet", other.GuildName);
-        Assert.Equal(new[] { second, first }, (await query.ReadRecommendationsAsync(default)).Select(row => row.Guild));
+        Assert.Equal(new[] { second, first }, (await discovery.ReadRecommendationsAsync(new(14), default)).Select(row => row.Guild));
+        Assert.Equal(second, Assert.Single(await discovery.ReadRecommendationsAsync(new(11), default)).Guild);
+        Assert.Equal(first, Assert.Single(await discovery.ReadRecommendationsAsync(new(13), default)).Guild);
+
+        Execute($"INSERT INTO guild_alliances(first_id,second_id) VALUES({first.Value},{second.Value})");
+        Assert.Empty(await discovery.ReadRecommendationsAsync(new(11), default));
+        Assert.Empty(await discovery.ReadRecommendationsAsync(new(12), default));
+        Assert.Empty(await discovery.ReadRecommendationsAsync(new(13), default));
+        Assert.Equal(new[] { second, first }, (await discovery.ReadRecommendationsAsync(new(14), default)).Select(row => row.Guild));
     }
 
     private sealed class AttendanceClock : TimeProvider
@@ -264,7 +652,8 @@ public sealed class GuildDomainTests : IDisposable
     [Fact]
     public async Task Creation_permit_is_bound_to_the_exact_selected_session_and_cleared_by_cancel()
     {
-        var recruitment = new GuildRecruitmentSessionDomainService(guilds, new(economy));
+        var recruitment = new GuildNameOperationSessionDomainService(guilds,
+            TestRequired.Absent<IGuildRenameDomainService>());
         var original = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 1, 10011);
         var replacement = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 2, 10011);
         await TestGameplay.RunAsync(async () =>
@@ -277,6 +666,58 @@ public sealed class GuildDomainTests : IDisposable
             Assert.Null(recruitment.AuthorizedCreation(replacement));
             recruitment.Cancel(original);
             Assert.Null(recruitment.AuthorizedCreation(original));
+        });
+    }
+
+    [Fact]
+    public async Task Cancelled_in_flight_name_check_cannot_restore_the_creation_draft()
+    {
+        var pending = new TaskCompletionSource<GuildMutationStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var membership = TestRequired.Absent<IGuildMembershipDomainService>((method, _) =>
+            method.Name == nameof(IGuildMembershipDomainService.CheckCreationAsync) ? new ValueTask<GuildMutationStatus>(pending.Task) : null);
+        var operations = new GuildNameOperationSessionDomainService(membership, TestRequired.Absent<IGuildRenameDomainService>());
+        var session = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 1, 10011);
+        await TestGameplay.RunAsync(async () =>
+        {
+            var checking = operations.StartAsync(session, "Iris", default);
+            operations.Cancel(session);
+            pending.SetResult(GuildMutationStatus.Success);
+            Assert.Equal(GuildMutationStatus.Success, await checking);
+            Assert.False(operations.SetPromotion(session, "old draft"));
+            Assert.False(operations.Authorize(session));
+            Assert.Null(operations.AuthorizedCreation(session));
+        });
+    }
+
+    [Fact]
+    public async Task Name_rechecks_replace_creation_and_rename_permissions_for_one_selection()
+    {
+        var rename = new GuildRenameDomainService(store, new(economy), TestRequired.Absent<IBusinessInventorySlotDomainService>(),
+            TestRequired.Absent<IItemLifecycleDomainService>(), players, clock);
+        var operations = new GuildNameOperationSessionDomainService(guilds, rename);
+        var session = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 1, 10011);
+        var nextSelection = SelectedSessionIdentity.Create(new(1), new(11), new("connection"), 2, 10011);
+        await TestGameplay.RunAsync(async () =>
+        {
+            Assert.Equal(GuildMutationStatus.Success, await operations.StartAsync(session, "Iris", default));
+            Assert.True(operations.SetPromotion(session, ""));
+            Assert.True(operations.Authorize(session));
+            Assert.NotNull(operations.AuthorizedCreation(session));
+
+            var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+            Assert.Equal(GuildMutationStatus.Success, await operations.StartAsync(session, "Fern", default));
+            Assert.Null(operations.AuthorizedCreation(session));
+            Assert.False(operations.SetPromotion(session, "stale"));
+            Assert.False(operations.Authorize(session));
+            Assert.Equal(new GuildRenameAuthorization(guild, "Iris", "Fern"), operations.CheckedRename(session));
+            Assert.Null(operations.CheckedRename(nextSelection));
+
+            Assert.Equal(GuildMutationStatus.NameTaken, await operations.StartAsync(session, "Iris", default));
+            Assert.Null(operations.CheckedRename(session));
+            Assert.Null(operations.AuthorizedCreation(session));
+            Assert.Equal(GuildMutationStatus.Success, await operations.StartAsync(session, "Fern", default));
+            operations.Cancel(session);
+            Assert.Null(operations.CheckedRename(session));
         });
     }
 
@@ -376,7 +817,7 @@ public sealed class GuildDomainTests : IDisposable
     {
         var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
         Assert.Equal(GuildMutationStatus.Success,
-            (await Write(() => guilds.DonateGoldAsync(new(11), 1000, default))).Status);
+            (await Write(() => donations.DonateGoldAsync(new(11), 1000, default))).Status);
         await Join(new(13));
         await Join(new(14));
         Assert.Equal(GuildMutationStatus.LeaderCannotLeave, (await Write(() => guilds.LeaveAsync(new(11), default))).Status);
@@ -389,9 +830,14 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Null(await query.FindMembershipAsync(new(14), default));
         await Join(new(14));
         await Write(() => guilds.ApplyAsync(new(15), guild, "Pending application", default));
+        Assert.Equal(GuildMutationStatus.GuildHasOtherMembers,
+            (await Write(() => guilds.DisbandAsync(new(11), default))).Status);
+        Assert.NotNull(await query.FindMembershipAsync(new(14), default));
+        Assert.Equal(GuildMutationStatus.Success, (await Write(() => guilds.LeaveAsync(new(14), default))).Status);
+        Assert.Equal(new[] { new CharacterId(11) }, await query.ReadMemberIdsAsync(guild, default));
         var destroyed = await Write(() => guilds.DisbandAsync(new(11), default));
         Assert.Equal(GuildMutationStatus.Success, destroyed.Status);
-        Assert.Equal(new[] { 11, 14, 15 }, destroyed.AffectedCharacters!.Select(character => character.Value));
+        Assert.Equal(new[] { 11, 15 }, destroyed.AffectedCharacters!.Select(character => character.Value));
         Assert.Empty(await query.ReadRosterAsync(new(11), default));
         Assert.Null(await query.FindMembershipAsync(new(14), default));
         Assert.Null(await query.FindApplicationAsync(new(15), default));
@@ -437,14 +883,14 @@ public sealed class GuildDomainTests : IDisposable
         await Write(() => guilds.ApplyAsync(new(12), guild, "", default));
         await Write(() => guilds.ApproveAsync(new(11), new(12), default));
 
-        var memberDonation = await Write(() => guilds.DonateGoldAsync(new(12), 10_000, default));
+        var memberDonation = await Write(() => donations.DonateGoldAsync(new(12), 10_000, default));
         Assert.Equal(GuildMutationStatus.Success, memberDonation.Status);
         Assert.Equal(890_000, memberDonation.RemainingGold);
         var leader = Assert.IsType<GuildMembership>(await query.FindMembershipAsync(new(11), default));
         Assert.Equal(10, leader.Guild.GmPoints);
         Assert.Equal(0, leader.Member.DonationPoints);
 
-        var leaderDonation = await Write(() => guilds.DonateGoldAsync(new(11), 3_000, default));
+        var leaderDonation = await Write(() => donations.DonateGoldAsync(new(11), 3_000, default));
         Assert.Equal(GuildMutationStatus.Success, leaderDonation.Status);
         Assert.Equal(597_000, leaderDonation.RemainingGold);
         var member = Assert.IsType<GuildMembership>(await query.FindMembershipAsync(new(12), default));
@@ -453,7 +899,7 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(3, (await query.FindMembershipAsync(new(11), default))!.Member.DonationPoints);
 
         Execute("UPDATE characters SET name='NewName' WHERE character_id=12");
-        var history = (await query.ReadDonationHistoryAsync(new(11), 50, default))!;
+        var history = (await donations.ReadDonationHistoryAsync(new(11), 50, default))!;
         Assert.Collection(history,
             entry =>
             {
@@ -466,12 +912,12 @@ public sealed class GuildDomainTests : IDisposable
                 Assert.Equal((10000, 10), (entry.Gold, entry.Points));
             });
         Assert.All(history, entry => Assert.True(entry.DonatedAt > DateTimeOffset.UnixEpoch));
-        Assert.Single((await query.ReadDonationHistoryAsync(new(12), 1, default))!);
-        Assert.Null(await query.ReadDonationHistoryAsync(new(13), 50, default));
+        Assert.Single((await donations.ReadDonationHistoryAsync(new(12), 1, default))!);
+        Assert.Null(await donations.ReadDonationHistoryAsync(new(13), 50, default));
         Execute("UPDATE character_stats SET carried_gold=900000 WHERE character_id=13");
         Assert.Equal(GuildMutationStatus.Success,
             (await Write(() => guilds.CreateAsync(new(13), "Violet", "", default))).Status);
-        Assert.Empty((await query.ReadDonationHistoryAsync(new(13), 50, default))!);
+        Assert.Empty((await donations.ReadDonationHistoryAsync(new(13), 50, default))!);
     }
 
     [Theory]
@@ -483,7 +929,7 @@ public sealed class GuildDomainTests : IDisposable
     public async Task Rejected_donation_leaves_all_balances_unchanged(int amount, GuildMutationStatus expected)
     {
         await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
-        Assert.Equal(expected, (await Write(() => guilds.DonateGoldAsync(new(11), amount, default))).Status);
+        Assert.Equal(expected, (await Write(() => donations.DonateGoldAsync(new(11), amount, default))).Status);
         AssertInitialDonationBalances();
     }
 
@@ -492,12 +938,12 @@ public sealed class GuildDomainTests : IDisposable
     {
         await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
         Assert.Equal(GuildMutationStatus.NotMember,
-            (await Write(() => guilds.DonateGoldAsync(new(12), 1000, default))).Status);
+            (await Write(() => donations.DonateGoldAsync(new(12), 1000, default))).Status);
         Assert.Equal(900_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=12"));
 
         economy.DonationGold = null;
         Assert.Equal(GuildMutationStatus.DonationUnavailable,
-            (await Write(() => guilds.DonateGoldAsync(new(11), 1000, default))).Status);
+            (await Write(() => donations.DonateGoldAsync(new(11), 1000, default))).Status);
         AssertInitialDonationBalances();
     }
 
@@ -511,7 +957,7 @@ public sealed class GuildDomainTests : IDisposable
             ? "UPDATE guilds SET gm_points=2147483647"
             : "UPDATE guild_members SET donation_points=2147483647");
         Assert.Equal(GuildMutationStatus.ContributionLimit,
-            (await Write(() => guilds.DonateGoldAsync(new(11), 1000, default))).Status);
+            (await Write(() => donations.DonateGoldAsync(new(11), 1000, default))).Status);
         Assert.Equal(600_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
         Assert.Equal(guildLimit ? int.MaxValue : 0L, Execute("SELECT gm_points FROM guilds"));
         Assert.Equal(guildLimit ? 0L : int.MaxValue, Execute("SELECT donation_points FROM guild_members"));
@@ -525,8 +971,98 @@ public sealed class GuildDomainTests : IDisposable
             CREATE TRIGGER fail_guild_donation BEFORE UPDATE OF donation_points ON guild_members
             BEGIN SELECT RAISE(ABORT,'forced guild donation fault'); END;
             """);
-        await Assert.ThrowsAsync<SqliteException>(() => Write(() => guilds.DonateGoldAsync(new(11), 1000, default)));
+        await Assert.ThrowsAsync<SqliteException>(() => Write(() => donations.DonateGoldAsync(new(11), 1000, default)));
         AssertInitialDonationBalances();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Warehouse_custody_preserves_items_when_the_audit_fails(bool pile)
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var items = new SqliteItemDomainStore(path, TestRequired.NoContentsEvents);
+        IGuildWarehouseCustodyStore custody = items;
+        var container = pile ? ContainerId.ForAccount(new(1), InventoryContainerType.SharedMaterial)
+            : ContainerId.ForCharacter(new(11), InventoryContainerType.Main);
+        var slot = pile ? 4 : 9;
+        var itemId = pile ? 3037 : 1001;
+        var initial = await Write(async () =>
+        {
+            await warehouse.SetWarehouseCapacityAsync(guild, 8, default);
+            var session = items.SessionIn(scope.Current!);
+            var record = await session.CreateAsync(new ItemSnapshot
+            {
+                ItemId = itemId, Count = pile ? 7 : 1, IsPile = pile, LegacyKind = pile ? (byte)11 : (byte)1,
+                Type = ItemTraitClassification.For(pile ? (byte)11 : (byte)1, itemId),
+            }, default);
+            return (await session.PutAsync(container, slot, record, default)).Snapshot;
+        });
+
+        async ValueTask<bool> Deposit()
+        {
+            var inventory = items.SessionIn(scope.Current!);
+            var vault = custody.SessionIn(scope.Current!);
+            var owned = Assert.IsType<ItemReference>(await inventory.GetAsync(container, slot, default));
+            var moving = await inventory.TakeAsync(owned, pile ? 3 : null, default);
+            await vault.DepositAsync(guild, 0, moving, null, default);
+            await warehouse.AppendWarehouseHistoryAsync(guild, new(11), GuildWarehouseAction.Deposit,
+                itemId, moving.Snapshot.Count, clock.Now, default);
+            return true;
+        }
+
+        Execute("CREATE TRIGGER audit_fault BEFORE INSERT ON guild_warehouse_history BEGIN SELECT RAISE(ABORT,'audit'); END");
+        await Assert.ThrowsAsync<SqliteException>(() => Write(Deposit));
+        Assert.Empty(await warehouse.ReadWarehouseItemsAsync(guild, default));
+        Assert.Empty(await warehouse.ReadWarehouseHistoryAsync(guild, 5, default));
+        var restored = await Write(() => items.SessionIn(scope.Current!).GetAsync(container, slot, default));
+        Assert.Equal(initial.ItemUid, restored!.Snapshot.ItemUid);
+        Assert.Equal(initial.Count, restored.Count);
+        Execute("DROP TRIGGER audit_fault");
+        Assert.True(await Write(Deposit));
+        var held = Assert.Single(await warehouse.ReadWarehouseItemsAsync(guild, default));
+        Assert.Equal(pile ? 3 : 1, held.Item.Count);
+        Assert.Equal(initial.ItemUid, held.Item.ItemUid);
+        Assert.Single(await warehouse.ReadWarehouseHistoryAsync(guild, 5, default));
+    }
+
+    [Fact]
+    public async Task Rejected_gold_rename_leaves_name_and_balance_in_a_normally_committed_unit()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var service = new GuildRenameDomainService(store, new(economy), TestRequired.Absent<IBusinessInventorySlotDomainService>(),
+            TestRequired.Absent<IItemLifecycleDomainService>(), players, clock);
+        var request = new GuildRenameAuthorization(guild, "Iris", "Fern");
+        var rejected = await Write(() => service.RenameWithGoldAsync(new(11), request, 22, default));
+        Assert.Equal(GuildMutationStatus.InsufficientGold, rejected.Status);
+        Assert.Equal("Iris", (await store.FindMembershipAsync(new(11), default))!.Guild.Name);
+        Assert.Equal(600_000L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
+        Execute("UPDATE character_stats SET carried_gold=700000 WHERE character_id=11");
+        var renamed = await Write(() => service.RenameWithGoldAsync(new(11), request, 22, default));
+        Assert.Equal(GuildMutationStatus.Success, renamed.Status);
+        Assert.Equal("Fern", (await store.FindMembershipAsync(new(11), default))!.Guild.Name);
+        Assert.Equal(0L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
+    }
+
+    [Fact]
+    public async Task Dungeon_credit_and_donations_respect_spent_points_and_rollback_failed_clear()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var dungeons = new SqliteGuildDungeonStore(new(path, scope), points);
+        var admission = new GuildDungeonAdmission(guild, 1, GuildDungeonPeriod.At(clock.Now));
+        Execute("UPDATE guilds SET gm_points=2,spent_gm_points=2147483644");
+        var run = Guid.NewGuid();
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Write(() => dungeons.TryRecordClearAsync(run, new(11), admission, 8500, 2, default)));
+        Assert.Equal(0L, Execute("SELECT COUNT(*) FROM guild_dungeon_clears"));
+        Assert.Equal(0L, Execute("SELECT COUNT(*) FROM guild_dungeon_progress"));
+        Assert.True(await Write(() => dungeons.TryRecordClearAsync(run, new(11), admission, 8500, 1, default)));
+        Assert.False(await Write(() => dungeons.TryRecordClearAsync(run, new(11), admission, 8500, 1, default)));
+        Assert.Equal(GuildMutationStatus.ContributionLimit, (await Write(() => donations.DonateGoldAsync(new(11), 1000, default))).Status);
+        Assert.True(await Write(() => points.TrySpendAsync(guild, 2, default)));
+        Assert.False(await Write(() => points.TryCreditAsync(guild, 1, default)));
+        Assert.Equal(1L, Execute("SELECT gm_points FROM guilds"));
+        Assert.Equal(2147483646L, Execute("SELECT spent_gm_points FROM guilds"));
     }
 
     [Fact]
@@ -537,7 +1073,7 @@ public sealed class GuildDomainTests : IDisposable
             CREATE TRIGGER fail_guild_donation_history BEFORE INSERT ON guild_gold_donations
             BEGIN SELECT RAISE(ABORT,'forced guild donation history fault'); END;
             """);
-        await Assert.ThrowsAsync<SqliteException>(() => Write(() => guilds.DonateGoldAsync(new(11), 1000, default)));
+        await Assert.ThrowsAsync<SqliteException>(() => Write(() => donations.DonateGoldAsync(new(11), 1000, default)));
         AssertInitialDonationBalances();
     }
 
@@ -572,12 +1108,32 @@ public sealed class GuildDomainTests : IDisposable
         File.Delete(path);
     }
 
+    private sealed class GuildTestClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = new(2026, 11, 26, 12, 0, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
     private sealed class EconomyRules : IGuildEconomySource
     {
         public int? CreationGold { get; set; } = Fee;
         public int? DonationGold { get; set; } = 1000;
         public int? ReadGoldCost() => CreationGold;
         public int? ReadDonationGoldPerPoint() => DonationGold;
+        public GuildMonthlyContributionRule? Monthly { get; set; }
+        public GuildMonthlyContributionRule? ReadMonthlyContribution() => Monthly;
         public GuildMarkPricing? ReadMarkPricing() => new(5, 2000);
+        public GuildMedalAuraCatalog? ReadMedalAuraCatalog() => new(25, 25);
+        public GuildContentCatalog? ReadContentCatalog() => new(
+            new Dictionary<uint, GuildContentDefinition>
+            {
+                [1] = new(1, GuildContentKind.PermanentAttributes, 169, 36_000),
+                [2] = new(2, GuildContentKind.TemporaryAttributes, 167, 200, 1, CanGift: true),
+                [3] = new(3, GuildContentKind.Experience, 10, 200, 1, CanGift: true),
+                [11] = new(11, GuildContentKind.WarehouseExpansion, 16, 10_000),
+                [12] = new(12, GuildContentKind.WarehouseExpansion, 8, 5_000),
+                [13] = new(13, GuildContentKind.PartyTeleport, 10, 300),
+            },
+            new(169, 60, 60, 60, 60), new(167, 60, 60, 60, 60), 56, new(22, 700_000));
     }
 }

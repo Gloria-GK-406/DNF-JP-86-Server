@@ -159,7 +159,7 @@ internal sealed class ItemDeliveryDomainService(IItemPlacementRuleService placem
                 if (options is not null)
                 {
                     builder.WithDeliveryKey(options.MailDeliveryKey);
-                    if (options.ExpiresAt is { } mailExpiry) builder.ExpiresAt(mailExpiry);
+                    if ((options.MailExpiresAt ?? options.ExpiresAt) is { } mailExpiry) builder.ExpiresAt(mailExpiry);
                 }
                 var attachments = new List<PreparedMailAttachment>();
                 foreach (var item in batch)

@@ -74,6 +74,10 @@ public sealed record DungeonRunCapabilities(
         },
         DungeonRunKind.Heras => OrdinaryRun with { QuotaFamily = UsageQuotaFamily.HerasDungeon },
         DungeonRunKind.Hell => OrdinaryRun with { AllowsOrdinaryRechallenge = false },
+        DungeonRunKind.GuildDungeon => OrdinaryRun with
+        {
+            UnlocksDifficulty = false, AllowsOrdinaryRechallenge = false,
+        },
         DungeonRunKind.Sao => OrdinaryRun with { AllowsOrdinaryRechallenge = false },
         DungeonRunKind.Mirror => OrdinaryRun with
         {

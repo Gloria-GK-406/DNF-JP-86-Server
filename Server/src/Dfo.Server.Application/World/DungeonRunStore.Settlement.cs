@@ -22,10 +22,11 @@ internal sealed partial class DungeonRunStore
         public DungeonClearChange? TryOpenClear(
             CharacterId characterId,
             DungeonRunId expectedRunId,
-            long expectedRoomVersion)
+            long expectedRoomVersion,
+            IReadOnlyDictionary<CharacterId, long>? membershipsAtClear = null)
         {
             GameplayWriteAssertion.Writing(nameof(SettlementService) + "." + nameof(TryOpenClear));
-            return this.store.TryOpenClear(characterId, expectedRunId, expectedRoomVersion, this.clock.GetUtcNow());
+            return this.store.TryOpenClear(characterId, expectedRunId, expectedRoomVersion, this.clock.GetUtcNow(), membershipsAtClear);
         }
 
         public DungeonRunState? TrySettle(CharacterId characterId)

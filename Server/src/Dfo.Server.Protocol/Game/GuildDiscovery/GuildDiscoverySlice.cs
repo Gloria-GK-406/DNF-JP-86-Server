@@ -1,8 +1,10 @@
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
+using Dfo.Server.Application.Notifications;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.GuildCreation;
@@ -31,10 +33,24 @@ internal abstract class EmptyGuildDiscoveryDecoder(ClientMessageType type) : IGa
 internal sealed class GuildAccountMembershipsDecoder() : EmptyGuildDiscoveryDecoder(ClientMessageType.GameGuildAccountMemberships);
 internal sealed class GuildRecommendationsDecoder() : EmptyGuildDiscoveryDecoder(ClientMessageType.GameGuildRecommendations);
 
+internal sealed record GuildDiscoveryCard(GuildDiscoveryDetails Guild, int WeeklyVisitors,
+    IReadOnlyList<GuildPurchasedContent> ActiveContents);
+
 internal sealed record GuildDiscoveryReply(
-    ServerMessageType MessageType, GuildDiscoveryDetails? Found = null,
+    ServerMessageType MessageType, GuildDiscoveryCard? Found = null,
     IReadOnlyList<GuildAccountEntry>? AccountGuilds = null,
     IReadOnlyList<GuildRecommendation>? Recommendations = null) : IGameCmdMessage;
+
+internal sealed record GuildRecommendationsChanged(IReadOnlyList<GuildRecommendation> Rows)
+    : INotification<GuildRecommendationsChanged>;
+
+internal sealed class GuildRecommendationsChangedHandler : INotificationHandler<GuildRecommendationsChanged>
+{
+    public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,
+        GuildRecommendationsChanged change, CancellationToken ct) =>
+        ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
+            [new GuildDiscoveryReply(ServerMessageType.GameGuildRecommendations, Recommendations: change.Rows)]);
+}
 
 internal sealed class GuildDiscoveryReplyEncoder : GameCmdMessageEncoder<GuildDiscoveryReply>
 {
@@ -42,14 +58,16 @@ internal sealed class GuildDiscoveryReplyEncoder : GameCmdMessageEncoder<GuildDi
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
-        if (message.Found is { } guild)
+        if (message.Found is { Guild: var guild } card)
         {
             writer.Write(guild.Guild.Value);
             WriteGuildText(writer, guild.Name);
             writer.Write(checked((ushort)guild.MemberCount));
             WriteGuildText(writer, guild.Promotion);
-            writer.Write(0u);
-            writer.Write((byte)0);
+            writer.Write(checked((uint)card.WeeklyVisitors));
+            writer.Write(checked((byte)card.ActiveContents.Count));
+            foreach (var content in card.ActiveContents)
+                writer.Write((byte)content.Kind);
         }
         else if (message.AccountGuilds is { } memberships)
         {
@@ -98,7 +116,8 @@ public sealed record GameGuildDiscoveryCommand(NetworkDispatchContext Dispatch, 
 }
 
 internal sealed class GameGuildDiscoveryCommandHandler(
-    IGuildQueryDomainService guilds, ISelectedSessionDomainService sessions, ICommandWorkUnits units,
+    IGuildDiscoveryDomainService discovery, IGuildBenefitDomainService benefits, IGuildAttendanceDomainService attendance,
+    ISelectedSessionDomainService sessions, ICommandWorkUnits units,
     IGameCommandOutbox outbox) : ICommandHandler<GameGuildDiscoveryCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(
@@ -116,17 +135,27 @@ internal sealed class GameGuildDiscoveryCommandHandler(
                 request.MessageType switch
                 {
                     ClientMessageType.GameGuildSearch => new GuildDiscoveryReply(type, Found:
-                        await guilds.FindGuildAsync(request.Name!, token).ConfigureAwait(false)),
+                        await FindCardAsync(request.Name!, token).ConfigureAwait(false)),
                     ClientMessageType.GameGuildAccountMemberships => new GuildDiscoveryReply(type, AccountGuilds:
-                        await guilds.ReadAccountGuildsAsync(viewer.AccountId, token).ConfigureAwait(false)),
+                        await discovery.ReadAccountGuildsAsync(viewer.AccountId, token).ConfigureAwait(false)),
                     ClientMessageType.GameGuildRecommendations => new GuildDiscoveryReply(type, Recommendations:
-                        await guilds.ReadRecommendationsAsync(token).ConfigureAwait(false)),
+                        await discovery.ReadRecommendationsAsync(viewer.CharacterId, token).ConfigureAwait(false)),
                     _ => throw new InvalidOperationException($"Unsupported guild discovery request {request.MessageType}."),
                 }, ct).ConfigureAwait(false);
         }
 
         await outbox.RegisterCmdAsync(connection.ConnectionId, reply, ct).ConfigureAwait(false);
         return reply.Found is not null || reply.AccountGuilds is not null || reply.Recommendations is not null;
+    }
+
+    private async ValueTask<GuildDiscoveryCard?> FindCardAsync(string name, CancellationToken ct)
+    {
+        if (await discovery.FindGuildAsync(name, ct).ConfigureAwait(false) is not { } guild)
+            return null;
+
+        var weeklyVisitors = await attendance.CountWeeklyVisitorsAsync(guild.Guild, ct).ConfigureAwait(false);
+        var contents = await benefits.ReadContentsAsync(guild.Guild, ct).ConfigureAwait(false);
+        return new(guild, weeklyVisitors, contents);
     }
 }
 
@@ -138,6 +167,7 @@ internal static class GuildDiscoveryRegistration
         services.AddGameCmdMessageDecoder<GuildAccountMembershipsDecoder>(ClientMessageType.GameGuildAccountMemberships);
         services.AddGameCmdMessageDecoder<GuildRecommendationsDecoder>(ClientMessageType.GameGuildRecommendations);
         services.AddGameCmdMessageEncoder<GuildDiscoveryReply, GuildDiscoveryReplyEncoder>();
+        services.AddNotificationHandler<GuildRecommendationsChanged, GuildRecommendationsChangedHandler>();
         services.AddProtocolCommandHandler<GameGuildDiscoveryCommand, bool, GameGuildDiscoveryCommandHandler>(
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSearch, typeof(GuildDiscoveryRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildAccountMemberships, typeof(GuildDiscoveryRequest)),

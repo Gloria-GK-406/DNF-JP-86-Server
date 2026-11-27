@@ -17,7 +17,7 @@ public sealed class GuildRosterCodecTests
         var roster = new GuildRosterSnapshot(new(42), "会长"u8.ToArray(),
         [
             new(new(new(new(42), new(11), true, joinedAt), new(1), "会长"u8.ToArray(), 30, 1, 2), 11),
-            new(new(new(new(42), new(12), false, joinedAt), new(2), "成员"u8.ToArray(), 29, 3, 4), byte.MaxValue),
+            new(new(new(new(42), new(12), false, joinedAt, Memo: "周末组队"), new(2), "成员"u8.ToArray(), 29, 3, 4), byte.MaxValue),
             new(new(new(new(42), new(13), false, joinedAt), new(2), "另一个角色"u8.ToArray(), 28, 3, 4), byte.MaxValue),
         ]);
         var frame = Assert.Single(new GuildRosterReplyEncoder().Encode(new GuildRosterReply(type, roster)));
@@ -33,18 +33,18 @@ public sealed class GuildRosterCodecTests
         Assert.Equal((ushort)3, reader.ReadUInt16());
 
         AssertRow(11, "会长"u8.ToArray(), 30, 1, 2, 11, 1, 1, true);
-        AssertRow(12, "成员"u8.ToArray(), 29, 3, 4, byte.MaxValue, 4, 2, true);
+        AssertRow(12, "成员"u8.ToArray(), 29, 3, 4, byte.MaxValue, 4, 2, true, "周末组队"u8.ToArray());
         AssertRow(13, "另一个角色"u8.ToArray(), 28, 3, 4, byte.MaxValue, 4, 2, false);
         if (all)
             Assert.Equal(0u, reader.ReadUInt32());
         Assert.Equal(body.Length, body.Position);
 
         void AssertRow(int id, byte[] name, ushort level, byte job, byte grow, byte channel, byte rank, int account,
-            bool representative)
+            bool representative, byte[]? memo = null)
         {
             Assert.Equal(id, reader.ReadInt32());
             Assert.Equal(name, ReadText(reader));
-            Assert.Empty(ReadText(reader));
+            Assert.Equal(memo ?? [], ReadText(reader));
             Assert.Equal(level, reader.ReadUInt16());
             Assert.Equal(new byte[] { job, grow, 1, channel, 0, 0, rank }, reader.ReadBytes(7));
             Assert.Equal(0u, reader.ReadUInt32());

@@ -13,8 +13,10 @@ public sealed record GuildInfoRequest(ClientMessageType MessageType, GameMessage
     : IClientNetworkMessage;
 
 internal sealed record GuildInfoMessage(
-    Guild Guild, bool ViewerIsLeader, int MemberCount, int ViewerDonationPoints = 0, int AttendanceCount = 0,
-    IReadOnlyList<GuildRankSetting>? Ranks = null)
+    Guild Guild, bool ViewerIsLeader, int MemberCount, int AttendanceCount = 0,
+    IReadOnlyList<GuildRankSetting>? Ranks = null, IReadOnlyList<GuildPurchasedContent>? Contents = null,
+    GuildAlliancePeer? Ally = null, GuildContributionAmounts? GuildContribution = null,
+    GuildContributionAmounts? PersonalContribution = null)
     : IGameNotiMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameGuildInfo;
@@ -23,6 +25,17 @@ internal sealed record GuildInfoMessage(
 internal sealed record GuildSetChannelReply(byte? Error = null) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameGuildSetRecommendedChannel;
+}
+
+internal sealed record GuildHallInfoMessage(byte EntranceStage) : IGameNotiMessage
+{
+    public ServerMessageType MessageType => ServerMessageType.GameGuildHallInfo;
+}
+
+internal sealed class GuildHallInfoEncoder : GameNotiMessageEncoder<GuildHallInfoMessage>
+{
+    protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GuildHallInfoMessage message) =>
+        OnePayload(message, new byte[] { message.EntranceStage });
 }
 
 internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage>
@@ -51,30 +64,49 @@ internal sealed class GuildInfoEncoder : GameNotiMessageEncoder<GuildInfoMessage
 
         foreach (var rank in message.Ranks ?? GuildRankSettings.Defaults)
         {
-            writer.Write(rank.PermissionMask);
+            // The accompanying A21 compatibility plugin preserves Disband when the alliance entry is shown.
+            writer.Write(rank.Rank == GuildRankSettings.Leader
+                ? rank.PermissionMask | GuildRankSettings.TransferLeadershipPermission | GuildRankSettings.ViewAlliancePermission
+                : rank.PermissionMask & ~GuildRankSettings.TransferLeadershipPermission);
             var name = GuildCreationPayloadCodec.EncodeGuildText(rank.Name);
             writer.Write(name);
             writer.Write(new byte[GuildRankSettings.MaximumNameBytes + 1 - name.Length]);
         }
 
-        // Empty purchases and alliance, followed by contribution state.
-        writer.Write((byte)0);
+        var contents = message.Contents ?? [];
+        writer.Write(checked((byte)contents.Count));
+        foreach (var content in contents)
+        {
+            var hasUses = content.Kind == GuildContentKind.PartyTeleport;
+            writer.Write((byte)content.Kind);
+            writer.Write(content.ExpiresAtUnixSeconds == 0
+                ? (uint)int.MaxValue : checked((uint)content.ExpiresAtUnixSeconds));
+            writer.Write(hasUses);
+            writer.Write(checked((uint)(hasUses ? content.RemainingUses : content.Value)));
+        }
+
         writer.Write(0u);
-        writer.Write((byte)0);
+        writer.Write(message.Ally is null ? (byte)0 : (byte)1);
+        if (message.Ally is { } ally)
+        {
+            writer.Write(ally.Id.Value);
+            WriteText(writer, ally.Name);
+            writer.Write(ally.Mark);
+        }
         writer.Write(checked((uint)guild.GmPoints));
         writer.Write((byte)0);
         writer.Write(checked((uint)guild.RecommendedChannel));
         writer.Write((byte)0);
-        writer.Write(checked((uint)guild.ContributionPoints)); // Lifetime guild contribution.
-        writer.Write(0u); // Monthly guild contribution.
-        writer.Write(checked((uint)message.ViewerDonationPoints));
-        writer.Write(0u); // Monthly personal contribution.
+        writer.Write(message.GuildContribution?.Lifetime ?? 0u);
+        writer.Write(message.GuildContribution?.Monthly ?? 0u);
+        writer.Write(message.PersonalContribution?.Lifetime ?? 0u);
+        writer.Write(message.PersonalContribution?.Monthly ?? 0u);
         // The client looks up the channel using the server group followed by the channel ID.
         // JP86's channel script advertises channels in server group 1.
         writer.Write(guild.RecommendedChannel > 0 ? 1u : 0u);
         writer.Write(checked((uint)guild.RecommendedChannel));
-        writer.Write(0u);
-        writer.Write(0u);
+        writer.Write(guild.MedalAura.Symbol);
+        writer.Write(guild.MedalAura.Frame);
         return OnePayload(message, stream.ToArray());
     }
 
@@ -115,6 +147,7 @@ internal static class GuildInfoRegistration
         services.AddGameCmdMessageDecoder<RefreshGuildInfoDecoder>(ClientMessageType.GameGuildRefreshInfo);
         services.AddGameCmdMessageDecoder<SetGuildChannelDecoder>(ClientMessageType.GameGuildSetRecommendedChannel);
         services.AddGameNotiMessageEncoder<GuildInfoMessage, GuildInfoEncoder>();
+        services.AddGameNotiMessageEncoder<GuildHallInfoMessage, GuildHallInfoEncoder>();
         services.AddNotificationHandler<GuildInfoPanel, GuildInfoPanelHandler>();
         services.AddGameCmdMessageEncoder<GuildSetChannelReply, GuildSetChannelReplyEncoder>();
         services.AddProtocolCommandHandler<GameGuildInfoCommand, bool, GameGuildInfoCommandHandler>(

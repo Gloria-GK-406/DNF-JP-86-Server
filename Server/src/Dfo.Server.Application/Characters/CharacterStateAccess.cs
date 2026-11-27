@@ -6,6 +6,7 @@ using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.Characters;
@@ -127,6 +128,11 @@ internal sealed class SelectedSessionPositionPersistence(
     ICharacterDomainStore store, IDomainTransactionAccessor transactions, IEntryPlacementRuleService placement)
     : ISelectedSessionPositionPersistence, ICharacterLocationDomainService
 {
+    private readonly AmbientStoreAccess access = new(transactions);
+
+    public ValueTask<CharacterPositionState?> ReadAsync(AccountId account, CharacterId character, CancellationToken token) =>
+        access.ReadAsync(store, session => session.ReadPositionAsync(new(account, character), token));
+
     public async ValueTask PersistAsync(
         AccountId accountId,
         CharacterId characterId,
@@ -134,8 +140,8 @@ internal sealed class SelectedSessionPositionPersistence(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(position);
-        // A couple room is runtime-only. Every persistence path (including teardown) retains the ordinary return position.
-        if (CoupleRoomTown.Is(position.TownId)) return;
+        // Instance towns are runtime-only. Teardown also retains the ordinary return position.
+        if (CoupleRoomTown.Is(position.TownId) || GuildHallTown.Is(position.TownId)) return;
         var owned = new OwnedCharacterId(accountId, characterId);
         byte? innTown = await placement.CanRememberInnAsync(position.TownId, cancellationToken).ConfigureAwait(false)
             ? position.TownId : null;

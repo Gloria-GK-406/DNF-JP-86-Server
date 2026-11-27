@@ -57,8 +57,8 @@ public sealed record GameGuildAttendanceDetailCommand(NetworkDispatchContext Dis
 
 internal sealed class GameGuildAttendanceDetailCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildQueryDomainService guilds,
-    IGuildProgressDomainService progress,
+    IGuildMembershipQueryDomainService guilds,
+    IGuildAttendanceDomainService attendance,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox) : ICommandHandler<GameGuildAttendanceDetailCommand, bool>
 {
@@ -73,7 +73,7 @@ internal sealed class GameGuildAttendanceDetailCommandHandler(
             reply = await units.ReadOnlyAsync(context, new("guild-attendance-detail", [recipient]),
                 async token => await guilds.FindMembershipAsync(viewer.CharacterId, token).ConfigureAwait(false) is null
                     ? new GuildAttendanceDetailReply()
-                    : new GuildAttendanceDetailReply(await progress.ReadAttendanceTodayAsync(viewer.CharacterId, token)
+                    : new GuildAttendanceDetailReply(await attendance.ReadAttendanceTodayAsync(viewer.CharacterId, token)
                         .ConfigureAwait(false)), ct).ConfigureAwait(false);
         }
 

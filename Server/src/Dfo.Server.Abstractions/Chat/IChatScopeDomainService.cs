@@ -7,5 +7,5 @@ public interface IChatScopeDomainService
 {
     /// <summary>The characters in the world that the scope reaches, or none when it reaches no one.</summary>
     /// <exception cref="NotSupportedException">The scope is a shape this service was not taught.</exception>
-    IReadOnlyList<CharacterId> MembersOf(ChatScope scope);
+    ValueTask<IReadOnlyList<CharacterId>> MembersOfAsync(ChatScope scope, CancellationToken ct);
 }

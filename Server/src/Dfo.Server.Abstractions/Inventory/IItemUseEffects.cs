@@ -47,4 +47,6 @@ public interface IItemUseEffectDomainService
         ItemReference item, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
     ValueTask<OpeningInventoryReceipt> UseLuckyStarActionAsync(SelectedSessionIdentity session, BusinessSlot source,
         DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
+    ValueTask<OpeningInventoryReceipt> UseGuildDungeonExtensionActionAsync(SelectedSessionIdentity session, BusinessSlot source,
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

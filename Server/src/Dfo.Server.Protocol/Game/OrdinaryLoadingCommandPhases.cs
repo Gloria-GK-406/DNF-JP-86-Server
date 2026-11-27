@@ -54,7 +54,7 @@ internal sealed partial class GameMapLoadingCommandHandler
         // Entry USERINFO refreshes the client's combat attributes. Restore the retained
         // weakness after the first map loads, once per participant. Room changes and duplicate
         // loading reports must not reapply a notification that can also reset current HP/MP.
-        var restoreEntryWeakness = expected.RoomVersion == 0
+        var firstLoad = expected.RoomVersion == 0
             && !expected.ReadyParticipants.Contains(session.CharacterId);
 
         await LoadingReadyAsync(session, expected, cancellationToken).ConfigureAwait(false);
@@ -73,7 +73,7 @@ internal sealed partial class GameMapLoadingCommandHandler
         // The direct response belongs to this frozen generation too; it follows the validation above.
         await outbox.RegisterExplicitAsync(connectionId, new([new LoadingCompleteNotification()], []), cancellationToken).ConfigureAwait(false);
         // A repeated FINISH_LOADING or a later room must not restart the exploration clock.
-        if (restoreEntryWeakness && current!.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration })
+        if (firstLoad && current!.Layout.Mode is DungeonRunMode.LostLand { Plan: var exploration })
             await outbox.RegisterNotiAsync(connectionId,
                 new Dfo.Server.Protocol.Game.StateSynchronization.DungeonClearTimeLimitMessage(
                     exploration.FirstLimitSeconds, exploration.SecondLimitSeconds), cancellationToken).ConfigureAwait(false);
@@ -88,8 +88,13 @@ internal sealed partial class GameMapLoadingCommandHandler
         }
         if (current!.Layout.Mode.Capabilities.QuotaFamily is { } quota)
             _ = await LoadingQuotaAsync(session, quota, cancellationToken).ConfigureAwait(false);
-        if (restoreEntryWeakness)
+        if (firstLoad)
+        {
             await LoadingWeaknessAsync(session, cancellationToken).ConfigureAwait(false);
+            if (current.Layout.Mode is DungeonRunMode.GuildDungeon { PartyBuffId: { } buffId })
+                await GuildDungeon.GuildDungeonPartyBuffProjection.ActivateAsync(outbox, connectionId, buffId, cancellationToken)
+                    .ConfigureAwait(false);
+        }
         return true;
     }
 

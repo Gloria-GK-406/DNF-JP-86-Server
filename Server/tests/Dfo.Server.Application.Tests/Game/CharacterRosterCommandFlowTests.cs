@@ -254,7 +254,7 @@ public sealed class CharacterRosterCommandFlowTests
             services.AddSingleton<ICharacterRosterDomainService>(p => (Characters)p.GetRequiredService<ICharacterDomainService>());
             services.AddSingleton<Dfo.Server.Abstractions.Relations.ICharacterRelationDomainService>(p => new Relations(p.GetRequiredService<IDomainTransactionAccessor>(), Trace));
             services.AddSingleton<Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService>(new NoAuctions());
-            var guilds = DispatchProxy.Create<IGuildDomainService, Guilds>();
+            var guilds = DispatchProxy.Create<IGuildMembershipDomainService, Guilds>();
             ((Guilds)(object)guilds).AllowDeletion = () => !IsGuildMember;
             services.AddSingleton(guilds);
             services.AddSingleton<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>(new NoProjections());
@@ -290,7 +290,7 @@ public sealed class CharacterRosterCommandFlowTests
         public Func<bool> AllowDeletion { get; set; } = null!;
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
-            targetMethod?.Name == nameof(IGuildDomainService.PrepareCharacterDeletionAsync)
+            targetMethod?.Name == nameof(IGuildMembershipDomainService.PrepareCharacterDeletionAsync)
                 ? ValueTask.FromResult(AllowDeletion())
                 : throw new NotSupportedException();
     }

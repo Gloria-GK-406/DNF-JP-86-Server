@@ -373,5 +373,9 @@ public sealed class PvfCeraShopDefinitionSourceTests
         Assert.All(errors, x => Assert.Equal("UnsupportedInstanceDeclaration", x.Code));
         Assert.Empty(PvfCeraShopDefinitionSource.ParseInstanceDeclarations(
             [new("[usable period]", [new(PvfTokenKind.Int32, 0)])], "synthetic"));
+        Assert.Empty(PvfCeraShopDefinitionSource.ParseInstanceDeclarations(
+            [new("[usable period]", Numbers(10))], "synthetic", isGuildRedPacket: true));
+        Assert.NotEmpty(PvfCeraShopDefinitionSource.ParseInstanceDeclarations(
+            [new("[usable period]", Numbers(7))], "synthetic", isGuildRedPacket: true));
     }
 }

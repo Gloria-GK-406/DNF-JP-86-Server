@@ -8,6 +8,16 @@
 
 公会 [普通名单](game/client-to-server/0x0043.md) 和 [首次全量名单](game/client-to-server/0x008C.md) 已接入。隔离线路核对同公会跨频道、断线显示、请求限制及全量回包尾部。用户在 A21 确认两名在线成员在同一区域时亮起。
 
+[月度贡献](../Document/tasks/guild-system/a21-guild-monthly-contribution.md)更新 [个人与公会当前及累计分数](game/server-to-client/NOTI-0x0046.md)和[贡献明细](game/client-to-server/0x0328.md)。隔离线路验证月初邮件、签到、捐赠、推荐地下城、重登和重启去重。用户实机确认月度贡献和邮件奖励。
+
+A21 保留[旧基地升级协议](game/client-to-server/0x00E7.md)。公会改版取消旧等级，当前 PVF 未启用基地升级入口。本服已撤回升档试验，仍用 [0x00BF](game/server-to-client/NOTI-0x00BF.md) 的初始值 1 进入现用基地。[旧升级取证](../Document/tasks/guild-system/a21-guild-base-upgrade.md)
+
+[公会地下城延长券](../Document/tasks/guild-system/a21-guild-dungeon-extension.md)接入安德商店购买和会长使用。实机抓到 [0x0204 动作 0x90](game/client-to-server/0x0204.md#公会地下城延长券动作-0x90)。扣券、扣 GM 与登记延期同事务，[0x02E5](game/server-to-client/NOTI-0x02E5.md)投影延期后的重置时间和原净化率。用户实机确认购买、使用和重登后剩余 34 天。跨月清零已通过隔离验证。
+
+[莱茵守护珠轮换](../Document/tasks/guild-system/a21-guild-medal-shop-rotation.md)恢复 PVF 原生秘密商店配置，并用 [0x02E5](game/server-to-client/NOTI-0x02E5.md) 的偏移 0/1 投影出现条件和货单。用户实机确认双端货单 155 一致，[0x0015](game/client-to-server/0x0015.md) 兑换成功。延期保留和实际重置换货通过隔离线路验证。用户实机确认满净化时莱茵头顶和右键菜单名称正常，永恒殿堂净化率降至满值以下后重登，莱茵消失。
+
+[公会勋章光环](../Document/tasks/guild-system/a21-guild-medal-aura.md)通过 [0x033D](game/client-to-server/0x033D.md) 保存，样式随 [公会详情](game/server-to-client/NOTI-0x0046.md#公会勋章光环)读回。角色效果沿用 [USERINFO 子类型 6](game/server-to-client/NOTI-0x0002.md#子类型-6-公会勋章光环)。隔离线路已验证会长保存、越权拒绝、穿戴、重登和离会清除。用户在 A21 确认光环显示和改样式后的即时更新通过验收。
+
 「显示未在线用户」空白首行由全离线账号缺少代表角色触发。两种名单都已返回每账号一个默认代表，用户确认修复版界面正常。[实机模型与回包](game/client-to-server/0x0043.md)
 
 [公会成员上下线通知](game/server-to-client/NOTI-0x0040.md) 已接入选角入场和会话离场。A21 用户确认提示和名单原地更新符合预期。
@@ -16,7 +26,21 @@
 
 公会管理通过 [公会信息](game/server-to-client/NOTI-0x0046.md) 返回职级名称和权限，写入口为 [宣传](game/client-to-server/0x02E3.md)、[职级权限](game/client-to-server/0x02EB.md) 和 [职级名称](game/client-to-server/0x02EC.md)。会长写入、普通成员拒绝、两端刷新及重登已通过线路，原生管理页待实机复测。
 
-A21 [成员任命](game/client-to-server/0x007E.md)及[目标职级更新](game/server-to-client/NOTI-0x008C.md)已接入。查找页支持[账号角色公会](game/client-to-server/0x02E7.md)、[按名称查看](game/client-to-server/0x02E8.md)和[推荐列表](game/client-to-server/0x02F9.md)。隔离线路通过，用户确认 A21 界面符合预期。
+[成员个人备注](game/client-to-server/0x00E0.md)已接入并通过 A21 实机验收。隔离线路验证普通成员写入、跨频道刷新、重登和清空。中文长度另由 [#390](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/390) 跟踪。
+
+[会长转让](game/client-to-server/0x009B.md)已接入并通过 A21 实机验收。隔离双端线路通过职级、名单、权限、通知和重登核对，验收库确认 GuildPilot 成为唯一会长。
+
+[公会改名](game/client-to-server/0x00B3.md)已接入。隔离线路通过验名、扣一张改名卡、资料与搜索刷新、失败拒绝及重登验证。A21 改名卡入口和完整界面待实机核对。
+
+[公会同盟](../Document/tasks/guild-system/a21-guild-alliance.md)已接入 [申请](game/client-to-server/0x02F1.md)、[发出列表](game/client-to-server/0x02F2.md)、[撤回](game/client-to-server/0x02F3.md)、[收到列表](game/client-to-server/0x02F4.md)、[同意](game/client-to-server/0x02F5.md)、[拒绝](game/client-to-server/0x02F6.md)和[解除](game/client-to-server/0x02F7.md)。跨频道线路验证双会同步、单同盟上限、重登与解散清理。博肯的两个入口由配套 A21 补丁并列提供，待实机验收。
+
+[同盟送礼](../Document/tasks/guild-system/a21-guild-gifts.md)已接入[赠送](game/client-to-server/0x02FA.md)、[待领取列表](game/client-to-server/0x02FB.md)、[记录](game/client-to-server/0x02FC.md)和[领取](game/client-to-server/0x02FD.md)。A21 已捕获两条空查询。隔离线路验证同日单向额度、跨频道待领保留、GM 扣款、限时权益激活及重复领取拒绝。
+
+A21 实机互赠并确认日期显示，库内两家各扣 200 GM。领取走主公会窗口的「同盟公会」子窗，用户确认领取符合预期。修正版将博肯的「收到的礼物详情」限定为收件公会，用户复测确认两家各自只显示收到的礼物。
+
+[公会红包](../Document/tasks/guild-system/a21-guild-red-packets.md)接入[列表](game/client-to-server/0x04EC.md)、[贡献排行](game/client-to-server/0x04ED.md)、[领取历史](game/client-to-server/0x04EE.md)、[发放](game/client-to-server/0x04EF.md)和[领取](game/client-to-server/0x04F0.md)。A21 页签依赖活动 2378，经 [NOTI 0x006C](game/server-to-client/NOTI-0x006C.md) 开启。页签、商城购买、发放、领取和欢乐代币券入账已实机验收。自然满 24 小时后的结算与退款留待上线后观察。[日常贡献](../Document/tasks/guild-system/a21-guild-daily-contribution.md)的签到、聊天和重登去重已实机验收，公会地下城和会友组队通关奖励已通过隔离线路。
+
+A21 [成员任命](game/client-to-server/0x007E.md)及[目标职级更新](game/server-to-client/NOTI-0x008C.md)已接入。查找页支持[账号角色公会](game/client-to-server/0x02E7.md)、[按名称查看](game/client-to-server/0x02E8.md)和[推荐列表](game/client-to-server/0x02F9.md)。用户已确认基础查找界面。公开详情补齐周活跃人数和已激活内容，已通过双公会线路验证，待 A21 实机复测。
 
 A21 已捕获[申请提交](game/client-to-server/0x015C.md)、[查询个人待审状态](game/client-to-server/0x016D.md)和[查询公会申请列表](game/client-to-server/0x0160.md)。本次新增接线并通过隔离双端线路，覆盖重复提交、审批权限、[撤回](game/client-to-server/0x015D.md)、[拒绝](game/client-to-server/0x015F.md)、[同意](game/client-to-server/0x015E.md)、[待审通知](game/server-to-client/NOTI-0x0134.md)和入会后的身份与名单刷新。用户在 A21 确认可申请、查看列表及同意。[实机记录](../Document/tasks/guild-system/a21-guild-applications.md)。
 
@@ -24,7 +48,35 @@ A21 已捕获[申请提交](game/client-to-server/0x015C.md)、[查询个人待�
 
 A21 真实点击已捕获[更换图标](game/client-to-server/0x0312.md)与[编辑公告](game/client-to-server/0x009A.md)。会长写入后刷新[公会信息](game/server-to-client/NOTI-0x0046.md)，公告同时推送[通知](game/server-to-client/NOTI-0x008D.md)。隔离双端线路已验证会长权限、公告推送、图标刷新、扣费及余额不足。用户反馈 A21 验收通过，隔离库确认已保存付费图标并扣 2,000 GM。[验收记录](../Document/tasks/guild-system/a21-guild-appearance.md)。
 
+A21 已捕获[购买公会内容](game/client-to-server/0x02F8.md)，请求行号 13 和 1 对应组队传送次数和永久公会属性。双端线路验证两笔购买、已购列表与永久属性。[组队传送](game/client-to-server/0x01B3.md)末字节区分光环（1）和公会（2）。双端线路验证光环请求保留公会次数，公会传送成功后扣 1 次。[购买界面和公会传送已通过原生客户端验收](../Document/tasks/guild-system/a21-guild-contents.md)。
+
 [公会积分内容](game/client-to-server/0x02EA.md) 实机确认发送空请求。修正后沿用原有捐赠明细，按条数返回所属公会最近 50 条。用户确认 A21 列表已显示。
+
+[公会基地入口状态](game/server-to-client/NOTI-0x00BF.md) 已接入初始阶段。隔离线路覆盖赛丽亚入口、同公会可见、跨公会隔离、未入会拒绝、返回与重登。A21 已实际进入大厅并发出[公会仓库空请求](game/client-to-server/0x0105.md)。[基地入口记录](../Document/tasks/guild-system/a21-guild-hall.md)。
+
+新版通过 [公会购买](game/client-to-server/0x02F8.md) 接入限时属性、击杀经验与仓库扩容。限时到期移除 Buff 167，保留永久 Buff 169。56 格超限购买拒绝且不扣 GM。[仓库存入](game/client-to-server/0x00F7.md)、[取出](game/client-to-server/0x00F8.md)及失败回执通过双端线路验证，[仓库查询](game/client-to-server/0x0105.md)和[快照](game/server-to-client/NOTI-0x00ED.md)支持已存的物品。2026-11-26 用户确认 GuildPilot 仓库存取符合预期，拒绝后背包恢复尚未单独确认。[验收记录](../Document/tasks/guild-system/a21-guild-contents.md#仓库存取验收)
+
+2026-11-26 用户用 `1123` 确认 1 天公会经验激活后，击杀经验明细显示「公会经验 +23」。同次通关的服务端结算记录无额外公会经验。[经验验收记录](../Document/tasks/guild-system/a21-guild-contents.md#限时权益和扩仓验收)
+
+公会地下城入场与通关已接入。隔离双端线路完成伤城结算，核对 [公会进度通知](game/server-to-client/NOTI-0x02E5.md)推送、重登恢复、GM 和邮件奖励，以及重复结算去重。[反复通关礼盒](game/server-to-client/NOTI-0x02E6.md)已通过单人与双人线路验证，礼盒领取和开启已实机验收。[实机验收记录](../Document/tasks/guild-system/a21-guild-dungeon.md)
+
+[公会地下城组队 Buff](../Document/tasks/guild-system/a21-guild-dungeon-party-buff.md)按 PVF 的 2、3、4 人档生效，首房间加载后发送 [0x01EA](game/server-to-client/NOTI-0x01EA.md) 激活列表，离场清除。用户已确认三个档位全部通过 A21 实机验收。
+
+A21 实机确认伤城通关增加 0.5% 净化率。恢复上游 PVF 的五组入场前置后，用户实机确认低进度只开放伤城，从 49.5% 通关升到 50.0% 时首层解锁符合预期。终点双前置已通过线路验证。[净化率解锁](../Document/tasks/guild-system/a21-guild-dungeon.md#净化率解锁)
+
+公会聊天（[0x0011](game/client-to-server/0x0011.md) mode 6）使用带发言角色名的 [NOTI 0x0041](game/server-to-client/NOTI-0x0041.md) 发送给同会在线成员。2026-11-27 用户实机确认公会发言可见，切换频道后符合预期。主动邀请 [0x0097](game/client-to-server/0x0097.md)／[0x0098](game/client-to-server/0x0098.md)、[退会与踢出](game/client-to-server/0x0099.md)、[解散](game/client-to-server/0x012F.md)、[仓库移位](game/client-to-server/0x00F9.md)和[历史](game/client-to-server/0x0106.md)均通过隔离线路，原生界面待逐项确认。[验收顺序](../Document/tasks/guild-system/a21-guild-social-and-warehouse.md)
+
+A21 客户端打开公会仓库后，「使用记录」受共用的 5 秒冷却限制。隔离线路在打开仓库后立即查询并成功收到空记录。[历史协议](game/client-to-server/0x0106.md)
+
+A21 原生离会通知固定显示「您已退出公会」。本项目向被踢目标发送离会原因，由客户端兼容补丁选择原版开除文案。隔离线路与补丁自动测试通过，原生界面待复测。[离会通知](game/server-to-client/NOTI-0x0097.md)
+
+公会邀请详情按 A21 的三段 DSTR、周活跃人数、成员总数和内容列表投影。手动与 15 秒自动拒绝共用一条请求，受邀者只在完成入会时收到成功回执。2026-11-27 用户确认本轮已操作的邀请等流程符合预期。[邀请详情](game/server-to-client/NOTI-0x0093.md) · [邀请应答](game/client-to-server/0x0098.md)
+
+公会告示栏的[打开与刷新](game/client-to-server/0x0154.md)、[发帖](game/client-to-server/0x0155.md)和[删除](game/client-to-server/0x0156.md)已接入并通过隔离线路。[解散入口](game/client-to-server/0x012F.md)的会长权限投影已修正，单人空仓解散和拒绝分支通过隔离线路。用户在 A21 验收中反馈告示栏和解散均正常。
+
+公会地下城的[贡献证书兑换与勋章](../Document/tasks/guild-system/a21-guild-certificate-and-medal.md)复用 [NPC 购买](game/client-to-server/0x0015.md) 和 [穿戴移动](game/client-to-server/0x0013.md)。2026-11-27 用户确认 A21 证书兑换和勋章装备符合预期。[守护珠镶嵌](game/client-to-server/0x033A.md)和[勋章强化](game/client-to-server/0x0050.md#勋章强化2026-11-27currentimplementation)已通过隔离线路，待 A21 界面验收。
+
+2026-11-27 用户确认 A21 勋章强化符合预期。安德的[守护珠合成](game/client-to-server/0x0340.md)和[勋章合成](game/client-to-server/0x0358.md)已接入，隔离线路覆盖同堆扣珠、消耗独立勋章、发放、回滚、重发和重登。用户实机通过两种合成的结果窗与即时背包刷新。[合成实机记录](../Document/tasks/guild-system/a21-guild-certificate-and-medal.md#合成产物复用材料格)
 
 | Command | Type | 方向 | 状态 | 文档 |
 | ---: | ---: | --- | --- | --- |
@@ -279,7 +331,7 @@ CurrentImplementation：`Game/Blacklist/` 切片。CMD 0x0076 按名拉黑，成
 
 CurrentImplementation：CMD 0x0011 一个入口按 mode 分流——区域 3/45/46、队伍 2/9 回推 NOTI 0x000C（含发言者，
 因客户端发言后不本地显示，ClientStatic / Confirmed），私聊 1/7 用 NOTI 0x0041 只投给对方，频道喇叭 13 与服务器喇叭
-11/12/57 扣物品后用 NOTI 0x0076，公会 6 静默，1:1 会话 43 用 NOTI 0x016F 只投会话对方（见下段）；其余 mode（含本地窗口的
+11/12/57 扣物品后用 NOTI 0x0076，公会 6 用 NOTI 0x0041 发送带发言者名的消息，1:1 会话 43 用 NOTI 0x016F 只投会话对方（见下段）；其余 mode（含本地窗口的
 33／37）与 0x01A9 回 `[0, 0x11]`，成功不回应答。布局均为 ClientStatic，0x0076 含义 High；已更正 0x0011 的 u32（喇叭槽位／
 会话 id）。无 WireCaptured、无 ClientVerified；reason 0x11 的显示、私聊发送方那一行、喇叭数量显示待实机。
 

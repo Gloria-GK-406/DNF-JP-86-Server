@@ -1,6 +1,7 @@
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.GuildMemberInfo;
+using Dfo.Server.Protocol.Game.CharacterBuffs;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.SelectCharacter;
@@ -26,6 +27,8 @@ internal sealed class SelectedCharacterStateMessageFactoryService
             if (message is CurrentUserStateMessage)
                 entry.Add(GuildMemberInfoMessage.From(result.CharacterEntry.GuildMember));
         }
+        foreach (var attributes in result.CharacterEntry.Public.GuildAttributes)
+            entry.Add(new CharacterBuffAdded(attributes.BuffId, State1: 1));
         return entry;
     }
 }
@@ -79,7 +82,6 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new VillageObjectListMessage());
         messages.Add(new DungeonPermissionStateMessage(result.CharacterEntry.Progression.Dungeons));
         AddInventorySnapshots(messages, result);
-        messages.Add(new GuildMedalBaselineMessage());
         messages.Add(new EpicBookStateMessage(0, result.EpicPieces ?? []));
         messages.Add(new UsableCountBaselineMessage());
         messages.Add(new DailyChallengeStateMessage(result.CharacterEntry.Progression));
@@ -149,7 +151,7 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new EntryMarkerMessage());
         // Subtype six, not a second copy of the subtype the batch opened with. The older client
         // took nothing here; A21's own server sends this frame once, right after the marker.
-        messages.Add(new TownReadyStateMessage(result.Character.Identity.CharacterId));
+        messages.Add(new TownReadyStateMessage(result.Character.Identity.CharacterId, result.CharacterEntry.Public.ActiveGuildMedalAura));
         messages.Add(new MercenarySupportStateMessage(result.CharacterEntry.Public.Extras.AdventureGroup));
         messages.Add(new CeraBalanceStateMessage(result.Account.Wallet));
         // The real list where the reference has its 0x0111, and the blacklist right behind it: the
@@ -182,6 +184,7 @@ internal static class SelectedCharacterStateMessageFactory
             InventoryContainerType.PersonalCargo,
             InventoryContainerType.Pet,
             InventoryContainerType.AccountCargo,
+            InventoryContainerType.GuildMedal,
         ];
         foreach (var containerType in order)
         {
@@ -189,7 +192,9 @@ internal static class SelectedCharacterStateMessageFactory
                 ? result.AccountInventory.Cargo.Container
                 : result.CharacterInventory.Containers.SingleOrDefault(
                     value => value.ContainerType == containerType)
-                    ?? throw Missing($"CharacterInventory.{containerType}");
+                    ?? (containerType == InventoryContainerType.GuildMedal
+                        ? new InventoryContainerState(containerType, 0, [])
+                        : throw Missing($"CharacterInventory.{containerType}"));
             messages.Add(new InventorySnapshotMessage(
                 container,
                 result.CharacterInventory.VirtualResources,

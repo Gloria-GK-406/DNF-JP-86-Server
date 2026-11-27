@@ -56,6 +56,41 @@ public sealed partial class ItemDeliveryTests
     }
 
     [Fact]
+    public async Task Mail_only_deadline_does_not_split_claimed_permanent_items_across_mailings()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var f = Fixture();
+            await FillQuick(f);
+            for (var day = 0; day < 2; day++)
+            {
+                var expiry = f.Clock.GetUtcNow().AddDays(30);
+                ItemDeliveryReceipt result;
+                await using (var tx = Scope(f).Begin())
+                {
+                    var options = new ItemDeliveryOptions(null, $"certificate-test:{day}") { MailExpiresAt = expiry };
+                    result = await Delivery(f).DeliverAsync(new(1), new(1), [new(9001, 3)], "公会地下城通关奖励",
+                        default, ItemDeliveryMode.MailOnly, options);
+                    await tx.CommitAsync(default);
+                }
+                Assert.True(Assert.Single(result.MailedItems).Lifetime.IsPermanent);
+                var mail = (await Mail(f).InboxAsync(new(1))).Single(x => x.Id == Assert.Single(result.MailIds));
+                Assert.Equal(expiry.ToUnixTimeSeconds(), mail.ExpiresAt?.ToUnixTimeSeconds());
+                await Mail(f).ClaimAsync(new(1), Assert.Single(mail.Attachments).Id);
+                f.Clock.Advance(TimeSpan.FromDays(1));
+            }
+
+            var bag = f.Services.GetRequiredService<ICharacterBusinessInventoryDomainService>()
+                .GetPersistentStore(new(InventoryOwnerType.Character, 1), BusinessInventoryStoreKind.Item)
+                .GetContainer(BusinessInventorySpace.Material);
+            await using var read = Scope(f).Begin();
+            var merged = Assert.Single(await bag.GetAllAsync(default));
+            Assert.Equal(6, merged.Count);
+            Assert.True(merged.Snapshot.Lifetime.IsPermanent);
+        });
+    }
+
+    [Fact]
     public async Task Direct_container_add_preserves_deadline_and_does_not_stack_with_legacy_permanent_row()
     {
         await TestGameplay.RunAsync(async () =>

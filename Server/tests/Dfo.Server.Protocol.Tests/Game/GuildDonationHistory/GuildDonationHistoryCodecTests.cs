@@ -10,9 +10,11 @@ public sealed class GuildDonationHistoryCodecTests
     [Fact]
     public void Donation_history_uses_actual_rows_and_zeroes_the_unused_slots()
     {
-        var entry = new GuildDonationEntry("捐赠者"u8.ToArray(), 10000, 10, DateTimeOffset.FromUnixTimeSeconds(1700000000));
+        var timestamp = DateTimeOffset.FromUnixTimeSeconds(1700000000);
+        var entry = new GuildContributionEntry("捐赠者"u8.ToArray(), 10, timestamp, GuildContributionSource.GoldDonation);
+        var attendance = new GuildContributionEntry("会长"u8.ToArray(), 100, timestamp, GuildContributionSource.LeaderAttendance);
         var frame = Assert.Single(new GuildDonationHistoryEncoder().Encode(
-            new GuildDonationHistoryReply(ServerMessageType.GameGuildDonationHistory, [entry])));
+            new GuildDonationHistoryReply(ServerMessageType.GameGuildDonationHistory, [entry, attendance])));
         Assert.Equal((byte)1, frame[0]);
         Assert.Equal((ushort)0x0328, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
         var payload = frame.AsSpan(15);
@@ -24,13 +26,16 @@ public sealed class GuildDonationHistoryCodecTests
         Assert.True(row.Slice(13, 23).IndexOfAnyExcept((byte)0) < 0);
         Assert.Equal(10, BinaryPrimitives.ReadInt32LittleEndian(row[36..]));
         Assert.Equal(3, BinaryPrimitives.ReadInt32LittleEndian(row[40..]));
-        Assert.True(payload[45..].IndexOfAnyExcept((byte)0) < 0);
+        Assert.Equal(100, BinaryPrimitives.ReadInt32LittleEndian(payload[(45 + 36)..]));
+        Assert.Equal(6, BinaryPrimitives.ReadInt32LittleEndian(payload[(45 + 40)..]));
+        Assert.True(payload[89..].IndexOfAnyExcept((byte)0) < 0);
     }
 
     [Fact]
     public void Gm_history_window_reads_a_count_and_its_own_row_layout()
     {
-        var entry = new GuildDonationEntry("捐赠者"u8.ToArray(), 50000, 50, DateTimeOffset.FromUnixTimeSeconds(1700000000));
+        var entry = new GuildContributionEntry("捐赠者"u8.ToArray(), 50, DateTimeOffset.FromUnixTimeSeconds(1700000000),
+            GuildContributionSource.GoldDonation);
         var frame = Assert.Single(new GuildDonationHistoryEncoder().Encode(
             new GuildDonationHistoryReply(ServerMessageType.GameGuildMileageHistory, [entry])));
         Assert.Equal((byte)1, frame[0]);

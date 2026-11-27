@@ -38,11 +38,7 @@ internal static class GameInventoryItemEntry
     /// period@0x2B, an additional-option count@0x2F with its dword array after it,
     /// genuineUpgrade@0x4A, emancipateEquipmentLevel@0x4B, tradeRestriction@0x4C.
     ///
-    /// The last seventeen bytes (rec+0x54..0x64) are written as a zero run. The client reads them as
-    /// fields and the reference A21 server names them -- a dword, four guardian-gem keys as u16, a
-    /// byte, and a dword at rec+0x61 -- but this repository has nowhere to read them from, so a zero
-    /// run is what it can honestly send. They are a gap, not padding. The dword at rec+0x61 is the
-    /// one place the client-side disassembly and the reference server independently agree.
+    /// The last seventeen bytes include four guardian-gem keys as u16 at record offset 0x58.
     ///
     /// Correction (2026-09-07): an earlier note said the seventeen bytes were of unreadable
     /// position. That was wrong and is fixed above.
@@ -60,7 +56,6 @@ internal static class GameInventoryItemEntry
     public const int CommonLength = 101;
 
     /// <summary>How much of the entry is written field by field before the trailing run.</summary>
-    private const int WrittenLength = 84;
 
     public static void Write(
         BinaryWriter writer,
@@ -132,7 +127,10 @@ internal static class GameInventoryItemEntry
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
         writer.Write(core.SortLockFlag == 1 ? (byte)1 : (byte)0);
-        writer.Write(new byte[CommonLength - WrittenLength]);
+        writer.Write(0u);
+        for (var socket = 0; socket < GuardianGemSockets.Count; socket++)
+            writer.Write(core.GuardianGems.KeyAt(socket));
+        writer.Write(new byte[5]);
 
         if (core.ItemKind == 8 && avatar!.JewelSocket.Length != 30)
             throw new InvalidDataException("Avatar jewel socket must contain exactly 30 bytes.");
@@ -310,7 +308,7 @@ internal sealed class InventoryDeltaEncoder : GameNotiMessageEncoder<InventoryDe
 internal static class GameInventoryDelivery
 {
     /// <summary>The frame that tells the client what one bounded change left behind.</summary>
-    public static IGameServerMessage Notification(CommittedInventoryUpdateState update)
+    public static IGameNotiMessage Notification(CommittedInventoryUpdateState update)
     {
         ArgumentNullException.ThrowIfNull(update);
         var items = update.ContainerType == InventoryContainerType.Main
@@ -321,7 +319,7 @@ internal static class GameInventoryDelivery
         return new InventoryDeltaMessage(update.ContainerType, items, update.PreparedAt);
     }
 
-    public static IGameServerMessage ClearedSlotNotification(
+    public static IGameNotiMessage ClearedSlotNotification(
         InventoryContainerType containerType, int slotIndex, DateTimeOffset preparedAt) =>
         new InventoryDeltaMessage(containerType, [new InventoryItemState(null, slotIndex, VirtualResourceCore(-1, 0))], preparedAt);
 
@@ -422,6 +420,19 @@ internal static class GameInventoryDelivery
     {
         ArgumentNullException.ThrowIfNull(updates);
         return [.. updates.Select(Notification)];
+    }
+
+    /// <summary>A21 requires an explicit clear before installing the replacement in an occupied slot.</summary>
+    public static IEnumerable<IGameNotiMessage> Notifications(
+        IReadOnlyList<CommittedInventoryUpdateState> updates,
+        IEnumerable<GameSlot> replacedSlots, IEnumerable<GameSlot> emptiedSlots, DateTimeOffset preparedAt)
+    {
+        foreach (var slot in replacedSlots)
+            yield return ClearedSlotNotification(slot.Space, slot.Index, preparedAt);
+        foreach (var update in updates)
+            yield return Notification(update);
+        foreach (var slot in emptiedSlots)
+            yield return ClearedSlotNotification(slot.Space, slot.Index, preparedAt);
     }
 
     /// <summary>

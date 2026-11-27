@@ -29,6 +29,7 @@ public sealed record QuestClearCouponRequest(GameMessageMetadata Metadata, short
     internal const uint RandomFatiguePotionAction = 107;
     internal const uint AuraSkinSlotAction = 123;
     internal const uint AbyssQuestClearAction = 126;
+    internal const uint GuildDungeonExtensionAction = 0x90;
 
     public ReplayProjectionNeeds MinimumReplayNeeds => ReplayProjectionNeeds.Inventory | ReplayProjectionNeeds.ItemUsage | (Action switch
     {

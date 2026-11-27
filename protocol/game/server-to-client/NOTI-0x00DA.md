@@ -43,5 +43,4 @@
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+**ClientStatic / CurrentImplementation。** A21 在 VA `0x0119AC5C` 注册处理器 `0x0118F430`，将读入的名称填入公会改名提示。JP86 返回一条新名称 DSTR。[改名提交及隔离线路](../client-to-server/0x00B3.md)

@@ -96,7 +96,7 @@ public sealed record GameGuildRankAssignmentCommand(NetworkDispatchContext Dispa
 }
 
 internal sealed class GameGuildRankAssignmentCommandHandler(
-    IGuildDomainService guilds, ISelectedSessionDomainService sessions, ICommandWorkUnits units,
+    IGuildMembershipDomainService guilds, ISelectedSessionDomainService sessions, ICommandWorkUnits units,
     IGameCommandOutbox outbox, ICommandProjections projections) : ICommandHandler<GameGuildRankAssignmentCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(

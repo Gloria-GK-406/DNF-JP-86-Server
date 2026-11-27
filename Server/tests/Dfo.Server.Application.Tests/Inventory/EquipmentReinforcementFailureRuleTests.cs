@@ -103,6 +103,34 @@ public sealed class EquipmentReinforcementFailureRuleTests
         Assert.Empty(rewards);
     }
 
+    [Theory]
+    [InlineData(1, 0, EquipmentReinforcementOutcome.Retained, 7)]
+    [InlineData(2, 2, EquipmentReinforcementOutcome.Downgraded, 5)]
+    [InlineData(3, 0, EquipmentReinforcementOutcome.Destroyed, 0)]
+    public async Task Medal_failure_uses_its_own_penalty_and_only_refunds_certificates_after_destruction(
+        int penalty, int penaltyValue, EquipmentReinforcementOutcome outcome, byte level)
+    {
+        const int certificate = 10154439;
+        var source = new Content(7)
+        {
+            MedalRow = new(8, [], 50_000, penalty, penaltyValue, certificate, 20),
+        };
+        var service = new EquipmentReinforcementFailureRuleService(source, source, new NoDisjointReads(),
+            NullLogger<EquipmentReinforcementFailureRuleService>.Instance);
+        var medal = TestItemReferences.FromCore(0, StackableItemCore.Create(12, 100380044, 123) with { Attribute = 7 },
+            ItemWorldClass.Equipment).WithBusinessSlot(new(BusinessInventorySpace.GuildMedal, 0));
+        var result = await service.GetResultAsync(medal, new(null, 0, 0), default);
+
+        Assert.Equal(EquipmentReinforcementRejection.None, result.Rejection);
+        Assert.Equal(outcome, result.Outcome);
+        Assert.Equal(level, result.NewLevel);
+        Assert.False(result.ConsumeProtection);
+        if (outcome == EquipmentReinforcementOutcome.Destroyed)
+            Assert.Equal(new EquipmentReinforcementFailureReward(certificate, 3), Assert.Single(result.Rewards));
+        else
+            Assert.Empty(result.Rewards);
+    }
+
     private static ItemReference Facts(byte level) =>
         TestItemReferences.FromCore(0, StackableItemCore.Create(1, 3000, 123) with { Attribute = level }, ItemWorldClass.Equipment).WithBusinessSlot(new(BusinessInventorySpace.CarriedEquipment, 0));
 
@@ -112,6 +140,13 @@ public sealed class EquipmentReinforcementFailureRuleTests
 
     private sealed class Content(byte oldLevel) : IEquipmentReinforcementDefinitionSource, IEquipmentDefinitionSource
     {
+        public EquipmentReinforcementRow? MedalRow { get; init; }
+
+        public async ValueTask<EquipmentReinforcementTable?> GetGuildMedalTableAsync(CancellationToken ct) =>
+            MedalRow is { } row && await GetNormalTableAsync(ct) is { } normal
+                ? normal with { Rows = [row], MedalRefunds = [0, 0, 0, 3] }
+                : null;
+
         public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(null);
 
@@ -122,7 +157,7 @@ public sealed class EquipmentReinforcementFailureRuleTests
         public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(0);
 
         public ValueTask<EquipmentDefinition?> GetEquipmentAsync(int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentDefinition?>(new(1, 50, 2, "weapon", 45));
+            ValueTask.FromResult<EquipmentDefinition?>(MedalRow is null ? new(1, 50, 2, "weapon", 45) : new(19, 50, 3, "flag", 0));
         public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(int itemId, CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
             throw new NotSupportedException("Protection is an explicit fact, not queried by failure planning.");
     }

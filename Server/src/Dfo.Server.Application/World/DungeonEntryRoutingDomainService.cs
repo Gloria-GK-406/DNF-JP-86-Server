@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Raids;
+using Dfo.Server.Abstractions.Guilds;
 
 namespace Dfo.Server.Application.World;
 
@@ -22,12 +23,13 @@ public sealed class DungeonEntryRoutingDomainService(
     IDungeonEntryDecisionDomainService decisions,
     IDimensionDungeonDomainService dimensions,
     IHellDungeonEntryDomainService hell, IDarkElfRuinsDomainService ruins,
-    IAntonRaidDomainService raids) : IDungeonEntryRoutingDomainService
+    IAntonRaidDomainService raids, IGuildDungeonDomainService guildDungeons) : IDungeonEntryRoutingDomainService
 {
     public ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct) =>
         entry.IsRaidChannel || entry.Facts.Intent.Kind == DungeonEntryIntentKind.AntonRaid
             || raids.SupportsDungeon(entry.DungeonId)
             ? raids.EnterAsync(entry, ct)
+        : guildDungeons.Supports(entry.DungeonId) ? guildDungeons.EnterAsync(entry, ct)
         : ruins.Supports(entry.DungeonId) ? ruins.EnterAsync(entry, ct)
         : lostLand.Supports(entry.DungeonId) ? lostLand.EnterAsync(entry, ct)
         : guardian.Supports(entry.DungeonId) ? guardian.EnterAsync(entry, ct)

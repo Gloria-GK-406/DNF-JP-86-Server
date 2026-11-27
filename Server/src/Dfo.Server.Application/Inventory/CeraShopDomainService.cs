@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
@@ -25,7 +26,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
     ICharacterInventoryEntryDomainService inventory, IPremiumServiceDomainService premiums, IPremiumServiceUsageDomainService premiumUsage,
     ICeraShopPurchaseRestrictionDomainService restrictions, IApplyEffectsDomainService effects,
     ICreatureDomainService creatureDomains, IInventoryExpansionDomainService expansion,
-    IInventoryCapacityRuleService capacityRules, ICharacterNameTagDomainService nameTags) : ICeraShopDomainService
+    IInventoryCapacityRuleService capacityRules, ICharacterNameTagDomainService nameTags,
+    IGuildRedPacketPurchasePolicy redPackets) : ICeraShopDomainService
 {
     public async ValueTask<CeraShopPurchaseResult> PurchaseAsync(SelectedSessionIdentity session, CeraShopPurchaseInput input,
         DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
@@ -44,6 +46,7 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
         var quoted = await rules.QuoteAsync(input, progress.Level, now, cancellationToken).ConfigureAwait(false);
         if (quoted.Quote is not { } quote)
             return CeraShopPurchaseResult.Refused(quoted.Rejection, quoted.Detail);
+        quote = redPackets.Prepare(quote, now);
         IReadOnlyList<DomainEffect> restrictionEffects = [];
         if (!quote.Restrictions.IsEmpty)
         {
@@ -98,6 +101,8 @@ internal sealed class CeraShopDomainService(ISelectedSessionDomainService sessio
             return CeraShopPurchaseResult.Refused(planned.Rejection, planned.Detail);
 
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        if (await redPackets.RecordPurchaseAsync(session.CharacterId, quote, now, cancellationToken).ConfigureAwait(false) is { } refusal)
+            return CeraShopPurchaseResult.Refused(CeraShopRejection.PurchaseRestricted, refusal);
         // From the first write onwards, every refusal must unwind the shared transaction.
         if (before != plan.Balances && !await wallets.TryApplyAsync(session.AccountId, before, plan.Balances,
                 cancellationToken).ConfigureAwait(false))

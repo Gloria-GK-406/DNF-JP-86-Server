@@ -11,9 +11,11 @@ internal sealed class NpcShopRuleService(
     IDailyRefillRuleService days, IItemExpirationRuleService expiration, TimeProvider clock) : INpcShopRuleService
 {
     public async ValueTask<NpcShopQuoteResult> QuoteAsync(
-        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken)
+        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken, int? activeVariant = null)
     {
-        var shop = await content.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false);
+        if (activeVariant is { } variant && shopId != variant)
+            return new(NpcShopRejection.ShopUnavailable, null);
+        var shop = await ReadShopAsync(npcId, activeVariant, cancellationToken).ConfigureAwait(false);
         // Purchase currently admits town shops only; clear-room shops require a separate run authorization.
         if (shop is null || shop.ShopId != shopId || shop.VisibleOnDungeonClear)
             return new(NpcShopRejection.ShopUnavailable, null);
@@ -47,9 +49,9 @@ internal sealed class NpcShopRuleService(
     }
 
     public async ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(
-        int npcId, byte job, CancellationToken cancellationToken)
+        int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null)
     {
-        var shop = await content.GetShopAsync(npcId, cancellationToken).ConfigureAwait(false);
+        var shop = await ReadShopAsync(npcId, activeVariant, cancellationToken).ConfigureAwait(false);
         if (shop is null)
             return null;
         var result = new List<NpcShopItemDefinition>();
@@ -59,6 +61,9 @@ internal sealed class NpcShopRuleService(
                 result.Add(item);
         return result;
     }
+
+    private ValueTask<NpcShopDefinition?> ReadShopAsync(int npcId, int? activeVariant, CancellationToken ct) =>
+        activeVariant is { } id ? content.GetShopVariantAsync(npcId, id, ct) : content.GetShopAsync(npcId, ct);
 
     public NpcShopPlanningResult Plan(
         NpcShopQuote quote,

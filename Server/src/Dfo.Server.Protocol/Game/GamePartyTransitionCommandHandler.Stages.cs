@@ -490,7 +490,11 @@ internal sealed partial class GamePartyTransitionCommandHandler
         else
         {
             if (departingRun is not null && runs.Find(departing!.CharacterId) is null)
+            {
                 registry.ParticipantDeparted(departingRun.RunId, departing!.CharacterId);
+                await GuildDungeon.GuildDungeonPartyBuffProjection.ClearAsync(outbox, sessions, departing, departingRun, token)
+                    .ConfigureAwait(false);
+            }
             await ProjectPartyAsync(result.Notifications, recipients, token).ConfigureAwait(false);
         }
         LogPartyMutation(change, caller, target, targetSlot, result);

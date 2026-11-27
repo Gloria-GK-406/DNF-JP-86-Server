@@ -128,6 +128,8 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
         var inPermission = false;
         var readingName = false;
         var readingLevel = false;
+        var readingQuests = false;
+        var questTag = archive.GetTag(PvfField.Int32List("[need quest]", optional: true));
         var levelTag = archive.GetTag(Fields.NeedLevelField);
 
         while (reader.Read(out var token))
@@ -136,6 +138,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
             {
                 if (readingLevel) throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.NeedLevelField}': missing Int32 level.");
                 readingName = false;
+                readingQuests = false;
 
                 if (token.Value == tags.AreaOpen)
                 {
@@ -168,6 +171,10 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
                 {
                     readingLevel = true;
                 }
+                else if (inPermission && questTag.IsResolved && token.Value == questTag.Offset)
+                {
+                    readingQuests = true;
+                }
 
                 continue;
             }
@@ -185,6 +192,14 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
                     throw new InvalidDataException($"PVF '{scriptPath}', field '{Fields.NeedLevelField}': expected valid Int32 level.");
                 draft.MinimumLevel = Math.Max(draft.MinimumLevel, token.Value);
                 readingLevel = false;
+                continue;
+            }
+            if (readingQuests)
+            {
+                if (draft is null || token.Kind != PvfTokenKind.Int32)
+                    throw new InvalidDataException($"PVF '{scriptPath}', field '[need quest]': expected Int32 quest ID.");
+                if (token.Value > 0)
+                    draft.RequiredQuestIds.Add(token.Value);
                 continue;
             }
             if (draft is null || inPermission)
@@ -323,6 +338,7 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
     private sealed class AreaDraft(string source)
     {
         public int MinimumLevel { get; set; }
+        public List<int> RequiredQuestIds { get; } = [];
         private static readonly PvfField<IReadOnlyList<PvfToken>> MinimapOpen = PvfField.Tokens("[minimap rect]", optional: true, tokenKind: PvfTokenKind.QuotedString);
         private static readonly PvfField<bool> MinimapClose = PvfField.Marker("[/minimap rect]", optional: true, tokenKind: PvfTokenKind.QuotedString);
 
@@ -409,7 +425,8 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
             if (!_haveAreaId || _mapPath.Length == 0) throw Invalid(Fields.AreaField, "incomplete area ID/map header");
             return new(_areaId, _mapPath, _kind,
                 _operands.Count > 0 ? _operands[0] : TownAreaDefinition.NoOperand,
-                _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand) { MinimumLevel = MinimumLevel };
+                _operands.Count > 1 ? _operands[1] : TownAreaDefinition.NoOperand)
+            { MinimumLevel = MinimumLevel, RequiredQuestIds = RequiredQuestIds.Distinct().ToArray() };
         }
 
         /// <remarks>

@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
@@ -36,6 +38,37 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class NpcShopPurchaseTests
 {
+    [Theory]
+    [InlineData(GuildHallTown.ContributionShopNpcId, GuildHallTown.InitialAreaId, 7, true)]
+    [InlineData(GuildHallTown.ContributionShopNpcId, GuildHallTown.InitialAreaId, 9, false)]
+    [InlineData(GuildHallTown.ContributionShopNpcId, GuildHallTown.DungeonGateAreaId, 7, false)]
+    [InlineData(GuildHallTown.DungeonSupplyNpcId, GuildHallTown.InitialAreaId, 7, false)]
+    [InlineData(GuildHallTown.BattleSupplyNpcId, GuildHallTown.InitialAreaId, 7, false)]
+    public async Task Guild_shop_counts_and_purchase_require_the_current_guilds_shop_area(
+        int npc, byte area, int instance, bool allowed)
+    {
+        const int shopId = 101208;
+        var guild = new Guild(new(7), "guild", "", 1);
+        using var shop = new ShopFixture(services => services.AddSingleton(
+            TestRequired.Absent<IGuildMembershipQueryDomainService>((method, args) =>
+                method.Name == nameof(IGuildMembershipQueryDomainService.FindMembershipAsync)
+                    ? ValueTask.FromResult<GuildMembership?>(new(guild,
+                        new(guild.Id, (CharacterId)args![0]!, true, DateTimeOffset.UnixEpoch) { MembershipId = 1 }))
+                    : null)));
+        shop.Content.Shops[npc] = new(npc, shopId, [new(null, [5000])]);
+        await shop.Seed(121, 1000, 5, 3);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+            .CrossInto(shop.Session, new TownAreaKey(1, GuildHallTown.TownId, area, instance), 10, 10, true));
+
+        await shop.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(shop.Connection),
+            new ShopPurchaseCountRequest(new(1, GameProtocol.ShopPurchaseCountType, 0, 7), npc), default);
+        Assert.Equal(allowed ? NpcShopRejection.None : NpcShopRejection.ShopUnavailable,
+            Assert.Single(shop.Sender.Messages.OfType<ShopPurchaseCountResponse>()).Result.Rejection);
+        await WholeBuy.Send(shop, 5000, 1, shopId, npc);
+        Assert.Equal(allowed ? 1 : 0, shop.Count(5000));
+        Assert.Equal(allowed ? 0 : 5, shop.Count(1000));
+    }
+
     [Fact]
     public async Task Dungeon_clear_shop_cannot_be_purchased_from_town_even_with_enough_payment()
     {

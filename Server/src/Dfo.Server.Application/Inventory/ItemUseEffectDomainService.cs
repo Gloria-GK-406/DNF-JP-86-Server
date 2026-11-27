@@ -3,8 +3,10 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
@@ -16,7 +18,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
     IExperienceItemDomainService experienceItems, IEntryAllowanceItemDomainService entryItems,
     IDungeonParticipationDomainService participation, IReviveCoinDomainService reviveCoins,
     Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
-    IOpeningInventoryDomainService openingInventory) : IItemUseEffectDomainService
+    IOpeningInventoryDomainService openingInventory, IStackableActionDefinitionSource stackableActions,
+    IGuildDungeonDomainService guildDungeons) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
@@ -40,6 +43,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         }
 
         var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
+        if (item.ItemId == GuildDungeonExtensionTicket.ItemId || rule?.Action == GuildDungeonExtensionTicket.Action)
+            return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
         return await UseWithRuleAsync(session, source, item, rule, clock.GetUtcNow(), footprint,
             captureOpeningReceipt: false, ct).ConfigureAwait(false);
     }
@@ -57,6 +62,20 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
             ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Lucky star item use refused: {use.Status}.");
     }
 
+    public async ValueTask<OpeningInventoryReceipt> UseGuildDungeonExtensionActionAsync(SelectedSessionIdentity session,
+        BusinessSlot source, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)
+    {
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        var item = await openingInventory.SourceAsync(session, source, at, ct).ConfigureAwait(false);
+        if (item.ItemId != GuildDungeonExtensionTicket.ItemId
+            || await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false) is not { Action: GuildDungeonExtensionTicket.Action } rule)
+            throw new OpeningRejectedException(OpeningRejection.WrongItem, "The slot does not hold a guild dungeon extension ticket.");
+        var use = await UseWithRuleAsync(session, source, item, rule, at, footprint, captureOpeningReceipt: true, ct)
+            .ConfigureAwait(false);
+        return use.OpeningReceipt
+            ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Guild dungeon extension refused: {use.Status}.");
+    }
+
     private async ValueTask<ItemUseApplication> UseWithRuleAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, ItemUseRule? rule, DateTimeOffset at, IEffectFootprintRecorder footprint,
         bool captureOpeningReceipt, CancellationToken ct)
@@ -68,6 +87,18 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
+        if (rule?.Action == GuildDungeonExtensionTicket.Action)
+        {
+            var definition = await stackableActions.GetAsync(item.ItemId, ct).ConfigureAwait(false);
+            if (definition is not { Action: GuildDungeonExtensionTicket.Action, IsReadable: true, GuildDungeonExtensionCost: > 0 }
+                || !plan.Effects.Any(x => x is ConsumeFromContainerEffect { Count: 1 } consume
+                    && consume.Slot == source && consume.ExpectedItemId == item.ItemId))
+                return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
+            footprint.DemandActive(session);
+            if (!await guildDungeons.TryExtendAsync(session.CharacterId, definition.GuildDungeonExtensionCost, at, ct)
+                .ConfigureAwait(false))
+                return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
+        }
         if (rule?.Action == ItemUseEffectRuleService.RentPointAction)
         {
             if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)

@@ -29,7 +29,7 @@ public sealed class GameDeleteCharacterCommandHandler(
     ICommandWorkUnits workUnits,
     ICharacterRelationDomainService relations,
     Dfo.Server.Abstractions.Auction.IAuctionQueryDomainService auctions,
-    IGuildDomainService guilds,
+    IGuildMembershipDomainService guilds,
     ICommandProjections projections,
     TimeProvider clock,
     ILogger<GameDeleteCharacterCommandHandler> logger) : ICommandHandler<GameDeleteCharacterCommand, CharacterDeletionResult>

@@ -21,8 +21,8 @@ public sealed record GameGuildCreationCommand(NetworkDispatchContext Dispatch, G
 
 internal sealed class GameGuildCreationCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildRecruitmentSessionDomainService drafts,
-    IGuildDomainService guilds,
+    IGuildNameOperationSessionDomainService drafts,
+    IGuildMembershipDomainService guilds,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
     ICommandProjections projections,
@@ -42,6 +42,8 @@ internal sealed class GameGuildCreationCommandHandler(
         switch (request.MessageType)
         {
             case ClientMessageType.GameGuildCheckName:
+                if (GameRequestFreshness.IsStale(request.Metadata))
+                    return false;
                 var status = await drafts.StartAsync(actor, request.Text, ct).ConfigureAwait(false);
                 return await ReplyAsync(NameError(status), ct).ConfigureAwait(false);
 

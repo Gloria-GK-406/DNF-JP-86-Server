@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Data.Guilds;
 
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Networking;
@@ -32,8 +34,33 @@ public sealed class DungeonSelectionProtocolFlowTests
         Assert.Empty(f.Sender.Messages);
         TestGameplay.Run(f.Services,()=>{Assert.Equal(DungeonEntryIntent.Interactive,f.Services.GetRequiredService<IDungeonEntryIntentDomainService>().Find(f.Session));Assert.Null(f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId));});
     }
-    private static ShopFixture Fixture()=>TeleportConsumableTests.Fixture(s=>
-    {s.AddSingleton<ISelectedCharacterCurrentViewDomainService>(p=>new Views(p));s.AddSingleton<ICharacterStateProjectionDomainService>(TownMovementProtocolCommandFlowTests.Proxy<ICharacterStateProjectionDomainService>.Create((_,args)=>ValueTask.FromResult((SelectCharacterResult)args![0]!)));s.AddSingleton<IDungeonVisitDomainService>(TownMovementProtocolCommandFlowTests.Proxy<IDungeonVisitDomainService>.Create((name,_)=>name=="DefersSelectionState"?true:throw new NotSupportedException(name)));});
+    [Fact]
+    public async Task Guild_selection_captures_the_gate_before_departure_and_a_new_open_drops_the_old_origin()
+    {
+        var guild = new Guild(new(12), "guild", "", 1);
+        using var f = Fixture(s => s.AddSingleton(TestRequired.Absent<IGuildMembershipQueryDomainService>((method, args) =>
+            method.Name == nameof(IGuildMembershipQueryDomainService.FindMembershipAsync)
+                ? ValueTask.FromResult<GuildMembership?>(new(guild,
+                    new(guild.Id, (Dfo.Server.Data.Characters.CharacterId)args![0]!, true, DateTimeOffset.UnixEpoch)
+                        { MembershipId = 543 }))
+                : null)));
+        var runtime = f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>();
+        var intents = f.Services.GetRequiredService<IDungeonEntryIntentDomainService>();
+        var gate = new TownAreaKey(1, GuildHallTown.TownId, GuildHallTown.DungeonGateAreaId, 12);
+        TestGameplay.Run(f.Services, () => runtime.CrossInto(f.Session, gate, 10, 10, true));
+        await Wire(f, 0xF, [0, 0]);
+        var selection = Assert.IsType<GuildDungeonSelection>(intents.Find(f.Session)?.GuildSelection);
+        Assert.Equal(new GuildDungeonGateOrigin(gate, 543), selection.Origins[f.Session]);
+        Assert.Null(runtime.StandingOf(f.Session));
+
+        await Wire(f, 0xF, [0, 0]);
+        Assert.Null(intents.Find(f.Session)?.GuildSelection);
+        await Wire(f, 0x84, []);
+        Assert.Null(intents.Find(f.Session));
+    }
+
+    private static ShopFixture Fixture(Action<IServiceCollection>? configure = null)=>TeleportConsumableTests.Fixture(s=>
+    {configure?.Invoke(s);s.AddSingleton<ISelectedCharacterCurrentViewDomainService>(p=>new Views(p));s.AddSingleton<ICharacterStateProjectionDomainService>(TownMovementProtocolCommandFlowTests.Proxy<ICharacterStateProjectionDomainService>.Create((_,args)=>ValueTask.FromResult((SelectCharacterResult)args![0]!)));s.AddSingleton<IDungeonVisitDomainService>(TownMovementProtocolCommandFlowTests.Proxy<IDungeonVisitDomainService>.Create((name,_)=>name=="DefersSelectionState"?true:throw new NotSupportedException(name)));});
     private sealed class Views(IServiceProvider p):ISelectedCharacterCurrentViewDomainService
     {public async ValueTask<SelectCharacterResult?> TryLoadAsync(SelectedSessionIdentity session,CancellationToken ct){var baseline=await Characters.CharacterEntryInventoryTests.CreateLifecycleResultAsync(session.AccountId,session.CharacterId.Value,0);var inventory=await p.GetRequiredService<ICharacterInventoryEntryDomainService>().ReadCurrentAsync(session.AccountId,session.CharacterId,ct);return baseline with{CharacterInventory=inventory,CharacterEntry=baseline.CharacterEntry with{Skills=baseline.CharacterEntry.Skills with{ProtocolMirror=new(0,0,0,0)},Public=baseline.CharacterEntry.Public with{Identity=new(0,0,0)}}};}}
     private static ValueTask Wire(ShopFixture f,ushort type,byte[] body)

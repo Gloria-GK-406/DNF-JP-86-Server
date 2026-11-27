@@ -24,9 +24,9 @@ public sealed record GameGuildApplicationCommand(NetworkDispatchContext Dispatch
 
 internal sealed class GameGuildApplicationCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildDomainService guilds,
-    IGuildQueryDomainService query,
-    IGuildProgressDomainService progress,
+    IGuildMembershipDomainService guilds,
+    IGuildMembershipQueryDomainService query,
+    IGuildDiscoveryDomainService discovery, IGuildOverviewDomainService overviews,
     IChannelEntryDomainService channels,
     ICharacterVisibleSessionDomainService visibility,
     ICommandWorkUnits units,
@@ -61,7 +61,7 @@ internal sealed class GameGuildApplicationCommandHandler(
                 var applied = await units.WriteAsync(context, declaration, async (_, token) =>
                 {
                     if (request.GuildName is not { } name || request.Message is not { } note ||
-                        await query.FindGuildAsync(name, token).ConfigureAwait(false) is not { } target)
+                        await discovery.FindGuildAsync(name, token).ConfigureAwait(false) is not { } target)
                         return new GuildApplyReply();
                     var result = await guilds.ApplyAsync(actor, target.Guild, note, token).ConfigureAwait(false);
                     if (result.Status != GuildMutationStatus.Success)
@@ -123,7 +123,7 @@ internal sealed class GameGuildApplicationCommandHandler(
             if (!approve || !accepted)
                 return new ReviewResult(accepted, entries, GuildInfoPanel.Empty, []);
 
-            var panel = await GuildInfoPanel.ReadAsync(query, progress, actor, token).ConfigureAwait(false);
+            var panel = await GuildInfoPanel.ReadAsync(overviews, actor, token).ConfigureAwait(false);
             var roster = await query.ReadRosterEntriesAsync(actor, token).ConfigureAwait(false);
             return new ReviewResult(true, entries, panel, roster);
         }, ct).ConfigureAwait(false);

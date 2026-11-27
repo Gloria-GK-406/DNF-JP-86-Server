@@ -32,6 +32,21 @@ public sealed class NpcShopRuleTests
     }
 
     [Fact]
+    public async Task Rotating_stock_accepts_only_items_in_the_server_selected_catalogue()
+    {
+        var content = new NpcShopTestContent();
+        content.Variants[(383, 151)] = new(383, 151, [new(null, [2000])]);
+        var rules = content.Rules();
+
+        Assert.Equal(NpcShopRejection.ShopUnavailable,
+            (await rules.QuoteAsync(383, 150, 12, 2000, 1, default, activeVariant: 151)).Rejection);
+        Assert.Equal(NpcShopRejection.ItemNotSold,
+            (await rules.QuoteAsync(383, 151, 12, 5000, 1, default, activeVariant: 151)).Rejection);
+        Assert.Equal(NpcShopRejection.None,
+            (await rules.QuoteAsync(383, 151, 12, 2000, 1, default, activeVariant: 151)).Rejection);
+    }
+
+    [Fact]
     public async Task Missing_gold_price_on_a_material_exchange_is_not_a_selling_value_fallback()
     {
         var quote = (await new NpcShopTestContent().Rules().QuoteAsync(2, 15, 12, 2000, 3, default)).Quote!;
@@ -104,6 +119,7 @@ public sealed class NpcShopRuleTests
 internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacementDefinitionSource
 {
     public Dictionary<int, NpcShopDefinition> Shops { get; } = [];
+    public Dictionary<(int Npc, int Shop), NpcShopDefinition> Variants { get; } = [];
     public Dictionary<int, NpcShopItemDefinition> Items { get; } = new()
     {
         [2000] = new(2000, null, 0, [new(1000, 1)], null, 0, false, true),
@@ -123,6 +139,8 @@ internal sealed class NpcShopTestContent : INpcShopDefinitionSource, IItemPlacem
     public ValueTask<NpcShopDefinition?> GetShopAsync(int npcId, CancellationToken ct) =>
         ValueTask.FromResult<NpcShopDefinition?>(Shops.GetValueOrDefault(npcId)
             ?? (npcId == 2 ? new(2, 15, [new(null, Items.Keys.ToArray())]) : null));
+    public ValueTask<NpcShopDefinition?> GetShopVariantAsync(int npcId, int shopId, CancellationToken ct) =>
+        ValueTask.FromResult(Variants.GetValueOrDefault((npcId, shopId)));
     public ValueTask<NpcShopItemDefinition?> GetItemAsync(int itemId, CancellationToken ct) =>
         ValueTask.FromResult(Items.GetValueOrDefault(itemId));
     public ValueTask<ItemPlacement?> GetAsync(int itemId, CancellationToken ct) =>

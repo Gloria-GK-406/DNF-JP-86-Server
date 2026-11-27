@@ -24,7 +24,7 @@ namespace Dfo.Server.Persistence.Inventory;
 ///
 /// A character's inventory stops short of the title-book containers. Their positions are rows of
 /// <c>item_slots</c> like any other, but the load they feed parses a container type that admits
-/// only 0, 1, 2, 3 and 7, so one reaching it would be refused rather than ignored.
+/// only 0, 1, 2, 3, 7 and 38, so one reaching it would be refused rather than ignored.
 /// </remarks>
 internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : ICharacterItemTable
 {
@@ -46,7 +46,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
             FROM item_slots place
             JOIN items held ON held.item_uid = place.core_uid
             WHERE place.owner_scope = 'character' AND place.owner_id = @characterId
-              AND place.list_type IN (0, 1, 2, 3, 7)
+              AND place.list_type IN (0, 1, 2, 3, 7, 38)
             ORDER BY place.list_type, place.slot_index, held.item_uid;
             """,
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
@@ -67,7 +67,7 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
         AccountId accountId, CancellationToken cancellationToken) =>
         database.ReadAllAsync(
             $"""
-            SELECT roster.character_id, held.item_uid, place.slot_index, held.item_core, held.appearance_item_id
+            SELECT roster.character_id, held.item_uid, place.slot_index, held.item_core, held.appearance_item_id, held.guardian_gem_keys
             FROM characters roster
             JOIN item_slots place
               ON place.owner_scope = 'character' AND place.owner_id = roster.character_id
@@ -81,7 +81,8 @@ internal sealed class SqliteCharacterItemTable(SqliteDatabase database) : IChara
                 reader.GetInt32(0),
                 reader.GetInt64(1),
                 reader.GetInt32(2),
-                InventoryItemCore.Decode(EntryCore(reader, 3, reader.GetInt64(1))) with { AppearanceItemId = reader.IsDBNull(4) ? null : reader.GetInt32(4) }),
+                InventoryItemCore.Decode(EntryCore(reader, 3, reader.GetInt64(1))) with
+                { AppearanceItemId = reader.IsDBNull(4) ? null : reader.GetInt32(4), GuardianGems = new(reader.GetInt64(5)) }),
             cancellationToken);
 
     internal static AvatarDetailRow? Avatar(SqliteDataReader reader, int ordinal) =>

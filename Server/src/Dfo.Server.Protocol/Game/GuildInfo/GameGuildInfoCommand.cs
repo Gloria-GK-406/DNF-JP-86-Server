@@ -20,9 +20,7 @@ public sealed record GameGuildInfoCommand(NetworkDispatchContext Dispatch, Guild
 
 internal sealed class GameGuildInfoCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildQueryDomainService query,
-    IGuildProgressDomainService progress,
-    IGuildDomainService guilds,
+    IGuildOverviewDomainService overviews, IGuildProfileDomainService profiles,
     IChannelEntryDomainService channels,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox) : ICommandHandler<GameGuildInfoCommand, bool>
@@ -50,7 +48,7 @@ internal sealed class GameGuildInfoCommandHandler(
             }
 
             var status = await units.WriteAsync(context, new("set-guild-channel", [recipient]),
-                (_, token) => guilds.SetRecommendedChannelAsync(actor.CharacterId, channel.ChannelId, token), ct)
+                (_, token) => profiles.SetRecommendedChannelAsync(actor.CharacterId, channel.ChannelId, token), ct)
                 .ConfigureAwait(false);
             await outbox.RegisterCmdAsync(connection.ConnectionId,
                 new GuildSetChannelReply(status == GuildMutationStatus.Success ? null : (byte)0x13), ct).ConfigureAwait(false);
@@ -59,7 +57,7 @@ internal sealed class GameGuildInfoCommandHandler(
         }
 
         var panel = await units.ReadOnlyAsync(context, new("guild-panel", [recipient]),
-            token => GuildInfoPanel.ReadAsync(query, progress, actor.CharacterId, token), ct).ConfigureAwait(false);
+            token => GuildInfoPanel.ReadAsync(overviews, actor.CharacterId, token), ct).ConfigureAwait(false);
         if (panel.FindMember(actor.CharacterId) is not { } member)
             return false;
 
@@ -67,32 +65,33 @@ internal sealed class GameGuildInfoCommandHandler(
             .ConfigureAwait(false);
         await outbox.RegisterNotiAsync(connection.ConnectionId, panel.CreateMessage(member), ct)
             .ConfigureAwait(false);
+        await outbox.RegisterNotiAsync(connection.ConnectionId,
+            new GuildHallInfoMessage(GuildHallTown.InitialEntranceStage), ct).ConfigureAwait(false);
         return true;
     }
 }
 
-internal sealed record GuildInfoPanel(
-    Guild? Guild, IReadOnlyList<GuildMember> Members, int AttendanceCount, IReadOnlyList<GuildRankSetting> Ranks)
-    : INotification<GuildInfoPanel>
+internal sealed record GuildInfoPanel(GuildOverview? Overview) : INotification<GuildInfoPanel>
 {
-    public static GuildInfoPanel Empty { get; } = new(null, [], 0, GuildRankSettings.Defaults);
+    public static GuildInfoPanel Empty { get; } = new((GuildOverview?)null);
+
+    public Guild? Guild => Overview?.Guild;
+    public IReadOnlyList<GuildMember> Members => Overview?.Members ?? [];
+    public IReadOnlyList<GuildPurchasedContent> Contents => Overview?.Contents ?? [];
+    public GuildAlliancePeer? Ally => Overview?.Ally;
+
+    public static async ValueTask<GuildInfoPanel> ReadAsync(IGuildOverviewDomainService overviews,
+        CharacterId viewer, CancellationToken ct) =>
+        await overviews.ReadAsync(viewer, ct).ConfigureAwait(false) is { } overview ? new(overview) : Empty;
 
     public GuildMember? FindMember(CharacterId character) => Members.FirstOrDefault(member => member.Character == character);
 
-    public GuildInfoMessage CreateMessage(GuildMember member) =>
-        new(Guild ?? throw new InvalidOperationException("An empty guild panel has no message."),
-            member.IsLeader, Members.Count, member.DonationPoints, AttendanceCount, Ranks);
-
-    public static async ValueTask<GuildInfoPanel> ReadAsync(
-        IGuildQueryDomainService query, IGuildProgressDomainService progress, CharacterId viewer, CancellationToken ct)
+    public GuildInfoMessage CreateMessage(GuildMember member)
     {
-        if (await query.FindMembershipAsync(viewer, ct).ConfigureAwait(false) is not { } membership)
-            return Empty;
-
-        var members = await query.ReadRosterAsync(viewer, ct).ConfigureAwait(false);
-        var attended = await progress.ReadAttendanceTodayAsync(viewer, ct).ConfigureAwait(false);
-        var ranks = await query.ReadRankSettingsAsync(membership.Guild.Id, ct).ConfigureAwait(false);
-        return new(membership.Guild, members, attended.Count, ranks);
+        var overview = Overview ?? throw new InvalidOperationException("An empty guild panel has no message.");
+        return new(overview.Guild, member.IsLeader, overview.Members.Count, overview.AttendanceCount, overview.Ranks,
+            overview.Contents, overview.Ally, overview.Contributions.Guild,
+            overview.Contributions.Members.GetValueOrDefault(member.Character));
     }
 }
 
@@ -101,5 +100,7 @@ internal sealed class GuildInfoPanelHandler : INotificationHandler<GuildInfoPane
     public ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
         NotificationRecipient recipient, GuildInfoPanel panel, CancellationToken ct) =>
         ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>(
-            panel.FindMember(recipient.CharacterId) is { } member ? [panel.CreateMessage(member)] : []);
+            panel.FindMember(recipient.CharacterId) is { } member
+                ? [panel.CreateMessage(member), new GuildHallInfoMessage(GuildHallTown.InitialEntranceStage)]
+                : []);
 }

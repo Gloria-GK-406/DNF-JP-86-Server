@@ -12,9 +12,11 @@ public static class GuildRankSettings
     public const byte LastRank = 5;
     public const int MaximumNameBytes = 23;
     public const uint ReviewApplicationsPermission = 1u << 1;
+    public const uint ViewAlliancePermission = 1u << 2;
     public const uint AppointMembersPermission = 1u << 11;
+    public const uint TransferLeadershipPermission = 1u << 12;
     public const uint ValidPermissionMask = ushort.MaxValue;
-    public const uint LeaderDefaultPermissions = 0x8DF6;
+    public const uint LeaderDefaultPermissions = 0x8DF6 | TransferLeadershipPermission;
 
     public static IReadOnlyList<GuildRankSetting> Defaults { get; } = Array.AsReadOnly<GuildRankSetting>(
     [

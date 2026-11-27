@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Abstractions.Sessions;
@@ -23,7 +25,8 @@ internal sealed class DungeonClearSettlementDomainService(
     IQuestProgressDomainService quests,
     IDespairTowerDomainService despair,
     IAccountLuckyStarDomainService luckyStars,
-    TimeProvider clock) : IDungeonClearSettlementDomainService
+    TimeProvider clock, IGuildDungeonDomainService guildDungeons, IGuildContributionDomainService guildContributions,
+    IGuildMonthlyContributionDomainService monthlyContributions) : IDungeonClearSettlementDomainService
 {
     public async ValueTask<ClearSettlementStart> BeginAsync(SelectedSessionIdentity session, DungeonRunState run, CancellationToken cancellationToken)
     {
@@ -162,9 +165,19 @@ internal sealed class DungeonClearSettlementDomainService(
             footprint, cancellationToken).ConfigureAwait(false);
         var changed = award is not null && runId != Guid.Empty
             && await attendance.RecordClearAsync(accountId,runId,dungeonId,settlementLevel,now,cancellationToken);
+        ItemDeliveryReceipt? contribution = null;
+        if (award is not null && runs.Find(characterId) is { } completed && completed.RunId.Value == runId)
+        {
+            await monthlyContributions.RecordClearAsync(characterId, completed, settlementLevel, cancellationToken).ConfigureAwait(false);
+            if (completed.Layout.Mode is not DungeonRunMode.GuildDungeon
+                || await guildDungeons.SettleAsync(accountId, characterId, completed, now, cancellationToken).ConfigureAwait(false))
+                contribution = await guildContributions.AwardClearAsync(accountId, characterId, completed, now, cancellationToken)
+                    .ConfigureAwait(false);
+        }
         var unlocked = runs.Find(characterId)?.Layout.Mode.Capabilities.UnlocksDifficulty is false ? null
             : await difficulties.UnlockAfterClearAsync(characterId, dungeonId,
             (DungeonDifficulty)clear.Difficulty, cancellationToken).ConfigureAwait(false);
-        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked) { Despair = tower };
+        return new(award, award?.Breakdown.Base ?? 0, award?.Breakdown.ClearRank ?? 0,changed,unlocked)
+        { Despair = tower, GuildContribution = contribution };
     }
 }

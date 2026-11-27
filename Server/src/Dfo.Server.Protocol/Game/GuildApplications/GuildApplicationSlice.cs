@@ -11,6 +11,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
 using Dfo.Server.Protocol.Game.GuildCreation;
 using Dfo.Server.Protocol.Game.GuildMemberInfo;
+using Dfo.Server.Protocol.Game.CharacterBuffs;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Protocol.Game.GuildApplications;
@@ -164,7 +165,7 @@ internal sealed class GuildApplicationStatusEncoder : GameNotiMessageEncoder<Gui
 internal sealed record GuildApplicationResolved(CharacterId Applicant, GuildMember? JoinedMember)
     : INotification<GuildApplicationResolved>;
 
-internal sealed class GuildApplicationResolvedHandler(IGuildQueryDomainService query)
+internal sealed class GuildApplicationResolvedHandler(IGuildMembershipQueryDomainService query, IGuildBenefitDomainService benefits)
     : INotificationHandler<GuildApplicationResolved>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(
@@ -175,7 +176,16 @@ internal sealed class GuildApplicationResolvedHandler(IGuildQueryDomainService q
 
         var pending = new GuildApplicationStatusMessage(
             await query.FindPendingApplicationAsync(result.Applicant, ct).ConfigureAwait(false));
-        return result.JoinedMember is { } member ? [GuildMemberInfoMessage.From(member), pending] : [pending];
+        if (result.JoinedMember is not { } member)
+            return [pending];
+        var bonuses = await benefits.ReadAttributeBonusesAsync(member.Guild, ct).ConfigureAwait(false);
+        List<IServerNetworkMessage> messages = [GuildMemberInfoMessage.From(member), pending];
+        foreach (var bonus in bonuses)
+        {
+            messages.Add(new CharacterBuffRemoved(bonus.BuffId));
+            messages.Add(new CharacterBuffAdded(bonus.BuffId, State1: 1));
+        }
+        return messages;
     }
 }
 

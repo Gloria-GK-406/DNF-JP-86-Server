@@ -100,6 +100,13 @@ internal sealed class ReplayStateProjectionDelivery(SelectedSessionSafety safety
                 messages.Add(new InventorySnapshotMessage(container, inventory.VirtualResources, account.VirtualResources,
                     account.Cargo.SelectionKey, account.Cargo.Value32, state.At));
             }
+            if (state.Request.TouchedSlots.Any(slot => A21InventoryLayout.ToGameSlot(slot).Space == InventoryContainerType.GuildMedal))
+            {
+                var medals = inventory.Containers.SingleOrDefault(x => x.ContainerType == InventoryContainerType.GuildMedal)
+                    ?? throw Missing("Inventory.GuildMedal");
+                messages.Add(new InventorySnapshotMessage(medals, inventory.VirtualResources, account.VirtualResources,
+                    account.Cargo.SelectionKey, account.Cargo.Value32, state.At));
+            }
             foreach (var slot in state.Request.TouchedSlots.Distinct())
             {
                 var physical = A21InventoryLayout.ToGameSlot(slot);

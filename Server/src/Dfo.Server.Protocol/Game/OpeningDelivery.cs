@@ -22,25 +22,16 @@ public sealed class OpeningCompletedHandler(ISelectedSessionDomainService sessio
         if (recipient.CharacterId != receipt.Session.CharacterId || recipient.ConnectionId != receipt.Session.ConnectionId
             || !sessions.IsInWorld(receipt.Session)) return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         // Magic-box ACKs decrement local piles; ordinary 00A0 with zero flags does not.
-        // A21 0117E957 / 0117EAF4 will not replace an occupied class-1 stackable with another ID.
-        // Keep ACKs first, then clear reused slots before installing their final contents.
         var messages = new List<IServerNetworkMessage>(notification.Responses);
-        foreach (var slot in receipt.Replaced.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
-        {
-            var wire = OpeningWireSlots.Project(slot);
-            messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
-        }
         var updates = receipt.Updates.GroupBy(update => OpeningWireSlots.Project(update.Slot).Space)
             .Select(group => new CommittedInventoryUpdateState(group.Key,
                 group.Select(update => new InventoryItemState(update.Identity,
                     OpeningWireSlots.Project(update.Slot).Index, update.Core.ToCore(),
                     AvatarDetail: update.Core.AvatarDetail)).ToArray(), receipt.PreparedAt)).ToArray();
-        messages.AddRange(GameInventoryDelivery.Notifications(updates));
-        foreach (var slot in receipt.Cleared.Where(x => x.Space != BusinessInventorySpace.SharedMaterial))
-        {
-            var wire = OpeningWireSlots.Project(slot);
-            messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
-        }
+        messages.AddRange(GameInventoryDelivery.Notifications(updates,
+            receipt.Replaced.Where(x => x.Space != BusinessInventorySpace.SharedMaterial).Select(OpeningWireSlots.Project),
+            receipt.Cleared.Where(x => x.Space != BusinessInventorySpace.SharedMaterial).Select(OpeningWireSlots.Project),
+            receipt.PreparedAt));
         if (!receipt.ChangedPremiums.IsDefaultOrEmpty)
             foreach (var premium in receipt.ChangedPremiums)
                 messages.Add(GameInstanceDelivery.Premium(premium, receipt.PreparedAt));

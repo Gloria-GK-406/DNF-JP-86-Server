@@ -63,7 +63,7 @@ internal sealed class SelectedSessionCleanupService(
     IEnumerable<IPvpRoomDepartureSink> pvpDepartures,
     ILogger<SelectedSessionCleanupService> logger,
     IAntonRaidDomainService raids,
-    IGuildQueryDomainService guilds) : ISelectedSessionCleanupDomainService
+    IGuildMembershipQueryDomainService guilds) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {

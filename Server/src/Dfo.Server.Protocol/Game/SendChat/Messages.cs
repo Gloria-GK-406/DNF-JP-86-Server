@@ -49,7 +49,7 @@ internal static class ChatRefusal
     public const byte Reason = 0x11;
 }
 
-/// <summary>NOTI <c>0x000C</c>: an area, party or guild line.</summary>
+/// <summary>NOTI <c>0x000C</c>: a chat line whose speaker is identified by a channel-local user ID.</summary>
 /// <remarks>
 /// A21 handler VA <c>01189860</c>: <c>u8 mode, u16 senderUid, u8 serverGroup, dstr text</c>; it drops a
 /// mode of <c>0x3B</c> or more, a server group of <c>0xFA</c> or more, and text that is empty or 256
@@ -62,7 +62,7 @@ public sealed record ChatLineMessage(byte Mode, ushort SenderUserId, byte[] Text
     public ServerMessageType MessageType => ServerMessageType.GameChatMessage;
 }
 
-/// <summary>NOTI <c>0x0041</c>: a whisper, as its recipient receives it.</summary>
+/// <summary>NOTI <c>0x0041</c>: a whisper or a guild message with a speaker name.</summary>
 /// <remarks>
 /// A21 handler VA <c>01173D70</c>: <c>u8 mode, u8 status, dstr name, u8 server, dstr text</c>, with the
 /// name at most 30 bytes and the text shorter than 256.

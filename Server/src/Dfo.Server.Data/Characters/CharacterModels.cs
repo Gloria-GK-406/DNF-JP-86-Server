@@ -389,6 +389,18 @@ public sealed record CharacterPublicEntryState(
     public AccountHonorLevel Honor { get; init; } = AccountHonorLevel.Initial;
     public CharacterAppearance? Display { get; init; }
     public Dfo.Server.Data.Guilds.GuildPublicIdentity? GuildIdentity { get; init; }
+    public Dfo.Server.Data.Guilds.GuildMedalAura? ActiveGuildMedalAura { get; init; }
+    public IReadOnlyList<Dfo.Server.Data.Guilds.GuildAttributeBonus> GuildAttributes { get; init; } = [];
+
+    // The owner receives base stats and the actionable A21 buff. Inspection needs the final values.
+    public CharacterDerivedStatsStorageRecord EffectiveStats => GuildAttributes.Aggregate(DerivedStats,
+        (stats, bonus) => stats with
+        {
+            PhysicalAttack = checked(stats.PhysicalAttack + bonus.PhysicalAttack),
+            PhysicalDefense = checked(stats.PhysicalDefense + bonus.PhysicalDefense),
+            MagicalAttack = checked(stats.MagicalAttack + bonus.MagicalAttack),
+            MagicalDefense = checked(stats.MagicalDefense + bonus.MagicalDefense),
+        });
 }
 
 public sealed record CharacterSkillState(

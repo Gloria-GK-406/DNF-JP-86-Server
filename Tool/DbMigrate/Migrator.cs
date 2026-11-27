@@ -36,7 +36,185 @@ public static class Migrator
             [18] = AddGuildRankSettings,
             [19] = AddGuildMemberRank,
             [20] = AddGuildAppearance,
+            [21] = AddGuildContents,
+            [22] = AddTimedGuildContentsAndWarehouse,
+            [23] = AddGuildWarehouseItems,
+            [24] = AddGuildDungeonProgress,
+            [25] = AddGuildWarehouseHistory,
+            [26] = AddGuildBoard,
+            [27] = AddGuardianGemKeys,
+            [28] = AddGuildMemberMemo,
+            [29] = AddGuildAlliances,
+            [30] = AddGuildGifts,
+            [31] = AddGuildRedPackets,
+            [32] = AddGuildDailyContributions,
+            [33] = AddGuildClearContributions,
+            [34] = AddGuildDungeonRepeatBonus,
+            [35] = AddGuildMonthlyContributions,
+            [36] = AddGuildHallStage,
+            [37] = AddGuildDungeonExtensions,
+            [38] = AddGuildMedalAura,
+            [39] = GuildMembershipUpgrade.Apply,
         };
+
+    private static void AddGuildMedalAura(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        if (!Shape.HasColumn(connection, transaction, "guilds", "medal_aura_symbol"))
+        {
+            command.CommandText = """
+                ALTER TABLE guilds ADD COLUMN medal_aura_symbol INTEGER NOT NULL DEFAULT -1
+                    CHECK(medal_aura_symbol BETWEEN -1 AND 2147483647)
+                """;
+            command.ExecuteNonQuery();
+        }
+        if (!Shape.HasColumn(connection, transaction, "guilds", "medal_aura_frame"))
+        {
+            command.CommandText = """
+                ALTER TABLE guilds ADD COLUMN medal_aura_frame INTEGER NOT NULL DEFAULT -1
+                    CHECK(medal_aura_frame BETWEEN -1 AND 2147483647
+                        AND (medal_aura_frame = -1) = (medal_aura_symbol = -1))
+                """;
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
+    }
+
+    private static void AddGuildDungeonExtensions(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildDungeonExtensions(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildHallStage(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        if (!Shape.HasColumn(connection, transaction, "guilds", "hall_stage"))
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "ALTER TABLE guilds ADD COLUMN hall_stage INTEGER NOT NULL DEFAULT 1 CHECK(hall_stage BETWEEN 1 AND 5)";
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
+    }
+
+    private static void AddGuildMonthlyContributions(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildMonthlyContributions(connection, transaction);
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            CREATE VIEW IF NOT EXISTS guild_contribution_entries AS
+            SELECT guild_id,donor_character_id AS character_id,donor_name AS character_name,points,
+                donated_at AS earned_at,3 AS source,donation_id AS source_id FROM guild_gold_donations
+            UNION ALL
+            SELECT guild_id,character_id,character_name,points,earned_at,source,event_id
+            FROM guild_monthly_contribution_events
+            """;
+        command.ExecuteNonQuery();
+        transaction.Commit();
+    }
+
+    private static void AddGuildDungeonRepeatBonus(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildDungeonRepeatBonus(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildClearContributions(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildClearContributions(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildDailyContributions(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildDailyContributions(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildRedPackets(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildRedPackets(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildGifts(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildGifts(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildAlliances(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildAlliances(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildMemberMemo(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        if (!Shape.HasColumn(connection, transaction, "guild_members", "memo"))
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "ALTER TABLE guild_members ADD COLUMN memo TEXT NOT NULL DEFAULT ''";
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
+    }
+
+    private static void AddGuardianGemKeys(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        if (!Shape.HasColumn(connection, transaction, "items", "guardian_gem_keys"))
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "ALTER TABLE items ADD COLUMN guardian_gem_keys INTEGER NOT NULL DEFAULT 0";
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
+    }
+
+    private static void AddGuildBoard(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildBoard(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildWarehouseHistory(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildWarehouseHistory(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildDungeonProgress(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildDungeonProgress(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddGuildWarehouseItems(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildWarehouseItems(connection, transaction);
+        transaction.Commit();
+    }
 
     private static void AddGuilds(SqliteConnection connection)
     {
@@ -144,6 +322,34 @@ public static class Migrator
                 """;
             command.ExecuteNonQuery();
         }
+        transaction.Commit();
+    }
+
+    private static void AddGuildContents(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        CharacterDatabaseSchema.DeclareGuildContents(connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void AddTimedGuildContentsAndWarehouse(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        if (!Shape.HasColumn(connection, transaction, "guild_contents", "expires_at"))
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "ALTER TABLE guild_contents RENAME TO guild_contents_v22;";
+            command.ExecuteNonQuery();
+            CharacterDatabaseSchema.DeclareGuildContents(connection, transaction);
+            command.CommandText = """
+                INSERT INTO guild_contents(guild_id,kind,product_id,value,remaining_uses)
+                SELECT guild_id,kind,product_id,value,remaining_uses FROM guild_contents_v22;
+                DROP TABLE guild_contents_v22;
+                """;
+            command.ExecuteNonQuery();
+        }
+        CharacterDatabaseSchema.DeclareGuildWarehouse(connection, transaction);
         transaction.Commit();
     }
 

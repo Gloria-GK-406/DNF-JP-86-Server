@@ -263,6 +263,9 @@ internal sealed partial class GamePartyTransitionCommandHandler :
                 returning.RemoveAll(value => !endedCharacters.Contains(value.Session.CharacterId));
                 if (!returning.Any(value => value.Session == session))
                     return;
+                foreach (var member in returning)
+                    await GuildDungeon.GuildDungeonPartyBuffProjection.ClearAsync(outbox, sessions, member.Session, currentRun,
+                        cancellationToken).ConfigureAwait(false);
                 if (exits.RechallengeIntent(currentRun, message.Option == 0) is { } rechallenge)
                     foreach (var member in returning)
                         entryIntents.RestoreIfAbsent(member.Session, rechallenge);
@@ -394,7 +397,11 @@ internal sealed partial class GamePartyTransitionCommandHandler :
                     partyResult.Notifications, sessions, townAreas));
             ended = gaveUp.Ended;
             if (ended)
+            {
                 registry.ParticipantDeparted(currentRun.RunId, session.CharacterId);
+                await GuildDungeon.GuildDungeonPartyBuffProjection.ClearAsync(outbox, sessions, session, currentRun,
+                    cancellationToken).ConfigureAwait(false);
+            }
         }
 
         if (partyExecution is { Result.Succeeded: true })

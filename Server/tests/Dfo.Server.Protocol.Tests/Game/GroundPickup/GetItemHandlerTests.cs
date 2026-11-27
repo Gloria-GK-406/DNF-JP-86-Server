@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Parties;
@@ -164,7 +165,7 @@ public sealed class GetItemHandlerTests
             var sender = new ThrowingSender();
             var clear = new DungeonClearDomainService(
                 runs,
-                new ClearedRoom(), new DungeonSettlementRuleService());
+                new ClearedRoom(), new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
             var projection = new PickupProjectionDriver(
                 sessions, runs, run, registry, sender, TimeProvider.System);
             var postCommit = new PickupClearDriver(

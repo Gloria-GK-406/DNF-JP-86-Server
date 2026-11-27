@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Chat;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -18,9 +19,10 @@ internal sealed class ChatScopeDomainService(
     ISelectedSessionDomainService sessions,
     ITownAreaDomainService townAreas,
     IPartyService parties,
-    IChatConversationDomainService conversations) : IChatScopeDomainService
+    IChatConversationDomainService conversations,
+    IGuildDomainStore guilds) : IChatScopeDomainService
 {
-    public IReadOnlyList<CharacterId> MembersOf(ChatScope scope)
+    public async ValueTask<IReadOnlyList<CharacterId>> MembersOfAsync(ChatScope scope, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(scope);
         return scope switch
@@ -28,12 +30,20 @@ internal sealed class ChatScopeDomainService(
             ChatScope.AreaOf area => AreaOf(area.Anchor),
             ChatScope.PartyOf party => PartyOf(party.Anchor),
             ChatScope.ChannelOf channel => ChannelOf(channel.Anchor),
-            ChatScope.GuildOf => [],
+            ChatScope.GuildOf guild => await GuildOfAsync(guild.Anchor, ct).ConfigureAwait(false),
             ChatScope.Server => InWorld(_ => true),
             ChatScope.Character character => sessions.TryGetInWorld(character.Target, out _) ? [character.Target] : [],
             ChatScope.Conversation conversation => ConversationOf(conversation.Id),
             _ => throw new NotSupportedException($"Chat scope '{scope.GetType().Name}' has no member rule."),
         };
+    }
+
+    private async ValueTask<CharacterId[]> GuildOfAsync(CharacterId anchor, CancellationToken ct)
+    {
+        if (!sessions.TryGetInWorld(anchor, out _))
+            return [];
+        var roster = await guilds.ReadRosterCharacterIdsAsync(anchor, ct).ConfigureAwait(false);
+        return [.. roster.Where(member => sessions.TryGetInWorld(member, out _))];
     }
 
     private CharacterId[] AreaOf(CharacterId anchor)

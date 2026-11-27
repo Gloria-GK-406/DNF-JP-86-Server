@@ -201,6 +201,7 @@ public sealed record InventoryItemCoreState(
 {
     /// <summary>Server-side appearance metadata; item wire/storage core encoders do not append it.</summary>
     public int? AppearanceItemId { get; init; }
+    public GuardianGemSockets GuardianGems { get; init; }
     public int DisplayItemId => AppearanceItemId ?? ItemId;
 
     /// <summary>Derived display of template features; writes still use authoritative placement.</summary>

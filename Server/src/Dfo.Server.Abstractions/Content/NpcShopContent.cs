@@ -26,5 +26,6 @@ public sealed record NpcShopItemDefinition(
 public interface INpcShopDefinitionSource
 {
     ValueTask<NpcShopDefinition?> GetShopAsync(int npcId, CancellationToken cancellationToken);
+    ValueTask<NpcShopDefinition?> GetShopVariantAsync(int npcId, int shopId, CancellationToken cancellationToken);
     ValueTask<NpcShopItemDefinition?> GetItemAsync(int itemId, CancellationToken cancellationToken);
 }

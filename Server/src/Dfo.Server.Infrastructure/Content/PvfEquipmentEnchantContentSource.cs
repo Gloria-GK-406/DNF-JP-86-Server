@@ -25,6 +25,7 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private Dictionary<int, string>? stackables;
     private Dictionary<int, string>? equipment;
     private readonly Dictionary<(int Bead, int Target), EquipmentEnchantDefinition?> cache = [];
+    private readonly Dictionary<int, IReadOnlyList<string>> gemEffects = [];
 
     // Explicit: the class already has a private Name(archive, token) helper.
     string Dfo.Server.Abstractions.Content.IContentWarmup.Name => "equipment-enchant-index";
@@ -64,6 +65,34 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
                 cache[key] = result = Read(key);
             return ValueTask.FromResult(result);
         }
+    }
+
+    public ValueTask<IReadOnlyList<string>> GuardianGemEffectsAsync(int itemId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!gemEffects.TryGetValue(itemId, out var effects))
+                gemEffects[itemId] = effects = ReadGuardianGemEffects(itemId);
+            return ValueTask.FromResult(effects);
+        }
+    }
+
+    private IReadOnlyList<string> ReadGuardianGemEffects(int itemId)
+    {
+        var archive = provider.Archive;
+        StackablesIndex(archive);
+        if (!stackables.TryGetValue(itemId, out var relative))
+            return [];
+        var sections = PvfDocument.TryOpen(archive, "stackable/" + relative, PvfPreamble.Ignore)?.Sections ?? [];
+        var type = sections.FirstOrDefault(section => section.Name == "[stackable type]");
+        if (type is not { Values.Count: > 0 } || Name(archive, type.Values[0]) != "flag gem")
+            return [];
+        var effects = sections.SkipWhile(section => section.Name != "[enchant]").Skip(1).ToArray();
+        if (!effects.Any(section => section.Name == "[/enchant]"))
+            return [];
+        return effects.TakeWhile(section => section.Name != "[/enchant]").Select(section => section.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     private EquipmentEnchantDefinition? Read((int Bead, int Target) key)

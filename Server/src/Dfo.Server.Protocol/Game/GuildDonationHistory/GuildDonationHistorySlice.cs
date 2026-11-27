@@ -22,7 +22,7 @@ internal abstract class EmptyGuildDonationHistoryDecoder(ClientMessageType type)
 internal sealed class GuildDonationHistoryDecoder() : EmptyGuildDonationHistoryDecoder(ClientMessageType.GameGuildDonationHistory);
 internal sealed class GuildMileageHistoryDecoder() : EmptyGuildDonationHistoryDecoder(ClientMessageType.GameGuildMileageHistory);
 
-internal sealed record GuildDonationHistoryReply(ServerMessageType MessageType, IReadOnlyList<GuildDonationEntry>? Entries = null)
+internal sealed record GuildDonationHistoryReply(ServerMessageType MessageType, IReadOnlyList<GuildContributionEntry>? Entries = null)
     : IGameCmdMessage;
 
 internal sealed class GuildDonationHistoryEncoder : GameCmdMessageEncoder<GuildDonationHistoryReply>
@@ -31,7 +31,6 @@ internal sealed class GuildDonationHistoryEncoder : GameCmdMessageEncoder<GuildD
     private const int RowWidth = 44;
     private const int ContributionNameWidth = 32;
     private const int MileageNameWidth = 30;
-    private const int ContributionGoldDonationKind = 3;
     private const byte MileageGoldDonationKind = 4;
 
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(GuildDonationHistoryReply message)
@@ -60,21 +59,21 @@ internal sealed class GuildDonationHistoryEncoder : GameCmdMessageEncoder<GuildD
             else
             {
                 BinaryPrimitives.WriteInt32LittleEndian(row[36..], entry.Points);
-                BinaryPrimitives.WriteInt32LittleEndian(row[40..], ContributionGoldDonationKind);
+                BinaryPrimitives.WriteInt32LittleEndian(row[40..], (int)entry.Source);
             }
         }
 
         return OnePayload(message, GameCmdEnvelope.Accept(body));
     }
 
-    private static void WriteIdentity(Span<byte> row, GuildDonationEntry entry, int nameWidth)
+    private static void WriteIdentity(Span<byte> row, GuildContributionEntry entry, int nameWidth)
     {
-        BinaryPrimitives.WriteInt32LittleEndian(row, checked((int)entry.DonatedAt.ToUnixTimeSeconds()));
-        var length = Math.Min(entry.DonorName.Length, nameWidth - 1);
+        BinaryPrimitives.WriteInt32LittleEndian(row, checked((int)entry.EarnedAt.ToUnixTimeSeconds()));
+        var length = Math.Min(entry.CharacterName.Length, nameWidth - 1);
         // Keep the C-string terminator and leave any UTF-8 sequence crossing it out.
-        while (length < entry.DonorName.Length && length > 0 && (entry.DonorName[length] & 0xC0) == 0x80)
+        while (length < entry.CharacterName.Length && length > 0 && (entry.CharacterName[length] & 0xC0) == 0x80)
             length--;
-        entry.DonorName.AsSpan(0, length).CopyTo(row.Slice(sizeof(int), nameWidth));
+        entry.CharacterName.AsSpan(0, length).CopyTo(row.Slice(sizeof(int), nameWidth));
     }
 }
 
@@ -95,7 +94,8 @@ public sealed record GameGuildDonationHistoryCommand(NetworkDispatchContext Disp
 
 internal sealed class GameGuildDonationHistoryCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildQueryDomainService guilds,
+    IGuildDonationDomainService donations,
+    IGuildMonthlyContributionDomainService contributions,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox) : ICommandHandler<GameGuildDonationHistoryCommand, bool>
 {
@@ -111,8 +111,12 @@ internal sealed class GameGuildDonationHistoryCommandHandler(
         {
             var recipient = new SelectedSessionRecipient(viewer, connection, command.Request.Metadata);
             reply = await units.ReadOnlyAsync(context, new("guild-donation-history", [recipient]), async token =>
-                new GuildDonationHistoryReply(replyType, await guilds.ReadDonationHistoryAsync(
-                    viewer.CharacterId, GuildDonationHistoryEncoder.Capacity, token).ConfigureAwait(false)), ct)
+                new GuildDonationHistoryReply(replyType, replyType == ServerMessageType.GameGuildMileageHistory
+                    ? (await donations.ReadDonationHistoryAsync(viewer.CharacterId, GuildDonationHistoryEncoder.Capacity, token)
+                        .ConfigureAwait(false))?.Select(entry => new GuildContributionEntry(entry.DonorName, entry.Points,
+                            entry.DonatedAt, GuildContributionSource.GoldDonation)).ToArray()
+                    : await contributions.ReadHistoryAsync(viewer.CharacterId, GuildDonationHistoryEncoder.Capacity, token)
+                        .ConfigureAwait(false)), ct)
                 .ConfigureAwait(false);
         }
 

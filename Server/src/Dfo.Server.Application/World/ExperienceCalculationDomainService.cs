@@ -54,7 +54,8 @@ internal sealed class ExperienceCalculationDomainService(
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false);
                 var bossKill = new ExperienceBreakdown(Base: bossKillBase);
                 if (bossKillBase == 0) return bossKill;
-                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion with { Event = ExperienceEvent.MonsterKill }, cancellationToken).ConfigureAwait(false))
+                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion with
+                    { Event = ExperienceEvent.MonsterKill, AllowGuildExperience = false }, cancellationToken).ConfigureAwait(false))
                     bossKill = bossKill.Add(modifier.Kind, Floor(bossKillBase * modifier.Rate));
                 _ = bossKill.Total;
                 return bossKill;

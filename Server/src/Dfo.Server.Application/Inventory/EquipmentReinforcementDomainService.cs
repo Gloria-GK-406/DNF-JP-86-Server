@@ -34,7 +34,9 @@ internal sealed class EquipmentReinforcementDomainService(
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session))
             return new(EquipmentReinforcementRejection.NoSession);
-        if (!(targetSlot.Space.IsCarriedItemSpace() || targetSlot.Space.IsWornEquipmentSpace())
+        var medal = targetSlot.Space == BusinessInventorySpace.GuildMedal;
+        if (!(targetSlot.Space.IsCarriedItemSpace() || targetSlot.Space.IsWornEquipmentSpace() || medal)
+            || medal && (kind != EquipmentUpgradeKind.Reinforcement || protectionSlot is not null)
             || expectedItemId <= 0
             || materialSlot is { } candidateMaterial
                 && (!(candidateMaterial.Space.IsCarriedItemSpace() || candidateMaterial.Space == BusinessInventorySpace.SharedMaterial) || candidateMaterial == targetSlot)
@@ -45,12 +47,15 @@ internal sealed class EquipmentReinforcementDomainService(
         var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null) return new(EquipmentReinforcementRejection.ItemUnavailable);
+        if (target.Snapshot.Type.HasFlag(ItemTraits.GuildMedal) != medal
+            || medal && (target.Snapshot.IsMirror || target.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow())))
+            return new(EquipmentReinforcementRejection.InvalidRequest);
         if (target.Snapshot.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentReinforcementRejection.Locked);
         var sourceBound = materialSlot is { } requestedSource ? slots.Find(session.CharacterId, requestedSource) : null;
         var source = sourceBound is null ? null : await sourceBound.Container.GetAsync(sourceBound.Slot.Index, ct).ConfigureAwait(false);
-        var ticketQuote = source is { IsPile: true }
+        var ticketQuote = !medal && source is { IsPile: true }
             ? await rules.QuoteTicketAsync(target.Snapshot, source.ItemId, ct, kind).ConfigureAwait(false)
             : new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None);
         var quote = ticketQuote.IsTicket ? ticketQuote
@@ -72,6 +77,8 @@ internal sealed class EquipmentReinforcementDomainService(
             var material = materialBound is null ? null
                 : await materialBound.Container.GetAsync(materialBound.Slot.Index, ct).ConfigureAwait(false);
             if (material is not { IsPile: true } || material.ItemId != rule.MaterialItemId
+                || medal && (material.Snapshot.EquipmentLockId != 0 || material.Snapshot.SortLockFlag != 0
+                    || material.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow()))
                 || material.Count < rule.MaterialCount)
                 return new(EquipmentReinforcementRejection.InsufficientMaterial);
             materialLocation = sourceSlot;

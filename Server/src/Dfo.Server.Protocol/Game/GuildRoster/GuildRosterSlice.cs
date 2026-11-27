@@ -6,6 +6,7 @@ using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Networking.Framing;
+using Dfo.Server.Protocol.Game.GuildCreation;
 using Dfo.Server.Protocol.Game.GuildMemberInfo;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -51,7 +52,7 @@ internal sealed class GuildRosterReplyEncoder : GameCmdMessageEncoder<GuildRoste
             var entry = row.Entry;
             writer.Write(entry.Membership.Character.Value);
             WriteText(writer, entry.Name);
-            WriteText(writer, []);
+            WriteText(writer, GuildCreationPayloadCodec.EncodeGuildText(entry.Membership.Memo));
             writer.Write(checked((ushort)entry.Level));
             writer.Write(checked((byte)entry.Job));
             writer.Write(checked((byte)entry.GrowType));

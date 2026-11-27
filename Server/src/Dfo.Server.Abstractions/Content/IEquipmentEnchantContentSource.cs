@@ -5,6 +5,9 @@ public sealed record EquipmentEnchantDefinition(int BeadItemId, int CardItemId);
 
 public interface IEquipmentEnchantContentSource
 {
+    ValueTask<IReadOnlyList<string>> GuardianGemEffectsAsync(int itemId, CancellationToken ct) =>
+        ValueTask.FromResult<IReadOnlyList<string>>([]);
+
     ValueTask<EquipmentEnchantDefinition?> ResolveAsync(
         int beadItemId, int equipmentItemId, CancellationToken cancellationToken);
 }

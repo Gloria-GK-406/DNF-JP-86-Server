@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Chat;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Chat;
 using Dfo.Server.Application.Parties;
@@ -19,7 +20,7 @@ public sealed class ChatScopeDomainServiceTests
     private const int DuelChannel = 10100;
 
     [Fact]
-    public void Area_reaches_everyone_in_the_world_standing_in_the_anchors_area_and_no_one_else()
+    public async Task Area_reaches_everyone_in_the_world_standing_in_the_anchors_area_and_no_one_else()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
@@ -30,13 +31,13 @@ public sealed class ChatScopeDomainServiceTests
         var stale = w.Enter(5, FirstChannel, area: new(1, 2, 1));
         w.Release(stale);
 
-        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.AreaOf(a.CharacterId))));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.AreaOf(d.CharacterId)));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.AreaOf(new CharacterId(99))));
+        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(await w.MembersOfAsync(new ChatScope.AreaOf(a.CharacterId))));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.AreaOf(d.CharacterId)));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.AreaOf(new CharacterId(99))));
     }
 
     [Fact]
-    public void Party_reaches_every_member_in_the_world_wherever_they_stand_and_no_party_reaches_no_one()
+    public async Task Party_reaches_every_member_in_the_world_wherever_they_stand_and_no_party_reaches_no_one()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
@@ -47,12 +48,12 @@ public sealed class ChatScopeDomainServiceTests
         w.LeaveTown(b);
         w.Release(offline);
 
-        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.PartyOf(a.CharacterId))));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.PartyOf(c.CharacterId)));
+        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(await w.MembersOfAsync(new ChatScope.PartyOf(a.CharacterId))));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.PartyOf(c.CharacterId)));
     }
 
     [Fact]
-    public void Channel_reaches_everyone_in_the_world_on_the_anchors_listener_wherever_they_stand()
+    public async Task Channel_reaches_everyone_in_the_world_on_the_anchors_listener_wherever_they_stand()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
@@ -61,12 +62,12 @@ public sealed class ChatScopeDomainServiceTests
         _ = w.Enter(3, DuelChannel, area: new(3, 2, 1));
         var selectedOnly = w.Select(4, FirstChannel);
 
-        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.ChannelOf(a.CharacterId))));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.ChannelOf(selectedOnly.CharacterId)));
+        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(await w.MembersOfAsync(new ChatScope.ChannelOf(a.CharacterId))));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.ChannelOf(selectedOnly.CharacterId)));
     }
 
     [Fact]
-    public void Server_reaches_everyone_in_the_world_across_every_listener()
+    public async Task Server_reaches_everyone_in_the_world_across_every_listener()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
@@ -77,11 +78,11 @@ public sealed class ChatScopeDomainServiceTests
         var gone = w.Enter(5, FirstChannel, area: new(1, 2, 1));
         w.Release(gone);
 
-        Assert.Equal([a.CharacterId, b.CharacterId, c.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.Server())));
+        Assert.Equal([a.CharacterId, b.CharacterId, c.CharacterId], Sorted(await w.MembersOfAsync(new ChatScope.Server())));
     }
 
     [Fact]
-    public void Character_reaches_the_target_only_while_it_is_in_the_world()
+    public async Task Character_reaches_the_target_only_while_it_is_in_the_world()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
@@ -89,24 +90,34 @@ public sealed class ChatScopeDomainServiceTests
         w.Release(gone);
         var selectedOnly = w.Select(3, FirstChannel);
 
-        Assert.Equal([a.CharacterId], w.Chat.MembersOf(new ChatScope.Character(a.CharacterId)));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.Character(gone.CharacterId)));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.Character(selectedOnly.CharacterId)));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.Character(new CharacterId(99))));
+        Assert.Equal([a.CharacterId], await w.MembersOfAsync(new ChatScope.Character(a.CharacterId)));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.Character(gone.CharacterId)));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.Character(selectedOnly.CharacterId)));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.Character(new CharacterId(99))));
     }
 
     [Fact]
-    public void Guild_reaches_no_one_because_there_is_no_guild_system()
+    public async Task Guild_reaches_current_members_across_channels_only_while_in_world()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
-        _ = w.Enter(2, FirstChannel, area: new(1, 2, 1));
+        var otherChannel = w.Enter(2, DuelChannel, area: new(3, 2, 1));
+        var otherGuild = w.Enter(3, FirstChannel, area: new(1, 2, 1));
+        var selected = w.Select(4, FirstChannel);
+        var offline = w.Enter(5, FirstChannel, area: new(1, 2, 1));
+        var outsider = w.Enter(6, FirstChannel, area: new(1, 2, 1));
+        w.Release(offline);
+        w.GuildRosters[a.CharacterId] = [a.CharacterId, otherChannel.CharacterId, selected.CharacterId, offline.CharacterId];
+        w.GuildRosters[otherGuild.CharacterId] = [otherGuild.CharacterId];
 
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.GuildOf(a.CharacterId)));
+        Assert.Equal([a.CharacterId, otherChannel.CharacterId], await w.MembersOfAsync(new ChatScope.GuildOf(a.CharacterId)));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.GuildOf(outsider.CharacterId)));
+        w.GuildRosters[a.CharacterId] = [a.CharacterId];
+        Assert.Equal([a.CharacterId], await w.MembersOfAsync(new ChatScope.GuildOf(a.CharacterId)));
     }
 
     [Fact]
-    public void Conversation_reaches_its_members_only_from_the_sessions_they_opened_it_on()
+    public async Task Conversation_reaches_its_members_only_from_the_sessions_they_opened_it_on()
     {
         var w = new World();
         var a = w.Enter(1, FirstChannel, area: new(1, 2, 1));
@@ -115,14 +126,14 @@ public sealed class ChatScopeDomainServiceTests
         var open = TestGameplay.Run(() => w.Conversations.Open(new(a, [0x41]), new(b, [0x42])))!;
         var other = TestGameplay.Run(() => w.Conversations.Open(new(c, [0x43]), new(a, [0x41])))!;
 
-        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.Conversation(open.Id))));
+        Assert.Equal([a.CharacterId, b.CharacterId], Sorted(await w.MembersOfAsync(new ChatScope.Conversation(open.Id))));
         w.Release(b);
-        Assert.Equal([a.CharacterId], w.Chat.MembersOf(new ChatScope.Conversation(open.Id)));
+        Assert.Equal([a.CharacterId], await w.MembersOfAsync(new ChatScope.Conversation(open.Id)));
         var later = w.Enter(2, FirstChannel, area: new(1, 2, 1));
         Assert.NotEqual(later, b);
-        Assert.Equal([a.CharacterId], w.Chat.MembersOf(new ChatScope.Conversation(open.Id)));
-        Assert.Equal([a.CharacterId, c.CharacterId], Sorted(w.Chat.MembersOf(new ChatScope.Conversation(other.Id))));
-        Assert.Empty(w.Chat.MembersOf(new ChatScope.Conversation(new(999))));
+        Assert.Equal([a.CharacterId], await w.MembersOfAsync(new ChatScope.Conversation(open.Id)));
+        Assert.Equal([a.CharacterId, c.CharacterId], Sorted(await w.MembersOfAsync(new ChatScope.Conversation(other.Id))));
+        Assert.Empty(await w.MembersOfAsync(new ChatScope.Conversation(new(999))));
     }
 
     private static CharacterId[] Sorted(IReadOnlyList<CharacterId> members) =>
@@ -139,10 +150,18 @@ public sealed class ChatScopeDomainServiceTests
         {
             sessions = TestSessions.Directory(out state);
             parties = TestParties.Create(areas);
-            Chat = new ChatScopeDomainService(sessions, sessions, areas, parties, Conversations);
+            var guilds = TestRequired.Absent<IGuildDomainStore>((method, args) =>
+                method.Name == nameof(IGuildDomainStore.ReadRosterCharacterIdsAsync)
+                    ? ValueTask.FromResult(GuildRosters.GetValueOrDefault((CharacterId)args![0]!) ?? []) : null);
+            Chat = new ChatScopeDomainService(sessions, sessions, areas, parties, Conversations, guilds);
         }
 
-        public IChatScopeDomainService Chat { get; }
+        private IChatScopeDomainService Chat { get; }
+
+        public Dictionary<CharacterId, IReadOnlyList<CharacterId>> GuildRosters { get; } = [];
+
+        public ValueTask<IReadOnlyList<CharacterId>> MembersOfAsync(ChatScope scope) =>
+            Chat.MembersOfAsync(scope, CancellationToken.None);
 
         public ChatConversationDomainService Conversations { get; } = new();
 

@@ -17,9 +17,7 @@ public sealed record GameGuildDonationCommand(NetworkDispatchContext Dispatch, G
 
 internal sealed class GameGuildDonationCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildDomainService guilds,
-    IGuildQueryDomainService query,
-    IGuildProgressDomainService progress,
+    IGuildDonationDomainService donations, IGuildOverviewDomainService overviews,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
     TimeProvider clock) : ICommandHandler<GameGuildDonationCommand, bool>
@@ -38,11 +36,11 @@ internal sealed class GameGuildDonationCommandHandler(
         var recipient = new SelectedSessionRecipient(actor, connection, request.Metadata);
         var (result, panel) = await units.WriteAsync(context, new("donate-guild-gold", [recipient]), async (_, token) =>
         {
-            var donation = await guilds.DonateGoldAsync(actor.CharacterId, request.Gold, token).ConfigureAwait(false);
+            var donation = await donations.DonateGoldAsync(actor.CharacterId, request.Gold, token).ConfigureAwait(false);
             if (donation.Status != GuildMutationStatus.Success)
                 return (donation, (GuildInfoMessage?)null);
 
-            var refreshed = await GuildInfoPanel.ReadAsync(query, progress, actor.CharacterId, token).ConfigureAwait(false);
+            var refreshed = await GuildInfoPanel.ReadAsync(overviews, actor.CharacterId, token).ConfigureAwait(false);
             var member = refreshed.FindMember(actor.CharacterId)
                 ?? throw new InvalidOperationException("The donating member's guild panel could not be read.");
             return (donation, refreshed.CreateMessage(member));

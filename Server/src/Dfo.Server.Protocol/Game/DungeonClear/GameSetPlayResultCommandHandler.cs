@@ -251,6 +251,7 @@ internal sealed partial class GameSetPlayResultCommandHandler(
 
             if (paid.Despair is { } tower)
                 frames.AddRange(DespairTowerProjection.Rewards(tower, result.World.PreparedAt));
+            frames.AddRange(ItemGrantWireProjection.InventoryFrames(paid.GuildContribution, result.World.PreparedAt));
             await outbox.RegisterExplicitAsync(
                 context.Connection.ConnectionId,
                 new GameExplicitMessageDelivery(frames, []),

@@ -74,7 +74,14 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterNameTagDomainStore, SqliteCharacterNameTagDomainStore>();
         services.TryAddSingleton<ICharacterIdentityRepository, SqliteCharacterIdentityRepository>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Relations.ICharacterRelationDomainStore, Dfo.Server.Persistence.Relations.SqliteCharacterRelationDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildPointAccount, Dfo.Server.Persistence.Guilds.SqliteGuildPointAccount>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildDomainStore, Dfo.Server.Persistence.Guilds.SqliteGuildDomainStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildAllianceStore, Dfo.Server.Persistence.Guilds.SqliteGuildAllianceStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildGiftStore, Dfo.Server.Persistence.Guilds.SqliteGuildGiftStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildRedPacketStore, Dfo.Server.Persistence.Guilds.SqliteGuildRedPacketStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildContributionStore, Dfo.Server.Persistence.Guilds.SqliteGuildContributionStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildDungeonStore, Dfo.Server.Persistence.Guilds.SqliteGuildDungeonStore>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildMonthlyContributionStore, Dfo.Server.Persistence.Guilds.SqliteGuildMonthlyContributionStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Auction.IAuctionDomainStore, Dfo.Server.Persistence.Auction.SqliteAuctionDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreDomainStore, Dfo.Server.Persistence.PrivateStore.SqlitePrivateStoreDomainStore>();
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISaoTowerDomainStore, Dfo.Server.Persistence.Characters.SqliteSaoTowerDomainStore>();
@@ -228,6 +235,9 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterDomainStore>(_ => new SqliteCharacterDomainStore(databasePath));
         services.TryAddSingleton<ICreatureDomainStore>(provider => new SqliteCreatureDomainStore(databasePath,
             provider.GetRequiredService<IInventoryContentsEventDomainService>()));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildWarehouseCustodyStore>(
+            provider => provider.GetRequiredService<SqliteItemDomainStore>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Guilds.IGuildWarehouseStore, Dfo.Server.Persistence.Guilds.SqliteGuildWarehouseStore>();
         services.TryAddSingleton<IItemDomainStore>(
             provider => provider.GetRequiredService<SqliteItemDomainStore>());
         // The character's quests, kept in the same database and therefore settled by the same

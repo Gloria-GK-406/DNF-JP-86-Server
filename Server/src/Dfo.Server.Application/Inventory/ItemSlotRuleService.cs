@@ -24,7 +24,8 @@ public sealed class ItemSlotRuleService : IItemSlotRuleService
             BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo => true,
             BusinessInventorySpace.CreatureInventory =>
                 placement.WorldClass == ItemWorldClass.Creature && placement.Destination.Contains(slot),
-            BusinessInventorySpace.CreatureEquipment or BusinessInventorySpace.CreatureConsumable =>
+            BusinessInventorySpace.CreatureEquipment or BusinessInventorySpace.CreatureConsumable
+                or BusinessInventorySpace.GuildMedal or BusinessInventorySpace.GuardianGem =>
                 placement.Destination.Contains(slot),
             _ when slot.Space.IsCarriedItemSpace() => placement.Destination.Contains(slot),
             _ => false,

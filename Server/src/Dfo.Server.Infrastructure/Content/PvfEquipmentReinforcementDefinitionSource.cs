@@ -10,6 +10,8 @@ namespace Dfo.Server.Infrastructure.Content;
 internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvider provider)
     : IEquipmentReinforcementDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
+    private const string MedalTableName = "flag_upgrade_table";
+
     private static class Fields
     {
         internal static readonly PvfField<EquipmentUpgradeTicketDefinition> ReinforcementTicket =
@@ -22,6 +24,8 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         internal static readonly PvfField<int> NoticeField = PvfField.Int32("[notice]", optional: true);
         internal static readonly PvfField<IReadOnlyList<double>> CostField = PvfField.Numbers("[cost]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> CostWeightsByRarityField = PvfField.Tokens("[cost weights by rarity]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<double>> MedalMaterialWeightsField = PvfField.Numbers("[cost weights by guild flag rarity]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> MedalRefundsField = PvfField.Int32List("[pay back by guild flag rarity]", optional: true);
         internal static readonly PvfField<IReadOnlyList<double>> TypeField = PvfField.Numbers("[type]", optional: true);
         internal static readonly PvfField<IReadOnlyList<double>> CostWeightByUpgradeLevelField = PvfField.Numbers("[cost weight by upgrade level]", optional: true);
         internal static readonly PvfField<IReadOnlyList<PvfToken>> DestroyLevelByRarityField = PvfField.Tokens("[destroy level by rarity]", optional: true);
@@ -62,6 +66,8 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
     private EquipmentReinforcementTable? table;
     private bool tableRead;
     private EquipmentReinforcementTable? amplificationTable;
+    private EquipmentReinforcementTable? guildMedalTable;
+    private bool guildMedalTableRead;
     private Dictionary<int, string>? stackablePaths;
     private readonly Dictionary<(int ItemId, EquipmentUpgradeKind Kind), EquipmentReinforcementProtectionDefinition?> protectionCache = [];
     private readonly Dictionary<int, EquipmentUpgradeTicketDefinition?> ticketCache = [];
@@ -180,6 +186,20 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
         }
     }
 
+    public ValueTask<EquipmentReinforcementTable?> GetGuildMedalTableAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!guildMedalTableRead)
+            {
+                guildMedalTable = ReadTable(provider.Archive, "etc/upgrade.etc", MedalTableName);
+                guildMedalTableRead = true;
+            }
+            return ValueTask.FromResult(guildMedalTable);
+        }
+    }
+
     public ValueTask<EquipmentReinforcementProtectionDefinition?> GetProtectionAsync(
         int itemId, CancellationToken cancellationToken,
         EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
@@ -282,8 +302,18 @@ internal sealed class PvfEquipmentReinforcementDefinitionSource(PvfArchiveProvid
             || destroyLevels.Count == 0 || maxLevels.Count == 0
             || destroyLevels.Any(pair => maxLevels.TryGetValue(pair.Key, out var max) && pair.Value > max))
             return null;
-        return new(rows.AsReadOnly(), Array.AsReadOnly(baseGold), Array.AsReadOnly(rarityWeights),
+        var result = new EquipmentReinforcementTable(rows.AsReadOnly(), Array.AsReadOnly(baseGold), Array.AsReadOnly(rarityWeights),
             Array.AsReadOnly(typeWeights), costByLevel, destroyLevels, maxLevels, bonus, notice.Value);
+        if (tableName != MedalTableName) return result;
+        var weights = NumberList(PvfSections.Single(sections, Fields.MedalMaterialWeightsField, PvfRepeats.AsUndeclared, path),
+            rarityWeights.Length, allowZero: false);
+        var refunds = IntList(PvfSections.Single(sections, Fields.MedalRefundsField, PvfRepeats.AsUndeclared, path),
+            rarityWeights.Length, allowZero: true);
+        return weights is null || refunds is null ? null : result with
+        {
+            MedalMaterialWeights = Array.AsReadOnly(weights),
+            MedalRefunds = Array.AsReadOnly(refunds),
+        };
     }
 
     private static EquipmentReinforcementDestroyBonusDefinition? ReadDestroyBonus(

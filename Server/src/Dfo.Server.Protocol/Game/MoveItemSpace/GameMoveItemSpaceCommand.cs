@@ -1,5 +1,8 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
@@ -32,7 +35,8 @@ public sealed class GameMoveItemSpaceCommandHandler(
     ICharacterInventoryEntryDomainService characterInventories,
     IAccountInventoryEntryDomainService accountInventories,
     TimeProvider time,
-    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing) : ICommandHandler<GameMoveItemSpaceCommand, bool>
+    Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
+    ICharacterVisibleSessionDomainService visibility, ICommandProjections projections) : ICommandHandler<GameMoveItemSpaceCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(
         CommandExecutionContext execution,
@@ -44,6 +48,8 @@ public sealed class GameMoveItemSpaceCommandHandler(
         var identity = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         var (response, result) = await ResolveAsync(execution, context, message, cancellationToken)
             .ConfigureAwait(false);
+        var changesMedal = result?.Status is ItemMoveStatus.Moved or ItemMoveStatus.MirrorRemoved
+            && (response.SourceSlot == A21InventoryLayout.WornGuildMedal || response.DestinationSlot == A21InventoryLayout.WornGuildMedal);
         List<IGameServerMessage> frames = [response];
         if (result is not null && (IsCargo(response.SourceSlot) || IsCargo(response.DestinationSlot)))
         {
@@ -71,6 +77,7 @@ public sealed class GameMoveItemSpaceCommandHandler(
                         context,
                         ChangesWhatTheCharacterLooksLike(
                             response.SourceSlot, response.DestinationSlot),
+                        changesMedal,
                         cancellationToken)
                         .ConfigureAwait(false)
                     is { } appearance)
@@ -92,6 +99,13 @@ public sealed class GameMoveItemSpaceCommandHandler(
             context.Connection.ConnectionId,
             new GameExplicitMessageDelivery(frames, []),
             cancellationToken).ConfigureAwait(false);
+        if (changesMedal && identity is not null)
+        {
+            var observers = visibility.Resolve(identity).Where(session => session != identity).ToArray();
+            if (observers.Length != 0)
+                await projections.ProjectAsync(new NotificationAudience.TheseSessions(observers),
+                    new CharacterUserStateRefresh(identity, RefreshGuildMedalAura: true), cancellationToken).ConfigureAwait(false);
+        }
         return result?.Status is ItemMoveStatus.Moved or ItemMoveStatus.Unchanged or ItemMoveStatus.MirrorRemoved;
     }
 
@@ -135,7 +149,7 @@ public sealed class GameMoveItemSpaceCommandHandler(
 
     /// <summary>Reads the post-move equipment from its owner for the optional appearance frame.</summary>
     private async ValueTask<IReadOnlyList<IGameServerMessage>?> RefreshSessionAsync(
-        NetworkDispatchContext context, bool draw, CancellationToken cancellationToken)
+        NetworkDispatchContext context, bool draw, bool refreshGuildMedalAura, CancellationToken cancellationToken)
     {
         var session = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         if (session is null || !draw)
@@ -147,7 +161,7 @@ public sealed class GameMoveItemSpaceCommandHandler(
         if (state is null)
             return null;
 
-        return CharacterUserStateProjection.Compose(state);
+        return CharacterUserStateProjection.Compose(state, refreshGuildMedalAura: refreshGuildMedalAura);
     }
 
     private async ValueTask<(MoveItemSpaceResponse Response, ItemMoveResult? Result)> ResolveAsync(

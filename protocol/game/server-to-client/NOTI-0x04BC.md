@@ -49,6 +49,10 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
+## A21 公会红包
+
+ClientStatic。A21 handler `00442629` 读取 8 字节，`0044268B` 把第一个 `u32` 传给可领取红包数量文案。当前实现仅投递给有可领份数的在线同会角色，第二个 `u32` 保留为 0。[公会红包验收](../../../Document/tasks/guild-system/a21-guild-red-packets.md)
+
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
 

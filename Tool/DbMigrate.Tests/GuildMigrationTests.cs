@@ -6,6 +6,246 @@ namespace DbMigrate.Tests;
 public sealed class GuildMigrationTests
 {
     [Fact]
+    public void Upgrading_v31_adds_red_packet_ledger_and_preserves_gifts()
+    {
+        var path = Unversioned.NewPath("guild-red-packets-v31");
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = path, Pooling = false, ForeignKeys = true,
+        }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TRIGGER guild_red_packets_mark_departure;
+                DROP TABLE guild_red_packet_claims;
+                DROP TABLE guild_red_packets;
+                DROP TABLE guild_red_packet_purchases;
+                INSERT INTO guild_gifts(sender_id,sender_name,recipient_id,recipient_name,sent_day,sent_at,
+                    product_id,kind,content_value,duration_days,price)
+                VALUES(40,'First',42,'Second',500,1500,3,1,10,1,200);
+                PRAGMA user_version=31;
+                """);
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((31L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
+            Assert.Equal(200L, Execute(connection, "SELECT price FROM guild_gifts"));
+            Assert.Equal(0L, Execute(connection, "SELECT count(*) FROM guild_red_packets"));
+            Assert.Equal(0L, Execute(connection, "SELECT count(*) FROM guild_red_packet_claims"));
+            Assert.Equal(0L, Execute(connection, "SELECT count(*) FROM guild_red_packet_purchases"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_v30_adds_gift_ledger_and_preserves_alliance()
+    {
+        var path = Unversioned.NewPath("guild-gifts-v30");
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = path, Pooling = false, ForeignKeys = true,
+        }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TRIGGER guild_gifts_recipient_disbanded;
+                DROP TABLE guild_gifts;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at)
+                    VALUES(40,'First','FIRST','',1),(42,'Second','SECOND','',1);
+                INSERT INTO guild_alliances(first_id,second_id) VALUES(40,42);
+                PRAGMA user_version=30;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((30L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
+            Assert.Equal(1L, Execute(connection, "SELECT COUNT(*) FROM guild_alliances WHERE first_id=40 AND second_id=42"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_gifts"));
+            Execute(connection, """
+                INSERT INTO guild_gifts(sender_id,sender_name,recipient_id,recipient_name,sent_day,sent_at,
+                    product_id,kind,content_value,duration_days,price)
+                VALUES(40,'First',42,'Second',500,1500,3,1,10,1,200),(42,'Second',40,'First',500,1500,3,1,10,1,200);
+                DELETE FROM guilds WHERE guild_id=42;
+                """);
+            Assert.Equal(1L, Execute(connection, "SELECT voided FROM guild_gifts WHERE sender_id=40"));
+            Assert.Equal(0L, Execute(connection, "SELECT voided FROM guild_gifts WHERE sender_id=42"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_v29_adds_alliances_and_preserves_guilds()
+    {
+        var path = Unversioned.NewPath("guild-alliance-v29");
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = path, Pooling = false, ForeignKeys = true,
+        }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TABLE guild_alliances;
+                DROP TABLE guild_alliance_applications;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points)
+                    VALUES(40,'First','FIRST','',1,900),(42,'Second','SECOND','',1,0),(43,'Third','THIRD','',1,0);
+                PRAGMA user_version=29;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+
+            Assert.Equal((29L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
+            Assert.Equal(900L, Execute(connection, "SELECT gm_points FROM guilds WHERE guild_id=40"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_alliances"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_alliance_applications"));
+            Execute(connection, """
+                INSERT INTO guild_alliances(first_id,second_id) VALUES(40,42);
+                INSERT INTO guild_alliance_applications(sender_id,target_id,message,applied_at) VALUES(43,42,'pending',5);
+                """);
+            Assert.Throws<SqliteException>(() => Execute(connection, "INSERT INTO guild_alliances VALUES(42,43)"));
+            Assert.Throws<SqliteException>(() => Execute(connection, "INSERT INTO guild_alliances VALUES(43,42)"));
+            Execute(connection, "DELETE FROM guilds WHERE guild_id=42");
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_alliances"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_alliance_applications"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_v28_defaults_member_memos_to_empty_and_preserves_membership()
+    {
+        var path = Unversioned.NewPath("guild-memo-v28");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            if (Execute(connection, "SELECT COUNT(*) FROM pragma_table_info('guild_members') WHERE name='memo'") is 1L)
+                Execute(connection, "ALTER TABLE guild_members DROP COLUMN memo");
+            Execute(connection, """
+                INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-memo');
+                INSERT INTO characters(character_id,account_id,name) VALUES(11,1,'Leader'),(12,1,'Member');
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at) VALUES(42,'Iris','iris','',1);
+                INSERT INTO guild_members(character_id,guild_id,is_leader,joined_at,donation_points,member_rank)
+                    VALUES(11,42,1,1,50,4),(12,42,0,1,0,2);
+                PRAGMA user_version=28;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+
+            Assert.Equal(28L, result.From);
+            Assert.Equal(1L, Execute(connection, """
+                SELECT COUNT(*) FROM guild_members
+                WHERE character_id=11 AND guild_id=42 AND is_leader=1 AND donation_points=50 AND memo=''
+                """));
+            Assert.Equal(1L, Execute(connection, """
+                SELECT COUNT(*) FROM guild_members WHERE character_id=12 AND guild_id=42 AND member_rank=2 AND memo=''
+                """));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_v26_adds_an_empty_board_and_preserves_existing_guilds()
+    {
+        var path = Unversioned.NewPath("guild-board-v26");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TABLE guild_board_posts;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at) VALUES(42,'Iris','iris','Before',1);
+                PRAGMA user_version=26;
+                """);
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((26L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_board_posts"));
+            Assert.Equal(1L, Execute(connection, "SELECT COUNT(*) FROM guilds WHERE guild_id=42 AND promotion='Before'"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_v23_preserves_expansion_and_adds_empty_guild_item_custody()
+    {
+        var path = Unversioned.NewPath("guild-warehouse-v23");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TABLE guild_warehouse_items;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at)
+                    VALUES(42,'Iris','iris','Before',1);
+                INSERT INTO guild_warehouse(guild_id,capacity) VALUES(42,24);
+                PRAGMA user_version=23;
+                """);
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((23L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
+            Assert.Equal(24L, Execute(connection, "SELECT capacity FROM guild_warehouse WHERE guild_id=42"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_warehouse_items"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_v21_adds_empty_guild_contents_and_preserves_spent_gm()
+    {
+        var path = Unversioned.NewPath("guild-content-v21");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TABLE guild_contents;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points,spent_gm_points,mark_id)
+                    VALUES(42,'Iris','iris','Before',1,98000,2000,7);
+                PRAGMA user_version=21;
+                """);
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal((21L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_contents;"));
+            Assert.Equal(1L, Execute(connection,
+                "SELECT COUNT(*) FROM guilds WHERE guild_id=42 AND gm_points=98000 AND spent_gm_points=2000 AND mark_id=7;"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Upgrading_v20_adds_default_mark_and_preserves_existing_gm_and_promotion()
     {
         var path = Unversioned.NewPath("guild-appearance-v20");
@@ -25,7 +265,7 @@ public sealed class GuildMigrationTests
                 """);
 
             var result = Migrator.Migrate(path, backup: false);
-            Assert.Equal((20L, 21L), (result.From, result.To));
+            Assert.Equal((20L, (long)CharacterDatabaseSchema.Version), (result.From, result.To));
             Assert.Equal(1L, Execute(connection, """
                 SELECT COUNT(*) FROM guilds
                 WHERE guild_id=42 AND announcement='' AND mark_id=1 AND spent_gm_points=0 AND gm_points=50
@@ -281,6 +521,42 @@ public sealed class GuildMigrationTests
                 AND name IN ('guilds','guild_members','guild_applications');
                 """));
             Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_members"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Upgrading_from_v24_starts_dungeon_progress_empty_and_preserves_guild_assets()
+    {
+        var path = Unversioned.NewPath("guild-dungeon-v24");
+        var connectionString = new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString();
+        try
+        {
+            CharacterDatabaseSchema.Ensure(connectionString);
+            using var connection = new SqliteConnection(connectionString);
+            connection.Open();
+            Execute(connection, """
+                DROP TABLE guild_dungeon_clears;
+                DROP TABLE guild_dungeon_progress;
+                INSERT INTO accounts(account_id,m_id) VALUES(1,'guild-dungeon');
+                INSERT INTO characters(character_id,account_id,name) VALUES(11,1,'GuildExplorer');
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points) VALUES(42,'Iris','iris','Hello',1,120);
+                INSERT INTO guild_members(character_id,guild_id,is_leader,joined_at) VALUES(11,42,1,1);
+                INSERT INTO guild_warehouse(guild_id,capacity) VALUES(42,24);
+                PRAGMA user_version=24;
+                """);
+
+            var result = Migrator.Migrate(path, backup: false);
+            Assert.Equal(24, result.From);
+            Assert.Equal(CharacterDatabaseSchema.Version, result.To);
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_dungeon_progress"));
+            Assert.Equal(0L, Execute(connection, "SELECT COUNT(*) FROM guild_dungeon_clears"));
+            Assert.Equal(120L, Execute(connection, "SELECT gm_points FROM guilds WHERE guild_id=42"));
+            Assert.Equal(1L, Execute(connection, "SELECT is_leader FROM guild_members WHERE guild_id=42 AND character_id=11"));
+            Assert.Equal(24L, Execute(connection, "SELECT capacity FROM guild_warehouse WHERE guild_id=42"));
         }
         finally
         {

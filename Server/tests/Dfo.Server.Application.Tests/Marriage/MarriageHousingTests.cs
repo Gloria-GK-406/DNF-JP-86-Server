@@ -28,6 +28,7 @@ public sealed partial class MarriageHousingTests
             { EntrySources = new HashSet<(int, int)> { (2, 0) } };
         public ValueTask<ItemPlacement?> GetAsync(int item, CancellationToken ct) => ValueTask.FromResult<ItemPlacement?>(new(2, 1000, new(BusinessInventorySpace.Consumable, 0, 55)));
         public ValueTask<NpcShopDefinition?> GetShopAsync(int npc, CancellationToken ct) => ValueTask.FromResult<NpcShopDefinition?>(null);
+        public ValueTask<NpcShopDefinition?> GetShopVariantAsync(int npc, int shop, CancellationToken ct) => ValueTask.FromResult<NpcShopDefinition?>(null);
         public ValueTask<NpcShopItemDefinition?> GetItemAsync(int item, CancellationToken ct) => ValueTask.FromResult<NpcShopItemDefinition?>(new(item,
             item == 10002611 ? 500000 : item is 10002765 or 10002766 ? 10000 : null, 0,
             item == 10002688 ? [new(10002606, 2)] : item == 10002797 ? [new(10002606, 100)] : item == 10002611 ? [new(10002606, 50)] : [], null, 0, false, true));

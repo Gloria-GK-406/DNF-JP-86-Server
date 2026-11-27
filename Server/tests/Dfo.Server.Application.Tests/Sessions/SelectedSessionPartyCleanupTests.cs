@@ -327,7 +327,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 TestParties.Runs(),
                 [], TestRequired.TransactionScope(), creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: Conversations, relations: Friends, identities: Friends, pvpRooms: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService>(), pvpSettlement: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpSettlementDomainService>(), pvpDepartures: [], logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
                 raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(),
-            guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>((_, _) =>
+                guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>((_, _) =>
                     ValueTask.FromResult(GuildRoster)));
         }
 

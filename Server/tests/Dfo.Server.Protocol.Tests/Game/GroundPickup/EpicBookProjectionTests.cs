@@ -33,7 +33,7 @@ public sealed class EpicBookProjectionTests
         Assert.Equal(0, epic.Mode);
         Assert.Equal(13, Assert.Single(epic.Pieces).Count);
         var index = messages.ToList().IndexOf(epic);
-        Assert.IsType<GuildMedalBaselineMessage>(messages[index - 1]);
+        Assert.Equal((byte)38, Assert.IsType<InventorySnapshotMessage>(messages[index - 1]).EncodeBody()[0]);
         Assert.IsType<UsableCountBaselineMessage>(messages[index + 1]);
     }
     [Fact]

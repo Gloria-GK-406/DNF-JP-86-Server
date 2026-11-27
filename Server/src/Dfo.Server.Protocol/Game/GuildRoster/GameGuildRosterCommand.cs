@@ -16,7 +16,7 @@ public sealed record GameGuildRosterCommand(NetworkDispatchContext Dispatch, Gui
 
 internal sealed class GameGuildRosterCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildQueryDomainService guilds,
+    IGuildMembershipQueryDomainService guilds,
     IChannelEntryDomainService channels,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox) : ICommandHandler<GameGuildRosterCommand, bool>

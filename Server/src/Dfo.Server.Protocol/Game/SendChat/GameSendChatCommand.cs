@@ -12,9 +12,12 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Chat;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
+using Dfo.Server.Protocol.Game.GuildAttendance;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.SendChat;
@@ -54,9 +57,12 @@ internal sealed class GameSendChatCommandHandler(
     ICommandWorkUnits units,
     ICommandProjections projections,
     IGameCommandOutbox outbox,
+    IGuildContributionDomainService contributions,
     TimeProvider clock,
     ILogger<GameSendChatCommandHandler> logger) : ICommandHandler<GameSendChatCommand, bool>
 {
+    private readonly GuildDailyContributionDelivery guildDailyContribution = new(contributions, units, sessions, outbox, clock, logger);
+
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameSendChatCommand command, CancellationToken ct)
     {
         var connection = command.Dispatch.Connection;
@@ -79,7 +85,7 @@ internal sealed class GameSendChatCommandHandler(
         }
 
         var recipient = new SelectedSessionRecipient(speaker, connection, request.Metadata);
-        var facts = route.NameLimit is null && route.Kind != ChatKind.Whisper ? new ChatFacts(null, null, null)
+        var facts = route.NameLimit is null ? new ChatFacts(null, null, null, null)
             : await units.ReadOnlyAsync(execution, new("ChatParticipants", [recipient]),
                 token => ReadFactsAsync(speaker, route, request, token), ct).ConfigureAwait(false);
         if (route.NameLimit is { } nameLimit && (facts.SpeakerName is not { Length: > 0 } name || name.Length > nameLimit))
@@ -106,7 +112,8 @@ internal sealed class GameSendChatCommandHandler(
             followUp = [SlotState(consumed.Debits.Single())];
         }
 
-        var members = Scope(speaker, route.Kind, facts.Target, conversation) is { } scope ? scopes.MembersOf(scope) : [];
+        var members = facts.GuildMembers ?? (Scope(speaker, route.Kind, facts.Target, conversation) is { } scope
+            ? await scopes.MembersOfAsync(scope, ct).ConfigureAwait(false) : []);
         if (route.Kind is ChatKind.Whisper or ChatKind.Conversation)
             members = [.. members.Where(member => member != speaker.CharacterId)];
         if (members.Count != 0)
@@ -124,6 +131,8 @@ internal sealed class GameSendChatCommandHandler(
                 .ConfigureAwait(false);
         else if (followUp.Count != 0)
             await outbox.RegisterExplicitAsync(connection.ConnectionId, new(followUp, []), ct).ConfigureAwait(false);
+        if (route.Kind == ChatKind.Guild && members.Count != 0)
+            await guildDailyContribution.AwardAsync(execution, speaker, GuildDailyContributionKind.Chat, ct).ConfigureAwait(false);
         logger.LogDebug("Chat character={Character} mode={Mode} kind={Kind} recipients={Recipients}",
             speaker.CharacterId, request.Mode, route.Kind, members.Count);
         return true;
@@ -137,7 +146,10 @@ internal sealed class GameSendChatCommandHandler(
         CharacterId? target = null;
         if (route.Kind == ChatKind.Whisper && request.TargetName is { Length: > 0 } targetName)
             target = (await directory.FindRecipientAsync(targetName, ct).ConfigureAwait(false))?.CharacterId;
-        return new ChatFacts(name, target, await BlockersAsync(speaker, ct).ConfigureAwait(false));
+        var guildMembers = route.Kind == ChatKind.Guild
+            ? await scopes.MembersOfAsync(new ChatScope.GuildOf(speaker.CharacterId), ct).ConfigureAwait(false)
+            : null;
+        return new ChatFacts(name, target, await BlockersAsync(speaker, ct).ConfigureAwait(false), guildMembers);
     }
 
     private async ValueTask<IReadOnlySet<CharacterId>> BlockersAsync(SelectedSessionIdentity speaker, CancellationToken ct) =>
@@ -149,7 +161,7 @@ internal sealed class GameSendChatCommandHandler(
     {
         ChatKind.Area => new ChatScope.AreaOf(speaker.CharacterId),
         ChatKind.Party => new ChatScope.PartyOf(speaker.CharacterId),
-        ChatKind.Guild => new ChatScope.GuildOf(speaker.CharacterId),
+        ChatKind.Guild => null, // Read with the guild member and blacklist facts in the same work unit.
         ChatKind.ChannelMegaphone => new ChatScope.ChannelOf(speaker.CharacterId),
         ChatKind.ServerMegaphone => new ChatScope.Server(),
         ChatKind.Whisper => target is { } character ? new ChatScope.Character(character) : null,
@@ -160,8 +172,8 @@ internal sealed class GameSendChatCommandHandler(
     private static IGameNotiMessage Line(SelectedSessionIdentity speaker, ChatKind kind, SendChatRequest request,
         byte[]? name, byte channelId, ChatConversationId? conversation) => kind switch
     {
-        ChatKind.Area or ChatKind.Party or ChatKind.Guild => new ChatLineMessage(request.Mode, speaker.WireUserId, request.Text),
-        ChatKind.Whisper => new WhisperMessage(request.Mode, name!, request.Text),
+        ChatKind.Area or ChatKind.Party => new ChatLineMessage(request.Mode, speaker.WireUserId, request.Text),
+        ChatKind.Whisper or ChatKind.Guild => new WhisperMessage(request.Mode, name!, request.Text),
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => new MegaphoneMessage(request.Mode, GameProtocol.ServerIndex,
             channelId, speaker.WireUserId, name!, request.Text),
         ChatKind.Conversation => new ConversationMessage(conversation!.Value, name!, request.Text),
@@ -205,7 +217,8 @@ internal sealed class GameSendChatCommandHandler(
     }
 
     /// <param name="Blockers">Who has blacklisted the speaker; null when no facts were read.</param>
-    private sealed record ChatFacts(byte[]? SpeakerName, CharacterId? Target, IReadOnlySet<CharacterId>? Blockers);
+    private sealed record ChatFacts(byte[]? SpeakerName, CharacterId? Target, IReadOnlySet<CharacterId>? Blockers,
+        IReadOnlyList<CharacterId>? GuildMembers);
 }
 
 public sealed record GameItemLinkChatCommand(NetworkDispatchContext Dispatch, ItemLinkChatRequest Input) : IProtocolCommand<bool>

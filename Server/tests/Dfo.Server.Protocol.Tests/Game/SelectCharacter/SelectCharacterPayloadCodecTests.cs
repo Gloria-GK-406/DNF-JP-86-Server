@@ -722,7 +722,7 @@ public sealed class SelectCharacterPayloadCodecTests
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>()));
-            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildQueryDomainService>(
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>(
                 (method, _) => method.Name == "FindMembershipAsync"
                     ? ValueTask.FromResult<Dfo.Server.Data.Guilds.GuildMembership?>(null) : null)));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService>(

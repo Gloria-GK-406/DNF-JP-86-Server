@@ -41,6 +41,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
 
     private readonly Lock gate = new();
     private readonly Dictionary<int, NpcShopDefinition?> shops = [];
+    private readonly Dictionary<(int Npc, int Shop), NpcShopDefinition?> variants = [];
     private readonly Dictionary<int, NpcShopItemDefinition?> items = [];
     private IReadOnlyDictionary<int, string>? npcs;
     private IReadOnlyDictionary<int, string>? shopPaths;
@@ -109,7 +110,19 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         }
     }
 
-    private NpcShopDefinition? ReadShop(int npcId)
+    public ValueTask<NpcShopDefinition?> GetShopVariantAsync(int npcId, int shopId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            var key = (npcId, shopId);
+            if (!variants.TryGetValue(key, out var shop))
+                variants[key] = shop = ReadShop(npcId, shopId);
+            return ValueTask.FromResult(shop);
+        }
+    }
+
+    private NpcShopDefinition? ReadShop(int npcId, int? requestedVariant = null)
     {
         var archive = provider.Archive;
         NpcsIndex(archive);
@@ -128,7 +141,10 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                 if (Text(archive, role.Values[i]) is "[item shop]" or "[simple shop]"
                     && role.Values[i + 1].Kind == PvfTokenKind.Int32)
                     shopId = role.Values[i + 1].Value;
-        if (shopId <= 0 || !shopPaths.TryGetValue(shopId, out var relative))
+        if (shopId <= 0)
+            return null;
+        shopId = requestedVariant ?? shopId;
+        if (!shopPaths.TryGetValue(shopId, out var relative))
             return null;
 
         var path = "itemshop/" + relative;

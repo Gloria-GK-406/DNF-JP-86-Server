@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
@@ -160,7 +161,7 @@ public sealed class QuestClearVerticalTests
                 var afterDeath = Assert.IsType<DungeonRunState>(runs.CommitActorDeath(death));
                 var clear = new DungeonClearDomainService(
                     runs,
-                    new ClearedBossRoom(), new DungeonSettlementRuleService());
+                    new ClearedBossRoom(), new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
                 var bossClear = Assert.IsType<DungeonClearChange>(await clear.TryOpenClearAsync(
                     LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
                 return (run, afterDeath, clear, bossClear);

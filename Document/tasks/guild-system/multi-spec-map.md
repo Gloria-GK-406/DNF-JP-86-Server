@@ -27,13 +27,13 @@ workspace:
 | SC | 要求 | 进度 | 已验收证据 | 缺口 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | SC-01 | 迁移、成员唯一和身份 | in_progress | spec-001 基础验证，spec-002 身份投影，spec-003 名册 | 其他入口的玩法资格 | aligned |
-| SC-02 | 创建与入会 | in_progress | spec-001 事务、spec-002 A21 单人创建、spec-003 A21 成员名单 | 搜索、推荐与申请审批的客户端入口 | aligned |
-| SC-03 | 治理与退出 | in_progress | spec-001 退出、踢出、解散、删角保护 | 职务、资料管理等其余行为与 A21 入口 | aligned |
-| SC-04 | 社交与聊天 | in_progress | spec-002 推荐频道设置、spec-005 上下线提示与名单实时更新通过实机 | 聊天、邀请、频道跳转及其他社交 | aligned |
-| SC-05 | 成长与权益 | in_progress | spec-004 金币捐赠和明细、spec-006 自动签到和明细实机通过 | 后续成长、权益机制 | aligned |
-| SC-06 | 设施、仓库和勋章 | not_started | 无 | 场景、资产、装备端到端 | aligned |
-| SC-07 | 支援、礼物和红包 | not_started | 无 | 资格、交付和结清 | aligned |
-| SC-08 | 公会地下城与公会战 | not_started | 无 | 玩法证据、周期与结算 | aligned |
+| SC-02 | 创建与入会 | in_progress | A21 建会、名册、搜索、推荐及[申请和同意](a21-guild-applications.md)实机通过，审批和重复提交在线路验证 | 撤回、拒绝、异常和重登组合的实机覆盖 | aligned |
+| SC-03 | 治理与退出 | in_progress | spec-001 删角保护。A21 权限、任命、[图标公告](a21-guild-appearance.md)、[个人备注](../../../protocol/game/client-to-server/0x00E0.md)、[会长转让](../../../protocol/game/client-to-server/0x009B.md)和[金币改名](../../../protocol/game/client-to-server/0x02F8.md)已有实机验收记录。[退会、踢出和解散](a21-guild-social-and-warehouse.md)已经过隔离线路 | 旗帜待接入，退会相关界面待实机核对。中文长度 [#390](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/390) 和改名按钮状态 [#391](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/391) 作为客户端问题跟踪 | aligned |
+| SC-04 | 社交与聊天 | in_progress | 推荐频道设置、上下线提示、实时名单及[公会聊天和切换频道](a21-guild-social-and-warehouse.md)已通过实机。主动邀请和[公会联盟](a21-guild-alliance.md)已通过隔离线路 | 联盟窗口与双入口实机验收，邀请界面、公告板及频道跳转完整回归 | aligned |
+| SC-05 | 成长与权益 | in_progress | 捐赠和明细、签到和明细、[权益购买、组队传送和击杀经验](a21-guild-contents.md)已通过相关实机验证。[日常贡献](a21-guild-daily-contribution.md)的签到、聊天、重登去重和会友组队通关贡献币已实机验收，两类通关奖励通过隔离线路。[月度贡献和月初发奖](a21-guild-monthly-contribution.md)已有实机验收 | 公会地下城第 5 次奖励、限时属性数值和到期仍待单独实机覆盖。[旧公会升级](a21-guild-base-upgrade.md)已退出本期范围 | aligned |
+| SC-06 | 设施、仓库和勋章 | in_progress | [基地入口、仓库扩容、材料存取](a21-guild-hall.md)已有验收记录。[仓内移位和历史](a21-guild-social-and-warehouse.md)已经过隔离线路。[证书兑换、勋章装备与强化、两种合成](a21-guild-certificate-and-medal.md)已实机通过，守护珠镶嵌已通过隔离线路 | 移位与历史界面、复杂装备、守护珠镶嵌的完整实机复测 | aligned |
+| SC-07 | 支援、礼物和红包 | in_progress | [同盟礼物](a21-guild-gifts.md)已通过互赠、领取及双边收礼列表实机验收。[公会红包](a21-guild-red-packets.md)已通过原生页签、购买、发放、领取和代币券到账的实机验收 | 红包自然满 24 小时的结算与退款留待上线后观察。排行榜与历史界面尚未逐列验收。[志愿兵 #389](https://github.com/Gloria-GK-406/DNF-JP-86-Server/issues/389)随独立功能交付 | aligned |
+| SC-08 | 公会地下城与公会战 | in_progress | [伤城进图、通关、净化率与首层解锁](a21-guild-dungeon.md)、反复通关礼盒、[地下城延长券](a21-guild-dungeon-extension.md)、[莱茵轮换](a21-guild-medal-shop-rotation.md)和[2、3、4 人组队 Buff](a21-guild-dungeon-party-buff.md)已有实机验收 | 后续地图与自然周期切换留待正式部署反馈。随机深渊、周六翻倍和证书掉落需核对 A21 启用规则，永恒殿堂独立周期奖励仍待取证。[基地战已搁置](a21-guild-hideout-war.md) | aligned |
 | SC-09 | 范围与证据 | in_progress | spec-002 已归档建会、身份及推荐频道证据 | 其他功能的证据和覆盖 | aligned |
 | SC-10 | 构建、测试与验收 | in_progress | spec-001、spec-002 相关回归及隔离验收记录 | 后续分期测试和正式验收准备 | aligned |
 

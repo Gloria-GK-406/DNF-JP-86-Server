@@ -1,4 +1,6 @@
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Raids;
+using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Abstractions.World;
 
@@ -34,6 +36,7 @@ public enum DungeonRunKind : byte
     LostLand,
     DarkElfRuins,
     AntonRaid,
+    GuildDungeon,
 }
 
 /// <summary>
@@ -67,7 +70,7 @@ public abstract record DungeonRunMode
                 DungeonRunKind.Hell or DungeonRunKind.Mirror or DungeonRunKind.Sao or DungeonRunKind.Despair
                     or DungeonRunKind.Tournament or DungeonRunKind.Altar or DungeonRunKind.Guardian
                     or DungeonRunKind.GiantDragon or DungeonRunKind.LostLand or DungeonRunKind.DarkElfRuins
-                    or DungeonRunKind.AntonRaid => throw new ArgumentException(
+                    or DungeonRunKind.AntonRaid or DungeonRunKind.GuildDungeon => throw new ArgumentException(
                         $"{kind} runs carry an entry plan.", nameof(kind)),
             };
         }
@@ -129,6 +132,17 @@ public abstract record DungeonRunMode
     public sealed record AntonRaid(AntonRaidEntryIdentity Identity) : DungeonRunMode
     {
         public override DungeonRunKind Kind => DungeonRunKind.AntonRaid;
+    }
+
+    public sealed record GuildDungeon(GuildDungeonAdmission Admission) : DungeonRunMode
+    {
+        public override DungeonRunKind Kind => DungeonRunKind.GuildDungeon;
+        public IReadOnlyDictionary<CharacterId, int> EntryLevels { get; init; } = new Dictionary<CharacterId, int>();
+        public IReadOnlyDictionary<CharacterId, long> EntryMemberships { get; init; } = new Dictionary<CharacterId, long>();
+        public bool Includes(GuildMembership member) => Admission.Guild == member.Guild.Id
+            && EntryMemberships.TryGetValue(member.Member.Character, out var membershipId)
+            && membershipId > 0 && membershipId == member.Member.MembershipId;
+        public int? PartyBuffId { get; init; }
     }
 }
 

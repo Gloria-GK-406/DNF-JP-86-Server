@@ -66,7 +66,7 @@ internal static partial class StateSynchronizationPayloadCodec
         var extras = projection.Entry.Public.Extras;
         var equipment = projection.Inventory.Containers
             .Where(value => value.ContainerType == InventoryContainerType.Equipment)
-            .SelectMany(value => value.Items).Where(value => value.SlotIndex is >= 0 and <= 29)
+            .SelectMany(value => value.Items).Where(value => value.SlotIndex is >= 0 and <= 29 or 31)
             .OrderBy(value => value.SlotIndex).ToArray();
         var page = projection.Entry.Skills.Pages.SingleOrDefault(
             value => value.PageIndex == extras.SkillTreeIndex);
@@ -220,7 +220,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
         writer.Write((byte)0);
-        WriteNoti2EntryTail(writer, item.SlotIndex);
+        WriteNoti2EntryTail(writer, item.SlotIndex, core.GuardianGems);
     }
 
     /// <summary>What A21 appends to every equipped entry, and the older client appended to none.</summary>
@@ -230,8 +230,19 @@ internal static partial class StateSynchronizationPayloadCodec
     /// decompose only with this on the end. The <c>8</c> is written because that is what the
     /// session carried; nothing here knows what it counts.
     /// </remarks>
-    private static void WriteNoti2EntryTail(BinaryWriter writer, int slotIndex)
+    private static void WriteNoti2EntryTail(BinaryWriter writer, int slotIndex, GuardianGemSockets gems)
     {
+        if (slotIndex == 31)
+        {
+            var length = gems.OccupiedLength();
+            writer.Write(0u);
+            writer.Write((uint)(length * sizeof(ushort)));
+            for (var socket = 0; socket < length; socket++)
+                writer.Write(gems.KeyAt(socket));
+            writer.Write((byte)0);
+            return;
+        }
+
         if (!IsCostumeBarSlot(slotIndex) && slotIndex != Noti2CreatureSlot)
         {
             writer.Write(0u);
@@ -1022,7 +1033,7 @@ internal static partial class StateSynchronizationPayloadCodec
         const int inspectReservedPrefixLength = 5;
         const int inspectContextLength = 27;
         const byte inspectGuildMarker = 0x6F;
-        var stats = publicState.DerivedStats;
+        var stats = publicState.EffectiveStats;
         var extras = publicState.Extras;
 
         using var stream = new MemoryStream();

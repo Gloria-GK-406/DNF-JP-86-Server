@@ -2,6 +2,7 @@ using Dfo.Server.Data.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Accounts;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Parties;
 
@@ -40,6 +41,7 @@ public sealed record DungeonRunState(
     DungeonCellState? CurrentCellState = null)
 {
     public DateTimeOffset? ClearedAt { get; init; }
+    public ImmutableArray<DungeonClearParticipant> ClearParticipants { get; init; } = [];
     public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
     /// <summary>Codes of every room object this run has destroyed, once per destruction.</summary>
     public ImmutableArray<int> DestroyedObjectCodes { get; init; } = [];
@@ -132,6 +134,13 @@ public sealed record DungeonRunParticipant(
     CharacterId CharacterId,
     byte Slot,
     bool IsLeader);
+
+/// <summary>Immutable eligibility at the instant the clear opened, independent of later party or guild changes.</summary>
+public sealed record DungeonClearParticipant(AccountId AccountId, CharacterId CharacterId, long? MembershipId)
+{
+    public bool HasMembership(GuildMember member) =>
+        CharacterId == member.Character && MembershipId is > 0 && MembershipId == member.MembershipId;
+}
 
 /// <summary>A committed entry-state transition emitted by one shared dungeon instance.</summary>
 public sealed record DungeonEntryChange(
@@ -647,7 +656,8 @@ public interface IDungeonRunSettlementDomainService : IDungeonRunQueryDomainServ
     DungeonClearChange? TryOpenClear(
         CharacterId characterId,
         DungeonRunId expectedRunId,
-        long expectedRoomVersion);
+        long expectedRoomVersion,
+        IReadOnlyDictionary<CharacterId, long>? membershipsAtClear = null);
 
     /// <summary>Claims settlement without spending it until durable work has completed.</summary>
     DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId);

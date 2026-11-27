@@ -175,10 +175,22 @@ internal static class TownArrivalProjection
             && own.SharesTownPresence
             && peerSessions.Length > 0)
         {
+            var newcomer = TownReturnProjection.Participant(admission.Entry.Runtime, own.Position);
+            // A return can carry a character snapshot captured before dungeon exit.
+            if (newcomer.Public.Identity is { } identity)
+            {
+                newcomer = newcomer with
+                {
+                    Public = newcomer.Public with
+                    {
+                        Identity = identity with { UserState = TownReturnProjection.StandingInTown },
+                    },
+                };
+            }
             var state = new TownPresenceSynchronizationState(
                 own.Position.TownId,
                 own.Position.AreaId,
-                TownReturnProjection.Participant(admission.Entry.Runtime, own.Position),
+                newcomer,
                 peers.Select(candidate => candidate.Participant).ToArray());
             await TownArrivalProjection.TownPublishArrivalCoreAsync(townAreas, projections, partyTown, 
                 admission.Entry.Session, state, peerSessions, cancellationToken).ConfigureAwait(false);

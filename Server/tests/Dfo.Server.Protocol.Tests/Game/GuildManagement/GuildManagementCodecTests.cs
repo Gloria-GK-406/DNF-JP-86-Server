@@ -8,6 +8,18 @@ namespace Dfo.Server.Protocol.Tests.Game.GuildManagement;
 public sealed class GuildManagementCodecTests
 {
     [Fact]
+    public void Medal_aura_request_reads_symbol_then_frame_and_accepts_the_clear_pair()
+    {
+        var decoder = new GuildMedalAuraDecoder();
+        var choice = Decode(decoder, [2, 0, 0, 0, 5, 0, 0, 0]);
+        Assert.Equal(ClientMessageType.GameGuildSetMedalAura, choice.MessageType);
+        Assert.True(choice.Valid);
+        Assert.Equal(new Dfo.Server.Data.Guilds.GuildMedalAura(2, 5), choice.MedalAura);
+        Assert.Equal(Dfo.Server.Data.Guilds.GuildMedalAura.None, Decode(decoder, [255, 255, 255, 255, 255, 255, 255, 255]).MedalAura);
+        Assert.False(Decode(decoder, [2, 0, 0, 0, 5, 0, 0]).Valid);
+    }
+
+    [Fact]
     public void Management_decoders_check_rank_mask_text_and_complete_body()
     {
         var permissions = new GuildRankPermissionsDecoder();
@@ -44,6 +56,57 @@ public sealed class GuildManagementCodecTests
         var frame = Assert.Single(new GuildAnnouncementEncoder().Encode(new GuildAnnouncementUpdated("Hi")));
         Assert.Equal(0x008D, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
         Assert.Equal("020000004869", Convert.ToHexString(frame[15..]));
+    }
+
+    [Fact]
+    public void Personal_memo_uses_one_dstring_and_accepts_clearing()
+    {
+        var decoder = new GuildMemberMemoDecoder();
+        GuildMemberMemoRequest Read(byte[] body) =>
+            Assert.IsType<GuildMemberMemoRequest>(decoder.Decode(GameMessageMetadata.Empty, body));
+
+        Assert.Equal("测", Read([3, 0, 0, 0, 0xE6, 0xB5, 0x8B]).Memo);
+        Assert.Equal("", Read([0, 0, 0, 0]).Memo);
+        Assert.Null(Read([4, 3, 0, 0, 0, 0xE6, 0xB5, 0x8B]).Memo);
+        Assert.Null(Read([1, 0, 0, 0, 0xFF]).Memo);
+
+        var frame = Assert.Single(new GuildManagementReplyEncoder().Encode(new GuildManagementReply(ServerMessageType.GameGuildSetMemberMemo)));
+        Assert.Equal(0x00E0, BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
+        Assert.Equal(new byte[] { 1 }, frame[15..]);
+    }
+
+    [Fact]
+    public void Guild_rename_confirms_only_a_main_bag_card_slot()
+    {
+        var decoder = new GuildRenameDecoder();
+        GuildRenameRequest Read(byte[] body) => Assert.IsType<GuildRenameRequest>(decoder.Decode(GameMessageMetadata.Empty, body));
+
+        Assert.Equal(121, Read([121, 0, 0]).Source?.Index);
+        Assert.Null(Read([121, 0, 1]).Source);
+        Assert.Null(Read([121, 0, 0, 0, 0, 0, 0]).Source);
+        Assert.Null(Read([177, 0, 0]).Source);
+        var notice = Assert.Single(new GuildRenamedEncoder().Encode(new GuildRenamed("新公会")));
+        Assert.Equal(0x00DA, BinaryPrimitives.ReadUInt16LittleEndian(notice.AsSpan(1)));
+        Assert.Equal("09000000E696B0E585ACE4BC9A", Convert.ToHexString(notice[15..]));
+    }
+
+    [Fact]
+    public void Leadership_transfer_matches_the_A21_target_name_frame()
+    {
+        var sample = Convert.FromHexString("0A0000004775696C6450696C6F74");
+        var decoder = new GuildLeadershipTransferDecoder();
+        var request = Assert.IsType<GuildLeadershipTransferRequest>(decoder.Decode(GameMessageMetadata.Empty, sample));
+        Assert.Equal("GuildPilot"u8.ToArray(), request.TargetName);
+        Assert.Null(Assert.IsType<GuildLeadershipTransferRequest>(
+            decoder.Decode(GameMessageMetadata.Empty, [.. sample, 1])).TargetName);
+
+        var notice = Assert.Single(new GuildLeadershipTransferredEncoder().Encode(new GuildLeadershipTransferred(request.TargetName!)));
+        Assert.Equal(0, notice[0]);
+        Assert.Equal(0x0095, BinaryPrimitives.ReadUInt16LittleEndian(notice.AsSpan(1)));
+        Assert.Equal(sample, notice[15..]);
+        var reply = Assert.Single(new GuildManagementReplyEncoder().Encode(new GuildManagementReply(ServerMessageType.GameGuildTransferLeadership)));
+        Assert.Equal(0x009B, BinaryPrimitives.ReadUInt16LittleEndian(reply.AsSpan(1)));
+        Assert.Equal(new byte[] { 1 }, reply[15..]);
     }
 
     [Fact]

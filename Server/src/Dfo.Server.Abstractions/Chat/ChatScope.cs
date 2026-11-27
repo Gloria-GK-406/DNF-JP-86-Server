@@ -6,12 +6,12 @@ namespace Dfo.Server.Abstractions.Chat;
 /// <summary>Who a chat line is meant for, named by what the group is rather than by who is in it.</summary>
 /// <remarks>
 /// A scope holds no member list. The members of every scope are kept by that group's own owner --
-/// online sessions, town areas, parties, conversations -- and are asked of it at the moment a line is posted, so
+/// online sessions, town areas, parties, guilds and conversations -- and are asked of it at the moment a line is posted, so
 /// chat can never disagree with them.
 /// <para>
 /// The private constructor keeps the ordinary shapes inside this file, though it does not seal the
 /// hierarchy: a record's generated copy constructor is protected, so a derived record elsewhere still
-/// compiles. What protects delivery is <see cref="IChatScopeDomainService.MembersOf"/>, which fails on
+/// compiles. What protects delivery is <see cref="IChatScopeDomainService.MembersOfAsync"/>, which fails on
 /// a scope it was not taught instead of reaching nobody.
 /// </para>
 /// </remarks>
@@ -30,7 +30,7 @@ public abstract record ChatScope
     /// <summary>The channel the anchor is playing on.</summary>
     public sealed record ChannelOf(CharacterId Anchor) : ChatScope;
 
-    /// <summary>The anchor's guild. No guild system exists yet, so it never has members.</summary>
+    /// <summary>The online members of the anchor's current guild, across channels.</summary>
     public sealed record GuildOf(CharacterId Anchor) : ChatScope;
 
     /// <summary>Every channel of this server.</summary>

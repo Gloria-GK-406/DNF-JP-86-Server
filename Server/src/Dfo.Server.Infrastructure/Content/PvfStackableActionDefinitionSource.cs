@@ -3,6 +3,7 @@ using Dfo.Pvf.Schema;
 using System.Globalization;
 using Dfo.Pvf;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -91,6 +92,16 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
             else { entryIncrease = operands[1].Value; entryDungeon = operands[2].Value; }
         }
         var increase = 1;
+        var extensionCost = 0;
+        if (actionName == GuildDungeonExtensionTicket.Action)
+        {
+            var operands = document.Read(Fields.ActionTypeField);
+            if (operands.Count != 3 || !operands[0].IsString || operands[1].Kind != PvfTokenKind.Int32
+                || operands[2].Kind != PvfTokenKind.Int32 || operands[1].Value <= 0 || operands[2].Value != 1)
+                unreadable = true;
+            else
+                extensionCost = operands[1].Value;
+        }
         var blockedInHardcore = false;
         IReadOnlyList<int>? listedQuestClear = null;
         if (actionName == "[any quest clear]")
@@ -142,6 +153,7 @@ internal sealed class PvfStackableActionDefinitionSource(PvfArchiveProvider prov
             FatigueRecovery = recovery, RandomFatigueDefaultRecovery = randomDefaultRecovery, RandomFatigueRecovery = randomRecovery,
             LevelIncrease = increase, BlockedInHardcore = blockedInHardcore,
             EntryDungeonId = entryDungeon, EntryIncrease = entryIncrease, ListedQuestClear = listedQuestClear,
+            GuildDungeonExtensionCost = extensionCost,
         };
     }
 

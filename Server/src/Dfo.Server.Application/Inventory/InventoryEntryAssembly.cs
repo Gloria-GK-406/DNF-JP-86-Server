@@ -430,6 +430,7 @@ internal sealed class InventoryEntryAssembly(
             2 => InventoryContainerType.PersonalCargo,
             3 => InventoryContainerType.Equipment,
             7 => InventoryContainerType.Pet,
+            38 => InventoryContainerType.GuildMedal,
             12 when allowAccountCargo => InventoryContainerType.AccountCargo,
             _ => throw new InvalidDataException(
                 $"Inventory container type {value} is not an entry container."),
@@ -442,6 +443,7 @@ internal sealed class InventoryEntryAssembly(
         2 => InventoryContainerType.PersonalCargo,
         3 => InventoryContainerType.Equipment,
         7 => InventoryContainerType.Pet,
+        38 => InventoryContainerType.GuildMedal,
         12 => InventoryContainerType.AccountCargo,
         19 => InventoryContainerType.TitleBookGeneral,
         20 => InventoryContainerType.TitleBookSpecific,

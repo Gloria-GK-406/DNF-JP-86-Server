@@ -46,7 +46,7 @@ internal sealed class InventoryMoveDomainService(
         space.IsCarriedItemSpace() || space is BusinessInventorySpace.Avatar
             or BusinessInventorySpace.CreatureInventory
             or BusinessInventorySpace.CreatureEquipment
-            or BusinessInventorySpace.CreatureConsumable;
+            or BusinessInventorySpace.CreatureConsumable or BusinessInventorySpace.GuildMedal or BusinessInventorySpace.GuardianGem;
 
     private static bool IsWorn(BusinessInventorySpace space) => space is
         BusinessInventorySpace.WornAvatar

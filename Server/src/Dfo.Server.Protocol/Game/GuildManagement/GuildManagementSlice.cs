@@ -13,7 +13,6 @@ using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.GuildCreation;
 using Dfo.Server.Protocol.Game.GuildInfo;
-using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -21,7 +20,8 @@ namespace Dfo.Server.Protocol.Game.GuildManagement;
 
 public sealed record GuildManagementRequest(
     ClientMessageType MessageType, GameMessageMetadata Metadata, bool Valid,
-    string? Text = null, byte Rank = 0, uint PermissionMask = 0, byte Mark = 0) : IClientNetworkMessage;
+    string? Text = null, byte Rank = 0, uint PermissionMask = 0, byte Mark = 0,
+    GuildMedalAura MedalAura = default) : IClientNetworkMessage;
 
 internal sealed class GuildPromotionDecoder : IGameMessageDecoder
 {
@@ -48,6 +48,19 @@ internal sealed class GuildMarkDecoder : IGameMessageDecoder
         const ClientMessageType type = ClientMessageType.GameGuildSetMark;
         return body is [< GuildMarkPricing.MarkCount and var mark]
             ? new GuildManagementRequest(type, metadata, true, Mark: mark)
+            : new GuildManagementRequest(type, metadata, false);
+    }
+}
+
+internal sealed class GuildMedalAuraDecoder : IGameMessageDecoder
+{
+    public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
+    {
+        const ClientMessageType type = ClientMessageType.GameGuildSetMedalAura;
+        return body.Length == 8
+            ? new GuildManagementRequest(type, metadata, true, MedalAura: new(
+                System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body),
+                System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body[4..])))
             : new GuildManagementRequest(type, metadata, false);
     }
 }
@@ -126,9 +139,8 @@ public sealed record GameGuildManagementCommand(NetworkDispatchContext Dispatch,
 
 internal sealed class GameGuildManagementCommandHandler(
     ISelectedSessionDomainService sessions,
-    IGuildDomainService guilds,
-    IGuildQueryDomainService query,
-    IGuildProgressDomainService progress,
+    IGuildMembershipDomainService guilds,
+    IGuildProfileDomainService profiles, IGuildOverviewDomainService overviews,
     ICharacterVisibleSessionDomainService visibility,
     ICommandWorkUnits units,
     IGameCommandOutbox outbox,
@@ -141,6 +153,8 @@ internal sealed class GameGuildManagementCommandHandler(
         var request = command.Request;
         var connection = command.Dispatch.Connection;
         var replyType = (ServerMessageType)(int)request.MessageType;
+        var updatesAura = request.MessageType == ClientMessageType.GameGuildSetMedalAura;
+        if (updatesAura && GameRequestFreshness.IsStale(request.Metadata)) return false;
         if (!sessions.TryGetInWorld(connection.ConnectionId, out var actor))
             return await ReplyAsync(0x22).ConfigureAwait(false);
         if (!request.Valid)
@@ -153,9 +167,10 @@ internal sealed class GameGuildManagementCommandHandler(
             {
                 var status = await (request.MessageType switch
                 {
-                    ClientMessageType.GameGuildSetPromotion => guilds.SetPromotionAsync(actor.CharacterId, request.Text!, token),
-                    ClientMessageType.GameGuildSetAnnouncement => guilds.SetAnnouncementAsync(actor.CharacterId, request.Text!, token),
-                    ClientMessageType.GameGuildSetMark => guilds.SetMarkAsync(actor.CharacterId, request.Mark, token),
+                    ClientMessageType.GameGuildSetPromotion => profiles.SetPromotionAsync(actor.CharacterId, request.Text!, token),
+                    ClientMessageType.GameGuildSetAnnouncement => profiles.SetAnnouncementAsync(actor.CharacterId, request.Text!, token),
+                    ClientMessageType.GameGuildSetMark => profiles.SetMarkAsync(actor.CharacterId, request.Mark, token),
+                    ClientMessageType.GameGuildSetMedalAura => profiles.SetMedalAuraAsync(actor.CharacterId, request.MedalAura, token),
                     ClientMessageType.GameGuildSetRankName => guilds.SetRankNameAsync(actor.CharacterId, request.Rank, request.Text!, token),
                     ClientMessageType.GameGuildSetRankPermissions => guilds.SetRankPermissionsAsync(
                         actor.CharacterId, request.Rank, request.PermissionMask, token),
@@ -164,7 +179,12 @@ internal sealed class GameGuildManagementCommandHandler(
                 if (status != GuildMutationStatus.Success)
                     return new ManagementResult(status, GuildInfoPanel.Empty);
 
-                var panel = await GuildInfoPanel.ReadAsync(query, progress, actor.CharacterId, token).ConfigureAwait(false);
+                if (request.MessageType == ClientMessageType.GameGuildSetMark)
+                {
+                    var profile = await GuildProfileProjection.ReadAsync(overviews, actor.CharacterId, token).ConfigureAwait(false);
+                    return new ManagementResult(status, profile.Own, profile);
+                }
+                var panel = await GuildInfoPanel.ReadAsync(overviews, actor.CharacterId, token).ConfigureAwait(false);
                 return new ManagementResult(status, panel);
             }
             catch (Exception error) when (error is not OperationCanceledException && !TransactionOutcomeUncertainException.Contains(error))
@@ -195,25 +215,28 @@ internal sealed class GameGuildManagementCommandHandler(
                 && result.Status == GuildMutationStatus.LeaderRequired ? (byte)0x24 : (byte)0x22).ConfigureAwait(false);
 
         await ReplyAsync(null).ConfigureAwait(false);
+        if (result.Profile is { } profile)
+        {
+            await profile.PublishAsync(sessions, visibility, projections, ct).ConfigureAwait(false);
+            return true;
+        }
         var members = result.Panel.Members;
         var audience = new NotificationAudience.TheseCharacters(members.Select(member => member.Character).ToArray());
         if (request.MessageType == ClientMessageType.GameGuildSetAnnouncement && result.Panel.Guild is { } guild)
             await projections.ProjectAsync(audience, new GuildAnnouncementUpdated(guild.Announcement), ct).ConfigureAwait(false);
         await projections.ProjectAsync(audience, result.Panel, ct).ConfigureAwait(false);
 
-        if (request.MessageType == ClientMessageType.GameGuildSetMark)
-        {
-            foreach (var member in members)
-                if (sessions.TryGetInWorld(member.Character, out var session))
-                    await projections.ProjectAsync(new NotificationAudience.TheseSessions(visibility.Resolve(session)),
-                        new CharacterUserStateRefresh(session), ct).ConfigureAwait(false);
-        }
+        if (updatesAura)
+            await GuildProfileProjection.RefreshAppearanceAsync(result.Panel, sessions, visibility, projections, ct,
+                refreshMedalAura: true).ConfigureAwait(false);
         return true;
 
         async ValueTask<bool> ReplyAsync(byte? error)
         {
-            await outbox.RegisterCmdAsync(connection.ConnectionId, new GuildManagementReply(replyType, error), ct)
-                .ConfigureAwait(false);
+            // A21 consumes the style via GUILD_INFO. This request has no CMD response handler.
+            if (!updatesAura)
+                await outbox.RegisterCmdAsync(connection.ConnectionId, new GuildManagementReply(replyType, error), ct)
+                    .ConfigureAwait(false);
             return !error.HasValue;
         }
     }
@@ -221,7 +244,8 @@ internal sealed class GameGuildManagementCommandHandler(
     private static byte InvalidInputError(ClientMessageType type) =>
         type == ClientMessageType.GameGuildSetPromotion ? (byte)0x6C : (byte)0x24;
 
-    private sealed record ManagementResult(GuildMutationStatus Status, GuildInfoPanel Panel);
+    private sealed record ManagementResult(GuildMutationStatus Status, GuildInfoPanel Panel,
+        GuildProfileProjection? Profile = null);
 }
 
 internal static class GuildManagementRegistration
@@ -231,6 +255,7 @@ internal static class GuildManagementRegistration
         services.AddGameCmdMessageDecoder<GuildPromotionDecoder>(ClientMessageType.GameGuildSetPromotion);
         services.AddGameCmdMessageDecoder<GuildAnnouncementDecoder>(ClientMessageType.GameGuildSetAnnouncement);
         services.AddGameCmdMessageDecoder<GuildMarkDecoder>(ClientMessageType.GameGuildSetMark);
+        services.AddGameCmdMessageDecoder<GuildMedalAuraDecoder>(ClientMessageType.GameGuildSetMedalAura);
         services.AddGameNotiMessageEncoder<GuildAnnouncementUpdated, GuildAnnouncementEncoder>();
         services.AddNotificationHandler<GuildAnnouncementUpdated, GuildAnnouncementUpdatedHandler>();
         services.AddGameCmdMessageDecoder<GuildRankPermissionsDecoder>(ClientMessageType.GameGuildSetRankPermissions);
@@ -240,6 +265,7 @@ internal static class GuildManagementRegistration
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSetPromotion, typeof(GuildManagementRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSetAnnouncement, typeof(GuildManagementRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSetMark, typeof(GuildManagementRequest)),
+            new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSetMedalAura, typeof(GuildManagementRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSetRankPermissions, typeof(GuildManagementRequest)),
             new ProtocolCommandMessageBinding(ClientMessageType.GameGuildSetRankName, typeof(GuildManagementRequest)));
         services.RegisterProtocolMessageHandler<GuildManagementRequestHandler, GuildManagementRequest, GameGuildManagementCommand>(
@@ -248,6 +274,8 @@ internal static class GuildManagementRegistration
             ClientMessageType.GameGuildSetAnnouncement);
         services.RegisterProtocolMessageHandler<GuildManagementRequestHandler, GuildManagementRequest, GameGuildManagementCommand>(
             ClientMessageType.GameGuildSetMark);
+        services.RegisterProtocolMessageHandler<GuildManagementRequestHandler, GuildManagementRequest, GameGuildManagementCommand>(
+            ClientMessageType.GameGuildSetMedalAura);
         services.RegisterProtocolMessageHandler<GuildManagementRequestHandler, GuildManagementRequest, GameGuildManagementCommand>(
             ClientMessageType.GameGuildSetRankPermissions);
         services.RegisterProtocolMessageHandler<GuildManagementRequestHandler, GuildManagementRequest, GameGuildManagementCommand>(

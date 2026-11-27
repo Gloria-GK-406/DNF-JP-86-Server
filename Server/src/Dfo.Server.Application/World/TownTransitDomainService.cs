@@ -1,8 +1,11 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
@@ -15,7 +18,10 @@ internal sealed class TownTransitDomainService(
     ITownMovementDomainService towns,
     IEntryPlacementRuleService placement,
     IMarriageHousingQueryDomainService housing,
-    IMarriageHousingSessionDomainService housingSessions) : ITownTransitDomainService
+    IMarriageHousingSessionDomainService housingSessions,
+    IGuildHallAccessDomainService halls,
+    ITownDefinitionSource definitions,
+    ICharacterLocationDomainService positions) : ITownTransitDomainService
 {
     public async ValueTask<TownCrossingRefusal?> RefuseCrossingAsync(
         SelectedSessionIdentity session,
@@ -26,6 +32,32 @@ internal sealed class TownTransitDomainService(
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(standing);
+        if (GuildHallTown.Is(townId))
+        {
+            if (GuildHallTown.Is(standing.TownId))
+            {
+                if (await halls.VisitAsync(session, standing.AreaId, cancellationToken).ConfigureAwait(false) is null)
+                    return TownCrossingRefusal.GuildHallEntry;
+                if (standing.AreaId is GuildHallTown.InitialAreaId or GuildHallTown.DungeonGateAreaId
+                    && areaId is GuildHallTown.InitialAreaId or GuildHallTown.DungeonGateAreaId)
+                    return null;
+                return await IsGuildBattleCrossingAsync(standing.AreaId, areaId, cancellationToken).ConfigureAwait(false)
+                    ? null : TownCrossingRefusal.GuildHallEntry;
+            }
+
+            return areaId == GuildHallTown.InitialAreaId
+                && await halls.InstanceForAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) is not null
+                && await IsTownGateAsync(standing.TownId, standing.AreaId, cancellationToken).ConfigureAwait(false)
+                ? null : TownCrossingRefusal.GuildHallEntry;
+        }
+        if (GuildHallTown.Is(standing.TownId))
+        {
+            var home = await positions.ReadAsync(session.AccountId, session.CharacterId, cancellationToken)
+                .ConfigureAwait(false);
+            return home is not null && home.TownId == townId && home.AreaId == areaId
+                ? null : TownCrossingRefusal.GuildHallExit;
+        }
+
         // Household facts are read only for a crossing into or out of a household town.
         var entering = placement.IsHouseholdTown(townId);
         var leaving = !entering && placement.IsHouseholdTown(standing.TownId);
@@ -66,6 +98,8 @@ internal sealed class TownTransitDomainService(
         byte? direction = null)
     {
         ArgumentNullException.ThrowIfNull(session);
+        if (GuildHallTown.Is(destination.TownId) && destination.Instance == 0)
+            return null;
         var previous = onlineCharacters.StandingOf(session);
         var housingChange = previous is null
             ? TownHousingChange.None
@@ -135,10 +169,32 @@ internal sealed class TownTransitDomainService(
         return departures;
     }
 
-    // The household instance is read only for a household town, whose area instance it decides.
     private async ValueTask<int?> AreaInstanceAsync(
-        SelectedSessionIdentity session, int townId, CancellationToken cancellationToken) =>
-        placement.AreaInstance(townId, placement.IsHouseholdTown(townId)
+        SelectedSessionIdentity session, int townId, CancellationToken cancellationToken)
+    {
+        if (GuildHallTown.Is(townId))
+            return await halls.InstanceForAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+
+        return placement.AreaInstance(townId, placement.IsHouseholdTown(townId)
             ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false)
             : null);
+    }
+
+    private async ValueTask<bool> IsTownGateAsync(byte townId, byte areaId, CancellationToken cancellationToken) =>
+        (await definitions.GetAsync(townId, cancellationToken).ConfigureAwait(false))?.AreaAt(areaId)?.Kind
+            == TownAreaKind.Gate;
+
+    private async ValueTask<bool> IsGuildBattleCrossingAsync(byte source, byte destination, CancellationToken ct)
+    {
+        if ((source, destination) is not ((GuildHallTown.InitialAreaId, GuildHallTown.BattleAreaId)
+            or (GuildHallTown.BattleAreaId, GuildHallTown.InitialAreaId)
+            or (GuildHallTown.BattleAreaId, GuildHallTown.BattleAreaId)))
+            return false;
+        var town = await definitions.GetAsync(GuildHallTown.TownId, ct).ConfigureAwait(false);
+        if (town?.AreaAt(GuildHallTown.InitialAreaId) is not { } hall)
+            return false;
+        var map = await definitions.GetMapGeometryAsync(hall.MapPath, ct).ConfigureAwait(false);
+        return map?.TransitAreas.Any(transit => transit.LinkedTownId == GuildHallTown.TownId
+            && transit.LinkedAreaId == GuildHallTown.BattleAreaId) == true;
+    }
 }
