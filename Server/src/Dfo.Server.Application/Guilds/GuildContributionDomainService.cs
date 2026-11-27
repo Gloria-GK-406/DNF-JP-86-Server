@@ -60,9 +60,12 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
             return null;
 
         var day = GuildRedPacketDomainService.Day(TimeZoneInfo.ConvertTime(at, clock.LocalTimeZone));
-        var points = await store.RecordClearAsync(guild, character, run.RunId.Value, kind, day, at.ToUnixTimeSeconds(),
-            kind == GuildClearContributionKind.GuildDungeon ? rule.Required : 0, rule.Points, ct).ConfigureAwait(false);
-        if (points == 0) return null;
+        var priorClears = kind == GuildClearContributionKind.GuildDungeon
+            ? await store.CountClearsAsync(character, kind, day, ct).ConfigureAwait(false) : 0;
+        var points = GuildRedPacketRuleService.ClearContribution(kind, rule, priorClears);
+        if (!await store.TryRecordClearAsync(guild, character, run.RunId.Value, kind, day, at.ToUnixTimeSeconds(), points, ct)
+                .ConfigureAwait(false) || points == 0)
+            return null;
 
         var title = kind == GuildClearContributionKind.GuildDungeon ? "公会地下城贡献奖励" : "会友组队通关贡献奖励";
         return await DeliverAsync(account, character, points, title,

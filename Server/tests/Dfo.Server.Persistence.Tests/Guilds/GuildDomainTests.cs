@@ -204,8 +204,8 @@ public sealed class GuildDomainTests : IDisposable
             await store.AddDonationAsync(guild, actor, 1000, 1, at, default);
             Assert.True(await monthly.RecordAsync(guild, actor, GuildContributionSource.Attendance, "day", 10, at, default));
             Assert.True(await daily.TryRecordDailyAsync(guild, actor, GuildDailyContributionKind.Chat, 1, at.ToUnixTimeSeconds(), 2, default));
-            Assert.Equal(4, await daily.RecordClearAsync(guild, actor, run, GuildClearContributionKind.PartyDungeon,
-                1, at.ToUnixTimeSeconds(), 0, 4, default));
+            Assert.True(await daily.TryRecordClearAsync(guild, actor, run, GuildClearContributionKind.PartyDungeon,
+                1, at.ToUnixTimeSeconds(), 4, default));
             return true;
         });
         var previous = (await query.FindMembershipAsync(actor, default))!.Member;
@@ -233,8 +233,8 @@ public sealed class GuildDomainTests : IDisposable
         {
             Assert.False(await monthly.RecordAsync(guild, actor, GuildContributionSource.Attendance, "day", 10, at, default));
             Assert.False(await daily.TryRecordDailyAsync(guild, actor, GuildDailyContributionKind.Chat, 1, at.ToUnixTimeSeconds(), 2, default));
-            Assert.Equal(0, await daily.RecordClearAsync(guild, actor, run, GuildClearContributionKind.PartyDungeon,
-                1, at.ToUnixTimeSeconds(), 0, 4, default));
+            Assert.False(await daily.TryRecordClearAsync(guild, actor, run, GuildClearContributionKind.PartyDungeon,
+                1, at.ToUnixTimeSeconds(), 4, default));
             await store.AddDonationAsync(guild, actor, 2000, 2, at, default);
             return true;
         });
@@ -1102,6 +1102,47 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(expectedProgress, await progress.ReadRepeatBonusAsync(new(11), default));
         ItemDeliveryGrant[] expectedMail = expectBonus ? [new(101, 1), new(102, 2)] : [new(101, 1)];
         Assert.Equal(expectedMail, mail);
+    }
+
+    [Fact]
+    public async Task Guild_clear_contribution_awards_only_the_threshold_run_each_day()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var member = (await query.FindMembershipAsync(new(11), default))!.Member;
+        var ledger = new SqliteGuildContributionStore(new(path, scope));
+        var rules = new GuildRedPacketRules(new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1)
+            { GuildDungeonContribution = new(2, 7) };
+        var delivered = new List<ItemDeliveryGrant>();
+        var service = new GuildContributionDomainService(store, ledger,
+            new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => rules)),
+            TestRequired.Absent<IItemDeliveryDomainService>((_, args) =>
+            {
+                delivered.Add(Assert.Single((IReadOnlyList<ItemDeliveryGrant>)args![2]!));
+                return ValueTask.FromResult(new ItemDeliveryReceipt([], [], 1));
+            }), clock);
+        var mode = new DungeonRunMode.GuildDungeon(new(guild, 1, GuildDungeonPeriod.At(clock.Now)))
+            { EntryMemberships = new Dictionary<CharacterId, long> { [new(11)] = member.MembershipId } };
+        var layout = new DungeonLayout(8500, 0, 1, 1, default, default, 1, 1,
+            new Dictionary<MazeCell, DungeonCellDefinition>()) { Mode = mode };
+        var template = new DungeonRunState(layout, default, 1, new HashSet<MazeCell>(), clock.Now, ClearOpen: true,
+            CurrentCellState: new(default, 1, 1, 0, [], []))
+            { ClearParticipants = [new(new(1), new(11), member.MembershipId)] };
+
+        for (var day = 0; day < 2; day++)
+        {
+            var at = clock.Now.AddDays(day);
+            for (var clear = 1; clear <= 4; clear++)
+            {
+                var run = template with { RunId = new(Guid.NewGuid()), ClearedAt = at };
+                var reward = await Write(() => service.AwardClearAsync(new(1), new(11), run, at, default));
+                Assert.Equal(clear == 2, reward is not null);
+                Assert.Null(await Write(() => service.AwardClearAsync(new(1), new(11), run, at, default)));
+            }
+        }
+        Assert.Equal(8L, Execute("SELECT count(*) FROM guild_clear_contributions"));
+        Assert.Equal(14, Assert.Single(await ledger.ReadLeaderboardAsync(guild, default)).Contribution);
+        Assert.Equal(2, delivered.Count);
+        Assert.All(delivered, grant => Assert.Equal(new ItemDeliveryGrant(GuildRedPacketRules.ContributionCoin, 7), grant));
     }
 
     [Fact]

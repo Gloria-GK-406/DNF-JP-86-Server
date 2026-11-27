@@ -23,32 +23,34 @@ internal sealed class SqliteGuildContributionStore(SqliteDatabase database) : IG
                 p.AddWithValue("@points", points);
             }, ct).ConfigureAwait(false) == 1;
 
-    public async ValueTask<int> RecordClearAsync(GuildId guild, CharacterId character, Guid run, GuildClearContributionKind kind,
-        int day, long earnedAt, int requiredClears, int points, CancellationToken ct)
-    {
-        var awarded = 0;
-        await database.WriteAsync(async (command, token) =>
+    public ValueTask<long> CountClearsAsync(CharacterId character, GuildClearContributionKind kind, int day, CancellationToken ct) =>
+        database.ReadAsync(async (command, token) =>
         {
             command.CommandText = """
-                INSERT INTO guild_clear_contributions(guild_id,character_id,run_id,kind,day,earned_at,points,membership_id)
-                SELECT guild_id,character_id,@run,@kind,@day,@earnedAt,
-                    CASE WHEN @required=0 OR (SELECT count(*) FROM guild_clear_contributions
-                        WHERE character_id=@character AND kind=@kind AND day=@day)=@required-1 THEN @points ELSE 0 END, membership_id
-                FROM guild_members WHERE guild_id=@guild AND character_id=@character
-                ON CONFLICT(character_id,run_id) DO NOTHING RETURNING points
+                SELECT count(*) FROM guild_clear_contributions WHERE character_id=@character AND kind=@kind AND day=@day
                 """;
-            command.Parameters.AddWithValue("@guild", (long)guild.Value);
             command.Parameters.AddWithValue("@character", character.Value);
-            command.Parameters.AddWithValue("@run", run.ToString("N"));
             command.Parameters.AddWithValue("@kind", (int)kind);
             command.Parameters.AddWithValue("@day", day);
-            command.Parameters.AddWithValue("@earnedAt", earnedAt);
-            command.Parameters.AddWithValue("@required", requiredClears);
-            command.Parameters.AddWithValue("@points", points);
-            awarded = Convert.ToInt32(await command.ExecuteScalarAsync(token).ConfigureAwait(false));
-        }, ct).ConfigureAwait(false);
-        return awarded;
-    }
+            return Convert.ToInt64(await command.ExecuteScalarAsync(token).ConfigureAwait(false));
+        }, ct);
+
+    public async ValueTask<bool> TryRecordClearAsync(GuildId guild, CharacterId character, Guid run, GuildClearContributionKind kind,
+        int day, long earnedAt, int points, CancellationToken ct) => await database.ExecuteAsync("""
+            INSERT INTO guild_clear_contributions(guild_id,character_id,run_id,kind,day,earned_at,points,membership_id)
+            SELECT guild_id,character_id,@run,@kind,@day,@earnedAt,@points,membership_id
+            FROM guild_members WHERE guild_id=@guild AND character_id=@character
+            ON CONFLICT(character_id,run_id) DO NOTHING
+            """, p =>
+            {
+                p.AddWithValue("@guild", (long)guild.Value);
+                p.AddWithValue("@character", character.Value);
+                p.AddWithValue("@run", run.ToString("N"));
+                p.AddWithValue("@kind", (int)kind);
+                p.AddWithValue("@day", day);
+                p.AddWithValue("@earnedAt", earnedAt);
+                p.AddWithValue("@points", points);
+            }, ct).ConfigureAwait(false) == 1;
 
     public ValueTask<IReadOnlyList<GuildContributionMember>> ReadLeaderboardAsync(GuildId guild, CancellationToken ct) =>
         database.ReadAllAsync("""
