@@ -28,33 +28,41 @@ public static class Migrator
             [10] = AuctionQuantityOwnershipUpgrade.Apply,
             [11] = GameplayParameterStorageRetirement.Apply,
             [12] = AntonRaidRewardUpgrade.Apply,
-            [13] = AddGuilds,
-            [14] = AddRecommendedGuildChannel,
-            [15] = AddGuildDonationPoints,
-            [16] = AddGuildDonationHistory,
-            [17] = AddGuildAttendance,
-            [18] = AddGuildRankSettings,
-            [19] = AddGuildMemberRank,
-            [20] = AddGuildAppearance,
-            [21] = AddGuildContents,
-            [22] = AddTimedGuildContentsAndWarehouse,
-            [23] = AddGuildWarehouseItems,
-            [24] = AddGuildDungeonProgress,
-            [25] = AddGuildWarehouseHistory,
-            [26] = AddGuildBoard,
-            [27] = AddGuardianGemKeys,
-            [28] = AddGuildMemberMemo,
-            [29] = AddGuildAlliances,
-            [30] = AddGuildGifts,
-            [31] = AddGuildRedPackets,
-            [32] = AddGuildDailyContributions,
-            [33] = AddGuildClearContributions,
-            [34] = AddGuildDungeonRepeatBonus,
-            [35] = AddGuildMonthlyContributions,
-            [36] = AddGuildHallStage,
-            [37] = AddGuildDungeonExtensions,
-            [38] = AddGuildMedalAura,
-            [39] = GuildMembershipUpgrade.Apply,
+            [13] = PvpRecordSplitUpgrade.Apply,
+            [14] = PvpSkillBuildUpgrade.Apply,
+            [15] = PvpTotalMatchTeamsUpgrade.Apply,
+            [16] = PvpMatchRatingResultsUpgrade.Apply,
+            [17] = PvpTotalMatchRatingResultsUpgrade.Apply,
+            [18] = PvpDailyMissionsUpgrade.Apply,
+            [19] = PvpDailyMissionMetricsUpgrade.Apply,
+            [20] = PvpColosseumUpgrade.Apply,
+            [21] = AddGuilds,
+            [22] = AddRecommendedGuildChannel,
+            [23] = AddGuildDonationPoints,
+            [24] = AddGuildDonationHistory,
+            [25] = AddGuildAttendance,
+            [26] = AddGuildRankSettings,
+            [27] = AddGuildMemberRank,
+            [28] = AddGuildAppearance,
+            [29] = AddGuildContents,
+            [30] = AddTimedGuildContentsAndWarehouse,
+            [31] = AddGuildWarehouseItems,
+            [32] = AddGuildDungeonProgress,
+            [33] = AddGuildWarehouseHistory,
+            [34] = AddGuildBoard,
+            [35] = AddGuardianGemKeys,
+            [36] = AddGuildMemberMemo,
+            [37] = AddGuildAlliances,
+            [38] = AddGuildGifts,
+            [39] = AddGuildRedPackets,
+            [40] = AddGuildDailyContributions,
+            [41] = AddGuildClearContributions,
+            [42] = AddGuildDungeonRepeatBonus,
+            [43] = AddGuildMonthlyContributions,
+            [44] = AddGuildHallStage,
+            [45] = AddGuildDungeonExtensions,
+            [46] = AddGuildMedalAura,
+            [47] = GuildMembershipUpgrade.Apply,
         };
 
     private static void AddGuildMedalAura(SqliteConnection connection)
@@ -375,12 +383,20 @@ public static class Migrator
             throw new InvalidOperationException("The database has no tables; the server builds a new one itself.");
 
         var copy = backup ? Backup(connection, databasePath, from) : null;
-        for (var version = from; version < CharacterDatabaseSchema.Version; version++)
+        var version = GuildBranchUpgrade.BeginIfNeeded(connection, from);
+        while (version < CharacterDatabaseSchema.Version)
         {
+            if (version == 21)
+            {
+                version = GuildBranchUpgrade.ResumeGuildSteps(connection);
+                if (version == CharacterDatabaseSchema.Version)
+                    break;
+            }
             if (!Steps.TryGetValue(version, out var step))
                 throw new InvalidOperationException($"No step takes a database from schema version {version}.");
             step(connection);
-            CharacterDatabaseSchema.Stamp(connection, null, checked((int)version + 1));
+            CharacterDatabaseSchema.Stamp(connection, null, checked((int)(version + 1)));
+            version++;
         }
 
         return new(from, CharacterDatabaseSchema.Version, copy);
@@ -389,7 +405,7 @@ public static class Migrator
     /// <summary>A consistent copy beside the database, taken before anything changes.</summary>
     private static string Backup(SqliteConnection connection, string databasePath, long version)
     {
-        var copy = $"{Path.GetFullPath(databasePath)}.v{version}-{DateTime.UtcNow:yyyyMMddHHmmss}.bak";
+        var copy = $"{Path.GetFullPath(databasePath)}.v{version}-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.bak";
         using var command = connection.CreateCommand();
         command.CommandText = "VACUUM INTO @copy;";
         command.Parameters.AddWithValue("@copy", copy);

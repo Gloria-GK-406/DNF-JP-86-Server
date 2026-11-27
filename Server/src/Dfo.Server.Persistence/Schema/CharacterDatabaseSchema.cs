@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 40;
+    public const int Version = 48;
 
     internal const string PvpTotalMatchTeamsDeclaration = """
         CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
