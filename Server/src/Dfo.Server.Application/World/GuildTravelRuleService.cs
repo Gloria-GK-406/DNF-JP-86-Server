@@ -1,11 +1,27 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.World;
 
+internal enum GuildTeleportEligibility { Locked, NeedsQuestLog, Allowed }
+
 internal sealed class GuildTravelRuleService(ITownDefinitionSource definitions)
 {
+    public static GuildTeleportEligibility EvaluateTeleportEligibility(
+        TownAreaDefinition area, int? level, IReadOnlyList<ClearedQuest>? cleared = null)
+    {
+        if (level is null || level < area.MinimumLevel)
+            return GuildTeleportEligibility.Locked;
+        if (area.RequiredQuestIds.Count == 0)
+            return GuildTeleportEligibility.Allowed;
+        if (cleared is null)
+            return GuildTeleportEligibility.NeedsQuestLog;
+        return area.RequiredQuestIds.All(id => cleared.Any(quest => quest.QuestId == id && quest.Mark != 0))
+            ? GuildTeleportEligibility.Allowed : GuildTeleportEligibility.Locked;
+    }
+
     public async ValueTask<bool> IsTownGateAsync(byte townId, byte areaId, CancellationToken cancellationToken) =>
         (await definitions.GetAsync(townId, cancellationToken).ConfigureAwait(false))?.AreaAt(areaId)?.Kind
             == TownAreaKind.Gate;

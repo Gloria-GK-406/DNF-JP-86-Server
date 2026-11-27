@@ -62,14 +62,14 @@ internal sealed class GuildPartyTeleportDomainService(
         {
             var session = member.Session;
             var progress = await characters.Get(member.CharacterId).ProgressAsync(ct).ConfigureAwait(false);
-            if (progress is null || progress.Level < area.MinimumLevel)
-                return new(null, GuildPartyTeleportRefusal.DestinationLocked);
-            if (area.RequiredQuestIds.Count > 0)
+            var eligibility = GuildTravelRuleService.EvaluateTeleportEligibility(area, progress?.Level);
+            if (eligibility == GuildTeleportEligibility.NeedsQuestLog)
             {
                 var cleared = await quests.LogOf(session.AccountId, session.CharacterId).ClearedAsync(ct).ConfigureAwait(false);
-                if (area.RequiredQuestIds.Any(required => !cleared.Any(quest => quest.QuestId == required && quest.Mark != 0)))
-                    return new(null, GuildPartyTeleportRefusal.DestinationLocked);
+                eligibility = GuildTravelRuleService.EvaluateTeleportEligibility(area, progress?.Level, cleared);
             }
+            if (eligibility != GuildTeleportEligibility.Allowed)
+                return new(null, GuildPartyTeleportRefusal.DestinationLocked);
             if (await transit.RefuseCrossingAsync(session, member.Position, target.TownId, target.AreaId, ct).ConfigureAwait(false) is not null
                 || !await marriage.CanCrossAsync(session, channel.ChannelId, target.TownId, target.AreaId, ct).ConfigureAwait(false)
                 || !await marriage.CanLeaveAsync(session, target.TownId, target.AreaId, ct).ConfigureAwait(false))
