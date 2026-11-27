@@ -32,14 +32,10 @@ internal sealed class GuildProfileDomainService(
 
     public async ValueTask<GuildMutationStatus> SetMarkAsync(CharacterId actor, byte mark, CancellationToken ct)
     {
-        if (mark >= GuildMarkPricing.MarkCount)
-            return GuildMutationStatus.InvalidMark;
-        if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
-            return GuildMutationStatus.LeaderRequired;
-        if (membership.Guild.Mark == mark)
-            return GuildMutationStatus.Success;
-        if (rules.MarkPrice(mark) is not { } cost)
-            return GuildMutationStatus.MarkPricingUnavailable;
+        var membership = await store.FindMembershipAsync(actor, ct).ConfigureAwait(false);
+        var decision = rules.EvaluateMarkChange(mark, membership);
+        if (membership is null || decision.Cost is not { } cost)
+            return decision.Status;
 
         if (!await pointAccount.TrySpendAsync(membership.Guild.Id, cost, ct).ConfigureAwait(false))
             return GuildMutationStatus.InsufficientGuildPoints;

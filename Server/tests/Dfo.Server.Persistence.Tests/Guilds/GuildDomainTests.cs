@@ -447,6 +447,24 @@ public sealed class GuildDomainTests : IDisposable
     }
 
     [Fact]
+    public async Task Mark_change_preserves_validation_order_and_balance_when_pricing_is_missing()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        Execute("UPDATE guilds SET gm_points=2100");
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMarkAsync(new(11), 0, default)));
+        economy.MarkPricing = null;
+
+        Assert.Equal(GuildMutationStatus.InvalidMark, await Write(() => profiles.SetMarkAsync(new(13), 16, default)));
+        Assert.Equal(GuildMutationStatus.LeaderRequired, await Write(() => profiles.SetMarkAsync(new(13), 15, default)));
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetMarkAsync(new(11), 0, default)));
+        Assert.Equal(GuildMutationStatus.MarkPricingUnavailable, await Write(() => profiles.SetMarkAsync(new(11), 15, default)));
+        var state = (await query.FindMembershipAsync(new(11), default))!.Guild;
+        Assert.Equal(guild, state.Id);
+        Assert.Equal(0, state.Mark);
+        Assert.Equal(2100, state.GmPoints);
+    }
+
+    [Fact]
     public async Task Leader_edits_announcement_and_changes_marks_without_losing_contribution()
     {
         var created = await Write(() => guilds.CreateAsync(new(11), "Iris", "Promotion", default));
@@ -1302,7 +1320,8 @@ public sealed class GuildDomainTests : IDisposable
         public int? ReadDonationGoldPerPoint() => DonationGold;
         public GuildMonthlyContributionRule? Monthly { get; set; }
         public GuildMonthlyContributionRule? ReadMonthlyContribution() => Monthly;
-        public GuildMarkPricing? ReadMarkPricing() => new(5, 2000);
+        public GuildMarkPricing? MarkPricing { get; set; } = new(5, 2000);
+        public GuildMarkPricing? ReadMarkPricing() => MarkPricing;
         public GuildMedalAuraCatalog? ReadMedalAuraCatalog() => new(25, 25);
         public GuildContentCatalog? ReadContentCatalog() => new(
             new Dictionary<uint, GuildContentDefinition>
