@@ -22,6 +22,20 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class SpecialConsumableEffectTests
 {
     [Theory]
+    [InlineData(10155510, "[guild dungeon time ticket]", true, false)]
+    [InlineData(10155510, "[other]", false, false)]
+    [InlineData(10155511, "[guild dungeon time ticket]", false, false)]
+    [InlineData(10155511, "[other]", false, true)]
+    public async Task Guild_extension_requires_matching_item_and_action(int itemId, string action, bool extension, bool ordinary)
+    {
+        var declaration = ItemUseRules.Potion() with { Action = action };
+        var rules = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((itemId, declaration))),
+            TestRequired.Absent<IStackableActionDefinitionSource>());
+        Assert.Equal(extension ? declaration : null, await rules.GuildExtensionActionRuleAsync(itemId, default));
+        Assert.Equal(ordinary ? declaration : null, await rules.OrdinaryUseRuleAsync(itemId, default));
+    }
+
+    [Theory]
     [InlineData(3,3,true)]
     [InlineData(0,3,false)]
     [InlineData(3,4,false)]

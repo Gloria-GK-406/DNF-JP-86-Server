@@ -45,6 +45,20 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
     private const byte RowLevel = 50;
 
     [Theory]
+    [InlineData(10155510, "[guild dungeon time ticket]")]
+    [InlineData(10155510, "[other]")]
+    [InlineData(10155511, "[guild dungeon time ticket]")]
+    public async Task Ordinary_use_refuses_guild_extension_items_without_consuming_them(int itemId, string action)
+    {
+        var inventory = new FakeInventory(4, itemId, 2, 2);
+        var (handler, sender) = Build(inventory, (itemId, ItemUseRules.Potion() with { Action = action }));
+        await handler.HandleAsync(Context, Request(4, itemId), default);
+
+        Assert.NotNull(Assert.Single(sender.Sent.OfType<UseStackableResponse>()).ErrorCode);
+        Assert.Equal(2, inventory.Count);
+    }
+
+    [Theory]
     [InlineData(4, 2)]
     [InlineData(4, 1)]
     [InlineData(65, 2)]
