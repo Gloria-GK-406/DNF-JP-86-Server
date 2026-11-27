@@ -152,9 +152,10 @@ internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, I
         {
             bonusAdvanced = true;
             var levels = run.ClearParticipants.Select(member => mode.EntryLevels[member.CharacterId]).ToArray();
-            var updated = await progress.AdvanceRepeatBonusAsync(character,
-                bonus.Gain(levels.Length, levels.Max() - levels.Min()), ct).ConfigureAwait(false);
-            if (updated == 0)
+            var current = await progress.ReadRepeatBonusAsync(character, ct).ConfigureAwait(false);
+            var (next, grantReward) = GuildDungeonRuleService.EvaluateRepeatBonus(bonus, current, levels);
+            await progress.WriteRepeatBonusAsync(character, next, ct).ConfigureAwait(false);
+            if (grantReward)
             {
                 await items.DeliverAsync(account, character, [new(bonus.ItemId, bonus.Count)], "公会地下城奖励礼盒",
                     ct, ItemDeliveryMode.MailOnly, new(null, $"guild-dungeon-repeat:{run.RunId.Value:N}:{character.Value}")

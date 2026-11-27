@@ -45,25 +45,15 @@ internal sealed class SqliteGuildDungeonStore(SqliteDatabase database, IGuildPoi
             return Convert.ToInt32(await command.ExecuteScalarAsync(token).ConfigureAwait(false));
         }, ct);
 
-    public async ValueTask<int> AdvanceRepeatBonusAsync(CharacterId character, int gain, CancellationToken ct)
-    {
-        var updated = 0;
-        await database.WriteAsync(async (command, token) =>
-        {
-            command.CommandText = """
-                INSERT INTO guild_dungeon_repeat_bonus(character_id,progress)
-                VALUES(@character,@gain)
-                ON CONFLICT(character_id) DO UPDATE SET progress =
-                    CASE WHEN progress + excluded.progress >= @full THEN 0 ELSE progress + excluded.progress END
-                RETURNING progress
-                """;
-            command.Parameters.AddWithValue("@character", character.Value);
-            command.Parameters.AddWithValue("@gain", gain);
-            command.Parameters.AddWithValue("@full", GuildDungeonRepeatBonus.FullProgress);
-            updated = Convert.ToInt32(await command.ExecuteScalarAsync(token).ConfigureAwait(false));
-        }, ct).ConfigureAwait(false);
-        return updated;
-    }
+    public async ValueTask WriteRepeatBonusAsync(CharacterId character, int progress, CancellationToken ct) =>
+        _ = await database.ExecuteAsync("""
+            INSERT INTO guild_dungeon_repeat_bonus(character_id,progress) VALUES(@character,@progress)
+            ON CONFLICT(character_id) DO UPDATE SET progress=excluded.progress
+            """, parameters =>
+            {
+                parameters.AddWithValue("@character", character.Value);
+                parameters.AddWithValue("@progress", progress);
+            }, ct).ConfigureAwait(false);
 
     public async ValueTask<IReadOnlyDictionary<int, int>> ReadProgressAsync(GuildDungeonAdmission admission, CancellationToken ct)
     {

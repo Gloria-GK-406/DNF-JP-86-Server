@@ -18,6 +18,13 @@ internal sealed class GuildDungeonRuleService(IGuildDungeonContentSource content
         return dungeon.Rewards.First(row => ratio <= row.MaximumRatio);
     }
 
+    public static (int NextProgress, bool GrantReward) EvaluateRepeatBonus(
+        GuildDungeonRepeatBonus bonus, int currentProgress, IReadOnlyList<int> entryLevels)
+    {
+        var next = currentProgress + bonus.Gain(entryLevels.Count, entryLevels.Max() - entryLevels.Min());
+        return next >= GuildDungeonRepeatBonus.FullProgress ? (0, true) : (next, false);
+    }
+
     public static int? MedalShopFor(GuildDungeonCatalog catalog, GuildDungeonAdmission admission,
         IReadOnlyDictionary<int, int> counts) =>
         catalog.Dungeons.TryGetValue(GuildHallTown.MedalShopUnlockDungeonId, out var dungeon)

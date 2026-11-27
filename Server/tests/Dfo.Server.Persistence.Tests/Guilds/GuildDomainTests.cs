@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Guilds;
@@ -1055,6 +1056,52 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(GuildMutationStatus.Success, renamed.Status);
         Assert.Equal("Fern", (await store.FindMembershipAsync(new(11), default))!.Guild.Name);
         Assert.Equal(0L, Execute("SELECT carried_gold FROM character_stats WHERE character_id=11"));
+    }
+
+    [Theory]
+    [InlineData(0, 49, 10, false)]
+    [InlineData(79, 50, 99, false)]
+    [InlineData(80, 50, 0, true)]
+    [InlineData(95, 50, 0, true)]
+    public async Task Guild_dungeon_repeat_bonus_persists_progress_and_delivers_once_per_clear(
+        int prior, int peerLevel, int expectedProgress, bool expectBonus)
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var member = (await query.FindMembershipAsync(new(11), default))!.Member;
+        var progress = new SqliteGuildDungeonStore(new(path, scope), points);
+        if (prior > 0)
+            Execute($"INSERT INTO guild_dungeon_repeat_bonus(character_id,progress) VALUES(11,{prior})");
+
+        var dungeon = new GuildDungeonDefinition(8500, 100, 5, 100, [], [new(100, 101, 1, 0)]);
+        var catalog = new GuildDungeonCatalog(1, new Dictionary<int, GuildDungeonDefinition> { [8500] = dungeon })
+            { RepeatBonus = new(102, 2, 10) };
+        var mail = new List<ItemDeliveryGrant>();
+        var delivery = TestRequired.Absent<IItemDeliveryDomainService>((_, args) =>
+        {
+            mail.Add(Assert.Single((IReadOnlyList<ItemDeliveryGrant>)args![2]!));
+            return ValueTask.FromResult(new ItemDeliveryReceipt([], [1], 1));
+        });
+        var service = new GuildDungeonDomainService(new(TestRequired.Absent<IGuildDungeonContentSource>((_, _) => catalog)),
+            progress, store, points, TestRequired.Absent<ISelectedSessionDomainService>(), TestRequired.Absent<IDungeonEntryIntentDomainService>(),
+            TestRequired.Absent<IDungeonAdmissionDomainService>(), TestRequired.Absent<IDungeonVisitDomainService>(),
+            TestRequired.Absent<IDungeonStructureRuleService>(), delivery, new DiscardingEventService(), clock, players);
+        var mode = new DungeonRunMode.GuildDungeon(new(guild, 1, GuildDungeonPeriod.At(clock.Now)))
+        {
+            EntryMemberships = new Dictionary<CharacterId, long> { [new(11)] = member.MembershipId },
+            EntryLevels = new Dictionary<CharacterId, int> { [new(11)] = 40, [new(12)] = peerLevel },
+        };
+        var layout = new DungeonLayout(8500, 0, 1, 1, default, default, 1, 1,
+            new Dictionary<MazeCell, DungeonCellDefinition>()) { Mode = mode };
+        var run = new DungeonRunState(layout, default, 1, new HashSet<MazeCell>(), clock.Now, RunId: new(Guid.NewGuid()),
+            Participants: [new(new(1), new(11), 0, true), new(new(2), new(12), 1, false)], ClearOpen: true,
+            CurrentCellState: new(default, 1, 1, 0, [], []))
+            { ClearParticipants = [new(new(1), new(11), member.MembershipId), new(new(2), new(12), null)] };
+
+        Assert.True(await Write(() => service.SettleAsync(new(1), new(11), run, clock.Now, default)));
+        Assert.False(await Write(() => service.SettleAsync(new(1), new(11), run, clock.Now, default)));
+        Assert.Equal(expectedProgress, await progress.ReadRepeatBonusAsync(new(11), default));
+        ItemDeliveryGrant[] expectedMail = expectBonus ? [new(101, 1), new(102, 2)] : [new(101, 1)];
+        Assert.Equal(expectedMail, mail);
     }
 
     [Fact]

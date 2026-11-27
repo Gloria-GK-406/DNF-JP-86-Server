@@ -18,7 +18,7 @@ public interface IGuildDungeonStore
     ValueTask<bool> TryRecordClearAsync(Guid run, CharacterId character, GuildDungeonAdmission admission, int dungeon,
         int contribution, CancellationToken ct);
     ValueTask<int> ReadRepeatBonusAsync(CharacterId character, CancellationToken ct);
-    ValueTask<int> AdvanceRepeatBonusAsync(CharacterId character, int gain, CancellationToken ct);
+    ValueTask WriteRepeatBonusAsync(CharacterId character, int progress, CancellationToken ct);
 }
 
 public interface IGuildDungeonDomainService
