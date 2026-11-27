@@ -13,7 +13,8 @@ namespace Dfo.Server.Application.Guilds;
 internal sealed class GuildWarehouseDomainService(
     IGuildDomainStore store, IGuildWarehouseStore warehouse, IGuildHallAccessDomainService halls,
     ICharacterBusinessInventoryDomainService inventory, IItemPlacementRuleService placements,
-    IMailItemRuleService tradeRules, IGuildWarehouseCustodyStore items, IDomainTransactionAccessor transactions, TimeProvider clock)
+    IAccountMaterialRuleService accountMaterials, IMailItemRuleService tradeRules,
+    IGuildWarehouseCustodyStore items, IDomainTransactionAccessor transactions, TimeProvider clock)
     : IGuildWarehouseDomainService
 {
     public async ValueTask<GuildWarehouseView?> OpenAsync(SelectedSessionIdentity actor, CancellationToken ct) =>
@@ -170,7 +171,7 @@ internal sealed class GuildWarehouseDomainService(
         (long)held + added <= (placement.StackLimit == 0 ? int.MaxValue : placement.StackLimit);
 
     private ValueTask<ItemPlacement?> CarriedPlacementAsync(int itemId, CancellationToken ct) =>
-        AccountMaterialCatalog.TryGetSlotIndex(itemId, out _)
+        accountMaterials.TryGetByItemId(itemId, out _)
             ? placements.PlacementForAsync(itemId, BusinessInventorySpace.Material, ct)
             : placements.PlacementForAsync(itemId, ct);
 
