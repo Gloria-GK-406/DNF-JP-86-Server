@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.Guilds;
@@ -6,6 +8,48 @@ namespace Dfo.Server.Application.Guilds;
 internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource content)
 {
     public GuildRedPacketRules? Read() => content.Read();
+
+    public CeraShopQuote PreparePurchase(CeraShopQuote quote, DateTimeOffset now)
+    {
+        if (Read() is not { } rules || !quote.Charges.Any(charge => PurchaseProduct(rules, charge) is not null))
+            return quote;
+        return quote with
+        {
+            Charges = quote.Charges.Select(charge => PurchaseProduct(rules, charge) is not null
+                ? charge with { Mode = CeraShopPaymentMode.CeraOnly } : charge).ToImmutableArray(),
+            Grants = quote.Grants.Select(grant => grant.ExpireDate == 0 && rules.Products.ContainsKey(grant.Item.ItemId)
+                ? grant with { ExpireDate = checked((int)now.AddDays(10).ToUnixTimeSeconds()) } : grant).ToImmutableArray(),
+        };
+    }
+
+    public (GuildRedPacketPurchaseTerms? Terms, string? Refusal) QuotePurchase(CeraShopQuote quote)
+    {
+        if (Read() is not { } rules)
+            return (null, quote.Grants.Any(grant => grant.Item.ItemId is >= 490003263 and <= 490003266)
+                ? "当前无法读取公会红包规则。" : null);
+        long total = 0;
+        foreach (var charge in quote.Charges)
+        {
+            if (PurchaseProduct(rules, charge) is not { } product)
+                continue;
+            if (charge.Cera != product.Price || charge.Gold != 0)
+                return (null, "红包售价与活动配置不一致。");
+            total += charge.Cera;
+        }
+        return (total == 0 ? null : new(total, rules.MinimumMembers, rules.DailyPurchaseLimit), null);
+    }
+
+    public static GuildRedPacketPurchaseDecision EvaluatePurchase(GuildRedPacketPurchaseTerms terms, int memberCount, int spent)
+    {
+        if (memberCount < terms.MinimumMembers)
+            return new(0, $"公会成员达到 {terms.MinimumMembers} 人后才能购买红包。");
+        if (terms.Price + spent > terms.DailyLimit)
+            return new(0, $"角色当天购买红包的上限为 {terms.DailyLimit} 点券。");
+        return new(checked((int)terms.Price), null);
+    }
+
+    private static GuildRedPacketProduct? PurchaseProduct(GuildRedPacketRules rules, CeraShopCharge charge) =>
+        rules.Products.Values.FirstOrDefault(product => product.ShopId == charge.ProductId);
 
     public static int RollClaimAmount(int remaining, int sharesLeft, int seed)
     {
@@ -49,6 +93,9 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
 }
 
 internal readonly record struct GuildRedPacketSettlement(int Refund, int ContributionPoints);
+
+internal sealed record GuildRedPacketPurchaseTerms(long Price, int MinimumMembers, int DailyLimit);
+internal readonly record struct GuildRedPacketPurchaseDecision(int Amount, string? Refusal);
 
 internal readonly record struct GuildRedPacketIssuance(GuildRedPacketStatus Status, int ItemId = 0,
     GuildRedPacketProduct? Product = null, long ExpiresAt = 0);

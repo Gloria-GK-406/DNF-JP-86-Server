@@ -8,7 +8,7 @@
 | RI-2 | 城镇、仓库、商店、合成核验同一基地实例。选图离城前记录各队员的会话、门区实例和会籍；正式进入时核验本次选图。取消、重选、换角和退回原会均不能复用旧凭证。 | [基地访问服务](../../../Server/src/Dfo.Server.Application/Guilds/GuildHallAccessDomainService.cs)、[入场负例与正例](../../../Server/tests/Dfo.Server.Application.Tests/Guilds/GuildDungeonAccessTests.cs) |
 | RI-3 | v40 为每次入会分配不可复用标识。旧流水仅按原有归属口径回填一次，并报告同秒歧义行数。贡献榜、个人月度累计与领奖资格使用当前会籍；全会历史保留。公会地下城核对入场会籍，普通疲劳副本在通关成立时冻结参与者会籍，月度与组队收益在个人结算时复核。 | [升级实现](../../../Tool/DbMigrate/GuildMembershipUpgrade.cs)、[升级说明](../../DatabaseSchemaMigration.md)、[普通本通关测试](../../../Server/tests/Dfo.Server.Application.Tests/World/DungeonClearDomainServiceTests.cs) |
 | RI-4 | 入账上限、余额和历史已花由同一 GM 账户维护。金币不足的改名调用可以正常返回并提交工作单元，名称和余额均维持原值。 | [GM 账户](../../../Server/src/Dfo.Server.Persistence/Guilds/SqliteGuildPointAccount.cs)、[改名领域服务](../../../Server/src/Dfo.Server.Application/Guilds/GuildRenameDomainService.cs)、[余额、故障回滚与重试](../../../Server/tests/Dfo.Server.Persistence.Tests/Guilds/GuildDomainTests.cs) |
-| RI-5 | 仓库通过显式托管端口绑定原物品事务。容量、摘要、历史移出通用公会存储。收益和界面公用职级默认值及覆盖值的解析。仓库审计写失败时核对库存、UID 和堆叠数量，重试后核对唯一审计行。 | [托管契约](../../../Server/src/Dfo.Server.Abstractions/Guilds/IGuildWarehouseCustodySession.cs)、[仓库存储](../../../Server/src/Dfo.Server.Persistence/Guilds/SqliteGuildWarehouseStore.cs)、[职级解析](../../../Server/src/Dfo.Server.Application/Guilds/GuildRankPolicy.cs) |
+| RI-5 | 仓库通过显式托管端口绑定原物品事务。容量、摘要、历史移出通用公会存储。收益和界面公用职级默认值及覆盖值的解析。仓库审计写失败时核对库存、UID 和堆叠数量，重试后核对唯一审计行。 | [托管契约](../../../Server/src/Dfo.Server.Abstractions/Guilds/IGuildWarehouseCustodySession.cs)、[仓库存储](../../../Server/src/Dfo.Server.Persistence/Guilds/SqliteGuildWarehouseStore.cs)、[职级解析](../../../Server/src/Dfo.Server.Application/Guilds/GuildRankRuleService.cs) |
 
 ## 本次运行
 

@@ -17,7 +17,7 @@
 
 | 所有者 | 写入或读取的事实 | 主要协作方 |
 | --- | --- | --- |
-| `GuildMembershipDomainService` | 建会、申请、入会、会籍备注、职务、会长转让、退会与解散 | 审批和接受邀请复用入会逻辑。`GuildRankPolicy` 解释职级覆盖、审批及任命权限。 |
+| `GuildMembershipDomainService` | 建会、申请、入会、会籍备注、职务、会长转让、退会与解散 | 审批和接受邀请复用入会逻辑。`GuildRankRuleService` 解释职级覆盖、审批及任命权限。 |
 | `GuildProfileDomainService`、`GuildDonationDomainService` | 前者维护公会资料和会标，后者维护捐赠流水并读取历史 | 两者复用既有 GM 账户。捐赠服务同时调用角色金币服务。 |
 | `GuildAttendanceDomainService`、`GuildMonthlyContributionDomainService`、`GuildContributionDomainService` | 分别维护签到、月度积分与结算、贡献币奖励 | 进城先在同一事务记录签到与月度出勤，提交后读面板。每日奖励有独立的事务及去重键，聊天也走该奖励入口。 |
 | `GuildContentPurchaseDomainService`、`GuildBenefitDomainService` | 购买者决定是否扣款；权益服务准备并写入有效期或剩余次数，读取加成，负责消耗与过期 | 购买与礼物领取在各自事务复用同一个权益实例。仓库商品改由 `GuildWarehouseCapacityDomainService` 校验并写容量。 |

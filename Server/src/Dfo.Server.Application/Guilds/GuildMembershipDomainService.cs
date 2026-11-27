@@ -7,7 +7,7 @@ using Dfo.Server.Data.Guilds;
 namespace Dfo.Server.Application.Guilds;
 
 internal sealed class GuildMembershipDomainService(
-    IGuildDomainStore store, IGuildWarehouseStore warehouse,
+    IGuildDomainStore store, IGuildMembershipQueryDomainService queries, IGuildWarehouseStore warehouse,
     GuildEconomyRuleService rules,
     ICharacterDomainService characters,
     ICharacterTable characterTable,
@@ -52,14 +52,14 @@ internal sealed class GuildMembershipDomainService(
     public async ValueTask<GuildRankAssignmentResult?> AssignRankAsync(
         CharacterId actor, byte[] name, byte rank, CancellationToken ct)
     {
-        if (rank is < GuildRankSettings.ViceLeader or > GuildRankSettings.LastRank ||
-            name.Length is 0 or > 62 ||
+        if (name.Length is 0 or > 62 ||
             await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { } actorMembership)
             return null;
 
         var guild = actorMembership.Guild.Id;
         var target = await store.FindRosterMemberAsync(guild, name, ct).ConfigureAwait(false);
-        if (target is null || !await GuildRankPolicy.CanAssignRankAsync(store, actorMembership, target, rank, ct).ConfigureAwait(false))
+        if (target is null || !GuildRankRuleService.CanAssignRank(actorMembership.Member, target, rank,
+                await queries.ReadRankSettingsAsync(guild, ct).ConfigureAwait(false)))
             return null;
 
         var changed = target.Rank != rank;
@@ -98,14 +98,12 @@ internal sealed class GuildMembershipDomainService(
     public async ValueTask<GuildMutationStatus> SetRankPermissionsAsync(
         CharacterId actor, byte rank, uint permissions, CancellationToken ct)
     {
-        if (!GuildRankSettings.IsMemberRank(rank) || (permissions & ~GuildRankSettings.ValidPermissionMask) != 0)
+        if (GuildRankRuleService.NormalizePermissions(rank, permissions) is not { } effective)
             return GuildMutationStatus.InvalidRankSetting;
         if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
             return GuildMutationStatus.LeaderRequired;
 
-        if (rank == GuildRankSettings.Leader)
-            permissions |= GuildRankSettings.LeaderDefaultPermissions;
-        await store.SetRankPermissionsAsync(membership.Guild.Id, rank, permissions, ct).ConfigureAwait(false);
+        await store.SetRankPermissionsAsync(membership.Guild.Id, rank, effective, ct).ConfigureAwait(false);
         return GuildMutationStatus.Success;
     }
 
@@ -140,7 +138,7 @@ internal sealed class GuildMembershipDomainService(
 
     public async ValueTask<GuildMutationResult> ApproveAsync(CharacterId actor, CharacterId applicant, CancellationToken ct)
     {
-        if (await GuildRankPolicy.FindApplicationReviewGuildAsync(store, actor, ct).ConfigureAwait(false) is not { } guild)
+        if (await queries.FindApplicationReviewGuildAsync(actor, ct).ConfigureAwait(false) is not { } guild)
             return new(GuildMutationStatus.LeaderRequired);
         if (await store.FindApplicationAsync(applicant, ct).ConfigureAwait(false) is not { } application || application.Guild != guild)
             return new(GuildMutationStatus.ApplicationNotFound);
@@ -172,7 +170,7 @@ internal sealed class GuildMembershipDomainService(
 
     public async ValueTask<GuildMutationResult> RejectApplicationAsync(CharacterId actor, CharacterId applicant, CancellationToken ct)
     {
-        if (await GuildRankPolicy.FindApplicationReviewGuildAsync(store, actor, ct).ConfigureAwait(false) is not { } guild)
+        if (await queries.FindApplicationReviewGuildAsync(actor, ct).ConfigureAwait(false) is not { } guild)
             return new(GuildMutationStatus.LeaderRequired);
         return await ClearApplicationAsync(applicant, guild, ct).ConfigureAwait(false);
     }

@@ -28,7 +28,7 @@ internal sealed class GuildMembershipQueryDomainService(IGuildDomainStore store)
 
     public async ValueTask<IReadOnlyList<GuildApplicationEntry>?> ReadApplicationEntriesAsync(CharacterId reviewer, CancellationToken ct)
     {
-        var guild = await GuildRankPolicy.FindApplicationReviewGuildAsync(store, reviewer, ct).ConfigureAwait(false);
+        var guild = await FindApplicationReviewGuildAsync(reviewer, ct).ConfigureAwait(false);
         return guild.HasValue ? await store.ReadApplicationEntriesAsync(guild.Value, ct).ConfigureAwait(false) : null;
     }
 
@@ -38,6 +38,14 @@ internal sealed class GuildMembershipQueryDomainService(IGuildDomainStore store)
     public ValueTask<IReadOnlyList<GuildRosterEntry>> ReadRosterEntriesAsync(CharacterId viewer, CancellationToken ct) =>
         store.ReadRosterEntriesAsync(viewer, ct);
 
-    public ValueTask<IReadOnlyList<GuildRankSetting>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct) =>
-        GuildRankPolicy.ReadEffectiveRanksAsync(store, guild, ct);
+    public async ValueTask<GuildId?> FindApplicationReviewGuildAsync(CharacterId reviewer, CancellationToken ct)
+    {
+        if (await store.FindMembershipAsync(reviewer, ct).ConfigureAwait(false) is not { } membership)
+            return null;
+        var ranks = await ReadRankSettingsAsync(membership.Guild.Id, ct).ConfigureAwait(false);
+        return GuildRankRuleService.CanReviewApplications(membership.Member, ranks) ? membership.Guild.Id : null;
+    }
+
+    public async ValueTask<IReadOnlyList<GuildRankSetting>> ReadRankSettingsAsync(GuildId guild, CancellationToken ct) =>
+        GuildRankRuleService.EffectiveRanks(await store.ReadRankSettingsAsync(guild, ct).ConfigureAwait(false));
 }

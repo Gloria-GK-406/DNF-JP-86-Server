@@ -7,7 +7,7 @@
 - 会籍服务统一处理审批和邀请入会。资料编辑及捐赠均有独立协议入口，捐赠扣金币、入公会 GM 和记个人流水仍在一次提交中完成。[会籍](../../../Server/src/Dfo.Server.Application/Guilds/GuildMembershipDomainService.cs) · [捐赠](../../../Server/src/Dfo.Server.Application/Guilds/GuildDonationDomainService.cs)
 - 进城使用同一时刻依次记录签到和月贡献。任一项发生变化即刷新成员面板，两项均无变化时只向本人发送面板和基地信息。每日贡献币另行结算，普通奖励失败只回滚该笔奖励。[进城编排](../../../Server/src/Dfo.Server.Protocol/Game/GuildAttendance/GuildAttendanceDelivery.cs) · [四种变化组合与两种失败测试](../../../Server/tests/Dfo.Server.Application.Tests/Guilds/GuildAttendanceDeliveryTests.cs)
 - 购买先做商品和权限检查，再验证可激活或可扩容，成功后在同一事务扣款并落库。领取盟会礼物以已存商品发放，沿用同一权益生效规则，接收方不再发生扣费。权益到期清理、传送次数和角色属性加成都接至权益服务。[购买](../../../Server/src/Dfo.Server.Application/Guilds/GuildContentPurchaseDomainService.cs) · [权益](../../../Server/src/Dfo.Server.Application/Guilds/GuildBenefitDomainService.cs) · [公会持久化回归](../../../Server/tests/Dfo.Server.Persistence.Tests/Guilds/GuildDomainTests.cs)
-- 公会查找与推荐、捐赠流水、权益、盟会各有读取入口。面板把这些业务中需要展示的会籍、签到、职级、权益、盟会和月贡献数据组合为快照。本会与盟会分别读取，各成员从自己公会的快照取得个人贡献。[公会概览](../../../Server/src/Dfo.Server.Application/Guilds/GuildOverviewDomainService.cs) · [职级权限](../../../Server/src/Dfo.Server.Application/Guilds/GuildRankPolicy.cs)
+- 公会查找与推荐、捐赠流水、权益、盟会各有读取入口。面板把这些业务中需要展示的会籍、签到、职级、权益、盟会和月贡献数据组合为快照。本会与盟会分别读取，各成员从自己公会的快照取得个人贡献。[公会概览](../../../Server/src/Dfo.Server.Application/Guilds/GuildOverviewDomainService.cs) · [职级权限](../../../Server/src/Dfo.Server.Application/Guilds/GuildRankRuleService.cs)
 - 建会草稿和已核准的改名在同一选角会话中互斥。更换选角、取消、重新检查失败及取消后旧检查迟到均有回归覆盖。[名称会话](../../../Server/src/Dfo.Server.Application/Guilds/GuildNameOperationSessionDomainService.cs)
 
 ## 验证结果

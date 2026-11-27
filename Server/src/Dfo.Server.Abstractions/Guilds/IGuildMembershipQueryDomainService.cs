@@ -9,6 +9,7 @@ public interface IGuildMembershipQueryDomainService
     ValueTask<GuildMembership?> FindMembershipAsync(CharacterId character, CancellationToken ct);
     ValueTask<IReadOnlyList<CharacterId>> ReadMemberIdsAsync(GuildId guild, CancellationToken ct);
     ValueTask<GuildApplication?> FindApplicationAsync(CharacterId applicant, CancellationToken ct);
+    ValueTask<GuildId?> FindApplicationReviewGuildAsync(CharacterId reviewer, CancellationToken ct);
     ValueTask<GuildPendingApplication?> FindPendingApplicationAsync(CharacterId applicant, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildApplication>> ReadApplicationsAsync(CharacterId reviewer, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildApplicationEntry>?> ReadApplicationEntriesAsync(CharacterId reviewer, CancellationToken ct);

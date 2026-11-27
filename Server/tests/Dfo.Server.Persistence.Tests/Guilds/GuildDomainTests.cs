@@ -8,6 +8,7 @@ using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Guilds;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Content;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -53,10 +54,10 @@ public sealed class GuildDomainTests : IDisposable
             TestRequired.Absent<ICharacterStatRuleService>(), TestRequired.Absent<ICharacterSkillStateDomainService>(),
             TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(),
             TestRequired.InitialHonor, scope, new DiscardingEventService());
-        guilds = new(store, warehouse, new(economy), players, characters, TimeProvider.System);
+        query = new(store);
+        guilds = new(store, query, warehouse, new(economy), players, characters, TimeProvider.System);
         profiles = new(store, points, new(economy));
         donations = new(store, points, new(economy), players, TimeProvider.System);
-        query = new(store);
         discovery = new(store);
         benefits = new(store, new(economy), clock);
         purchases = new(store, points, new(economy), benefits, new(warehouse, new(economy)));
@@ -1102,6 +1103,40 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(expectedProgress, await progress.ReadRepeatBonusAsync(new(11), default));
         ItemDeliveryGrant[] expectedMail = expectBonus ? [new(101, 1), new(102, 2)] : [new(101, 1)];
         Assert.Equal(expectedMail, mail);
+    }
+
+    [Fact]
+    public async Task Red_packet_quotes_and_purchases_apply_product_rules_before_recording_spending()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var product = new GuildRedPacketProduct(490003263, 75, 100, 5);
+        GuildRedPacketRules? config = new(new Dictionary<int, GuildRedPacketProduct> { [product.ItemId] = product }, 2, 200, 1);
+        var purchases = new GuildRedPacketPurchasePolicy(new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => config)),
+            new SqliteGuildRedPacketStore(new(path, scope)), store, clock);
+        var item = new CeraShopItemDefinition(product.ItemId, "", CeraShopItemKind.Stackable, 0, false, null, [], [], null, null, []);
+        var grant = new CeraShopGrant(item, new(1, 99, new(BusinessInventorySpace.Consumable, 0, 1)), 1, 0, 0);
+        var charge = new CeraShopCharge(75, 0, 100, CeraShopPaymentMode.Ordinary);
+        var quote = new CeraShopQuote([75, 80], [charge, charge with { ProductId = 80 }],
+            [grant, grant with { ExpireDate = 123 }, grant with { Item = item with { ItemId = 99 } }]);
+        var prepared = purchases.Prepare(quote, clock.Now);
+        Assert.Equal(CeraShopPaymentMode.CeraOnly, prepared.Charges[0].Mode);
+        Assert.Equal(quote.Charges[1], prepared.Charges[1]);
+        Assert.Equal(clock.Now.AddDays(10).ToUnixTimeSeconds(), prepared.Grants[0].ExpireDate);
+        Assert.Equal(quote.Grants[1..], prepared.Grants[1..].ToArray());
+
+        Task<string?> Buy(CeraShopQuote cart) => Write(() => purchases.RecordPurchaseAsync(new(11), cart, clock.Now, default));
+        Assert.Equal("红包售价与活动配置不一致。", await Buy(quote with { Charges = [charge with { Cera = 99 }] }));
+        Assert.Equal("红包售价与活动配置不一致。", await Buy(quote with { Charges = [charge with { Gold = 1 }] }));
+        Assert.Equal("公会成员达到 2 人后才能购买红包。", await Buy(quote));
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        Assert.Null(await Buy(quote));
+        Assert.Null(await Buy(quote));
+        Assert.Equal("角色当天购买红包的上限为 200 点券。", await Buy(quote));
+        config = null;
+        Assert.Equal("当前无法读取公会红包规则。", await Buy(quote));
+        Assert.Null(await Buy(quote with { Charges = [quote.Charges[1]], Grants = [quote.Grants[2]] }));
+        Assert.Equal(200L, Execute("SELECT amount FROM guild_red_packet_purchases"));
     }
 
     [Fact]
