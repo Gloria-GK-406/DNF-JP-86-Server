@@ -29,9 +29,11 @@ internal sealed class GuildGiftDomainService(IGuildDomainStore guilds, IGuildPoi
         var sentAt = now.ToUnixTimeSeconds();
         if (sentAt is <= 0 or > uint.MaxValue)
             return new(GuildGiftStatus.ActivationUnavailable);
-        var day = DateOnly.FromDateTime(now.DateTime);
-        if (await gifts.HasSentAsync(sender.Id, recipient, day, ct).ConfigureAwait(false))
-            return new(GuildGiftStatus.DailyLimit);
+        var day = GuildProductRuleService.GiftDay(now);
+        var alreadySent = await gifts.HasSentAsync(sender.Id, recipient, day, ct).ConfigureAwait(false);
+        var eligibility = GuildProductRuleService.EvaluateDailyGift(alreadySent);
+        if (eligibility != GuildGiftStatus.Success)
+            return new(eligibility);
         if (!await pointAccount.TrySpendAsync(sender.Id, product.Price, ct).ConfigureAwait(false))
             return new(GuildGiftStatus.InsufficientPoints);
 

@@ -16,6 +16,16 @@ public sealed class GuildProductRuleTests
         Assert.Equal(eligible, GuildProductRuleService.IsRenameVoucher(itemId));
 
     [Theory]
+    [InlineData(8)]
+    [InlineData(-5)]
+    public void Gift_day_changes_at_midnight_in_the_supplied_local_offset(int offsetHours)
+    {
+        var midnight = new DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.FromHours(offsetHours));
+        Assert.Equal(new DateOnly(2026, 12, 31), GuildProductRuleService.GiftDay(midnight.AddSeconds(-1)));
+        Assert.Equal(new DateOnly(2027, 1, 1), GuildProductRuleService.GiftDay(midnight));
+    }
+
+    [Theory]
     [InlineData(GuildContentKind.TemporaryAttributes, true, 200, 1, true)]
     [InlineData(GuildContentKind.Experience, true, 200, 1, true)]
     [InlineData(GuildContentKind.Experience, false, 200, 1, false)]

@@ -28,6 +28,11 @@ internal sealed class GuildProductRuleService(IGuildEconomySource content)
             ? new(GuildGiftStatus.Success, product)
             : new(GuildGiftStatus.UnsupportedContent);
 
+    public static DateOnly GiftDay(DateTimeOffset localTime) => DateOnly.FromDateTime(localTime.DateTime);
+
+    public static GuildGiftStatus EvaluateDailyGift(bool alreadySentToRecipient) =>
+        alreadySentToRecipient ? GuildGiftStatus.DailyLimit : GuildGiftStatus.Success;
+
     public GuildBenefitGrantDecision EvaluateGrant(
         GuildContentDefinition product, GuildPurchasedContent? existing, DateTimeOffset now)
     {

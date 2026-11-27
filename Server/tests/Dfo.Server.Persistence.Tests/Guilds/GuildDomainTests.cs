@@ -277,6 +277,7 @@ public sealed class GuildDomainTests : IDisposable
     [Fact]
     public async Task Guild_gift_limits_each_direction_by_local_day_and_preserves_unclaimed_gifts()
     {
+        clock.Now = TimeZoneInfo.ConvertTimeToUtc(new DateTime(2026, 11, 26, 23, 59, 59), clock.LocalTimeZone);
         var database = new SqliteDatabase(path, scope);
         var gifts = new GuildGiftDomainService(store, points, new SqliteGuildAllianceStore(database), new SqliteGuildGiftStore(database),
             benefits, new(economy), clock);
@@ -295,11 +296,12 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(GuildGiftStatus.Success, sent.Status);
         Assert.Equal(800L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={first.Value}"));
         Assert.Equal(GuildGiftStatus.DailyLimit, (await Write(() => gifts.SendAsync(new(11), second, 2, default))).Status);
+        Assert.Equal(800L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={first.Value}"));
         Assert.Empty((await gifts.ReadAsync(new(11), true, default))!.Rows);
         Assert.Equal(GuildGiftStatus.Success, (await Write(() => gifts.SendAsync(new(12), first, 2, default))).Status);
         Assert.Equal(second, Assert.Single((await gifts.ReadAsync(new(11), true, default))!.Rows).Sender);
         Assert.Equal(first, Assert.Single((await gifts.ReadAsync(new(12), true, default))!.Rows).Sender);
-        clock.Now = clock.Now.AddDays(1);
+        clock.Now = clock.Now.AddSeconds(1);
         var nextGift = await Write(() => gifts.SendAsync(new(11), second, 3, default));
         Assert.Equal(GuildGiftStatus.Success, nextGift.Status);
 
