@@ -21,22 +21,16 @@ internal sealed class GuildItemCompoundDomainService(GuildItemCompoundRuleServic
             || rules.Recipe(input) is not { } rule)
             return null;
 
-        var gem = input.Kind == GuildCompoundKind.GuardianGem;
-        var space = gem ? BusinessInventorySpace.GuardianGem : BusinessInventorySpace.GuildMedal;
         var costs = new List<Material>();
         var now = clock.GetUtcNow();
         foreach (var group in input.Materials.GroupBy(slot => slot))
         {
             var address = group.Key;
             var count = group.Count();
-            if (address.Space != space || address.Index is < 0 or >= 49 || !gem && count != 1
+            if (!GuildItemCompoundRuleService.AcceptsMaterialSlot(input.Kind, address, count)
                 || slots.Find(session.CharacterId, address) is not { } bound
                 || await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false) is not { } item
-                || item.IsPile != gem || item.Count < count
-                || item.Snapshot.LegacyKind != (gem ? 13 : 12)
-                || item.Snapshot.IsMirror || item.Snapshot.EquipmentLockId != 0 || item.Snapshot.SortLockFlag != 0
-                || item.Snapshot.Lifetime.IsExpired(now)
-                || !rules.AcceptsMaterial(input, item.ItemId))
+                || item.Count < count || !rules.AcceptsMaterial(input, item.Snapshot, now))
                 return null;
             costs.Add(new(address, bound.Container, item, count));
         }

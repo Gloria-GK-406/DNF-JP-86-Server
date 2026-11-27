@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -14,7 +15,25 @@ internal sealed class GuildItemCompoundRuleService(IGuildCompoundContentSource c
         return rule is not null && input.Materials.Count <= rule.MaxMaterials ? rule : null;
     }
 
-    public bool AcceptsMaterial(GuildCompoundInput input, int itemId) => content.GetRarity(input.Kind, itemId) == input.Rarity;
+    public static bool AcceptsMaterialSlot(GuildCompoundKind kind, BusinessSlot slot, int count) =>
+        slot.Index is >= 0 and < 49 && kind switch
+        {
+            GuildCompoundKind.GuardianGem => slot.Space == BusinessInventorySpace.GuardianGem && count > 0,
+            GuildCompoundKind.Medal => slot.Space == BusinessInventorySpace.GuildMedal && count == 1,
+            _ => false,
+        };
+
+    public bool AcceptsMaterial(GuildCompoundInput input, ItemSnapshot item, DateTimeOffset now)
+    {
+        var matchesKind = input.Kind switch
+        {
+            GuildCompoundKind.GuardianGem => item is { LegacyKind: 13, IsPile: true },
+            GuildCompoundKind.Medal => item is { LegacyKind: 12, IsPile: false },
+            _ => false,
+        };
+        return matchesKind && !item.IsMirror && item.EquipmentLockId == 0 && item.SortLockFlag == 0
+            && !item.Lifetime.IsExpired(now) && content.GetRarity(input.Kind, item.ItemId) == input.Rarity;
+    }
 
     public int DrawProduct(GuildCompoundRule rule, int materialCount)
     {
