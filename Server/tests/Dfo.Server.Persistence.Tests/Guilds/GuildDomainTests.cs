@@ -574,7 +574,7 @@ public sealed class GuildDomainTests : IDisposable
         await Write(() => guilds.CreateAsync(new(12), "Violet", "", default));
         await Write(() => guilds.ApplyAsync(new(13), first, "", default));
         await Write(() => guilds.ApproveAsync(new(11), new(13), default));
-        var clock = new AttendanceClock();
+        var clock = new AttendanceClock { Now = new DateTimeOffset(2026, 12, 31, 15, 59, 59, TimeSpan.Zero) };
         var attendance = new GuildAttendanceDomainService(store, clock);
 
         Assert.Empty(await attendance.ReadAttendanceTodayAsync(new(11), default));
@@ -592,15 +592,15 @@ public sealed class GuildDomainTests : IDisposable
         await Write(() => guilds.LeaveAsync(new(13), default));
         Assert.Equal("Leader"u8.ToArray(), Assert.Single(await attendance.ReadAttendanceTodayAsync(new(11), default)));
 
-        clock.Now = clock.Now.AddMinutes(2);
+        clock.Now = clock.Now.AddSeconds(1);
         Assert.Empty(await attendance.ReadAttendanceTodayAsync(new(11), default));
         Assert.True(await Write(() => attendance.RecordAttendanceAsync(new(11), clock.Now, default)));
         Assert.Equal(4L, Execute("SELECT COUNT(*) FROM guild_attendance"));
         Assert.Equal(2L, Execute("SELECT COUNT(DISTINCT day) FROM guild_attendance"));
         Assert.Equal(1, await attendance.CountWeeklyVisitorsAsync(first, default));
-        clock.Now = clock.Now.AddDays(6);
+        clock.Now = clock.Now.AddDays(7).AddSeconds(-1);
         Assert.Equal(1, await attendance.CountWeeklyVisitorsAsync(first, default));
-        clock.Now = clock.Now.AddDays(1);
+        clock.Now = clock.Now.AddSeconds(1);
         Assert.Equal(0, await attendance.CountWeeklyVisitorsAsync(first, default));
     }
 
