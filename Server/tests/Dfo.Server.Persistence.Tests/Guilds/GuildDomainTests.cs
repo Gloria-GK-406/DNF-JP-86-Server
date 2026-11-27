@@ -105,16 +105,34 @@ public sealed class GuildDomainTests : IDisposable
         var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
         var otherGuild = (await Write(() => guilds.CreateAsync(new(12), "Other", "", default))).Guild!.Value;
         var reset = new DateTimeOffset(2026, 12, 1, 6, 0, 0, TimeSpan.FromHours(8));
-        var calendar = GuildDungeonPeriod.At(reset.AddSeconds(-1));
-        var extended = calendar.SkipNextReset();
+        var beforeReset = reset.AddSeconds(-1).ToUniversalTime();
+        var calendar = new GuildDungeonPeriod(reset.AddMonths(-1).ToUnixTimeSeconds(), reset.ToUnixTimeSeconds());
+        var extended = new GuildDungeonPeriod(calendar.StartUnix, reset.AddMonths(1).ToUnixTimeSeconds());
         var dungeons = new SqliteGuildDungeonStore(new(path, scope), points);
+        var catalog = new GuildDungeonCatalog(0, new Dictionary<int, GuildDungeonDefinition>());
+        var service = new GuildDungeonDomainService(new(TestRequired.Absent<IGuildDungeonContentSource>((_, _) => catalog)),
+            dungeons, store, points, TestRequired.Absent<ISelectedSessionDomainService>(), TestRequired.Absent<IDungeonEntryIntentDomainService>(),
+            TestRequired.Absent<IDungeonAdmissionDomainService>(), TestRequired.Absent<IDungeonVisitDomainService>(),
+            TestRequired.Absent<IDungeonStructureRuleService>(), TestRequired.Absent<IItemDeliveryDomainService>(),
+            new DiscardingEventService(), clock, players);
         Assert.Equal(calendar, await dungeons.ResolvePeriodAsync(guild, calendar, default));
         await Write(async () =>
         {
             Assert.True(await dungeons.TryRecordClearAsync(Guid.NewGuid(), new(11), new(guild, 0, calendar), 8500, 0, default));
-            await dungeons.AddExtensionAsync(guild, extended, default);
+            Assert.True(await points.TryCreditAsync(guild, 30, default));
+            await store.AddMemberAsync(guild, new(14), false, beforeReset, default);
             return true;
         });
+
+        Assert.False(await Write(() => service.TryExtendAsync(new(14), 10, beforeReset, default)));
+        Assert.False(await Write(() => service.TryExtendAsync(new(11), 0, beforeReset, default)));
+        Assert.False(await Write(() => service.TryExtendAsync(new(11), 31, beforeReset, default)));
+        Assert.True(await Write(() => service.TryExtendAsync(new(11), 10, beforeReset, default)));
+        Assert.False(await Write(() => service.TryExtendAsync(new(11), 10, beforeReset, default)));
+        Assert.False(await Write(() => service.TryExtendAsync(new(11), 10, reset, default)));
+        Assert.Equal(20L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={guild.Value}"));
+        clock.Now = reset;
+        Assert.Equal(extended, (await service.ReadAsync(new(11), default))!.Admission.Period);
 
         var december = GuildDungeonPeriod.At(reset);
         Assert.Equal(extended, await dungeons.ResolvePeriodAsync(guild, calendar, default));
@@ -127,6 +145,9 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(january, await dungeons.ResolvePeriodAsync(guild, january, default));
         Assert.NotEqual(initialShop, new GuildDungeonAdmission(guild, 0, january).MedalShopId);
         Assert.Empty(await dungeons.ReadProgressAsync(new(guild, 0, january), default));
+        clock.Now = reset.AddMonths(1);
+        Assert.Equal(january, (await service.ReadAsync(new(11), default))!.Admission.Period);
+        Assert.True(await Write(() => service.TryExtendAsync(new(11), 10, clock.Now, default)));
     }
 
     [Fact]

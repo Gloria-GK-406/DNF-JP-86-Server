@@ -22,16 +22,16 @@ internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, I
 
     public async ValueTask<bool> TryExtendAsync(CharacterId character, int guildPoints, DateTimeOffset now, CancellationToken ct)
     {
-        if (guildPoints <= 0 || rules.Catalog() is not { } catalog
-            || await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { Member.IsLeader: true } member)
+        if (rules.Catalog() is not { } catalog
+            || await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } member)
             return false;
         var guild = member.Guild.Id;
-        var calendar = GuildDungeonPeriod.At(now);
-        if (await progress.ResolvePeriodAsync(guild, calendar, ct).ConfigureAwait(false) != calendar
+        var calendar = GuildDungeonRuleService.CalendarPeriodAt(now);
+        var current = await progress.ResolvePeriodAsync(guild, calendar, ct).ConfigureAwait(false);
+        if (GuildDungeonRuleService.EvaluateExtension(calendar, current, member.Member.IsLeader, guildPoints) is not { } extended
             || !await pointAccount.TrySpendAsync(guild, guildPoints, ct).ConfigureAwait(false))
             return false;
 
-        var extended = calendar.SkipNextReset();
         await progress.AddExtensionAsync(guild, extended, ct).ConfigureAwait(false);
         await events.EnqueueAsync(new GuildDungeonProgressChanged(character, new(guild, catalog.StyleId, extended))
         {
@@ -42,7 +42,7 @@ internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, I
 
     private async ValueTask<GuildDungeonAdmission> CurrentAdmissionAsync(GuildId guild, int style,
         DateTimeOffset now, CancellationToken ct) =>
-        new(guild, style, await progress.ResolvePeriodAsync(guild, GuildDungeonPeriod.At(now), ct).ConfigureAwait(false));
+        new(guild, style, await progress.ResolvePeriodAsync(guild, GuildDungeonRuleService.CalendarPeriodAt(now), ct).ConfigureAwait(false));
 
     public async ValueTask<int?> ReadMedalShopAsync(GuildId guild, DateTimeOffset now, CancellationToken ct)
     {

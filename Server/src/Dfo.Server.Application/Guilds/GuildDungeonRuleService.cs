@@ -8,6 +8,12 @@ internal sealed class GuildDungeonRuleService(IGuildDungeonContentSource content
     public GuildDungeonCatalog? Catalog() => content.Read();
     public bool Supports(int dungeon) => Catalog()?.Dungeons.ContainsKey(dungeon) == true;
 
+    public static GuildDungeonPeriod CalendarPeriodAt(DateTimeOffset now) => GuildDungeonPeriod.At(now);
+
+    public static GuildDungeonPeriod? EvaluateExtension(GuildDungeonPeriod calendar, GuildDungeonPeriod current,
+        bool isLeader, int pointCost) =>
+        isLeader && pointCost > 0 && current == calendar ? calendar.SkipNextReset() : null;
+
     public static int? PartyBuffFor(GuildDungeonCatalog catalog, int participantCount) =>
         catalog.PartyBuffs.TryGetValue(participantCount, out var buffId) ? buffId : null;
 
