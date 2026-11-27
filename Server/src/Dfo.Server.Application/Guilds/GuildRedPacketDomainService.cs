@@ -132,9 +132,8 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
 
     private async ValueTask SettleAsync(GuildRedPacket packet, DateTimeOffset now, CancellationToken ct)
     {
-        var refund = packet.SenderDeparted ? 0 : packet.Remaining;
-        var points = packet.SenderDeparted ? 0 :
-            checked((int)(((long)packet.Amount - packet.Remaining) * packet.ContributionRate / 10_000));
+        var (refund, points) = GuildRedPacketRuleService.CalculateSettlement(
+            packet.Amount, packet.Remaining, packet.ContributionRate, packet.SenderDeparted);
         if (refund > 0)
             await mailbox.SendAsync(MailBuilder.FromSystem(packet.Sender)
                 .WithText("公会红包退款", $"红包到期，未领取金额 {refund} 已退为代币券。")

@@ -19,6 +19,15 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
     public int DailyContribution(GuildDailyContributionKind kind) =>
         Read()?.DailyContributionPoints.GetValueOrDefault(kind) ?? 0;
 
+    public static GuildRedPacketSettlement CalculateSettlement(int amount, int remaining, int contributionRate, bool senderDeparted)
+    {
+        if (senderDeparted)
+            return new(0, 0);
+
+        var claimed = (long)amount - remaining;
+        return new(remaining, checked((int)(claimed * contributionRate / 10_000)));
+    }
+
     public static (int ItemId, GuildRedPacketProduct Product)? Product(GuildRedPacketRules rules, int selection)
     {
         var itemId = rules.Products.ContainsKey(selection) ? selection
@@ -26,3 +35,5 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
         return rules.Products.TryGetValue(itemId, out var product) ? (itemId, product) : null;
     }
 }
+
+internal readonly record struct GuildRedPacketSettlement(int Refund, int ContributionPoints);

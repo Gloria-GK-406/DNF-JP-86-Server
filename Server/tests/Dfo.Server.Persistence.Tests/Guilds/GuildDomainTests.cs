@@ -928,6 +928,8 @@ public sealed class GuildDomainTests : IDisposable
     [InlineData(0, GuildMutationStatus.InvalidDonationAmount)]
     [InlineData(-1000, GuildMutationStatus.InvalidDonationAmount)]
     [InlineData(1500, GuildMutationStatus.InvalidDonationAmount)]
+    [InlineData(10_000_000, GuildMutationStatus.InsufficientGold)]
+    [InlineData(10_000_001, GuildMutationStatus.DonationTooLarge)]
     [InlineData(10_001_000, GuildMutationStatus.DonationTooLarge)]
     [InlineData(601_000, GuildMutationStatus.InsufficientGold)]
     public async Task Rejected_donation_leaves_all_balances_unchanged(int amount, GuildMutationStatus expected)

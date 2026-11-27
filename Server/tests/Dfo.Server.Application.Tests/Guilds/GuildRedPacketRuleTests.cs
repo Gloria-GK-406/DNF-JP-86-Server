@@ -6,6 +6,19 @@ namespace Dfo.Server.Application.Tests.Guilds;
 public sealed class GuildRedPacketRuleTests
 {
     [Theory]
+    [InlineData(100, 100, 5000, false, 100, 0)]
+    [InlineData(100, 25, 5000, false, 25, 37)]
+    [InlineData(100, 0, 5000, false, 0, 50)]
+    [InlineData(100, 25, 5000, true, 0, 0)]
+    [InlineData(int.MaxValue, 0, 10_000, false, 0, int.MaxValue)]
+    public void Settlement_refunds_unclaimed_tokens_and_rewards_claimed_amount_unless_sender_departed(
+        int amount, int remaining, int rate, bool departed, int refund, int points)
+    {
+        Assert.Equal(new GuildRedPacketSettlement(refund, points),
+            GuildRedPacketRuleService.CalculateSettlement(amount, remaining, rate, departed));
+    }
+
+    [Theory]
     [InlineData(30, 30)]
     [InlineData(100, 7)]
     [InlineData(int.MaxValue, 2)]

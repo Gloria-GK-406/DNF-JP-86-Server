@@ -9,22 +9,14 @@ internal sealed class GuildDonationDomainService(
     IGuildDomainStore store, IGuildPointAccount pointAccount,
     GuildEconomyRuleService rules, ICharacterDomainService characters, TimeProvider time) : IGuildDonationDomainService
 {
-    private const int MaximumDonationGold = 10_000_000;
-
     public async ValueTask<GuildMutationResult> DonateGoldAsync(CharacterId actor, int amount, CancellationToken ct)
     {
-        if (amount <= 0)
-            return new(GuildMutationStatus.InvalidDonationAmount);
-        if (amount > MaximumDonationGold)
-            return new(GuildMutationStatus.DonationTooLarge);
-        if (rules.DonationGoldPerPoint() is not { } rate)
-            return new(GuildMutationStatus.DonationUnavailable);
-        if (amount % rate != 0)
-            return new(GuildMutationStatus.InvalidDonationAmount);
+        var (status, points) = rules.EvaluateDonation(amount);
+        if (status != GuildMutationStatus.Success)
+            return new(status);
         if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { } membership)
             return new(GuildMutationStatus.NotMember);
 
-        var points = amount / rate;
         if (membership.Member.DonationPoints > int.MaxValue - points ||
             !await pointAccount.CanCreditAsync(membership.Guild.Id, points, ct).ConfigureAwait(false))
             return new(GuildMutationStatus.ContributionLimit);
