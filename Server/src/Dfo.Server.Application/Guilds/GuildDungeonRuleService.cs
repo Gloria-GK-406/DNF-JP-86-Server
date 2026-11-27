@@ -15,18 +15,22 @@ internal sealed class GuildDungeonRuleService(IGuildDungeonContentSource content
         IReadOnlyDictionary<int, int> counts) => dungeon.Prerequisites.All(id =>
         catalog.Dungeons[id].Ratio(counts.GetValueOrDefault(id)) >= catalog.Dungeons[id].ConquestRatio);
 
-    public static GuildDungeonReward RewardFor(GuildDungeonDefinition dungeon, int clears)
+    public static (int Contribution, GuildItemReward Reward) RewardFor(GuildDungeonDefinition dungeon, int clears, DateTimeOffset now)
     {
         var ratio = dungeon.Ratio(clears);
-        return dungeon.Rewards.First(row => ratio <= row.MaximumRatio);
+        var row = dungeon.Rewards.First(row => ratio <= row.MaximumRatio);
+        return (row.Contribution, MailReward(row.ItemId, row.Count, now));
     }
 
-    public static (int NextProgress, bool GrantReward) EvaluateRepeatBonus(
-        GuildDungeonRepeatBonus bonus, int currentProgress, IReadOnlyList<int> entryLevels)
+    public static (int NextProgress, GuildItemReward? Reward) EvaluateRepeatBonus(
+        GuildDungeonRepeatBonus bonus, int currentProgress, IReadOnlyList<int> entryLevels, DateTimeOffset now)
     {
         var next = currentProgress + bonus.Gain(entryLevels.Count, entryLevels.Max() - entryLevels.Min());
-        return next >= GuildDungeonRepeatBonus.FullProgress ? (0, true) : (next, false);
+        return next >= GuildDungeonRepeatBonus.FullProgress ? (0, MailReward(bonus.ItemId, bonus.Count, now)) : (next, null);
     }
+
+    private static GuildItemReward MailReward(int itemId, int count, DateTimeOffset now) =>
+        new(new(itemId, count), now.AddDays(30));
 
     public static int? MedalShopFor(GuildDungeonCatalog catalog, GuildDungeonAdmission admission,
         IReadOnlyDictionary<int, int> counts) =>

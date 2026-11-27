@@ -63,7 +63,7 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
         return new Random(seed).Next(1, upperBound + 1);
     }
 
-    public static GuildContributionReward ContributionReward(int points, DateTimeOffset now) =>
+    public static GuildItemReward ContributionReward(int points, DateTimeOffset now) =>
         new(new(GuildRedPacketRules.ContributionCoin, points), now.AddDays(15));
 
     public static int RewardDay(DateTimeOffset localTime) =>

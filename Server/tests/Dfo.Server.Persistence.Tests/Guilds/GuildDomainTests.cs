@@ -1142,10 +1142,13 @@ public sealed class GuildDomainTests : IDisposable
         var dungeon = new GuildDungeonDefinition(8500, 100, 5, 100, [], [new(100, 101, 1, 0)]);
         var catalog = new GuildDungeonCatalog(1, new Dictionary<int, GuildDungeonDefinition> { [8500] = dungeon })
             { RepeatBonus = new(102, 2, 10) };
+        var settledAt = clock.Now.AddMinutes(1);
         var mail = new List<ItemDeliveryGrant>();
         var delivery = TestRequired.Absent<IItemDeliveryDomainService>((_, args) =>
         {
             mail.Add(Assert.Single((IReadOnlyList<ItemDeliveryGrant>)args![2]!));
+            Assert.Equal(ItemDeliveryMode.MailOnly, args[5]);
+            Assert.Equal(settledAt.AddDays(30), ((ItemDeliveryOptions)args[6]!).MailExpiresAt);
             return ValueTask.FromResult(new ItemDeliveryReceipt([], [1], 1));
         });
         var service = new GuildDungeonDomainService(new(TestRequired.Absent<IGuildDungeonContentSource>((_, _) => catalog)),
@@ -1164,8 +1167,8 @@ public sealed class GuildDomainTests : IDisposable
             CurrentCellState: new(default, 1, 1, 0, [], []))
             { ClearParticipants = [new(new(1), new(11), member.MembershipId), new(new(2), new(12), null)] };
 
-        Assert.True(await Write(() => service.SettleAsync(new(1), new(11), run, clock.Now, default)));
-        Assert.False(await Write(() => service.SettleAsync(new(1), new(11), run, clock.Now, default)));
+        Assert.True(await Write(() => service.SettleAsync(new(1), new(11), run, settledAt, default)));
+        Assert.False(await Write(() => service.SettleAsync(new(1), new(11), run, settledAt, default)));
         Assert.Equal(expectedProgress, await progress.ReadRepeatBonusAsync(new(11), default));
         ItemDeliveryGrant[] expectedMail = expectBonus ? [new(101, 1), new(102, 2)] : [new(101, 1)];
         Assert.Equal(expectedMail, mail);

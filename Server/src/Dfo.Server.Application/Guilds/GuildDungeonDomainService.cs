@@ -134,16 +134,16 @@ internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, I
         if (mode.Admission.Period.StartUnix != entry.Period.StartUnix)
             return false;
         var counts = await progress.ReadProgressAsync(entry, ct).ConfigureAwait(false);
-        var reward = GuildDungeonRuleService.RewardFor(dungeon, counts.GetValueOrDefault(dungeon.Id));
-        if (!await progress.TryRecordClearAsync(run.RunId.Value, character, entry, dungeon.Id, reward.Contribution, ct)
+        var (contribution, reward) = GuildDungeonRuleService.RewardFor(dungeon, counts.GetValueOrDefault(dungeon.Id), now);
+        if (!await progress.TryRecordClearAsync(run.RunId.Value, character, entry, dungeon.Id, contribution, ct)
                 .ConfigureAwait(false))
             return false;
 
         var mail = new ItemDeliveryOptions(null, $"guild-dungeon:{run.RunId.Value:N}:{character.Value}")
         {
-            MailExpiresAt = now.AddDays(30),
+            MailExpiresAt = reward.MailExpiresAt,
         };
-        await items.DeliverAsync(account, character, [new(reward.ItemId, reward.Count)], "公会地下城通关奖励",
+        await items.DeliverAsync(account, character, [reward.Item], "公会地下城通关奖励",
             ct, ItemDeliveryMode.MailOnly, mail)
             .ConfigureAwait(false);
         var bonusAdvanced = false;
@@ -153,14 +153,14 @@ internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, I
             bonusAdvanced = true;
             var levels = run.ClearParticipants.Select(member => mode.EntryLevels[member.CharacterId]).ToArray();
             var current = await progress.ReadRepeatBonusAsync(character, ct).ConfigureAwait(false);
-            var (next, grantReward) = GuildDungeonRuleService.EvaluateRepeatBonus(bonus, current, levels);
+            var (next, bonusReward) = GuildDungeonRuleService.EvaluateRepeatBonus(bonus, current, levels, now);
             await progress.WriteRepeatBonusAsync(character, next, ct).ConfigureAwait(false);
-            if (grantReward)
+            if (bonusReward is not null)
             {
-                await items.DeliverAsync(account, character, [new(bonus.ItemId, bonus.Count)], "公会地下城奖励礼盒",
+                await items.DeliverAsync(account, character, [bonusReward.Item], "公会地下城奖励礼盒",
                     ct, ItemDeliveryMode.MailOnly, new(null, $"guild-dungeon-repeat:{run.RunId.Value:N}:{character.Value}")
                     {
-                        MailExpiresAt = now.AddDays(30),
+                        MailExpiresAt = bonusReward.MailExpiresAt,
                     }).ConfigureAwait(false);
             }
         }
