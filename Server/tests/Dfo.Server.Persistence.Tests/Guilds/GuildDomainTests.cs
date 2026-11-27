@@ -264,7 +264,8 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(second, Assert.Single((await gifts.ReadAsync(new(11), true, default))!.Rows).Sender);
         Assert.Equal(first, Assert.Single((await gifts.ReadAsync(new(12), true, default))!.Rows).Sender);
         clock.Now = clock.Now.AddDays(1);
-        Assert.Equal(GuildGiftStatus.Success, (await Write(() => gifts.SendAsync(new(11), second, 3, default))).Status);
+        var nextGift = await Write(() => gifts.SendAsync(new(11), second, 3, default));
+        Assert.Equal(GuildGiftStatus.Success, nextGift.Status);
 
         Execute("DELETE FROM guild_alliances");
         var key = new GuildGiftKey(first, 3, (byte)GuildContentKind.Experience, checked((uint)sent.Gift!.SentAt));
@@ -275,6 +276,12 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(2, (await gifts.ReadAsync(new(12), true, default))!.Rows.Count);
         Assert.Equal(clock.Now.AddDays(1).ToUnixTimeSeconds(),
             Assert.Single(await benefits.ReadContentsAsync(second, default)).ExpiresAtUnixSeconds);
+
+        var nextKey = key with { SentAt = checked((uint)nextGift.Gift!.SentAt) };
+        clock.Now = DateTimeOffset.FromUnixTimeSeconds(int.MaxValue).AddDays(-1);
+        Assert.Equal(GuildGiftStatus.ActivationUnavailable, (await Write(() => gifts.ClaimAsync(new(12), nextKey, default))).Status);
+        Assert.Single((await gifts.ReadAsync(new(12), false, default))!.Rows);
+        Assert.Empty(await benefits.ReadContentsAsync(second, default));
     }
 
     [Fact]
