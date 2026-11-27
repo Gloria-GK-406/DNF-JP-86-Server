@@ -13,17 +13,14 @@ internal sealed class GuardianGemDomainService(IBusinessInventorySlotDomainServi
     public async ValueTask<GuardianGemResult> InstallAsync(SelectedSessionIdentity actor, BusinessSlot source,
         int expectedMedal, int expectedGem, byte socket, CancellationToken ct)
     {
-        if (source.Space != BusinessInventorySpace.GuardianGem || source.Index is < 0 or >= 49
-            || socket >= GuardianGemSockets.Count
+        if (!GuardianGemRuleService.AcceptsSlots(source, socket)
             || inventory.Find(actor.CharacterId, WornMedal) is not { } equipped
             || await equipped.Container.GetAsync(equipped.Slot.Index, ct).ConfigureAwait(false) is not { } medal
-            || medal.Snapshot is not { LegacyKind: 12, IsPile: false, IsMirror: false, EquipmentLockId: 0, SortLockFlag: 0 }
-            || medal.ItemId != expectedMedal || medal.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
+            || medal.ItemId != expectedMedal || !GuardianGemRuleService.AcceptsMedal(medal.Snapshot, clock.GetUtcNow()))
             return new(GuardianGemRejection.InvalidTarget);
         if (!GuardianGemSockets.CanEncode(expectedGem) || inventory.Find(actor.CharacterId, source) is not { } tray
             || await tray.Container.GetAsync(source.Index, ct).ConfigureAwait(false) is not { } gem
-            || gem.Snapshot is not { LegacyKind: 13, IsPile: true, Count: > 0, IsMirror: false, EquipmentLockId: 0, SortLockFlag: 0 }
-            || gem.ItemId != expectedGem || gem.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
+            || gem.ItemId != expectedGem || !GuardianGemRuleService.AcceptsGem(gem.Snapshot, clock.GetUtcNow()))
             return new(GuardianGemRejection.InvalidGem);
 
         var sockets = medal.Snapshot.GuardianGems;
