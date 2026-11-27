@@ -26,7 +26,7 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
             return null;
         var guild = membership.Guild.Id;
         var now = clock.GetLocalNow();
-        var day = Day(now);
+        var day = GuildRedPacketRuleService.RewardDay(now);
         var taken = await store.CountTakenAsync(actor.AccountId, day, ct).ConfigureAwait(false);
         var packets = await store.ListAsync(guild, now.ToUnixTimeSeconds(), ct).ConfigureAwait(false);
         var members = await guilds.ReadRosterCharacterIdsAsync(actor.CharacterId, ct).ConfigureAwait(false);
@@ -44,7 +44,7 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         if (source.Read() is not { } rules ||
             await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } membership)
             return 0;
-        var claimedToday = await store.CountTakenAsync(account, Day(now), ct).ConfigureAwait(false);
+        var claimedToday = await store.CountTakenAsync(account, GuildRedPacketRuleService.RewardDay(now), ct).ConfigureAwait(false);
         if (GuildRedPacketRuleService.EvaluateDailyClaim(rules, claimedToday) != GuildRedPacketStatus.Success)
             return 0;
         var packets = await store.ListAsync(membership.Guild.Id, now.ToUnixTimeSeconds(), ct).ConfigureAwait(false);
@@ -101,7 +101,7 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
             return new(GuildRedPacketStatus.Gone);
         if (packet.SenderAccount == actor.AccountId || await store.HasTakenAsync(id, actor.AccountId, ct).ConfigureAwait(false))
             return new(GuildRedPacketStatus.AlreadyTaken);
-        var day = Day(now);
+        var day = GuildRedPacketRuleService.RewardDay(now);
         var claimedToday = await store.CountTakenAsync(actor.AccountId, day, ct).ConfigureAwait(false);
         var eligibility = GuildRedPacketRuleService.EvaluateDailyClaim(rules, claimedToday);
         if (eligibility != GuildRedPacketStatus.Success)
@@ -152,5 +152,4 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         await characters.Get(character).IdentityAsync(ct).ConfigureAwait(false) is { } identity
             ? Encoding.UTF8.GetString(identity.Name) : throw new InvalidOperationException("Guild member identity is missing.");
 
-    internal static int Day(DateTimeOffset now) => DateOnly.FromDateTime(now.DateTime.AddHours(-6)).DayNumber;
 }

@@ -37,7 +37,7 @@ internal sealed class GuildRenameDomainService(IGuildDomainStore guilds, GuildPr
             || membership.Guild.Id != authorization.Guild || membership.Guild.Name != authorization.OriginalName
             || slots.Find(session.CharacterId, source) is not { } bound
             || await bound.Container.GetAsync(bound.Slot.Index, ct).ConfigureAwait(false) is not { } card
-            || card.ItemId != GuildGoldRenameOffer.VoucherItemId || card.Count < 1 || card.Snapshot.IsMirror
+            || !GuildProductRuleService.IsRenameVoucher(card.ItemId) || card.Count < 1 || card.Snapshot.IsMirror
             || card.Snapshot.EquipmentLockId != 0 || card.Snapshot.SortLockFlag != 0
             || card.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
             return null;

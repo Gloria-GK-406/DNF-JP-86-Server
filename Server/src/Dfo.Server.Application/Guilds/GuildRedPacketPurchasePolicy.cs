@@ -15,7 +15,7 @@ internal sealed class GuildRedPacketPurchasePolicy(GuildRedPacketRuleService sou
         var (terms, refusal) = source.QuotePurchase(quote);
         if (terms is null)
             return refusal;
-        var day = GuildRedPacketDomainService.Day(TimeZoneInfo.ConvertTime(now, clock.LocalTimeZone));
+        var day = GuildRedPacketRuleService.RewardDay(TimeZoneInfo.ConvertTime(now, clock.LocalTimeZone));
         var members = await guilds.ReadRosterCharacterIdsAsync(character, ct).ConfigureAwait(false);
         var spent = await store.PurchasedAsync(character, day, ct).ConfigureAwait(false);
         var decision = GuildRedPacketRuleService.EvaluatePurchase(terms, members.Count, spent);

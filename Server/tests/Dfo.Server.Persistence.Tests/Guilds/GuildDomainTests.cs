@@ -1237,6 +1237,40 @@ public sealed class GuildDomainTests : IDisposable
     }
 
     [Fact]
+    public async Task Daily_chat_can_pay_on_joining_day_and_attendance_starts_at_the_next_six_am_reset()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        var reset = TimeZoneInfo.ConvertTimeToUtc(new DateTime(2026, 11, 27, 6, 0, 0), clock.LocalTimeZone);
+        clock.Now = reset.AddSeconds(-1);
+        await Write(async () =>
+        {
+            await store.AddMemberAsync(guild, new(13), false, clock.Now, default);
+            return true;
+        });
+        var actor = SelectedSessionIdentity.Create(new(1), new(13), new("member"), 1, 10001);
+        var config = new GuildRedPacketRules(new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1)
+        {
+            DailyContributionPoints = new Dictionary<GuildDailyContributionKind, int>
+                { [GuildDailyContributionKind.Attendance] = 10, [GuildDailyContributionKind.Chat] = 2 },
+        };
+        var grants = new List<ItemDeliveryGrant>();
+        var service = new GuildContributionDomainService(store, new SqliteGuildContributionStore(new(path, scope)),
+            new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => config)),
+            TestRequired.Absent<IItemDeliveryDomainService>((_, args) =>
+            {
+                grants.Add(Assert.Single((IReadOnlyList<ItemDeliveryGrant>)args![2]!));
+                return ValueTask.FromResult(new ItemDeliveryReceipt([], [], 1));
+            }), clock);
+        Assert.Null(await Write(() => service.AwardDailyAsync(actor, GuildDailyContributionKind.Attendance, default)));
+        Assert.NotNull(await Write(() => service.AwardDailyAsync(actor, GuildDailyContributionKind.Chat, default)));
+        clock.Now = reset;
+        Assert.NotNull(await Write(() => service.AwardDailyAsync(actor, GuildDailyContributionKind.Attendance, default)));
+        Assert.Null(await Write(() => service.AwardDailyAsync(actor, GuildDailyContributionKind.Attendance, default)));
+        Assert.Equal(new ItemDeliveryGrant[] { new(GuildRedPacketRules.ContributionCoin, 2), new(GuildRedPacketRules.ContributionCoin, 10) }, grants);
+        Assert.Equal(2L, Execute("SELECT count(*) FROM guild_daily_contributions"));
+    }
+
+    [Fact]
     public async Task Guild_clear_contribution_awards_only_the_threshold_run_each_day()
     {
         var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;

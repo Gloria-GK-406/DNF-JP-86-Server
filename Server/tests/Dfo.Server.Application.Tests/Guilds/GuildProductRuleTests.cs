@@ -9,6 +9,13 @@ namespace Dfo.Server.Application.Tests.Guilds;
 public sealed class GuildProductRuleTests
 {
     [Theory]
+    [InlineData(490001375, true)]
+    [InlineData(490001374, false)]
+    [InlineData(490001376, false)]
+    public void Rename_voucher_requires_the_designated_item(int itemId, bool eligible) =>
+        Assert.Equal(eligible, GuildProductRuleService.IsRenameVoucher(itemId));
+
+    [Theory]
     [InlineData(GuildContentKind.TemporaryAttributes, true, 200, 1, true)]
     [InlineData(GuildContentKind.Experience, true, 200, 1, true)]
     [InlineData(GuildContentKind.Experience, false, 200, 1, false)]

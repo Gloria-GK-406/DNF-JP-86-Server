@@ -63,8 +63,17 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
         return new Random(seed).Next(1, upperBound + 1);
     }
 
-    public int DailyContribution(GuildDailyContributionKind kind) =>
-        Read()?.DailyContributionPoints.GetValueOrDefault(kind) ?? 0;
+    public static int RewardDay(DateTimeOffset localTime) =>
+        DateOnly.FromDateTime(localTime.DateTime.AddHours(-6)).DayNumber;
+
+    public static int? EvaluateDailyContribution(GuildRedPacketRules rules, GuildDailyContributionKind kind,
+        int joiningDay, int rewardDay)
+    {
+        if (kind == GuildDailyContributionKind.Attendance && joiningDay == rewardDay)
+            return null;
+        var points = rules.DailyContributionPoints.GetValueOrDefault(kind);
+        return points > 0 ? points : null;
+    }
 
     public static int GuildDungeonClearContribution(GuildClearContributionRule rule, long priorClears) =>
         rule.Required == 0 || priorClears == rule.Required - 1L ? rule.Points : 0;

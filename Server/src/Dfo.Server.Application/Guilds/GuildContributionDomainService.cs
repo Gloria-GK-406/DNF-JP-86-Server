@@ -14,14 +14,15 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
     public async ValueTask<ItemDeliveryReceipt?> AwardDailyAsync(SelectedSessionIdentity actor,
         GuildDailyContributionKind kind, CancellationToken ct)
     {
-        var points = rules.DailyContribution(kind);
-        if (points <= 0 || await guilds.FindMembershipAsync(actor.CharacterId, ct).ConfigureAwait(false) is not { } membership)
+        if (rules.Read() is not { } config ||
+            await guilds.FindMembershipAsync(actor.CharacterId, ct).ConfigureAwait(false) is not { } membership)
             return null;
 
         var now = clock.GetLocalNow();
-        var day = GuildRedPacketDomainService.Day(now);
+        var day = GuildRedPacketRuleService.RewardDay(now);
         var joined = TimeZoneInfo.ConvertTime(membership.Member.JoinedAt, clock.LocalTimeZone);
-        if (kind == GuildDailyContributionKind.Attendance && GuildRedPacketDomainService.Day(joined) == day)
+        var joiningDay = GuildRedPacketRuleService.RewardDay(joined);
+        if (GuildRedPacketRuleService.EvaluateDailyContribution(config, kind, joiningDay, day) is not { } points)
             return null;
 
         if (!await store.TryRecordDailyAsync(membership.Guild.Id, actor.CharacterId, kind, day,
@@ -52,7 +53,7 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
             return null;
 
         var guild = membership.Guild.Id;
-        var day = GuildRedPacketDomainService.Day(TimeZoneInfo.ConvertTime(at, clock.LocalTimeZone));
+        var day = GuildRedPacketRuleService.RewardDay(TimeZoneInfo.ConvertTime(at, clock.LocalTimeZone));
         int points;
         if (run.Layout.Mode is DungeonRunMode.GuildDungeon dungeon)
         {

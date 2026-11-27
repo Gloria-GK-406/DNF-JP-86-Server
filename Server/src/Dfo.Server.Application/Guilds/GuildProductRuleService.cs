@@ -8,6 +8,8 @@ internal sealed class GuildProductRuleService(IGuildEconomySource content)
     public GuildContentDefinition? FindProduct(uint productId) =>
         content.ReadContentCatalog()?.Products.GetValueOrDefault(productId);
 
+    public static bool IsRenameVoucher(int itemId) => itemId == GuildGoldRenameOffer.VoucherItemId;
+
     public GuildGoldRenameOffer? GoldRenameOffer(uint productId) =>
         content.ReadContentCatalog()?.GoldRename is { GoldCost: > 0 } offer && offer.ProductId == productId ? offer : null;
 
