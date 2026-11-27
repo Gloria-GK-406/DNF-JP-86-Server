@@ -7,6 +7,7 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Accounts;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
@@ -58,6 +59,16 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(1L)]
     public void Expired_growth_does_not_contribute(long expiry) =>
         Assert.Empty(Collect(Service(premiums: [new(84, expiry)]), OtherDungeon));
+
+    [Theory]
+    [InlineData(ExperienceEvent.MonsterKill, true)]
+    [InlineData(ExperienceEvent.DungeonClear, false)]
+    [InlineData(ExperienceEvent.QuestCompletion, false)]
+    public void Guild_experience_is_a_separate_hunting_bonus(ExperienceEvent occasion, bool expected)
+    {
+        var modifiers = Collect(Service(guildRate: .1), OtherDungeon, occasion);
+        Assert.Equal(expected, modifiers.Any(x => x.Kind == ExperienceBonusKind.GuildReward && x.Rate == .1));
+    }
 
     [Theory]
     [InlineData(ExperienceEvent.DungeonClear, true, true)]
@@ -232,7 +243,8 @@ public sealed class ExperienceBonusDomainServiceTests
         IReadOnlyList<AccountPremiumRow>? premiums = null,
         IOnlineCharacterRuntimeDomainService? potions = null,
         bool blackDiamond = false,
-        double adventureRate = 0) =>
+        double adventureRate = 0,
+        double guildRate = 0) =>
         new ExperienceBonusDomainService(
             new OneSession(published),
             new PremiumServiceDomainService(new NoPremium(premiums ?? []), TestRequired.TransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
@@ -247,7 +259,10 @@ public sealed class ExperienceBonusDomainServiceTests
             TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
             TestRequired.Absent<IAdventureGroupDomainService>((method, _) =>
                 method.Name == nameof(IAdventureGroupDomainService.ClearExperienceRateAsync)
-                    ? ValueTask.FromResult(adventureRate) : null));
+                    ? ValueTask.FromResult(adventureRate) : null),
+            TestRequired.Absent<IGuildBenefitDomainService>((method, _) =>
+                method.Name == nameof(IGuildBenefitDomainService.ReadMonsterExperienceRateAsync)
+                    ? ValueTask.FromResult(guildRate) : null));
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;

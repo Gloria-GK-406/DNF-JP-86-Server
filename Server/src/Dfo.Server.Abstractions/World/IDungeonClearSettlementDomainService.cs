@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
@@ -19,6 +20,7 @@ public sealed record ClearExperienceResult(
     CharacterDungeonDifficulty? DifficultyUnlocked = null)
 {
     public DespairTowerSettlement? Despair { get; init; }
+    public ItemDeliveryReceipt? GuildContribution { get; init; }
 }
 
 /// <summary>How the attempt to begin a settlement ended.</summary>

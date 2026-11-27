@@ -180,6 +180,7 @@ public sealed record SelectedSessionCleanupNotificationPlan(
     /// world, or reading them failed.
     /// </summary>
     public SelectedSessionFriendDeparture? FriendDeparture { get; init; }
+    public Dfo.Server.Data.Guilds.GuildPresenceAudience? GuildDeparture { get; init; }
 
     public Dfo.Server.Data.Raids.AntonRaidRecruitmentChange? RaidDeparture { get; init; }
 

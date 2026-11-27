@@ -7,10 +7,37 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed partial class EquipmentUpgradeRuleService
 {
-    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(ItemSnapshot core, CancellationToken ct,
-        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement)
+    private static bool AllowsMedalUpgrade(EquipmentUpgradeKind kind, bool hasProtection) =>
+        kind == EquipmentUpgradeKind.Reinforcement && !hasProtection;
+
+    public static bool AcceptsReinforcementSlot(BusinessInventorySpace space, EquipmentUpgradeKind kind, bool hasProtection) =>
+        space == BusinessInventorySpace.GuildMedal ? AllowsMedalUpgrade(kind, hasProtection)
+            : space.IsCarriedItemSpace() || space.IsWornEquipmentSpace();
+
+    public static bool AcceptsTarget(BusinessInventorySpace space, ItemSnapshot target, DateTimeOffset now)
     {
-        if (kind is not (EquipmentUpgradeKind.Reinforcement or EquipmentUpgradeKind.Amplification))
+        var medal = target.Type.HasFlag(ItemTraits.GuildMedal);
+        return medal == (space == BusinessInventorySpace.GuildMedal)
+            && (!medal || !target.IsMirror && !target.Lifetime.IsExpired(now));
+    }
+
+    public static bool AcceptsMaterial(ItemSnapshot target, ItemSnapshot material, DateTimeOffset now) =>
+        !target.Type.HasFlag(ItemTraits.GuildMedal) || material.EquipmentLockId == 0
+            && material.SortLockFlag == 0 && !material.Lifetime.IsExpired(now);
+
+    public async ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(ItemSnapshot core, CancellationToken ct,
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement, int? materialItemId = null, bool hasProtection = false)
+    {
+        var medal = core.Type.HasFlag(ItemTraits.GuildMedal);
+        if (!medal && materialItemId is { } material)
+        {
+            var ticket = await QuoteTicketAsync(core, material, ct, kind).ConfigureAwait(false);
+            if (ticket.IsTicket)
+                return hasProtection && ticket.Rejection == EquipmentReinforcementRejection.None
+                    ? new(EquipmentReinforcementRejection.InvalidRequest, IsTicket: true) : ticket;
+        }
+        if (kind is not (EquipmentUpgradeKind.Reinforcement or EquipmentUpgradeKind.Amplification)
+            || medal && !AllowsMedalUpgrade(kind, hasProtection))
             return new(EquipmentReinforcementRejection.InvalidRequest);
         if (kind == EquipmentUpgradeKind.Amplification)
         {
@@ -26,10 +53,12 @@ internal sealed partial class EquipmentUpgradeRuleService
         else if (core.SealFlag != 0 || core.AmplifyType != 0)
             return new(EquipmentReinforcementRejection.CannotReinforce);
         var equipment = await equipmentDefinitions.GetEquipmentAsync(core.ItemId, ct).ConfigureAwait(false);
-        var table = kind == EquipmentUpgradeKind.Amplification
+        var table = medal ? await definitions.GetGuildMedalTableAsync(ct).ConfigureAwait(false)
+            : kind == EquipmentUpgradeKind.Amplification
             ? await definitions.GetAmplificationTableAsync(ct).ConfigureAwait(false)
             : await definitions.GetNormalTableAsync(ct).ConfigureAwait(false);
-        if (equipment is null || table is null || WeightIndex(equipment.EquipmentType) is null or 1
+        if (equipment is null || table is null
+            || (medal ? equipment.EquipmentType != "flag" : WeightIndex(equipment.EquipmentType) is null or 1)
             || equipment.ImpossibleContents.Contains("upgrade"))
             return new(EquipmentReinforcementRejection.UnsupportedContent);
         if (equipment.MaxDurability is { } maximumDurability && core.Durability != maximumDurability)
@@ -43,12 +72,21 @@ internal sealed partial class EquipmentUpgradeRuleService
         if (row is null || row.FailureThreshold is < 0 or > 100_000
             || row.MaterialItemId <= 0 || row.MaterialCount <= 0
             || row.PenaltyType is < 1 or > 3 || row.PenaltyValue < 0
-            || !TryGoldCost(table, equipment, oldLevel, out var goldCost))
+            || !TryGoldCost(table, equipment, oldLevel, medal, out var goldCost))
             return new(EquipmentReinforcementRejection.UnsupportedContent);
-        var canDestroy = EquipmentReinforcementFailureRuleService.PenaltyType(
-            oldLevel, equipment.Rarity, table, row) == 3;
+        if (medal)
+        {
+            if (equipment.Rarity >= table.MedalMaterialWeights.Count)
+                return new(EquipmentReinforcementRejection.UnsupportedContent);
+            var quantity = row.MaterialCount * (double)(float)table.MedalMaterialWeights[equipment.Rarity];
+            if (!double.IsFinite(quantity) || quantity is < 1 or > int.MaxValue)
+                return new(EquipmentReinforcementRejection.UnsupportedContent);
+            row = row with { MaterialCount = (int)quantity };
+        }
+        var canDestroy = (medal ? row.PenaltyType : EquipmentReinforcementFailureRuleService.PenaltyType(
+            oldLevel, equipment.Rarity, table, row)) == 3;
         return new(EquipmentReinforcementRejection.None,
-            new Rule(definitions, logger, core.ItemId, row, oldLevel, canDestroy, goldCost, kind));
+            new Rule(definitions, logger, core.ItemId, row, oldLevel, canDestroy, goldCost, kind, medal));
     }
 
     public async ValueTask<int?> NoticeLevelAsync(EquipmentUpgradeKind kind, CancellationToken ct)
@@ -62,16 +100,16 @@ internal sealed partial class EquipmentUpgradeRuleService
     private sealed class Rule(IEquipmentReinforcementDefinitionSource definitions,
         ILogger<EquipmentUpgradeRuleService> logger, int itemId,
         EquipmentReinforcementRow row, byte oldLevel, bool canDestroy, int goldCost,
-        EquipmentUpgradeKind kind) : IEquipmentReinforcementRule
+        EquipmentUpgradeKind kind, bool medal) : IEquipmentReinforcementRule
     {
         public int GoldCost => goldCost;
         public int MaterialItemId => row.MaterialItemId;
         public int MaterialCount => row.MaterialCount;
         public bool CanDestroy => canDestroy;
-        public bool CanUseAutomaticProtection => canDestroy
-            || kind == EquipmentUpgradeKind.Amplification && row.PenaltyType == 2;
+        public bool CanUseAutomaticProtection => !medal && (canDestroy
+            || kind == EquipmentUpgradeKind.Amplification && row.PenaltyType == 2);
         public ValueTask<EquipmentReinforcementProtectionDefinition?> ProtectionAsync(int itemId, CancellationToken ct) =>
-            definitions.GetProtectionAsync(itemId, ct, kind);
+            medal ? ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null) : definitions.GetProtectionAsync(itemId, ct, kind);
 
         public async ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
             IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct)
@@ -102,15 +140,15 @@ internal sealed partial class EquipmentUpgradeRuleService
     }
 
     private static bool TryGoldCost(EquipmentReinforcementTable table,
-        EquipmentDefinition equipment, byte oldLevel, out int cost)
+        EquipmentDefinition equipment, byte oldLevel, bool medal, out int cost)
     {
         cost = 0;
-        var typeIndex = WeightIndex(equipment.EquipmentType);
+        var typeIndex = medal ? 19 : WeightIndex(equipment.EquipmentType);
         var levelIndex = equipment.MinimumLevel + Math.Max(0, equipment.Rarity - 1) * 2;
         if (levelIndex < 0 || levelIndex >= table.BaseGoldByEquipmentLevel.Count
             || equipment.Rarity < 0 || equipment.Rarity >= table.CostWeightsByRarity.Count
             || typeIndex is null
-            || typeIndex.Value >= table.CostWeightsByEquipmentType.Count)
+            || !medal && typeIndex.Value >= table.CostWeightsByEquipmentType.Count)
             return false;
         // A21's normal table continues beyond the last explicit cost-weight entry.
         // The upstream provider treats a missing level weight as the neutral factor.
@@ -119,7 +157,7 @@ internal sealed partial class EquipmentUpgradeRuleService
             return false;
         var raw = (double)table.BaseGoldByEquipmentLevel[levelIndex]
             * table.CostWeightsByRarity[equipment.Rarity]
-            * table.CostWeightsByEquipmentType[typeIndex.Value]
+            * (typeIndex.Value < table.CostWeightsByEquipmentType.Count ? table.CostWeightsByEquipmentType[typeIndex.Value] : 1)
             * levelWeight;
         if (!double.IsFinite(raw) || raw < 0 || raw > int.MaxValue)
             return false;

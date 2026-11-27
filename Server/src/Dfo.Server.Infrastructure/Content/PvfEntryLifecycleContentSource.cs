@@ -245,6 +245,8 @@ internal sealed class PvfEntryLifecycleContentSource(
     {
         var worldClass = ClassifyEquipmentType(equipmentType);
         var normalized = (equipmentType ?? string.Empty).Replace("`", string.Empty).Trim().ToLowerInvariant();
+        if (normalized == "[flag]")
+            return new(1, 12, 0, 48, ItemWorldClass.Equipment);
         var creatureEquipment = normalized is "[artifact red]" or "[artifact blue]" or "[artifact green]";
         var kind = creatureEquipment ? (byte)6 : worldClass switch
         {
@@ -336,6 +338,7 @@ internal sealed class PvfEntryLifecycleContentSource(
 
         if (normalized is "creature" or "feed") return 7;
         if (normalized == "avatar emblem") return 9;
+        if (normalized == "flag gem") return 13;
         if (normalized == "material expert job") return 10;
         if (normalized == "quest") return 4;
         if (normalized is "material" or "material instant item")
@@ -354,6 +357,7 @@ internal sealed class PvfEntryLifecycleContentSource(
             4 => (177, 232),
             9 => (289, 344),
             10 => (233, 288),
+            13 => (49, 97),
             _ => (65, 120),
         };
     }

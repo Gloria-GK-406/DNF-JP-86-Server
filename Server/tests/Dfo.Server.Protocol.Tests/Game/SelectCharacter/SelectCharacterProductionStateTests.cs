@@ -312,9 +312,9 @@ public sealed class SelectCharacterProductionStateTests
         Assert.NotNull(result.CharacterEntry.Skills.ProtocolMirror);
         Assert.All(result.CharacterEntry.Features.Collections.CollectionBoxes,
             value => Assert.NotNull(value.Protocol));
-        // 63 static rows on A21 (62 and the entry blacklist), less the knight-only row this job does not take, plus the 9 event, schedule and
-        // attendance rows: the event services are always present, so even an empty calendar is announced.
-        Assert.Equal(71, messages.Count);
+        // The knight-only row is omitted. Guild rank and the nine calendar, schedule and
+        // attendance rows accompany the remaining 62 rows.
+        Assert.Equal(72, messages.Count);
         Assert.Equal(13, Assert.Single(result.EpicPieces!).Count);
         Assert.Single(messages.OfType<Dfo.Server.Protocol.Game.StateSynchronization.EpicBookStateMessage>());
         Assert.False(sources.Published);

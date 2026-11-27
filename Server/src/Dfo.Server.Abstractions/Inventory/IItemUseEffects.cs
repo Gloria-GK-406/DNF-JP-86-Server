@@ -35,6 +35,9 @@ public sealed record ItemUseApplication(ItemUsability Status, int ItemId, int Re
 public interface IItemUseEffectRuleService
 {
     ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken);
+    ValueTask<ItemUseRule?> OrdinaryUseRuleAsync(int itemId, CancellationToken ct);
+    ValueTask<ItemUseRule?> GuildExtensionActionRuleAsync(int itemId, CancellationToken ct);
+    ValueTask<int?> GuildExtensionCostAsync(int itemId, BusinessSlot source, ItemUsePlan plan, CancellationToken ct);
     ValueTask<ItemUseRule?> LuckyStarActionRuleAsync(int itemId, CancellationToken cancellationToken);
     ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule);
     ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
@@ -46,5 +49,7 @@ public interface IItemUseEffectDomainService
     ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
     ValueTask<OpeningInventoryReceipt> UseLuckyStarActionAsync(SelectedSessionIdentity session, BusinessSlot source,
+        DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
+    ValueTask<OpeningInventoryReceipt> UseGuildDungeonExtensionActionAsync(SelectedSessionIdentity session, BusinessSlot source,
         DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 }

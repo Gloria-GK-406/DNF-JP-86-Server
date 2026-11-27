@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Data.Inventory;
@@ -6,7 +7,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Dfo.Server.Persistence.Inventory;
 
-internal sealed class SqliteItemDomainStore : IItemDomainStore
+internal sealed class SqliteItemDomainStore : IItemDomainStore, IGuildWarehouseCustodyStore
 {
     private readonly string connectionString;
     private readonly IInventoryContentsEventDomainService contentsEvents;
@@ -17,7 +18,11 @@ internal sealed class SqliteItemDomainStore : IItemDomainStore
     }
     public object StoreIdentity => connectionString;
     public bool IsDurable => true;
-    public IItemDomainStoreSession SessionIn(IDomainTransaction transaction)
+    public IItemDomainStoreSession SessionIn(IDomainTransaction transaction) => Bind(transaction);
+    IGuildWarehouseCustodySession IDomainStore<IGuildWarehouseCustodySession>.SessionIn(IDomainTransaction transaction) =>
+        Bind(transaction);
+
+    private SqliteItemDomainStoreSession Bind(IDomainTransaction transaction)
     {
         var scope = ItemLifecycleScope.In(transaction);
         return SqliteItemDomainStoreSession.In(transaction.Enlist(StoreIdentity,
@@ -260,7 +265,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             SELECT i.item_uid,i.item_core,s.kind,s.count,
                 i.avatar_expire_date,i.avatar_clear_id,i.avatar_jewel_socket,i.avatar_color1,i.avatar_color2,i.avatar_delete_date,
                 i.creature_field04,i.creature_mode_flag,i.creature_progress_value,i.creature_mode1_field0a,
-                i.creature_mode1_field0b,i.creature_field_after_value,i.creature_text,i.creature_tail_flag,i.is_mirror,i.mirror_source_uid,i.appearance_item_id
+                i.creature_mode1_field0b,i.creature_field_after_value,i.creature_text,i.creature_tail_flag,i.is_mirror,i.mirror_source_uid,i.appearance_item_id,i.guardian_gem_keys
             FROM item_slots s JOIN items i ON i.item_uid=s.core_uid
             WHERE s.owner_scope=@scope AND s.owner_id=@owner AND s.list_type=@list AND s.slot_index=@slot
             """;
@@ -268,7 +273,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         await using var r = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await r.ReadAsync(ct).ConfigureAwait(false)) return null;
         var uid = r.GetInt64(0);
-        var core = InventoryItemCore.Decode((byte[])r.GetValue(1));
+        var core = InventoryItemCore.Decode((byte[])r.GetValue(1)) with { GuardianGems = new(r.GetInt64(21)) };
         var pile = r.GetString(2) == "template";
         var avatar = ReadAvatarDetail(r, 4);
         var creature = r.IsDBNull(10) ? null : new InventoryCreatureDetailState(r.GetInt32(10), checked((byte)r.GetInt32(11)), r.GetInt32(12), r.GetInt32(13), r.GetInt32(14), r.GetInt32(15), r.IsDBNull(16) ? [] : (byte[])r.GetValue(16), checked((byte)r.GetInt32(17)));
@@ -312,6 +317,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             || (value.IsPile && value.ItemUid is not null)) throw new InvalidDataException("Invalid item identity or quantity.");
         if (value.Type != ItemTraitClassification.For(value.LegacyKind, value.ItemId))
             throw new InvalidDataException("Item type disagrees with its legacy encoding.");
+        if (value.GuardianGems.Packed != 0 && (value.IsPile || value.LegacyKind != 12))
+            throw new InvalidDataException("Guardian gem sockets belong to an individual guild medal.");
         var avatar = !value.IsPile && value.Type == ItemTraits.Avatar;
         var creature = !value.IsPile && value.Type == ItemTraits.Creature;
         if (avatar && value.InstanceValue <= 0)
@@ -329,8 +336,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         await using var command = await owner.CommandAsync(ct).ConfigureAwait(false);
         command.CommandText = """
             INSERT INTO items(item_core,avatar_expire_date,avatar_clear_id,avatar_jewel_socket,avatar_color1,avatar_color2,avatar_delete_date,
-                creature_field04,creature_mode_flag,creature_progress_value,creature_mode1_field0a,creature_mode1_field0b,creature_field_after_value,creature_text,creature_tail_flag,is_mirror,mirror_source_uid,appearance_item_id)
-            SELECT @core,@expire,@clear,@socket,@color1,@color2,@delete,@field04,@mode,@progress,@mode1a,@mode1b,@after,@text,@tail,@mirror,@mirrorSource,@appearance
+                creature_field04,creature_mode_flag,creature_progress_value,creature_mode1_field0a,creature_mode1_field0b,creature_field_after_value,creature_text,creature_tail_flag,is_mirror,mirror_source_uid,appearance_item_id,guardian_gem_keys)
+            SELECT @core,@expire,@clear,@socket,@color1,@color2,@delete,@field04,@mode,@progress,@mode1a,@mode1b,@after,@text,@tail,@mirror,@mirrorSource,@appearance,@guardianGems
             WHERE @expire IS NULL OR NOT EXISTS(SELECT 1 FROM items WHERE avatar_expire_date IS NOT NULL AND substr(item_core,6,4)=substr(@core,6,4))
             RETURNING item_uid;
             """;
@@ -345,7 +352,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
             UPDATE items SET item_core=@core,avatar_expire_date=@expire,avatar_clear_id=@clear,avatar_jewel_socket=@socket,
                 avatar_color1=@color1,avatar_color2=@color2,avatar_delete_date=@delete,creature_field04=@field04,
                 creature_mode_flag=@mode,creature_progress_value=@progress,creature_mode1_field0a=@mode1a,creature_mode1_field0b=@mode1b,
-                creature_field_after_value=@after,creature_text=@text,creature_tail_flag=@tail,is_mirror=@mirror,mirror_source_uid=@mirrorSource,appearance_item_id=@appearance,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid
+                creature_field_after_value=@after,creature_text=@text,creature_tail_flag=@tail,is_mirror=@mirror,mirror_source_uid=@mirrorSource,appearance_item_id=@appearance,guardian_gem_keys=@guardianGems,updated_at=CURRENT_TIMESTAMP WHERE item_uid=@uid
             """;
         BindSnapshot(command, snapshot); command.Parameters.AddWithValue("@uid", uid);
         if (await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false) != 1) throw new InvalidDataException("Item row disappeared.");
@@ -357,6 +364,7 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
         command.Parameters.AddWithValue("@mirror", snapshot.IsMirror ? 1 : 0);
         command.Parameters.AddWithValue("@mirrorSource", snapshot.MirrorSourceUid is { } source ? source.Value : DBNull.Value);
         command.Parameters.AddWithValue("@core", InventoryItemCore.Encode(snapshot.ToCore()));
+        command.Parameters.AddWithValue("@guardianGems", snapshot.GuardianGems.Packed);
         (string, object?)[] values = [("@expire",a?.ExpireDate),("@clear",a?.ClearAvatarId),("@socket",a?.JewelSocket),
             ("@color1",a?.Color1),("@color2",a?.Color2),("@delete",a?.DeleteDate),("@field04",c?.Field04),("@mode",c?.ModeFlag),
             ("@progress",c?.ProgressValue),("@mode1a",c?.Mode1Field0A),("@mode1b",c?.Mode1Field0B),("@after",c?.FieldAfterValue),("@text",c?.CreatureText),("@tail",c?.TailFlag)];
@@ -391,8 +399,8 @@ internal sealed partial class SqliteItemDomainStoreSession(SqliteDatabasePartici
     {
         if (!container.TryGetOwner(out var owner, out var type)
             || type is not (InventoryContainerType.Main or InventoryContainerType.Avatar or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial
-                or InventoryContainerType.TitleBookGeneral or InventoryContainerType.TitleBookSpecific or InventoryContainerType.TitleBookPvp or InventoryContainerType.TitleBookDespair or InventoryContainerType.TitleBookEvent or InventoryContainerType.CollectionBox)
-            || type == InventoryContainerType.CollectionBox && owner.Scope != InventoryOwnerType.Character
+                or InventoryContainerType.TitleBookGeneral or InventoryContainerType.TitleBookSpecific or InventoryContainerType.TitleBookPvp or InventoryContainerType.TitleBookDespair or InventoryContainerType.TitleBookEvent or InventoryContainerType.CollectionBox or InventoryContainerType.GuildMedal)
+            || type is InventoryContainerType.CollectionBox or InventoryContainerType.GuildMedal && owner.Scope != InventoryOwnerType.Character
             || type is >= InventoryContainerType.TitleBookGeneral and <= InventoryContainerType.TitleBookEvent && owner.Scope != InventoryOwnerType.Character
             || type is InventoryContainerType.AccountCargo or InventoryContainerType.SharedMaterial && owner.Scope != InventoryOwnerType.Account)
             throw new InvalidOperationException("The container has no supported persistent owner.");

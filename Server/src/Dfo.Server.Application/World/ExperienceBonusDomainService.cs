@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -14,7 +15,8 @@ internal sealed class ExperienceBonusDomainService(
     IExperienceRuleService experienceRules,
     TimeProvider clock,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
-    IAdventureGroupDomainService adventureGroups) : IExperienceBonusDomainService
+    IAdventureGroupDomainService adventureGroups,
+    IGuildBenefitDomainService benefits) : IExperienceBonusDomainService
 {
     public async ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
         ExperienceOccasion occasion, CancellationToken cancellationToken)
@@ -32,6 +34,9 @@ internal sealed class ExperienceBonusDomainService(
                 .ConfigureAwait(false)
             : 0;
         var channel = await channels.ResolveAsync(session.ListenerPort, cancellationToken).ConfigureAwait(false);
+        var guildRate = occasion.Event == ExperienceEvent.MonsterKill && occasion.AllowGuildExperience
+            ? await benefits.ReadMonsterExperienceRateAsync(occasion.Character, cancellationToken).ConfigureAwait(false)
+            : 0;
         if (!sessions.IsInWorld(session))
             return [];
 
@@ -39,6 +44,8 @@ internal sealed class ExperienceBonusDomainService(
             clock.GetUtcNow(), channel.ChannelId, occasion.DungeonId).ToList();
         if (occasion.Event is ExperienceEvent.MonsterKill or ExperienceEvent.DungeonClear && growthRate > 0)
             found.Add(new("growth contract", growthRate, ExperienceBonusKind.GrowthContract));
+        if (guildRate > 0)
+            found.Add(new("guild", guildRate, ExperienceBonusKind.GuildReward));
         if (blackDiamondRate > 0)
             found.Add(new("black diamond", blackDiamondRate, ExperienceBonusKind.BlackDiamond));
         // 70Reference: the timed EXP potion contributes to clear settlement, not ordinary kills.

@@ -9,7 +9,7 @@ internal sealed partial class SqliteItemDomainStoreSession
 {
     private sealed record CustodyItem(string Kind, long Uid, int ItemId, int Count, byte[]? Core);
 
-    // Only these two private storage adapters supply identifiers. No caller supplies SQL or table names.
+    // Only the private storage adapters supply identifiers. No caller supplies SQL or table names.
     private abstract class CustodyStorage(SqliteDatabaseParticipant participant)
     {
         protected abstract string Table { get; }
@@ -18,15 +18,13 @@ internal sealed partial class SqliteItemDomainStoreSession
         protected abstract string InsertValues { get; }
         protected abstract void Bind(SqliteCommand command);
 
-        internal async ValueTask<CustodyItem> ReadAsync(CancellationToken ct)
+        internal async ValueTask<CustodyItem?> FindAsync(CancellationToken ct)
         {
             await using var command = await participant.CommandAsync(ct).ConfigureAwait(false);
             command.CommandText = $"SELECT kind,item_uid,item_id,item_count,item_core FROM {Table} WHERE {Key}";
             Bind(command);
             await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-                throw new InvalidOperationException("The custody location holds no item.");
-            return ReadCustodyItem(reader, 0);
+            return await reader.ReadAsync(ct).ConfigureAwait(false) ? ReadCustodyItem(reader, 0) : null;
         }
 
         internal async ValueTask InsertAsync(CustodyItem item, CancellationToken ct)
@@ -89,7 +87,8 @@ internal sealed partial class SqliteItemDomainStoreSession
     private async ValueTask<ItemRecord> TakeCustodyAsync(CustodyStorage storage, int? count, CancellationToken ct)
     {
         Active();
-        var item = await storage.ReadAsync(ct).ConfigureAwait(false);
+        var item = await storage.FindAsync(ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The custody location holds no item.");
         var amount = count ?? item.Count;
         if (amount <= 0 || amount > item.Count || item.Kind == "equipment" && amount != 1)
             throw new ArgumentOutOfRangeException(nameof(count));

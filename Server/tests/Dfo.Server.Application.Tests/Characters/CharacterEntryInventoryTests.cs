@@ -148,6 +148,7 @@ public sealed class CharacterEntryInventoryTests
                 InventoryContainerType.PersonalCargo,
                 InventoryContainerType.Equipment,
                 InventoryContainerType.Pet,
+                InventoryContainerType.GuildMedal,
             ],
             characterResult.Containers.Select(container => container.ContainerType));
         Assert.Equal([1, 4, 9], characterResult.Containers[0].Items.Select(item => item.SlotIndex));

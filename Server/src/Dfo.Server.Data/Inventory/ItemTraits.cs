@@ -14,6 +14,8 @@ public enum ItemTraits
     Avatar = 1 << 6,
     Creature = 1 << 7,
     Tower = 1 << 8,
+    GuildMedal = 1 << 9,
+    GuardianGem = 1 << 10,
 }
 
 public static class ItemTraitClassification
@@ -33,6 +35,8 @@ public static class ItemTraitClassification
             8 => ItemTraits.Avatar,
             9 => ItemTraits.Material | ItemTraits.Avatar,
             10 => ItemTraits.Material | ItemTraits.Profession,
+            12 => ItemTraits.Equipment | ItemTraits.GuildMedal,
+            13 => ItemTraits.GuardianGem,
             _ => ItemTraits.None,
         };
         // A21 stackable.lst tower consumables 6516..6525 and clear cube 6515.
@@ -55,8 +59,10 @@ public static class ItemContainerAdmission
         : new(space switch
     {
         BusinessInventorySpace.QuickSlot => Cargo | ItemTraits.Quest,
-        BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment
-            or BusinessInventorySpace.WornEquipmentExtension => ItemTraits.Equipment,
+        BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.WornEquipment => ItemTraits.Equipment,
+        BusinessInventorySpace.WornEquipmentExtension => ItemTraits.Equipment | ItemTraits.GuildMedal,
+        BusinessInventorySpace.GuildMedal => ItemTraits.Equipment | ItemTraits.GuildMedal,
+        BusinessInventorySpace.GuardianGem => ItemTraits.GuardianGem,
         BusinessInventorySpace.Consumable => ItemTraits.Consumable,
         BusinessInventorySpace.Material or BusinessInventorySpace.SharedMaterial =>
             ItemTraits.Material | ItemTraits.AccountShared,
@@ -69,7 +75,7 @@ public static class ItemContainerAdmission
             ItemTraits.Equipment | ItemTraits.Creature,
         BusinessInventorySpace.CreatureConsumable => ItemTraits.Consumable | ItemTraits.Creature,
         BusinessInventorySpace.PersonalCargo or BusinessInventorySpace.AccountCargo => Cargo,
-        // Virtual resources and the not-yet-implemented medal spaces have no item admission.
+        // Virtual resources have no item admission.
         _ => ItemTraits.None,
     });
 }

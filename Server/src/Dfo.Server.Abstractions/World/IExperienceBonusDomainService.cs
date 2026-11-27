@@ -29,7 +29,8 @@ public readonly record struct ExperienceOccasion(
     ExperienceEvent Event,
     AccountId Account,
     CharacterId Character,
-    int DungeonId);
+    int DungeonId,
+    bool AllowGuildExperience = true);
 
 /// <summary>
 /// Which source contributes an experience bonus; known sources also have client display lines.

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -10,7 +11,8 @@ namespace Dfo.Server.Application.World;
 public sealed class DungeonClearDomainService(
     IDungeonRunSettlementDomainService runs,
     IMonsterKillDomainService rooms,
-    IDungeonSettlementRuleService settlementRules) : IDungeonClearDomainService
+    IDungeonSettlementRuleService settlementRules,
+    IGuildMembershipQueryDomainService guilds) : IDungeonClearDomainService
 {
     public async ValueTask<DungeonClearChange?> TryOpenClearAsync(
         AccountId accountId,
@@ -52,7 +54,17 @@ public sealed class DungeonClearDomainService(
         // they cannot be a prerequisite for opening the very clear that completes them.
         var activeParticipant = run.Participant
             ?? throw new InvalidOperationException("An active run view requires one participant.");
-        return runs.TryOpenClear(
-            activeParticipant.CharacterId, expectedRunId, expectedRoomVersion);
+        Dictionary<CharacterId, long>? memberships = null;
+        if (run.Layout.Mode.Kind == DungeonRunKind.Ordinary && run.Layout.ConsumesFatigue)
+        {
+            memberships = new(run.Participants.Count);
+            foreach (var participant in run.Participants)
+            {
+                var membership = await guilds.FindMembershipAsync(participant.CharacterId, cancellationToken).ConfigureAwait(false);
+                if (membership is not null)
+                    memberships.Add(participant.CharacterId, membership.Member.MembershipId);
+            }
+        }
+        return runs.TryOpenClear(activeParticipant.CharacterId, expectedRunId, expectedRoomVersion, memberships);
     }
 }

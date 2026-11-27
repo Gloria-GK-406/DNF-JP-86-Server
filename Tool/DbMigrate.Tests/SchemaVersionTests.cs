@@ -5,6 +5,55 @@ namespace DbMigrate.Tests;
 
 public sealed class SchemaVersionTests
 {
+    [Theory]
+    [InlineData(20)]
+    [InlineData(40)]
+    public void Guild_branch_recovers_its_position_after_an_interrupted_pvp_upgrade(int guildVersion)
+    {
+        var path = Unversioned.NewPath($"guild-branch-v{guildVersion}");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, $"""
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'keep');
+                INSERT INTO characters(character_id,account_id,name) VALUES(71,7,'member');
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points) VALUES(3,'kept','KEPT','',1,9);
+                INSERT INTO guild_members(membership_id,character_id,guild_id,is_leader,joined_at) VALUES(8301,71,3,1,7);
+                INSERT INTO guild_gold_donations(guild_id,donor_character_id,donor_name,gold,points,donated_at)
+                    VALUES(3,71,X'61',1000,1,7);
+                CREATE TABLE character_pvp(character_id INTEGER PRIMARY KEY,pvp_grade INTEGER,pvp_rating_grade INTEGER,
+                    skills_initialized INTEGER,pvp_rank_point INTEGER,pvp_stat_a INTEGER,pvp_win_streak INTEGER,pvp_lose_streak INTEGER);
+                INSERT INTO character_pvp VALUES(71,5,4,1,0,88,0,0);
+                DROP TABLE pvp_colosseum_runs;
+                CREATE VIEW pvp_colosseum_runs AS SELECT 1;
+                PRAGMA user_version={guildVersion};
+                """);
+
+            // Simulate a failure in the last PvP step, after the legacy character_pvp table is gone.
+            Assert.Throws<SqliteException>(() => Migrator.Migrate(path, backup: false));
+            Assert.Equal(20L, Scalar(path, "PRAGMA user_version"));
+            Assert.Equal(0L, Scalar(path, "SELECT COUNT(*) FROM sqlite_schema WHERE name='character_pvp'"));
+            Assert.Equal(guildVersion, Scalar(path, "SELECT guild_version FROM migration_guild_branch_resume"));
+            Execute(path, "DROP VIEW pvp_colosseum_runs");
+
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((20L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(5L, Scalar(path, "SELECT grade FROM character_pvp_record WHERE character_id=71 AND rating_grade=4"));
+            Assert.Equal(88L, Scalar(path, "SELECT stat_a FROM character_pvp_legacy WHERE character_id=71"));
+            Assert.Equal(9L, Scalar(path, "SELECT gm_points FROM guilds WHERE guild_id=3"));
+            // Old v20 still needs its one-time ledger backfill; old v40 has already frozen attribution.
+            Assert.Equal(guildVersion == 40 ? 0L : 8301L, Scalar(path,
+                "SELECT COALESCE(membership_id,0) FROM guild_gold_donations WHERE donor_character_id=71"));
+            Assert.Equal(0L, Scalar(path, "SELECT COUNT(*) FROM sqlite_schema WHERE name='migration_guild_branch_resume'"));
+            Assert.Null(Migrator.Migrate(path).Backup);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void Version_twenty_adds_colosseum_state_without_rewriting_existing_accounts()
     {
@@ -141,6 +190,203 @@ public sealed class SchemaVersionTests
             Assert.Equal(3, Scalar(path, "SELECT COUNT(*) FROM characters WHERE account_id=7"));
             Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM account_pvp_total_match_teams"));
             _ = Unversioned.Open(path);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_47_freezes_existing_membership_attribution_and_preserves_departure_behavior()
+    {
+        var path = Unversioned.NewPath("guild-identity-v47");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP VIEW guild_contribution_entries;
+                DROP TABLE guild_members;
+                CREATE TABLE guild_members (
+                    character_id INTEGER PRIMARY KEY REFERENCES characters(character_id),
+                    guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                    is_leader INTEGER NOT NULL, joined_at INTEGER NOT NULL, donation_points INTEGER NOT NULL,
+                    member_rank INTEGER NOT NULL, memo TEXT NOT NULL);
+                ALTER TABLE guild_gold_donations DROP COLUMN membership_id;
+                ALTER TABLE guild_monthly_contribution_events DROP COLUMN membership_id;
+                ALTER TABLE guild_daily_contributions DROP COLUMN membership_id;
+                ALTER TABLE guild_clear_contributions DROP COLUMN membership_id;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'keep');
+                INSERT INTO characters(character_id,account_id,name) VALUES(71,7,'member');
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at) VALUES(3,'guild','GUILD','',1);
+                INSERT INTO guild_members VALUES(71,3,1,100,5,4,'original memo');
+                INSERT INTO guild_gold_donations(guild_id,donor_character_id,donor_name,gold,points,donated_at)
+                    VALUES(3,71,X'61',1000,1,99),(3,71,X'61',2000,2,100),(3,71,X'61',3000,3,101);
+                INSERT INTO guild_monthly_contribution_events(guild_id,character_id,character_name,source,event_key,earned_at,points)
+                    VALUES(3,71,X'61',2,'day',101,10);
+                INSERT INTO guild_daily_contributions(guild_id,character_id,kind,day,earned_at,points) VALUES(3,71,1,1,100,3);
+                INSERT INTO guild_clear_contributions(guild_id,character_id,run_id,kind,day,earned_at,points)
+                    VALUES(3,71,'run',2,1,99,4);
+                INSERT INTO guild_red_packets(guild_id,sender_id,sender_account_id,sender_name,item_id,total_amount,
+                    contribution_rate,shares,remaining,shares_left,issued_at,expires_at)
+                    VALUES(3,71,7,'member',1,100,50,5,100,5,100,200);
+                PRAGMA user_version=47;
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((47L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            var id = Scalar(path, "SELECT membership_id FROM guild_members WHERE character_id=71 AND is_leader=1 AND memo='original memo'");
+            Assert.True(id > 0);
+            Assert.Equal(16, Scalar(path, "SELECT SUM(points) FROM guild_contribution_entries"));
+            Assert.Equal(15, Scalar(path, $"SELECT SUM(points) FROM guild_contribution_entries WHERE membership_id={id}"));
+            Assert.Equal(id, Scalar(path, "SELECT membership_id FROM guild_daily_contributions"));
+            Assert.Equal(1, Scalar(path, "SELECT COUNT(*) FROM guild_clear_contributions WHERE membership_id IS NULL"));
+            Assert.Equal(0, Scalar(path, "SELECT sender_departed FROM guild_red_packets"));
+            Execute(path, """
+                DELETE FROM guild_members WHERE character_id=71;
+                INSERT INTO guild_members(character_id,guild_id,is_leader,joined_at) VALUES(71,3,1,100);
+                """);
+            Assert.NotEqual(id, Scalar(path, "SELECT membership_id FROM guild_members WHERE character_id=71"));
+            Assert.Equal(1, Scalar(path, "SELECT sender_departed FROM guild_red_packets"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM guild_contribution_entries JOIN guild_members USING(membership_id)"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM pragma_foreign_key_check"));
+            Assert.Equal(migrated.To, Migrator.Migrate(path, backup: false).From);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_46_adds_unset_medal_aura_without_changing_the_guild()
+    {
+        var path = Unversioned.NewPath("guild-medal-aura-v46");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                ALTER TABLE guilds DROP COLUMN medal_aura_frame;
+                ALTER TABLE guilds DROP COLUMN medal_aura_symbol;
+                PRAGMA user_version=46;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at,gm_points)
+                    VALUES(3,'kept','kept','',1800000000,42);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((46L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(-1, Scalar(path, "SELECT medal_aura_symbol FROM guilds WHERE guild_id=3"));
+            Assert.Equal(-1, Scalar(path, "SELECT medal_aura_frame FROM guilds WHERE guild_id=3"));
+            Assert.Equal(42, Scalar(path, "SELECT gm_points FROM guilds WHERE guild_id=3"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_45_adds_empty_extensions_and_keeps_dungeon_progress()
+    {
+        var path = Unversioned.NewPath("guild-extension-v45");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE guild_dungeon_extensions;
+                PRAGMA user_version=45;
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at) VALUES(3,'kept','kept','',1800000000);
+                INSERT INTO guild_dungeon_progress(guild_id,period_start,style_id,dungeon_id,clear_count)
+                    VALUES(3,1800000000,0,8500,100);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((45L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(100, Scalar(path, "SELECT clear_count FROM guild_dungeon_progress WHERE guild_id=3"));
+            Assert.Equal(0, Scalar(path, "SELECT count(*) FROM guild_dungeon_extensions"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_43_preserves_dated_donations_in_the_contribution_view()
+    {
+        var path = Unversioned.NewPath("guild-month-v43");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP VIEW guild_contribution_entries;
+                DROP TABLE guild_monthly_contribution_rewards;
+                DROP TABLE guild_monthly_contribution_events;
+                PRAGMA user_version=43;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp)
+                    VALUES(71,7,'kept',0,0,50,0);
+                INSERT INTO guilds(guild_id,name,name_key,promotion,created_at) VALUES(3,'kept','kept','',1800000000);
+                INSERT INTO guild_gold_donations(guild_id,donor_character_id,donor_name,gold,points,donated_at)
+                    VALUES(3,71,X'6B657074',10000,10,1800000000);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((43L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(10, Scalar(path, "SELECT points FROM guild_contribution_entries WHERE source=3"));
+            Assert.Equal(0, Scalar(path, "SELECT count(*) FROM guild_monthly_contribution_rewards"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_42_adds_repeat_bonus_without_mixing_it_with_old_clears()
+    {
+        var path = Unversioned.NewPath("guild-repeat-v42");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE guild_dungeon_repeat_bonus;
+                PRAGMA user_version=42;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp) VALUES(71,7,'kept',0,0,50,0);
+                INSERT INTO guild_clear_contributions(character_id,run_id,kind,day,earned_at,points)
+                VALUES(71,'earlier',1,739000,1800000000,10);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((42L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(10, Scalar(path, "SELECT points FROM guild_clear_contributions WHERE character_id=71"));
+            Assert.Equal(0, Scalar(path, "SELECT count(*) FROM guild_dungeon_repeat_bonus"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_41_adds_clear_contributions_and_keeps_daily_rewards()
+    {
+        var path = Unversioned.NewPath("guild-clear-v41");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE guild_clear_contributions;
+                PRAGMA user_version=41;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name,job,grow_type,level,exp) VALUES(71,7,'kept',0,0,50,0);
+                INSERT INTO guild_daily_contributions(character_id,kind,day,earned_at,points) VALUES(71,1,739000,1800000000,3);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((41L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(3, Scalar(path, "SELECT points FROM guild_daily_contributions WHERE character_id=71"));
+            Assert.Equal(0, Scalar(path, "SELECT count(*) FROM guild_clear_contributions"));
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
+    [Fact]
+    public void Version_40_adds_daily_contributions_and_keeps_red_packets()
+    {
+        var path = Unversioned.NewPath("guild-daily-v40");
+        try
+        {
+            _ = Unversioned.Open(path);
+            Execute(path, """
+                DROP TABLE guild_daily_contributions;
+                PRAGMA user_version=40;
+                INSERT INTO guild_red_packets(guild_id,sender_id,sender_account_id,sender_name,item_id,total_amount,
+                    contribution_rate,shares,remaining,shares_left,issued_at,expires_at,settled_at,contribution)
+                VALUES(1,71,7,'sender',490003266,5000,80,5,0,0,1,2,2,40);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((40L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(40, Scalar(path, "SELECT contribution FROM guild_red_packets"));
+            Assert.Equal(0, Scalar(path, "SELECT count(*) FROM guild_daily_contributions"));
+            Assert.Equal(1, Scalar(path, "SELECT count(*) FROM sqlite_master WHERE name='ix_guild_daily_contributions_guild'"));
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
     }

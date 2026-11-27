@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -16,8 +17,11 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
     IExperienceItemDomainService experienceItems, IEntryAllowanceItemDomainService entryItems,
     IDungeonParticipationDomainService participation, IReviveCoinDomainService reviveCoins,
     Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
-    IOpeningInventoryDomainService openingInventory) : IItemUseEffectDomainService
+    IOpeningInventoryDomainService openingInventory,
+    IGuildDungeonDomainService guildDungeons) : IItemUseEffectDomainService
 {
+    private enum UsePath { Ordinary, LuckyStarAction, GuildExtensionAction }
+
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference item, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -39,9 +43,10 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
             return experience;
         }
 
-        var rule = await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
+        if (await rules.OrdinaryUseRuleAsync(item.ItemId, ct).ConfigureAwait(false) is not { } rule)
+            return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
         return await UseWithRuleAsync(session, source, item, rule, clock.GetUtcNow(), footprint,
-            captureOpeningReceipt: false, ct).ConfigureAwait(false);
+            UsePath.Ordinary, ct).ConfigureAwait(false);
     }
 
     public async ValueTask<OpeningInventoryReceipt> UseLuckyStarActionAsync(SelectedSessionIdentity session, BusinessSlot source,
@@ -52,23 +57,45 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         var rule = await rules.LuckyStarActionRuleAsync(item.ItemId, ct).ConfigureAwait(false)
             ?? throw new OpeningRejectedException(OpeningRejection.WrongItem, $"Item {item.ItemId} is not a supported lucky star action item.");
         var use = await UseWithRuleAsync(session, source, item, rule, at, footprint,
-            captureOpeningReceipt: true, ct).ConfigureAwait(false);
+            UsePath.LuckyStarAction, ct).ConfigureAwait(false);
         return use.OpeningReceipt
             ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Lucky star item use refused: {use.Status}.");
     }
 
-    private async ValueTask<ItemUseApplication> UseWithRuleAsync(SelectedSessionIdentity session, BusinessSlot source,
-        ItemReference item, ItemUseRule? rule, DateTimeOffset at, IEffectFootprintRecorder footprint,
-        bool captureOpeningReceipt, CancellationToken ct)
+    public async ValueTask<OpeningInventoryReceipt> UseGuildDungeonExtensionActionAsync(SelectedSessionIdentity session,
+        BusinessSlot source, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
-        if (rule?.SummonsApc == true && participation.Find(session.CharacterId)?.Mode == DungeonParticipationMode.BossTower)
+        footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
+        var item = await openingInventory.SourceAsync(session, source, at, ct).ConfigureAwait(false);
+        if (await rules.GuildExtensionActionRuleAsync(item.ItemId, ct).ConfigureAwait(false) is not { } rule)
+            throw new OpeningRejectedException(OpeningRejection.WrongItem, "The slot does not hold a guild dungeon extension ticket.");
+        var use = await UseWithRuleAsync(session, source, item, rule, at, footprint, UsePath.GuildExtensionAction, ct)
+            .ConfigureAwait(false);
+        return use.OpeningReceipt
+            ?? throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Guild dungeon extension refused: {use.Status}.");
+    }
+
+    private async ValueTask<ItemUseApplication> UseWithRuleAsync(SelectedSessionIdentity session, BusinessSlot source,
+        ItemReference item, ItemUseRule rule, DateTimeOffset at, IEffectFootprintRecorder footprint,
+        UsePath path, CancellationToken ct)
+    {
+        if (rule.SummonsApc && participation.Find(session.CharacterId)?.Mode == DungeonParticipationMode.BossTower)
             return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
-        var facts = rule is null || !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
+        var facts = !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
             rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
-        if (rule?.Action == ItemUseEffectRuleService.RentPointAction)
+        if (path == UsePath.GuildExtensionAction)
+        {
+            if (await rules.GuildExtensionCostAsync(item.ItemId, source, plan, ct).ConfigureAwait(false) is not { } cost)
+                return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
+            footprint.DemandActive(session);
+            if (!await guildDungeons.TryExtendAsync(session.CharacterId, cost, at, ct)
+                .ConfigureAwait(false))
+                return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
+        }
+        if (rule.Action == ItemUseEffectRuleService.RentPointAction)
         {
             if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)
                 return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
@@ -78,7 +105,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
             footprint.RecordRentalState(session);
         }
         footprint.DemandActive(session);
-        var opening = captureOpeningReceipt
+        var opening = path != UsePath.Ordinary
             ? await openingInventory.ApplyAsync(session, plan.Effects, at, footprint, ct).ConfigureAwait(false)
             : null;
         var applied = opening?.Applied ?? await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session),

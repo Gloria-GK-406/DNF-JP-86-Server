@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Pvp;
 using Dfo.Server.Application.Transactions;
@@ -17,6 +18,7 @@ using Dfo.Server.Data.Raids;
 using Dfo.Server.Abstractions.World.IllusionTower;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Parties;
 using Dfo.Server.Data.World;
 
@@ -60,7 +62,8 @@ internal sealed class SelectedSessionCleanupService(
     IPvpSettlementDomainService pvpSettlement,
     IEnumerable<IPvpRoomDepartureSink> pvpDepartures,
     ILogger<SelectedSessionCleanupService> logger,
-    IAntonRaidDomainService raids) : ISelectedSessionCleanupDomainService
+    IAntonRaidDomainService raids,
+    IGuildMembershipQueryDomainService guilds) : ISelectedSessionCleanupDomainService
 {
     public IReadOnlySet<SelectedSessionIdentity> AffectedSessions(SelectedSessionIdentity session)
     {
@@ -85,6 +88,7 @@ internal sealed class SelectedSessionCleanupService(
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> conversationDepartures = [];
         SelectedSessionFriendDeparture? friendDeparture = null;
+        GuildPresenceAudience? guildDeparture = null;
         AntonRaidRecruitmentChange? raidDeparture = null;
         var ownsSelectedCharacter = sessions.StandingOf(session) is not null;
         if (currentMember is not null && currentMember.Session == session)
@@ -250,6 +254,21 @@ internal sealed class SelectedSessionCleanupService(
                 logger.LogWarning(exception, "Friend departure notice dropped for character {Character}: reading its friends failed",
                     session.CharacterId.Value);
             }
+
+            try
+            {
+                var character = session.CharacterId;
+                if (!sessions.TryGetInWorld(character, out var current) || current == session)
+                {
+                    var roster = await guilds.ReadRosterEntriesAsync(character, CancellationToken.None).ConfigureAwait(false);
+                    guildDeparture = GuildPresenceAudience.FromRoster(character, roster);
+                }
+            }
+            catch (Exception exception)
+            {
+                logger.LogWarning(exception, "Guild departure notice dropped for character {Character}: reading its guild failed",
+                    session.CharacterId.Value);
+            }
         }
         // Position and its place in a town area, vitals, cooldowns and the spirit potion go together,
         // and only if this session still owns them: a successor that has already begun keeps its own.
@@ -274,6 +293,7 @@ internal sealed class SelectedSessionCleanupService(
         {
             ConversationDepartures = conversationDepartures,
             FriendDeparture = friendDeparture,
+            GuildDeparture = guildDeparture,
             RaidDeparture = raidDeparture,
         };
         if (failures.Count != 0)

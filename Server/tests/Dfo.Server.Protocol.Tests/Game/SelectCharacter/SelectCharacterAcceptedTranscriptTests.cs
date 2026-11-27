@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using Dfo.Server.Abstractions.Networking;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol;
@@ -32,7 +33,8 @@ public sealed class SelectCharacterAcceptedTranscriptTests
         // 2026-09-29 fatigue: body+11=used, +13=total, +15=cumulative.
         // Code regression baseline; first-field display is separately ClientVerified.
         "0FD0CB22363516FC86B10D6A3C4DA5989EB2DE2007AF796A1BABF8E35220736A",
-        "486451B3F7C6A4F913C62CD875328E561955AE243D1FA4DE835561797CDD703D",
+        // USERINFO0 carries the guild ID in the slot formerly filled with the fatigue penalty.
+        "FA73B0643FB48C30C6476E8C358C2AD608B8AA88AD436D9006F40DFAB1F50F3B",
         "B3433E48A2C46585B306871332720618B73D1AC7C959D4B651276F99BFB01C9B",
         "B9187663D16574D9D0D634D0281C9027D85A79C69918A236332220403837A33A",
         "FEC06C17813CC431712E2D5C0FAE4A7FCC8B83E78DE731746FFDD95E05A84E08",
@@ -473,6 +475,33 @@ public sealed class SelectCharacterAcceptedTranscriptTests
             registrations.Select(registration => (registration.Selector, registration.Type))
                 .Distinct()
                 .Count());
+    }
+
+    [Theory]
+    [InlineData(null, 0)]
+    [InlineData(true, 1)]
+    [InlineData(false, 4)]
+    public void Selected_character_receives_the_rank_for_its_own_membership(bool? isLeader, byte expected)
+    {
+        var result = SelectCharacterPayloadTestData.CreateComplete();
+        if (isLeader.HasValue)
+        {
+            result = result with
+            {
+                CharacterEntry = result.CharacterEntry with
+                {
+                    GuildMember = new GuildMember(new(42), result.CharacterEntry.CharacterId, isLeader.Value,
+                        result.World.PreparedAt),
+                },
+            };
+        }
+        var messages = new SelectedCharacterStateMessageFactoryService()
+            .CreateValidated(result, FriendListRefresh.None);
+        var frames = EncodeThroughRegisteredEncoders(messages);
+        var rank = Assert.Single(frames, frame =>
+            frame[0] == 0 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x007F);
+        Assert.Same(rank, frames[2]);
+        Assert.Equal(new byte[] { expected }, rank[15..]);
     }
 
     private static bool IsStateSynchronizationMessage(Type type) =>

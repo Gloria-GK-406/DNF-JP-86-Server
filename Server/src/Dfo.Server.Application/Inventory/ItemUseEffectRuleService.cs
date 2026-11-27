@@ -4,10 +4,11 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Application.Quests;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : IItemUseEffectRuleService
+internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement, IStackableActionDefinitionSource stackableActions) : IItemUseEffectRuleService
 {
     internal const string RentPointAction = "[rent point]";
 
@@ -26,6 +27,28 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement) : 
     public async ValueTask<ItemUseRule?> LuckyStarActionRuleAsync(int itemId, CancellationToken ct) =>
         itemId == 10002998 && await RuleForAsync(itemId, ct).ConfigureAwait(false) is { Action: RentPointAction } rule
             ? rule : null;
+
+    public async ValueTask<ItemUseRule?> OrdinaryUseRuleAsync(int itemId, CancellationToken ct)
+    {
+        if (itemId == GuildDungeonExtensionTicket.ItemId)
+            return null;
+        var rule = await RuleForAsync(itemId, ct).ConfigureAwait(false);
+        return rule?.Action == GuildDungeonExtensionTicket.Action ? null : rule;
+    }
+
+    public async ValueTask<ItemUseRule?> GuildExtensionActionRuleAsync(int itemId, CancellationToken ct) =>
+        itemId == GuildDungeonExtensionTicket.ItemId
+        && await RuleForAsync(itemId, ct).ConfigureAwait(false) is { Action: GuildDungeonExtensionTicket.Action } rule
+            ? rule : null;
+
+    public async ValueTask<int?> GuildExtensionCostAsync(int itemId, BusinessSlot source, ItemUsePlan plan, CancellationToken ct)
+    {
+        var action = await stackableActions.GetAsync(itemId, ct).ConfigureAwait(false);
+        return action is { Action: GuildDungeonExtensionTicket.Action, IsReadable: true, GuildDungeonExtensionCost: > 0 }
+            && plan.Effects.Any(effect => effect is ConsumeFromContainerEffect { Count: 1 } consume
+                && consume.Slot == source && consume.ExpectedItemId == itemId)
+            ? action.GuildDungeonExtensionCost : null;
+    }
 
     public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule) => judgement.CooldownKeyFor(itemId, rule);
     public ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,

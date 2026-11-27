@@ -71,7 +71,13 @@ internal static class ProtocolAlgorithmFixture
         values.OfType<ITownMovementDomainService>().LastOrDefault() ?? Default<ITownMovementDomainService>(),
         values.OfType<IEntryPlacementRuleService>().LastOrDefault() ?? Placement(values),
         values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService>(),
-        values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>());
+        values.OfType<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(),
+        new Dfo.Server.Application.Guilds.GuildHallAccessDomainService(
+            values.OfType<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>(),
+            values.OfType<IOnlineCharacterRuntimeDomainService>().LastOrDefault() ?? Default<IOnlineCharacterRuntimeDomainService>()),
+        new(values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
+            values.OfType<IEntryPlacementRuleService>().LastOrDefault() ?? Placement(values)),
+        values.OfType<ICharacterLocationDomainService>().LastOrDefault() ?? Default<ICharacterLocationDomainService>());
     // Placement reads content only through the town definitions a test supplies; its couple-room
     // rules are pure and answer without any.
     private static Dfo.Server.Application.World.EntryPlacementRuleService Placement(List<object> values) => new(
@@ -163,6 +169,8 @@ internal static class ProtocolAlgorithmFixture
         if (type == typeof(Dfo.Server.Abstractions.Accounts.IAccountHonorDomainService)) return TestRequired.InitialHonor;
         if (type == typeof(Dfo.Server.Abstractions.Raids.IAntonRaidDomainService))
             return TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>();
+        if (type == typeof(Dfo.Server.Abstractions.Guilds.IGuildDungeonDomainService))
+            return TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildDungeonDomainService>();
         if (type == typeof(Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection))
             return Create<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>();
         if (type == typeof(Dfo.Server.Abstractions.Pvp.IPvpTotalMatchRepresentativeSwitchDomainService))

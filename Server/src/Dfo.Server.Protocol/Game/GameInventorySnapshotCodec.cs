@@ -36,7 +36,7 @@ internal static class GameInventorySnapshotCodec
             writer.Write(accountCargoGold);
             writer.Write(checked((ushort)(items.Length + mainVirtualCount)));
         }
-        else if (containerType is InventoryContainerType.Pet)
+        else if (containerType is InventoryContainerType.Pet or InventoryContainerType.GuildMedal)
             writer.Write(checked((ushort)items.Length));
         else
         {

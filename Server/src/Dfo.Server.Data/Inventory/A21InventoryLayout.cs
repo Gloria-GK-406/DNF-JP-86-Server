@@ -7,6 +7,8 @@ namespace Dfo.Server.Data.Inventory;
 /// </remarks>
 public static class A21InventoryLayout
 {
+    public static readonly GameSlot WornGuildMedal = new(InventoryContainerType.Equipment, 31);
+
     /// <exception cref="InventorySlotMappingException">The game coordinate is not a normal item slot.</exception>
     public static BusinessSlot ToBusinessSlot(GameSlot source) => source.Space switch
     {

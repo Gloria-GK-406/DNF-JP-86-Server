@@ -52,6 +52,7 @@ public sealed record ItemSnapshot
     public byte RemainUseCount { get; init; }
     public byte SortLockFlag { get; init; }
     public byte EquipmentLockId { get; init; }
+    public GuardianGemSockets GuardianGems { get; init; }
     public InventoryAvatarDetailState? AvatarDetail { get; init; }
     public InventoryCreatureDetailState? CreatureDetail { get; init; }
     public byte ReinforcementLevel => (byte)(Attribute & 0x1F);
@@ -71,7 +72,8 @@ public sealed record ItemSnapshot
 
     public InventoryItemCoreState ToCore() => new(
         LegacyKind, ItemId, IsPile ? Count : InstanceValue,
-        Attribute, Durability, SealFlag, EnchantCardId, EnchantUpgradeCount, AmplifyType, AmplifyValue, Marker16, ChronicleOption0, ChronicleOption1, ExpireTime, EmblemSocketCount, EmblemId1, EmblemId2, Rune, RandomOption0, RandomOption1, RandomOption2, RandomOptionState, RandomOptionChangedIndex, RandomOptionChangeState, RandomOptionChange, GenuineUpgrade, EmancipateEquipmentLevel, TradeRestriction, GrowthExperience, GrowthMaintainedFatigue, TailUnknown2, TailUnknown3, RemainUseCount, SortLockFlag, EquipmentLockId) { AppearanceItemId = AppearanceItemId };
+        Attribute, Durability, SealFlag, EnchantCardId, EnchantUpgradeCount, AmplifyType, AmplifyValue, Marker16, ChronicleOption0, ChronicleOption1, ExpireTime, EmblemSocketCount, EmblemId1, EmblemId2, Rune, RandomOption0, RandomOption1, RandomOption2, RandomOptionState, RandomOptionChangedIndex, RandomOptionChangeState, RandomOptionChange, GenuineUpgrade, EmancipateEquipmentLevel, TradeRestriction, GrowthExperience, GrowthMaintainedFatigue, TailUnknown2, TailUnknown3, RemainUseCount, SortLockFlag, EquipmentLockId)
+        { AppearanceItemId = AppearanceItemId, GuardianGems = GuardianGems };
 
     public static ItemSnapshot FromCore(InventoryItemCoreState core, bool isPile,
         ItemIdentity? itemUid = null, InventoryAvatarDetailState? avatar = null,
@@ -113,6 +115,7 @@ public sealed record ItemSnapshot
         RemainUseCount = core.RemainUseCount,
         SortLockFlag = core.SortLockFlag,
         EquipmentLockId = core.EquipmentLockId,
+        GuardianGems = core.GuardianGems,
         AvatarDetail = avatar, CreatureDetail = creature,
     }.DeepCopy();
 }

@@ -24,7 +24,10 @@ internal static class MoveItemProtocolTestDriver
         ICharacterInventoryEntryDomainService character,IAccountInventoryEntryDomainService account,
         TimeProvider time,IMarriageHousingQueryDomainService? housing=null) =>
         new(new Bus(new(sessions,views,execution.Domain,new Units(execution.Fixture,sessions),
-            new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>())));
+            new Outbox(sender),logger,character,account,time,housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),
+            TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterVisibleSessionDomainService>((method, _) =>
+                method.Name == "Resolve" ? Array.Empty<Dfo.Server.Data.World.SelectedSessionIdentity>() : null),
+            TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

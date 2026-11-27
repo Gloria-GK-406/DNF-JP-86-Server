@@ -227,24 +227,6 @@ internal sealed record PartyBaselineMessage : GameStateSynchronizationMessage, I
     internal override byte[] EncodeBody() => new byte[2];
 }
 
-/// <summary>NOTI 0x000D <c>ITEM_LIST</c> for the guild-medal container, which is always empty here.
-/// </summary>
-/// <remarks>
-/// A21 carries a sixth entry container the older client did not: list type 38, <c>GuildMedal</c>
-/// upstream. The reference session sends it as the last of six ITEM_LIST frames with a body of
-/// <c>26 00 00</c> -- the type byte and a zero <c>u16</c> count.
-///
-/// It is a baseline rather than a real snapshot because guild medals are not modelled at all: there
-/// is no table to read and nothing that could ever put an item in it. Routing it through
-/// <c>AddInventorySnapshots</c> would mean inventing a container in the persistence layer whose only
-/// possible content is emptiness.
-/// </remarks>
-internal sealed record GuildMedalBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
-{
-    internal override ushort Type => 0x000D;
-    internal override byte[] EncodeBody() => [(byte)InventoryContainerType.GuildMedal, 0, 0];
-}
-
 internal sealed record ServerEventBaselineMessage : GameStateSynchronizationMessage, IGameNotiMessage
 {
     internal override ushort Type => 0x006C;
@@ -488,7 +470,7 @@ internal sealed record EntryMarkerMessage : GameStateSynchronizationMessage, IGa
 /// <c>0x68624229</c>, which reads as ASCII but spells nothing; it is written as the number it was
 /// seen as rather than dressed up as a marker.
 /// </remarks>
-internal sealed record TownReadyStateMessage(CharacterId CharacterId)
+internal sealed record TownReadyStateMessage(CharacterId CharacterId, Dfo.Server.Data.Guilds.GuildMedalAura? MedalAura = null)
     : GameStateSynchronizationMessage, IGameNotiMessage
 {
     private const byte Subtype = 0x06;
@@ -519,8 +501,9 @@ internal sealed record TownReadyStateMessage(CharacterId CharacterId)
         writer.Write((ushort)characterId);
         writer.Write(AllBits);
         writer.Write(SharedOpaqueConstant);
-        writer.Write(TownReadyFlag);
-        writer.Write(TownReadyFlag);
+        // Subtype 6 stores the guild insignia symbol and frame on the target actor.
+        writer.Write(MedalAura?.Symbol ?? (int)TownReadyFlag);
+        writer.Write(MedalAura?.Frame ?? (int)TownReadyFlag);
         writer.Write(0u);
         return stream.ToArray();
     }
@@ -624,7 +607,6 @@ internal static class StateSynchronizationEncoderRegistration
         AddNoti<DungeonFeverGaugeMessage>(services);
         AddNoti<DimensionDungeonQuotaMessage>(services);
         AddNoti<PartyBaselineMessage>(services);
-        AddNoti<GuildMedalBaselineMessage>(services);
         AddNoti<ServerEventBaselineMessage>(services);
         AddNoti<DungeonPermissionStateMessage>(services);
         AddNoti<CharacterOptionStateMessage>(services);

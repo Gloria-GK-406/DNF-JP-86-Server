@@ -162,6 +162,8 @@ internal sealed partial class GameTownMovementCommandHandler :
                 {
                     TownCrossingRefusal.CoupleRoomEntry => "请由已婚角色通过赛丽亚房间的婚房入口进入。",
                     TownCrossingRefusal.CoupleRoomExit => "请从婚房出口返回原来的城镇。",
+                    TownCrossingRefusal.GuildHallEntry => "请由公会成员通过赛丽亚房间进入公会基地。",
+                    TownCrossingRefusal.GuildHallExit => "请从公会基地出口返回赛丽亚房间。",
                     _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, null),
                 }, cancellationToken).ConfigureAwait(false);
             return false;

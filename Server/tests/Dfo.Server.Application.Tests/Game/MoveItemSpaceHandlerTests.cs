@@ -133,17 +133,8 @@ public sealed class MoveItemSpaceHandlerTests
         });
     }
 
-    /// <remarks>
-    /// Cargo, equipment, pets and the rest each carry their own rules about what may enter them.
-    /// Answering for them without those rules would open a door that should have stayed shut.
-    /// <para>
-    /// 「无法移动该物品」, which is what the Japanese table spells out as "an item of a kind that
-    /// cannot be moved". The refusal used to send code 2, which the client draws nothing for at
-    /// all -- a drag into the cargo looked exactly like a dropped frame.
-    /// </para>
-    /// </remarks>
     [Fact]
-    public async Task An_unserved_guild_medal_list_is_refused()
+    public async Task A_potion_cannot_be_moved_into_a_guild_medal_slot()
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -152,7 +143,7 @@ public sealed class MoveItemSpaceHandlerTests
 
             await handler.HandleAsync(
                 Context,
-                ObservedRequest with
+                Request(65, 3, 8474, 0) with
                 {
                     DestinationSlot = new GameSlot(InventoryContainerType.GuildMedal, 0),
                 },
@@ -420,7 +411,7 @@ public sealed class MoveItemSpaceHandlerTests
     {
         var sender = new RecordingSender();
         var resolved = placements ?? new ConsumablePlacements();
-        var containers = inventory.Containers(resolved);
+        var containers = inventory.Containers(resolved, InventoryContainerType.GuildMedal);
         var commandHandler = new InventoryMoveDomainService(
             TestRequired.SlotsOver(containers),
             new ItemMovementDomainService(

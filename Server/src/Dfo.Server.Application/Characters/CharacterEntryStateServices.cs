@@ -8,8 +8,12 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Creatures;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Guilds;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -239,8 +243,25 @@ internal sealed class CharacterEntryStateDomainService(
     IGoldSilverHornDomainService goldSilverHorn, ICharacterNameTagDomainService nameTags,
     IAdventureGroupDomainService adventureGroups,
     IAccountHonorDomainService honor,
-    Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService privateStores) : ICharacterEntryStateDomainService
+    Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService guilds,
+    Dfo.Server.Abstractions.Guilds.IGuildBenefitDomainService benefits,
+    Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService privateStores,
+    ICharacterBusinessInventoryDomainService inventory, GuildMedalRuleService medals,
+    TimeProvider clock) : ICharacterEntryStateDomainService
 {
+    private static readonly BusinessSlot WornMedal = A21InventoryLayout.ToBusinessSlot(A21InventoryLayout.WornGuildMedal);
+
+    private async ValueTask<GuildMedalAura?> ActiveMedalAuraAsync(CharacterId character, Guild? guild, CancellationToken ct)
+    {
+        if (guild is null || guild.MedalAura == GuildMedalAura.None) return null;
+        // Login projects the worn medal before the selected session registers its live containers.
+        var worn = inventory.GetPersistentStore(new(InventoryOwnerType.Character, character.Value),
+            BusinessInventoryOwnership.StoreOf(WornMedal.Space)).GetContainer(WornMedal.Space);
+        var medal = await worn.GetAsync(WornMedal.Index, ct).ConfigureAwait(false);
+        return medal is not null && await medals.SupportsAuraAsync(medal, clock.GetUtcNow(), ct).ConfigureAwait(false)
+            ? guild.MedalAura : null;
+    }
+
     public async ValueTask<CharacterEntryState> LoadAsync(
         AccountId accountId,
         CharacterId characterId,
@@ -268,12 +289,17 @@ internal sealed class CharacterEntryStateDomainService(
             if (definition?.HasSpecialRewardStatus == true)
                 specialRewardQuestIds.Add(clearFlag.SlotIndex);
         }
+        var membership = await guilds.FindMembershipAsync(characterId, cancellationToken).ConfigureAwait(false);
         var publicState = profile.Public with
         {
             Honor = await honor.ReadAsync(accountId, cancellationToken).ConfigureAwait(false),
             HasBlackDiamond = await premiums.For(accountId)
                 .IsActiveAsync(PremiumServiceType.BlackDiamond, cancellationToken).ConfigureAwait(false),
             HasPrivateStorePermission = await privateStores.IsPermittedAsync(accountId, cancellationToken).ConfigureAwait(false),
+            GuildIdentity = membership is { Guild: var guild } ? new(guild.Id, guild.Name, guild.Level, guild.Mark) : null,
+            ActiveGuildMedalAura = await ActiveMedalAuraAsync(characterId, membership?.Guild, cancellationToken).ConfigureAwait(false),
+            GuildAttributes = membership is null ? []
+                : await benefits.ReadAttributeBonusesAsync(membership.Guild.Id, cancellationToken).ConfigureAwait(false),
             Extras = profile.Public.Extras with
             {
                 SpecialRewardQuestIds = specialRewardQuestIds,
@@ -332,6 +358,9 @@ internal sealed class CharacterEntryStateDomainService(
             skillQuest.Skills,
             skillQuest.Quests,
             progression.Build(storage.Progression),
-            featureState);
+            featureState)
+        {
+            GuildMember = membership?.Member,
+        };
     }
 }

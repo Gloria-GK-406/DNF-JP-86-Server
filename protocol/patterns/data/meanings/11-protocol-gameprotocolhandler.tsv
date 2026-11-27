@@ -40,6 +40,7 @@ CMD	0x01B3	1	目标区域 ID areaId（u8）	Confirmed	上游 Network/Parsers/Tow
 CMD	0x01B3	2	目标坐标 X（int16）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:41-42 读 int16@2 作 X
 CMD	0x01B3	4	目标坐标 Y（int16）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:43-44 读 int16@4 作 Y
 CMD	0x01B3	6	朝向 direction（u8）	Confirmed	上游 Network/Parsers/Town/PartyTeleportRequest.cs:45 读 body[6] 作 Direction
+CMD	0x01B3	7	传送来源（1=光环，2=公会）	Confirmed	A21 b1 的 0x01353536 与 0x007938FF 分别传入 1 和 2，0x004DF374 读取来源并写入尾字节
 CMD	0x01B7	0	目标物品所在背包列表类型（u8，仅接受 InventoryListType.Equipment 或 Main，其余直接拒绝）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:20-27 读 body[0] 作 rawListType 并只映射 Equipment/Main
 CMD	0x01B7	1	目标物品槽位 TargetSlotIndex（int16）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:40 读 int16@1 作 TargetSlotIndex
 CMD	0x01B7	3	目标物品模板 ID TargetItemTemplateId（int32）	Confirmed	上游 Network/Parsers/Inventory/SeparateUpgradeRequest.cs:41 读 int32@3 作 TargetItemTemplateId

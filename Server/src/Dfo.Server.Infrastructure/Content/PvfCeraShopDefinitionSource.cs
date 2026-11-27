@@ -317,7 +317,7 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
             if (depth == 0) top.Add(section);
         }
         if (depth != 0) Error("MalformedItem", "Unclosed booster section.");
-        errors.AddRange(ParseInstanceDeclarations(top, path));
+        errors.AddRange(ParseInstanceDeclarations(top, path, !isEquipment && id is >= 490003263 and <= 490003266));
         string? Text(PvfField<string> tag)
         {
             var matches = top.Where(section => tag.Matches(section.Name)).ToArray();
@@ -556,8 +556,11 @@ internal sealed class PvfCeraShopDefinitionSource(PvfArchiveProvider provider) :
         return offset == values.Count && abilities.Count > 0 ? (abilities.ToImmutable(), [])
             : ([], [new("UnsupportedAvatarAbilities", source, "Empty, malformed or duplicate avatar option.")]);
     }
-    internal static ImmutableArray<CeraShopDiagnostic> ParseInstanceDeclarations(IEnumerable<Section> sections, string source) =>
+    internal static ImmutableArray<CeraShopDiagnostic> ParseInstanceDeclarations(IEnumerable<Section> sections, string source,
+        bool isGuildRedPacket = false) =>
         sections.Where(s => (s.Name == Fields.ExpirationDateField.Name || s.Name == Fields.UsablePeriodField.Name || s.Name == Fields.TradeLimitField.Name))
+            .Where(s => !(isGuildRedPacket && s.Name == Fields.UsablePeriodField.Name
+                && s.Values is [{ Kind: PvfTokenKind.Int32, Value: 10 }]))
             .Where(s => s.Values.Any(t => t.Kind != PvfTokenKind.Int32 || t.Value != 0))
             .Select(s => new CeraShopDiagnostic("UnsupportedInstanceDeclaration", source, s.Name))
             .ToImmutableArray();

@@ -312,6 +312,7 @@ public sealed class TownProjectionHandlerTests
                 sender.Sent,
                 message => Assert.IsType<UserAreaNotification>(message),
                 message => Assert.IsType<CurrentUserStateMessage>(message),
+                message => Assert.IsType<TownReadyStateMessage>(message),
                 message => Assert.IsType<UserVisibilityMessage>(message),
                 message => Assert.IsType<UserAreaNotification>(message),
                 message => Assert.IsType<AreaUsersNotification>(message));
@@ -742,6 +743,9 @@ public sealed class TownProjectionHandlerTests
     {
         public CharacterPositionState? Saved { get; private set; }
         public bool Refuse { get; init; }
+        public ValueTask<CharacterPositionState?> ReadAsync(AccountId account, CharacterId character, CancellationToken token) =>
+            ValueTask.FromResult(Saved);
+
         public ValueTask PersistAsync(AccountId account, CharacterId character, CharacterPositionState position, CancellationToken token)
         {
             if (Refuse) throw new IOException("position write failed");

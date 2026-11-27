@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Abstractions.Characters;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Networking;
@@ -95,11 +96,17 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             return false;
 
         var currentRun = dungeonRuns.Find(session.CharacterId);
+        var attached = currentRun?.Layout.Mode is DungeonRunMode.GuildDungeon { PartyBuffId: not null }
+            ? departureSink.Find(currentRun.RunId) : [];
         IReadOnlyList<CharacterId> ended = currentRun is null ? [] : await workUnits.WriteAsync(execution, new("return-to-selection",
                 returning.Select(member => new SelectedSessionRecipient(member.Session,
                     member.Session == session ? context.Connection : null,
                     member.Session == session ? message.Metadata : null)).ToArray()),
                 (_, token) => exits.ReturnToSelectionAsync(session, currentRun, token), cancellationToken).ConfigureAwait(false);
+        foreach (var member in attached)
+            if (ended.Contains(member.CharacterId))
+                await GuildDungeon.GuildDungeonPartyBuffProjection.ClearAsync(outbox, sessions, member, currentRun,
+                    cancellationToken).ConfigureAwait(false);
         foreach (var character in ended)
             departureSink.ParticipantDeparted(currentRun!.RunId, character);
         foreach (var member in returning)
@@ -196,10 +203,11 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             && DungeonLocator.Locate(session, participation, bossTowers, illusionTowers) is DungeonPlace.InBossTower boss
             && !await SelectionPrepareBossAsync(execution, boss, message.Selection, cancellationToken).ConfigureAwait(false))
             return true;
-        return await EnterOrdinarySelectionAsync(context, message, session, raidChannel, cancellationToken).ConfigureAwait(false);
+        return await EnterOrdinarySelectionAsync(execution, context, message, session, raidChannel, cancellationToken).ConfigureAwait(false);
     }
 
     private async ValueTask<bool> EnterOrdinarySelectionAsync(
+        CommandExecutionContext execution,
         NetworkDispatchContext context,
         EnterSelectDungeonRequest message,
         SelectedSessionIdentity? session, bool raidChannel,
@@ -245,6 +253,17 @@ internal sealed partial class GameDungeonSelectionCommandHandler
                 && retry.DirectedDungeonId == message.Selection
                 ? retry
                 : DungeonEntryIntent.Directed(message.Selection));
+        var selecting = attached.Select(member => member.Session).ToArray();
+        // A new opening always drops the previous origin, including directed retries.
+        intent = intent with { GuildSelection = null };
+        if (selecting.Any(member => onlineCharacters.PositionOf(member) is
+            { TownId: GuildHallTown.TownId, AreaId: GuildHallTown.DungeonGateAreaId }))
+        {
+            var selection = await workUnits.ReadOnlyAsync(execution, new("guild-dungeon-selection-origins", []),
+                token => halls.CaptureGatesAsync(selecting, token), cancellationToken).ConfigureAwait(false);
+            if (selection.Origins.Count > 0)
+                intent = intent with { GuildSelection = selection };
+        }
         var wireUserIds = attached
             .Select(value => value.Session.WireUserId)
             .ToImmutableArray();
@@ -253,7 +272,7 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             entryIntents!.Record(member.Session, intent);
         }
         await TownDepartureProjection.TownProjectDeparturesAsync(sessions, townAreas, projections, projectionState, currentViews, parties,
-            transit.LeaveTown(attached.Select(member => member.Session).ToArray(), TownAreaDepartureReason.DungeonSelection),
+            transit.LeaveTown(selecting, TownAreaDepartureReason.DungeonSelection),
             cancellationToken).ConfigureAwait(false);
         logger.LogInformation(
             "Enter select dungeon {ConnectionId} user={WireUserId}: selection={Selection} intent={Intent} "
@@ -324,6 +343,13 @@ internal sealed partial class GameDungeonSelectionCommandHandler
             if (!deferSelection)
             {
                 notifications.Add(new DungeonPermissionStateMessage(refreshed.CharacterEntry.Progression.Dungeons));
+                if (intent.GuildSelection?.Origins.ContainsKey(member.Session) == true)
+                {
+                    notifications.Add(new Dfo.Server.Protocol.Game.GuildDungeon.GuildDungeonInfoMessage(
+                        await guildDungeons.ReadAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false)));
+                    if (await guildDungeons.ReadRepeatBonusAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false) is { } repeatBonus)
+                        notifications.Add(new Dfo.Server.Protocol.Game.GuildDungeon.GuildDungeonRepeatBonusInfoMessage(repeatBonus));
+                }
                 var tower = despair is null ? null
                     : await despair.ReadStatusAsync(member.Session.CharacterId, cancellationToken).ConfigureAwait(false);
                 if (tower is not null)

@@ -4,11 +4,9 @@ namespace Dfo.Server.Abstractions.Inventory;
 
 public interface IEquipmentUpgradeRuleService
 {
-    ValueTask<EquipmentReinforcementQuote> QuoteTicketAsync(ItemSnapshot core, int materialItemId,
-        CancellationToken ct, EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement) =>
-        ValueTask.FromResult(new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None));
     ValueTask<EquipmentReinforcementQuote> QuoteReinforcementAsync(ItemSnapshot core, CancellationToken ct,
-        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement);
+        EquipmentUpgradeKind kind = EquipmentUpgradeKind.Reinforcement, int? materialItemId = null,
+        bool hasProtection = false);
     /// <summary>The archive table's <c>[notice]</c> level from which an upgrade is announced; null when none is declared.</summary>
     ValueTask<int?> NoticeLevelAsync(EquipmentUpgradeKind kind, CancellationToken ct) =>
         ValueTask.FromResult<int?>(null);

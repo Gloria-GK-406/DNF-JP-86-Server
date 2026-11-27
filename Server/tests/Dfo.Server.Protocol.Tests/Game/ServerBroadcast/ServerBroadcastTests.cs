@@ -275,7 +275,8 @@ public sealed class ServerBroadcastTests
             method.Name == nameof(IItemCatalogRuleService.ItemNameAsync)
                 ? ValueTask.FromResult((itemName ?? (_ => "圣愈光剑"))((int)args![0]!)) : null);
         var scopes = TestRequired.Absent<IChatScopeDomainService>((method, args) =>
-            method.Name == nameof(IChatScopeDomainService.MembersOf) ? (members ?? (_ => [Actor]))((ChatScope)args![0]!) : null);
+            method.Name == nameof(IChatScopeDomainService.MembersOfAsync)
+                ? ValueTask.FromResult((members ?? (_ => [Actor]))((ChatScope)args![0]!)) : null);
         return new(rules, characters, items, scopes, events);
     }
 

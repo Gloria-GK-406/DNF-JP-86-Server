@@ -87,7 +87,9 @@ public sealed class GameReinforceItemCommandHandler(
         target = default;
         material = null;
         ticket = null;
-        if (message.TargetList is not (InventoryContainerType.Main or InventoryContainerType.Equipment)
+        if (message.TargetList is not (InventoryContainerType.Main or InventoryContainerType.Equipment or InventoryContainerType.GuildMedal)
+            || message.TargetList == InventoryContainerType.GuildMedal
+                && (message.Method != 0 || message.TargetSlot > 48 || message.OptionalTicketSlot != -1)
             || message.TargetSlot < 0 || message.MaterialSlot < -1
             || message.OptionalTicketSlot < -1)
             return false;

@@ -22,7 +22,11 @@ public sealed record EquipmentReinforcementTable(
     IReadOnlyDictionary<int, int> DestroyLevelByRarity,
     IReadOnlyDictionary<int, int> MaxUpgradeLevelByRarity,
     EquipmentReinforcementDestroyBonusDefinition DestroyBonus,
-    int NoticeLevel);
+    int NoticeLevel)
+{
+    public IReadOnlyList<double> MedalMaterialWeights { get; init; } = [];
+    public IReadOnlyList<int> MedalRefunds { get; init; } = [];
+}
 
 /// <summary>Only explicitly declared rarity keys are present in these maps.</summary>
 public sealed record EquipmentReinforcementDestroyBonusDefinition(
@@ -59,6 +63,8 @@ public interface IEquipmentReinforcementDefinitionSource
         ValueTask.FromResult<EquipmentUpgradeTicketDefinition?>(null);
 
     ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken cancellationToken);
+    ValueTask<EquipmentReinforcementTable?> GetGuildMedalTableAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult<EquipmentReinforcementTable?>(null);
 
     ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken cancellationToken);
 

@@ -53,7 +53,7 @@ public sealed class CreatureRuntimeDomainServiceTests
             {
                 var item = (await slots.Get(f.Session.CharacterId, source).Container.GetAsync(0, default))!;
                 var pet = (await f.Runtime.Of(f.Session.CharacterId).CurrentPetAsync(default))!;
-                var rules = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules()));
+                var rules = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules()), Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());
                 var plan = rules.Build(ItemUseRules.Potion(0), source, item,
                     new ItemUseCandidate(60, QuestJobRequirement.Priest, ItemUsePlace.Village, false), pet.ItemUid, f.Clock.GetUtcNow());
                 Assert.Equal(ItemUsability.Allowed, plan.Status);

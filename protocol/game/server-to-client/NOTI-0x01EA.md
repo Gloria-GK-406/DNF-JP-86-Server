@@ -51,5 +51,6 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- 人工区：重新生成不会触碰本节及其之后的一切内容。 -->
 
-本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
-并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+## 2026-11-28 公会地下城组队 Buff
+
+CurrentImplementation：组队角色首个房间加载就绪时发送 `0x01E8`，然后发送本通知激活 PVF 指定的 205、206 或 207。正文为 `u16 count=1` 加 `i32 buffId`。对应会话离场时先发 `0x01E9`，随后以正文 `00 00` 清空副本 Buff 列表。数据和验收范围见[公会地下城组队 Buff](../../../Document/tasks/guild-system/a21-guild-dungeon-party-buff.md)。

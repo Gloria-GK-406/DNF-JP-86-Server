@@ -4,5 +4,6 @@ namespace Dfo.Server.Abstractions.Characters;
 /// <summary>Remembers the character's accepted ordinary-world location for its next entry.</summary>
 public interface ICharacterLocationDomainService
 {
+    ValueTask<CharacterPositionState?> ReadAsync(AccountId account, CharacterId character, CancellationToken token);
     ValueTask PersistAsync(AccountId account, CharacterId character, CharacterPositionState position, CancellationToken token);
 }

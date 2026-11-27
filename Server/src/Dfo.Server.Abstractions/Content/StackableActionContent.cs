@@ -9,6 +9,7 @@ public sealed record StackableActionDefinition(
     public IReadOnlyList<FatigueRecoveryTier> RandomFatigueRecovery { get; init; } = [];
     public int EntryDungeonId { get; init; }
     public int EntryIncrease { get; init; }
+    public int GuildDungeonExtensionCost { get; init; }
     public int LevelIncrease { get; init; } = 1;
     public bool BlockedInHardcore { get; init; }
     public IReadOnlyList<int>? ListedQuestClear { get; init; }

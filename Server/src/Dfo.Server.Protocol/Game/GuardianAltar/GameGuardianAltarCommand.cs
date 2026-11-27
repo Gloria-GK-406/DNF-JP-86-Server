@@ -51,7 +51,7 @@ internal sealed class GameGuardianAltarCommandHandler(IGuardianAltarDomainServic
                 frames.Add(GameInventoryDelivery.CarriedGoldNotification(await characters.Get(session.CharacterId).GoldAsync(ct).ConfigureAwait(false), clock.GetUtcNow()));
             }
         }
-        frames.AddRange(GuardianAltarProjection.InventoryFrames(result.Delivery, clock));
+        frames.AddRange(ItemGrantWireProjection.InventoryFrames(result.Delivery, clock.GetUtcNow()));
         await outbox.RegisterExplicitAsync(session.ConnectionId, new(frames, []), ct).ConfigureAwait(false);
         if (result.Action is { } action) await GuardianAltarProjection.PublishAsync(action, altar, sessions, runs, outbox, clock, ct).ConfigureAwait(false);
         return true;

@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Tests.Game.AccountRoster;
@@ -78,7 +79,8 @@ public sealed class OtherCharacterDetailPayloadCodecTests
                 NameTagExpireTime = 0,
                 SpecialRewardQuestIds = [0x34BE, 0x34C0],
             },
-            Guild = new CharacterGuildStandingStorageRecord(7, 0),
+            Guild = new CharacterGuildStandingStorageRecord(99, 0),
+            GuildIdentity = new GuildPublicIdentity(new(12), "Iris", 7),
             CloneTitleItemId = 0,
         };
         var skills = source.CharacterEntry.Skills with { Pages = pages };
@@ -103,14 +105,16 @@ public sealed class OtherCharacterDetailPayloadCodecTests
 
         // Two 3-byte skill entries move the fixed post-skill context from 126 to 132.
         var guildLengthOffset = 132 + 27;
-        Assert.Equal(0, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(guildLengthOffset)));
-        Assert.Equal((byte)7, body[guildLengthOffset + 4]);
-        Assert.Equal((byte)0x6F, body[guildLengthOffset + 6]);
-        Assert.Equal((uint)2, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(guildLengthOffset + 7)));
-        Assert.Equal((uint)0x34BE, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(guildLengthOffset + 11)));
-        Assert.Equal((uint)0x34C0, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(guildLengthOffset + 15)));
-        Assert.Equal((byte)0, body[guildLengthOffset + 19]);
-        Assert.Equal(guildLengthOffset + 20, body.Length);
+        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(guildLengthOffset)));
+        Assert.Equal("Iris"u8.ToArray(), body.AsSpan(guildLengthOffset + 4, 4).ToArray());
+        var levelOffset = guildLengthOffset + 8;
+        Assert.Equal((byte)7, body[levelOffset]);
+        Assert.Equal((byte)0x6F, body[levelOffset + 2]);
+        Assert.Equal((uint)2, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(levelOffset + 3)));
+        Assert.Equal((uint)0x34BE, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(levelOffset + 7)));
+        Assert.Equal((uint)0x34C0, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(levelOffset + 11)));
+        Assert.Equal((byte)0, body[levelOffset + 15]);
+        Assert.Equal(levelOffset + 16, body.Length);
     }
 
     private static CharacterDerivedStatsStorageRecord ZeroStats() => new(

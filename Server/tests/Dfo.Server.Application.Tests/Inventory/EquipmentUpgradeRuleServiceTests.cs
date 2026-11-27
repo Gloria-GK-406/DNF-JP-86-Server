@@ -10,6 +10,41 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class EquipmentUpgradeRuleServiceTests
 {
     [Theory]
+    [InlineData(EquipmentUpgradeKind.Reinforcement, false, EquipmentReinforcementRejection.None)]
+    [InlineData(EquipmentUpgradeKind.Amplification, false, EquipmentReinforcementRejection.InvalidRequest)]
+    [InlineData(EquipmentUpgradeKind.Reinforcement, true, EquipmentReinforcementRejection.InvalidRequest)]
+    public async Task Medal_quotes_use_the_medal_recipe_even_when_the_material_is_a_ticket(
+        EquipmentUpgradeKind kind, bool protection, EquipmentReinforcementRejection expected)
+    {
+        var rules = Rules(new(80, 82, 2, "flag", null));
+        var medal = Piece() with { Type = ItemTraits.GuildMedal };
+        var quote = await rules.QuoteReinforcementAsync(medal, default, kind, 7275, protection);
+        Assert.Equal(expected == EquipmentReinforcementRejection.None,
+            EquipmentUpgradeRuleService.AcceptsReinforcementSlot(BusinessInventorySpace.GuildMedal, kind, protection));
+        Assert.Equal(expected, quote.Rejection);
+        Assert.False(quote.IsTicket);
+        if (expected == EquipmentReinforcementRejection.None)
+        {
+            var rule = Assert.IsAssignableFrom<IEquipmentReinforcementRule>(quote.Rule);
+            Assert.Equal(3037, rule.MaterialItemId);
+            Assert.False(rule.CanUseAutomaticProtection);
+            Assert.Null(await rule.ProtectionAsync(7804, default));
+        }
+    }
+
+    [Theory]
+    [InlineData(false, EquipmentReinforcementRejection.None)]
+    [InlineData(true, EquipmentReinforcementRejection.InvalidRequest)]
+    public async Task Ordinary_equipment_can_use_a_ticket_without_protection(
+        bool protection, EquipmentReinforcementRejection expected)
+    {
+        var rules = Rules(new(80, 82, 2, "weapon", null));
+        var quote = await rules.QuoteReinforcementAsync(Piece(), default, materialItemId: 7275, hasProtection: protection);
+        Assert.True(quote.IsTicket);
+        Assert.Equal(expected, quote.Rejection);
+    }
+
+    [Theory]
     [InlineData("amulet", 7)]
     [InlineData("wrist", 8)]
     [InlineData("ring", 9)]
@@ -101,6 +136,13 @@ public sealed class EquipmentUpgradeRuleServiceTests
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null);
         public ValueTask<EquipmentReinforcementTable?> GetAmplificationTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(null);
+
+        public ValueTask<EquipmentUpgradeTicketDefinition?> GetTicketAsync(int itemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentUpgradeTicketDefinition?>(itemId == 7275
+                ? new(EquipmentUpgradeKind.Reinforcement, 5, 100, "fixed", -1) : null);
+
+        public async ValueTask<EquipmentReinforcementTable?> GetGuildMedalTableAsync(CancellationToken ct) =>
+            (await GetNormalTableAsync(ct))! with { MedalMaterialWeights = [1, 1, 1] };
 
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
             ValueTask.FromResult<EquipmentReinforcementTable?>(new([new(1, new double[19], 0, 1, 0, 3037, 10)],

@@ -17,10 +17,10 @@ public sealed record NpcShopPlanningResult(NpcShopRejection Rejection, NpcShopPu
 public interface INpcShopRuleService
 {
     ValueTask<NpcShopQuoteResult> QuoteAsync(
-        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken);
+        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken, int? activeVariant = null);
 
     ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(
-        int npcId, byte job, CancellationToken cancellationToken);
+        int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null);
 
     NpcShopPlanningResult Plan(NpcShopQuote quote,
         IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held,

@@ -25,6 +25,7 @@ public sealed class TownPresenceNotificationTests
         Assert.Collection(
             messages,
             message => Assert.IsType<CurrentUserStateMessage>(message),
+            message => Assert.Equal(Dfo.Server.Data.Guilds.GuildMedalAura.None, Assert.IsType<TownReadyStateMessage>(message).MedalAura),
             message => Assert.IsType<UserVisibilityMessage>(message),
             message => Assert.IsType<UserAreaNotification>(message),
             message =>
@@ -51,6 +52,7 @@ public sealed class TownPresenceNotificationTests
         Assert.Collection(
             messages,
             message => Assert.IsType<CurrentUserStateMessage>(message),
+            message => Assert.Equal(Dfo.Server.Data.Guilds.GuildMedalAura.None, Assert.IsType<TownReadyStateMessage>(message).MedalAura),
             message => Assert.IsType<UserVisibilityMessage>(message),
             message => Assert.IsType<UserAreaNotification>(message),
             message =>

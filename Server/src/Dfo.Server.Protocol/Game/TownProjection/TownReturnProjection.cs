@@ -30,7 +30,7 @@ namespace Dfo.Server.Protocol.Game.TownProjection;
 internal static class TownReturnProjection
 {
     /// <summary>The user's state byte for standing in a town, which is where this puts them.</summary>
-    private const byte StandingInTown = 0x00;
+    internal const byte StandingInTown = 0x00;
 
     /// <param name="ownState">
     /// Whether the frames open with the character's own USER_STATE 0. A dungeon return does; leaving a duel room does

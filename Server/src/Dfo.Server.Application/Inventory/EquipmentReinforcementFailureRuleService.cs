@@ -19,7 +19,8 @@ internal sealed class EquipmentReinforcementFailureRuleService(
         ValidateDraw(context.AdditionalItemDraw);
         ValidateDraw(context.GreatDraw);
         var definition = await equipmentDefinitions.GetEquipmentAsync(equipment.Snapshot.ItemId, ct).ConfigureAwait(false);
-        var table = context.Kind switch
+        var medal = equipment.Snapshot.Type.HasFlag(ItemTraits.GuildMedal);
+        var table = medal ? await reinforcement.GetGuildMedalTableAsync(ct).ConfigureAwait(false) : context.Kind switch
         {
             EquipmentUpgradeKind.Reinforcement => await reinforcement.GetNormalTableAsync(ct).ConfigureAwait(false),
             EquipmentUpgradeKind.Amplification => await reinforcement.GetAmplificationTableAsync(ct).ConfigureAwait(false),
@@ -30,6 +31,16 @@ internal sealed class EquipmentReinforcementFailureRuleService(
         if (definition is null || table is null || row is null
             || row.PenaltyType is < 1 or > 3 || row.PenaltyValue < 0)
             return Unsupported();
+        if (medal)
+        {
+            if (context.Kind != EquipmentUpgradeKind.Reinforcement || definition.Rarity >= table.MedalRefunds.Count)
+                return Unsupported();
+            var medalResult = ResolvePenalty(oldLevel, row.PenaltyType, row.PenaltyValue, null);
+            var refund = table.MedalRefunds[definition.Rarity];
+            return medalResult.Outcome == EquipmentReinforcementOutcome.Destroyed && refund > 0
+                ? medalResult with { Rewards = [new(row.MaterialItemId, refund)] }
+                : medalResult;
+        }
         var penalty = PenaltyType(oldLevel, definition.Rarity, table, row);
         var result = context.Kind == EquipmentUpgradeKind.Amplification && penalty == 2
             && context.Protection is { Kind: EquipmentReinforcementProtectionKind.RetainLevel, RetainedLevel: >= 0 and <= 31 } ticket

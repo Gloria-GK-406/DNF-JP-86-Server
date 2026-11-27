@@ -61,14 +61,18 @@ internal sealed partial class TowerReturnCommandHandler
                 ? await wipeRuns.TryEndClearReturnAsync(runId, clock.GetUtcNow()).ConfigureAwait(false)
                 : await wipeRuns.TryEndPartyWipeAsync(runId, clock.GetUtcNow()).ConfigureAwait(false)), token).ConfigureAwait(false)).Run;
         if (ended is null) return [];
+        var recipients = frozen.Where(session => ended.Participants.Any(participant => participant.CharacterId == session.CharacterId))
+            .ToImmutableArray();
         foreach (var session in frozen)
         {
             wipeCards.Cancel(session.CharacterId, runId);
             wipeRegistry.ParticipantDeparted(runId, session.CharacterId);
         }
+        foreach (var session in recipients)
+            await GuildDungeon.GuildDungeonPartyBuffProjection.ClearAsync(outbox, sessions, session, ended, token)
+                .ConfigureAwait(false);
         // Only identity crosses the producer boundary; each recipient loads its current view in its own CMD.
-        return frozen.Where(session => ended.Participants.Any(participant => participant.CharacterId == session.CharacterId))
-            .ToImmutableArray();
+        return recipients;
     }
 
     private sealed record DungeonReturnEnded(DungeonRunState? Run);

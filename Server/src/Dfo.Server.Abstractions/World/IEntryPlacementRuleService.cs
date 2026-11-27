@@ -15,7 +15,7 @@ namespace Dfo.Server.Abstractions.World;
 public sealed class EntryPlacementUnavailableException(string message)
     : InvalidOperationException(message);
 
-/// <summary>Why the couple-room rules refuse an area crossing.</summary>
+/// <summary>Why a room's admission rules refuse an area crossing.</summary>
 public enum TownCrossingRefusal
 {
     /// <summary>Only a married character enters, from an entry source or from inside, to area 0.</summary>
@@ -23,6 +23,10 @@ public enum TownCrossingRefusal
 
     /// <summary>The couple room is left only for the area it was entered from.</summary>
     CoupleRoomExit,
+    /// <summary>The character cannot enter this guild hall area.</summary>
+    GuildHallEntry,
+    /// <summary>The player must return to a Seria room from the guild hall.</summary>
+    GuildHallExit,
 }
 
 /// <summary>What crossing between two towns does to the session's household lease.</summary>

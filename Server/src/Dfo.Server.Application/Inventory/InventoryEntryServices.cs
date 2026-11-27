@@ -68,6 +68,7 @@ internal static class InventoryEntryProjection
         InventoryContainerType.PersonalCargo,
         InventoryContainerType.Equipment,
         InventoryContainerType.Pet,
+        InventoryContainerType.GuildMedal,
     ];
 
     public static CharacterInventoryEntryState ProjectCharacter(

@@ -367,7 +367,8 @@ public sealed class SessionGenerationOwnershipTests
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),
             new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), pvpRooms: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService>(), pvpSettlement: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpSettlementDomainService>(), pvpDepartures: [], logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
-            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
+            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(),
+            guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>());
     }
 
     /// <summary>Ending the online character's record fails; everything after it still runs.</summary>

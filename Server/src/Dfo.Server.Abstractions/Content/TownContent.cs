@@ -88,6 +88,7 @@ public sealed record TownAreaDefinition(
     int Operand2)
 {
     public int MinimumLevel { get; init; }
+    public IReadOnlyList<int> RequiredQuestIds { get; init; } = [];
     /// <summary>The value the content uses where an operand is absent.</summary>
     public const int NoOperand = -1;
 }

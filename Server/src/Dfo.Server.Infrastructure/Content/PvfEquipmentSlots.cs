@@ -92,6 +92,7 @@ internal static class PvfEquipmentSlots
             ["[artifact red]"] = new(BusinessInventorySpace.WornCreatureEquipment, 0),
             ["[artifact blue]"] = new(BusinessInventorySpace.WornCreatureEquipment, 1),
             ["[artifact green]"] = new(BusinessInventorySpace.WornCreatureEquipment, 2),
+            ["[flag]"] = new(BusinessInventorySpace.WornEquipmentExtension, 2),
         };
 
     public static readonly IReadOnlyDictionary<string, byte> ByName =
@@ -127,6 +128,7 @@ internal static class PvfEquipmentSlots
             ["[artifact red]"] = 26,
             ["[artifact blue]"] = 27,
             ["[artifact green]"] = 28,
+            ["[flag]"] = 31,
         };
 
     /// <summary>The first slot a worn piece may occupy; everything below is an avatar.</summary>

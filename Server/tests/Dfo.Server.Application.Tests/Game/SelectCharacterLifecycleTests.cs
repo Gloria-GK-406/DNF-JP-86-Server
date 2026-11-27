@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Execution;
+using Dfo.Server.Protocol.Game.GuildDungeon;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.UsageQuotas;
@@ -59,9 +60,13 @@ public sealed partial class SelectCharacterLifecycleTests
     [UsageQuotaFamily.DimensionDungeon, UsageQuotaFamily.MirrorDungeon, UsageQuotaFamily.DespairTower,
         UsageQuotaFamily.AltarDungeon, UsageQuotaFamily.TournamentDungeon, UsageQuotaFamily.HerasDungeon,
         UsageQuotaFamily.LostLand, UsageQuotaFamily.GoldSilverHorn];
+    private static IEnumerable<string> SupplementalStages =>
+        new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}"))
+            .Append("guild-dungeon");
+
     private static string[] WithSupplementalStages(string[] lifecycle) =>
         lifecycle.SelectMany(stage => stage == "premium"
-            ? new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}"))
+            ? SupplementalStages
             : [stage]).ToArray();
     private static IReadOnlyList<(NotificationAudience Audience, object Notification)> AssertSupplementalDelivery(Fixture fixture)
     {
@@ -70,8 +75,10 @@ public sealed partial class SelectCharacterLifecycleTests
         var (target, weakness) = Assert.Single(fixture.Sender.Weakness);
         Assert.Equal(fixture.ConnectionId, target);
         Assert.Equal((byte)0, weakness.Value);
-        Assert.Equal(new[] { "weakness", "premium" }.Concat(SelectionQuotaOrder.Select(family => $"quota:{family}")),
-            fixture.Ledger.TakeLast(2 + SelectionQuotaOrder.Length));
+        Assert.Equal(SupplementalStages, fixture.Ledger.TakeLast(3 + SelectionQuotaOrder.Length));
+        var (recipient, progress) = Assert.Single(fixture.Sender.GuildDungeon);
+        Assert.Equal(fixture.ConnectionId, recipient);
+        Assert.Null(progress.View);
         Assert.Equal(1, fixture.Ledger.Count(stage => stage == "weakness"));
         var quotaEntries = fixture.Notifications.Published.Where(entry => entry.Notification is UsageQuotaViewChanged).ToArray();
         Assert.Equal(SelectionQuotaOrder, quotaEntries.Select(entry => ((UsageQuotaViewChanged)entry.Notification).Family));
@@ -1538,6 +1545,7 @@ public sealed partial class SelectCharacterLifecycleTests
             _ = failPvpTarget;
         }
 
+        public List<(NetworkConnectionId Target, GuildDungeonInfoMessage Message)> GuildDungeon { get; } = [];
         public List<(NetworkConnectionId Target, WeaknessProjectionNotification Message)> Weakness { get; } = [];
         public List<(NetworkConnectionId Target, IGameServerMessage Message)> DirectMessages { get; } = [];
         public bool FailStatic { get; set; }
@@ -1581,6 +1589,11 @@ public sealed partial class SelectCharacterLifecycleTests
             {
                 Weakness.Add((target, weakness));
                 ledger.Add("weakness");
+            }
+            else if (message is GuildDungeonInfoMessage guildDungeon)
+            {
+                GuildDungeon.Add((target, guildDungeon));
+                ledger.Add("guild-dungeon");
             }
             else ledger.Add("message");
             failingStatic = firstStatic && FailStatic;

@@ -38,7 +38,10 @@ it('默认展示 PVF 和自定义来源，包括覆盖与过期状态，可按�
 // full parallel run a single step has exceeded the global 3 s wait. Only the waits are longer, the assertions are unchanged.
 const slow = { timeout: 10_000 };
 it('新增通过补给专用目录选择物品并保存数量、方式及原版本', async () => {
-  open(); fireEvent.click(await screen.findByRole('button', { name: /添加补给/ }, slow));
+  open();
+  const add = await screen.findByRole<HTMLButtonElement>('button', { name: /添加补给/ }, slow);
+  await waitFor(() => expect(add.disabled).toBe(false), slow);
+  fireEvent.click(add);
   fireEvent.click(await screen.findByRole('button', { name: '选择补给物品' }, slow));
   const picker = (await screen.findByText('选择补给物品', { selector: '.ant-modal-title span' }, slow)).closest('[role=dialog]') as HTMLElement;
   fireEvent.click(await within(picker).findByRole('button', { name: '选择物品 7' }, slow));

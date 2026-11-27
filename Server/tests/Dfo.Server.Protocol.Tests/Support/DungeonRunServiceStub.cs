@@ -184,7 +184,8 @@ internal abstract class DungeonRunServiceStub : IDungeonRunDomainService
     public virtual DungeonClearChange? TryOpenClear(
         CharacterId characterId,
         DungeonRunId expectedRunId,
-        long expectedRoomVersion)
+        long expectedRoomVersion,
+        IReadOnlyDictionary<CharacterId, long>? membershipsAtClear = null)
     {
         var run = Find(characterId);
         return run is null

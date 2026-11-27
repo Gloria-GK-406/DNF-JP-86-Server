@@ -50,6 +50,8 @@ internal sealed class PvfArchiveProvider : IDisposable
         return PvfArchive.Open(path, archiveOptions);
     }
 
+    internal bool IsConfigured => ResolvePath() is not null;
+
     private string? ResolvePath() => _options.ResolveArchivePath();
 
     public void Dispose()

@@ -23,6 +23,18 @@ namespace Dfo.Server.Protocol.Tests.Game.QuestClearCoupon;
 public sealed class QuestClearCouponCodecTests
 {
     [Fact]
+    public void Guild_dungeon_extension_uses_the_captured_action_and_echoes_it_in_the_ack()
+    {
+        var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,
+            Convert.FromHexString("59000000000000900000000000000000000000"));
+        Assert.True(request.Complete);
+        Assert.Equal(89, request.SourceSlot);
+        Assert.Equal(QuestClearCouponRequest.GuildDungeonExtensionAction, request.Action);
+        Assert.Equal(Convert.FromHexString("0159000090000000"),
+            QuestClearCouponPayloadCodec.Encode(new(true, request.SourceSlot, request.Container) { Action = request.Action }));
+    }
+
+    [Fact]
     public void Fatigue_action_is_separate_from_quest_coupon_and_echoes_its_action()
     {
         var request = QuestClearCouponPayloadCodec.Decode(GameMessageMetadata.Empty,

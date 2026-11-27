@@ -34,7 +34,7 @@ internal sealed class EquipmentReinforcementDomainService(
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session))
             return new(EquipmentReinforcementRejection.NoSession);
-        if (!(targetSlot.Space.IsCarriedItemSpace() || targetSlot.Space.IsWornEquipmentSpace())
+        if (!EquipmentUpgradeRuleService.AcceptsReinforcementSlot(targetSlot.Space, kind, protectionSlot.HasValue)
             || expectedItemId <= 0
             || materialSlot is { } candidateMaterial
                 && (!(candidateMaterial.Space.IsCarriedItemSpace() || candidateMaterial.Space == BusinessInventorySpace.SharedMaterial) || candidateMaterial == targetSlot)
@@ -45,22 +45,21 @@ internal sealed class EquipmentReinforcementDomainService(
         var instance = await equipments.Of(session.CharacterId).FindAtAsync(targetSlot, ct).ConfigureAwait(false);
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (target is null) return new(EquipmentReinforcementRejection.ItemUnavailable);
+        if (!EquipmentUpgradeRuleService.AcceptsTarget(targetSlot.Space, target.Snapshot, timeProvider.GetUtcNow()))
+            return new(EquipmentReinforcementRejection.InvalidRequest);
         if (target.Snapshot.ItemId != expectedItemId) return new(EquipmentReinforcementRejection.WrongItem);
         if (target.Snapshot.EquipmentLockId != 0 || target.Snapshot.SortLockFlag != 0)
             return new(EquipmentReinforcementRejection.Locked);
         var sourceBound = materialSlot is { } requestedSource ? slots.Find(session.CharacterId, requestedSource) : null;
         var source = sourceBound is null ? null : await sourceBound.Container.GetAsync(sourceBound.Slot.Index, ct).ConfigureAwait(false);
-        var ticketQuote = source is { IsPile: true }
-            ? await rules.QuoteTicketAsync(target.Snapshot, source.ItemId, ct, kind).ConfigureAwait(false)
-            : new EquipmentReinforcementQuote(EquipmentReinforcementRejection.None);
-        var quote = ticketQuote.IsTicket ? ticketQuote
-            : await rules.QuoteReinforcementAsync(target.Snapshot, ct, kind).ConfigureAwait(false);
+        var quote = await rules.QuoteReinforcementAsync(target.Snapshot, ct, kind,
+            source is { IsPile: true } ? source.ItemId : null, protectionSlot.HasValue).ConfigureAwait(false);
         if (quote.Rejection != EquipmentReinforcementRejection.None) return new(quote.Rejection);
         var rule = quote.Rule ?? throw new InvalidOperationException("Reinforcement quote lacks its rule.");
         var oldLevel = target.Snapshot.ReinforcementLevel;
         var goldCost = rule.GoldCost;
         if (quote.IsTicket && (source is null || source.Count < 1 || source.Snapshot.SortLockFlag != 0
-            || source.Snapshot.EquipmentLockId != 0 || protectionSlot is not null
+            || source.Snapshot.EquipmentLockId != 0
             || source.Snapshot.Lifetime.IsExpired(timeProvider.GetUtcNow())
             || await itemUse.CanUseAsync(session.CharacterId, source.ItemId, ct).ConfigureAwait(false) != ItemUsability.Allowed))
             return new(EquipmentReinforcementRejection.InvalidRequest);
@@ -72,6 +71,7 @@ internal sealed class EquipmentReinforcementDomainService(
             var material = materialBound is null ? null
                 : await materialBound.Container.GetAsync(materialBound.Slot.Index, ct).ConfigureAwait(false);
             if (material is not { IsPile: true } || material.ItemId != rule.MaterialItemId
+                || !EquipmentUpgradeRuleService.AcceptsMaterial(target.Snapshot, material.Snapshot, timeProvider.GetUtcNow())
                 || material.Count < rule.MaterialCount)
                 return new(EquipmentReinforcementRejection.InsufficientMaterial);
             materialLocation = sourceSlot;

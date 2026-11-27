@@ -1,3 +1,7 @@
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Application.Guilds;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
@@ -24,7 +28,7 @@ public sealed class DungeonClearDomainServiceTests
             var layout = BossLayout() with { Mode = new DungeonRunMode.Tournament(new(definition, [], [], 1)) };
             var runs = TestParties.Runs();
             var run = runs.Begin(Leader, layout, difficulty: 0);
-            var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
+            var service = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
             Assert.Null(await service.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
             Assert.False(runs.Find(Leader)!.ClearOpen);
         });
@@ -47,7 +51,7 @@ public sealed class DungeonClearDomainServiceTests
             ], []) { HellGroups = [new(1, [104], [])] };
             var run = runs.PreparePartyEntry([new(LeaderAccount, Leader, 0, true)], layout, 0,
                 seed, DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService(), new DungeonSettlementRuleService());
+            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService(), new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
             Assert.False(run.IsCleared);
             var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 101)!);
             Assert.NotNull(first);
@@ -77,7 +81,7 @@ public sealed class DungeonClearDomainServiceTests
                 new DungeonCellSeed(layout.StartCell, layout.StartRoomMapId, 100,
                 [Apc(100, 14003, 8, true), Apc(101, 14003, 8, true), Apc(102, 10610, 5, true)], []),
                 DungeonRunId.New(), DateTimeOffset.UnixEpoch).Run;
-            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService(), new DungeonSettlementRuleService());
+            var service = new DungeonClearDomainService(runs, new MonsterKillDomainService(), new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
             var first = runs.CommitActorDeathChange(runs.TryClaimActorDeath(Leader, 100)!);
             Assert.NotNull(first);
             Assert.Empty(first.AutoKilledActorSequences);
@@ -122,7 +126,7 @@ public sealed class DungeonClearDomainServiceTests
                 },
                 difficulty: 0);
             var service = new DungeonClearDomainService(
-                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
+                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
 
             var opened = await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default);
@@ -140,7 +144,7 @@ public sealed class DungeonClearDomainServiceTests
             var runs = TestParties.Runs();
             var run = runs.Begin(Leader, BossLayout(), difficulty: 0);
             var room = new MutableRoomCleared();
-            var service = new DungeonClearDomainService(runs, room, new DungeonSettlementRuleService());
+            var service = new DungeonClearDomainService(runs, room, new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
 
             Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
@@ -170,7 +174,7 @@ public sealed class DungeonClearDomainServiceTests
                 BossLayout(),
                 difficulty: 0);
             var service = new DungeonClearDomainService(
-                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
+                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
 
             var opened = await service.TryOpenClearAsync(
                 HelperAccount, Helper, run.RunId, run.RoomVersion, default);
@@ -188,13 +192,91 @@ public sealed class DungeonClearDomainServiceTests
             var runs = TestParties.Runs();
             var ordinary = runs.Begin(Leader, OrdinaryLayout(), difficulty: 0);
             var service = new DungeonClearDomainService(
-                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService());
+                runs, new MutableRoomCleared { Cleared = true }, new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>());
 
             Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion, default));
             Assert.Null(await service.TryOpenClearAsync(
                 LeaderAccount, Leader, ordinary.RunId, ordinary.RoomVersion + 1, default));
         });
+    }
+
+    [Theory]
+    [InlineData(false, false, false, 2, true, true)]
+    [InlineData(false, false, false, 3, true, false)]
+    [InlineData(true, false, false, 2, false, false)]
+    [InlineData(true, false, true, 2, false, false)]
+    [InlineData(false, true, false, 2, true, false)]
+    [InlineData(false, true, true, 2, true, false)]
+    public async Task Ordinary_clear_freezes_each_membership_for_monthly_and_party_contributions(
+        bool leaderRejoined, bool helperRejoined, bool switchedGuild, int requiredMembers, bool earnsMonthly, bool earnsParty)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var settledAt = new DateTimeOffset(2027, 1, 1, 6, 0, 0, TimeSpan.FromHours(8));
+            var joinedAt = settledAt.AddSeconds(-1);
+            var runs = TestParties.Runs(clock: new SettlementClock(joinedAt));
+            var run = runs.BeginParty([new(LeaderAccount, Leader, 0, true), new(HelperAccount, Helper, 1, false)],
+                BossLayout(), difficulty: 0);
+            var guild = new Guild(new(1), "guild", "", 1);
+            var members = new Dictionary<CharacterId, GuildMembership>
+            {
+                [Leader] = new(guild, new(guild.Id, Leader, true, joinedAt) { MembershipId = 31 }),
+                [Helper] = new(guild, new(guild.Id, Helper, false, joinedAt) { MembershipId = 32 }),
+            };
+            object? Lookup(System.Reflection.MethodInfo method, object?[]? args) =>
+                method.Name == nameof(IGuildMembershipQueryDomainService.FindMembershipAsync)
+                    ? ValueTask.FromResult<GuildMembership?>(members[(CharacterId)args![0]!]) : null;
+            var clear = new DungeonClearDomainService(runs, new MutableRoomCleared { Cleared = true },
+                new DungeonSettlementRuleService(), TestRequired.Absent<IGuildMembershipQueryDomainService>(Lookup));
+            Assert.NotNull(await clear.TryOpenClearAsync(LeaderAccount, Leader, run.RunId, run.RoomVersion, default));
+            var completed = runs.Find(Leader)!;
+            Assert.Equal([31L, 32L], completed.ClearParticipants.Select(p => p.MembershipId!.Value));
+            Assert.Equal(joinedAt, completed.ClearedAt);
+            var nextGuild = switchedGuild ? guild with { Id = new(2) } : guild;
+            if (leaderRejoined)
+                members[Leader] = new(nextGuild, members[Leader].Member with { Guild = nextGuild.Id, MembershipId = 33 });
+            if (helperRejoined)
+                members[Helper] = new(nextGuild, members[Helper].Member with { Guild = nextGuild.Id, MembershipId = 34 });
+
+            var contributions = new List<DateTimeOffset>();
+            var store = TestRequired.Absent<IGuildDomainStore>(Lookup);
+            var delivery = TestRequired.Absent<IItemDeliveryDomainService>((method, _) =>
+                method.Name == nameof(IItemDeliveryDomainService.DeliverAsync)
+                    ? ValueTask.FromResult(new ItemDeliveryReceipt([], [], 1)) : null);
+            var monthly = new GuildMonthlyContributionDomainService(store,
+                TestRequired.Absent<IGuildMonthlyContributionStore>((method, args) =>
+                {
+                    if (method.Name != nameof(IGuildMonthlyContributionStore.RecordAsync)) return null;
+                    contributions.Add((DateTimeOffset)args![5]!);
+                    return ValueTask.FromResult(true);
+                }), new(TestRequired.Absent<IGuildEconomySource>((_, _) => new GuildMonthlyContributionRule(10, 1100, 1, 1)),
+                TestRequired.Absent<IDungeonDefinitionSource>((_, _) =>
+                    ValueTask.FromResult<DungeonDefinition?>(new(144, "test", 1, true, []) { RecommendedLevels = [1, 10] }))),
+                delivery, new SettlementClock(settledAt));
+            await monthly.RecordClearAsync(Leader, completed, 5, default);
+            Assert.Equal(earnsMonthly ? new[] { settledAt } : [], contributions);
+
+            var recordedPoints = new List<int>();
+            var party = new GuildContributionDomainService(store,
+                TestRequired.Absent<IGuildContributionStore>((method, args) =>
+                {
+                    if (method.Name != nameof(IGuildContributionStore.TryRecordClearAsync)) return null;
+                    recordedPoints.Add((int)args![6]!);
+                    return ValueTask.FromResult(true);
+                }),
+                new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => new GuildRedPacketRules(
+                    new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1) { PartyDungeonContribution = new(requiredMembers, 7) })),
+                delivery, TimeProvider.System);
+            var award = await party.AwardClearAsync(LeaderAccount, Leader, completed, settledAt, default);
+            Assert.Equal(earnsParty, award is not null);
+            Assert.Equal(earnsParty ? new[] { 7 } : [], recordedPoints);
+        });
+    }
+
+    private sealed class SettlementClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private static DungeonLayout BossLayout() => new(

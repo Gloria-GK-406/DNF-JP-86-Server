@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 21;
+    public const int Version = 48;
 
     internal const string PvpTotalMatchTeamsDeclaration = """
         CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
@@ -167,6 +167,25 @@ internal static class CharacterDatabaseSchema
     {
         Apply(connection, transaction, Tables);
         DeclareAntonRaidRewards(connection, transaction);
+        DeclareGuilds(connection, transaction);
+        DeclareGuildDonationHistory(connection, transaction);
+        DeclareGuildAttendance(connection, transaction);
+        DeclareGuildRankSettings(connection, transaction);
+        DeclareGuildContents(connection, transaction);
+        DeclareGuildWarehouse(connection, transaction);
+        DeclareGuildWarehouseItems(connection, transaction);
+        DeclareGuildWarehouseHistory(connection, transaction);
+        DeclareGuildBoard(connection, transaction);
+        DeclareGuildDungeonProgress(connection, transaction);
+        DeclareGuildDungeonExtensions(connection, transaction);
+        DeclareGuildDungeonRepeatBonus(connection, transaction);
+        DeclareGuildAlliances(connection, transaction);
+        DeclareGuildGifts(connection, transaction);
+        DeclareGuildRedPackets(connection, transaction);
+        DeclareGuildDailyContributions(connection, transaction);
+        DeclareGuildClearContributions(connection, transaction);
+        DeclareGuildMonthlyContributions(connection, transaction);
+        DeclareGuildContributionEntries(connection, transaction);
         Apply(connection, transaction,
             ["CREATE TRIGGER IF NOT EXISTS equipment_rental_item_deleted AFTER DELETE ON items BEGIN DELETE FROM equipment_rental_instances WHERE item_uid=OLD.item_uid; END"]);
     }
@@ -186,6 +205,425 @@ internal static class CharacterDatabaseSchema
                 character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
                 quest_id INTEGER NOT NULL, phase INTEGER NOT NULL, period INTEGER NOT NULL,
                 PRIMARY KEY(character_id, quest_id, phase, period))
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuilds(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guilds (
+                guild_id INTEGER PRIMARY KEY AUTOINCREMENT CHECK(guild_id BETWEEN 1 AND 4294967295),
+                name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE,
+                promotion TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 1 CHECK(level > 0),
+                created_at INTEGER NOT NULL,
+                recommended_channel INTEGER NOT NULL DEFAULT 0 CHECK(recommended_channel >= 0),
+                gm_points INTEGER NOT NULL DEFAULT 0 CHECK(gm_points BETWEEN 0 AND 2147483647),
+                announcement TEXT NOT NULL DEFAULT '',
+                mark_id INTEGER NOT NULL DEFAULT 1 CHECK(mark_id BETWEEN 0 AND 15),
+                spent_gm_points INTEGER NOT NULL DEFAULT 0 CHECK(spent_gm_points BETWEEN 0 AND 2147483647),
+                hall_stage INTEGER NOT NULL DEFAULT 1 CHECK(hall_stage BETWEEN 1 AND 5),
+                medal_aura_symbol INTEGER NOT NULL DEFAULT -1 CHECK(medal_aura_symbol BETWEEN -1 AND 2147483647),
+                medal_aura_frame INTEGER NOT NULL DEFAULT -1 CHECK(medal_aura_frame BETWEEN -1 AND 2147483647
+                    AND (medal_aura_frame = -1) = (medal_aura_symbol = -1)))
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS guild_members (
+                membership_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                character_id INTEGER NOT NULL UNIQUE REFERENCES characters(character_id),
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                is_leader INTEGER NOT NULL CHECK(is_leader IN (0,1)), joined_at INTEGER NOT NULL,
+                donation_points INTEGER NOT NULL DEFAULT 0 CHECK(donation_points BETWEEN 0 AND 2147483647),
+                member_rank INTEGER NOT NULL DEFAULT 4 CHECK(member_rank BETWEEN 2 AND 5),
+                memo TEXT NOT NULL DEFAULT '')
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS guild_applications (
+                character_id INTEGER PRIMARY KEY REFERENCES characters(character_id),
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                message TEXT NOT NULL, applied_at INTEGER NOT NULL)
+            """,
+            "CREATE UNIQUE INDEX IF NOT EXISTS guild_members_one_leader ON guild_members(guild_id) WHERE is_leader=1",
+            "CREATE INDEX IF NOT EXISTS guild_members_by_guild ON guild_members(guild_id,character_id)",
+            "CREATE INDEX IF NOT EXISTS guild_applications_by_guild ON guild_applications(guild_id,applied_at,character_id)",
+        ]);
+    }
+
+    internal static void DeclareGuildContents(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_contents (
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                kind INTEGER NOT NULL CHECK(kind IN (1,3,5,7)),
+                product_id INTEGER NOT NULL CHECK(product_id BETWEEN 1 AND 4294967295),
+                value INTEGER NOT NULL CHECK(value > 0),
+                remaining_uses INTEGER NOT NULL CHECK(remaining_uses BETWEEN 0 AND 2147483647),
+                expires_at INTEGER NOT NULL DEFAULT 0 CHECK(expires_at BETWEEN 0 AND 2147483646),
+                CHECK((kind IN (1,3) AND remaining_uses=0 AND expires_at>0)
+                    OR (kind=5 AND remaining_uses=0 AND expires_at=0)
+                    OR (kind=7 AND remaining_uses>0 AND expires_at=0)),
+                PRIMARY KEY(guild_id,kind))
+            """,
+            "CREATE INDEX IF NOT EXISTS guild_contents_expiry ON guild_contents(expires_at) WHERE expires_at>0",
+        ]);
+    }
+
+    internal static void DeclareGuildWarehouse(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_warehouse (
+                guild_id INTEGER PRIMARY KEY REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                capacity INTEGER NOT NULL CHECK(capacity BETWEEN 1 AND 65535))
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildWarehouseItems(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_warehouse_items (
+                guild_id INTEGER NOT NULL REFERENCES guild_warehouse(guild_id) ON DELETE RESTRICT,
+                slot_index INTEGER NOT NULL CHECK(slot_index BETWEEN 0 AND 55),
+                kind TEXT NOT NULL CHECK(kind IN ('equipment', 'stackable')),
+                item_uid INTEGER NOT NULL,
+                item_id INTEGER NOT NULL CHECK(item_id > 0),
+                item_count INTEGER NOT NULL CHECK(item_count > 0),
+                item_core BLOB,
+                PRIMARY KEY(guild_id, slot_index),
+                CHECK((kind='equipment' AND item_uid > 0 AND item_count=1 AND item_core IS NULL)
+                   OR (kind='stackable' AND item_uid=0 AND item_core IS NOT NULL AND length(item_core)=82)))
+            """,
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_guild_warehouse_equipment
+            ON guild_warehouse_items(item_uid) WHERE item_uid > 0
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildWarehouseHistory(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_warehouse_history (
+                id INTEGER PRIMARY KEY,
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                actor_name BLOB NOT NULL,
+                action INTEGER NOT NULL CHECK(action BETWEEN 0 AND 2),
+                item_id INTEGER NOT NULL CHECK(item_id > 0),
+                item_count INTEGER NOT NULL CHECK(item_count > 0),
+                occurred_at INTEGER NOT NULL)
+            """,
+            "CREATE INDEX IF NOT EXISTS ix_guild_warehouse_history_recent ON guild_warehouse_history(guild_id,id DESC)",
+        ]);
+    }
+
+    internal static void DeclareGuildDungeonRepeatBonus(SqliteConnection connection, SqliteTransaction? transaction)
+        => Apply(connection, transaction,
+            ["""
+            CREATE TABLE IF NOT EXISTS guild_dungeon_repeat_bonus(
+                character_id INTEGER PRIMARY KEY REFERENCES characters(character_id) ON DELETE CASCADE,
+                progress INTEGER NOT NULL CHECK(progress>=0 AND progress<100)
+            );
+            """]);
+
+    internal static void DeclareGuildMonthlyContributions(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_monthly_contribution_events (
+                event_id INTEGER PRIMARY KEY, membership_id INTEGER,
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                character_id INTEGER NOT NULL,
+                character_name BLOB NOT NULL,
+                source INTEGER NOT NULL CHECK(source IN (2,4,6)),
+                event_key TEXT NOT NULL,
+                earned_at INTEGER NOT NULL,
+                points INTEGER NOT NULL CHECK(points > 0),
+                UNIQUE(character_id,event_key)
+            );
+            CREATE INDEX IF NOT EXISTS ix_guild_monthly_contribution_events_guild
+                ON guild_monthly_contribution_events(guild_id,earned_at,event_id);
+            CREATE INDEX IF NOT EXISTS ix_guild_monthly_contribution_events_period
+                ON guild_monthly_contribution_events(earned_at);
+            CREATE INDEX IF NOT EXISTS ix_guild_gold_donations_period ON guild_gold_donations(donated_at);
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS guild_monthly_contribution_rewards (
+                period_start INTEGER NOT NULL,
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                guild_id INTEGER NOT NULL,
+                PRIMARY KEY(period_start,character_id)
+            );
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildContributionEntries(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE VIEW IF NOT EXISTS guild_contribution_entries AS
+            SELECT guild_id,donor_character_id AS character_id,donor_name AS character_name,points,
+                donated_at AS earned_at,3 AS source,donation_id AS source_id,membership_id
+            FROM guild_gold_donations
+            UNION ALL
+            SELECT guild_id,character_id,character_name,points,earned_at,source,event_id,membership_id
+            FROM guild_monthly_contribution_events;
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildClearContributions(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+            ["""
+            CREATE TABLE IF NOT EXISTS guild_clear_contributions(
+                membership_id INTEGER,
+                guild_id INTEGER REFERENCES guilds(guild_id) ON DELETE SET NULL,
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                run_id TEXT NOT NULL, kind INTEGER NOT NULL CHECK(kind IN (1,2)), day INTEGER NOT NULL,
+                earned_at INTEGER NOT NULL, points INTEGER NOT NULL CHECK(points>=0),
+                PRIMARY KEY(character_id,run_id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_guild_clear_contributions_day ON guild_clear_contributions(character_id,kind,day);
+            CREATE INDEX IF NOT EXISTS ix_guild_clear_contributions_guild ON guild_clear_contributions(guild_id,character_id) WHERE points>0;
+            """]);
+    }
+
+    internal static void DeclareGuildDailyContributions(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+            ["""
+            CREATE TABLE IF NOT EXISTS guild_daily_contributions(
+                membership_id INTEGER,
+                guild_id INTEGER REFERENCES guilds(guild_id) ON DELETE SET NULL,
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                kind INTEGER NOT NULL CHECK(kind IN (1,2)), day INTEGER NOT NULL,
+                earned_at INTEGER NOT NULL, points INTEGER NOT NULL CHECK(points>0),
+                PRIMARY KEY(character_id,kind,day)
+            );
+            CREATE INDEX IF NOT EXISTS ix_guild_daily_contributions_guild ON guild_daily_contributions(guild_id,character_id);
+            """]);
+    }
+
+    internal static void DeclareGuildRedPackets(SqliteConnection connection, SqliteTransaction? transaction)
+        => Apply(connection, transaction, ["""
+            CREATE TABLE IF NOT EXISTS guild_red_packet_purchases(
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                day INTEGER NOT NULL, amount INTEGER NOT NULL CHECK(amount > 0),
+                PRIMARY KEY(character_id,day)
+            );
+            CREATE TABLE IF NOT EXISTS guild_red_packets(
+                packet_id INTEGER PRIMARY KEY AUTOINCREMENT CHECK(packet_id BETWEEN 1 AND 2147483647),
+                guild_id INTEGER NOT NULL, sender_id INTEGER NOT NULL, sender_account_id INTEGER NOT NULL,
+                sender_name TEXT NOT NULL, item_id INTEGER NOT NULL CHECK(item_id > 0),
+                total_amount INTEGER NOT NULL CHECK(total_amount >= shares),
+                contribution_rate INTEGER NOT NULL CHECK(contribution_rate BETWEEN 1 AND 100),
+                shares INTEGER NOT NULL CHECK(shares BETWEEN 5 AND 30),
+                remaining INTEGER NOT NULL CHECK(remaining BETWEEN 0 AND total_amount),
+                shares_left INTEGER NOT NULL CHECK(shares_left BETWEEN 0 AND shares),
+                issued_at INTEGER NOT NULL, expires_at INTEGER NOT NULL CHECK(expires_at > issued_at),
+                sender_departed INTEGER NOT NULL DEFAULT 0 CHECK(sender_departed IN (0,1)),
+                settled_at INTEGER, refunded INTEGER NOT NULL DEFAULT 0 CHECK(refunded BETWEEN 0 AND remaining),
+                contribution INTEGER NOT NULL DEFAULT 0 CHECK(contribution >= 0),
+                CHECK((remaining=0 AND shares_left=0) OR (shares_left>0 AND remaining>=shares_left))
+            );
+            CREATE INDEX IF NOT EXISTS ix_guild_red_packets_guild ON guild_red_packets(guild_id,settled_at,packet_id);
+            CREATE INDEX IF NOT EXISTS ix_guild_red_packets_due ON guild_red_packets(expires_at,packet_id) WHERE settled_at IS NULL;
+            CREATE TABLE IF NOT EXISTS guild_red_packet_claims(
+                packet_id INTEGER NOT NULL REFERENCES guild_red_packets(packet_id),
+                account_id INTEGER NOT NULL, character_id INTEGER NOT NULL, character_name TEXT NOT NULL,
+                amount INTEGER NOT NULL CHECK(amount > 0), taken_at INTEGER NOT NULL, day INTEGER NOT NULL,
+                PRIMARY KEY(packet_id,account_id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_guild_red_packet_claims_day ON guild_red_packet_claims(account_id,day);
+            CREATE TRIGGER IF NOT EXISTS guild_red_packets_mark_departure
+            AFTER DELETE ON guild_members BEGIN
+                UPDATE guild_red_packets SET sender_departed=1
+                WHERE guild_id=OLD.guild_id AND sender_id=OLD.character_id;
+            END;
+            """]);
+
+    internal static void DeclareGuildGifts(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_gifts (
+                sender_id INTEGER NOT NULL CHECK(sender_id BETWEEN 1 AND 4294967295),
+                sender_name TEXT NOT NULL,
+                recipient_id INTEGER NOT NULL CHECK(recipient_id BETWEEN 1 AND 4294967295),
+                recipient_name TEXT NOT NULL,
+                sent_day INTEGER NOT NULL,
+                sent_at INTEGER NOT NULL CHECK(sent_at BETWEEN 1 AND 4294967295),
+                product_id INTEGER NOT NULL CHECK(product_id BETWEEN 1 AND 65535),
+                kind INTEGER NOT NULL CHECK(kind IN (1,3)),
+                content_value INTEGER NOT NULL CHECK(content_value>0),
+                duration_days INTEGER NOT NULL CHECK(duration_days>0),
+                price INTEGER NOT NULL CHECK(price>0),
+                claimed_at INTEGER NULL,
+                voided INTEGER NOT NULL DEFAULT 0 CHECK(voided IN (0,1)),
+                PRIMARY KEY(sender_id,recipient_id,sent_day),
+                UNIQUE(sender_id,recipient_id,sent_at),
+                CHECK(sender_id<>recipient_id))
+            """,
+            "CREATE INDEX IF NOT EXISTS guild_gifts_by_recipient ON guild_gifts(recipient_id,voided,claimed_at,sent_at)",
+            """
+            CREATE TRIGGER IF NOT EXISTS guild_gifts_recipient_disbanded AFTER DELETE ON guilds
+            BEGIN
+                UPDATE guild_gifts SET voided=1
+                WHERE recipient_id=OLD.guild_id AND claimed_at IS NULL AND voided=0;
+            END
+            """
+        ]);
+    }
+
+    internal static void DeclareGuildAlliances(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_alliance_applications (
+                sender_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                target_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                message TEXT NOT NULL,
+                applied_at INTEGER NOT NULL,
+                PRIMARY KEY(sender_id,target_id),
+                CHECK(sender_id<>target_id))
+            """,
+            "CREATE INDEX IF NOT EXISTS guild_alliance_applications_by_target ON guild_alliance_applications(target_id,applied_at,sender_id)",
+            """
+            CREATE TABLE IF NOT EXISTS guild_alliances (
+                first_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                second_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                PRIMARY KEY(first_id),
+                UNIQUE(second_id),
+                CHECK(first_id<second_id))
+            """,
+            """
+            CREATE TRIGGER IF NOT EXISTS guild_alliance_one_peer BEFORE INSERT ON guild_alliances
+            WHEN EXISTS (SELECT 1 FROM guild_alliances
+                         WHERE first_id IN (NEW.first_id,NEW.second_id) OR second_id IN (NEW.first_id,NEW.second_id))
+            BEGIN SELECT RAISE(ABORT, 'guild already allied'); END
+            """
+        ]);
+    }
+
+    internal static void DeclareGuildBoard(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_board_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT CHECK(id BETWEEN 1 AND 2147483647),
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                author_character_id INTEGER NOT NULL,
+                author_name BLOB NOT NULL,
+                author_job INTEGER NOT NULL CHECK(author_job BETWEEN 0 AND 255),
+                author_is_leader INTEGER NOT NULL CHECK(author_is_leader IN (0, 1)),
+                text TEXT NOT NULL,
+                posted_at INTEGER NOT NULL)
+            """,
+            "CREATE INDEX IF NOT EXISTS ix_guild_board_posts_recent ON guild_board_posts(guild_id,id DESC)",
+        ]);
+    }
+
+    internal static void DeclareGuildDungeonExtensions(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            CREATE TABLE IF NOT EXISTS guild_dungeon_extensions(
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                period_start INTEGER NOT NULL,
+                reset_at INTEGER NOT NULL CHECK(reset_at > period_start),
+                PRIMARY KEY(guild_id,period_start))
+            """;
+        command.ExecuteNonQuery();
+    }
+
+    internal static void DeclareGuildDungeonProgress(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_dungeon_progress (
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                period_start INTEGER NOT NULL, style_id INTEGER NOT NULL CHECK(style_id >= 0),
+                dungeon_id INTEGER NOT NULL CHECK(dungeon_id > 0),
+                clear_count INTEGER NOT NULL CHECK(clear_count BETWEEN 1 AND 2147483647),
+                PRIMARY KEY(guild_id, period_start, style_id, dungeon_id))
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS guild_dungeon_clears (
+                run_id TEXT NOT NULL, character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                period_start INTEGER NOT NULL, style_id INTEGER NOT NULL CHECK(style_id >= 0),
+                dungeon_id INTEGER NOT NULL CHECK(dungeon_id > 0), contribution INTEGER NOT NULL CHECK(contribution >= 0),
+                PRIMARY KEY(run_id, character_id))
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS ix_guild_dungeon_clears_guild ON guild_dungeon_clears(guild_id, character_id)
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildRankSettings(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_rank_settings (
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                rank INTEGER NOT NULL CHECK(rank BETWEEN 1 AND 5),
+                permission_mask INTEGER CHECK(permission_mask BETWEEN 0 AND 65535),
+                name TEXT,
+                CHECK(permission_mask IS NOT NULL OR name IS NOT NULL),
+                PRIMARY KEY(guild_id, rank))
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildAttendance(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_attendance (
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                day INTEGER NOT NULL,
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                PRIMARY KEY (guild_id, day, character_id))
+            """,
+        ]);
+    }
+
+    internal static void DeclareGuildDonationHistory(SqliteConnection connection, SqliteTransaction? transaction)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS guild_gold_donations (
+                donation_id INTEGER PRIMARY KEY, membership_id INTEGER,
+                guild_id INTEGER NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                donor_character_id INTEGER NOT NULL, donor_name BLOB NOT NULL,
+                gold INTEGER NOT NULL CHECK(gold > 0), points INTEGER NOT NULL CHECK(points > 0),
+                donated_at INTEGER NOT NULL)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS guild_gold_donations_recent
+                ON guild_gold_donations(guild_id, donated_at DESC, donation_id DESC)
             """,
         ]);
     }
@@ -499,7 +937,7 @@ internal static class CharacterDatabaseSchema
             count INTEGER NOT NULL CHECK(count >= 0),
             PRIMARY KEY(owner_scope, owner_id, npc_id, item_id, period)
         );
-        CREATE TABLE IF NOT EXISTS items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT CONSTRAINT world_identity_fits_the_wire CHECK (item_uid BETWEEN 1 AND 2147483647), item_core BLOB NOT NULL CHECK (length(item_core) = 82), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, avatar_expire_date INTEGER, avatar_clear_id INTEGER, avatar_jewel_socket BLOB CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30), avatar_color1 INTEGER, avatar_color2 INTEGER, avatar_delete_date INTEGER, creature_field04 INTEGER, creature_mode_flag INTEGER, creature_progress_value INTEGER, creature_mode1_field0a INTEGER, creature_mode1_field0b INTEGER, creature_field_after_value INTEGER, creature_text BLOB, creature_tail_flag INTEGER , is_mirror INTEGER NOT NULL DEFAULT 0 CHECK(is_mirror IN (0,1)), mirror_source_uid INTEGER, appearance_item_id INTEGER CHECK(appearance_item_id >= 0));
+        CREATE TABLE IF NOT EXISTS items ( item_uid INTEGER PRIMARY KEY AUTOINCREMENT CONSTRAINT world_identity_fits_the_wire CHECK (item_uid BETWEEN 1 AND 2147483647), item_core BLOB NOT NULL CHECK (length(item_core) = 82), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, avatar_expire_date INTEGER, avatar_clear_id INTEGER, avatar_jewel_socket BLOB CHECK (avatar_jewel_socket IS NULL OR length(avatar_jewel_socket) = 30), avatar_color1 INTEGER, avatar_color2 INTEGER, avatar_delete_date INTEGER, creature_field04 INTEGER, creature_mode_flag INTEGER, creature_progress_value INTEGER, creature_mode1_field0a INTEGER, creature_mode1_field0b INTEGER, creature_field_after_value INTEGER, creature_text BLOB, creature_tail_flag INTEGER , is_mirror INTEGER NOT NULL DEFAULT 0 CHECK(is_mirror IN (0,1)), mirror_source_uid INTEGER, appearance_item_id INTEGER CHECK(appearance_item_id >= 0), guardian_gem_keys INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS item_slots ( owner_scope TEXT NOT NULL CHECK (owner_scope IN ('character', 'account')), owner_id INTEGER NOT NULL, list_type INTEGER NOT NULL, slot_index INTEGER NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('world', 'template')), id INTEGER NOT NULL, core_uid INTEGER NOT NULL, count INTEGER NOT NULL, UNIQUE(owner_scope, owner_id, list_type, slot_index), CONSTRAINT slot_count_is_positive CHECK (count > 0), CONSTRAINT world_slot_holds_exactly_one CHECK (kind <> 'world' OR count = 1), CONSTRAINT world_slot_names_its_own_row CHECK (kind <> 'world' OR core_uid = id) );
         CREATE TABLE IF NOT EXISTS lucky_star_clear_rewards(run_id TEXT NOT NULL,character_id INTEGER NOT NULL,PRIMARY KEY(run_id,character_id));
         CREATE TABLE IF NOT EXISTS equipment_rental_instances(character_id INTEGER NOT NULL,item_uid INTEGER NOT NULL REFERENCES items(item_uid) ON DELETE CASCADE,template_id INTEGER NOT NULL,PRIMARY KEY(character_id,item_uid));

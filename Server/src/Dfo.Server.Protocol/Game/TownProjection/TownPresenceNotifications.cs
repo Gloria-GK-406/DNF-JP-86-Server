@@ -88,7 +88,7 @@ internal static class TownPresenceMessages
     public static IReadOnlyList<IGameServerMessage> ForNewcomer(
         TownPresenceSynchronizationState state)
     {
-        var messages = new List<IGameServerMessage>((state.ExistingCharacters.Count * 3) + 1);
+        var messages = new List<IGameServerMessage>((state.ExistingCharacters.Count * 4) + 1);
         foreach (var character in state.ExistingCharacters)
             AddCharacter(messages, character);
         messages.Add(AreaRoster(state));
@@ -99,7 +99,7 @@ internal static class TownPresenceMessages
         TownPresenceSynchronizationState state,
         CharacterId recipientCharacterId)
     {
-        var messages = new List<IGameServerMessage>(4);
+        var messages = new List<IGameServerMessage>(5);
         AddCharacter(messages, state.Newcomer);
         messages.Add(AreaRoster(state, recipientCharacterId));
         return messages;
@@ -116,6 +116,8 @@ internal static class TownPresenceMessages
             participant.Public,
             participant.Equipment,
             participant.Pets));
+        messages.Add(new TownReadyStateMessage(participant.Character.Identity.CharacterId,
+            participant.Public.ActiveGuildMedalAura ?? Dfo.Server.Data.Guilds.GuildMedalAura.None));
         messages.Add(new UserVisibilityMessage(
             wireUserId,
             participant.Public.Display?.VisibilityBits ?? checked((byte)participant.Public.VisibilityBits)));

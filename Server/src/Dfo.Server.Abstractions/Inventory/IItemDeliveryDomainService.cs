@@ -5,7 +5,11 @@ using Dfo.Server.Data.Inventory;
 namespace Dfo.Server.Abstractions.Inventory;
 
 public enum ItemDeliveryMode { InventoryThenMail, MailOnly, InventoryOnly }
-public sealed record ItemDeliveryOptions(DateTimeOffset? ExpiresAt, string MailDeliveryKey);
+public sealed record ItemDeliveryOptions(DateTimeOffset? ExpiresAt, string MailDeliveryKey)
+{
+    /// <summary>Overrides the expiry of the message itself. Attachment lifetimes still use ExpiresAt and the item template.</summary>
+    public DateTimeOffset? MailExpiresAt { get; init; }
+}
 /// <summary>An optional restriction within the catalog's physical stackable band.</summary>
 public sealed record ItemDeliveryPlacementConstraint(BusinessSlotRange Destination, int StackLimit);
 public sealed record ItemDeliveryGrant(int ItemId, int Count, ItemSnapshot? Snapshot = null, ItemRecord? Instance = null)

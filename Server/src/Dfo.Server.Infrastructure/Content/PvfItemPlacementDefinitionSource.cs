@@ -95,6 +95,8 @@ internal sealed class PvfItemPlacementDefinitionSource(
             { WorldClass: ItemWorldClass.Creature } => new(BusinessInventorySpace.CreatureInventory, 0, 139),
             { ItemKind: 6 } => new(BusinessInventorySpace.CreatureEquipment, 0, 48),
             { ItemKind: 7 } => new(BusinessInventorySpace.CreatureConsumable, 0, 50),
+            { ItemKind: 12 } => new(BusinessInventorySpace.GuildMedal, metadata.SlotStart, metadata.SlotEnd),
+            { ItemKind: 13 } => new(BusinessInventorySpace.GuardianGem, 0, metadata.SlotEnd - metadata.SlotStart),
             _ => RangeFromMainSlots(metadata.SlotStart, metadata.SlotEnd),
         };
 }

@@ -99,6 +99,7 @@ internal sealed partial class DungeonRunStore
         public DungeonRunParticipant Leader =>
             this.Participants.Single(participant => participant.IsLeader);
         public DateTimeOffset? ClearedAt { get; set; }
+        public ImmutableArray<DungeonClearParticipant> ClearParticipants { get; set; } = [];
         public DungeonLayout Layout { get; }
         public DungeonRunModeState? ModeState { get; set; }
         // Lost Land views of the slot; only a Lost Land run has one, so writes assume it.
@@ -216,6 +217,7 @@ internal sealed partial class DungeonRunStore
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
                 Kills = this.kills.ToImmutableArray(),
                 ClearedAt = this.ClearedAt,
+                ClearParticipants = this.ClearParticipants,
                 ClearedCells = this.Cells.Where(x => x.Value.IsCleared).Select(x => x.Key).ToImmutableHashSet(),
                 DestroyedObjectCodes = this.Cells.Values.SelectMany(cell => cell.DestroyedObjectCodes).ToImmutableArray(),
                 ClearedRoomMapIds = this.Cells.Values.Where(cell => cell.IsCleared).Select(cell => cell.MapId).ToImmutableHashSet(),

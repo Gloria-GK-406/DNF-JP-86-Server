@@ -148,7 +148,13 @@ internal static class ProductionSelectionStages
             pvpRooms: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpRoomQueryDomainService>(),
             totalMatchCandidates: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(),
             dailyMissions: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpDailyMissionQueryDomainService>(),
-            colosseum: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpColosseumDomainService>());
+            colosseum: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpColosseumDomainService>(),
+            guilds: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>(),
+            attendance: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildAttendanceDomainService>(),
+            monthly: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildMonthlyContributionDomainService>(),
+            overviews: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildOverviewDomainService>(),
+            guildDungeons: ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Guilds.IGuildDungeonDomainService>(),
+            contributions: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildContributionDomainService>());
     internal static GameReturnToSelectionCommandHandler Return(IOnlineUserQueryDomainService users,ISelectedSessionDomainService sessions,
         ICharacterRosterDomainService characters,ISelectedSessionCleanupDomainService cleanup) =>
         new(users,sessions,characters,TestRequired.InitialHonor,null!,new CleanupAdapter(cleanup),null!,null!,null!,null!,

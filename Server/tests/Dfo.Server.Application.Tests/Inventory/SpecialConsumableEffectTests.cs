@@ -22,6 +22,20 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class SpecialConsumableEffectTests
 {
     [Theory]
+    [InlineData(10155510, "[guild dungeon time ticket]", true, false)]
+    [InlineData(10155510, "[other]", false, false)]
+    [InlineData(10155511, "[guild dungeon time ticket]", false, false)]
+    [InlineData(10155511, "[other]", false, true)]
+    public async Task Guild_extension_requires_matching_item_and_action(int itemId, string action, bool extension, bool ordinary)
+    {
+        var declaration = ItemUseRules.Potion() with { Action = action };
+        var rules = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((itemId, declaration))),
+            TestRequired.Absent<IStackableActionDefinitionSource>());
+        Assert.Equal(extension ? declaration : null, await rules.GuildExtensionActionRuleAsync(itemId, default));
+        Assert.Equal(ordinary ? declaration : null, await rules.OrdinaryUseRuleAsync(itemId, default));
+    }
+
+    [Theory]
     [InlineData(3,3,true)]
     [InlineData(0,3,false)]
     [InlineData(3,4,false)]
@@ -183,7 +197,7 @@ public sealed class SpecialConsumableEffectTests
     public void Permanent_item_can_be_used_after_2038()
     {
         var rule = ItemUseRules.Potion(0);
-        var plans = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((8474, rule))));
+        var plans = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((8474, rule))), Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());
         var item = TestItemReferences.FromCore(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = 0 },
             ItemWorldClass.Interchangeable);
         var result = plans.Build(rule, new(BusinessInventorySpace.QuickSlot, 0), item,

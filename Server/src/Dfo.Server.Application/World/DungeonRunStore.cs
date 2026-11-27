@@ -120,7 +120,7 @@ internal sealed partial class DungeonRunStore(IPartyService parties, IDungeonDea
 
     /// <summary>Opens the clear of the current room, for settlement and for an altar boss room emptied by a dynamic batch.</summary>
     private DungeonClearChange? TryOpenClear(CharacterId characterId, DungeonRunId expectedRunId, long expectedRoomVersion,
-        DateTimeOffset at)
+        DateTimeOffset at, IReadOnlyDictionary<CharacterId, long>? membershipsAtClear = null)
     {
         lock (this.gate)
         {
@@ -137,6 +137,9 @@ internal sealed partial class DungeonRunStore(IPartyService parties, IDungeonDea
             var cell = aggregate.Cells[aggregate.CurrentCell];
             cell.ClearOpen = true;
             aggregate.ClearedAt = at;
+            aggregate.ClearParticipants = [.. aggregate.Participants.Select(member =>
+                new DungeonClearParticipant(member.AccountId, member.CharacterId,
+                    membershipsAtClear?.TryGetValue(member.CharacterId, out var membershipId) == true ? membershipId : null))];
             cell.Revision++;
             aggregate.RuntimeRevision++;
             return new DungeonClearChange(

@@ -111,12 +111,15 @@ internal sealed partial class GameSelectDungeonCommandHandler
             return;
         }
 
-        foreach (var participant in participants)
+        foreach (var member in attachments.Members)
         {
-            if (previousRuns[participant.CharacterId] is { } previous
+            if (previousRuns[member.Session.CharacterId] is { } previous
                 && previous.RunId != runId)
             {
-                departureSink.ParticipantDeparted(previous.RunId, participant.CharacterId);
+                if (departureSink.Find(previous.RunId).Contains(member.Session))
+                    await GuildDungeon.GuildDungeonPartyBuffProjection.ClearAsync(outbox, sessions, member.Session, previous,
+                        cancellationToken).ConfigureAwait(false);
+                departureSink.ParticipantDeparted(previous.RunId, member.Session.CharacterId);
             }
         }
 

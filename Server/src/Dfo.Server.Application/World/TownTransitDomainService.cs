@@ -1,8 +1,10 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.World;
@@ -15,7 +17,10 @@ internal sealed class TownTransitDomainService(
     ITownMovementDomainService towns,
     IEntryPlacementRuleService placement,
     IMarriageHousingQueryDomainService housing,
-    IMarriageHousingSessionDomainService housingSessions) : ITownTransitDomainService
+    IMarriageHousingSessionDomainService housingSessions,
+    IGuildHallAccessDomainService halls,
+    GuildTravelRuleService travelRules,
+    ICharacterLocationDomainService positions) : ITownTransitDomainService
 {
     public async ValueTask<TownCrossingRefusal?> RefuseCrossingAsync(
         SelectedSessionIdentity session,
@@ -26,6 +31,25 @@ internal sealed class TownTransitDomainService(
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(standing);
+        if (GuildHallTown.Is(townId))
+        {
+            if (GuildHallTown.Is(standing.TownId))
+            {
+                var visit = await halls.VisitAsync(session, standing.AreaId, cancellationToken).ConfigureAwait(false);
+                return await travelRules.RefuseHallCrossingAsync(standing.AreaId, areaId, visit is not null, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            var instance = await halls.InstanceForAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+            return await travelRules.RefuseHallEntryAsync(standing, areaId, instance, cancellationToken).ConfigureAwait(false);
+        }
+        if (GuildHallTown.Is(standing.TownId))
+        {
+            var home = await positions.ReadAsync(session.AccountId, session.CharacterId, cancellationToken)
+                .ConfigureAwait(false);
+            return GuildTravelRuleService.RefuseHallExit(home, townId, areaId);
+        }
+
         // Household facts are read only for a crossing into or out of a household town.
         var entering = placement.IsHouseholdTown(townId);
         var leaving = !entering && placement.IsHouseholdTown(standing.TownId);
@@ -66,6 +90,8 @@ internal sealed class TownTransitDomainService(
         byte? direction = null)
     {
         ArgumentNullException.ThrowIfNull(session);
+        if (GuildHallTown.Is(destination.TownId) && destination.Instance == 0)
+            return null;
         var previous = onlineCharacters.StandingOf(session);
         var housingChange = previous is null
             ? TownHousingChange.None
@@ -135,10 +161,14 @@ internal sealed class TownTransitDomainService(
         return departures;
     }
 
-    // The household instance is read only for a household town, whose area instance it decides.
     private async ValueTask<int?> AreaInstanceAsync(
-        SelectedSessionIdentity session, int townId, CancellationToken cancellationToken) =>
-        placement.AreaInstance(townId, placement.IsHouseholdTown(townId)
+        SelectedSessionIdentity session, int townId, CancellationToken cancellationToken)
+    {
+        if (GuildHallTown.Is(townId))
+            return await halls.InstanceForAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+
+        return placement.AreaInstance(townId, placement.IsHouseholdTown(townId)
             ? await housing.InstanceAsync(session, cancellationToken).ConfigureAwait(false)
             : null);
+    }
 }

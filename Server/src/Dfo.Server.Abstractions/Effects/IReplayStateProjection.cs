@@ -43,7 +43,8 @@ public sealed record ReplayProjectionRequest(ReplayProjectionNeeds Needs, Immuta
             var game = A21InventoryLayout.ToGameSlot(slot);
             if (game.Space is not (InventoryContainerType.Main or InventoryContainerType.Avatar
                 or InventoryContainerType.PersonalCargo or InventoryContainerType.Equipment
-                or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.QuickSlot))
+                or InventoryContainerType.Pet or InventoryContainerType.AccountCargo or InventoryContainerType.QuickSlot
+                or InventoryContainerType.GuildMedal))
                 throw new InvalidDataException("This physical container has no replay projection.");
         }
     }

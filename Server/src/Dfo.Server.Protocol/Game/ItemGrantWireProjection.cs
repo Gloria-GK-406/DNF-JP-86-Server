@@ -1,11 +1,18 @@
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game;
 
 internal static class ItemGrantWireProjection
 {
+    public static IReadOnlyList<IGameServerMessage> InventoryFrames(ItemDeliveryReceipt? receipt, DateTimeOffset at) =>
+        (receipt?.Inventory ?? []).GroupBy(x => Slot(x).Space)
+        .Select(group => (IGameServerMessage)new InventoryDeltaMessage(group.Key, group.GroupBy(x => x.Slot)
+            .Select(items => items.Last()).Select(item => new InventoryItemState(null, Index(item), item.Snapshot.ToCore()))
+            .ToArray(), at)).ToArray();
+
     public static GameSlot Slot(ItemDeliveryAddition grant) => A21InventoryLayout.ToGameSlot(grant.Slot);
     public static int Index(ItemDeliveryAddition grant) => Slot(grant).Index;
     public static InventoryRuntimeValueState? Shared(ItemDeliveryAddition grant) =>

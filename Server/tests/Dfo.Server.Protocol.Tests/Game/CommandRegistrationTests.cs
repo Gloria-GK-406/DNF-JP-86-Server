@@ -16,6 +16,7 @@ using Dfo.Server.Protocol.Game.MoveItemSpace;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.TaggedIdReport;
 using Dfo.Server.Protocol.Game.UseStackable;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -34,8 +35,9 @@ namespace Dfo.Server.Protocol.Tests.Game;
 /// key press of a live session. Resolving each registration's invoker constructs its handler and the
 /// whole chain behind it, so the gap closes at build time instead of in front of a player.
 /// </remarks>
-public sealed class CommandRegistrationTests
+public sealed class CommandRegistrationTests : IDisposable
 {
+    private readonly string databasePath = Path.Combine(Path.GetTempPath(), $"dfo-command-registration-{Guid.NewGuid():N}.db");
     [Theory]
     [InlineData(typeof(GameSelectCharacterCommand))]
     [InlineData(typeof(GameReturnToSelectionCommand))]
@@ -694,19 +696,28 @@ public sealed class CommandRegistrationTests
         Assert.DoesNotContain(registrations, x => x.CommandType.Name is "RentEquipmentCommand" or "ChargeRentPointCommand" or "ReadRentalRefreshCommand" or "RenameCreatureCommand" or "HatchCreatureCommand" or "SharedEffectCommand");
     }
 
-    private static ServiceProvider BuildProductionGraph()
+    private ServiceProvider BuildProductionGraph()
     {
         var services = new ServiceCollection();
         services.AddLogging();
         // GameServer provides this host fact; the module-only fixture has no game listener.
         services.AddSingleton<IGameServerReadiness, DisabledGameReadiness>();
-        var configuration = new ConfigurationBuilder().Build();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Database:Path"] = databasePath })
+            .Build();
         new ApplicationModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
         new PersistenceModule().ConfigureServices(services, configuration);
         new Dfo.Server.Networking.NetworkingModule().ConfigureServices(services, configuration);
         new ProtocolModule().ConfigureServices(services, configuration);
         return services.BuildServiceProvider();
+    }
+
+    public void Dispose()
+    {
+        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databasePath }.ToString());
+        SqliteConnection.ClearPool(connection);
+        File.Delete(databasePath);
     }
 
     private sealed class DisabledGameReadiness : IGameServerReadiness

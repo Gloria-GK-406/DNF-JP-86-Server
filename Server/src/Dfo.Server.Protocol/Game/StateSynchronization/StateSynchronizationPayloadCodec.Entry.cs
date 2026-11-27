@@ -66,7 +66,7 @@ internal static partial class StateSynchronizationPayloadCodec
         var extras = projection.Entry.Public.Extras;
         var equipment = projection.Inventory.Containers
             .Where(value => value.ContainerType == InventoryContainerType.Equipment)
-            .SelectMany(value => value.Items).Where(value => value.SlotIndex is >= 0 and <= 29)
+            .SelectMany(value => value.Items).Where(value => value.SlotIndex is >= 0 and <= 29 or 31)
             .OrderBy(value => value.SlotIndex).ToArray();
         var page = projection.Entry.Skills.Pages.SingleOrDefault(
             value => value.PageIndex == extras.SkillTreeIndex);
@@ -220,7 +220,7 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(core.TailUnknown3);
         writer.Write(core.RemainUseCount);
         writer.Write((byte)0);
-        WriteNoti2EntryTail(writer, item.SlotIndex);
+        WriteNoti2EntryTail(writer, item.SlotIndex, core.GuardianGems);
     }
 
     /// <summary>What A21 appends to every equipped entry, and the older client appended to none.</summary>
@@ -230,8 +230,19 @@ internal static partial class StateSynchronizationPayloadCodec
     /// decompose only with this on the end. The <c>8</c> is written because that is what the
     /// session carried; nothing here knows what it counts.
     /// </remarks>
-    private static void WriteNoti2EntryTail(BinaryWriter writer, int slotIndex)
+    private static void WriteNoti2EntryTail(BinaryWriter writer, int slotIndex, GuardianGemSockets gems)
     {
+        if (slotIndex == 31)
+        {
+            var length = gems.OccupiedLength();
+            writer.Write(0u);
+            writer.Write((uint)(length * sizeof(ushort)));
+            for (var socket = 0; socket < length; socket++)
+                writer.Write(gems.KeyAt(socket));
+            writer.Write((byte)0);
+            return;
+        }
+
         if (!IsCostumeBarSlot(slotIndex) && slotIndex != Noti2CreatureSlot)
         {
             writer.Write(0u);
@@ -762,12 +773,27 @@ internal static partial class StateSynchronizationPayloadCodec
         foreach (var part in appearance)
             WriteAppearancePart(writer, part);
         writer.Write(entry.Display?.TitleAppearanceItemId ?? entry.CloneTitleItemId); writer.Write((byte)0); writer.Write(checked((byte)c.CreatureField2)); writer.Write(checked((byte)c.CreatureField3)); writer.Write(checked((byte)c.CreatureField4));
-        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina)); writer.Write(checked((uint)c.FatiguePenalty));
+        writer.Write(checked((uint)extras.NameTagItemId)); writer.Write(checked((uint)extras.NameTagExpireTime)); writer.Write(checked((byte)c.Stamina));
+        // The A21 reader at 013E758E sets the guild ID before the pet triple.
+        writer.Write(entry.GuildIdentity?.Id.Value ?? 0u);
         // Private store permission (70 make_basic_info: u8 IsPermissionPrivateStore after the guild key).
         // A21 reads it at 013E75A3 and builds the stall object a player clicks to open a store (01784A50).
         writer.Write(entry.HasPrivateStorePermission ? (byte)1 : (byte)0);
         WriteCreatureTriple(writer, creature, pet);
-        writer.Write(BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex, entry.Honor));
+        var tail = BuildSubtypeZeroTail(job, entry.HasBlackDiamond, visibility, extras.SkillTreeIndex, entry.Honor);
+        if (entry.GuildIdentity is { } guild)
+        {
+            // ServerS4A21's same-client builder replaces the empty union at +6..+15
+            // with name DSTR and u32 guild mark, retaining the remaining tail.
+            writer.Write(tail.AsSpan(0, 6));
+            WriteDstr(writer, GuildCreation.GuildCreationPayloadCodec.EncodeGuildText(guild.Name));
+            writer.Write((uint)guild.Mark);
+            writer.Write(tail.AsSpan(16));
+        }
+        else
+        {
+            writer.Write(tail);
+        }
         return stream.ToArray();
     }
 
@@ -1007,7 +1033,7 @@ internal static partial class StateSynchronizationPayloadCodec
         const int inspectReservedPrefixLength = 5;
         const int inspectContextLength = 27;
         const byte inspectGuildMarker = 0x6F;
-        var stats = publicState.DerivedStats;
+        var stats = publicState.EffectiveStats;
         var extras = publicState.Extras;
 
         using var stream = new MemoryStream();
@@ -1038,11 +1064,10 @@ internal static partial class StateSynchronizationPayloadCodec
         writer.Write(checked((byte)stats.EquippedCreatureLevel));
 
         writer.Write(new byte[inspectContextLength]);
-        // Guild identity is not modelled yet. The empty dstr is the A21-compatible no-guild
-        // shape; level remains projected from the target's current guild standing.
-        WriteDstr(writer, []);
-        writer.Write(checked((byte)publicState.Guild.Level));
-        writer.Write((byte)0);
+        var guild = publicState.GuildIdentity;
+        WriteDstr(writer, guild is null ? [] : GuildCreation.GuildCreationPayloadCodec.EncodeGuildText(guild.Name));
+        writer.Write(checked((byte)(guild?.Level ?? 0)));
+        writer.Write(guild?.Mark ?? (byte)0);
         writer.Write(inspectGuildMarker);
         writer.Write(checked((uint)extras.SpecialRewardQuestIds.Count));
         foreach (var questId in extras.SpecialRewardQuestIds)

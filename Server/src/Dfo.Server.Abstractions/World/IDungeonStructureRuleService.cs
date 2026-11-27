@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Dfo.Server.Data.World;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Raids;
 
@@ -20,6 +21,7 @@ public readonly record struct DungeonEntryIntent(
     int? DirectedDungeonId,
     int? CycleQuestId = null)
 {
+    public GuildDungeonSelection? GuildSelection { get; init; }
     public AntonRaidEntryIdentity? Raid { get; init; }
     public DungeonRunId? RaidTransferFrom { get; init; }
 

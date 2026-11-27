@@ -215,7 +215,15 @@ public sealed class TownAreaProjectionDeliveryTests
             sessions.EnterWorldWithConnection(state, returning);
             sessions.EnterWorldWithConnection(state, existing);
             var currentViews = new FixedCurrentViews();
-            var returningResult = Entry(returning, x: 100);
+            var beforeExit = Entry(returning, x: 100);
+            var dungeonIdentity = new CharacterPublicIdentityEntryState(3, 4, 1);
+            var returningResult = beforeExit with
+            {
+                CharacterEntry = beforeExit.CharacterEntry with
+                {
+                    Public = beforeExit.CharacterEntry.Public with { Identity = dungeonIdentity },
+                },
+            };
             var existingResult = Entry(existing, x: 300);
             currentViews.Publish(returning, returningResult);
             currentViews.Publish(existing, existingResult);
@@ -244,6 +252,7 @@ public sealed class TownAreaProjectionDeliveryTests
                 Assert.IsType<NotificationAudience.TheseSessions>(publication.Audience).Sessions);
             var arrival = Assert.IsType<TownParticipantPublished>(publication.Notification);
             Assert.Equal(returning.CharacterId, arrival.State.Newcomer.Character.Identity.CharacterId);
+            Assert.Equal(dungeonIdentity with { UserState = 0 }, arrival.State.Newcomer.Public.Identity);
             Assert.Equal(existing.CharacterId,
                 Assert.Single(arrival.State.ExistingCharacters).Character.Identity.CharacterId);
             Assert.Equal(

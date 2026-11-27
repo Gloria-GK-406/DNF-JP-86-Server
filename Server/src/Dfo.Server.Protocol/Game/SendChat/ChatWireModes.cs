@@ -19,7 +19,7 @@ internal sealed record ChatRoute(ChatKind Kind, int? MegaphoneItemId = null)
     /// <summary>The longest text the frame this kind is delivered in may carry.</summary>
     public int TextLimit => Kind switch
     {
-        ChatKind.Whisper => WhisperMessage.TextLimit,
+        ChatKind.Whisper or ChatKind.Guild => WhisperMessage.TextLimit,
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => MegaphoneMessage.TextLimit,
         ChatKind.Conversation => ConversationMessage.TextLimit,
         _ => ChatLineMessage.TextLimit,
@@ -28,7 +28,7 @@ internal sealed record ChatRoute(ChatKind Kind, int? MegaphoneItemId = null)
     /// <summary>The longest speaker name that frame may carry, or null when it carries none.</summary>
     public int? NameLimit => Kind switch
     {
-        ChatKind.Whisper => WhisperMessage.NameLimit,
+        ChatKind.Whisper or ChatKind.Guild => WhisperMessage.NameLimit,
         ChatKind.ChannelMegaphone or ChatKind.ServerMegaphone => MegaphoneMessage.NameLimit,
         ChatKind.Conversation => ConversationMessage.NameLimit,
         _ => null,

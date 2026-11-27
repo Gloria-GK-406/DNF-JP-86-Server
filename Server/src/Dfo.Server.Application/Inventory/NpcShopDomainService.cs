@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
@@ -22,7 +23,8 @@ internal sealed class NpcShopDomainService(
     IItemPlacementRuleService placements,
     INpcShopRuleService rules,
     INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
-    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower, IDungeonParticipationDomainService participation) : INpcShopDomainService
+    Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower, IDungeonParticipationDomainService participation,
+    IGuildHallAccessDomainService halls, IGuildDungeonDomainService guildDungeons) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -34,14 +36,17 @@ internal sealed class NpcShopDomainService(
         var inBossTower = bossTower.Find(session) is not null;
         if (inBossTower ? !bossTower.CanShop(session, npcId, shopId)
             : participation.Find(session.CharacterId) is not null
-                || onlineCharacters.StandingOf(session) is not { } member)
+                || onlineCharacters.StandingOf(session) is null)
+            return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
+        var access = await GuildAccessAsync(session, npcId, itemId, shopId, now, cancellationToken).ConfigureAwait(false);
+        if (!access.Allowed)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
 
-        var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken)
+        var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken, access.ActiveVariant)
             .ConfigureAwait(false);
         if (priced.Quote is not { } quote)
             return NpcShopPurchaseResult.Refused(priced.Rejection);
@@ -135,7 +140,10 @@ internal sealed class NpcShopDomainService(
         var identity = await characters.Get(session.CharacterId).IdentityAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
             return new(NpcShopRejection.NoSession, []);
-        var limited = await rules.LimitedItemsAsync(npcId, identity.Job, cancellationToken).ConfigureAwait(false);
+        var access = await GuildAccessAsync(session, npcId, null, null, now, cancellationToken).ConfigureAwait(false);
+        if (!access.Allowed)
+            return new(NpcShopRejection.ShopUnavailable, []);
+        var limited = await rules.LimitedItemsAsync(npcId, identity.Job, cancellationToken, access.ActiveVariant).ConfigureAwait(false);
         if (limited is null)
             return new(NpcShopRejection.ShopUnavailable, []);
         var result = new List<NpcShopPurchaseCount>();
@@ -149,9 +157,24 @@ internal sealed class NpcShopDomainService(
         return new(NpcShopRejection.None, result);
     }
 
+    private async ValueTask<(bool Allowed, int? ActiveVariant)> GuildAccessAsync(SelectedSessionIdentity session,
+        int npcId, int? itemId, int? shopId, DateTimeOffset now, CancellationToken ct)
+    {
+        if (NpcShopRuleService.AccessFor(npcId, itemId) is not { } access)
+            return (false, null);
+        var visit = access.RequiredArea is { } area
+            ? await halls.VisitAsync(session, area, ct).ConfigureAwait(false) : null;
+        if (!access.AllowsMember(visit?.Membership.Member))
+            return (false, null);
+        var variant = access.UsesMedalShop && visit is not null
+            ? await guildDungeons.ReadMedalShopAsync(visit.Membership.Guild.Id, now, ct).ConfigureAwait(false) : null;
+        return (access.AllowsVariant(shopId, variant), variant);
+    }
+
     private NpcShopPurchaseKey Key(SelectedSessionIdentity session, int npcId, int itemId,
         NpcShopPurchaseLimit limit, DateTimeOffset now) =>
         new(limit.Scope == NpcShopLimitScope.Account ? "account" : "character",
             limit.Scope == NpcShopLimitScope.Account ? session.AccountId.Value : session.CharacterId.Value,
             npcId, itemId, rules.PurchasePeriod(limit, now));
+
 }

@@ -81,7 +81,7 @@ internal sealed class SelectCharacterEntryInventoryDomainService(
         containers.Clear(characterId);
         foreach (var container in ((InventoryContainerState[])[main, equipment, avatar])
             .Concat(inventory.Containers.Where(value => value.ContainerType is InventoryContainerType.Pet
-                or InventoryContainerType.PersonalCargo)).Append(accountCargo)
+                or InventoryContainerType.PersonalCargo or InventoryContainerType.GuildMedal)).Append(accountCargo)
             .Append(new InventoryContainerState(InventoryContainerType.SharedMaterial, 11, [])))
         {
             containers.Register(characterId, new PersistentItemContainer(

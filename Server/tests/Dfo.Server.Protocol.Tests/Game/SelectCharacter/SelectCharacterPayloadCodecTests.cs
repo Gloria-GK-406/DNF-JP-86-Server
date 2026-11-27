@@ -525,6 +525,29 @@ public sealed class SelectCharacterPayloadCodecTests
     }
 
     [Fact]
+    public void Subtype_zero_keeps_account_honor_after_a_variable_length_guild_name_and_mark()
+    {
+        var source = SelectCharacterPayloadTestData.CreateComplete();
+        var result = source with { CharacterEntry = source.CharacterEntry with
+        {
+            Public = source.CharacterEntry.Public with
+            {
+                GuildIdentity = new(new(704), "Iris", 2, 9),
+                Honor = new(17, 4567),
+            },
+        } };
+        var body = EncodeSelectedStateBody(result, 0x0002, 0);
+
+        // The 64-byte unguilded tail has a ten-byte union at +6. "Iris" uses twelve.
+        var tail = body.AsSpan(body.Length - 66);
+        Assert.Equal(4, BinaryPrimitives.ReadInt32LittleEndian(tail[6..]));
+        Assert.True(tail.Slice(10, 4).SequenceEqual("Iris"u8));
+        Assert.Equal(9u, BinaryPrimitives.ReadUInt32LittleEndian(tail[14..]));
+        Assert.Equal(17u, BinaryPrimitives.ReadUInt32LittleEndian(tail[41..]));
+        Assert.Equal(4567u, BinaryPrimitives.ReadUInt32LittleEndian(tail[45..]));
+    }
+
+    [Fact]
     public void SelectCharacterPayload_Subtype0PetAliveTracksPetRuntimeField04()
     {
         var result = SelectCharacterPayloadTestData.CreateComplete();
@@ -722,6 +745,13 @@ public sealed class SelectCharacterPayloadCodecTests
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IClientSettingsDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterNameTagDomainService>()));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Characters.IAdventureGroupDomainService>()));
+            // This character has no guild, active benefits or worn medal.
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildBenefitDomainService>()));
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>()));
+            services.TryAddSingleton(TestRequired.Absent<IEquipmentDefinitionSource>());
+            services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>(
+                (method, _) => method.Name == "FindMembershipAsync"
+                    ? ValueTask.FromResult<Dfo.Server.Data.Guilds.GuildMembership?>(null) : null)));
             services.Replace(ServiceDescriptor.Singleton(TestRequired.Absent<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService>(
                 (method, _) => method.Name == "IsPermittedAsync" ? ValueTask.FromResult(false) : null)));
             services.TryAddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureDomainStore>());

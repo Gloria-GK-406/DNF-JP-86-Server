@@ -23,6 +23,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Parties;
@@ -46,10 +47,14 @@ using Dfo.Server.Application.Sessions;
 using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Protocol.Game.AntonRaid;
+using Dfo.Server.Protocol.Game.GuildAttendance;
+using Dfo.Server.Protocol.Game.GuildDungeon;
+using Dfo.Server.Protocol.Game.GuildPresence;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.PvpDailyMission;
 using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
@@ -99,6 +104,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     private readonly IDarkElfRuinsDomainService ruins;
     private readonly ICharacterRelationQueryDomainService relations;
     private readonly ICharacterIdentityQueryDomainService identities;
+    private readonly IGuildMembershipQueryDomainService guilds;
+    private readonly GuildAttendanceDelivery guildAttendance;
+    private readonly GuildDailyContributionDelivery guildDailyContribution;
+    private readonly IGuildDungeonDomainService guildDungeons;
     private readonly AntonRaidSquadProjection raidSquads;
     private readonly IPvpRecordDomainService pvpRecords;
     private readonly IPvpTotalMatchTeamDomainService pvpTotalMatchTeams;
@@ -124,7 +133,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         IPvpRecordDomainService pvpRecords, IPvpTotalMatchTeamDomainService pvpTotalMatchTeams,
         IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch, IPvpRoomQueryDomainService pvpRooms,
         IPvpTotalMatchCandidateQueryDomainService totalMatchCandidates, IPvpDailyMissionQueryDomainService dailyMissions,
-        IPvpColosseumDomainService colosseum)
+        IPvpColosseumDomainService colosseum,
+        IGuildMembershipQueryDomainService guilds, IGuildAttendanceDomainService attendance,
+        IGuildMonthlyContributionDomainService monthly, IGuildOverviewDomainService overviews,
+        IGuildDungeonDomainService guildDungeons, IGuildContributionDomainService contributions)
 
     {
         this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.clock = clock; this.parties = parties;
@@ -145,6 +157,10 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         this.representativeSwitch = representativeSwitch;
         this.totalMatchCandidates = new(pvpRooms, totalMatchCandidates, outbox, clock);
         this.dailyMissions = new(dailyMissions, outbox, colosseum);
+        this.guildAttendance = new(attendance, monthly, overviews, units, selectedSessions, projections, outbox, clock, logger);
+        this.guildDailyContribution = new(contributions, units, selectedSessions, outbox, clock, logger);
+        this.guilds = guilds;
+        this.guildDungeons = guildDungeons;
     }
     private bool SendsFramesAfterTheCompletionMarker =>
         delivery.SendsFramesAfterTheCompletionMarker;
@@ -418,6 +434,9 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
         EnsureCurrent(session);
         await AnnounceToFriendsAsync(execution, session, cancellationToken).ConfigureAwait(false);
         EnsureCurrent(session);
+        if (prepared.CharacterEntry.GuildMember is not null && channel.ChannelId is > 0 and <= byte.MaxValue)
+            await AnnounceToGuildAsync(execution, session, (byte)channel.ChannelId, cancellationToken).ConfigureAwait(false);
+        EnsureCurrent(session);
         if (SendsFramesAfterTheCompletionMarker && publication.PvpLobby is { } pvp)
         {
             await outbox.RegisterExplicitAsync(
@@ -543,7 +562,22 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
                 session.CharacterId, experiment.Current, experiment.Threshold);
         }
 
-
+        if (prepared.CharacterEntry.GuildMember is not null)
+        {
+            await guildAttendance.RecordAsync(execution, session, cancellationToken).ConfigureAwait(false);
+            await guildDailyContribution.AwardAsync(execution, session, GuildDailyContributionKind.Attendance,
+                cancellationToken).ConfigureAwait(false);
+        }
+        if (SendsFramesAfterTheCompletionMarker)
+        {
+            var guildDungeon = prepared.CharacterEntry.GuildMember is null ? new GuildDungeonInfoMessage(null)
+                : await units.ReadOnlyAsync(execution, new("ReadGuildDungeonProgress", []),
+                    async token => new GuildDungeonInfoMessage(
+                        await guildDungeons.ReadAsync(session.CharacterId, token).ConfigureAwait(false)),
+                    cancellationToken).ConfigureAwait(false);
+            await outbox.RegisterNotiAsync(session.ConnectionId, guildDungeon, cancellationToken)
+                .ConfigureAwait(false);
+        }
     }
 
     private static IReadOnlyList<SupplementalSynchronizationMessage> BuildPrePublicationMessages(
@@ -886,5 +920,31 @@ internal sealed partial class GameSelectCharacterCommandHandler : ICommandHandle
     }
     private ValueTask<NotificationDelivery> ProjectQuotaAsync(SelectedSessionIdentity session, UsageQuotaFamily family, CancellationToken ct) =>
         projections.ProjectAsync(new NotificationAudience.TheseSessions([session]), new UsageQuotaViewChanged(session.CharacterId, family), ct);
+
+    private async ValueTask AnnounceToGuildAsync(
+        CommandExecutionContext execution, SelectedSessionIdentity session, byte channel, CancellationToken ct)
+    {
+        var roster = await units.ReadOnlyAsync<IReadOnlyList<GuildRosterEntry>>(execution, new("ReadGuildPresenceObservers", []),
+            async token =>
+            {
+                try
+                {
+                    return await guilds.ReadRosterEntriesAsync(session.CharacterId, token).ConfigureAwait(false);
+                }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    logger.LogWarning(error, "Guild arrival notice dropped for character {Character}: reading its guild failed",
+                        session.CharacterId.Value);
+                    return [];
+                }
+            }, ct).ConfigureAwait(false);
+
+        if (GuildPresenceAudience.FromRoster(session.CharacterId, roster) is not { } audience ||
+            !selectedSessions.IsInWorld(session))
+            return;
+
+        await projections.ProjectAsync(new NotificationAudience.TheseCharacters(audience.OtherMembers),
+            new GuildMemberPresenceChanged(audience.Character, audience.Name, channel, session), ct).ConfigureAwait(false);
+    }
 
 }
