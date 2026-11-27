@@ -53,25 +53,30 @@ internal sealed class GuildMonthlyContributionDomainService(
             ? await contributions.ReadHistoryAsync(membership.Guild.Id, limit, ct).ConfigureAwait(false)
             : null;
 
-    internal async ValueTask<int> SettleBatchAsync(DateTimeOffset boundary, int limit, CancellationToken ct)
+    internal async ValueTask<GuildMonthlySettlementBatch> SettleBatchAsync(
+        DateTimeOffset boundary, CharacterId? after, int limit, CancellationToken ct)
     {
         if (rules.ReadMonthlyContribution() is not { } rule)
-            return 0;
+            return default;
 
         var end = GuildContributionMonth.StartAt(boundary);
         var start = end.AddMonths(-1);
-        var recipients = await contributions.ReadUnpaidAsync(start, end, rule.Target, limit, ct).ConfigureAwait(false);
-        var expires = clock.GetUtcNow().AddDays(7);
-        foreach (var member in recipients)
+        var candidates = await contributions.ReadUnpaidAsync(start, end, after, limit, ct).ConfigureAwait(false);
+        var now = clock.GetUtcNow();
+        foreach (var member in candidates)
         {
+            if (GuildMonthlyContributionRuleService.EvaluateReward(rule, member.Points, now) is not { } reward)
+                continue;
             var deliveryKey = FormattableString.Invariant($"guild-monthly-contribution:{start:yyyyMM}:{member.Character.Value}");
-            await items.DeliverAsync(member.Account, member.Character, [new(rule.ItemId, rule.Count)], "公会月度贡献奖励",
-                ct, ItemDeliveryMode.MailOnly, new(null, deliveryKey) { MailExpiresAt = expires }).ConfigureAwait(false);
+            await items.DeliverAsync(member.Account, member.Character, [reward.Item], "公会月度贡献奖励",
+                ct, ItemDeliveryMode.MailOnly, new(null, deliveryKey) { MailExpiresAt = reward.MailExpiresAt }).ConfigureAwait(false);
             await contributions.MarkPaidAsync(member, start, ct).ConfigureAwait(false);
         }
-        return recipients.Count;
+        return new(candidates.Count > 0 && candidates.Count == limit ? candidates[^1].Character : null);
     }
 }
+
+internal readonly record struct GuildMonthlySettlementBatch(CharacterId? NextAfter);
 
 internal sealed class GuildContributionMonth : IScheduledTaskSchedule
 {

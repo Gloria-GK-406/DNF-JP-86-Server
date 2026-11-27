@@ -6,6 +6,16 @@ namespace Dfo.Server.Application.Tests.Guilds;
 [Trait("Category", "Unit")]
 public sealed class GuildRedPacketRuleTests
 {
+    [Fact]
+    public void Contribution_reward_grants_one_coin_per_point_and_expires_after_fifteen_days()
+    {
+        var now = new DateTimeOffset(2026, 12, 25, 14, 0, 0, TimeSpan.FromHours(8));
+        var reward = GuildRedPacketRuleService.ContributionReward(42, now);
+        Assert.Equal(490003262, reward.Item.ItemId);
+        Assert.Equal(42, reward.Item.Count);
+        Assert.Equal(now.AddDays(15), reward.MailExpiresAt);
+    }
+
     [Theory]
     [InlineData(4, 500, 77, GuildRedPacketStatus.Invalid)]
     [InlineData(31, 0, 77, GuildRedPacketStatus.Invalid)]

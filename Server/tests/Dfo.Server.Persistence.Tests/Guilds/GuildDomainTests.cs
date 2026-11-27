@@ -163,8 +163,8 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(10, Assert.Single(history, entry => entry.Source == GuildContributionSource.Attendance).Points);
         await Write(async () =>
         {
-            await store.AddDonationAsync(guild, new(11), 990_000, 990, clock.Now, default);
-            await store.AddDonationAsync(guild, new(13), 1_089_000, 1089, clock.Now, default);
+            await store.AddDonationAsync(guild, new(11), 989_000, 989, clock.Now, default);
+            await store.AddDonationAsync(guild, new(13), 1_090_000, 1090, clock.Now, default);
             Assert.True(await monthlyStore.RecordAsync(guild, new(11), GuildContributionSource.RecommendedClear,
                 "run", 10, clock.Now, default));
             Assert.False(await monthlyStore.RecordAsync(guild, new(11), GuildContributionSource.RecommendedClear,
@@ -173,8 +173,8 @@ public sealed class GuildDomainTests : IDisposable
         });
         var november = await monthly.ReadTotalsAsync(guild, default);
         Assert.Equal(new(2199, 2199), november.Guild);
-        Assert.Equal(new(1100, 1100), november.Members[new(11)]);
-        Assert.Equal(new(1099, 1099), november.Members[new(13)]);
+        Assert.Equal(new(1099, 1099), november.Members[new(11)]);
+        Assert.Equal(new(1100, 1100), november.Members[new(13)]);
 
         clock.Now = boundary;
         Assert.Equal(boundary, new GuildContributionMonth().LastOccurrence(clock.Now));
@@ -182,15 +182,20 @@ public sealed class GuildDomainTests : IDisposable
         Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
         var december = await monthly.ReadTotalsAsync(guild, default);
         Assert.Equal(new(2299, 100), december.Guild);
-        Assert.Equal(new(1200, 100), december.Members[new(11)]);
-        Assert.Equal(new(1099, 0), december.Members[new(13)]);
+        Assert.Equal(new(1199, 100), december.Members[new(11)]);
+        Assert.Equal(new(1100, 0), december.Members[new(13)]);
 
-        Assert.Equal(1, await Write(() => monthly.SettleBatchAsync(boundary, 64, default)));
-        Assert.Equal(0, await Write(() => monthly.SettleBatchAsync(boundary, 64, default)));
+        var first = await Write(() => monthly.SettleBatchAsync(boundary, null, 1, default));
+        Assert.Equal(new CharacterId(11), first.NextAfter);
+        Assert.Empty(mail);
+        var second = await Write(() => monthly.SettleBatchAsync(boundary, first.NextAfter, 1, default));
+        Assert.Equal(new CharacterId(13), second.NextAfter);
+        Assert.Null((await Write(() => monthly.SettleBatchAsync(boundary, second.NextAfter, 1, default))).NextAfter);
+        Assert.Null((await Write(() => monthly.SettleBatchAsync(boundary, null, 64, default))).NextAfter);
         var sent = Assert.Single(mail);
-        Assert.Equal(new CharacterId(11), sent.Recipient);
+        Assert.Equal(new CharacterId(13), sent.Recipient);
         Assert.Equal(new ItemDeliveryGrant(10153528, 1), sent.Grant);
-        Assert.Equal("guild-monthly-contribution:202611:11", sent.Key);
+        Assert.Equal("guild-monthly-contribution:202611:13", sent.Key);
     }
 
     [Fact]
@@ -216,7 +221,7 @@ public sealed class GuildDomainTests : IDisposable
         var previous = (await query.FindMembershipAsync(actor, default))!.Member;
         Assert.True(previous.MembershipId > 0);
         Assert.Equal(new(11, 11), (await monthly.ReadTotalsAsync(guild, at, at.AddDays(1), default)).Members[actor]);
-        Assert.Single(await monthly.ReadUnpaidAsync(at, at.AddDays(1), 11, 10, default));
+        Assert.Equal(11, Assert.Single(await monthly.ReadUnpaidAsync(at, at.AddDays(1), null, 10, default)).Points);
         Assert.Equal(6, (await daily.ReadLeaderboardAsync(guild, default)).Single(row => row.Character == actor).Contribution);
 
         await Write(async () =>
@@ -232,7 +237,7 @@ public sealed class GuildDomainTests : IDisposable
         var totals = await monthly.ReadTotalsAsync(guild, at, at.AddDays(1), default);
         Assert.Equal(new(11, 11), totals.Guild);
         Assert.Equal(new(0, 0), totals.Members[actor]);
-        Assert.Empty(await monthly.ReadUnpaidAsync(at, at.AddDays(1), 1, 10, default));
+        Assert.Empty(await monthly.ReadUnpaidAsync(at, at.AddDays(1), null, 10, default));
         Assert.Equal(0, (await daily.ReadLeaderboardAsync(guild, default)).Single(row => row.Character == actor).Contribution);
         await Write(async () =>
         {

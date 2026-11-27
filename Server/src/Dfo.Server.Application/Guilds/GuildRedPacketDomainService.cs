@@ -141,10 +141,13 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
                 .WithText("公会红包退款", $"红包到期，未领取金额 {refund} 已退为代币券。")
                 .WithDeliveryKey($"guild-red-packet:{packet.Id}:refund").AddTokenCera(refund).Build(), ct).ConfigureAwait(false);
         if (points > 0)
+        {
+            var reward = GuildRedPacketRuleService.ContributionReward(points, now);
             await mailbox.SendAsync(MailBuilder.FromSystem(packet.Sender)
                 .WithText("公会红包贡献奖励", $"赠发红包获得 {points} 点公会贡献。")
-                .WithDeliveryKey($"guild-red-packet:{packet.Id}:contribution").ExpiresAt(now.AddDays(15))
-                .AddStackable(GuildRedPacketRules.ContributionCoin, points).Build(), ct).ConfigureAwait(false);
+                .WithDeliveryKey($"guild-red-packet:{packet.Id}:contribution").ExpiresAt(reward.MailExpiresAt)
+                .AddStackable(reward.Item.ItemId, reward.Item.Count).Build(), ct).ConfigureAwait(false);
+        }
         await store.SettleAsync(packet, now.ToUnixTimeSeconds(), refund, points, ct).ConfigureAwait(false);
     }
 

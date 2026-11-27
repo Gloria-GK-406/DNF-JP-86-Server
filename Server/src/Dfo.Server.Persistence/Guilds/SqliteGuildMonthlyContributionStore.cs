@@ -60,27 +60,27 @@ internal sealed class SqliteGuildMonthlyContributionStore(SqliteDatabase databas
         }, reader => new GuildContributionEntry((byte[])reader[0], reader.GetInt32(1),
             DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(2)), (GuildContributionSource)reader.GetInt32(3)), ct);
 
-    public ValueTask<IReadOnlyList<GuildMonthlyContributionRecipient>> ReadUnpaidAsync(
-        DateTimeOffset start, DateTimeOffset end, int target, int limit, CancellationToken ct) =>
+    public ValueTask<IReadOnlyList<GuildMonthlyContributionCandidate>> ReadUnpaidAsync(
+        DateTimeOffset start, DateTimeOffset end, CharacterId? after, int limit, CancellationToken ct) =>
         database.ReadAllAsync("""
-            SELECT c.account_id,m.character_id,m.guild_id
+            SELECT c.account_id,m.character_id,m.guild_id,SUM(e.points)
             FROM guild_contribution_entries e
             JOIN guild_members m ON m.character_id=e.character_id AND m.guild_id=e.guild_id AND m.membership_id=e.membership_id
             JOIN characters c ON c.character_id=m.character_id AND c.delete_flag=0
-            WHERE e.earned_at>=@start AND e.earned_at<@end
+            WHERE e.earned_at>=@start AND e.earned_at<@end AND (@after IS NULL OR m.character_id>@after)
                 AND NOT EXISTS (SELECT 1 FROM guild_monthly_contribution_rewards r
                     WHERE r.period_start=@start AND r.character_id=m.character_id)
-            GROUP BY m.character_id HAVING SUM(e.points)>=@target
+            GROUP BY m.character_id
             ORDER BY m.character_id LIMIT @limit
             """, parameters =>
         {
             BindPeriod(parameters, start, end);
-            parameters.AddWithValue("@target", target);
+            parameters.AddWithValue("@after", (object?)after?.Value ?? DBNull.Value);
             parameters.AddWithValue("@limit", limit);
-        }, reader => new GuildMonthlyContributionRecipient(new(reader.GetInt32(0)), new(reader.GetInt32(1)),
-            new(checked((uint)reader.GetInt64(2)))), ct);
+        }, reader => new GuildMonthlyContributionCandidate(new(reader.GetInt32(0)), new(reader.GetInt32(1)),
+            new(checked((uint)reader.GetInt64(2))), reader.GetInt64(3)), ct);
 
-    public async ValueTask MarkPaidAsync(GuildMonthlyContributionRecipient recipient, DateTimeOffset start, CancellationToken ct)
+    public async ValueTask MarkPaidAsync(GuildMonthlyContributionCandidate recipient, DateTimeOffset start, CancellationToken ct)
     {
         await database.ExecuteAsync("""
             INSERT INTO guild_monthly_contribution_rewards(period_start,character_id,guild_id)

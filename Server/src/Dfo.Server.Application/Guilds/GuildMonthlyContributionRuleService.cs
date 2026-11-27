@@ -9,6 +9,9 @@ internal sealed class GuildMonthlyContributionRuleService(IGuildEconomySource co
 {
     public GuildMonthlyContributionRule? ReadMonthlyContribution() => content.ReadMonthlyContribution();
 
+    public static GuildContributionReward? EvaluateReward(GuildMonthlyContributionRule rule, long points, DateTimeOffset now) =>
+        points >= rule.Target ? new(new(rule.ItemId, rule.Count), now.AddDays(7)) : null;
+
     public static (GuildContributionSource Source, int Points) AttendanceAward(bool isLeader) =>
         isLeader ? (GuildContributionSource.LeaderAttendance, 100) : (GuildContributionSource.Attendance, 10);
 

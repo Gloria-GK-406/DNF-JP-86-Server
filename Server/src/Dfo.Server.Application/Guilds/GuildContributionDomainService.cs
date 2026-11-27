@@ -95,9 +95,12 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
     }
 
     private ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character, int points,
-        string title, string key, DateTimeOffset now, CancellationToken ct) => delivery.DeliverAsync(account, character,
-            [new(GuildRedPacketRules.ContributionCoin, points)], title, ct, ItemDeliveryMode.InventoryThenMail,
-            new(null, key) { MailExpiresAt = now.AddDays(15) });
+        string title, string key, DateTimeOffset now, CancellationToken ct)
+    {
+        var reward = GuildRedPacketRuleService.ContributionReward(points, now);
+        return delivery.DeliverAsync(account, character, [reward.Item], title, ct, ItemDeliveryMode.InventoryThenMail,
+            new(null, key) { MailExpiresAt = reward.MailExpiresAt });
+    }
 
     public async ValueTask<IReadOnlyList<GuildContributionMember>> ReadLeaderboardAsync(CharacterId character, CancellationToken ct) =>
         await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is { } membership

@@ -18,7 +18,7 @@ public interface IGuildMonthlyContributionStore
         int points, DateTimeOffset at, CancellationToken ct);
     ValueTask<GuildContributionTotals> ReadTotalsAsync(GuildId guild, DateTimeOffset start, DateTimeOffset end, CancellationToken ct);
     ValueTask<IReadOnlyList<GuildContributionEntry>> ReadHistoryAsync(GuildId guild, int limit, CancellationToken ct);
-    ValueTask<IReadOnlyList<GuildMonthlyContributionRecipient>> ReadUnpaidAsync(
-        DateTimeOffset start, DateTimeOffset end, int target, int limit, CancellationToken ct);
-    ValueTask MarkPaidAsync(GuildMonthlyContributionRecipient recipient, DateTimeOffset start, CancellationToken ct);
+    ValueTask<IReadOnlyList<GuildMonthlyContributionCandidate>> ReadUnpaidAsync(
+        DateTimeOffset start, DateTimeOffset end, CharacterId? after, int limit, CancellationToken ct);
+    ValueTask MarkPaidAsync(GuildMonthlyContributionCandidate recipient, DateTimeOffset start, CancellationToken ct);
 }

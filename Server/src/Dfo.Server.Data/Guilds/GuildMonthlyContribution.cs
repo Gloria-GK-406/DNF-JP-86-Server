@@ -21,4 +21,4 @@ public sealed record GuildContributionAmounts(uint Lifetime, uint Monthly);
 public sealed record GuildContributionTotals(
     GuildContributionAmounts Guild, IReadOnlyDictionary<CharacterId, GuildContributionAmounts> Members);
 
-public sealed record GuildMonthlyContributionRecipient(AccountId Account, CharacterId Character, GuildId Guild);
+public sealed record GuildMonthlyContributionCandidate(AccountId Account, CharacterId Character, GuildId Guild, long Points);

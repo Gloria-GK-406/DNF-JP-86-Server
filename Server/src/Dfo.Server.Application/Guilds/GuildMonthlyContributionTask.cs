@@ -13,12 +13,12 @@ internal sealed class GuildMonthlyContributionTask(GuildMonthlyContributionDomai
     public async ValueTask<ScheduledTaskBusinessResult> RunAsync(
         CommandExecutionContext execution, ScheduledTaskContext scheduled, CancellationToken ct)
     {
-        int count;
+        GuildMonthlySettlementBatch batch = default;
         do
         {
-            count = await units.WriteAsync(execution, new(Id, []),
-                (_, token) => contributions.SettleBatchAsync(scheduled.ScheduledAt, BatchSize, token), ct).ConfigureAwait(false);
-        } while (count == BatchSize);
+            batch = await units.WriteAsync(execution, new(Id, []),
+                (_, token) => contributions.SettleBatchAsync(scheduled.ScheduledAt, batch.NextAfter, BatchSize, token), ct).ConfigureAwait(false);
+        } while (batch.NextAfter.HasValue);
         return ScheduledTaskBusinessResult.Success;
     }
 }
