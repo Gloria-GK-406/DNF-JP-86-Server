@@ -2,10 +2,8 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Guilds;
-using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
-using Dfo.Server.Abstractions.Relations;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Characters;
@@ -30,8 +28,7 @@ public sealed record GameGuildInvitationCommand(NetworkDispatchContext Dispatch,
 internal sealed class GameGuildInvitationCommandHandler(
     ISelectedSessionDomainService sessions, IGuildInvitationSessionDomainService invitations, IGuildMembershipDomainService guilds,
     IGuildMembershipQueryDomainService query, IGuildBenefitDomainService benefits, IGuildOverviewDomainService overviews,
-    IGuildAttendanceDomainService attendance, IMailboxQueryDomainService characters,
-    ICharacterRelationQueryDomainService relations, ICharacterVisibleSessionDomainService visibility,
+    IGuildAttendanceDomainService attendance, ICharacterVisibleSessionDomainService visibility,
     IChannelEntryDomainService channels, ICommandWorkUnits units, IGameCommandOutbox outbox,
     ICommandProjections projections) : ICommandHandler<GameGuildInvitationCommand, bool>
 {
@@ -49,15 +46,14 @@ internal sealed class GameGuildInvitationCommandHandler(
         var declaration = new CommandWorkUnitDeclaration("guild-invitation", [new(actor, connection, input.Metadata)]);
         if (input.MessageType == ClientMessageType.GameGuildInvite)
         {
-            if (input.TargetName is not { } name)
+            if (string.IsNullOrWhiteSpace(input.TargetName))
                 return await ReplyAsync(false).ConfigureAwait(false);
-            var offer = await units.ReadOnlyAsync(execution, declaration,
-                token => FindOfferAsync(actor, name, token), ct).ConfigureAwait(false);
-            if (offer is not { Target: { } target, Details: { } details }
-                || !invitations.TryOffer(actor, target, offer.Guild, offer.InviteeName))
+            var (offer, details) = await units.ReadOnlyAsync(execution, declaration,
+                token => ReadOfferAsync(actor, GuildCreationPayloadCodec.EncodeGuildText(input.TargetName), token), ct).ConfigureAwait(false);
+            if (offer is null || details is null || !invitations.TryOffer(offer))
                 return await ReplyAsync(false).ConfigureAwait(false);
             await ReplyAsync(true).ConfigureAwait(false);
-            await projections.ProjectAsync(new NotificationAudience.TheseSessions([target]), details, ct).ConfigureAwait(false);
+            await projections.ProjectAsync(new NotificationAudience.TheseSessions([offer.Invitee]), details, ct).ConfigureAwait(false);
             return true;
         }
 
@@ -97,25 +93,17 @@ internal sealed class GameGuildInvitationCommandHandler(
         }
     }
 
-    private async ValueTask<Offer> FindOfferAsync(SelectedSessionIdentity actor, string name, CancellationToken ct)
+    private async ValueTask<(GuildInvitationOffer? Offer, GuildInvited? Details)> ReadOfferAsync(
+        SelectedSessionIdentity actor, byte[] name, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(name)
-            || await query.FindMembershipAsync(actor.CharacterId, ct).ConfigureAwait(false) is not { Guild: var guild }
-            || await characters.FindRecipientAsync(GuildCreationPayloadCodec.EncodeGuildText(name), ct).ConfigureAwait(false) is not { } candidate
-            || candidate.CharacterId == actor.CharacterId || !sessions.TryGetInWorld(candidate.CharacterId, out var target)
-            || await query.FindMembershipAsync(candidate.CharacterId, ct).ConfigureAwait(false) is not null
-            || (await relations.ObserversOfAsync(actor.CharacterId, CharacterRelationKind.Blacklist, ct)
-                .ConfigureAwait(false)).Contains(candidate.CharacterId))
-            return Offer.Unavailable;
-        var roster = await query.ReadRosterEntriesAsync(actor.CharacterId, ct).ConfigureAwait(false);
-        var inviter = roster.FirstOrDefault(entry => entry.Membership.Character == actor.CharacterId);
-        if (inviter is null)
-            return Offer.Unavailable;
+        if (await invitations.PrepareOfferAsync(actor, name, ct).ConfigureAwait(false) is not { } offer)
+            return default;
+
+        var guild = offer.Guild;
         var weeklyVisitors = await attendance.CountWeeklyVisitorsAsync(guild.Id, ct).ConfigureAwait(false);
         var contents = await benefits.ReadContentsAsync(guild.Id, ct).ConfigureAwait(false);
-        var details = new GuildInvited(guild.Name, inviter.Name, guild.Promotion, checked((ushort)roster.Count),
-            checked((uint)weeklyVisitors), contents.Select(content => content.Kind).ToArray());
-        return new Offer(guild.Id, target, candidate.Name, details);
+        return (offer, new GuildInvited(guild.Name, offer.InviterName, guild.Promotion, checked((ushort)offer.MemberCount),
+            checked((uint)weeklyVisitors), contents.Select(content => content.Kind).ToArray()));
     }
 
     private async ValueTask<JoinResult> JoinAsync(GuildInvitation invitation, SelectedSessionIdentity invitee, CancellationToken ct)
@@ -129,11 +117,6 @@ internal sealed class GameGuildInvitationCommandHandler(
         return new JoinResult(true,
             await GuildInfoPanel.ReadAsync(overviews, invitee.CharacterId, ct).ConfigureAwait(false),
             await query.ReadRosterEntriesAsync(invitee.CharacterId, ct).ConfigureAwait(false));
-    }
-
-    private sealed record Offer(GuildId Guild, SelectedSessionIdentity? Target, byte[] InviteeName, GuildInvited? Details)
-    {
-        public static Offer Unavailable { get; } = new(default, null, [], null);
     }
 
     private sealed record JoinResult(bool Accepted, GuildInfoPanel Panel, IReadOnlyList<GuildRosterEntry> Roster)

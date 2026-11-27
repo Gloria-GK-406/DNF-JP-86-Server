@@ -7,6 +7,15 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
 {
     public GuildRedPacketRules? Read() => content.Read();
 
+    public static int RollClaimAmount(int remaining, int sharesLeft, int seed)
+    {
+        if (sharesLeft == 1)
+            return remaining;
+
+        var upperBound = Math.Min(remaining - sharesLeft + 1, 2 * (remaining / sharesLeft));
+        return new Random(seed).Next(1, upperBound + 1);
+    }
+
     public int DailyContribution(GuildDailyContributionKind kind) =>
         Read()?.DailyContributionPoints.GetValueOrDefault(kind) ?? 0;
 

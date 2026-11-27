@@ -104,8 +104,7 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         var day = Day(now);
         if (await store.CountTakenAsync(actor.AccountId, day, ct).ConfigureAwait(false) >= rules.DailyTakeLimit)
             return new(GuildRedPacketStatus.DailyTakeLimit);
-        var amount = packet.SharesLeft == 1 ? packet.Remaining : Random.Shared.Next(1,
-            Math.Min(packet.Remaining - packet.SharesLeft + 1, 2 * (packet.Remaining / packet.SharesLeft)) + 1);
+        var amount = GuildRedPacketRuleService.RollClaimAmount(packet.Remaining, packet.SharesLeft, Random.Shared.Next());
         try
         {
             await wallets.AddAsync(actor.AccountId, AccountCurrency.HappyTokenCera, amount, ct).ConfigureAwait(false);
