@@ -15,6 +15,8 @@ internal sealed class GuildProfileRuleService(IGuildEconomySource content)
 
     public static bool AllowsAnnouncement(string announcement) => GuildTextRules.IsValidAnnouncement(announcement);
 
+    public static bool AllowsBoardPost(string text) => GuildTextRules.IsValidBoardPost(text);
+
     public static bool AllowsMemberMemo(string memo) => GuildTextRules.IsValidMemberMemo(memo);
 
     public GuildMarkChangeDecision EvaluateMarkChange(byte mark, GuildMembership? membership)

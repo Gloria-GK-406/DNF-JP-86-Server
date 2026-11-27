@@ -1,4 +1,3 @@
-using System.Text;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
@@ -8,7 +7,6 @@ namespace Dfo.Server.Application.Guilds;
 internal sealed class GuildBoardDomainService(IGuildDomainStore store, TimeProvider clock) : IGuildBoardDomainService
 {
     private const int Capacity = byte.MaxValue;
-    private const int MaximumTextWidth = 120;
 
     public async ValueTask<GuildBoardSnapshot?> ReadAsync(CharacterId viewer, CancellationToken ct)
     {
@@ -21,7 +19,7 @@ internal sealed class GuildBoardDomainService(IGuildDomainStore store, TimeProvi
     {
         if (await store.FindMembershipAsync(author, ct).ConfigureAwait(false) is not { Guild.Id: var guild })
             return new(false, null);
-        var written = IsValidText(text) && await store.TryWriteBoardPostAsync(
+        var written = GuildProfileRuleService.AllowsBoardPost(text) && await store.TryWriteBoardPostAsync(
             guild, author, text, clock.GetUtcNow(), Capacity, ct).ConfigureAwait(false);
         return new(written, await ReadSnapshotAsync(guild, author, ct).ConfigureAwait(false));
     }
@@ -37,17 +35,4 @@ internal sealed class GuildBoardDomainService(IGuildDomainStore store, TimeProvi
     private async ValueTask<GuildBoardSnapshot> ReadSnapshotAsync(GuildId guild, CharacterId viewer, CancellationToken ct) =>
         new(viewer, clock.GetUtcNow(), await store.ReadBoardPostsAsync(guild, ct).ConfigureAwait(false));
 
-    private static bool IsValidText(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return false;
-        var width = 0;
-        foreach (var rune in text.EnumerateRunes())
-        {
-            width += rune.IsAscii ? 1 : 2;
-            if (Rune.IsControl(rune) || width > MaximumTextWidth)
-                return false;
-        }
-        return true;
-    }
 }

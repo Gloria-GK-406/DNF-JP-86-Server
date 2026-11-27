@@ -577,6 +577,23 @@ public sealed class GuildDomainTests : IDisposable
     }
 
     [Fact]
+    public async Task Guild_board_validates_display_width_before_recording_a_post()
+    {
+        await Write(() => guilds.CreateAsync(new(11), "Iris", "", default));
+        var board = new GuildBoardDomainService(store, clock);
+        var text = new string('a', 116) + "会😀";
+        var accepted = await Write(() => board.WriteAsync(new(11), text, default));
+        Assert.True(accepted.Written);
+        Assert.Equal(text, Assert.Single(accepted.Snapshot!.Posts).Text);
+        foreach (var invalid in new[] { text + "a", "", "  ", "a\nb" })
+        {
+            var rejected = await Write(() => board.WriteAsync(new(11), invalid, default));
+            Assert.False(rejected.Written);
+            Assert.Equal(text, Assert.Single(rejected.Snapshot!.Posts).Text);
+        }
+    }
+
+    [Fact]
     public async Task Guild_creation_lookup_and_edits_preserve_their_text_limits()
     {
         var promotion = new string('会', 40);

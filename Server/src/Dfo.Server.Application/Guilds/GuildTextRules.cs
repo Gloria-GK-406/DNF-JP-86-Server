@@ -5,6 +5,8 @@ namespace Dfo.Server.Application.Guilds;
 
 internal static class GuildTextRules
 {
+    private const int MaximumBoardPostWidth = 120;
+
     public static string? NameKey(string name) =>
         name.Length is > 0 and <= 24 && name.Trim() == name && IsWellFormed(name)
             ? name.Normalize().ToUpperInvariant()
@@ -25,6 +27,20 @@ internal static class GuildTextRules
     public static bool IsValidRankName(string text) =>
         text.Length <= 20 && !string.IsNullOrWhiteSpace(text) && IsWellFormed(text)
         && StrictUtf8.GetByteCount(text) <= GuildRankSettings.MaximumNameBytes;
+
+    public static bool IsValidBoardPost(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+        var width = 0;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            width += rune.IsAscii ? 1 : 2;
+            if (Rune.IsControl(rune) || width > MaximumBoardPostWidth)
+                return false;
+        }
+        return true;
+    }
 
     private static bool IsWellFormed(string text)
     {
