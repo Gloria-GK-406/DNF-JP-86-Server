@@ -111,6 +111,9 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
         services.TryAddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();
         services.TryAddSingleton<IEquipmentEnchantDomainService, EquipmentEnchantDomainService>();
+        services.TryAddSingleton<GuardianGemRuleService>();
+        services.TryAddSingleton<GuildItemCompoundRuleService>();
+        services.TryAddSingleton<GuildMedalRuleService>();
         services.TryAddSingleton<IGuardianGemDomainService, GuardianGemDomainService>();
         services.TryAddSingleton<IGuildItemCompoundDomainService, GuildItemCompoundDomainService>();
         services.TryAddSingleton<IEquipmentMagicSealSeedSource, EquipmentMagicSealSeedSource>();

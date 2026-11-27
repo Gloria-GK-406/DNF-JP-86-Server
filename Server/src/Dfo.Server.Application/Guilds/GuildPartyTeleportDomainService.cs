@@ -1,6 +1,6 @@
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Application.World;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Parties;
@@ -21,7 +21,7 @@ internal sealed class GuildPartyTeleportDomainService(
     ICharacterDomainService characters,
     ICharacterQuestLogDomainService quests,
     IChannelEntryDomainService channels,
-    ITownDefinitionSource definitions,
+    GuildTravelRuleService travelRules,
     IEntryPlacementRuleService placement,
     ITownTransitDomainService transit,
     IMarriageQueryDomainService marriage) : IGuildPartyTeleportDomainService
@@ -54,18 +54,9 @@ internal sealed class GuildPartyTeleportDomainService(
             || !await placement.SharesTownPresenceAsync(target.TownId, target.AreaId, ct).ConfigureAwait(false))
             return new(null, GuildPartyTeleportRefusal.DestinationUnavailable);
 
-        var town = await definitions.GetAsync(target.TownId, ct).ConfigureAwait(false);
-        if (town?.AreaAt(target.AreaId) is not { } area)
+        if (await travelRules.TeleportDestinationAsync(target, ct).ConfigureAwait(false) is not { } landing)
             return new(null, GuildPartyTeleportRefusal.DestinationUnavailable);
-
-        var geometry = await definitions.GetMapGeometryAsync(area.MapPath, ct).ConfigureAwait(false);
-        if (geometry is null || geometry.WalkableAreas.Count == 0)
-            return new(null, GuildPartyTeleportRefusal.DestinationUnavailable);
-        var (x, y) = geometry.IsWalkable(target.X, target.Y)
-            ? ((int)target.X, (int)target.Y)
-            : (geometry.WalkableAreas[0].CenterX, geometry.WalkableAreas[0].CenterY);
-        if (x is < short.MinValue or > short.MaxValue || y is < short.MinValue or > short.MaxValue)
-            return new(null, GuildPartyTeleportRefusal.DestinationUnavailable);
+        var (area, x, y) = landing;
 
         foreach (var member in members)
         {
@@ -86,7 +77,7 @@ internal sealed class GuildPartyTeleportDomainService(
         }
 
         var destination = new TownAreaKey(channel.ChannelId, target.TownId, target.AreaId);
-        var position = new CharacterPositionState(target.TownId, target.AreaId, (short)x, (short)y, target.Direction);
+        var position = new CharacterPositionState(target.TownId, target.AreaId, x, y, target.Direction);
         if (members.All(member => member.Area == destination && member.Position == position))
             return new(null, GuildPartyTeleportRefusal.AlreadyThere);
         return new(new GuildPartyTeleportPlan(destination, position, members));

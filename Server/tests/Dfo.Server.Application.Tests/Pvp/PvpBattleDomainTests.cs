@@ -945,7 +945,8 @@ public sealed class PvpBattleDomainTests
             relations: new TestCharacterRelations(), identities: new TestCharacterRelations(),
             pvpRooms: f.Rooms, pvpSettlement: settlement ?? f.Settlement, pvpDepartures: sinks,
             logger: NullLogger<SelectedSessionCleanupService>.Instance,
-            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>());
+            raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(),
+            guilds: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>());
     }
 
     private sealed class FailingSink : IPvpRoomDepartureSink

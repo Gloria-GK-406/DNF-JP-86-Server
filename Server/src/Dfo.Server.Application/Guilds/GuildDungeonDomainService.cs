@@ -12,17 +12,17 @@ using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.Guilds;
 
-internal sealed class GuildDungeonDomainService(IGuildDungeonContentSource content, IGuildDungeonStore progress,
+internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, IGuildDungeonStore progress,
     IGuildDomainStore guilds, IGuildPointAccount pointAccount, ISelectedSessionDomainService sessions, IDungeonEntryIntentDomainService intents,
     IDungeonAdmissionDomainService admission, IDungeonVisitDomainService visits, IDungeonStructureRuleService layouts,
     IItemDeliveryDomainService items, IEventService events, TimeProvider clock, ICharacterDomainService characters)
     : IGuildDungeonDomainService
 {
-    public bool Supports(int dungeon) => content.Read()?.Dungeons.ContainsKey(dungeon) == true;
+    public bool Supports(int dungeon) => rules.Supports(dungeon);
 
     public async ValueTask<bool> TryExtendAsync(CharacterId character, int guildPoints, DateTimeOffset now, CancellationToken ct)
     {
-        if (guildPoints <= 0 || content.Read() is not { } catalog
+        if (guildPoints <= 0 || rules.Catalog() is not { } catalog
             || await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { Member.IsLeader: true } member)
             return false;
         var guild = member.Guild.Id;
@@ -46,21 +46,16 @@ internal sealed class GuildDungeonDomainService(IGuildDungeonContentSource conte
 
     public async ValueTask<int?> ReadMedalShopAsync(GuildId guild, DateTimeOffset now, CancellationToken ct)
     {
-        if (content.Read() is not { } catalog)
+        if (rules.Catalog() is not { } catalog)
             return null;
         var period = await CurrentAdmissionAsync(guild, catalog.StyleId, now, ct).ConfigureAwait(false);
         var counts = await progress.ReadProgressAsync(period, ct).ConfigureAwait(false);
-        return MedalShopFor(catalog, period, counts);
+        return GuildDungeonRuleService.MedalShopFor(catalog, period, counts);
     }
-
-    private static int? MedalShopFor(GuildDungeonCatalog catalog, GuildDungeonAdmission admission,
-        IReadOnlyDictionary<int, int> counts) =>
-        catalog.Dungeons.TryGetValue(GuildHallTown.MedalShopUnlockDungeonId, out var dungeon)
-        && dungeon.Ratio(counts.GetValueOrDefault(dungeon.Id)) == 100 ? admission.MedalShopId : null;
 
     public async ValueTask<GuildDungeonView?> ReadAsync(CharacterId character, CancellationToken ct)
     {
-        if (content.Read() is not { } catalog ||
+        if (rules.Catalog() is not { } catalog ||
             await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } member)
             return null;
 
@@ -69,16 +64,16 @@ internal sealed class GuildDungeonDomainService(IGuildDungeonContentSource conte
         return new(identity, catalog.Dungeons.Keys.Order()
             .Select(id => new GuildDungeonProgress(id, counts.GetValueOrDefault(id))).ToArray())
         {
-            MedalShopId = MedalShopFor(catalog, identity, counts),
+            MedalShopId = GuildDungeonRuleService.MedalShopFor(catalog, identity, counts),
         };
     }
 
     public async ValueTask<int?> ReadRepeatBonusAsync(CharacterId character, CancellationToken ct) =>
-        content.Read()?.RepeatBonus is null ? null : await progress.ReadRepeatBonusAsync(character, ct).ConfigureAwait(false);
+        rules.Catalog()?.RepeatBonus is null ? null : await progress.ReadRepeatBonusAsync(character, ct).ConfigureAwait(false);
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext entry, CancellationToken ct)
     {
-        if (content.Read() is not { } catalog || !catalog.Dungeons.TryGetValue(entry.DungeonId, out var definition))
+        if (rules.Catalog() is not { } catalog || !catalog.Dungeons.TryGetValue(entry.DungeonId, out var definition))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.DungeonNotFound);
         if (entry.RequestMode != 0 || entry.PracticeMode != 0 || entry.MirrorQuestId is not null || entry.Participants.Count == 0
             || entry.Facts.Intent.GuildSelection is not { } selection)
@@ -109,8 +104,7 @@ internal sealed class GuildDungeonDomainService(IGuildDungeonContentSource conte
 
         var plan = await CurrentAdmissionAsync(new GuildId((uint)gate!.Value.Instance), catalog.StyleId, clock.GetUtcNow(), ct).ConfigureAwait(false);
         var counts = await progress.ReadProgressAsync(plan, ct).ConfigureAwait(false);
-        if (definition.Prerequisites.Any(id =>
-            catalog.Dungeons[id].Ratio(counts.GetValueOrDefault(id)) < catalog.Dungeons[id].ConquestRatio))
+        if (!GuildDungeonRuleService.PrerequisitesMet(catalog, definition, counts))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.MissingPrerequisite, "Guild conquest prerequisite is incomplete.");
 
         var mode = new DungeonRunMode.GuildDungeon(plan)
@@ -130,7 +124,7 @@ internal sealed class GuildDungeonDomainService(IGuildDungeonContentSource conte
     {
         if (run.Layout.Mode is not DungeonRunMode.GuildDungeon mode || !run.ClearOpen
             || !run.Participants.Any(member => member.CharacterId == character && member.AccountId == account)
-            || content.Read() is not { } catalog
+            || rules.Catalog() is not { } catalog
             || mode.Admission.StyleId != catalog.StyleId || !catalog.Dungeons.TryGetValue(run.Layout.DungeonId, out var dungeon)
             || await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } membership
             || !mode.Includes(membership))
@@ -140,8 +134,7 @@ internal sealed class GuildDungeonDomainService(IGuildDungeonContentSource conte
         if (mode.Admission.Period.StartUnix != entry.Period.StartUnix)
             return false;
         var counts = await progress.ReadProgressAsync(entry, ct).ConfigureAwait(false);
-        var ratio = dungeon.Ratio(counts.GetValueOrDefault(dungeon.Id));
-        var reward = dungeon.Rewards.First(row => ratio <= row.MaximumRatio);
+        var reward = GuildDungeonRuleService.RewardFor(dungeon, counts.GetValueOrDefault(dungeon.Id));
         if (!await progress.TryRecordClearAsync(run.RunId.Value, character, entry, dungeon.Id, reward.Contribution, ct)
                 .ConfigureAwait(false))
             return false;

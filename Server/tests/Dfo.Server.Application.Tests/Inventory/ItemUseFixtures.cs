@@ -165,17 +165,16 @@ internal abstract class FakeMainInventory(int characterId = 60)
     /// container instead.
     /// </remarks>
     public ICharacterContainerDomainService Containers(
-        IItemPlacementDefinitionSource? placements = null)
+        IItemPlacementDefinitionSource? placements = null, params InventoryContainerType[] additionalLists)
     {
         var containers = new CharacterContainerDomainService(TestRequired.TransactionScope());
-        TestGameplay.Run(() => containers.Register(this.character, new PersistentItemContainer(
-            this.Main,
-            new ContainerShape(InventoryContainerType.Main, 0),
-            this.store,
-            this.Scope,
-            new ItemPlacementRuleService(
-                placements ?? new ConsumableBandPlacements(), new NoWearables()),
-            new ItemSlotRuleService())));
+        var rules = new ItemPlacementRuleService(placements ?? new ConsumableBandPlacements(), new NoWearables());
+        TestGameplay.Run(() =>
+        {
+            foreach (var list in additionalLists.Prepend(InventoryContainerType.Main))
+                containers.Register(character, new PersistentItemContainer(ContainerId.ForCharacter(character, list),
+                    new ContainerShape(list, 0), store, Scope, rules, new ItemSlotRuleService()));
+        });
         return containers;
     }
 

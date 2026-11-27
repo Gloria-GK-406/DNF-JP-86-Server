@@ -1,4 +1,3 @@
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
@@ -6,7 +5,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class GuardianGemDomainService(IBusinessInventorySlotDomainService inventory,
-    IEquipmentEnchantContentSource content, IItemLifecycleDomainService lifecycle, TimeProvider clock)
+    GuardianGemRuleService rules, IItemLifecycleDomainService lifecycle, TimeProvider clock)
     : IGuardianGemDomainService
 {
     private static readonly BusinessSlot WornMedal = A21InventoryLayout.ToBusinessSlot(A21InventoryLayout.WornGuildMedal);
@@ -28,21 +27,9 @@ internal sealed class GuardianGemDomainService(IBusinessInventorySlotDomainServi
             return new(GuardianGemRejection.InvalidGem);
 
         var sockets = medal.Snapshot.GuardianGems;
-        if (sockets.ItemIdAt(socket) == expectedGem)
-            return new(GuardianGemRejection.InvalidGem);
-        var effects = await content.GuardianGemEffectsAsync(expectedGem, ct).ConfigureAwait(false);
-        if (effects.Count == 0)
-            return new(GuardianGemRejection.InvalidGem);
-        for (var index = 0; index < GuardianGemSockets.Count; index++)
-        {
-            var prior = sockets.ItemIdAt(index);
-            if (index == socket || prior == 0) continue;
-            var existing = await content.GuardianGemEffectsAsync(prior, ct).ConfigureAwait(false);
-            if (existing.Count == 0)
-                return new(GuardianGemRejection.InvalidTarget);
-            if (effects.Intersect(existing, StringComparer.OrdinalIgnoreCase).Any())
-                return new(GuardianGemRejection.InvalidGem);
-        }
+        var rejection = await rules.CheckSocketAsync(sockets, expectedGem, socket, ct).ConfigureAwait(false);
+        if (rejection != GuardianGemRejection.None)
+            return new(rejection);
 
         var installed = await equipped.Container.UpdateAsync(medal,
             core => core with { GuardianGems = sockets.Install(socket, expectedGem) }, ct).ConfigureAwait(false);

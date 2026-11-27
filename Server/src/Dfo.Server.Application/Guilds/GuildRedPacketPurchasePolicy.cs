@@ -5,7 +5,7 @@ using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Guilds;
 
-internal sealed class GuildRedPacketPurchasePolicy(IGuildRedPacketRuleSource source, IGuildRedPacketStore store,
+internal sealed class GuildRedPacketPurchasePolicy(GuildRedPacketRuleService source, IGuildRedPacketStore store,
     IGuildDomainStore guilds, TimeProvider clock) : IGuildRedPacketPurchasePolicy
 {
     public CeraShopQuote Prepare(CeraShopQuote quote, DateTimeOffset now)

@@ -20,6 +20,7 @@ internal static class TownsRegistration
         services.TryAddSingleton<ITutorialRewardRuleService, TutorialRewardRuleService>();
         // Whether a character may stand where they say, and what a tutorial step declares.
         services.TryAddSingleton<ITownMovementDomainService, TownMovementDomainService>();
+        services.TryAddSingleton<GuildTravelRuleService>();
         services.TryAddSingleton<ITownTransitDomainService, TownTransitDomainService>();
         services.TryAddSingleton<ITutorialRewardDomainService, TutorialRewardDomainService>();
         services.TryAddSingleton<OnlineCharacterLocationDomainService>();

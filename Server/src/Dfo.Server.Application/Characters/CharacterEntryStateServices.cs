@@ -8,6 +8,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Application.Creatures;
+using Dfo.Server.Application.Inventory;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Inventory;
@@ -245,7 +246,7 @@ internal sealed class CharacterEntryStateDomainService(
     Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService guilds,
     Dfo.Server.Abstractions.Guilds.IGuildBenefitDomainService benefits,
     Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService privateStores,
-    ICharacterBusinessInventoryDomainService inventory, IEquipmentDefinitionSource equipment,
+    ICharacterBusinessInventoryDomainService inventory, GuildMedalRuleService medals,
     TimeProvider clock) : ICharacterEntryStateDomainService
 {
     private static readonly BusinessSlot WornMedal = A21InventoryLayout.ToBusinessSlot(A21InventoryLayout.WornGuildMedal);
@@ -256,13 +257,8 @@ internal sealed class CharacterEntryStateDomainService(
         // Login projects the worn medal before the selected session registers its live containers.
         var worn = inventory.GetPersistentStore(new(InventoryOwnerType.Character, character.Value),
             BusinessInventoryOwnership.StoreOf(WornMedal.Space)).GetContainer(WornMedal.Space);
-        if (await worn.GetAsync(WornMedal.Index, ct).ConfigureAwait(false) is not { } medal
-            || medal.Snapshot is not { LegacyKind: 12, IsPile: false, IsMirror: false }
-            || medal.Snapshot.Lifetime.IsExpired(clock.GetUtcNow()))
-            return null;
-
-        // The effect applies to Unique and higher guild medals.
-        return await equipment.GetEquipmentAsync(medal.ItemId, ct).ConfigureAwait(false) is { Rarity: >= 3 }
+        var medal = await worn.GetAsync(WornMedal.Index, ct).ConfigureAwait(false);
+        return medal is not null && await medals.SupportsAuraAsync(medal, clock.GetUtcNow(), ct).ConfigureAwait(false)
             ? guild.MedalAura : null;
     }
 

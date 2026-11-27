@@ -9,12 +9,12 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Guilds;
 
 internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, IGuildContributionStore store,
-    IGuildRedPacketRuleSource rules, IItemDeliveryDomainService delivery, TimeProvider clock) : IGuildContributionDomainService
+    GuildRedPacketRuleService rules, IItemDeliveryDomainService delivery, TimeProvider clock) : IGuildContributionDomainService
 {
     public async ValueTask<ItemDeliveryReceipt?> AwardDailyAsync(SelectedSessionIdentity actor,
         GuildDailyContributionKind kind, CancellationToken ct)
     {
-        var points = rules.Read()?.DailyContributionPoints.GetValueOrDefault(kind) ?? 0;
+        var points = rules.DailyContribution(kind);
         if (points <= 0 || await guilds.FindMembershipAsync(actor.CharacterId, ct).ConfigureAwait(false) is not { } membership)
             return null;
 

@@ -183,7 +183,7 @@ public sealed class SpecialConsumableEffectTests
     public void Permanent_item_can_be_used_after_2038()
     {
         var rule = ItemUseRules.Potion(0);
-        var plans = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((8474, rule))));
+        var plans = new ItemUseEffectRuleService(new ItemUseRuleService(new FakeItemUseRules((8474, rule))), Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());
         var item = TestItemReferences.FromCore(0, StackableItemCore.Create(2, 8474, 2) with { ExpireTime = 0 },
             ItemWorldClass.Interchangeable);
         var result = plans.Build(rule, new(BusinessInventorySpace.QuickSlot, 0), item,

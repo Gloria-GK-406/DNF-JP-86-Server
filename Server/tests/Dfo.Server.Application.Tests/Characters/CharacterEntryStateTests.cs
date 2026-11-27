@@ -38,7 +38,7 @@ public sealed class CharacterEntryStateTests
             privateStores: TestRequired.Absent<Dfo.Server.Abstractions.PrivateStore.IPrivateStoreQueryDomainService>((method, arguments) =>
                 method.Name == "IsPermittedAsync" ? ValueTask.FromResult(false) : null),
             inventory: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.ICharacterBusinessInventoryDomainService>(),
-            equipment: TestRequired.Absent<IEquipmentDefinitionSource>(), clock: TimeProvider.System);
+            medals: new(TestRequired.Absent<IEquipmentDefinitionSource>()), clock: TimeProvider.System);
 
         var result = await service.LoadAsync(accountId, characterId, CancellationToken.None);
 

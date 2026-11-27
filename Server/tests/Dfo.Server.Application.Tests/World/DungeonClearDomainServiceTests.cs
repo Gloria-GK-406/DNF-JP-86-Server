@@ -258,8 +258,8 @@ public sealed class DungeonClearDomainServiceTests
 
             var party = new GuildContributionDomainService(store,
                 TestRequired.Absent<IGuildContributionStore>((_, _) => ValueTask.FromResult(1)),
-                TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => new GuildRedPacketRules(
-                    new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1) { PartyDungeonContribution = new(2, 1) }),
+                new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => new GuildRedPacketRules(
+                    new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1) { PartyDungeonContribution = new(2, 1) })),
                 delivery, TimeProvider.System);
             var award = await party.AwardClearAsync(LeaderAccount, Leader, completed, settledAt, default);
             Assert.Equal(earnsParty, award is not null);

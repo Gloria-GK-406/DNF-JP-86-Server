@@ -15,7 +15,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.Guilds;
 
 internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGuildRedPacketStore store,
-    IGuildRedPacketRuleSource source, ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
+    GuildRedPacketRuleService source, ICharacterDomainService characters, ICharacterBusinessInventoryDomainService inventory,
     IApplyEffectsDomainService effects, IAccountWalletDomainService wallets, IMailboxDomainService mailbox, TimeProvider clock)
     : IGuildRedPacketDomainService
 {
@@ -64,10 +64,9 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         var guild = membership.Guild.Id;
         if (await store.CountActiveAsync(guild, now.ToUnixTimeSeconds(), ct).ConfigureAwait(false) >= GuildRedPacketRules.GuildActiveLimit)
             return new(GuildRedPacketStatus.Full);
-        var itemId = rules.Products.ContainsKey(selection) ? selection
-            : selection is >= 0 && selection < rules.Products.Count ? rules.Products.Keys.ElementAt(selection) : 0;
-        if (!rules.Products.TryGetValue(itemId, out var product))
+        if (GuildRedPacketRuleService.Product(rules, selection) is not { } selected)
             return new(GuildRedPacketStatus.Invalid);
+        var (itemId, product) = selected;
         var bags = inventory.GetStore(actor.CharacterId, BusinessInventoryStoreKind.Item);
         ItemReference? held = null;
         foreach (var space in new[] { BusinessInventorySpace.Consumable, BusinessInventorySpace.QuickSlot })

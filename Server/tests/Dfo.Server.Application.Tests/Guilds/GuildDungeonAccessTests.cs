@@ -34,7 +34,7 @@ public sealed class GuildDungeonAccessTests
                 standings.GetValueOrDefault((SelectedSessionIdentity)a![0]!)));
         var catalog = new GuildDungeonCatalog(0, new Dictionary<int, GuildDungeonDefinition>
             { [Dungeon] = new(Dungeon, 100, 5, 100, [], [new(100, 5, 1, 0)]) });
-        dungeons = new(TestRequired.Absent<IGuildDungeonContentSource>((_, _) => catalog),
+        dungeons = new(new(TestRequired.Absent<IGuildDungeonContentSource>((_, _) => catalog)),
             TestRequired.Absent<IGuildDungeonStore>((m, a) => m.Name switch
             {
                 nameof(IGuildDungeonStore.ResolvePeriodAsync) => ValueTask.FromResult((GuildDungeonPeriod)a![1]!),

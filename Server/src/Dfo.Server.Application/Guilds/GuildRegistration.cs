@@ -11,6 +11,8 @@ internal static class GuildRegistration
 {
     public static void AddGuilds(this IServiceCollection services)
     {
+        services.TryAddSingleton<GuildDungeonRuleService>();
+        services.TryAddSingleton<GuildRedPacketRuleService>();
         services.TryAddSingleton<GuildEconomyRuleService>();
         services.TryAddSingleton<GuildProfileRuleService>();
         services.TryAddSingleton<GuildProductRuleService>();

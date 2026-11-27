@@ -18,7 +18,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
     IExperienceItemDomainService experienceItems, IEntryAllowanceItemDomainService entryItems,
     IDungeonParticipationDomainService participation, IReviveCoinDomainService reviveCoins,
     Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
-    IOpeningInventoryDomainService openingInventory, IStackableActionDefinitionSource stackableActions,
+    IOpeningInventoryDomainService openingInventory,
     IGuildDungeonDomainService guildDungeons) : IItemUseEffectDomainService
 {
     public async ValueTask<ItemUseApplication> UseAsync(SelectedSessionIdentity session, BusinessSlot source,
@@ -89,13 +89,10 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
         if (rule?.Action == GuildDungeonExtensionTicket.Action)
         {
-            var definition = await stackableActions.GetAsync(item.ItemId, ct).ConfigureAwait(false);
-            if (definition is not { Action: GuildDungeonExtensionTicket.Action, IsReadable: true, GuildDungeonExtensionCost: > 0 }
-                || !plan.Effects.Any(x => x is ConsumeFromContainerEffect { Count: 1 } consume
-                    && consume.Slot == source && consume.ExpectedItemId == item.ItemId))
+            if (await rules.GuildExtensionCostAsync(item.ItemId, source, plan, ct).ConfigureAwait(false) is not { } cost)
                 return new(ItemUsability.NotAUsableItem, item.ItemId, item.Count);
             footprint.DemandActive(session);
-            if (!await guildDungeons.TryExtendAsync(session.CharacterId, definition.GuildDungeonExtensionCost, at, ct)
+            if (!await guildDungeons.TryExtendAsync(session.CharacterId, cost, at, ct)
                 .ConfigureAwait(false))
                 return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
         }

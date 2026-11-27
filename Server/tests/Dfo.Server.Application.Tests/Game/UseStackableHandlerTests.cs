@@ -634,9 +634,8 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, inventory.Scope),
             new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
-        var ruleService = new ItemUseEffectRuleService(judgement);
+        var ruleService = new ItemUseEffectRuleService(judgement, Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());
         var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock, events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), experienceItems: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IExperienceItemDomainService>(), entryItems: TestRequired.Absent<Dfo.Server.Abstractions.World.IEntryAllowanceItemDomainService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), reviveCoins: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IReviveCoinDomainService>(), luckyStars: TestRequired.Absent<Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService>(), openingInventory: TestRequired.Absent<IOpeningInventoryDomainService>(),
-            stackableActions: TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>(),
             guildDungeons: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildDungeonDomainService>());
 
         var areas = new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();

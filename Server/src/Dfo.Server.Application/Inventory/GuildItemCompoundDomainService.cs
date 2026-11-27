@@ -1,4 +1,3 @@
-using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
@@ -8,10 +7,10 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
-internal sealed class GuildItemCompoundDomainService(IGuildCompoundContentSource content,
+internal sealed class GuildItemCompoundDomainService(GuildItemCompoundRuleService rules,
     IBusinessInventorySlotDomainService slots, IItemLifecycleDomainService lifecycle,
     IItemDeliveryDomainService delivery, IGuildHallAccessDomainService halls,
-    ILotteryRandomSource random, TimeProvider clock)
+    TimeProvider clock)
     : IGuildItemCompoundDomainService
 {
     public async ValueTask<GuildCompoundReceipt?> CompoundAsync(SelectedSessionIdentity session, GuildCompoundInput input,
@@ -21,8 +20,7 @@ internal sealed class GuildItemCompoundDomainService(IGuildCompoundContentSource
         if (input.Kind is not (GuildCompoundKind.GuardianGem or GuildCompoundKind.Medal)
             || input.Materials.Count is < 2 or > 4 || input.Rarity is < 0 or > 6
             || await halls.VisitAsync(session, GuildHallTown.DungeonGateAreaId, ct).ConfigureAwait(false) is null
-            || content.FindRule(input.Kind, input.Rarity) is not { } rule
-            || input.Materials.Count > rule.MaxMaterials)
+            || rules.Recipe(input) is not { } rule)
             return null;
 
         var gem = input.Kind == GuildCompoundKind.GuardianGem;
@@ -40,14 +38,12 @@ internal sealed class GuildItemCompoundDomainService(IGuildCompoundContentSource
                 || item.Snapshot.LegacyKind != (gem ? 13 : 12)
                 || item.Snapshot.IsMirror || item.Snapshot.EquipmentLockId != 0 || item.Snapshot.SortLockFlag != 0
                 || item.Snapshot.Lifetime.IsExpired(now)
-                || content.GetRarity(input.Kind, item.ItemId) != input.Rarity)
+                || !rules.AcceptsMaterial(input, item.ItemId))
                 return null;
             costs.Add(new(address, bound.Container, item, count));
         }
 
-        var upgrades = rule.UpgradeBasisPointsPerMaterial * input.Materials.Count;
-        var pool = upgrades > 0 && random.NextInt64(10_000) < upgrades ? rule.UpgradedProducts : rule.Products;
-        var product = pool[checked((int)random.NextInt64(pool.Count))];
+        var product = rules.DrawProduct(rule, input.Materials.Count);
         foreach (var cost in costs)
             await ItemContainerOperations.ConsumeAsync(cost.Container, cost.Item, cost.Count, lifecycle, ct)
                 .ConfigureAwait(false);

@@ -75,7 +75,7 @@ internal static class ProtocolAlgorithmFixture
         new Dfo.Server.Application.Guilds.GuildHallAccessDomainService(
             values.OfType<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Guilds.IGuildMembershipQueryDomainService>(),
             values.OfType<IOnlineCharacterRuntimeDomainService>().LastOrDefault() ?? Default<IOnlineCharacterRuntimeDomainService>()),
-        values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
+        new(values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>()),
         values.OfType<ICharacterLocationDomainService>().LastOrDefault() ?? Default<ICharacterLocationDomainService>());
     // Placement reads content only through the town definitions a test supplies; its couple-room
     // rules are pure and answer without any.

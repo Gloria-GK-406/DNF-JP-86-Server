@@ -51,7 +51,7 @@ public sealed class GuildDomainTests : IDisposable
             TestRequired.Absent<ICarriedGoldRuleService>(), characters, TestRequired.Absent<ICharacterSkillPointDomainService>(),
             TestRequired.Absent<ICharacterStatRuleService>(), TestRequired.Absent<ICharacterSkillStateDomainService>(),
             TestRequired.Absent<IExperienceRuleService>(), TestRequired.Absent<IExperienceCapsuleDomainService>(),
-            scope, new DiscardingEventService());
+            TestRequired.InitialHonor, scope, new DiscardingEventService());
         guilds = new(store, warehouse, new(economy), players, characters, TimeProvider.System);
         profiles = new(store, points, new(economy));
         donations = new(store, points, new(economy), players, TimeProvider.System);
