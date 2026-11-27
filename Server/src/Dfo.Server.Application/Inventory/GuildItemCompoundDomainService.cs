@@ -17,9 +17,7 @@ internal sealed class GuildItemCompoundDomainService(GuildItemCompoundRuleServic
         IEffectFootprintRecorder footprint, CancellationToken ct)
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
-        if (input.Kind is not (GuildCompoundKind.GuardianGem or GuildCompoundKind.Medal)
-            || input.Materials.Count is < 2 or > 4 || input.Rarity is < 0 or > 6
-            || await halls.VisitAsync(session, GuildHallTown.DungeonGateAreaId, ct).ConfigureAwait(false) is null
+        if (await halls.VisitAsync(session, GuildHallTown.DungeonGateAreaId, ct).ConfigureAwait(false) is null
             || rules.Recipe(input) is not { } rule)
             return null;
 

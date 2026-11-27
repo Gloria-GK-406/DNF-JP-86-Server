@@ -28,12 +28,23 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
         return new(remaining, checked((int)(claimed * contributionRate / 10_000)));
     }
 
-    public static (int ItemId, GuildRedPacketProduct Product)? Product(GuildRedPacketRules rules, int selection)
+    public static GuildRedPacketIssuance EvaluateIssuance(GuildRedPacketRules rules, int selection, byte shares,
+        int activeCount, DateTimeOffset now)
     {
+        if (shares is < GuildRedPacketRules.MinShares or > GuildRedPacketRules.MaxShares)
+            return new(GuildRedPacketStatus.Invalid);
+        if (activeCount >= GuildRedPacketRules.GuildActiveLimit)
+            return new(GuildRedPacketStatus.Full);
+
         var itemId = rules.Products.ContainsKey(selection) ? selection
             : selection is >= 0 && selection < rules.Products.Count ? rules.Products.Keys.ElementAt(selection) : 0;
-        return rules.Products.TryGetValue(itemId, out var product) ? (itemId, product) : null;
+        return rules.Products.TryGetValue(itemId, out var product)
+            ? new(GuildRedPacketStatus.Success, itemId, product, now.AddHours(24).ToUnixTimeSeconds())
+            : new(GuildRedPacketStatus.Invalid);
     }
 }
 
 internal readonly record struct GuildRedPacketSettlement(int Refund, int ContributionPoints);
+
+internal readonly record struct GuildRedPacketIssuance(GuildRedPacketStatus Status, int ItemId = 0,
+    GuildRedPacketProduct? Product = null, long ExpiresAt = 0);

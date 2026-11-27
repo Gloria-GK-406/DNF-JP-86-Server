@@ -57,16 +57,14 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         if (source.Read() is not { } rules ||
             await guilds.FindMembershipAsync(actor.CharacterId, ct).ConfigureAwait(false) is not { } membership)
             return new(GuildRedPacketStatus.Unavailable);
-        if (shares is < GuildRedPacketRules.MinShares or > GuildRedPacketRules.MaxShares)
-            return new(GuildRedPacketStatus.Invalid);
 
         var now = clock.GetLocalNow();
         var guild = membership.Guild.Id;
-        if (await store.CountActiveAsync(guild, now.ToUnixTimeSeconds(), ct).ConfigureAwait(false) >= GuildRedPacketRules.GuildActiveLimit)
-            return new(GuildRedPacketStatus.Full);
-        if (GuildRedPacketRuleService.Product(rules, selection) is not { } selected)
-            return new(GuildRedPacketStatus.Invalid);
-        var (itemId, product) = selected;
+        var activeCount = await store.CountActiveAsync(guild, now.ToUnixTimeSeconds(), ct).ConfigureAwait(false);
+        var issuance = GuildRedPacketRuleService.EvaluateIssuance(rules, selection, shares, activeCount, now);
+        if (issuance.Product is not { } product)
+            return new(issuance.Status);
+        var itemId = issuance.ItemId;
         var bags = inventory.GetStore(actor.CharacterId, BusinessInventoryStoreKind.Item);
         ItemReference? held = null;
         foreach (var space in new[] { BusinessInventorySpace.Consumable, BusinessInventorySpace.QuickSlot })
@@ -84,7 +82,7 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         await effects.ApplyAsync(new(actor.AccountId, actor.CharacterId, now, footprint, actor),
             [new ConsumeFromContainerEffect(slot, itemId, 1)], ct).ConfigureAwait(false);
         await store.AddAsync(new(0, guild, actor.CharacterId, actor.AccountId, name, itemId, product.Price, product.ContributionRate,
-            shares, product.Price, shares, now.ToUnixTimeSeconds(), now.AddHours(24).ToUnixTimeSeconds(), false, null, 0), ct)
+            shares, product.Price, shares, now.ToUnixTimeSeconds(), issuance.ExpiresAt, false, null, 0), ct)
             .ConfigureAwait(false);
         return new(GuildRedPacketStatus.Success, product.Price, itemId, slot, held.Count - 1, guild);
     }

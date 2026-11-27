@@ -4,8 +4,15 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class GuildItemCompoundRuleService(IGuildCompoundContentSource content, ILotteryRandomSource random)
 {
-    public GuildCompoundRule? Recipe(GuildCompoundInput input) =>
-        content.FindRule(input.Kind, input.Rarity) is { } rule && input.Materials.Count <= rule.MaxMaterials ? rule : null;
+    public GuildCompoundRule? Recipe(GuildCompoundInput input)
+    {
+        if (input.Kind is not (GuildCompoundKind.GuardianGem or GuildCompoundKind.Medal)
+            || input.Materials.Count is < 2 or > 4 || input.Rarity is < 0 or > 6)
+            return null;
+
+        var rule = content.FindRule(input.Kind, input.Rarity);
+        return rule is not null && input.Materials.Count <= rule.MaxMaterials ? rule : null;
+    }
 
     public bool AcceptsMaterial(GuildCompoundInput input, int itemId) => content.GetRarity(input.Kind, itemId) == input.Rarity;
 
