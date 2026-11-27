@@ -9,7 +9,6 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
-using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 
@@ -39,27 +38,15 @@ internal sealed class NpcShopDomainService(
             : participation.Find(session.CharacterId) is not null
                 || onlineCharacters.StandingOf(session) is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
-        if (itemId == GuildDungeonExtensionTicket.ItemId && npcId != GuildHallTown.DungeonSupplyNpcId)
+        var access = await GuildAccessAsync(session, npcId, itemId, shopId, now, cancellationToken).ConfigureAwait(false);
+        if (!access.Allowed)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
-        int? activeVariant = null;
-        if (GuildHallTown.ShopArea(npcId) is { } shopArea)
-        {
-            var visit = await halls.VisitAsync(session, shopArea, cancellationToken).ConfigureAwait(false);
-            if (visit is null || itemId == GuildDungeonExtensionTicket.ItemId && !visit.Membership.Member.IsLeader)
-                return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
-            if (npcId == GuildHallTown.DungeonMedalNpcId)
-            {
-                activeVariant = await guildDungeons.ReadMedalShopAsync(visit.Membership.Guild.Id, now, cancellationToken).ConfigureAwait(false);
-                if (activeVariant != shopId)
-                    return NpcShopPurchaseResult.Refused(NpcShopRejection.ShopUnavailable);
-            }
-        }
         var character = characters.Get(session.CharacterId);
         var identity = await character.IdentityAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
 
-        var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken, activeVariant)
+        var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken, access.ActiveVariant)
             .ConfigureAwait(false);
         if (priced.Quote is not { } quote)
             return NpcShopPurchaseResult.Refused(priced.Rejection);
@@ -153,21 +140,10 @@ internal sealed class NpcShopDomainService(
         var identity = await characters.Get(session.CharacterId).IdentityAsync(cancellationToken).ConfigureAwait(false);
         if (identity is null)
             return new(NpcShopRejection.NoSession, []);
-        int? activeVariant = null;
-        if (GuildHallTown.ShopArea(npcId) is { } shopArea)
-        {
-            var visit = await halls.VisitAsync(session, shopArea, cancellationToken).ConfigureAwait(false);
-            if (visit is null)
-                return new(NpcShopRejection.ShopUnavailable, []);
-            if (npcId == GuildHallTown.DungeonMedalNpcId)
-            {
-                activeVariant = await guildDungeons.ReadMedalShopAsync(visit.Membership.Guild.Id, now, cancellationToken)
-                    .ConfigureAwait(false);
-                if (activeVariant is null)
-                    return new(NpcShopRejection.ShopUnavailable, []);
-            }
-        }
-        var limited = await rules.LimitedItemsAsync(npcId, identity.Job, cancellationToken, activeVariant).ConfigureAwait(false);
+        var access = await GuildAccessAsync(session, npcId, null, null, now, cancellationToken).ConfigureAwait(false);
+        if (!access.Allowed)
+            return new(NpcShopRejection.ShopUnavailable, []);
+        var limited = await rules.LimitedItemsAsync(npcId, identity.Job, cancellationToken, access.ActiveVariant).ConfigureAwait(false);
         if (limited is null)
             return new(NpcShopRejection.ShopUnavailable, []);
         var result = new List<NpcShopPurchaseCount>();
@@ -179,6 +155,20 @@ internal sealed class NpcShopDomainService(
                 result.Add(new(item.ItemId, bought));
         }
         return new(NpcShopRejection.None, result);
+    }
+
+    private async ValueTask<(bool Allowed, int? ActiveVariant)> GuildAccessAsync(SelectedSessionIdentity session,
+        int npcId, int? itemId, int? shopId, DateTimeOffset now, CancellationToken ct)
+    {
+        if (NpcShopRuleService.AccessFor(npcId, itemId) is not { } access)
+            return (false, null);
+        var visit = access.RequiredArea is { } area
+            ? await halls.VisitAsync(session, area, ct).ConfigureAwait(false) : null;
+        if (!access.AllowsMember(visit?.Membership.Member))
+            return (false, null);
+        var variant = access.UsesMedalShop && visit is not null
+            ? await guildDungeons.ReadMedalShopAsync(visit.Membership.Guild.Id, now, ct).ConfigureAwait(false) : null;
+        return (access.AllowsVariant(shopId, variant), variant);
     }
 
     private NpcShopPurchaseKey Key(SelectedSessionIdentity session, int npcId, int itemId,

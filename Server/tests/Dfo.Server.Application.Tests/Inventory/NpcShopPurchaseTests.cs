@@ -48,13 +48,7 @@ public sealed class NpcShopPurchaseTests
         int npc, byte area, int instance, bool allowed)
     {
         const int shopId = 101208;
-        var guild = new Guild(new(7), "guild", "", 1);
-        using var shop = new ShopFixture(services => services.AddSingleton(
-            TestRequired.Absent<IGuildMembershipQueryDomainService>((method, args) =>
-                method.Name == nameof(IGuildMembershipQueryDomainService.FindMembershipAsync)
-                    ? ValueTask.FromResult<GuildMembership?>(new(guild,
-                        new(guild.Id, (CharacterId)args![0]!, true, DateTimeOffset.UnixEpoch) { MembershipId = 1 }))
-                    : null)));
+        using var shop = GuildShop(isLeader: true);
         shop.Content.Shops[npc] = new(npc, shopId, [new(null, [5000])]);
         await shop.Seed(121, 1000, 5, 3);
         TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
@@ -67,6 +61,44 @@ public sealed class NpcShopPurchaseTests
         await WholeBuy.Send(shop, 5000, 1, shopId, npc);
         Assert.Equal(allowed ? 1 : 0, shop.Count(5000));
         Assert.Equal(allowed ? 0 : 5, shop.Count(1000));
+    }
+
+    [Theory]
+    [InlineData(GuildHallTown.DungeonSupplyNpcId, GuildHallTown.DungeonGateAreaId, true, true)]
+    [InlineData(GuildHallTown.DungeonSupplyNpcId, GuildHallTown.DungeonGateAreaId, false, false)]
+    [InlineData(GuildHallTown.ContributionShopNpcId, GuildHallTown.InitialAreaId, true, false)]
+    [InlineData(2, GuildHallTown.InitialAreaId, true, false)]
+    public async Task Extension_ticket_requires_the_supply_vendor_and_guild_leader(
+        int npc, byte area, bool isLeader, bool canBuy)
+    {
+        const int ticket = GuildDungeonExtensionTicket.ItemId;
+        const int shopId = 101208;
+        using var shop = GuildShop(isLeader);
+        shop.Content.Items[ticket] = shop.Content.Items[5000] with { ItemId = ticket };
+        shop.Content.Shops[npc] = new(npc, shopId, [new(null, [ticket])]);
+        await shop.Seed(121, 1000, 5, 3);
+        TestGameplay.Run(shop.Services, () => shop.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+            .CrossInto(shop.Session, new TownAreaKey(1, GuildHallTown.TownId, area, 7), 10, 10, true));
+
+        await shop.Services.GetRequiredService<INetworkMessageDispatcher>().DispatchAsync(new(shop.Connection),
+            new ShopPurchaseCountRequest(new(1, GameProtocol.ShopPurchaseCountType, 0, 7), npc), default);
+        Assert.Equal(NpcShopRejection.None, Assert.Single(shop.Sender.Messages.OfType<ShopPurchaseCountResponse>()).Result.Rejection);
+        var purchase = await WholeBuy.Command(shop, ticket, 1, shopId, npc);
+        Assert.Equal(canBuy ? NpcShopRejection.None : NpcShopRejection.ShopUnavailable, purchase.Rejection);
+        Assert.Equal(canBuy ? 1 : 0, shop.Count(ticket));
+        Assert.Equal(canBuy ? 0 : 5, shop.Count(1000));
+        Assert.Equal(canBuy ? 99900 : 100000, shop.Gold);
+    }
+
+    private static ShopFixture GuildShop(bool isLeader)
+    {
+        var guild = new Guild(new(7), "guild", "", 1);
+        return new(services => services.AddSingleton(
+            TestRequired.Absent<IGuildMembershipQueryDomainService>((method, args) =>
+                method.Name == nameof(IGuildMembershipQueryDomainService.FindMembershipAsync)
+                    ? ValueTask.FromResult<GuildMembership?>(new(guild,
+                        new(guild.Id, (CharacterId)args![0]!, isLeader, DateTimeOffset.UnixEpoch) { MembershipId = 1 }))
+                    : null)));
     }
 
     [Fact]

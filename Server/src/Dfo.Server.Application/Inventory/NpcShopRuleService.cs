@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Inventory;
@@ -10,6 +11,23 @@ internal sealed class NpcShopRuleService(
     IItemArrivalRuleService arrivals,
     IDailyRefillRuleService days, IItemExpirationRuleService expiration, TimeProvider clock) : INpcShopRuleService
 {
+    public static GuildShopAccess? AccessFor(int npcId, int? itemId)
+    {
+        var extensionTicket = itemId == GuildDungeonExtensionTicket.ItemId;
+        if (extensionTicket && npcId != GuildHallTown.DungeonSupplyNpcId)
+            return null;
+        return new(GuildHallTown.ShopArea(npcId), extensionTicket, npcId == GuildHallTown.DungeonMedalNpcId);
+    }
+
+    internal readonly record struct GuildShopAccess(byte? RequiredArea, bool RequiresLeader, bool UsesMedalShop)
+    {
+        public bool AllowsMember(GuildMember? member) =>
+            RequiredArea is null || member is not null && (!RequiresLeader || member.IsLeader);
+
+        public bool AllowsVariant(int? requested, int? active) =>
+            !UsesMedalShop || active.HasValue && (!requested.HasValue || requested == active);
+    }
+
     public async ValueTask<NpcShopQuoteResult> QuoteAsync(
         int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken, int? activeVariant = null)
     {
