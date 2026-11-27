@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Abstractions.Sessions;
@@ -36,26 +35,19 @@ internal sealed class TownTransitDomainService(
         {
             if (GuildHallTown.Is(standing.TownId))
             {
-                if (await halls.VisitAsync(session, standing.AreaId, cancellationToken).ConfigureAwait(false) is null)
-                    return TownCrossingRefusal.GuildHallEntry;
-                if (standing.AreaId is GuildHallTown.InitialAreaId or GuildHallTown.DungeonGateAreaId
-                    && areaId is GuildHallTown.InitialAreaId or GuildHallTown.DungeonGateAreaId)
-                    return null;
-                return await travelRules.IsGuildBattleCrossingAsync(standing.AreaId, areaId, cancellationToken).ConfigureAwait(false)
-                    ? null : TownCrossingRefusal.GuildHallEntry;
+                var visit = await halls.VisitAsync(session, standing.AreaId, cancellationToken).ConfigureAwait(false);
+                return await travelRules.RefuseHallCrossingAsync(standing.AreaId, areaId, visit is not null, cancellationToken)
+                    .ConfigureAwait(false);
             }
 
-            return areaId == GuildHallTown.InitialAreaId
-                && await halls.InstanceForAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) is not null
-                && await travelRules.IsTownGateAsync(standing.TownId, standing.AreaId, cancellationToken).ConfigureAwait(false)
-                ? null : TownCrossingRefusal.GuildHallEntry;
+            var instance = await halls.InstanceForAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+            return await travelRules.RefuseHallEntryAsync(standing, areaId, instance, cancellationToken).ConfigureAwait(false);
         }
         if (GuildHallTown.Is(standing.TownId))
         {
             var home = await positions.ReadAsync(session.AccountId, session.CharacterId, cancellationToken)
                 .ConfigureAwait(false);
-            return home is not null && home.TownId == townId && home.AreaId == areaId
-                ? null : TownCrossingRefusal.GuildHallExit;
+            return GuildTravelRuleService.RefuseHallExit(home, townId, areaId);
         }
 
         // Household facts are read only for a crossing into or out of a household town.

@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Application.World;
@@ -22,11 +24,31 @@ internal sealed class GuildTravelRuleService(ITownDefinitionSource definitions)
             ? GuildTeleportEligibility.Allowed : GuildTeleportEligibility.Locked;
     }
 
-    public async ValueTask<bool> IsTownGateAsync(byte townId, byte areaId, CancellationToken cancellationToken) =>
-        (await definitions.GetAsync(townId, cancellationToken).ConfigureAwait(false))?.AreaAt(areaId)?.Kind
-            == TownAreaKind.Gate;
+    public async ValueTask<TownCrossingRefusal?> RefuseHallEntryAsync(CharacterPositionState source, byte destination,
+        int? guildInstance, CancellationToken ct)
+    {
+        if (guildInstance is null || destination != GuildHallTown.InitialAreaId)
+            return TownCrossingRefusal.GuildHallEntry;
+        var town = await definitions.GetAsync(source.TownId, ct).ConfigureAwait(false);
+        return town?.AreaAt(source.AreaId)?.Kind == TownAreaKind.Gate ? null : TownCrossingRefusal.GuildHallEntry;
+    }
 
-    public async ValueTask<bool> IsGuildBattleCrossingAsync(byte source, byte destination, CancellationToken ct)
+    public async ValueTask<TownCrossingRefusal?> RefuseHallCrossingAsync(byte source, byte destination, bool hasCurrentVisit,
+        CancellationToken ct)
+    {
+        if (!hasCurrentVisit)
+            return TownCrossingRefusal.GuildHallEntry;
+        if (source is GuildHallTown.InitialAreaId or GuildHallTown.DungeonGateAreaId
+            && destination is GuildHallTown.InitialAreaId or GuildHallTown.DungeonGateAreaId)
+            return null;
+        return await IsGuildBattleCrossingAsync(source, destination, ct).ConfigureAwait(false)
+            ? null : TownCrossingRefusal.GuildHallEntry;
+    }
+
+    public static TownCrossingRefusal? RefuseHallExit(CharacterPositionState? home, byte town, byte area) =>
+        home is not null && home.TownId == town && home.AreaId == area ? null : TownCrossingRefusal.GuildHallExit;
+
+    private async ValueTask<bool> IsGuildBattleCrossingAsync(byte source, byte destination, CancellationToken ct)
     {
         if ((source, destination) is not ((GuildHallTown.InitialAreaId, GuildHallTown.BattleAreaId)
             or (GuildHallTown.BattleAreaId, GuildHallTown.InitialAreaId)
