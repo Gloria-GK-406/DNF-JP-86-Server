@@ -111,7 +111,7 @@ internal sealed class GuildDungeonDomainService(GuildDungeonRuleService rules, I
         {
             EntryMemberships = entryMemberships,
             EntryLevels = entryLevels,
-            PartyBuffId = catalog.PartyBuffs.TryGetValue(entry.Participants.Count, out var buffId) ? buffId : null,
+            PartyBuffId = GuildDungeonRuleService.PartyBuffFor(catalog, entry.Participants.Count),
         };
         return await admission.ExecuteAsync(entry, new() { RequireMinimumLevel = true },
             (receipt, token) => visits.ResolveAndEnterAsync(layouts, entry.Participants, entry.DungeonId,

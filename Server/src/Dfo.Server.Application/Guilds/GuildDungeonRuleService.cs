@@ -8,6 +8,9 @@ internal sealed class GuildDungeonRuleService(IGuildDungeonContentSource content
     public GuildDungeonCatalog? Catalog() => content.Read();
     public bool Supports(int dungeon) => Catalog()?.Dungeons.ContainsKey(dungeon) == true;
 
+    public static int? PartyBuffFor(GuildDungeonCatalog catalog, int participantCount) =>
+        catalog.PartyBuffs.TryGetValue(participantCount, out var buffId) ? buffId : null;
+
     public static bool PrerequisitesMet(GuildDungeonCatalog catalog, GuildDungeonDefinition dungeon,
         IReadOnlyDictionary<int, int> counts) => dungeon.Prerequisites.All(id =>
         catalog.Dungeons[id].Ratio(counts.GetValueOrDefault(id)) >= catalog.Dungeons[id].ConquestRatio);

@@ -33,7 +33,10 @@ public sealed class GuildDungeonAccessTests
             TestRequired.Absent<IOnlineCharacterRuntimeDomainService>((_, a) =>
                 standings.GetValueOrDefault((SelectedSessionIdentity)a![0]!)));
         var catalog = new GuildDungeonCatalog(0, new Dictionary<int, GuildDungeonDefinition>
-            { [Dungeon] = new(Dungeon, 100, 5, 100, [], [new(100, 5, 1, 0)]) });
+            { [Dungeon] = new(Dungeon, 100, 5, 100, [], [new(100, 5, 1, 0)]) })
+        {
+            PartyBuffs = new Dictionary<int, int> { [2] = 301, [4] = 405 },
+        };
         dungeons = new(new(TestRequired.Absent<IGuildDungeonContentSource>((_, _) => catalog)),
             TestRequired.Absent<IGuildDungeonStore>((m, a) => m.Name switch
             {
@@ -62,10 +65,11 @@ public sealed class GuildDungeonAccessTests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(4)]
-    public Task Entry_preserves_each_gate_membership_through_clear(int count) => TestGameplay.RunAsync(async () =>
+    [InlineData(1, null)]
+    [InlineData(2, 301)]
+    [InlineData(3, null)]
+    [InlineData(4, 405)]
+    public Task Entry_selects_the_party_buff_and_preserves_gate_memberships(int count, int? expectedBuff) => TestGameplay.RunAsync(async () =>
     {
         var members = Enumerable.Range(1, count).Select(id => Add(id)).ToArray();
         var entry = await SelectAsync(members);
@@ -73,6 +77,7 @@ public sealed class GuildDungeonAccessTests
         var accepted = await dungeons.EnterAsync(entry, default);
         var layout = Assert.IsType<DungeonPartyEntry>(accepted.Entry).Layout;
         var mode = Assert.IsType<DungeonRunMode.GuildDungeon>(layout.Mode);
+        Assert.Equal(expectedBuff, mode.PartyBuffId);
         foreach (var member in members)
             Assert.True(mode.Includes(memberships[member.CharacterId]));
         var last = members[^1];
