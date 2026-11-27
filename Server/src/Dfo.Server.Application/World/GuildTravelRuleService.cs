@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Guilds;
 
@@ -9,7 +10,7 @@ namespace Dfo.Server.Application.World;
 
 internal enum GuildTeleportEligibility { Locked, NeedsQuestLog, Allowed }
 
-internal sealed class GuildTravelRuleService(ITownDefinitionSource definitions)
+internal sealed class GuildTravelRuleService(ITownDefinitionSource definitions, IEntryPlacementRuleService placement)
 {
     public static GuildTeleportEligibility EvaluateTeleportEligibility(
         TownAreaDefinition area, int? level, IReadOnlyList<ClearedQuest>? cleared = null)
@@ -63,8 +64,14 @@ internal sealed class GuildTravelRuleService(ITownDefinitionSource definitions)
     }
 
     public async ValueTask<(TownAreaDefinition Area, short X, short Y)?> TeleportDestinationAsync(
-        GuildPartyTeleportTarget target, CancellationToken ct)
+        GuildPartyTeleportTarget target, ChannelEntryIdentity channel, int currentChannelId, CancellationToken ct)
     {
+        if (channel.Kind != ChannelEntryKind.General || channel.ChannelId != currentChannelId
+            || placement.IsHouseholdTown(target.TownId) || GuildHallTown.Is(target.TownId)
+            || !await placement.CanEnterTownAsync(channel, target.TownId, ct).ConfigureAwait(false)
+            || !await placement.SharesTownPresenceAsync(target.TownId, target.AreaId, ct).ConfigureAwait(false))
+            return null;
+
         var town = await definitions.GetAsync(target.TownId, ct).ConfigureAwait(false);
         if (town?.AreaAt(target.AreaId) is not { } area)
             return null;

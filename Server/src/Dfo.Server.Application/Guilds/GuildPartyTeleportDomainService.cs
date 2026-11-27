@@ -7,9 +7,7 @@ using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Data.Channel;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Guilds;
@@ -22,7 +20,6 @@ internal sealed class GuildPartyTeleportDomainService(
     ICharacterQuestLogDomainService quests,
     IChannelEntryDomainService channels,
     GuildTravelRuleService travelRules,
-    IEntryPlacementRuleService placement,
     ITownTransitDomainService transit,
     IMarriageQueryDomainService marriage) : IGuildPartyTeleportDomainService
 {
@@ -48,13 +45,7 @@ internal sealed class GuildPartyTeleportDomainService(
         }
 
         var channel = await channels.ResolveAsync(leader.ListenerPort, ct).ConfigureAwait(false);
-        if (channel.Kind != ChannelEntryKind.General || channel.ChannelId != standing.Area.ChannelId
-            || placement.IsHouseholdTown(target.TownId) || GuildHallTown.Is(target.TownId)
-            || !await placement.CanEnterTownAsync(channel, target.TownId, ct).ConfigureAwait(false)
-            || !await placement.SharesTownPresenceAsync(target.TownId, target.AreaId, ct).ConfigureAwait(false))
-            return new(null, GuildPartyTeleportRefusal.DestinationUnavailable);
-
-        if (await travelRules.TeleportDestinationAsync(target, ct).ConfigureAwait(false) is not { } landing)
+        if (await travelRules.TeleportDestinationAsync(target, channel, standing.Area.ChannelId, ct).ConfigureAwait(false) is not { } landing)
             return new(null, GuildPartyTeleportRefusal.DestinationUnavailable);
         var (area, x, y) = landing;
 
