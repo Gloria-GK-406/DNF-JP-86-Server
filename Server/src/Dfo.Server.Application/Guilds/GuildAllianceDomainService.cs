@@ -47,9 +47,9 @@ internal sealed class GuildAllianceDomainService(IGuildDomainStore guilds, IGuil
     private async ValueTask<GuildAllianceStatus> ApplyAsync(GuildId guild, GuildAlliancePeer other, string? name,
         string? message, CancellationToken ct)
     {
-        if (name is null || GuildTextRules.NameKey(name) is not { } key || GuildTextRules.NameKey(other.Name) != key)
+        if (name is null || GuildProfileRuleService.NameKey(name) is not { } key || GuildProfileRuleService.NameKey(other.Name) != key)
             return GuildAllianceStatus.InvalidTarget;
-        if (message is null || !GuildTextRules.IsValidPromotion(message))
+        if (message is null || !GuildProfileRuleService.AllowsRequestMessage(message))
             return GuildAllianceStatus.InvalidMessage;
         return await alliances.TryApplyAsync(guild, other.Id, message, clock.GetUtcNow().ToUnixTimeSeconds(), ct)
             .ConfigureAwait(false) ? GuildAllianceStatus.Success : GuildAllianceStatus.PendingOrListFull;

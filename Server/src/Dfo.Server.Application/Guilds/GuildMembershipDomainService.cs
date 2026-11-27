@@ -16,9 +16,9 @@ internal sealed class GuildMembershipDomainService(
     public async ValueTask<GuildMutationResult> CreateAsync(
         CharacterId actor, string name, string promotion, CancellationToken ct)
     {
-        if (GuildTextRules.NameKey(name) is not { } nameKey)
+        if (GuildProfileRuleService.NameKey(name) is not { } nameKey)
             return new(GuildMutationStatus.InvalidName);
-        if (!GuildTextRules.IsValidText(promotion))
+        if (!GuildProfileRuleService.AllowsCreationPromotion(promotion))
             return new(GuildMutationStatus.InvalidText);
         var eligibility = await CheckCreationEligibilityAsync(actor, nameKey, ct).ConfigureAwait(false);
         if (eligibility != GuildMutationStatus.Success)
@@ -35,13 +35,13 @@ internal sealed class GuildMembershipDomainService(
     }
 
     public ValueTask<GuildMutationStatus> CheckCreationAsync(CharacterId actor, string name, CancellationToken ct) =>
-        GuildTextRules.NameKey(name) is { } key
+        GuildProfileRuleService.NameKey(name) is { } key
             ? CheckCreationEligibilityAsync(actor, key, ct)
             : ValueTask.FromResult(GuildMutationStatus.InvalidName);
 
     public async ValueTask<GuildMutationStatus> SetMemberMemoAsync(CharacterId actor, string memo, CancellationToken ct)
     {
-        if (!GuildTextRules.IsValidMemberMemo(memo))
+        if (!GuildProfileRuleService.AllowsMemberMemo(memo))
             return GuildMutationStatus.InvalidText;
 
         return await store.TrySetMemberMemoAsync(actor, memo, ct).ConfigureAwait(false)
@@ -86,7 +86,7 @@ internal sealed class GuildMembershipDomainService(
 
     public async ValueTask<GuildMutationStatus> SetRankNameAsync(CharacterId actor, byte rank, string name, CancellationToken ct)
     {
-        if (!GuildRankSettings.IsMemberRank(rank) || !GuildTextRules.IsValidRankName(name))
+        if (!GuildRankRuleService.AllowsRankName(rank, name))
             return GuildMutationStatus.InvalidRankSetting;
         if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
             return GuildMutationStatus.LeaderRequired;
@@ -121,7 +121,7 @@ internal sealed class GuildMembershipDomainService(
 
     public async ValueTask<GuildMutationResult> ApplyAsync(CharacterId actor, GuildId guild, string message, CancellationToken ct)
     {
-        if (!GuildTextRules.IsValidPromotion(message))
+        if (!GuildProfileRuleService.AllowsRequestMessage(message))
             return new(GuildMutationStatus.InvalidText);
         if (await characterTable.FindOwnerAsync(actor, ct).ConfigureAwait(false) is null)
             return new(GuildMutationStatus.CharacterUnavailable);

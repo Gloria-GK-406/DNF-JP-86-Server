@@ -9,7 +9,7 @@ internal sealed class GuildProfileDomainService(
 {
     public async ValueTask<GuildMutationStatus> SetPromotionAsync(CharacterId actor, string promotion, CancellationToken ct)
     {
-        if (!GuildTextRules.IsValidPromotion(promotion))
+        if (!GuildProfileRuleService.AllowsPromotion(promotion))
             return GuildMutationStatus.InvalidText;
         if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
             return GuildMutationStatus.LeaderRequired;
@@ -21,7 +21,7 @@ internal sealed class GuildProfileDomainService(
     public async ValueTask<GuildMutationStatus> SetAnnouncementAsync(
         CharacterId actor, string announcement, CancellationToken ct)
     {
-        if (!GuildTextRules.IsValidAnnouncement(announcement))
+        if (!GuildProfileRuleService.AllowsAnnouncement(announcement))
             return GuildMutationStatus.InvalidText;
         if (await store.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
             return GuildMutationStatus.LeaderRequired;

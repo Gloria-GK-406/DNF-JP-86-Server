@@ -17,7 +17,7 @@ internal sealed class GuildRenameDomainService(IGuildDomainStore guilds, GuildPr
 {
     public async ValueTask<GuildRenameCheck> CheckAsync(CharacterId actor, string name, CancellationToken ct)
     {
-        if (GuildTextRules.NameKey(name) is not { } key)
+        if (GuildProfileRuleService.NameKey(name) is not { } key)
             return new(GuildMutationStatus.InvalidName);
         if (await guilds.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership)
             return new(GuildMutationStatus.AlreadyMember);
@@ -32,7 +32,7 @@ internal sealed class GuildRenameDomainService(IGuildDomainStore guilds, GuildPr
     {
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (source.Space is not (BusinessInventorySpace.Consumable or BusinessInventorySpace.Material)
-            || GuildTextRules.NameKey(authorization.Name) is not { } key
+            || GuildProfileRuleService.NameKey(authorization.Name) is not { } key
             || await guilds.FindMembershipAsync(session.CharacterId, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership
             || membership.Guild.Id != authorization.Guild || membership.Guild.Name != authorization.OriginalName
             || slots.Find(session.CharacterId, source) is not { } bound
@@ -58,7 +58,7 @@ internal sealed class GuildRenameDomainService(IGuildDomainStore guilds, GuildPr
     {
         if (rules.GoldRenameOffer(productId) is not { } offer)
             return new(GuildMutationStatus.UnsupportedContent);
-        if (GuildTextRules.NameKey(authorization.Name) is not { } key)
+        if (GuildProfileRuleService.NameKey(authorization.Name) is not { } key)
             return new(GuildMutationStatus.InvalidName);
         if (await guilds.FindMembershipAsync(actor, ct).ConfigureAwait(false) is not { Member.IsLeader: true } membership
             || membership.Guild.Id != authorization.Guild)

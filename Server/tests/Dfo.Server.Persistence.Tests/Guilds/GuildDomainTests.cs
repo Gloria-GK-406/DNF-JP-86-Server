@@ -577,6 +577,24 @@ public sealed class GuildDomainTests : IDisposable
     }
 
     [Fact]
+    public async Task Guild_creation_lookup_and_edits_preserve_their_text_limits()
+    {
+        var promotion = new string('会', 40);
+        var created = await Write(() => guilds.CreateAsync(new(11), "Café", promotion, default));
+        Assert.Equal(GuildMutationStatus.Success, created.Status);
+        Assert.NotNull(await discovery.FindGuildAsync("cafe\u0301", default));
+        Assert.Null(await discovery.FindGuildAsync(" Café", default));
+
+        Assert.Equal(GuildMutationStatus.InvalidText, await Write(() => profiles.SetPromotionAsync(new(11), promotion, default)));
+        Assert.Equal(promotion, (await query.FindMembershipAsync(new(11), default))!.Guild.Promotion);
+        var eightyBytes = new string('会', 26) + "ab";
+        Assert.Equal(GuildMutationStatus.Success, await Write(() => profiles.SetPromotionAsync(new(11), eightyBytes, default)));
+        Assert.Equal(GuildMutationStatus.InvalidText, await Write(() => profiles.SetPromotionAsync(new(11), eightyBytes + "c", default)));
+        Assert.Equal(GuildMutationStatus.InvalidText, (await Write(() => guilds.ApplyAsync(new(13), created.Guild!.Value, "\t", default))).Status);
+        Assert.Equal(GuildMutationStatus.InvalidRankSetting, await Write(() => guilds.SetRankNameAsync(new(11), 4, "  ", default)));
+    }
+
+    [Fact]
     public async Task Guild_management_edits_are_leader_only_and_preserve_both_rank_fields()
     {
         var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "Original", default))).Guild!.Value;

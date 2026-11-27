@@ -5,6 +5,18 @@ namespace Dfo.Server.Application.Guilds;
 
 internal sealed class GuildProfileRuleService(IGuildEconomySource content)
 {
+    public static string? NameKey(string name) => GuildTextRules.NameKey(name);
+
+    public static bool AllowsCreationPromotion(string promotion) => GuildTextRules.IsValidText(promotion);
+
+    public static bool AllowsPromotion(string promotion) => GuildTextRules.IsValidPromotion(promotion);
+
+    public static bool AllowsRequestMessage(string message) => GuildTextRules.IsValidPromotion(message);
+
+    public static bool AllowsAnnouncement(string announcement) => GuildTextRules.IsValidAnnouncement(announcement);
+
+    public static bool AllowsMemberMemo(string memo) => GuildTextRules.IsValidMemberMemo(memo);
+
     public GuildMarkChangeDecision EvaluateMarkChange(byte mark, GuildMembership? membership)
     {
         if (mark >= GuildMarkPricing.MarkCount)

@@ -43,7 +43,7 @@ internal sealed class GuildNameOperationSessionDomainService(IGuildMembershipDom
         if (OperationFor(session) is not CreationDraft draft)
             return false;
         draft.Permitted = false;
-        draft.Promotion = promotion is not null && GuildTextRules.IsValidText(promotion) ? promotion : null;
+        draft.Promotion = promotion is not null && GuildProfileRuleService.AllowsCreationPromotion(promotion) ? promotion : null;
         return draft.Promotion is not null;
     }
 
