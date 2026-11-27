@@ -9,6 +9,9 @@ internal sealed class GuildMonthlyContributionRuleService(IGuildEconomySource co
 {
     public GuildMonthlyContributionRule? ReadMonthlyContribution() => content.ReadMonthlyContribution();
 
+    public static (GuildContributionSource Source, int Points) AttendanceAward(bool isLeader) =>
+        isLeader ? (GuildContributionSource.LeaderAttendance, 100) : (GuildContributionSource.Attendance, 10);
+
     public async ValueTask<bool> IsRecommendedAsync(int dungeonId, int level, CancellationToken ct) =>
         await dungeons.GetAsync(dungeonId, ct).ConfigureAwait(false) is { } dungeon
         && DungeonRecommendation.IsRecommended(dungeon, level);

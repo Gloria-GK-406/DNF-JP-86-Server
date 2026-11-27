@@ -151,6 +151,10 @@ public sealed class GuildDomainTests : IDisposable
         Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
         Assert.False(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
         Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(13), clock.Now, default)));
+        var history = await monthly.ReadHistoryAsync(new(11), 10, default);
+        Assert.NotNull(history);
+        Assert.Equal(100, Assert.Single(history, entry => entry.Source == GuildContributionSource.LeaderAttendance).Points);
+        Assert.Equal(10, Assert.Single(history, entry => entry.Source == GuildContributionSource.Attendance).Points);
         await Write(async () =>
         {
             await store.AddDonationAsync(guild, new(11), 990_000, 990, clock.Now, default);

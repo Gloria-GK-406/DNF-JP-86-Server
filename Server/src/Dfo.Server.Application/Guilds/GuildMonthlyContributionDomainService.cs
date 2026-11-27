@@ -20,11 +20,10 @@ internal sealed class GuildMonthlyContributionDomainService(
             || await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } membership)
             return false;
 
-        var leader = membership.Member.IsLeader;
+        var award = GuildMonthlyContributionRuleService.AttendanceAward(membership.Member.IsLeader);
         var day = DateOnly.FromDateTime(now.ToOffset(IDailyResetRuleService.BusinessOffset).DateTime.AddHours(-6));
-        return await contributions.RecordAsync(membership.Guild.Id, character,
-            leader ? GuildContributionSource.LeaderAttendance : GuildContributionSource.Attendance,
-            day.DayNumber.ToString(CultureInfo.InvariantCulture), leader ? 100 : 10, now, ct).ConfigureAwait(false);
+        return await contributions.RecordAsync(membership.Guild.Id, character, award.Source,
+            day.DayNumber.ToString(CultureInfo.InvariantCulture), award.Points, now, ct).ConfigureAwait(false);
     }
 
     public async ValueTask RecordClearAsync(CharacterId character, DungeonRunState run, int level, CancellationToken ct)
