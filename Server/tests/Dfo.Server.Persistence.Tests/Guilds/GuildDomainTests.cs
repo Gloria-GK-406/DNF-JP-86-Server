@@ -660,6 +660,10 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(GuildMutationStatus.InvalidRankSetting,
             await Write(() => guilds.SetRankPermissionsAsync(new(11), 4, 0x10000, default)));
         Assert.Equal(GuildMutationStatus.InvalidRankSetting,
+            await Write(() => guilds.SetRankPermissionsAsync(new(11), 0, 0, default)));
+        Assert.Equal(GuildMutationStatus.InvalidRankSetting,
+            await Write(() => guilds.SetRankNameAsync(new(11), 255, "A", default)));
+        Assert.Equal(GuildMutationStatus.InvalidRankSetting,
             await Write(() => guilds.SetRankNameAsync(new(11), 4, new string('会', 8), default)));
 
         Assert.Equal(GuildMutationStatus.Success,

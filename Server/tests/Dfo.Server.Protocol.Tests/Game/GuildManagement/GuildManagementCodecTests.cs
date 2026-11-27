@@ -20,15 +20,18 @@ public sealed class GuildManagementCodecTests
     }
 
     [Fact]
-    public void Management_decoders_check_rank_mask_text_and_complete_body()
+    public void Management_decoders_preserve_rank_and_mask_and_require_complete_fields()
     {
         var permissions = new GuildRankPermissionsDecoder();
         var decoded = Assert.IsType<GuildManagementRequest>(permissions.Decode(GameMessageMetadata.Empty, [4, 0, 128, 0, 0]));
         Assert.True(decoded.Valid);
         Assert.Equal(4, decoded.Rank);
         Assert.Equal(0x8000u, decoded.PermissionMask);
-        Assert.False(Decode(permissions, [4, 0, 0, 1, 0]).Valid);
-        Assert.False(Decode(permissions, [0, 0, 0, 0, 0]).Valid);
+        var unknown = Decode(permissions, [0, 0, 0, 1, 128]);
+        Assert.True(unknown.Valid);
+        Assert.Equal(0, unknown.Rank);
+        Assert.Equal(0x80010000u, unknown.PermissionMask);
+        Assert.False(Decode(permissions, [4, 0, 0, 0]).Valid);
         Assert.False(Decode(permissions, [4, 0, 0, 0, 0, 0]).Valid);
 
         var promotion = new GuildPromotionDecoder();
@@ -38,7 +41,26 @@ public sealed class GuildManagementCodecTests
         var rankName = new GuildRankNameDecoder();
         Assert.Equal("A", Decode(rankName, [4, 1, 0, 0, 0, 65]).Text);
         Assert.False(Decode(rankName, [4, 1, 0, 0, 0, 65, 0]).Valid);
-        Assert.False(Decode(rankName, [0, 1, 0, 0, 0, 65]).Valid);
+        var unknownRank = Decode(rankName, [255, 0, 0, 0, 0]);
+        Assert.True(unknownRank.Valid);
+        Assert.Equal(255, unknownRank.Rank);
+        Assert.Equal("", unknownRank.Text);
+        Assert.False(Decode(rankName, [4, 1, 0, 0, 0]).Valid);
+    }
+
+    [Fact]
+    public void Complete_management_strings_are_decoded_even_when_the_text_exceeds_gameplay_limits()
+    {
+        var text = new string('A', 121);
+        var payload = new byte[sizeof(int) + text.Length];
+        BinaryPrimitives.WriteInt32LittleEndian(payload, text.Length);
+        System.Text.Encoding.UTF8.GetBytes(text, payload.AsSpan(sizeof(int)));
+        foreach (var request in new[] { Decode(new GuildPromotionDecoder(), payload),
+            Decode(new GuildAnnouncementDecoder(), payload), Decode(new GuildRankNameDecoder(), [4, .. payload]) })
+        {
+            Assert.True(request.Valid);
+            Assert.Equal(text, request.Text);
+        }
     }
 
     [Fact]
@@ -50,7 +72,10 @@ public sealed class GuildManagementCodecTests
         var mark = new GuildMarkDecoder();
         Assert.True(Decode(mark, [0]).Valid);
         Assert.Equal(15, Decode(mark, [15]).Mark);
-        Assert.False(Decode(mark, [16]).Valid);
+        var unknownMark = Decode(mark, [16]);
+        Assert.True(unknownMark.Valid);
+        Assert.Equal(16, unknownMark.Mark);
+        Assert.False(Decode(mark, []).Valid);
         Assert.False(Decode(mark, [0, 1]).Valid);
 
         var frame = Assert.Single(new GuildAnnouncementEncoder().Encode(new GuildAnnouncementUpdated("Hi")));

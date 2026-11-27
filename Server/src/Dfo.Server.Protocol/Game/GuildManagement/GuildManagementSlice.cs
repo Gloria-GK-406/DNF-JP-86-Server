@@ -27,7 +27,7 @@ internal sealed class GuildPromotionDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        var text = GuildCreationPayloadCodec.DecodeText(body, 0, 80);
+        var text = GuildCreationPayloadCodec.DecodeText(body);
         return new GuildManagementRequest(ClientMessageType.GameGuildSetPromotion, metadata, text is not null, text);
     }
 }
@@ -36,7 +36,7 @@ internal sealed class GuildAnnouncementDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        var text = GuildCreationPayloadCodec.DecodeText(body, 0, 120);
+        var text = GuildCreationPayloadCodec.DecodeText(body);
         return new GuildManagementRequest(ClientMessageType.GameGuildSetAnnouncement, metadata, text is not null, text);
     }
 }
@@ -46,7 +46,7 @@ internal sealed class GuildMarkDecoder : IGameMessageDecoder
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         const ClientMessageType type = ClientMessageType.GameGuildSetMark;
-        return body is [< GuildMarkPricing.MarkCount and var mark]
+        return body is [var mark]
             ? new GuildManagementRequest(type, metadata, true, Mark: mark)
             : new GuildManagementRequest(type, metadata, false);
     }
@@ -70,10 +70,10 @@ internal sealed class GuildRankNameDecoder : IGameMessageDecoder
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         const ClientMessageType type = ClientMessageType.GameGuildSetRankName;
-        if (body.IsEmpty || !GuildRankSettings.IsMemberRank(body[0]))
+        if (body.IsEmpty)
             return new GuildManagementRequest(type, metadata, false);
 
-        var name = GuildCreationPayloadCodec.DecodeText(body[1..], 1, GuildRankSettings.MaximumNameBytes);
+        var name = GuildCreationPayloadCodec.DecodeText(body[1..]);
         return new GuildManagementRequest(type, metadata, name is not null, name, body[0]);
     }
 }
@@ -83,11 +83,11 @@ internal sealed class GuildRankPermissionsDecoder : IGameMessageDecoder
     public IClientNetworkMessage Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
         const ClientMessageType type = ClientMessageType.GameGuildSetRankPermissions;
-        if (body.Length != 1 + sizeof(uint) || !GuildRankSettings.IsMemberRank(body[0]))
+        if (body.Length != 1 + sizeof(uint))
             return new GuildManagementRequest(type, metadata, false);
 
         var permissions = BinaryPrimitives.ReadUInt32LittleEndian(body[1..]);
-        return new GuildManagementRequest(type, metadata, (permissions & ~GuildRankSettings.ValidPermissionMask) == 0,
+        return new GuildManagementRequest(type, metadata, true,
             Rank: body[0], PermissionMask: permissions);
     }
 }

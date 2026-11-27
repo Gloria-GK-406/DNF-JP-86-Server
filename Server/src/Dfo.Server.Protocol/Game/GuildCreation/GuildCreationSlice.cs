@@ -31,7 +31,7 @@ internal static class GuildCreationPayloadCodec
 
     internal static byte[] EncodeGuildText(string text) => TextEncoding.GetBytes(text);
 
-    internal static string? DecodeText(ReadOnlySpan<byte> body, int minimumBytes, int maximumBytes)
+    internal static string? DecodeText(ReadOnlySpan<byte> body, int minimumBytes = 0, int maximumBytes = int.MaxValue)
     {
         if (body.Length < sizeof(int))
             return null;
