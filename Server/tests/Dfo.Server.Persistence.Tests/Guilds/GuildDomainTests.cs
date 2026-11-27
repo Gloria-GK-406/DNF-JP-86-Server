@@ -1,9 +1,12 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Accounts;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Application.Guilds;
 using Dfo.Server.Application.Transactions;
@@ -12,6 +15,7 @@ using Dfo.Server.Data.Content;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
+using Dfo.Server.Persistence.Accounts;
 using Dfo.Server.Persistence.Characters;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Persistence.Guilds;
@@ -1107,6 +1111,42 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(expectedProgress, await progress.ReadRepeatBonusAsync(new(11), default));
         ItemDeliveryGrant[] expectedMail = expectBonus ? [new(101, 1), new(102, 2)] : [new(101, 1)];
         Assert.Equal(expectedMail, mail);
+    }
+
+    [Fact]
+    public async Task Red_packet_availability_and_claims_share_the_account_daily_limit()
+    {
+        var guild = (await Write(() => guilds.CreateAsync(new(11), "Iris", "", default))).Guild!.Value;
+        await Write(() => guilds.ApplyAsync(new(13), guild, "", default));
+        await Write(() => guilds.ApproveAsync(new(11), new(13), default));
+        var actor = SelectedSessionIdentity.Create(new(1), new(11), new("leader"), 1, 10001);
+        var alt = SelectedSessionIdentity.Create(actor.AccountId, new(13), new("alt"), 2, 10001);
+        var database = new SqliteDatabase(path, scope);
+        var packets = new SqliteGuildRedPacketStore(database);
+        var wallets = new AccountWalletDomainService(new SqliteAccountTable(database), new AccountWalletRuleService(), scope);
+        var config = new GuildRedPacketRules(new Dictionary<int, GuildRedPacketProduct>(), 1, 100, 1);
+        var service = new GuildRedPacketDomainService(store, packets,
+            new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => config)), players,
+            TestRequired.Absent<ICharacterBusinessInventoryDomainService>(), TestRequired.Absent<IApplyEffectsDomainService>(),
+            wallets, TestRequired.Absent<IMailboxDomainService>(), clock);
+        var now = clock.Now.ToUnixTimeSeconds();
+        var packet = new GuildRedPacket(0, guild, new(12), new(2), "Sender", 77, 5, 1, 5, 5, 5,
+            now, now + 3600, false, null, 0);
+        await Write(async () =>
+        {
+            await packets.AddAsync(packet, default);
+            await packets.AddAsync(packet, default);
+            return true;
+        });
+        var open = await packets.ListAsync(guild, now, default);
+        Assert.Equal(2, await service.CountAvailableAsync(actor.CharacterId, actor.AccountId, default));
+        Assert.Equal(GuildRedPacketStatus.Success, (await Write(() => service.TakeAsync(actor, open[0].Id, default))).Status);
+        var balance = await wallets.ReadAsync(actor.AccountId, default);
+        Assert.Equal(0, await service.CountAvailableAsync(alt.CharacterId, alt.AccountId, default));
+        Assert.Equal(GuildRedPacketStatus.DailyTakeLimit, (await Write(() => service.TakeAsync(alt, open[1].Id, default))).Status);
+        Assert.Equal(GuildRedPacketStatus.AlreadyTaken, (await Write(() => service.TakeAsync(alt, open[0].Id, default))).Status);
+        Assert.Empty(await packets.HistoryAsync(open[1].Id, default));
+        Assert.Equal(balance, await wallets.ReadAsync(alt.AccountId, default));
     }
 
     [Fact]

@@ -42,8 +42,10 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
     {
         var now = clock.GetLocalNow();
         if (source.Read() is not { } rules ||
-            await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } membership ||
-            await store.CountTakenAsync(account, Day(now), ct).ConfigureAwait(false) >= rules.DailyTakeLimit)
+            await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } membership)
+            return 0;
+        var claimedToday = await store.CountTakenAsync(account, Day(now), ct).ConfigureAwait(false);
+        if (GuildRedPacketRuleService.EvaluateDailyClaim(rules, claimedToday) != GuildRedPacketStatus.Success)
             return 0;
         var packets = await store.ListAsync(membership.Guild.Id, now.ToUnixTimeSeconds(), ct).ConfigureAwait(false);
         var taken = await store.TakenPacketsAsync(membership.Guild.Id, account, ct).ConfigureAwait(false);
@@ -100,8 +102,10 @@ internal sealed class GuildRedPacketDomainService(IGuildDomainStore guilds, IGui
         if (packet.SenderAccount == actor.AccountId || await store.HasTakenAsync(id, actor.AccountId, ct).ConfigureAwait(false))
             return new(GuildRedPacketStatus.AlreadyTaken);
         var day = Day(now);
-        if (await store.CountTakenAsync(actor.AccountId, day, ct).ConfigureAwait(false) >= rules.DailyTakeLimit)
-            return new(GuildRedPacketStatus.DailyTakeLimit);
+        var claimedToday = await store.CountTakenAsync(actor.AccountId, day, ct).ConfigureAwait(false);
+        var eligibility = GuildRedPacketRuleService.EvaluateDailyClaim(rules, claimedToday);
+        if (eligibility != GuildRedPacketStatus.Success)
+            return new(eligibility);
         var amount = GuildRedPacketRuleService.RollClaimAmount(packet.Remaining, packet.SharesLeft, Random.Shared.Next());
         try
         {

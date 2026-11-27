@@ -9,6 +9,9 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
 {
     public GuildRedPacketRules? Read() => content.Read();
 
+    public static GuildRedPacketStatus EvaluateDailyClaim(GuildRedPacketRules rules, int claimedToday) =>
+        claimedToday < rules.DailyTakeLimit ? GuildRedPacketStatus.Success : GuildRedPacketStatus.DailyTakeLimit;
+
     public CeraShopQuote PreparePurchase(CeraShopQuote quote, DateTimeOffset now)
     {
         if (Read() is not { } rules || !quote.Charges.Any(charge => PurchaseProduct(rules, charge) is not null))
