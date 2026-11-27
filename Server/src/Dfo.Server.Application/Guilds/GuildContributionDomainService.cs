@@ -52,17 +52,24 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
             return null;
 
         var guild = membership.Guild.Id;
-        if (run.Layout.Mode is DungeonRunMode.GuildDungeon dungeon && !dungeon.Includes(membership))
-            return null;
-        if (kind == GuildClearContributionKind.PartyDungeon
-            && (!participant.HasMembership(membership.Member)
-                || !await HasGuildPartyAsync(guild, character, run.ClearParticipants, rule.Required, ct).ConfigureAwait(false)))
-            return null;
-
         var day = GuildRedPacketDomainService.Day(TimeZoneInfo.ConvertTime(at, clock.LocalTimeZone));
-        var priorClears = kind == GuildClearContributionKind.GuildDungeon
-            ? await store.CountClearsAsync(character, kind, day, ct).ConfigureAwait(false) : 0;
-        var points = GuildRedPacketRuleService.ClearContribution(kind, rule, priorClears);
+        int points;
+        if (run.Layout.Mode is DungeonRunMode.GuildDungeon dungeon)
+        {
+            if (!dungeon.Includes(membership))
+                return null;
+            var priorClears = await store.CountClearsAsync(character, kind, day, ct).ConfigureAwait(false);
+            points = GuildRedPacketRuleService.GuildDungeonClearContribution(rule, priorClears);
+        }
+        else
+        {
+            if (!participant.HasMembership(membership.Member))
+                return null;
+            var count = await CountGuildPartyMembersAsync(membership, run.ClearParticipants, ct).ConfigureAwait(false);
+            if (GuildRedPacketRuleService.PartyClearContribution(rule, count) is not { } award)
+                return null;
+            points = award;
+        }
         if (!await store.TryRecordClearAsync(guild, character, run.RunId.Value, kind, day, at.ToUnixTimeSeconds(), points, ct)
                 .ConfigureAwait(false) || points == 0)
             return null;
@@ -72,19 +79,18 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
             FormattableString.Invariant($"guild-clear:{run.RunId.Value:N}:{character.Value}"), now, ct).ConfigureAwait(false);
     }
 
-    private async ValueTask<bool> HasGuildPartyAsync(GuildId guild, CharacterId character,
-        IReadOnlyList<DungeonClearParticipant> participants, int required, CancellationToken ct)
+    private async ValueTask<int> CountGuildPartyMembersAsync(GuildMembership actor,
+        IReadOnlyList<DungeonClearParticipant> participants, CancellationToken ct)
     {
-        if (participants.Count < required) return false;
         var count = 1;
         foreach (var participant in participants)
         {
-            if (participant.CharacterId != character
+            if (participant.CharacterId != actor.Member.Character
                 && await guilds.FindMembershipAsync(participant.CharacterId, ct).ConfigureAwait(false) is { } member
-                && member.Guild.Id == guild && participant.HasMembership(member.Member) && ++count >= required)
-                return true;
+                && member.Guild.Id == actor.Guild.Id && participant.HasMembership(member.Member))
+                count++;
         }
-        return false;
+        return count;
     }
 
     private ValueTask<ItemDeliveryReceipt> DeliverAsync(AccountId account, CharacterId character, int points,

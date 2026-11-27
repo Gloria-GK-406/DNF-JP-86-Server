@@ -202,13 +202,14 @@ public sealed class DungeonClearDomainServiceTests
     }
 
     [Theory]
-    [InlineData(false, false, false, true, true)]
-    [InlineData(true, false, false, false, false)]
-    [InlineData(true, false, true, false, false)]
-    [InlineData(false, true, false, true, false)]
-    [InlineData(false, true, true, true, false)]
+    [InlineData(false, false, false, 2, true, true)]
+    [InlineData(false, false, false, 3, true, false)]
+    [InlineData(true, false, false, 2, false, false)]
+    [InlineData(true, false, true, 2, false, false)]
+    [InlineData(false, true, false, 2, true, false)]
+    [InlineData(false, true, true, 2, true, false)]
     public async Task Ordinary_clear_freezes_each_membership_for_monthly_and_party_contributions(
-        bool leaderRejoined, bool helperRejoined, bool switchedGuild, bool earnsMonthly, bool earnsParty)
+        bool leaderRejoined, bool helperRejoined, bool switchedGuild, int requiredMembers, bool earnsMonthly, bool earnsParty)
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -256,14 +257,20 @@ public sealed class DungeonClearDomainServiceTests
             await monthly.RecordClearAsync(Leader, completed, 5, default);
             Assert.Equal(earnsMonthly ? new[] { settledAt } : [], contributions);
 
+            var recordedPoints = new List<int>();
             var party = new GuildContributionDomainService(store,
-                TestRequired.Absent<IGuildContributionStore>((method, _) =>
-                    method.Name == nameof(IGuildContributionStore.TryRecordClearAsync) ? ValueTask.FromResult(true) : null),
+                TestRequired.Absent<IGuildContributionStore>((method, args) =>
+                {
+                    if (method.Name != nameof(IGuildContributionStore.TryRecordClearAsync)) return null;
+                    recordedPoints.Add((int)args![6]!);
+                    return ValueTask.FromResult(true);
+                }),
                 new(TestRequired.Absent<IGuildRedPacketRuleSource>((_, _) => new GuildRedPacketRules(
-                    new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1) { PartyDungeonContribution = new(2, 1) })),
+                    new Dictionary<int, GuildRedPacketProduct>(), 1, 1, 1) { PartyDungeonContribution = new(requiredMembers, 7) })),
                 delivery, TimeProvider.System);
             var award = await party.AwardClearAsync(LeaderAccount, Leader, completed, settledAt, default);
             Assert.Equal(earnsParty, award is not null);
+            Assert.Equal(earnsParty ? new[] { 7 } : [], recordedPoints);
         });
     }
 

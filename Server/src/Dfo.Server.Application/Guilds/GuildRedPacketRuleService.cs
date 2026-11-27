@@ -63,9 +63,11 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
     public int DailyContribution(GuildDailyContributionKind kind) =>
         Read()?.DailyContributionPoints.GetValueOrDefault(kind) ?? 0;
 
-    public static int ClearContribution(GuildClearContributionKind kind, GuildClearContributionRule rule, long priorClears) =>
-        kind == GuildClearContributionKind.PartyDungeon || rule.Required == 0 || priorClears == rule.Required - 1L
-            ? rule.Points : 0;
+    public static int GuildDungeonClearContribution(GuildClearContributionRule rule, long priorClears) =>
+        rule.Required == 0 || priorClears == rule.Required - 1L ? rule.Points : 0;
+
+    public static int? PartyClearContribution(GuildClearContributionRule rule, int guildMemberCount) =>
+        guildMemberCount >= rule.Required ? rule.Points : null;
 
     public static GuildRedPacketSettlement CalculateSettlement(int amount, int remaining, int contributionRate, bool senderDeparted)
     {

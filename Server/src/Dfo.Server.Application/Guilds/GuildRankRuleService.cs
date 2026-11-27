@@ -4,6 +4,9 @@ namespace Dfo.Server.Application.Guilds;
 
 internal static class GuildRankRuleService
 {
+    public static bool CanTransferWarehouseItems(GuildMember member) =>
+        member.Rank is >= GuildRankSettings.Leader and < GuildRankSettings.Member;
+
     public static bool CanReviewApplications(GuildMember actor, IReadOnlyList<GuildRankSetting> ranks) =>
         HasPermission(actor, ranks, GuildRankSettings.ReviewApplicationsPermission);
 

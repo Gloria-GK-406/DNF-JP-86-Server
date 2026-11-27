@@ -30,7 +30,7 @@ internal sealed class GuildWarehouseDomainService(
         BusinessSlot source, int warehouseSlot, int itemId, int count, CancellationToken ct)
     {
         if (await MembershipInHallAsync(actor, ct).ConfigureAwait(false) is not { } membership
-            || !MayTransfer(membership))
+            || !GuildRankRuleService.CanTransferWarehouseItems(membership.Member))
             return new(GuildWarehouseFailure.AccessDenied);
         var guild = membership.Guild.Id;
         var capacity = await warehouse.ReadWarehouseCapacityAsync(guild, ct).ConfigureAwait(false);
@@ -74,7 +74,7 @@ internal sealed class GuildWarehouseDomainService(
         int itemId, int count, CancellationToken ct)
     {
         if (await MembershipInHallAsync(actor, ct).ConfigureAwait(false) is not { } membership
-            || !MayTransfer(membership))
+            || !GuildRankRuleService.CanTransferWarehouseItems(membership.Member))
             return new(GuildWarehouseFailure.AccessDenied);
         var guild = membership.Guild.Id;
         var capacity = await warehouse.ReadWarehouseCapacityAsync(guild, ct).ConfigureAwait(false);
@@ -123,7 +123,7 @@ internal sealed class GuildWarehouseDomainService(
         int targetSlot, int targetItem, CancellationToken ct)
     {
         if (await MembershipInHallAsync(actor, ct).ConfigureAwait(false) is not { } membership
-            || !MayTransfer(membership))
+            || !GuildRankRuleService.CanTransferWarehouseItems(membership.Member))
             return new(GuildWarehouseFailure.AccessDenied);
         var guild = membership.Guild.Id;
         var capacity = await warehouse.ReadWarehouseCapacityAsync(guild, ct).ConfigureAwait(false);
@@ -161,9 +161,6 @@ internal sealed class GuildWarehouseDomainService(
 
     private async ValueTask<GuildMembership?> MembershipInHallAsync(SelectedSessionIdentity actor, CancellationToken ct) =>
         (await halls.VisitAsync(actor, requiredArea: null, ct).ConfigureAwait(false))?.Membership;
-
-    private static bool MayTransfer(GuildMembership membership) =>
-        membership.Member.Rank is >= GuildRankSettings.Leader and < GuildRankSettings.Member;
 
     private static bool IsCarriedSpace(BusinessInventorySpace space) => space is
         BusinessInventorySpace.CarriedEquipment or BusinessInventorySpace.Consumable
