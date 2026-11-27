@@ -174,9 +174,9 @@ public sealed class GuildDomainTests : IDisposable
         var monthly = new GuildMonthlyContributionDomainService(store, monthlyStore, new(economy,
             TestRequired.Absent<IDungeonDefinitionSource>()), delivery, clock);
 
-        clock.Now = boundary.AddSeconds(-1);
+        clock.Now = boundary.AddSeconds(-1).ToUniversalTime();
         Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
-        Assert.False(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
+        Assert.False(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now.ToOffset(boundary.Offset), default)));
         Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(13), clock.Now, default)));
         var history = await monthly.ReadHistoryAsync(new(11), 10, default);
         Assert.NotNull(history);
@@ -197,7 +197,7 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(new(1099, 1099), november.Members[new(11)]);
         Assert.Equal(new(1100, 1100), november.Members[new(13)]);
 
-        clock.Now = boundary;
+        clock.Now = boundary.ToUniversalTime();
         Assert.Equal(boundary, new GuildContributionMonth().LastOccurrence(clock.Now));
         Assert.Equal(boundary, new GuildContributionMonth().NextOccurrence(clock.Now.AddSeconds(-1)));
         Assert.True(await Write(() => monthly.RecordAttendanceAsync(new(11), clock.Now, default)));
@@ -206,7 +206,7 @@ public sealed class GuildDomainTests : IDisposable
         Assert.Equal(new(1199, 100), december.Members[new(11)]);
         Assert.Equal(new(1100, 0), december.Members[new(13)]);
 
-        var first = await Write(() => monthly.SettleBatchAsync(boundary, null, 1, default));
+        var first = await Write(() => monthly.SettleBatchAsync(clock.Now, null, 1, default));
         Assert.Equal(new CharacterId(11), first.NextAfter);
         Assert.Empty(mail);
         var second = await Write(() => monthly.SettleBatchAsync(boundary, first.NextAfter, 1, default));

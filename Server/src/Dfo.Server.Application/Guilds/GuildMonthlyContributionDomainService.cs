@@ -1,5 +1,4 @@
 using System.Globalization;
-using Dfo.Server.Abstractions.Configuration;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Scheduling;
@@ -21,7 +20,7 @@ internal sealed class GuildMonthlyContributionDomainService(
             return false;
 
         var award = GuildMonthlyContributionRuleService.AttendanceAward(membership.Member.IsLeader);
-        var day = DateOnly.FromDateTime(now.ToOffset(IDailyResetRuleService.BusinessOffset).DateTime.AddHours(-6));
+        var day = GuildMonthlyContributionRuleService.AttendanceDay(now);
         return await contributions.RecordAsync(membership.Guild.Id, character, award.Source,
             day.DayNumber.ToString(CultureInfo.InvariantCulture), award.Points, now, ct).ConfigureAwait(false);
     }
@@ -43,8 +42,8 @@ internal sealed class GuildMonthlyContributionDomainService(
 
     public ValueTask<GuildContributionTotals> ReadTotalsAsync(GuildId guild, CancellationToken ct)
     {
-        var start = GuildContributionMonth.StartAt(clock.GetUtcNow());
-        return contributions.ReadTotalsAsync(guild, start, start.AddMonths(1), ct);
+        var (start, end) = GuildMonthlyContributionRuleService.CurrentPeriod(clock.GetUtcNow());
+        return contributions.ReadTotalsAsync(guild, start, end, ct);
     }
 
     public async ValueTask<IReadOnlyList<GuildContributionEntry>?> ReadHistoryAsync(
@@ -59,8 +58,7 @@ internal sealed class GuildMonthlyContributionDomainService(
         if (rules.ReadMonthlyContribution() is not { } rule)
             return default;
 
-        var end = GuildContributionMonth.StartAt(boundary);
-        var start = end.AddMonths(-1);
+        var (start, end) = GuildMonthlyContributionRuleService.SettlementPeriod(boundary);
         var candidates = await contributions.ReadUnpaidAsync(start, end, after, limit, ct).ConfigureAwait(false);
         var now = clock.GetUtcNow();
         foreach (var member in candidates)
@@ -80,14 +78,9 @@ internal readonly record struct GuildMonthlySettlementBatch(CharacterId? NextAft
 
 internal sealed class GuildContributionMonth : IScheduledTaskSchedule
 {
-    public static DateTimeOffset StartAt(DateTimeOffset instant)
-    {
-        var local = instant.ToOffset(IDailyResetRuleService.BusinessOffset);
-        var first = new DateTimeOffset(local.Year, local.Month, 1, 6, 0, 0, local.Offset);
-        return local < first ? first.AddMonths(-1) : first;
-    }
+    public DateTimeOffset LastOccurrence(DateTimeOffset at) =>
+        GuildMonthlyContributionRuleService.MonthStartAt(at).ToUniversalTime();
 
-    public DateTimeOffset LastOccurrence(DateTimeOffset at) => StartAt(at).ToUniversalTime();
-
-    public DateTimeOffset NextOccurrence(DateTimeOffset after) => StartAt(after).AddMonths(1).ToUniversalTime();
+    public DateTimeOffset NextOccurrence(DateTimeOffset after) =>
+        GuildMonthlyContributionRuleService.CurrentPeriod(after).End.ToUniversalTime();
 }
