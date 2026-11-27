@@ -11,7 +11,20 @@ internal sealed class GuildProductRuleService(IGuildEconomySource content)
     public GuildGoldRenameOffer? GoldRenameOffer(uint productId) =>
         content.ReadContentCatalog()?.GoldRename is { GoldCost: > 0 } offer && offer.ProductId == productId ? offer : null;
 
-    public int? WarehouseCapacityLimit() => content.ReadContentCatalog()?.WarehouseCapacityLimit;
+    public GuildMutationResult EvaluateWarehouseExpansion(GuildId guild, int capacity, int slots)
+    {
+        if (content.ReadContentCatalog()?.WarehouseCapacityLimit is not { } limit)
+            return new(GuildMutationStatus.UnsupportedContent);
+        var expanded = (long)capacity + slots;
+        return expanded > limit ? new(GuildMutationStatus.WarehouseCapacityLimit)
+            : new(GuildMutationStatus.Success, guild, WarehouseCapacity: checked((int)expanded));
+    }
+
+    public GuildGiftOfferDecision EvaluateGiftOffer(uint productId) =>
+        FindProduct(productId) is { CanGift: true, Price: > 0, DurationDays: > 0,
+            Kind: GuildContentKind.TemporaryAttributes or GuildContentKind.Experience } product
+            ? new(GuildGiftStatus.Success, product)
+            : new(GuildGiftStatus.UnsupportedContent);
 
     public GuildBenefitGrantDecision EvaluateGrant(
         GuildContentDefinition product, GuildPurchasedContent? existing, DateTimeOffset now)
@@ -64,3 +77,5 @@ internal sealed class GuildProductRuleService(IGuildEconomySource content)
 }
 
 internal readonly record struct GuildBenefitGrantDecision(GuildMutationStatus Status, GuildPurchasedContent? Content = null);
+
+internal readonly record struct GuildGiftOfferDecision(GuildGiftStatus Status, GuildContentDefinition? Product = null);

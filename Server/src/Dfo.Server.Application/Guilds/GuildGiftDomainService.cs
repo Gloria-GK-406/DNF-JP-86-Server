@@ -21,9 +21,9 @@ internal sealed class GuildGiftDomainService(IGuildDomainStore guilds, IGuildPoi
             return new(GuildGiftStatus.LeaderRequired);
         if (await alliances.FindAllyAsync(sender.Id, ct).ConfigureAwait(false) is not { } ally || ally.Id != recipient)
             return new(GuildGiftStatus.AllyRequired);
-        if (products.FindProduct(productId) is not { CanGift: true, Price: > 0, DurationDays: > 0 } product
-            || product.Kind is not (GuildContentKind.TemporaryAttributes or GuildContentKind.Experience))
-            return new(GuildGiftStatus.UnsupportedContent);
+        var offer = products.EvaluateGiftOffer(productId);
+        if (offer.Product is not { } product)
+            return new(offer.Status);
 
         var now = clock.GetLocalNow();
         var sentAt = now.ToUnixTimeSeconds();

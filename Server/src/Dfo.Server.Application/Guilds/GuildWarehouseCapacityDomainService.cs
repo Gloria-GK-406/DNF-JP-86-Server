@@ -7,12 +7,8 @@ internal sealed class GuildWarehouseCapacityDomainService(IGuildWarehouseStore w
 {
     public async ValueTask<GuildMutationResult> PrepareExpansionAsync(GuildId guild, int slots, CancellationToken ct)
     {
-        if (products.WarehouseCapacityLimit() is not { } limit)
-            return new(GuildMutationStatus.UnsupportedContent);
         var capacity = await warehouse.ReadWarehouseCapacityAsync(guild, ct).ConfigureAwait(false);
-        if (slots > limit - capacity)
-            return new(GuildMutationStatus.WarehouseCapacityLimit);
-        return new(GuildMutationStatus.Success, guild, WarehouseCapacity: capacity + slots);
+        return products.EvaluateWarehouseExpansion(guild, capacity, slots);
     }
 
     public ValueTask ApplyExpansionAsync(GuildId guild, int capacity, CancellationToken ct) =>

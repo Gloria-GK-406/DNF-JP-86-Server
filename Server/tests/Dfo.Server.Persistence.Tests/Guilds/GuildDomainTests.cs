@@ -257,6 +257,10 @@ public sealed class GuildDomainTests : IDisposable
             UPDATE guilds SET gm_points=1000;
             """);
 
+        Assert.Equal(GuildGiftStatus.UnsupportedContent, (await Write(() => gifts.SendAsync(new(11), second, 1, default))).Status);
+        Assert.Equal(GuildGiftStatus.UnsupportedContent, (await Write(() => gifts.SendAsync(new(11), second, 99, default))).Status);
+        Assert.Equal(1000L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={first.Value}"));
+        Assert.Empty((await gifts.ReadAsync(new(12), false, default))!.Rows);
         var sent = await Write(() => gifts.SendAsync(new(11), second, 3, default));
         Assert.Equal(GuildGiftStatus.Success, sent.Status);
         Assert.Equal(800L, Execute($"SELECT gm_points FROM guilds WHERE guild_id={first.Value}"));
