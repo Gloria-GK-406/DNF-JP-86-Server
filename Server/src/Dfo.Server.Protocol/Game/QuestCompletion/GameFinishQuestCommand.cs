@@ -136,6 +136,16 @@ public sealed class GameFinishQuestCommandHandler(
                 cancellationToken).ConfigureAwait(false);
         }
 
+        if (outcome.Finished && outcome.ExpertJob is not null)
+        {
+            var equipment = result.CharacterInventory.Containers
+                .SingleOrDefault(container => container.ContainerType == InventoryContainerType.Equipment)?.Items ?? [];
+            await outbox.RegisterExplicitAsync(context.Connection.ConnectionId, new GameExplicitMessageDelivery([
+                new CurrentUserStateMessage(result.Character, result.CharacterEntry.Public, equipment, result.CharacterEntry.Features.Pets),
+                new ExpertJobStateMessage(result.CharacterEntry.Features.ExpertJob),
+            ], []), cancellationToken).ConfigureAwait(false);
+        }
+
         await this.AnswerAsync(
             context,
             new FinishQuestAcknowledgement(
@@ -146,7 +156,8 @@ public sealed class GameFinishQuestCommandHandler(
                 outcome.Items,
                 checked((uint)clock.GetUtcNow().ToUnixTimeSeconds()),
                 (byte)(outcome.Refusal ?? QuestFinishRefusal.Unusable), outcome.GrowType)
-                { Awakening = outcome.Awakening, SkillPages = result.CharacterEntry.Skills.Pages },
+                { Awakening = outcome.Awakening, ExpertJob = outcome.ExpertJob,
+                    ExpertJobConsumptions = outcome.ExpertJobConsumptions, SkillPages = result.CharacterEntry.Skills.Pages },
             cancellationToken).ConfigureAwait(false);
 
         if (!outcome.Finished)
@@ -341,11 +352,15 @@ public sealed class GameFinishQuestCommandHandler(
             var items = new List<FinishedQuestItem>();
             var account = new List<InventoryRuntimeValueState>();
             var consumed = new HashSet<BusinessSlot>();
+            var expertJobConsumptions = new List<FinishedQuestConsumption>();
             foreach (var applied in result.Applied!.Applied)
                 switch (applied.Change)
                 {
                     case ContainerConsumptionChange change:
                         consumed.Add(change.Slot);
+                        if (result.ExpertJob is not null)
+                            expertJobConsumptions.Add(new(checked((ushort)A21InventoryLayout.ToGameSlot(change.Slot).Index),
+                                checked((uint)change.Consumed)));
                         break;
                     case Dfo.Server.Abstractions.Effects.BasicCharacterItemChange basic:
                         items.AddRange(basic.Additions.Select(x => new FinishedQuestItem(checked((ushort)A21InventoryLayout.ToGameSlot(x.Slot).Index),
@@ -387,7 +402,8 @@ public sealed class GameFinishQuestCommandHandler(
             }
             return new(true, command.QuestId, ObjectiveKindOf(result.Objective), result.Award!.Gained, items,
                 result.Award.Level, result.Award.Total, QuestProgress: result.Projection, AccountMaterials: account, GrowType: result.GrowType)
-            { MirrorCompletion = isMirror, Awakening = result.Awakening, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates,
+            { MirrorCompletion = isMirror, Awakening = result.Awakening, ExpertJob = result.ExpertJob,
+              ExpertJobConsumptions = expertJobConsumptions, NotificationExperience = result.Award.NotificationTotal, ConsumedItemUpdates = updates,
               ExtraEquipmentSlotOpened = result.Applied.Applied.Any(x => x.Change is Dfo.Server.Abstractions.Effects.ExtraEquipmentSlotChange) };
         }
         catch (Exception exception) when ((exception is not (QuestFinishRejectedException or OperationCanceledException)) && !Dfo.Server.Abstractions.Transactions.TransactionOutcomeUncertainException.Contains(exception))

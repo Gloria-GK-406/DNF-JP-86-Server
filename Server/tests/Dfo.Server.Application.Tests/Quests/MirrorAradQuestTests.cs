@@ -385,7 +385,8 @@ public sealed class MirrorAradQuestTests
             fixture.Services.GetRequiredService<Dfo.Server.Abstractions.Configuration.IDailyResetRuleService>());
         var settlement = new QuestCompletionSettlementService(null!, new DefinitionDomain(), effects,
             fixture.Services.GetRequiredService<IEventService>(),
-            fixture.Services.GetRequiredService<IGiantDragonCrystalExchangeDomainService>(), service, southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>());
+            fixture.Services.GetRequiredService<IGiantDragonCrystalExchangeDomainService>(), service, southern: TestRequired.Absent<Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService>(),
+            expertJobs: TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobDomainService>());
         return (service, store, preview, effects, settlement);
     }
     private static ValueTask<QuestCompletionReceipt> Finish(IQuestCompletionSettlementDomainService service) =>

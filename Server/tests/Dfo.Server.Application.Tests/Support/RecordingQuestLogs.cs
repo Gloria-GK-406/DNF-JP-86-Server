@@ -125,6 +125,7 @@ internal sealed class RecordingQuestLogs : ICharacterQuestLogDomainService
             IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
             throw new NotSupportedException("Rewardless batch completion requires the real log.");
 
+        public ValueTask ForgetAsync(IReadOnlySet<int> questIds, CancellationToken ct) => throw new NotSupportedException();
         public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
             throw new NotSupportedException(
                 "No test has needed a quest given up in memory; the real log proves that path.");

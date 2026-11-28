@@ -1,0 +1,2 @@
+# Local-only diagnostic output; useful deliverables stay outside this directory.
+.local-evidence/

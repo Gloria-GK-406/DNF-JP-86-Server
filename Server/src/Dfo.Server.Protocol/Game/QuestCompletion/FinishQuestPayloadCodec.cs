@@ -82,6 +82,33 @@ internal static class FinishQuestPayloadCodec
         if (!message.Finished)
             return [0x00, message.RefusalCode];
 
+        if (message.ExpertJob is { } expertJob)
+        {
+            // A21 upstream's chain 20 consumes compact seven-byte entries, then includes
+            // the selected profession and the two current skill pages.
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write((byte)1);
+            writer.Write(message.QuestId);
+            writer.Write(message.ObjectiveKind);
+            writer.Write(message.Experience);
+            writer.Write(1u); // This quest-completion path validates a single hand-in.
+            if (message.ObjectiveKind is 0x00 or 0x19)
+            {
+                writer.Write(checked((byte)message.ExpertJobConsumptions.Count));
+                foreach (var entry in message.ExpertJobConsumptions)
+                {
+                    writer.Write((byte)0);
+                    writer.Write(entry.SlotIndex);
+                    writer.Write(entry.Count);
+                }
+            }
+            writer.Write((byte)20);
+            writer.Write((byte)expertJob);
+            WriteSkillPages(writer, message);
+            return stream.ToArray();
+        }
+
         if (message.Awakening is not null)
         {
             // ServerS4A21 QuestAckBuilder: chain 2, reserved zero, then both compact skill pages.
@@ -95,17 +122,7 @@ internal static class FinishQuestPayloadCodec
             if (message.ObjectiveKind is 0x00 or 0x19) writer.Write((byte)0);
             writer.Write((byte)2);
             writer.Write((byte)0);
-            for (var pageIndex = 0; pageIndex < 2; pageIndex++)
-            {
-                var skills = message.SkillPages.SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills ?? [];
-                writer.Write(checked((byte)skills.Count));
-                foreach (var skill in skills)
-                {
-                    writer.Write(checked((byte)skill.Slot));
-                    writer.Write(checked((ushort)skill.SkillId));
-                    writer.Write(skill.Level);
-                }
-            }
+            WriteSkillPages(writer, message);
             return stream.ToArray();
         }
 
@@ -161,5 +178,20 @@ internal static class FinishQuestPayloadCodec
         }
 
         return payload;
+    }
+
+    private static void WriteSkillPages(BinaryWriter writer, FinishQuestAcknowledgement message)
+    {
+        for (var pageIndex = 0; pageIndex < 2; pageIndex++)
+        {
+            var skills = message.SkillPages.SingleOrDefault(page => page.PageIndex == pageIndex)?.Skills ?? [];
+            writer.Write(checked((byte)skills.Count));
+            foreach (var skill in skills)
+            {
+                writer.Write(checked((byte)skill.Slot));
+                writer.Write(checked((ushort)skill.SkillId));
+                writer.Write(skill.Level);
+            }
+        }
     }
 }

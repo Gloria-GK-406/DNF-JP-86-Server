@@ -16,6 +16,7 @@ using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
+using Dfo.Server.Protocol.Game.ExpertJobs;
 using Dfo.Server.Protocol.Game.Party;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,6 +34,7 @@ internal static class ProtocolAlgorithmFixture
             values.LastOrDefault(parameter.ParameterType.IsInstanceOfType) ?? (parameter.HasDefaultValue ? parameter.DefaultValue
                 : parameter.ParameterType == typeof(IDungeonParticipationDomainService) ? Participation(values)
                 : parameter.ParameterType == typeof(ITownTransitDomainService) ? Transit(values)
+                : parameter.ParameterType == typeof(IExpertStoreDomainService) ? Stores(values)
                 : parameter.ParameterType == typeof(IDungeonExitDomainService) ? Exit(values.ToArray())
                 : parameter.ParameterType == typeof(IEntryPlacementRuleService) ? Placement(values)
                 : Default(parameter.ParameterType))).ToArray());
@@ -77,7 +79,14 @@ internal static class ProtocolAlgorithmFixture
             values.OfType<IOnlineCharacterRuntimeDomainService>().LastOrDefault() ?? Default<IOnlineCharacterRuntimeDomainService>()),
         new(values.OfType<Dfo.Server.Abstractions.Content.ITownDefinitionSource>().LastOrDefault() ?? Default<Dfo.Server.Abstractions.Content.ITownDefinitionSource>(),
             values.OfType<IEntryPlacementRuleService>().LastOrDefault() ?? Placement(values)),
-        values.OfType<ICharacterLocationDomainService>().LastOrDefault() ?? Default<ICharacterLocationDomainService>());
+        values.OfType<ICharacterLocationDomainService>().LastOrDefault() ?? Default<ICharacterLocationDomainService>(),
+        Stores(values));
+
+    private static IExpertStoreDomainService Stores(List<object> values) =>
+        values.OfType<IExpertStoreDomainService>().LastOrDefault()
+        ?? new Dfo.Server.Application.Sessions.ExpertStoreDomainService(
+            values.OfType<Dfo.Server.Abstractions.Transactions.IDomainTransactionAccessor>().LastOrDefault()
+            ?? TestRequired.TransactionScope());
     // Placement reads content only through the town definitions a test supplies; its couple-room
     // rules are pure and answer without any.
     private static Dfo.Server.Application.World.EntryPlacementRuleService Placement(List<object> values) => new(
@@ -222,11 +231,11 @@ internal static class ProtocolAlgorithmFixture
         [.. suppliedTo.TryGetValue(town, out var values) ? values : [], .. town.GetType()
         .GetFields(BindingFlags.Instance | BindingFlags.NonPublic).Select(field => field.GetValue(town))
         .OfType<object>()];
-    /// <summary>Lets the newcomer's stall notice through (it lists nothing without stalls) and refuses every other projection.</summary>
+    /// <summary>Models an empty town's stall notices and refuses every other projection.</summary>
     internal sealed class ArrivalOnlyProjections : ICommandProjections
     {
         public ValueTask<NotificationDelivery> ProjectAsync<T>(NotificationAudience audience, T notification, CancellationToken cancellationToken = default)
-            where T : class, INotification<T> => notification is Dfo.Server.Protocol.Game.PrivateStoreArrival
+            where T : class, INotification<T> => notification is PrivateStoreArrival or ExpertStoreArrival
                 ? ValueTask.FromResult(new NotificationDelivery([]))
                 : throw new InvalidOperationException($"The component fixture did not provide ICommandProjections.ProjectAsync for {typeof(T).Name}.");
     }

@@ -21,6 +21,16 @@ internal sealed class CharacterBusinessInventoryDomainService(ICharacterContaine
         return new BusinessInventoryStore(characterId, kind, backing, placements, arrivals, creatures, capacities, lifecycle);
     }
 
+    public async ValueTask<IReadOnlyList<ItemReference>?> FindCarriedItemsAsync(CharacterId characterId, int itemId, CancellationToken ct)
+    {
+        var carried = backing.FindContainer(characterId, InventoryContainerType.Main);
+        if (carried is null) return null;
+        return (await carried.GetAllAsync(ct).ConfigureAwait(false)).Where(item => item.ItemId == itemId)
+            .Select(item => item.BusinessSlot is not null ? item : item.WithBusinessSlot(
+                LegacyInventoryStorageCoordinates.ToBusiness(new(InventoryContainerType.Main, item.StorageSlotIndex), item.Snapshot.LegacyKind)))
+            .ToArray();
+    }
+
     public IBusinessInventoryStore GetPersistentStore(ContainerOwner owner, BusinessInventoryStoreKind kind)
     {
         if (owner.Value <= 0 || !Enum.IsDefined(owner.Scope)) throw new ArgumentOutOfRangeException(nameof(owner));
@@ -234,31 +244,25 @@ internal sealed class BusinessItemContainer(BusinessInventorySpace space, IItemC
                 && (entry.Slot.Space != space || entry.Slot.Index < open))
             .Select(entry => new ItemPile(entry.Slot, entry.Item.Count)).ToArray();
         var arrival = arrivals.ForGrant(piles, count, placement, occupied);
-        switch (arrival)
+        if (arrival is ItemArrival.NoRoom) return new(this, new ItemPlacementOutcome.NoRoom());
+        var destinationSlot = arrival switch
         {
-            case ItemArrival.OntoExistingPile pile:
-                var target = pile.Slot.Space == space ? this : quick
-                    ?? throw new InvalidDataException("Arrival selected a quick slot without a quick container.");
-                var existing = held.Single(entry => entry.Slot == pile.Slot).Item;
-                await target.UpdateAsync(existing, current => current with { Count = pile.Total }, cancellationToken)
-                    .ConfigureAwait(false);
-                await target.FlushAsync(cancellationToken).ConfigureAwait(false);
-                return new(target, new ItemPlacementOutcome.AddedToPile(pile.Slot.Index, pile.Added, pile.Total));
-            case ItemArrival.IntoEmptySlot empty:
-                var destination = empty.Slot.Space == space ? this : quick
-                    ?? throw new InvalidDataException("Arrival selected a quick slot without a quick container.");
-                if (placement.ItemKind == 0)
-                    throw new InvalidDataException($"Item {itemId} has no item kind.");
-                var record = await creator.CreateAsync(snapshot with
-                { Count = isPile ? empty.Count : 1, InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity() }, cancellationToken).ConfigureAwait(false);
-                await destination.PutAsync(empty.Slot.Index, record, cancellationToken).ConfigureAwait(false);
-                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
-                return new(destination, new ItemPlacementOutcome.PutInEmptySlot(empty.Slot.Index, empty.Count));
-            case ItemArrival.NoRoom:
-                return new(this, new ItemPlacementOutcome.NoRoom());
-            default:
-                throw new ArgumentOutOfRangeException(nameof(arrival), arrival, null);
+            ItemArrival.OntoExistingPile pile => pile.Slot,
+            ItemArrival.IntoEmptySlot empty => empty.Slot,
+            _ => throw new ArgumentOutOfRangeException(nameof(arrival), arrival, null),
+        };
+        var destination = destinationSlot.Space == space ? this : quick
+            ?? throw new InvalidDataException("Arrival selected a quick slot without a quick container.");
+        if (arrival is ItemArrival.IntoEmptySlot)
+        {
+            if (placement.ItemKind == 0)
+                throw new InvalidDataException($"Item {itemId} has no item kind.");
+            snapshot = snapshot with { InstanceValue = isPile ? 0 : ArrivingAvatar.NewIdentity() };
         }
+        var outcome = await ItemContainerOperations.ApplyArrivalAsync(destination, arrival, snapshot, creator, cancellationToken)
+            .ConfigureAwait(false);
+        await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return new(destination, outcome);
     }
 
     private int StorageIndex(BusinessSlot slot)

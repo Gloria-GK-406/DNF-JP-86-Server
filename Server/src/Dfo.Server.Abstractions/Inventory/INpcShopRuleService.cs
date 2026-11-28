@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Abstractions.Inventory;
@@ -14,13 +15,16 @@ public sealed record NpcShopPurchasePlan(
 
 public sealed record NpcShopPlanningResult(NpcShopRejection Rejection, NpcShopPurchasePlan? Plan);
 
+public readonly record struct NpcShopExpertJob(ExpertJobType Type, int Level);
+
 public interface INpcShopRuleService
 {
     ValueTask<NpcShopQuoteResult> QuoteAsync(
-        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken, int? activeVariant = null);
+        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken,
+        int? activeVariant = null, NpcShopExpertJob expertJob = default);
 
     ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(
-        int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null);
+        int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null, NpcShopExpertJob expertJob = default);
 
     NpcShopPlanningResult Plan(NpcShopQuote quote,
         IReadOnlyDictionary<BusinessInventorySpace, IReadOnlyList<ItemReference>> held,

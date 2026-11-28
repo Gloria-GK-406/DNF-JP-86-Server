@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Mail;
 using Dfo.Server.Persistence.Mail;
 using Dfo.Server.Abstractions;
@@ -153,6 +154,9 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchTeamDomainStore, Dfo.Server.Persistence.Pvp.SqlitePvpTotalMatchTeamDomainStore>();
         services.TryAddSingleton<ICharacterSettingsTable>(
             provider => new SqliteCharacterSettingsTable(provider.GetRequiredService<SqliteDatabase>()));
+        services.TryAddSingleton<IExpertJobStateStore>(provider => new SqliteExpertJobStateStore(
+            provider.GetRequiredService<SqliteDatabase>(), provider.GetRequiredService<ICharacterExpertJobTable>(),
+            provider.GetRequiredService<ICharacterExpertRecipeTable>()));
         services.TryAddSingleton<ICharacterExpertJobTable>(
             provider => new SqliteCharacterExpertJobTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterDailyChallengeTable>(

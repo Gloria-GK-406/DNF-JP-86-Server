@@ -10,4 +10,10 @@ public interface IEquipmentEnchantContentSource
 
     ValueTask<EquipmentEnchantDefinition?> ResolveAsync(
         int beadItemId, int equipmentItemId, CancellationToken cancellationToken);
+
+    ValueTask<bool> ValidateExpertCardAsync(int cardItemId, byte upgradeCount, int? equipmentItemId,
+        CancellationToken cancellationToken) => ValueTask.FromResult(false);
+
+    ValueTask<EquipmentEnchantDefinition?> ResolveExpertBeadAsync(int beadItemId, byte upgradeCount,
+        int? equipmentItemId, CancellationToken cancellationToken) => ValueTask.FromResult<EquipmentEnchantDefinition?>(null);
 }

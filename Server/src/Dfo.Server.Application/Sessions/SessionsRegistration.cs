@@ -20,6 +20,8 @@ internal static class SessionsRegistration
         services.TryAddSingleton<ISelectedSessionSnapshotQuery>(sp => sp.GetRequiredService<SelectedSessionDomainService>());
         services.TryAddSingleton<ISelectedCharacterCurrentViewDomainService, SelectedCharacterCurrentViewDomainService>();
         services.TryAddSingleton<IExpertStoreDomainService, ExpertStoreDomainService>();
+        services.TryAddSingleton<ExpertStorePlacementRuleService>();
+        services.TryAddSingleton<IExpertStoreGameplayDomainService, ExpertStoreGameplayDomainService>();
         services.TryAddSingleton<IPvpLobbyDomainService, PvpLobbyDomainService>();
         services.TryAddSingleton<ISessionAdjacentEntryDomainService, SessionAdjacentEntryDomainService>();
         services.TryAddSingleton<ISelectedSessionCleanupDomainService, SelectedSessionCleanupService>();

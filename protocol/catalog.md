@@ -91,6 +91,43 @@ A21 在环境 24 发出第 0 页的 [加点 CMD001D](game/client-to-server/0x001
 
 2026-11-25，A21 在 CH60（环境 8）提交第 2 套决斗技能学习，记录到旧服拒绝。修正版按自动匹配决斗类型放行当前决斗技能页的加点，A21 实机已确认成功。[CH60 加点 CMD001D](game/client-to-server/0x001D.md#2026-11-25-ch60-决斗加点)
 
+## 2026-11-23 副职业实现（待 A21 实机）
+
+副职业就职走原任务完成、USERINFO subtype0 和 [NOTI 0x00CD](game/server-to-client/NOTI-0x00CD.md)，放弃走 CMD 0x00EF。分解和附魔共用城镇摊位，炼金、控偶和附魔共用配方及装备提取入口。复用的 [0x002C](game/client-to-server/0x002C.md) 支持副职业图纸，[0x0110](game/client-to-server/0x0110.md) 支持给装备应用合法的副职业宝珠。以下登记本仓当前实现，证据与待实机包形见各协议页。
+
+| 命令 | Type | 实现 | 证据边界 | 记录 |
+| --- | --- | --- | --- | --- |
+| `0x01` | `0x00EB` | `DisjointMachineDecoder` | CurrentImplementation，待 A21 实机 | [0x00EB](game/client-to-server/0x00EB.md) |
+| `0x01` | `0x00EC` | `DisjointMachineDecoder` | CurrentImplementation，待 A21 实机 | [0x00EC](game/client-to-server/0x00EC.md) |
+| `0x01` | `0x00EE` | `ExpertJobProductionDecoder` | CurrentImplementation，待 A21 实机 | [0x00EE](game/client-to-server/0x00EE.md) |
+| `0x01` | `0x00EF` | `ExpertJobGiveUpDecoder` | CurrentImplementation，待 A21 实机 | [0x00EF](game/client-to-server/0x00EF.md) |
+| `0x01` | `0x00F0` | `DisjointMachineDecoder` | CurrentImplementation，待 A21 实机 | [0x00F0](game/client-to-server/0x00F0.md) |
+| `0x01` | `0x01A0` | `ExpertJobProductionDecoder` | CurrentImplementation，待 A21 实机 | [0x01A0](game/client-to-server/0x01A0.md) |
+| `0x01` | `0x0257` | `ExpertStoreDecoder` | CurrentImplementation，待 A21 实机 | [0x0257](game/client-to-server/0x0257.md) |
+| `0x01` | `0x0258` | `ExpertStoreDecoder` | CurrentImplementation，待 A21 实机 | [0x0258](game/client-to-server/0x0258.md) |
+| `0x01` | `0x0259` | `ExpertStoreDecoder` | CurrentImplementation，待 A21 实机 | [0x0259](game/client-to-server/0x0259.md) |
+| `0x01` | `0x025A` | `EnchanterStoreDecoder` | ClientVerified 付费附魔和扣料 | [0x025A](game/client-to-server/0x025A.md) |
+| `0x01` | `0x0264` | `EnchanterStoreDecoder` | CurrentImplementation，待 A21 实机 | [0x0264](game/client-to-server/0x0264.md) |
+| `0x01` CMD | `0x00EB` | `DisjointMachineReply` | CurrentImplementation，待 A21 实机 | [0x00EB](game/client-to-server/0x00EB.md) |
+| `0x01` CMD | `0x00EC` | `DisjointMachineReply` | CurrentImplementation，待 A21 实机 | [0x00EC](game/client-to-server/0x00EC.md) |
+| `0x01` CMD | `0x00EE` | `ExpertJobProductionReply` | CurrentImplementation，待 A21 实机 | [0x00EE](game/client-to-server/0x00EE.md) |
+| `0x01` CMD | `0x00EF` | `ExpertJobGiveUpAcknowledgement` | CurrentImplementation，待 A21 实机 | [0x00EF](game/client-to-server/0x00EF.md) |
+| `0x01` CMD | `0x00F0` | `DisjointMachineReply` | CurrentImplementation，待 A21 实机 | [0x00F0](game/client-to-server/0x00F0.md) |
+| `0x01` CMD | `0x01A0` | `ExpertJobProductionReply` | CurrentImplementation，ClientStatic 未净化装备用错误码 | [0x01A0](game/client-to-server/0x01A0.md) |
+| `0x01` CMD | `0x0257` | `ExpertStoreReply` | CurrentImplementation，待 A21 实机 | [0x0257](game/client-to-server/0x0257.md) |
+| `0x01` CMD | `0x0258` | `ExpertStoreReply` | CurrentImplementation，待 A21 实机 | [0x0258](game/client-to-server/0x0258.md) |
+| `0x01` CMD | `0x0259` | `ExpertStoreReply` | CurrentImplementation，待 A21 实机 | [0x0259](game/client-to-server/0x0259.md) |
+| `0x01` CMD | `0x025A` | `EnchanterStoreReply` | ClientVerified 付费附魔，ClientStatic 缺料错误码 | [0x025A](game/client-to-server/0x025A.md) |
+| `0x01` CMD | `0x0264` | `EnchanterStoreReply` | CurrentImplementation，待 A21 实机 | [0x0264](game/client-to-server/0x0264.md) |
+| `0x00` NOTI | `0x00CB` | `DisjointMachineOwnerChanged` | CurrentImplementation，待 A21 实机 | [0x00CB](game/server-to-client/NOTI-0x00CB.md) |
+| `0x00` NOTI | `0x0216` | `EnchanterStoreOwnerChanged` | CurrentImplementation，待 A21 实机 | [0x0216](game/server-to-client/NOTI-0x0216.md) |
+| `0x00` NOTI | `0x021B` | `ExpertStoreOpenedMessage` | CurrentImplementation，待 A21 实机 | [0x021B](game/server-to-client/NOTI-0x021B.md) |
+| `0x00` NOTI | `0x021C` | `ExpertStoreClosedMessage` | CurrentImplementation，复用关摊通知，尾部待 A21 实机 | [0x021C](game/server-to-client/NOTI-0x021C.md) |
+
+[四职业工作区契约](../Document/tasks/expert-jobs/TaskContract.md)。
+
+2026-11-28 用户确认附魔师 3 升 4、摊位自用与修理、缺料拒绝、提取和 2 档宝珠上装符合预期。亚贝罗[副职业设计图购买](game/client-to-server/0x0015.md#亚贝罗副职业设计图商店2026-11-28)已取得下级魔力提取器图纸购买实机记录。[怪物卡升级 CMD 0x025C](game/client-to-server/0x025C.md#2026-11-28-a21-请求样本)已取得 A21 请求样本，存档确认卡片可升到 2 档。
+
 ## 2026-11-19 安图恩攻坚（A21 招募主流程已实测）
 
 A21 实机完成了进频道、建团、申请、批准和编入第 6 队，其余招募分支见[验收记录](../Document/tasks/anton-raid/recruitment/acceptance.md)。阶段业务、实机场景和保留项见[攻坚服务设计](../Document/tasks/anton-raid/design.md#82-a21-实机取证)。

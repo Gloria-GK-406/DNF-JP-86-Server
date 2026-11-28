@@ -168,9 +168,9 @@ internal sealed partial class GameMarriageCommandHandler :
     {
         if (!sessions.IsInWorld(actor) || onlineCharacters.StandingOf(actor) is not { } previous
             || await currentViews.TryLoadAsync(actor, ct).ConfigureAwait(false) is not { } view) return false;
-        return await transit.CrossAsync(actor, channel, location.TownId, location.AreaId, location.X, location.Y, true, ct)
-                .ConfigureAwait(false) is not null
-            && await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, ct).ConfigureAwait(false);
+        var crossing = await transit.CrossAsync(actor, channel, location.TownId, location.AreaId, location.X, location.Y, true, ct).ConfigureAwait(false);
+        return crossing is not null
+            && await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, ct, crossing.ClosedExpertStore).ConfigureAwait(false);
     }
 
     public async ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameWeddingProposalCommand command, CancellationToken ct)
@@ -348,9 +348,10 @@ internal sealed partial class GameMarriageCommandHandler :
         if (result.Succeeded && actor is not null && previous is not null && view is not null)
         {
             var entry = result.Snapshot!;
-            if (await transit.CrossAsync(actor, entry.Room.ChannelId, entry.Room.TownId, entry.Room.AreaId,
-                    entry.Location.X, entry.Location.Y, true, ct).ConfigureAwait(false) is null
-                || !await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, ct).ConfigureAwait(false)) result = new(-10);
+            var crossing = await transit.CrossAsync(actor, entry.Room.ChannelId, entry.Room.TownId, entry.Room.AreaId,
+                entry.Location.X, entry.Location.Y, true, ct).ConfigureAwait(false);
+            if (crossing is null
+                || !await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, actor.ConnectionId, actor, view, previous, ct, crossing.ClosedExpertStore).ConfigureAwait(false)) result = new(-10);
             if (result.Succeeded)
                 await AppearanceAsync(actor, entry, false, ct).ConfigureAwait(false);
         }

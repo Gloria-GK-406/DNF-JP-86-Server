@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
@@ -17,7 +18,9 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     IInventoryEffectPreflightDomainService preview,
     ICharacterCarriedGoldTable gold,
     IMirrorAradQuestDomainService mirror,
-    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage) : IQuestCompletionDomainService
+    Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
+    IQuestFactsDomainService questFacts, IQuestAvailabilityRuleService availability,
+    IExpertJobQueryDomainService expertJobs) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null)
@@ -26,6 +29,11 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         QuestCompletionPreparation Refuse(QuestProgressSnapshot? projection = null) => new(false, quest, null, null, projection);
         var definition = await rules.DefinitionAsync(quest, ct).ConfigureAwait(false);
         if (definition is null || definition.IsManagedByAchievement) return Refuse();
+        if (QuestAvailabilityRuleService.MayBeExpertJobQuest(definition)
+            && await availability.IsExpertJobQuestAsync(definition, ct).ConfigureAwait(false)
+            && !await availability.MeetsRequirementsAsync(definition,
+                await questFacts.SubjectAsync(account, id, ct).ConfigureAwait(false), ct).ConfigureAwait(false))
+            return Refuse();
         var character = characters.Get(id);
         if (definition.Grade == QuestGrade.Wedding
             && !await marriage.CanCompleteAsync(account, id, quest, ct).ConfigureAwait(false)) return Refuse();
@@ -50,6 +58,12 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (!reward.IsValid) return Refuse(projected);
         if (reward.Plan!.GrowType is not null || reward.Plan.Awakening is not null)
             facts = facts with { Skills = await skills.ReadAsync(id, ct).ConfigureAwait(false), Builds = await skills.BuildsAsync(id, ct).ConfigureAwait(false) };
+        if (reward.Plan.GrowType is not null)
+        {
+            var expertJob = await expertJobs.ReadAsync(id, ct).ConfigureAwait(false);
+            if (await expertJobs.DescribeAsync(expertJob, ct).ConfigureAwait(false) is { } expertProgress)
+                facts = facts with { ExpertSkillGrants = expertProgress.GrantedSkills };
+        }
         var rewards = await rules.RewardsAsync(reward.Plan, facts, ct).ConfigureAwait(false);
         var context = new EffectExecutionContext(account, id, at, footprint, session);
         var inventory = await preview.PreviewWithHoldingsAsync(context, rewards, ct).ConfigureAwait(false);
@@ -58,6 +72,11 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
             || inventory.RewardEntries + goldEntry > byte.MaxValue)
             return Refuse(projected);
         var plan = await rules.CompleteAsync(quest, reward.Plan, facts, rewards, inventory.Holdings!, ct).ConfigureAwait(false);
-        return new(true, quest, definition.ObjectiveTypeCode, plan with { Reward = reward.Plan }, plan.Projection);
+        var profession = reward.Plan.ExpertJob is { } type
+            ? new ExpertJobQuestGrant(new(account, id), quest, type) : null;
+        return new(true, quest, definition.ObjectiveTypeCode, plan with { Reward = reward.Plan }, plan.Projection)
+        {
+            ExpertJobGrant = profession,
+        };
     }
 }

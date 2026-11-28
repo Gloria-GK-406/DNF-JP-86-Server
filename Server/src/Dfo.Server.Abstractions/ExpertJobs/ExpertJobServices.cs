@@ -1,0 +1,109 @@
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.ExpertJobs;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
+
+namespace Dfo.Server.Abstractions.ExpertJobs;
+
+public interface IExpertJobStateStore
+{
+    ValueTask<ExpertJobState> ReadAsync(CharacterId character, CancellationToken ct);
+    ValueTask WriteAsync(CharacterId character, ExpertJobState state, CancellationToken ct);
+    ValueTask InitializeAsync(CharacterId character, CancellationToken ct);
+    ValueTask DeleteAsync(CharacterId character, CancellationToken ct);
+}
+
+public interface IExpertJobQueryDomainService
+{
+    ValueTask<ExpertJobState> ReadAsync(CharacterId character, CancellationToken ct);
+    ValueTask<ExpertJobProgress?> DescribeAsync(ExpertJobState state, CancellationToken ct);
+}
+
+public sealed record ExpertJobProgress(int Level, IReadOnlyList<byte> CardQualifications, IReadOnlyDictionary<int, byte> GrantedSkills);
+
+public sealed record ExpertJobExperienceChange(ExpertJobState State, bool ExperienceChanged, bool LevelChanged);
+
+public interface IExpertJobDomainService
+{
+    ICharacterExpertJob Get(CharacterId character);
+}
+
+public interface ICharacterExpertJob
+{
+    ValueTask<ExpertJobState> GetStateAsync(CancellationToken ct);
+    ValueTask<IDisjointerDomainService?> GetDisjointerAsync(CancellationToken ct);
+    ValueTask<IAlchemistDomainService?> GetAlchemistAsync(CancellationToken ct);
+    ValueTask<IDollControllerDomainService?> GetDollControllerAsync(CancellationToken ct);
+    ValueTask<IEnchanterDomainService?> GetEnchanterAsync(CancellationToken ct);
+    ValueTask<ExpertJobStudyResult?> TryLearnRecipeAsync(SelectedSessionIdentity session, BusinessSlot source,
+        ItemReference drawing, IEffectFootprintRecorder footprint, CancellationToken ct);
+    ValueTask<bool> JoinFromQuestAsync(ExpertJobQuestGrant grant, CancellationToken ct);
+    ValueTask<ExpertJobGiveUpResult> GiveUpAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct);
+}
+
+public enum ExpertJobGiveUpRejection { None, InvalidState, InsufficientGold }
+
+public sealed record ExpertJobGiveUpResult(ExpertJobGiveUpRejection Rejection, int Gold = 0,
+    byte GiveUpCount = 0, ApplyEffectsResult? Effects = null, ExpertStoreClosure? ClosedStore = null);
+
+public sealed record ExpertJobDefinition(
+    ExpertJobType Type,
+    IReadOnlyList<uint> ExperienceThresholds,
+    IReadOnlyList<int> GiveUpCosts,
+    IReadOnlySet<int> ConnectedQuests,
+    IReadOnlySet<int> ClearedOnGiveUp,
+    IReadOnlyDictionary<int, byte> Skills,
+    int RemovedItem,
+    int InitialEndurance,
+    IReadOnlyDictionary<int, int> AutoLearnRecipes,
+    IReadOnlyDictionary<byte, int> CardQualificationLevelRequirements)
+{
+    public int MaximumStoreCharge { get; init; }
+    public DisjointMachineDefinition? DisjointMachine { get; init; }
+    public ExpertJobProductionDefinition? Production { get; init; }
+    public EnchanterDefinition? Enchantment { get; init; }
+
+    public int LevelAt(uint experience) => Math.Min(ExperienceThresholds.Count,
+        1 + ExperienceThresholds.TakeWhile(threshold => experience >= threshold).Count());
+
+    public ExpertJobExperienceChange Advance(ExpertJobState current, long gain)
+    {
+        var experience = current.Experience + (uint)Math.Clamp(gain, 0, uint.MaxValue - current.Experience);
+        var levelChanged = LevelAt(experience) != LevelAt(current.Experience);
+        var learned = levelChanged ? current.LearnedRecipeIds.Union(RecipesAt(experience)).Order().ToArray()
+            : current.LearnedRecipeIds;
+        return new(current with { Experience = experience, LearnedRecipeIds = learned },
+            experience != current.Experience, levelChanged);
+    }
+
+    public IReadOnlyList<int> RecipesAt(uint experience)
+    {
+        var level = LevelAt(experience);
+        return AutoLearnRecipes.Where(pair => pair.Key <= level).Select(pair => pair.Value).Order().ToArray();
+    }
+
+    public IReadOnlyList<byte> CardQualificationsAt(uint experience)
+    {
+        var level = LevelAt(experience);
+        return CardQualificationLevelRequirements.Where(pair => pair.Value <= level)
+            .Select(pair => pair.Key).Order().ToArray();
+    }
+}
+
+public interface IExpertJobDefinitionSource
+{
+    ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct);
+    ValueTask<ExpertJobType?> FindDrawingJobAsync(int itemId, CancellationToken ct);
+}
+
+public interface IExpertJobRuleService
+{
+    ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct);
+    ValueTask<ExpertJobType?> FindDrawingJobAsync(int itemId, CancellationToken ct);
+    ValueTask<bool> ContainsGrantedSkillAsync(IReadOnlySet<int> ids, CancellationToken ct);
+}

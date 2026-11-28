@@ -79,3 +79,17 @@ NOTI	AntonRaidApprovalNotice	0x0007	Game/AntonRaid/AntonRaidFrames.cs	message id
 NOTI	AntonRaidDirectoryNotice	0x024F	Game/AntonRaid/AntonRaidFrames.cs	message identity is GameAntonRaidDirectory
 NOTI	AntonRaidChangedNotice	0x0250	Game/AntonRaid/AntonRaidFrames.cs	message identity is GameAntonRaidChanged
 NOTI	AntonRaidTownLoaded	0x04BD	Game/AntonRaid/AntonRaidFrames.cs	message identity is GameAntonRaidTownLoaded
+CMD	DisjointMachineReply	0x00EB	Game/ExpertJobs/DisjointMachineSlice.cs	reply identity follows the specific expert job request
+CMD	DisjointMachineReply	0x00EC	Game/ExpertJobs/DisjointMachineSlice.cs	reply identity follows the specific expert job request
+CMD	ExpertJobProductionReply	0x00EE	Game/ExpertJobs/ExpertJobProductionSlice.cs	reply identity follows the specific expert job request
+CMD	DisjointMachineReply	0x00F0	Game/ExpertJobs/DisjointMachineSlice.cs	reply identity follows the specific expert job request
+CMD	ExpertJobProductionReply	0x01A0	Game/ExpertJobs/ExpertJobProductionSlice.cs	reply identity follows the specific expert job request
+CMD	ExpertStoreReply	0x0257	Game/ExpertJobs/ExpertStoreSlice.cs	reply identity follows the specific expert job request
+CMD	ExpertStoreReply	0x0258	Game/ExpertJobs/ExpertStoreSlice.cs	reply identity follows the specific expert job request
+CMD	ExpertStoreReply	0x0259	Game/ExpertJobs/ExpertStoreSlice.cs	reply identity follows the specific expert job request
+CMD	EnchanterStoreReply	0x025A	Game/ExpertJobs/EnchanterStoreSlice.cs	reply identity follows the specific expert job request
+CMD	EnchanterStoreReply	0x0264	Game/ExpertJobs/EnchanterStoreSlice.cs	reply identity follows the specific expert job request
+CMD	ExpertJobGiveUpAcknowledgement	0x00EF	Game/ExpertJobs/ExpertJobGiveUpSlice.cs	message identity is GameExpertJobGiveUp
+NOTI	DisjointMachineOwnerChanged	0x00CB	Game/ExpertJobs/DisjointMachineSlice.cs	message identity is GameDisjointMachineOwnerChanged
+NOTI	EnchanterStoreOwnerChanged	0x0216	Game/ExpertJobs/EnchanterStoreSlice.cs	message identity is GameEnchanterStoreOwnerChanged
+NOTI	ExpertStoreOpenedMessage	0x021B	Game/ExpertJobs/ExpertStoreSlice.cs	message identity is GameExpertStoreOpened

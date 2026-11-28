@@ -203,7 +203,7 @@ internal sealed class CharacterFeatureEntryProjection : ICharacterFeatureEntryPr
                 storage.ExpertJob.DisjointMachineGrade,
                 storage.ExpertJob.DisjointMachineEndurance,
                 storage.ExpertJob.EnchanterEndurance,
-                storage.ExpertJob.RecipeIds.Order().ToArray()),
+                storage.ExpertJob.RecipeIds.Order().ToArray(), storage.ExpertProtocol),
             Dfo.Server.Application.Mail.MailboxProjection.Map(storage.Mailbox),
             storage.PvpMissions.OrderBy(value => value.SortOrder)
                 .Select(value => new CharacterPvpMissionEntryState(value.MissionId, value.Progress))

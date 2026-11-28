@@ -237,6 +237,9 @@ public sealed class CreatureTransformationTests
         public ICreatureInstanceDomainService Instances { get; set; } = null!;
         public ICreatureCollection Of(CharacterId characterId) => Instances.Of(characterId);
         public ICreatureStore GetStore(CharacterId characterId) => this;
+        public ValueTask<IReadOnlyList<ItemReference>?> FindCarriedItemsAsync(CharacterId characterId, int itemId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
         public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) => this;
         public BusinessInventoryStoreKind Kind => BusinessInventoryStoreKind.Creature;
         public IBusinessItemContainer? FindContainer(BusinessInventorySpace space, bool isDefault = false) => space switch
@@ -315,6 +318,8 @@ public sealed class CreatureTransformationTests
     private sealed class Inventories(FakeCreatureStore store) : ICharacterBusinessInventoryDomainService
     {
         public IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind) => store;
+        public ValueTask<IReadOnlyList<ItemReference>?> FindCarriedItemsAsync(CharacterId characterId, int itemId, CancellationToken ct) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeRules : ICreatureRuleSource

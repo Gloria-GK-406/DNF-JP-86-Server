@@ -258,6 +258,17 @@ internal sealed class QuestLog(
         return true;
     }
 
+    public ValueTask ForgetAsync(IReadOnlySet<int> questIds, CancellationToken ct) =>
+        stores.ChangeAsync(store, async session =>
+        {
+            foreach (var row in await session.Carried.ReadAllAsync(place, ct).ConfigureAwait(false))
+                if (questIds.Contains(row.QuestId)) session.Carried.Clear(place, row.Slot);
+            foreach (var row in await session.Cleared.ReadAllAsync(place, ct).ConfigureAwait(false))
+                if (questIds.Contains(row.QuestId)) session.Cleared.Clear(place, row.QuestId);
+            foreach (var row in await session.Tracked.ReadAllAsync(place, ct).ConfigureAwait(false))
+                if (questIds.Contains(row.QuestId)) session.Tracked.Clear(place, row.SlotIndex);
+        }, ct);
+
     /// <remarks>
     /// Every slot the old selection occupied and the new one does not reach is emptied, and the
     /// old slots are read rather than counted: a selection that shrank would otherwise keep its

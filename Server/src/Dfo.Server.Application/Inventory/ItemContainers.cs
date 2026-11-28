@@ -50,6 +50,29 @@ internal static class ArrivingAvatar
 /// <summary>Consumption ends the custody of an explicitly detached item.</summary>
 public static class ItemContainerOperations
 {
+    internal static async ValueTask<ItemPlacementOutcome> ApplyArrivalAsync(IBusinessItemContainer container,
+        ItemArrival arrival, ItemSnapshot incoming, IItemLifecycleDomainService lifecycle, CancellationToken ct)
+    {
+        switch (arrival)
+        {
+            case ItemArrival.OntoExistingPile pile when pile.Slot.Space == container.Space:
+                var held = await container.GetAsync(pile.Slot.Index, ct).ConfigureAwait(false);
+                if (held is null || held.Count != pile.Total - pile.Added || !held.Snapshot.CanStackWith(incoming))
+                    throw new InvalidOperationException("The planned arrival pile changed.");
+                await container.UpdateAsync(held, current => current with { Count = pile.Total }, ct).ConfigureAwait(false);
+                return new ItemPlacementOutcome.AddedToPile(pile.Slot.Index, pile.Added, pile.Total);
+            case ItemArrival.IntoEmptySlot empty when empty.Slot.Space == container.Space:
+                if (await container.GetAsync(empty.Slot.Index, ct).ConfigureAwait(false) is not null)
+                    throw new InvalidOperationException("The planned arrival slot is occupied.");
+                var snapshot = incoming with { Count = incoming.IsPile ? empty.Count : 1 };
+                var record = await lifecycle.CreateAsync(snapshot, ct).ConfigureAwait(false);
+                await container.PutAsync(empty.Slot.Index, record, ct).ConfigureAwait(false);
+                return new ItemPlacementOutcome.PutInEmptySlot(empty.Slot.Index, empty.Count);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(arrival), arrival, null);
+        }
+    }
+
     public static async ValueTask<int> ConsumeAsync(IBusinessItemContainer container,
         ItemReference item, int count, IItemLifecycleDomainService lifecycle, CancellationToken ct)
     {

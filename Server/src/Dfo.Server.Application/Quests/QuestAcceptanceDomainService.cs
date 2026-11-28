@@ -19,7 +19,8 @@ internal sealed class QuestAcceptanceDomainService(
     IMirrorAradQuestDomainService mirror,
     IMarriageQuestDomainService marriage,
     ISouthernDaleQuestDomainService southern,
-    IGiantDragonCrystalExchangeDomainService crystalExchange) : IQuestAcceptanceDomainService
+    IGiantDragonCrystalExchangeDomainService crystalExchange, IQuestFactsDomainService questFacts,
+    IQuestAvailabilityRuleService availability) : IQuestAcceptanceDomainService
 {
     public async ValueTask<QuestAcceptanceResult> AcceptAsync(
         AccountId accountId, CharacterId characterId, ushort questId, CancellationToken cancellationToken)
@@ -29,6 +30,12 @@ internal sealed class QuestAcceptanceDomainService(
         if (definition is null)
             return QuestAcceptanceResult.Refuse(questId, QuestAcceptanceRefusal.NotAcceptable);
 
+        if (QuestAvailabilityRuleService.MayBeExpertJobQuest(definition)
+            && await availability.IsExpertJobQuestAsync(definition, cancellationToken).ConfigureAwait(false)
+            && !await availability.MeetsRequirementsAsync(definition,
+                await questFacts.SubjectAsync(accountId, characterId, cancellationToken).ConfigureAwait(false),
+                cancellationToken).ConfigureAwait(false))
+            return QuestAcceptanceResult.Refuse(questId, QuestAcceptanceRefusal.NotAcceptable);
         if (definition.Grade == QuestGrade.Crack)
         {
             var accepted = await mirror.AcceptAsync(accountId, characterId, questId, cancellationToken).ConfigureAwait(false);

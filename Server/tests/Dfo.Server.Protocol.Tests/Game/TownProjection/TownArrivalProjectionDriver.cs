@@ -2,7 +2,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Application.World;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.Party;
@@ -15,7 +14,7 @@ namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 // The real public delivery always includes weakness; CMD coverage exercises that full boundary.
 internal sealed class TownArrivalProjectionDriver(params object?[] services)
 {
-    private readonly TownTransitDomainService transit = ProtocolAlgorithmFixture.TownTransit(null, services);
+    private readonly ITownTransitDomainService transit = ProtocolAlgorithmFixture.TownTransit(null, services);
     private readonly TownAreaProjectionDelivery delivery = ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(services);
 
     public async ValueTask<int> EnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token)

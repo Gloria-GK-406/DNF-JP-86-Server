@@ -2,12 +2,14 @@ using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.OnlineUsers;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -24,7 +26,8 @@ internal sealed class NpcShopDomainService(
     INpcShopRuleService rules,
     INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower, IDungeonParticipationDomainService participation,
-    IGuildHallAccessDomainService halls, IGuildDungeonDomainService guildDungeons) : INpcShopDomainService
+    IGuildHallAccessDomainService halls, IGuildDungeonDomainService guildDungeons,
+    IExpertJobQueryDomainService expertJobs) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -46,7 +49,8 @@ internal sealed class NpcShopDomainService(
         if (identity is null)
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
 
-        var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken, access.ActiveVariant)
+        var expertJob = await ReadExpertJobAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+        var priced = await rules.QuoteAsync(npcId, shopId, identity.Job, itemId, rawCount, cancellationToken, access.ActiveVariant, expertJob)
             .ConfigureAwait(false);
         if (priced.Quote is not { } quote)
             return NpcShopPurchaseResult.Refused(priced.Rejection);
@@ -143,7 +147,8 @@ internal sealed class NpcShopDomainService(
         var access = await GuildAccessAsync(session, npcId, null, null, now, cancellationToken).ConfigureAwait(false);
         if (!access.Allowed)
             return new(NpcShopRejection.ShopUnavailable, []);
-        var limited = await rules.LimitedItemsAsync(npcId, identity.Job, cancellationToken, access.ActiveVariant).ConfigureAwait(false);
+        var expertJob = await ReadExpertJobAsync(session.CharacterId, cancellationToken).ConfigureAwait(false);
+        var limited = await rules.LimitedItemsAsync(npcId, identity.Job, cancellationToken, access.ActiveVariant, expertJob).ConfigureAwait(false);
         if (limited is null)
             return new(NpcShopRejection.ShopUnavailable, []);
         var result = new List<NpcShopPurchaseCount>();
@@ -155,6 +160,13 @@ internal sealed class NpcShopDomainService(
                 result.Add(new(item.ItemId, bought));
         }
         return new(NpcShopRejection.None, result);
+    }
+
+    private async ValueTask<NpcShopExpertJob> ReadExpertJobAsync(CharacterId owner, CancellationToken ct)
+    {
+        var state = await expertJobs.ReadAsync(owner, ct).ConfigureAwait(false);
+        return await expertJobs.DescribeAsync(state, ct).ConfigureAwait(false) is { } progress
+            ? new(state.Type, progress.Level) : default;
     }
 
     private async ValueTask<(bool Allowed, int? ActiveVariant)> GuildAccessAsync(SelectedSessionIdentity session,

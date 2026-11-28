@@ -28,6 +28,9 @@ public static class BusinessInventoryOwnership
 public interface ICharacterBusinessInventoryDomainService
 {
     IBusinessInventoryStore GetStore(CharacterId characterId, BusinessInventoryStoreKind kind);
+
+    /// <summary>Find matching possessions in the normal carried inventory, in business coordinates.</summary>
+    ValueTask<IReadOnlyList<ItemReference>?> FindCarriedItemsAsync(CharacterId characterId, int itemId, CancellationToken ct);
     /// <summary>Explicit persistent access for offline delivery and entry loading; does not register an online container.</summary>
     IBusinessInventoryStore GetPersistentStore(ContainerOwner owner, BusinessInventoryStoreKind kind) =>
         throw new NotSupportedException("This inventory provider does not support explicit persistent access.");

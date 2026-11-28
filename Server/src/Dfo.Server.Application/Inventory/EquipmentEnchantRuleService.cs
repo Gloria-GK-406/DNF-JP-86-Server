@@ -6,12 +6,24 @@ namespace Dfo.Server.Application.Inventory;
 
 internal sealed class EquipmentEnchantRuleService(IEquipmentEnchantContentSource content) : IEquipmentEnchantRuleService
 {
-    public async ValueTask<int?> CardAsync(ItemSnapshot bead, int equipmentItemId, CancellationToken ct)
+    public async ValueTask<EquipmentEnchantDecision?> ResolveAsync(ItemSnapshot bead, int equipmentItemId, CancellationToken ct)
     {
-        // Independent upgraded-bead effects are outside the currently supported enchantment scope.
+        var expert = await content.ResolveExpertBeadAsync(bead.ItemId, bead.EnchantUpgradeCount, equipmentItemId, ct)
+            .ConfigureAwait(false);
+        if (Matches(expert, bead.ItemId)) return new(expert!.CardItemId, bead.EnchantUpgradeCount);
+
         if (bead.EnchantUpgradeCount != 0) return null;
-        var definition = await content.ResolveAsync(bead.ItemId, equipmentItemId, ct).ConfigureAwait(false);
-        return definition is not null && definition.BeadItemId == bead.ItemId && definition.CardItemId > 0
-            ? definition.CardItemId : null;
+        var ordinary = await content.ResolveAsync(bead.ItemId, equipmentItemId, ct).ConfigureAwait(false);
+        return Matches(ordinary, bead.ItemId) ? new(ordinary!.CardItemId, null) : null;
     }
+
+    public ValueTask<bool> AcceptsExpertCardAsync(ItemSnapshot card, int equipmentItemId, CancellationToken ct) =>
+        content.ValidateExpertCardAsync(card.ItemId, card.EnchantUpgradeCount, equipmentItemId, ct);
+
+    public async ValueTask<bool> CanProduceExpertBeadAsync(ItemSnapshot card, int beadItemId, CancellationToken ct) =>
+        await content.ValidateExpertCardAsync(card.ItemId, card.EnchantUpgradeCount, null, ct).ConfigureAwait(false)
+        && await content.ResolveExpertBeadAsync(beadItemId, card.EnchantUpgradeCount, null, ct).ConfigureAwait(false) is not null;
+
+    private static bool Matches(EquipmentEnchantDefinition? definition, int beadItemId) =>
+        definition is { CardItemId: > 0 } && definition.BeadItemId == beadItemId;
 }

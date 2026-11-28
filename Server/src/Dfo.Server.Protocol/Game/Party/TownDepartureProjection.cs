@@ -43,6 +43,8 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
+using Dfo.Server.Protocol.Game.ExpertJobs;
+
 namespace Dfo.Server.Protocol.Game.Party;
 
 internal static class TownDepartureProjection
@@ -62,6 +64,9 @@ internal static class TownDepartureProjection
         if (departures.Length == 0)
             return [];
 
+        foreach (var departure in departures)
+            if (departure.Change.ClosedExpertStore is { } closure)
+                await ExpertStoreProjection.ClosedAsync(sessions, townAreas, projections, closure, includeOwner: true, cancellationToken).ConfigureAwait(false);
         foreach (var area in departures
             .Where(departure => departure.SharedTownPresence)
             .Select(departure => departure.PreviousArea)

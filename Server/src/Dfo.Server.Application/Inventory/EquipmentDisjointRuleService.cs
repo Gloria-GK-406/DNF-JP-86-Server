@@ -22,7 +22,7 @@ internal sealed class EquipmentDisjointRuleService(IEquipmentDisjointDefinitionS
         if (settings.Method != EquipmentDisjointMethod.SystemNpc)
             return new(EquipmentDisjointRejection.UnsupportedMethod);
         if (equipment.Core.EquipmentLockId != 0
-            || (equipment.Core.AmplifyType & 0x80) != 0)
+            || IsUnpurified(equipment.Core.AmplifyType))
             return new(EquipmentDisjointRejection.CannotDisjoint);
 
         var definition = await definitions.GetEquipmentAsync(equipment.ItemId, cancellationToken)
@@ -37,10 +37,32 @@ internal sealed class EquipmentDisjointRuleService(IEquipmentDisjointDefinitionS
         var rewards = new List<EquipmentDisjointReward>();
         Add(rewards, table.CubeItemId, CubeCount(definition, table));
         AddAdditional(rewards, definition, table, random);
-        AddExpand(rewards, definition, table, random);
+        AddEquipmentSouls(rewards, definition, table, random);
         return rewards.Count == 0
             ? new(EquipmentDisjointRejection.CannotDisjoint)
             : new(EquipmentDisjointRejection.None, rewards);
+    }
+
+    internal const int UnpurifiedState = 1;
+
+    internal static int EquipmentState(ItemSnapshot equipment) => IsUnpurified(equipment.AmplifyType) ? UnpurifiedState
+        : equipment.ChronicleOption0.Id != 0 || equipment.ChronicleOption1.Id != 0 ? 2 : 0;
+
+    private static bool IsUnpurified(byte amplifyType) => (amplifyType & 0x80) != 0;
+
+    internal async ValueTask<(EquipmentDisjointDefinition Definition, int Grade, int State)?> ExpertTargetAsync(
+        ItemSnapshot item, CancellationToken ct)
+    {
+        var definition = await definitions.GetEquipmentAsync(item.ItemId, ct).ConfigureAwait(false);
+        return definition is { CanDisjoint: true, Grade: { } grade }
+            ? (definition, grade, EquipmentState(item)) : null;
+    }
+
+    internal async ValueTask AddEquipmentSoulsAsync(List<EquipmentDisjointReward> rewards,
+        EquipmentDisjointDefinition equipment, Random random, CancellationToken ct)
+    {
+        if (await definitions.GetSystemTableAsync(ct).ConfigureAwait(false) is { } table)
+            AddEquipmentSouls(rewards, equipment, table, random);
     }
 
     private static int CubeCount(
@@ -72,7 +94,7 @@ internal sealed class EquipmentDisjointRuleService(IEquipmentDisjointDefinitionS
         Add(rewards, selected, LevelCount(definition.MinimumLevel, divisor, random));
     }
 
-    private static void AddExpand(List<EquipmentDisjointReward> rewards,
+    private static void AddEquipmentSouls(List<EquipmentDisjointReward> rewards,
         EquipmentDisjointDefinition definition, EquipmentDisjointTable table, Random random)
     {
         var index = definition.Rarity == 6 ? 5

@@ -1,3 +1,4 @@
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Effects;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
@@ -35,6 +36,7 @@ public sealed record QuestCompletionFacts(CharacterIdentityState Identity, Chara
     CharacterSkillFacts? Skills, CharacterSkillBuilds? Builds)
 {
     public IReadOnlyList<ItemReference> SharedMaterials { get; init; } = [];
+    public IReadOnlyDictionary<int, byte> ExpertSkillGrants { get; init; } = ImmutableDictionary<int, byte>.Empty;
 }
 public sealed record QuestCompletionPlan(ushort QuestId, ImmutableArray<DomainEffect> Effects,
     ExperienceAward Award, QuestProgressSnapshot? Projection, byte? GrowType)
@@ -43,11 +45,15 @@ public sealed record QuestCompletionPlan(ushort QuestId, ImmutableArray<DomainEf
     public byte? Awakening { get; init; }
 }
 public sealed record QuestCompletionPreparation(bool Prepared, ushort QuestId, string? Objective,
-    QuestCompletionPlan? Plan, QuestProgressSnapshot? Projection);
+    QuestCompletionPlan? Plan, QuestProgressSnapshot? Projection)
+{
+    public ExpertJobQuestGrant? ExpertJobGrant { get; init; }
+}
 public sealed record QuestCompletionReceipt(bool Finished, ushort QuestId, string? Objective,
     ExperienceAward? Award, ApplyEffectsResult? Applied, QuestProgressSnapshot? Projection, byte? GrowType)
 {
     public bool MirrorCompletion { get; init; }
+    public ExpertJobType? ExpertJob { get; init; }
     public byte? Awakening { get; init; }
 }
 public interface IQuestCompletionDomainService

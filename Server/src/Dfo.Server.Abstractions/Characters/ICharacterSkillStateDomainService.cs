@@ -11,6 +11,9 @@ public interface ICharacterSkillStateDomainService
     ValueTask ActivateAsync(CharacterId characterId, SkillBuildId build, CancellationToken cancellationToken,
         SkillGroup group = SkillGroup.Pve);
 
+    ValueTask ChangeGrantedSkillsAsync(CharacterId characterId, IReadOnlyDictionary<int, byte> previous,
+        IReadOnlyDictionary<int, byte> current, CancellationToken cancellationToken);
+
     ValueTask ReconcileLevelAsync(CharacterId characterId, CancellationToken cancellationToken);
 
     ValueTask ReconcileAsync(CharacterId characterId, CancellationToken cancellationToken);

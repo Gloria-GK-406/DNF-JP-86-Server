@@ -20,7 +20,8 @@ internal sealed class TownTransitDomainService(
     IMarriageHousingSessionDomainService housingSessions,
     IGuildHallAccessDomainService halls,
     GuildTravelRuleService travelRules,
-    ICharacterLocationDomainService positions) : ITownTransitDomainService
+    ICharacterLocationDomainService positions,
+    IExpertStoreDomainService expertStores) : ITownTransitDomainService
 {
     public async ValueTask<TownCrossingRefusal?> RefuseCrossingAsync(
         SelectedSessionIdentity session,
@@ -104,7 +105,7 @@ internal sealed class TownTransitDomainService(
         if (change is not null && housingChange == TownHousingChange.Leaves
             && change.CurrentArea?.Key != previous!.Area)
             housingSessions.CloseExact(session);
-        return change;
+        return CloseDepartedStore(session, change);
     }
 
     public async ValueTask<IReadOnlyList<TownReturnAdmission>> ReturnToTownAsync(
@@ -139,7 +140,7 @@ internal sealed class TownTransitDomainService(
                 request.Position,
                 sharesTownPresence);
             if (change is not null)
-                admissions.Add(new TownReturnAdmission(request, change, previous));
+                admissions.Add(new TownReturnAdmission(request, CloseDepartedStore(request.Session, change)!, previous));
         }
         return admissions;
     }
@@ -156,9 +157,16 @@ internal sealed class TownTransitDomainService(
                 continue;
             var change = onlineCharacters.LeaveTown(session, reason);
             if (change is not null)
-                departures.Add(new TownDepartureResult(session, change, current.Area, current.SharesTownPresence));
+                departures.Add(new TownDepartureResult(session, CloseDepartedStore(session, change)!, current.Area, current.SharesTownPresence));
         }
         return departures;
+    }
+
+    private TownAreaMembershipChange? CloseDepartedStore(SelectedSessionIdentity session, TownAreaMembershipChange? change)
+    {
+        if (change?.PreviousArea is not { } from || change.CurrentArea?.Key == from.Key)
+            return change;
+        return change with { ClosedExpertStore = expertStores.CloseOwned(session) };
     }
 
     private async ValueTask<int?> AreaInstanceAsync(

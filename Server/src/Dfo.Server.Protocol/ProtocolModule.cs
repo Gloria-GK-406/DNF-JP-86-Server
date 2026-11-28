@@ -1,3 +1,4 @@
+using Dfo.Server.Protocol.Game.ExpertJobs;
 using Dfo.Server.Protocol.Game.WeeklyAttendance;
 using Dfo.Server.Protocol.Game.Altar;
 using Dfo.Server.Protocol.Game.GuardianAltar;
@@ -95,6 +96,7 @@ using Dfo.Server.Protocol.Game.RepairItem;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Protocol.Game.EnchantByBead;
+using Dfo.Server.Protocol.Game.MonsterCardUpgrade;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.CompoundItem;
@@ -243,8 +245,14 @@ public sealed class ProtocolModule : IServerModule
         services.AddSellItemSlice();
         services.AddRepairItemSlice();
         services.AddDisjointItemSlice();
+        services.AddExpertJobGiveUpSlice();
+        services.AddExpertJobProductionSlice();
+        services.AddExpertStoreSlice();
+        services.AddDisjointMachineSlice();
+        services.AddEnchanterStoreSlice();
         services.AddReinforceItemSlice();
         services.AddEnchantByBeadSlice();
+        services.AddMonsterCardUpgradeSlice();
         services.AddMagicSealSlice();
         services.AddOutworldSlice();
         services.AddForgingSlice();

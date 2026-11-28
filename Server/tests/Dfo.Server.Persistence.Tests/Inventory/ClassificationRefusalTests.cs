@@ -112,12 +112,12 @@ public sealed class ClassificationRefusalTests
             new SqliteCharacterPvpRecordTable(database.Value),
             new SqliteCharacterPvpSkillStateTable(database.Value),
             new SqliteCharacterSettingsTable(database.Value),
-            new SqliteCharacterExpertJobTable(database.Value),
             new SqliteCharacterContainerStateTable(database.Value),
             new SqliteCharacterItemTable(database.Value),
             Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue(),
             new ItemGrantDomainService(null!, Rules(declared), Lifecycle(database, declared),
-                new SqliteItemDomainStore(database.Path, TestRequired.NoContentsEvents), database.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database.Value), new SqliteAccountCargoStateTable(database.Value), new InventoryCapacityRuleService())), appearances: TestRequired.WornAppearances);
+                new SqliteItemDomainStore(database.Path, TestRequired.NoContentsEvents), database.Scope, null!, null!, new InventoryCapacityDomainService(new SqliteCharacterContainerStateTable(database.Value), new SqliteAccountCargoStateTable(database.Value), new InventoryCapacityRuleService())), appearances: TestRequired.WornAppearances,
+            expertJobState: new SqliteExpertJobStateStore(database.Value, new SqliteCharacterExpertJobTable(database.Value), new SqliteCharacterExpertRecipeTable(database.Value)));
 
     private static IItemLifecycleDomainService Lifecycle(TestDatabase database, ItemWorldClass declared) =>
         new ItemLifecycleDomainService(new SqliteItemDomainStore(database.Path, TestRequired.NoContentsEvents), database.Scope, Rules(declared), clock: TimeProvider.System, expiration: null!);

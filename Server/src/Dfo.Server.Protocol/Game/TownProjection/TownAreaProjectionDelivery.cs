@@ -13,6 +13,8 @@ using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
 using Dfo.Server.Protocol.Game.Party;
 
+using Dfo.Server.Protocol.Game.ExpertJobs;
+
 namespace Dfo.Server.Protocol.Game.TownProjection;
 
 /// <summary>One selected character asking the area service to enter its current town location.</summary>
@@ -92,6 +94,7 @@ public sealed class TownAreaProjectionDelivery
             cancellationToken).ConfigureAwait(false);
         _ = await notifications.ProjectAsync(new NotificationAudience.TheseCharacters([session.CharacterId]),
             new PrivateStoreArrival(session), cancellationToken).ConfigureAwait(false);
+        await ExpertStoreProjection.ArrivedAsync(notifications, session, cancellationToken).ConfigureAwait(false);
         if (!selectedSessions.IsInWorld(session))
             return;
         await partyTownProjection.RefreshObservedPartiesAsync(

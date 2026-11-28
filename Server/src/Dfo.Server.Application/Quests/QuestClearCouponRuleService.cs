@@ -39,11 +39,13 @@ internal sealed class QuestClearCouponRuleService(
         var side = grade == QuestGrade.Side;
         // Grade tickets catch up all qualifying stages in one pass, including stages with
         // prerequisites inside that grade. Quest logs still handle ordinary acceptance separately.
+        // Coupon catch-up keeps the existing conservative rule for all chain-20 entries.
         return definitions.Where(Eligible).Select(q => q.QuestId).Distinct().Order().ToArray();
 
         bool Eligible(QuestDefinition quest) => quest.QuestId is > 0 and < 30_000
             && !completed.Contains(quest.QuestId)
             && quest.Grade == grade
+            && !QuestAvailabilityRuleService.MayBeExpertJobQuest(quest)
             && (!side || !quest.ObjectiveTypeCode.Equals("play only", StringComparison.OrdinalIgnoreCase))
             && quest.RequiredLevel is { Minimum: >= 0 } range && range.Minimum <= level
             // Old offer-level ceilings do not exclude historical stories.

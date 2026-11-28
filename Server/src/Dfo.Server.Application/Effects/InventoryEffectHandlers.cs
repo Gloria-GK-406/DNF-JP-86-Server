@@ -92,7 +92,7 @@ internal sealed class SetEquipmentEnchantmentEffectHandler(IEquipmentDomainServi
 {
     protected override void ValidateValue(SetEquipmentEnchantmentEffect effect) => ArgumentOutOfRangeException.ThrowIfNegative(effect.CardId);
     protected override async ValueTask<ItemReference?> ChangeAsync(IEquipmentInstance instance, SetEquipmentEnchantmentEffect effect, CancellationToken ct) =>
-        await instance.SetEnchantmentAsync(effect.CardId, ct).ConfigureAwait(false);
+        await instance.SetEnchantmentAsync(effect.CardId, effect.UpgradeCount, ct).ConfigureAwait(false);
 }
 internal sealed class SetEquipmentDimensionalEffectHandler(IEquipmentDomainService equipment) : EquipmentEffectHandler<SetEquipmentDimensionalEffect>(equipment)
 {

@@ -1,3 +1,5 @@
+using Dfo.Server.Abstractions.ExpertJobs;
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Characters;
@@ -7,7 +9,7 @@ namespace Dfo.Server.Application.Quests;
 
 /// <summary>Eligibility belongs to Quest; World consumes the resulting offer projection.</summary>
 internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService quests,
-    ICreatureDefinitionSource creatures) : IQuestAvailabilityRuleService
+    ICreatureDefinitionSource creatures, IExpertJobRuleService expertJobs) : IQuestAvailabilityRuleService
 {
     public async ValueTask<AvailableQuestEntryState> ReadAvailableAsync(
         WorldContentSubject subject,
@@ -73,7 +75,7 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
         CancellationToken cancellationToken) => quest.IsExposedByNpc != false && quest.IsEventOnly != true
         && (quest.QuestId != IGiantDragonCrystalExchangeDomainService.QuestId || subject.GiantDragonCrystalExchangeAvailable)
         && (quest.QuestId != Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService.QuestId || subject.SouthernDaleQuestAvailable)
-        && quest.ExpertJobRequirement is null
+        && await MatchesExpertJobAsync(quest, subject, cancellationToken).ConfigureAwait(false)
         && MatchesTargetCharacter(quest.TargetCharacterRestriction, job)
         && MatchesTrainingAvailability(quest, subject.Level, training)
         && MatchesQuestProgress(quest, subject.ClearedQuestFlags)
@@ -82,6 +84,52 @@ internal sealed class QuestAvailabilityRuleService(IQuestContentRuleService ques
             && (restriction.IsExactAll || restriction.JobFamilies.Contains(job)))
         && MatchesGrowType(quest, subject.GrowType)
         && await MatchesCreatureRestrictionAsync(quest, subject, creature, cancellationToken).ConfigureAwait(false);
+
+    internal static bool MayBeExpertJobQuest(QuestDefinition quest) =>
+        quest.JobChangeQuestCode == 20 || DeclaresExpertJob(quest);
+
+    public async ValueTask<bool> IsExpertJobQuestAsync(QuestDefinition quest, CancellationToken ct) =>
+        DeclaresExpertJob(quest) || quest.JobChangeQuestCode == 20
+            && await FindConnectedExpertJobAsync(quest.QuestId, ct).ConfigureAwait(false) is not null;
+
+    private async ValueTask<bool> MatchesExpertJobAsync(QuestDefinition quest, WorldContentSubject subject, CancellationToken ct)
+    {
+        if (!MayBeExpertJobQuest(quest)) return true;
+        var grant = ReadExpertJobReward(quest);
+        if (grant.Present)
+            return quest.JobChangeQuestCode == 20 && subject.ExpertJob == ExpertJobType.None
+                && !quest.CollisionQuestIds.Any(subject.CarriedQuestIds.Contains)
+                && grant.Type is { } type
+                && await expertJobs.FindAsync(type, ct).ConfigureAwait(false) is { } joining
+                && joining.ConnectedQuests.Contains(quest.QuestId);
+
+        if (quest.JobChangeQuestCode == 20
+            && await FindConnectedExpertJobAsync(quest.QuestId, ct).ConfigureAwait(false) is { } connected
+            && subject.ExpertJob != connected)
+            return false;
+        return quest.ExpertJobRequirement is not { } required
+            || (int)subject.ExpertJob == required.ExpertJobType
+                && await expertJobs.FindAsync(subject.ExpertJob, ct).ConfigureAwait(false) is { } current
+                && current.LevelAt(subject.ExpertJobExperience) >= required.MinimumLevel;
+    }
+
+    private async ValueTask<ExpertJobType?> FindConnectedExpertJobAsync(int questId, CancellationToken ct)
+    {
+        foreach (var type in Enum.GetValues<ExpertJobType>())
+            if (type != ExpertJobType.None && await expertJobs.FindAsync(type, ct).ConfigureAwait(false) is { } definition
+                && definition.ConnectedQuests.Contains(questId))
+                return type;
+        return null;
+    }
+
+    internal static (bool Present, ExpertJobType? Type) ReadExpertJobReward(QuestDefinition quest)
+    {
+        var rewards = quest.Rewards.Where(reward => reward.Kind == QuestRewardKind.ExpertJob).ToArray();
+        return (rewards.Length > 0, rewards is [{ Values: [>= 1 and <= 4] award }] ? (ExpertJobType)award[0] : null);
+    }
+
+    private static bool DeclaresExpertJob(QuestDefinition quest) =>
+        quest.ExpertJobRequirement is not null || ReadExpertJobReward(quest).Present;
 
     private static bool MatchesTargetCharacter(
         QuestTargetCharacterRestriction? restriction,

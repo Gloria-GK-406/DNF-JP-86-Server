@@ -230,7 +230,7 @@ public sealed class QuestTriggerDomainServiceTests
             public ValueTask<IReadOnlyList<int>> CompleteWithoutRewardsAsync(
                 IReadOnlyCollection<int> questIds, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
-            public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
+            public ValueTask ForgetAsync(IReadOnlySet<int> questIds, CancellationToken ct) => throw new NotSupportedException();            public ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();
             public ValueTask TrackAsync(IReadOnlyList<int> questIds, CancellationToken cancellationToken) =>
                 throw new NotSupportedException();

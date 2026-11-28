@@ -39,6 +39,10 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService cycles) : 
         if (slotRewards.Length > 1 || slotRewards.Any(reward => reward.Values.Count != 1 || reward.Values[0] is not (0 or 1)))
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidSlotExpansionReward);
         var extraSlot = slotRewards.Length == 0 ? ExtraEquipmentSlots.None : (ExtraEquipmentSlots)(1 << slotRewards[0].Values[0]);
+        var (hasExpertJobReward, expertJob) = QuestAvailabilityRuleService.ReadExpertJobReward(definition);
+        if (hasExpertJobReward && (expertJob is null || definition.JobChangeQuestCode != 20 || growType is not null
+                || awakening is not null || extraSlot != ExtraEquipmentSlots.None || definition.Grade == QuestGrade.Circle))
+            return QuestRewardResolution.Refused(QuestRewardRejection.InvalidExpertJobReward);
         var declaration = definition.ItemRewards;
         var eligibleSelection = declaration.Selectable
             .Where(rule => Matches(rule, candidate))
@@ -106,7 +110,7 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService cycles) : 
         var consumes = definition.ObjectiveTypeCode.Trim().Trim('[', ']').ToLowerInvariant()
             is "seeking" or "seek n meet npc" ? definition.SeekingItems : null;
         return QuestRewardResolution.Valid(new QuestCompletionRewardPlan(experience, gold, items, growType, consumes)
-            { Awakening = awakening, ExtraEquipmentSlot = extraSlot });
+            { Awakening = awakening, ExtraEquipmentSlot = extraSlot, ExpertJob = expertJob });
     }
 
     private static bool Matches(QuestItemRewardRule rule, QuestRewardCandidate candidate)

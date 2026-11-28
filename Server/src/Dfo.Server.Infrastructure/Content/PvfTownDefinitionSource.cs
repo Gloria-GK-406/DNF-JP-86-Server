@@ -304,7 +304,10 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
                 walkableValues[offset + 3]));
         }
 
-        return new MapGeometry(transits, walkables);
+        return new MapGeometry(transits, walkables)
+        {
+            NpcPositions = ReadNpcPositions(PvfDocument.Open(archive, $"{MapDirectory}/{normalized}")),
+        };
 
         void ValidateSegment()
         {
@@ -315,6 +318,26 @@ internal sealed class PvfTownDefinitionSource : ITownDefinitionSource, Dfo.Serve
             if (nested != 0 || (active.Count - segmentStart) % width != 0)
                 throw new InvalidDataException($"PVF '{MapDirectory}/{normalized}', field '{field}': incomplete row or nested block in this declaration.");
         }
+    }
+
+    private static IReadOnlyList<TownNpcPosition>? ReadNpcPositions(PvfDocument map)
+    {
+        // [NPC] rows are id, quoted facing, X, Y, flags in the current archive.
+        var positions = new List<TownNpcPosition>();
+        foreach (var section in map.Sections.Where(section => string.Equals(section.Name, "[NPC]", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (section.Values.Count % 5 != 0) return null;
+            for (var index = 0; index < section.Values.Count; index += 5)
+            {
+                var row = section.Values;
+                if (row[index].Kind != PvfTokenKind.Int32 || row[index + 1].Kind != PvfTokenKind.QuotedString
+                    || row[index + 2].Kind != PvfTokenKind.Int32 || row[index + 3].Kind != PvfTokenKind.Int32
+                    || row[index + 4].Kind != PvfTokenKind.Int32)
+                    return null;
+                positions.Add(new(row[index + 2].Value, row[index + 3].Value));
+            }
+        }
+        return positions;
     }
 
     /// <summary>

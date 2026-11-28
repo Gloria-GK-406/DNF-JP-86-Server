@@ -1,5 +1,6 @@
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Creatures;
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Protocol.Game.Creatures;
 using Dfo.Server.Abstractions.Characters;
 using System.Buffers.Binary;
@@ -14,6 +15,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.MonsterDeath;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.UseStackable;
@@ -26,7 +28,8 @@ public sealed record GameUseStackableCommand(NetworkDispatchContext Dispatch, Us
 
 public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService sessions, IBusinessInventorySlotDomainService inventory,
     IItemUseEffectDomainService effects, IPvpRoomQueryDomainService rooms, ICommandWorkUnits units, IGameCommandOutbox outbox,
-    ILogger<GameUseStackableCommandHandler> logger, TimeProvider timeProvider)
+    ILogger<GameUseStackableCommandHandler> logger, TimeProvider timeProvider,
+    IExpertJobDomainService expertJobs, ISelectedCharacterCurrentViewDomainService views)
     : ICommandHandler<GameUseStackableCommand, ItemUseResult>
 {
     public async ValueTask<ItemUseResult> HandleAsync(CommandExecutionContext context, GameUseStackableCommand command, CancellationToken cancellationToken)
@@ -63,7 +66,9 @@ public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService
             {
                 logger.LogInformation("Use stackable {ConnectionId} character={CharacterId}: slot {Slot} refused as {Status}",
                     command.Dispatch.Connection.ConnectionId, session.CharacterId.Value, responseSlot.Index, result.Status);
-                response = UseStackableResponse.Failure(responseSlot, message.InstanceValue, message.ItemCode, UseStackableHandler.ErrorCodeFor(result.Status))
+                var error = result.ExpertJobRecipeError ?? UseStackableHandler.ErrorCodeFor(result.Status);
+                var item = result.ExpertJobRecipeError.HasValue ? result.ItemId : message.ItemCode;
+                response = UseStackableResponse.Failure(responseSlot, message.InstanceValue, item, error)
                     with { InventoryState = result.InventoryState };
             }
         }
@@ -87,6 +92,12 @@ public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService
         else if (response.ExperienceAward is not null || response.SkillPoints is not null)
         {
             throw new InvalidOperationException("Experience item response requires both experience and skill points.");
+        }
+        if (result.LearnedExpertJobRecipe && session is not null)
+        {
+            var view = await views.TryLoadAsync(session, cancellationToken).ConfigureAwait(false);
+            if (view is not null)
+                messages.Add(new ExpertJobStateMessage(view.CharacterEntry.Features.ExpertJob));
         }
         if (selected is null)
             await outbox.RegisterExplicitAsync(command.Dispatch.Connection.ConnectionId, new(messages, []), cancellationToken).ConfigureAwait(false);
@@ -128,6 +139,25 @@ public sealed class GameUseStackableCommandHandler(ISelectedSessionDomainService
             {
                 InventoryState = new(item?.Snapshot, (timeProvider ?? TimeProvider.System).GetUtcNow()),
             };
+
+        if (await expertJobs.Get(session.CharacterId).TryLearnRecipeAsync(
+                session, slotAddress, item, unit.Footprint, cancellationToken).ConfigureAwait(false) is { } studied)
+        {
+            if (studied.Rejection != ExpertJobProductionRejection.None)
+                return studied.Rejection == ExpertJobProductionRejection.LevelTooLow
+                    ? ItemUseResult.Refused(ItemUseStatus.LevelTooLow, item.ItemId) with
+                        { ExpertJobRecipeError = UseStackableResponse.LevelTooLow }
+                    : ItemUseResult.Refused(ItemUseStatus.JobMismatch, item.ItemId) with
+                        { ExpertJobRecipeError = UseStackableResponse.ExpertJobRequirement };
+            unit.Footprint.DemandActive(session);
+            var held = await slot.Container.GetAsync(slot.Slot.Index, cancellationToken).ConfigureAwait(false);
+            unit.Footprint.DemandActive(session);
+            return new(ItemUseStatus.Used, item.ItemId, studied.RemainingCount)
+            {
+                InventoryState = new(held?.Snapshot, timeProvider.GetUtcNow()),
+                LearnedExpertJobRecipe = true,
+            };
+        }
 
         var applied = await effects.UseAsync(session, slotAddress, item, unit.Footprint, cancellationToken).ConfigureAwait(false);
         if (applied.Status != ItemUsability.Allowed)

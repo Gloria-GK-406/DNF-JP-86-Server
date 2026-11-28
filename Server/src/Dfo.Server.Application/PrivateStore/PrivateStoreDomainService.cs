@@ -43,7 +43,8 @@ internal sealed class PrivateStoreDomainService(
     IMailboxDomainService mailbox,
     MailItemTransfers transfers,
     IDomainTransactionAccessor transactions,
-    TimeProvider clock) : IPrivateStoreDomainService, IPrivateStoreQueryDomainService
+    TimeProvider clock,
+    IExpertStoreDomainService expertStores) : IPrivateStoreDomainService, IPrivateStoreQueryDomainService
 {
     private const string LetterTitle = "个人商店";
 
@@ -73,6 +74,7 @@ internal sealed class PrivateStoreDomainService(
     {
         GameplayWriteAssertion.Writing(nameof(PrivateStoreDomainService) + "." + nameof(OpenAsync));
         if (!sessions.IsInWorld(owner)) throw Refuse(PrivateStoreRefusal.NotHere);
+        if (expertStores.HasOpenStore(owner)) throw Refuse(PrivateStoreRefusal.AlreadyOpen);
         if (townAreas.Find(owner.CharacterId) is not { } standing || standing.Area.TownId != spot.TownId
             || standing.Area.AreaId != spot.AreaId)
             throw Refuse(PrivateStoreRefusal.NotHere);

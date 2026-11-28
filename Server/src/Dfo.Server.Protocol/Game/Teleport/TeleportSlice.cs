@@ -167,7 +167,8 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
             messages.AddRange(GameInventoryDelivery.Notifications([new(wire.Space,
                 [new InventoryItemState(receipt.Identity, wire.Index, receipt.RemainingCore.ToCore())], receipt.At)]));
         await outbox.RegisterBatchAsync(context.Connection, messages, ct).ConfigureAwait(false);
-        if (!await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, context.Connection.ConnectionId, session, view, previous, ct).ConfigureAwait(false))
+        var closed = receipt.Movement.Crossing?.Change?.ClosedExpertStore;
+        if (!await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, context.Connection.ConnectionId, session, view, previous, ct, closed).ConfigureAwait(false))
             logger.LogWarning("TELEPORT committed but town projection lost its membership character={Character}", session.CharacterId);
         logger.LogInformation("TELEPORT character={Character} item={Item} remaining={Remaining} destination={Town}:{Area} ({X},{Y})",
             session.CharacterId, receipt.ItemId, receipt.Remaining, receipt.Position.TownId, receipt.Position.AreaId,

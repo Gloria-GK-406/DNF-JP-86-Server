@@ -27,20 +27,21 @@ internal sealed class TownPositionEffectHandler(IOnlineCharacterRuntimeDomainSer
         if (effect.PersistsPosition)
             await persistence.PersistAsync(context.AccountId, context.CharacterId, effect.Destination, ct).ConfigureAwait(false);
         context.Footprint.DemandEffects(context.Owner);
-        transactions.Current!.Enlist(new object(), () => new Commit(transit, sessions, context, effect));
-        return new TownPositionChange(effect.Expected, effect.Destination);
+        var crossing = transactions.Current!.Enlist(new object(), () => new Commit(transit, sessions, context, effect));
+        return new TownPositionChange(effect.Expected, effect.Destination) { Crossing = crossing };
     }
     private sealed class Commit(ITownTransitDomainService transit, ISelectedSessionDomainService sessions,
-        EffectExecutionContext context, MoveToTownEffect effect) : ITransactionParticipant
+        EffectExecutionContext context, MoveToTownEffect effect) : ITransactionParticipant, ITownCrossingResult
     {
         public bool CommitCanFail => false;
+        public TownAreaMembershipChange? Change { get; private set; }
         public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
         public ValueTask CommitAsync(CancellationToken ct)
         {
             if (context.Session!.AccountId == context.AccountId && sessions.IsInWorld(context.Session!))
             {
-                transit.Cross(context.Session!,
+                Change = transit.Cross(context.Session!,
                     new(effect.ChannelId, effect.Destination.TownId, effect.Destination.AreaId),
                     effect.Destination.X, effect.Destination.Y, false, effect.Destination.Direction);
             }

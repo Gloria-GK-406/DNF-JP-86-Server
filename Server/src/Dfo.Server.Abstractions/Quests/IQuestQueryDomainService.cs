@@ -38,6 +38,7 @@ public interface IQuestAvailabilityRuleService
 {
     ValueTask<AvailableQuestEntryState> ReadAvailableAsync(WorldContentSubject subject, CancellationToken ct);
     ValueTask<bool> MeetsRequirementsAsync(QuestDefinition quest, WorldContentSubject subject, CancellationToken ct);
+    ValueTask<bool> IsExpertJobQuestAsync(QuestDefinition quest, CancellationToken ct);
 }
 /// <summary>Both reads are side-effect free. Accepted/ready is distinct from settled/completed.</summary>
 public interface IQuestQueryDomainService

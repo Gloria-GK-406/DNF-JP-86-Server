@@ -37,7 +37,7 @@ internal sealed class TeleportConsumableDomainService(ISelectedSessionDomainServ
         var applied = await effects.ApplyAsync(new(session.AccountId, session.CharacterId, at, footprint, session), plan.Effects, ct).ConfigureAwait(false);
         var remaining = applied.Changes<ContainerConsumptionChange>().Single().RemainingCount;
         return new(ItemUsability.Allowed, new(session, source, item.ItemId, remaining,
-            applied.Changes<TownPositionChange>().Single().After, TimeSpan.FromMilliseconds(rule.Use.CooldownMilliseconds), at,
+            applied.Changes<TownPositionChange>().Single(), TimeSpan.FromMilliseconds(rule.Use.CooldownMilliseconds), at,
             remaining == 0 ? null : item.Snapshot with { Count = remaining }, item.ItemUid));
     }
 }

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Transactions;
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
@@ -32,11 +33,11 @@ internal sealed class CharacterRosterService(
     ICharacterPvpRecordTable pvpRecord,
     ICharacterPvpSkillStateTable pvpSkillState,
     ICharacterSettingsTable settings,
-    ICharacterExpertJobTable expertJob,
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
     IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue,
-    IItemGrantDomainService grants, ICharacterAppearanceDomainService appearances) : ICharacterRepository
+    IItemGrantDomainService grants, ICharacterAppearanceDomainService appearances,
+    IExpertJobStateStore expertJobState) : ICharacterRepository
 {
     /// <summary>
     /// A new character enters at full health. Written explicitly because the column's schema
@@ -234,16 +235,19 @@ internal sealed class CharacterRosterService(
         await pvpRecord.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
         await pvpSkillState.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
         await settings.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
-        await expertJob.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await expertJobState.InitializeAsync(characterId, cancellationToken).ConfigureAwait(false);
         await containerState.InsertIfAbsentAsync(
             characterId, (int)InventoryContainerType.Main, InitialMainContainerSlots,
             cancellationToken).ConfigureAwait(false);
         return characterId;
     }
 
-    public ValueTask<bool> SoftDeleteAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        characters.MarkDeletedAsync(characterId, cancellationToken);
+    public async ValueTask<bool> SoftDeleteAsync(CharacterId characterId, CancellationToken cancellationToken)
+    {
+        if (!await characters.MarkDeletedAsync(characterId, cancellationToken).ConfigureAwait(false)) return false;
+        await expertJobState.DeleteAsync(characterId, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
 
     private static void RequireAccount(AccountId accountId)
     {

@@ -104,6 +104,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
             "A replayed skill report cannot increment the PvP mission counter"),
         new(Rule.Stale, "Game/GuardianGem/GuardianGemSlice.cs", "HandleAsync", 1,
             "A repeated socket request must not consume another gem."),
+        new(Rule.Stale, "Game/MonsterCardUpgrade/MonsterCardUpgradeSlice.cs", "HandleAsync", 1,
+            "A repeated NPC upgrade must not consume a second card."),
         new(Rule.Stale, "Game/GuildAlliances/GameGuildAllianceCommand.cs", "HandleAsync", 1,
             "An old alliance request cannot change the two guilds after their relationship has changed."),
         new(Rule.Stale, "Game/GuildBoard/GuildBoardSlice.cs", "HandleAsync", 1,

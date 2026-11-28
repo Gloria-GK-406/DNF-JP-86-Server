@@ -1,4 +1,5 @@
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.ExpertJobs;
 
 namespace Dfo.Server.Data.World;
 
@@ -46,6 +47,8 @@ public sealed record WorldContentSubject(
     int EquippedCreatureItemId,
     int EquippedCreatureLevel)
 {
+    public ExpertJobType ExpertJob { get; init; }
+    public uint ExpertJobExperience { get; init; }
     public IReadOnlyCollection<int> EligibleWeddingQuestIds { get; init; } = [];
     public bool SouthernDaleQuestAvailable { get; init; }
     public bool GiantDragonCrystalExchangeAvailable { get; init; }

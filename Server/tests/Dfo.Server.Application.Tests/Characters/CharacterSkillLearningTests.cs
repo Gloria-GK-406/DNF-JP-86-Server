@@ -565,6 +565,7 @@ internal sealed class LearningFixture : IAsyncDisposable
         if (!useArchive)
         {
             services.AddSingleton<ISkillRuleDefinitionSource>(Content);
+            services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobDefinitionSource>());
             services.AddSingleton<Dfo.Server.Abstractions.Content.IDungeonExperienceProgressionPolicySource>(new Dfo.Server.Application.Tests.Support.TestProgressionSource());
         }
         configure?.Invoke(services);

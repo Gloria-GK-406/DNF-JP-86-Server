@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
@@ -100,7 +101,10 @@ public sealed record TownAreaMembershipChange(
     CharacterId CharacterId,
     TownAreaSnapshot? PreviousArea,
     TownAreaSnapshot? CurrentArea,
-    TownAreaDepartureReason? DepartureReason = null);
+    TownAreaDepartureReason? DepartureReason = null)
+{
+    public ExpertStoreClosure? ClosedExpertStore { get; init; }
+}
 
 /// <summary>The immutable result emitted by one committed in-area movement.</summary>
 public sealed record TownAreaMovement(

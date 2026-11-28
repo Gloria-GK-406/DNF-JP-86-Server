@@ -46,6 +46,27 @@ public sealed class EquipmentEnchantDomainTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task Expert_bead_commits_its_card_and_upgrade_grade(byte grade)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var shop = Fixture();
+            var target = Piece() with { EnchantCardId = 42, EnchantUpgradeCount = 9 };
+            await shop.SeedCore(9, target);
+            await shop.SeedCore(121, StackableItemCore.Create(3, 1001, 2)
+                with { EnchantUpgradeCount = grade });
+
+            var result = await Enchant(shop, Carried);
+
+            Assert.Equal(EquipmentEnchantRejection.None, result.Rejection);
+            Assert.Equal(target with { EnchantCardId = 3601, EnchantUpgradeCount = grade }, await Read(shop, Carried));
+            Assert.Equal(1, shop.Count(1001));
+        });
+    }
+
+    [Theory]
     [InlineData(1, 0, EquipmentEnchantRejection.Locked)]
     [InlineData(0, 1, EquipmentEnchantRejection.UnsupportedContent)]
     public async Task Invalid_target_or_bead_leaves_both_assets_unchanged(
@@ -189,5 +210,10 @@ public sealed class EquipmentEnchantDomainTests
             ValueTask.FromResult<EquipmentEnchantDefinition?>(
                 beadItemId == 1000 && equipmentItemId == 3000
                     ? new(beadItemId, 3600) : null);
+
+        public ValueTask<EquipmentEnchantDefinition?> ResolveExpertBeadAsync(int beadItemId, byte upgradeCount,
+            int? equipmentItemId, CancellationToken ct) =>
+            ValueTask.FromResult<EquipmentEnchantDefinition?>(beadItemId == 1001 && equipmentItemId == 3000
+                && upgradeCount is 0 or 2 ? new(beadItemId, 3601) : null);
     }
 }

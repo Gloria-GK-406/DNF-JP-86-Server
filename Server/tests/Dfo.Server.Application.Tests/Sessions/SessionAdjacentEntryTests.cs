@@ -11,7 +11,7 @@ namespace Dfo.Server.Application.Tests.Sessions;
 
 public sealed class SessionAdjacentEntryTests
 {
-    private static readonly ExpertStoreDomainService Stores = new();
+    private static readonly ExpertStoreDomainService Stores = new(TestRequired.TransactionScope());
 
     /// <remarks>
     /// The registry exists whether or not anyone has been admitted to it, so a quiet server
@@ -176,8 +176,8 @@ public sealed class SessionAdjacentEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var stores = new ExpertStoreDomainService();
-            stores.Open(new CharacterId(99));
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            Open(stores, Presence(99).Session!);
             var presence = new SessionPresenceDomainService();
             var service = Service(presence, stores, new PvpLobbyDomainService());
 
@@ -193,8 +193,8 @@ public sealed class SessionAdjacentEntryTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var stores = new ExpertStoreDomainService();
-            stores.Open(new CharacterId(10));
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            Open(stores, Presence(10).Session!);
             var registry = new SessionPresenceDomainService();
             registry.Admit(Presence(10));
             var service = Service(registry, stores, new PvpLobbyDomainService());
@@ -211,11 +211,11 @@ public sealed class SessionAdjacentEntryTests
     {
         TestGameplay.Run(() =>
         {
-            var stores = new ExpertStoreDomainService();
-            stores.Open(new CharacterId(10));
-
-            Assert.True(stores.Close(new CharacterId(10)));
-            Assert.False(stores.Close(new CharacterId(10)));
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            var owner = Presence(10).Session!;
+            var store = Open(stores, owner);
+            Assert.Same(store, stores.CloseOwned(owner)?.Store);
+            Assert.Null(stores.CloseOwned(owner));
             Assert.False(stores.HasOpenStore(new CharacterId(10)));
         });
     }
@@ -239,6 +239,10 @@ public sealed class SessionAdjacentEntryTests
             Assert.Equal([10, 20, 30], result.TownPresence.Others.Select(other => other.CharacterId.Value));
         });
     }
+
+    private static ExpertStoreSnapshot Open(ExpertStoreDomainService stores, SelectedSessionIdentity owner) =>
+        Assert.IsType<ExpertStoreSnapshot>(stores.TryOpen(owner, new(1, 1, 0),
+            new(ExpertStoreKind.DisjointMachine, [], 0, 0, 0, 0)));
 
     private static SessionAdjacentSubject Subject(int characterId = 99) => new(
         new CharacterId(characterId),

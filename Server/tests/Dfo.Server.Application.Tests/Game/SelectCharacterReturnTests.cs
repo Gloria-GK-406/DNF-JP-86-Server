@@ -44,8 +44,9 @@ public sealed partial class SelectCharacterLifecycleTests
             var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
             presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
             positions.Begin(selected, f.Result.Character.Position, 100);
-            var stores = new ExpertStoreDomainService();
-            stores.Open(selected);
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            Assert.NotNull(stores.TryOpen(selected, new(11, 1, 2),
+                new(ExpertStoreKind.DisjointMachine, [], 0, 0, 0, 0)));
             var runs = TestParties.Runs();
             var departure = new RecordingDungeonDeparture();
             var memberSession = SelectedSessionIdentity.Create(

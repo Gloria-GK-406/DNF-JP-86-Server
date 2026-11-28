@@ -36,22 +36,22 @@ public sealed class SessionGenerationOwnershipTests
             var oldSession = Session("old", generation: 3);
             var current = Session("new", generation: 4);
             var presence = new SessionPresenceDomainService();
-            var stores = new ExpertStoreDomainService();
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
             var lobby = new PvpLobbyDomainService();
 
             presence.Admit(new SessionPresence(current.CharacterId, 10011, 1, 2, true, current));
-            stores.Open(current);
+            var store = Open(stores, current);
             lobby.MarkReady(new PvpLobbyParticipant(current.CharacterId, 10011, current));
 
             Assert.False(presence.WithdrawExact(oldSession));
-            Assert.False(stores.CloseExact(oldSession));
+            Assert.Null(stores.CloseOwned(oldSession));
             Assert.False(lobby.ClearReadyExact(oldSession));
             Assert.NotNull(presence.Find(current.CharacterId));
             Assert.True(stores.HasOpenStore(current.CharacterId));
             Assert.Single(lobby.ReadyOn(10011, new CharacterId(999)));
 
             Assert.True(presence.WithdrawExact(current));
-            Assert.True(stores.CloseExact(current));
+            Assert.Same(store, stores.CloseOwned(current)?.Store);
             Assert.True(lobby.ClearReadyExact(current));
         });
     }
@@ -85,8 +85,8 @@ public sealed class SessionGenerationOwnershipTests
             var presence = new SessionPresenceDomainService();
             presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
             presence.Admit(new SessionPresence(peer.CharacterId, 10011, 1, 2, true, peer));
-            var stores = new ExpertStoreDomainService();
-            stores.Open(owner);
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            Open(stores, owner);
             var service = Cleanup(directory, presence, stores, runtime: new ThrowingRuntime());
 
             var failure = await Assert.ThrowsAsync<SelectedSessionCleanupFailure>(async () =>
@@ -120,14 +120,17 @@ public sealed class SessionGenerationOwnershipTests
             var peer1 = directory.InWorld(state, new AccountId(8), new CharacterId(80), "peer-1", 10011);
             var otherListener = directory.InWorld(
                 state, new AccountId(10), new CharacterId(100), "peer-other-port", 10012);
+            var visitor = directory.InWorld(state, new AccountId(11), new CharacterId(110), "store-visitor", 10011);
             var presence = new SessionPresenceDomainService();
             presence.Admit(new SessionPresence(owner.CharacterId, 10011, 1, 2, true, owner));
             presence.Admit(new SessionPresence(peer2.CharacterId, 10011, 1, 2, true, peer2));
             presence.Admit(new SessionPresence(peer1.CharacterId, 10011, 1, 2, true, peer1));
             presence.Admit(new SessionPresence(
                 otherListener.CharacterId, 10012, 1, 2, true, otherListener));
-            var stores = new ExpertStoreDomainService();
-            stores.Open(owner);
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            var store = Open(stores, owner);
+            Assert.True(stores.Enter(peer1, store));
+            Assert.True(stores.Enter(visitor, store));
             var service = Cleanup(directory, presence, stores);
 
             var delivery = await TestEffectFootprints.Run(owner, cap => service.CleanupAsync(owner, includeOwner, cap, CancellationToken.None));
@@ -140,12 +143,15 @@ public sealed class SessionGenerationOwnershipTests
             Assert.Equal(
                 [peer1.CharacterId, peer2.CharacterId],
                 delivery.PeerAudience.Select(value => value.CharacterId));
-            // One set for everybody rather than a copy each. They were always the same two entries;
-            // saying so once is the difference between that being true and being a coincidence.
             Assert.Equal(
                 [SelectedSessionCleanupNoticeKind.ExpertStoreClosed,
                     SelectedSessionCleanupNoticeKind.TownDeparture],
                 delivery.PeerNotices.Select(value => value.Kind));
+            var closure = Assert.IsType<SelectedSessionExpertStoreDeparture>(delivery.ExpertStoreDeparture);
+            Assert.Equal(owner.WireUserId, closure.Notice.UserId);
+            Assert.Equal([visitor], closure.Audience);
+            Assert.Null(stores.Visiting(peer1));
+            Assert.Null(stores.Visiting(visitor));
         });
     }
 
@@ -263,8 +269,8 @@ public sealed class SessionGenerationOwnershipTests
             directory.Select(replacement);
             var presence = new SessionPresenceDomainService();
             presence.Admit(new SessionPresence(replacement.CharacterId, 10011, 1, 2, true, replacement));
-            var stores = new ExpertStoreDomainService();
-            stores.Open(replacement);
+            var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());
+            var store = Open(stores, replacement);
             var runs = TestParties.Runs();
             var replacementRun = runs.Begin(
                 replacement.CharacterId,
@@ -283,7 +289,7 @@ public sealed class SessionGenerationOwnershipTests
             Assert.Empty(delivery.PeerNotices);
             Assert.Equal(replacement, directory.Find(replacement.AccountId));
             Assert.Equal(replacement, presence.Find(replacement.CharacterId)!.Session);
-            Assert.True(stores.HasOpenStore(replacement.CharacterId));
+            Assert.Same(store, stores.FindOwned(replacement));
             Assert.Equal(replacementRun.RunId, runs.Find(replacement.CharacterId)!.RunId);
             Assert.Empty(departure.Calls);
         });
@@ -343,6 +349,10 @@ public sealed class SessionGenerationOwnershipTests
         });
     }
 
+    private static ExpertStoreSnapshot Open(ExpertStoreDomainService stores, SelectedSessionIdentity owner) =>
+        Assert.IsType<ExpertStoreSnapshot>(stores.TryOpen(owner, new(11, 1, 2),
+            new(ExpertStoreKind.DisjointMachine, [], 0, 0, 0, 0)));
+
     private static SelectedSessionIdentity Session(string connection, long generation) =>
         SelectedSessionIdentity.Create(
             new AccountId(7), new CharacterId(70), new NetworkConnectionId(connection),
@@ -362,7 +372,7 @@ public sealed class SessionGenerationOwnershipTests
     {
         var areas = presence ?? new SessionPresenceDomainService();
         return new(directory, new CharacterContainerDomainService(TestRequired.TransactionScope()),
-            areas, stores ?? new ExpertStoreDomainService(),
+            areas, stores ?? new ExpertStoreDomainService(TestRequired.TransactionScope()),
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
             runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
             channels ?? new StubChannelEntryPolicy(),

@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Characters;
@@ -9,7 +10,8 @@ internal sealed class CharacterSkillStateDomainService(
     ICharacterTable characters, ICharacterSkillTable skills, CharacterSkillFactsReader skillFacts,
     ICharacterSkillRuleService rules, IDomainTransactionAccessor transactions, ICharacterSkillBuildTable builds,
     IPremiumServiceDomainService premiums, IPremiumServiceRuleService premiumRules,
-    ICharacterPvpSkillStateTable duelBuilds)
+    ICharacterPvpSkillStateTable duelBuilds,
+    IExpertJobQueryDomainService expertJobs)
     : ICharacterSkillStateDomainService
 {
     public async ValueTask<CharacterSkillBuilds> BuildsAsync(CharacterId id, CancellationToken ct,
@@ -83,6 +85,48 @@ internal sealed class CharacterSkillStateDomainService(
         if (transactions.Current is null) throw new InvalidOperationException("Skill mutation requires a domain transaction.");
     }
 
+    public async ValueTask ChangeGrantedSkillsAsync(CharacterId id, IReadOnlyDictionary<int, byte> previous,
+        IReadOnlyDictionary<int, byte> current, CancellationToken ct)
+    {
+        RequireTransaction();
+        if (previous.Count == 0 && current.Count == 0) return;
+        if (current.Count != 0) await builds.EnsureAsync(id, ct).ConfigureAwait(false);
+        var facts = await ReadAsync(id, ct).ConfigureAwait(false)
+            ?? throw new InvalidDataException("Character is unavailable for a skill grant change.");
+        var affected = previous.Keys.Union(current.Keys).ToArray();
+        foreach (var page in facts.Pages)
+        {
+            var occupied = page.Skills.Select(skill => (int)skill.Slot).ToHashSet();
+            foreach (var skillId in affected)
+            {
+                var rule = rules.Get(facts.Career.Job, skillId);
+                var oldGrant = previous.GetValueOrDefault(skillId);
+                var newGrant = current.GetValueOrDefault(skillId);
+                var minimum = CharacterSkillGrantRules.MinimumLevel(rule, facts.Career, facts.Level, newGrant);
+                var existing = page.Skills.SingleOrDefault(skill => skill.SkillId == skillId);
+                if (existing is null)
+                {
+                    if (newGrant == 0) continue;
+                    var slot = CharacterSkillGrantRules.Slot(rule, occupied, newGrant)
+                        ?? throw new InvalidDataException($"No slot for granted skill {skillId}.");
+                    await skills.InsertAsync(id, page.PageIndex, slot, skillId, checked((byte)minimum), ct).ConfigureAwait(false);
+                    occupied.Add(slot);
+                    continue;
+                }
+
+                var retained = newGrant >= oldGrant
+                    || existing.Level > oldGrant && rule?.GetMaxLevel(facts.Career, facts.Level) >= existing.Level
+                    ? Math.Max(minimum, existing.Level) : minimum;
+                if (retained == existing.Level) continue;
+                var touched = retained == 0
+                    ? await skills.RemoveAsync(id, page.PageIndex, existing.Slot, ct).ConfigureAwait(false)
+                    : await skills.SetLevelAsync(id, page.PageIndex, existing.Slot, retained, ct).ConfigureAwait(false);
+                if (touched != 1) throw new InvalidOperationException("Skill row changed during grant reconciliation.");
+                if (retained == 0) occupied.Remove(existing.Slot);
+            }
+        }
+    }
+
     public async ValueTask ReconcileLevelAsync(CharacterId id, CancellationToken ct)
     {
         RequireTransaction();
@@ -91,6 +135,7 @@ internal sealed class CharacterSkillStateDomainService(
         if (!rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis).IsComplete)
             throw new InvalidDataException("Cannot change level with unknown learned skill rules.");
         await ReconcileAsync(id, ct);
+        var expertJobSkills = await ExpertJobSkillsAsync(id, ct).ConfigureAwait(false);
         var learningLevel = await LearningLevelAsync(id, facts.Level, ct);
         bool changed;
         do
@@ -104,7 +149,7 @@ internal sealed class CharacterSkillStateDomainService(
                 {
                     var rule = rules.Get(facts.Career.Job, checked((int)learned.SkillId))
                         ?? throw new InvalidDataException("Unknown learned skill.");
-                    var free = rule.GetFreeLevel(facts.Career, facts.Level);
+                    var free = CharacterSkillGrantRules.MinimumLevel(rule, facts.Career, facts.Level, expertJobSkills.GetValueOrDefault(rule.SkillId));
                     var allowed = Math.Min(learned.Level, Math.Max(rule.GetMaxLevel(facts.Career, learningLevel) ?? 0, free));
                     while (allowed > free && !rule.CanLearn(facts.Career, learningLevel, allowed, learnedLevels)) allowed--;
                     if (learned.Level == allowed) continue;
@@ -142,6 +187,7 @@ internal sealed class CharacterSkillStateDomainService(
         var facts = await ReadAsync(characterId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("Skill reconciliation character is unavailable.");
         var available = rules.GetAll(facts.Career.Job).ToDictionary(rule => rule.SkillId);
+        var expertJobSkills = await ExpertJobSkillsAsync(characterId, cancellationToken).ConfigureAwait(false);
         var learningLevel = await LearningLevelAsync(characterId, facts.Level, cancellationToken);
         // Validate the career even for an empty stored skill tree.
         _ = rules.GetLedger(facts.Career, facts.Level, facts.Pages, facts.PointBasis);
@@ -157,7 +203,8 @@ internal sealed class CharacterSkillStateDomainService(
                     retained.Add(checked((int)learned.SkillId), learned);
                     continue;
                 }
-                if (rule.GetMaxLevel(facts.Career, learningLevel) is null && rule.GetFreeLevel(facts.Career, facts.Level) == 0)
+                if (rule.GetMaxLevel(facts.Career, learningLevel) is null && rule.GetFreeLevel(facts.Career, facts.Level) == 0
+                    && !expertJobSkills.ContainsKey(rule.SkillId))
                 {
                     if (await skills.RemoveAsync(characterId, page, learned.Slot, cancellationToken).ConfigureAwait(false) != 1)
                         throw new InvalidOperationException("Skill row changed during reconciliation.");
@@ -167,7 +214,8 @@ internal sealed class CharacterSkillStateDomainService(
             var occupied = retained.Values.Select(value => (int)value.Slot).ToHashSet();
             foreach (var rule in available.Values.OrderBy(rule => rule.SkillId))
             {
-                var free = rule.GetFreeLevel(facts.Career, facts.Level);
+                var sourceGrant = expertJobSkills.GetValueOrDefault(rule.SkillId);
+                var free = CharacterSkillGrantRules.MinimumLevel(rule, facts.Career, facts.Level, sourceGrant);
                 if (free <= 0) continue;
                 var level = checked((byte)free);
                 if (retained.TryGetValue(rule.SkillId, out var learned))
@@ -179,13 +227,20 @@ internal sealed class CharacterSkillStateDomainService(
                 }
                 else
                 {
-                    var slot = rule.FindAvailableSlot(occupied)
+                    var slot = CharacterSkillGrantRules.Slot(rule, occupied, sourceGrant)
                         ?? throw new InvalidDataException("No slot for a granted skill.");
                     await skills.InsertAsync(characterId, page, slot, rule.SkillId, level, cancellationToken).ConfigureAwait(false);
                     occupied.Add(slot);
                 }
             }
         }
+    }
+
+    private async ValueTask<IReadOnlyDictionary<int, byte>> ExpertJobSkillsAsync(CharacterId character, CancellationToken ct)
+    {
+        var state = await expertJobs.ReadAsync(character, ct).ConfigureAwait(false);
+        return (await expertJobs.DescribeAsync(state, ct).ConfigureAwait(false))?.GrantedSkills
+            ?? System.Collections.Immutable.ImmutableDictionary<int, byte>.Empty;
     }
 
     public ValueTask<CharacterSkillFacts?> ReadAsync(CharacterId characterId, CancellationToken cancellationToken,

@@ -43,6 +43,8 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 
+using Dfo.Server.Protocol.Game.ExpertJobs;
+
 namespace Dfo.Server.Protocol.Game.Party;
 
 internal static class TownArrivalProjection
@@ -78,9 +80,15 @@ internal static class TownArrivalProjection
     {
         var deliveries = await TownCaptureDeliveriesAsync(sessions, townAreas, currentViews, admissions, token, ownState).ConfigureAwait(false);
         await TownProjectOwnersAsync(sessions, outbox, weaknessState, projectWeakness, deliveries, token).ConfigureAwait(false);
+        foreach (var admission in admissions)
+            if (admission.Change.ClosedExpertStore is { } closure)
+                await ExpertStoreProjection.ClosedAsync(sessions, townAreas, projections, closure, includeOwner: true, token).ConfigureAwait(false);
         foreach (var delivery in deliveries)
+        {
             _ = await projections.ProjectAsync(new NotificationAudience.TheseCharacters([delivery.Admission.Entry.Session.CharacterId]),
                 new PrivateStoreArrival(delivery.Admission.Entry.Session), token).ConfigureAwait(false);
+            await ExpertStoreProjection.ArrivedAsync(projections, delivery.Admission.Entry.Session, token).ConfigureAwait(false);
+        }
         await TownProjectPreviousAreasAsync(sessions, townAreas, projections, currentViews, admissions, token).ConfigureAwait(false);
         await TownProjectPeersAsync(sessions, townAreas, projections, partyTown, admissions, deliveries, token).ConfigureAwait(false);
         return deliveries.Count;

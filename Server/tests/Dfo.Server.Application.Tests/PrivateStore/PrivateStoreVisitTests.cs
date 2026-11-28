@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.PrivateStore;
+using Dfo.Server.Application.Sessions;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -50,8 +51,9 @@ public sealed class PrivateStoreVisitTests
             var custody = new EmptyCustody();
             var items = TestRequired.Absent<IItemDomainStore>((method, _) =>
                 method.Name == nameof(IItemDomainStore.SessionIn) ? custody : null);
+            var transactions = new Accessor(this);
             Stores = new PrivateStoreDomainService(new PrivateStoreRuleService(), null!, premiums, sessions, towns,
-                null!, null!, null!, items, null!, null!, null!, new Accessor(this), TimeProvider.System);
+                null!, null!, null!, items, null!, null!, null!, transactions, TimeProvider.System, new ExpertStoreDomainService(transactions));
         }
 
         public SelectedSessionIdentity Join(SelectedSessionIdentity session)

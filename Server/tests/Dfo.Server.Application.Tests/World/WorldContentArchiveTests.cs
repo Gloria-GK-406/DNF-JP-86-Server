@@ -389,10 +389,11 @@ public sealed class WorldContentArchiveTests
             provider.GetRequiredService<IQuestDefinitionSource>(),
             provider.GetRequiredService<IQuestParameterSource>());
         var creatures = provider.GetRequiredService<ICreatureDefinitionSource>();
-        return new(quests,
-            provider.GetRequiredService<IDailyActivityDefinitionSource>(),
+        return new(provider.GetRequiredService<IDailyActivityDefinitionSource>(),
             provider.GetRequiredService<ICollectionBoxDefinitionSource>(),
-            creatures, questAvailability: new Dfo.Server.Application.Quests.QuestAvailabilityRuleService(quests, creatures));
+            creatures, questAvailability: new Dfo.Server.Application.Quests.QuestAvailabilityRuleService(quests, creatures,
+                new Dfo.Server.Application.ExpertJobs.ExpertJobRuleService(
+                    provider.GetRequiredService<Dfo.Server.Abstractions.ExpertJobs.IExpertJobDefinitionSource>())));
     }
 
     private static WorldContentSubject Subject(

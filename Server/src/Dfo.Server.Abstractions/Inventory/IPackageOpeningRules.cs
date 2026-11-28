@@ -8,7 +8,10 @@ public sealed record OpeningSlotConsumption(BusinessSlot Slot, int ItemId, int C
 /// <param name="FixedInstanceValue">Resolved by the opening rules; null leaves instance generation to actual delivery.</param>
 /// <param name="Reward">Validated reward modifiers; its quality declaration has already been consumed.</param>
 public sealed record OpeningPreparedGrant(OpeningReward Reward, OpeningRewardItemDefinition Item, int Expiration,
-    int? FixedInstanceValue);
+    int? FixedInstanceValue)
+{
+    public byte EnchantUpgradeCount { get; init; }
+}
 public interface IPackageOpeningRuleService
 {
     ValueTask<OpeningPackageDefinition> DefinitionAsync(int itemId, OpeningPackageKind kind, CancellationToken cancellationToken);
