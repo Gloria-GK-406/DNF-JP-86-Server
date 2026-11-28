@@ -4,6 +4,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.LuckyCharacter;
 using Dfo.Server.Protocol.Game.SelectCharacter;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.TownProjection;
 using Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 
 namespace Dfo.Server.Protocol.Tests.Game.LuckyCharacter;
@@ -11,6 +12,26 @@ namespace Dfo.Server.Protocol.Tests.Game.LuckyCharacter;
 [Trait("Category", "Unit")]
 public sealed class LuckyCharacterCodecTests
 {
+    [Fact]
+    public void Returning_to_town_reprojects_the_current_period_after_town_state()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(seed.Account.AccountId,
+            seed.Character.Identity.CharacterId, new("lucky-town-test"), 1, 10010);
+        var stopped = seed with
+        {
+            Events = Dfo.Server.Data.Events.EventPlayerSnapshot.Empty with
+            {
+                LuckyCharacters = new(3, []),
+                LuckyFatigueState = 0,
+            },
+        };
+        var frames = TownReturnProjection.Frames(session, stopped, seed.Character.Position);
+        Assert.Equal(new byte[4], Assert.IsType<LuckyCharacterListMessage>(frames[^3]).EncodeBody());
+        Assert.IsType<SkillStateMessage>(frames[^2]);
+        Assert.Equal(new byte[3], Assert.IsType<FatigueAccelerationStateMessage>(frames[^1]).EncodeBody());
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -66,7 +66,8 @@ internal sealed class ExperienceBonusDomainService(
                 && run.Participants.Any(member => member.CharacterId != occasion.Character && member.IsLuckyCharacter
                     && run.ClearParticipants.Any(eligible => eligible.CharacterId == member.CharacterId)))
                 found.Add(new("lucky character party", 0.10, ExperienceBonusKind.LuckyCharacterParty));
-            if (participant.BurnsFatigue)
+            if (participant.BurnsFatigue && (occasion.Event == ExperienceEvent.DungeonClear
+                || run.Layout.EntryOnlyFatigue is not null || run.CurrentCellState.FatigueBurnedBy.Contains(occasion.Character)))
                 found.Add(new("fatigue burning", 1.0, ExperienceBonusKind.FatigueBurn));
         }
         return found;

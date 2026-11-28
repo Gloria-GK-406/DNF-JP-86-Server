@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
@@ -99,8 +100,10 @@ internal sealed class DungeonVisitDomainService(
         var difficulty = facts.Difficulty;
         var runId = DungeonRunId.New();
         var startedAt = clock.GetUtcNow();
-        participants = await luckyCharacters.CaptureAsync(participants, layout, startedAt, cancellationToken)
+        var benefits = await luckyCharacters.CaptureAsync(participants, layout, startedAt, cancellationToken)
             .ConfigureAwait(false);
+        participants = benefits.Participants;
+        layout = layout with { LuckyCharactersAtEntry = benefits.Period };
         var initialCell = await cells.CreateAsync(
             new DungeonCellCreationContext(
                 runId,
@@ -113,11 +116,13 @@ internal sealed class DungeonVisitDomainService(
             cancellationToken).ConfigureAwait(false);
         if (!tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
+        var burning = participants.Where(participant => participant.BurnsFatigue)
+            .Select(participant => participant.CharacterId).ToImmutableHashSet();
         if (layout.ConsumesFatigue)
-            await SpendFatigueAsync(participants,
+            await SpendFatigueAsync(participants, burning,
                 layout.EntryOnlyFatigue ?? 1, cancellationToken).ConfigureAwait(false);
         var change = runs.PreparePartyEntry(
-            participants, layout, difficulty, initialCell, runId, startedAt);
+            participants, layout, difficulty, initialCell with { FatigueBurnedBy = burning }, runId, startedAt);
         var createdVisits = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => this.DescribeCreatedCell(
@@ -193,6 +198,13 @@ internal sealed class DungeonVisitDomainService(
                     latest.StartedAt,
                     latest.Participants),
                 cancellationToken).ConfigureAwait(false);
+            if (latest.Layout.ConsumesFatigue && latest.Layout.EntryOnlyFatigue is null
+                && latest.Participants.Any(participant => participant.BurnsFatigue))
+                preparedCell = preparedCell with
+                {
+                    FatigueBurnedBy = await luckyCharacters.SelectRoomBurningAsync(latest.Participants, clock.GetUtcNow(),
+                        cancellationToken).ConfigureAwait(false),
+                };
         }
 
         var entered = itemWarp
@@ -204,16 +216,19 @@ internal sealed class DungeonVisitDomainService(
                 characterId, entered.RunId, entered.Layout.DungeonId, entered.CurrentRoomMapId, entered.RoomVersion,
                 firstEntry, entered.CurrentCellState.Actors.Count, entered.CurrentCellState.Objects.Count);
         if (firstEntry && entered.Layout.ConsumesFatigue && entered.Layout.EntryOnlyFatigue is null)
-            await SpendFatigueAsync(entered.Participants,
+            await SpendFatigueAsync(entered.Participants, entered.CurrentCellState.FatigueBurnedBy,
                 1, cancellationToken).ConfigureAwait(false);
         return new(this.DescribeCreatedCell(entered, firstEntry), null);
     }
 
-    private ValueTask SpendFatigueAsync(IReadOnlyList<DungeonRunParticipant> participants, ushort cost, CancellationToken ct) =>
-        participants.Any(participant => participant.BurnsFatigue)
-            ? fatigue.SpendBatchAsync(participants.Select(participant =>
-                (participant.CharacterId, participant.BurnsFatigue ? checked((ushort)(cost * 2)) : cost)).ToArray(), ct)
-            : fatigue.SpendBatchAsync(participants.Select(participant => participant.CharacterId).ToArray(), cost, ct);
+    private ValueTask SpendFatigueAsync(IReadOnlyList<DungeonRunParticipant> participants, IReadOnlySet<CharacterId> burning,
+        ushort cost, CancellationToken ct)
+    {
+        var members = participants.Select(participant => participant.CharacterId).ToArray();
+        return members.Any(burning.Contains)
+            ? fatigue.SpendBurningBatchAsync(members, cost, burning, ct)
+            : fatigue.SpendBatchAsync(members, cost, ct);
+    }
 
     private DungeonRoomVisit DescribeCreatedCell(DungeonRunState run, bool firstEntry)
     {

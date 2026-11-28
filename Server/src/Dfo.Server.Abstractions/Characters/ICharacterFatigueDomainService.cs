@@ -31,10 +31,13 @@ public interface ICharacterFatigueDomainService
         foreach (var character in characters)
             await SpendAsync(character, points, cancellationToken).ConfigureAwait(false);
     }
-    async ValueTask SpendBatchAsync(IReadOnlyList<(CharacterId Character, ushort Points)> charges, CancellationToken cancellationToken)
+    /// <summary>Applies the prepared double charge in full for each burning member, or aborts the visit.</summary>
+    async ValueTask SpendBurningBatchAsync(IReadOnlyList<CharacterId> characters, ushort baseCost,
+        IReadOnlySet<CharacterId> burning, CancellationToken cancellationToken)
     {
-        foreach (var (character, points) in charges)
-            await SpendAsync(character, points, cancellationToken).ConfigureAwait(false);
+        foreach (var character in characters)
+            await SpendAsync(character, burning.Contains(character) ? checked((ushort)(baseCost * 2)) : baseCost,
+                cancellationToken).ConfigureAwait(false);
     }
     ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);
 }

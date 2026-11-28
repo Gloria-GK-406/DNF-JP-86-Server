@@ -3,6 +3,8 @@ using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.DungeonSelection;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
+using Dfo.Server.Protocol.Game.StateSynchronization;
 
 namespace Dfo.Server.Protocol.Game.TownProjection;
 
@@ -44,7 +46,12 @@ internal static class TownReturnProjection
         bool ownState = true)
     {
         var frames = FramesWithState(session, result, position, visiblePeers);
-        return ownState ? frames : [.. frames.Skip(1)];
+        if (!ownState)
+            return [.. frames.Skip(1)];
+        if (result.Events is not { LuckyFatigueState: { } fatigue } events)
+            return frames;
+        return [.. frames, new LuckyCharacterListMessage(events.LuckyCharacters),
+            new SkillStateMessage(result.CharacterEntry.Skills), new FatigueAccelerationStateMessage(0, fatigue)];
     }
 
     private static IReadOnlyList<IGameServerMessage> FramesWithState(

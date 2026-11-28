@@ -21,7 +21,11 @@ internal static class DungeonVisitTestFactory
             transactions: transactions ?? TestRequired.TransactionScope(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(layouts), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>()), tower ?? TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), luckyCharacters: luckyCharacters ?? new NoLuckyCharacters(), clock: TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.DungeonVisitDomainService>.Instance);
     internal sealed class NoLuckyCharacters : ILuckyDungeonEntryBenefits
     {
-        public ValueTask<IReadOnlyList<DungeonRunParticipant>> CaptureAsync(IReadOnlyList<DungeonRunParticipant> participants,
-            DungeonLayout layout, DateTimeOffset now, CancellationToken ct) => ValueTask.FromResult(participants);
+        public ValueTask<(IReadOnlyList<DungeonRunParticipant>, Dfo.Server.Data.Events.LuckyCharacterPeriod)> CaptureAsync(
+            IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout, DateTimeOffset now, CancellationToken ct) =>
+            ValueTask.FromResult((participants, Dfo.Server.Data.Events.LuckyCharacterPeriod.Closed));
+        public ValueTask<System.Collections.Immutable.ImmutableHashSet<Dfo.Server.Data.Characters.CharacterId>>
+            SelectRoomBurningAsync(IReadOnlyList<DungeonRunParticipant> participants, DateTimeOffset now, CancellationToken ct) =>
+            throw new NotSupportedException("These test dungeons have no burning members.");
     }
 }

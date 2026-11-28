@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Text;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -119,7 +120,8 @@ public sealed class WeeklyAttendanceHandler(ICommandBus commands) : ClientMessag
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection,
     Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
     Dfo.Server.Abstractions.Quests.IQuestQueryDomainService quests,
-    ICharacterCurrentStateQueryDomainService currentState) : INotificationHandler<EventsChanged>
+    ICharacterCurrentStateQueryDomainService currentState, IDungeonParticipationDomainService dungeonParticipation)
+    : INotificationHandler<EventsChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
@@ -140,7 +142,8 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
                 .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             messages.Add(new AvailableQuestListMessage(progress.Level, offers));
         }
-        if (notice.RefreshLuckyCharacters && state.LuckyFatigueState is { } fatigue)
+        if (notice.RefreshLuckyCharacters && state.LuckyFatigueState is { } fatigue
+            && dungeonParticipation.Find(session.CharacterId) is null)
         {
             var current = await currentState.ReadAsync(session, ct).ConfigureAwait(false);
             messages.Add(new LuckyCharacterListMessage(state.LuckyCharacters));

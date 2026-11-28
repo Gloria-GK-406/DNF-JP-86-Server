@@ -273,10 +273,12 @@ internal sealed partial class DungeonRunStore
         private readonly Dictionary<ushort, DungeonGroundItem> groundItems;
         private readonly Func<int, (int First, int Granted)> allocateGroundItemNumbers;
         private readonly DropMaterializationRule materialization;
+        private readonly ImmutableHashSet<CharacterId> fatigueBurnedBy;
 
         public DungeonCellAggregate(DungeonCellSeed seed, Func<int, (int First, int Granted)> allocateGroundItemNumbers, DropMaterializationRule materialization)
         {
             this.materialization = materialization;
+            this.fatigueBurnedBy = seed.FatigueBurnedBy;
             this.MechanismBlocksClear = seed.MechanismBlocksClear;
             this.Mechanisms = seed.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray();
             this.objects = seed.Objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray();
@@ -452,6 +454,7 @@ internal sealed partial class DungeonRunStore
             [.. this.groundItems.Values.OrderBy(item => item.Number)],
             this.ClearOpen)
         {
+            FatigueBurnedBy = this.fatigueBurnedBy,
             MechanismBlocksClear = this.MechanismBlocksClear,
             Mechanisms = this.Mechanisms.ToArray(),
             Objects = this.objects.Select(obj => obj with { PendingLoot = obj.PendingLoot.ToArray() }).ToArray(),

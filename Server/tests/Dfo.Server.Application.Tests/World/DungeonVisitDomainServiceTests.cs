@@ -17,11 +17,14 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class DungeonVisitDomainServiceTests
 {
     [Theory]
-    [InlineData(false, true, 4)]
-    [InlineData(true, true, 2)]
-    [InlineData(false, false, 0)]
+    [InlineData(false, true, null, 4, true, true)]
+    [InlineData(true, true, null, 2, false, false)]
+    [InlineData(false, false, null, 0, false, false)]
+    [InlineData(false, true, 1, 1, false, false)]
+    [InlineData(false, true, 2, 2, true, false)]
+    [InlineData(false, true, 3, 3, true, false)]
     public async Task Lucky_fatigue_sets_the_run_decision_and_charges_each_first_visit(
-        bool prohibited, bool consumes, int expectedUsed)
+        bool prohibited, bool consumes, int? startingRemaining, int expectedUsed, bool entryBurn, bool nextRoomBurn)
     {
         await TestGameplay.RunAsync(async () =>
         {
@@ -40,15 +43,25 @@ public sealed class DungeonVisitDomainServiceTests
             var layout = TwoRoomLayout with { ConsumesFatigue = consumes };
             var visits = Bound(fixture, runs, layout, fixture.Services.GetRequiredService<ILuckyDungeonEntryBenefits>());
             var fatigue = fixture.Services.GetRequiredService<ICharacterFatigueDomainService>();
+            if (startingRemaining is { } points)
+            {
+                var full = (await fatigue.BalanceOfAsync(character, default)).Remaining;
+                await using var frame = fixture.Scope.Begin();
+                await fatigue.SpendAsync(character, checked((ushort)(full - points)), default);
+                await frame.CommitAsync(default);
+            }
+            var priorUsed = (await fatigue.BalanceOfAsync(character, default)).Used;
 
             Assert.NotNull(await visits.EnterAsync(character, layout.DungeonId, 0, DungeonEntryFacts.None, default));
             var first = runs.Find(character)!;
             Assert.True(first.Participant!.IsLuckyCharacter);
-            Assert.Equal(expectedUsed == 4, first.Participant.BurnsFatigue);
-            Assert.Equal(expectedUsed / 2, (await fatigue.BalanceOfAsync(character, default)).Used);
+            Assert.Equal(entryBurn, first.Participant.BurnsFatigue);
+            Assert.Equal(entryBurn, first.CurrentCellState.FatigueBurnedBy.Contains(character));
             Assert.NotNull(await visits.MoveAsync(character, first, new(1, 0), default));
+            Assert.Equal(nextRoomBurn, runs.Find(character)!.CurrentCellState.FatigueBurnedBy.Contains(character));
             Assert.NotNull(await visits.MoveAsync(character, runs.Find(character)!, new(0, 0), default));
-            Assert.Equal(expectedUsed, (await fatigue.BalanceOfAsync(character, default)).Used);
+            Assert.Equal(entryBurn, runs.Find(character)!.CurrentCellState.FatigueBurnedBy.Contains(character));
+            Assert.Equal(expectedUsed, (await fatigue.BalanceOfAsync(character, default)).Used - priorUsed);
         });
     }
 

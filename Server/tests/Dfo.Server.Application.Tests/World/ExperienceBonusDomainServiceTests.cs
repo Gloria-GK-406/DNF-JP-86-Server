@@ -42,6 +42,7 @@ public sealed class ExperienceBonusDomainServiceTests
     [InlineData(true, 2, false, ExperienceEvent.DungeonClear, .15, .10, 0)]
     [InlineData(true, 2, true, ExperienceEvent.DungeonClear, .15, .10, 1)]
     [InlineData(true, 1, true, ExperienceEvent.MonsterKill, .10, 0, 1)]
+    [InlineData(true, 1, true, ExperienceEvent.MonsterKill, .10, 0, 0)]
     public async Task Run_members_keep_personal_and_shared_bonuses_on_their_own_awards(bool lucky, int luckyTeammates,
         bool burns, ExperienceEvent occasion, double personalRate, double partyRate, double burnRate)
     {
@@ -57,7 +58,10 @@ public sealed class ExperienceBonusDomainServiceTests
         var layout = new DungeonLayout(CarriedDungeon, 0, 1, 1, cell, cell, 1, 1,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(1) });
         var run = new DungeonRunState(layout, cell, 1, new HashSet<MazeCell> { cell }, now, RunId: runId,
-            Participant: self, Participants: members, CurrentCellState: DungeonCellSeed.CompleteEmpty(cell, 1).Snapshot())
+            Participant: self, Participants: members, CurrentCellState: DungeonCellSeed.CompleteEmpty(cell, 1).Snapshot() with
+            {
+                FatigueBurnedBy = burnRate > 0 ? [self.CharacterId] : [],
+            })
         {
             ClearParticipants = [.. members.Select(member => new DungeonClearParticipant(member.AccountId, member.CharacterId, null))],
         };

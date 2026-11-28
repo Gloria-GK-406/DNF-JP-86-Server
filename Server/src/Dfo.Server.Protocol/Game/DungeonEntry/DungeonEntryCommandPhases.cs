@@ -194,6 +194,14 @@ internal sealed partial class GameSelectDungeonCommandHandler
 
                 frames.AddRange(await HousingCurrentProjection.ReadAsync(housing, receiver.Session, cancellationToken).ConfigureAwait(false));
                 frames.Add(new EnterSelectDungeonAcknowledgement());
+                if (visit.Run.Layout.LuckyCharactersAtEntry is { Revision: > 0 } lucky
+                    && visit.Run.Participant is { } entrant)
+                {
+                    frames.Add(new Dfo.Server.Protocol.Game.LuckyCharacter.LuckyCharacterListMessage(lucky));
+                    frames.Add(new SkillStateMessage(refreshed[receiver.Session.CharacterId].CharacterEntry.Skills));
+                    var state = entrant.BurnsFatigue ? (byte)2 : entrant.IsLuckyCharacter ? (byte)1 : (byte)0;
+                    frames.Add(new FatigueAccelerationStateMessage(0, state));
+                }
                 frames.Add(new UserStateNotification(allWireUserIds, 0x01));
                 frames.Add(new UdpHostNotification(hostSlot));
 
