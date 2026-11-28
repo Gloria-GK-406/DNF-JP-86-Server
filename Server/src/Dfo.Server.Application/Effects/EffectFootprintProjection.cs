@@ -79,6 +79,7 @@ internal class EffectFootprintProjection(ReplayProjectionNeeds minimum)
                 // These runtime changes have no safe absolute wire representation in the current protocol.
                 case (StartItemCooldownEffect, ItemCooldownChange):
                 case (StartSpiritPotionEffect, SpiritPotionChange):
+                case (StartReinforcementPotionEffect, ReinforcementPotionChange):
                 case (SetSeriaLuckEffect, SeriaLuckChange): break;
                 default: throw new NotSupportedException($"No current-state footprint for {item.Effect.GetType().Name}/{item.Change.GetType().Name}.");
             }

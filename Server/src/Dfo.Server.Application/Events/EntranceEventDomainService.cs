@@ -26,8 +26,9 @@ internal abstract class EntranceEventDomainService(IEventPersistence store, IEve
     protected EventInfo Detailed(EventConfiguration c, string link) => new(EventId, c.Title, c.ShortName, c.Description,
         c.StartNotice, c.EndNotice, c.StartsAt!.Value, c.EndsAt!.Value, link);
 
-    private async ValueTask<EventConfiguration> Configuration(CancellationToken ct) => await store.ConfigurationAsync(EventId, ct) ?? Initial;
-    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => periods.IsActive(await Configuration(ct), now);
+    protected async ValueTask<EventConfiguration> Configuration(CancellationToken ct) => await store.ConfigurationAsync(EventId, ct) ?? Initial;
+    protected bool IsOpen(EventConfiguration configuration, DateTimeOffset now) => periods.IsActive(configuration, now);
+    public async ValueTask<bool> IsActiveAsync(DateTimeOffset now, CancellationToken ct) => IsOpen(await Configuration(ct), now);
 
     public async ValueTask<ManagedEventEntry> DescribeAsync(DateTimeOffset now, CancellationToken ct)
     {
@@ -35,7 +36,7 @@ internal abstract class EntranceEventDomainService(IEventPersistence store, IEve
         var status = !c.Enabled ? "disabled" : c.StartsAt > now ? "scheduled" : c.EndsAt <= now ? "expired" : "active";
         return new(EventId, Key, c.Revision, c.SeasonId, c.Enabled, status, c.Title, c.ShortName,
             c.Description, c.StartNotice, c.EndNotice, c.StartsAt, c.EndsAt, true, null, c.UpdatedAt, c.UpdatedBy)
-        { DrawMultipliers = c.DrawMultipliers };
+        { DrawMultipliers = c.DrawMultipliers, LuckyCharacter = c.LuckyCharacter };
     }
 
     public async ValueTask<EventInfo[]> GetEventInfoEntriesAsync(AccountId account, DateTimeOffset now, CancellationToken ct)
@@ -63,7 +64,7 @@ internal abstract class EntranceEventDomainService(IEventPersistence store, IEve
         {
             if (change.Title is not null || change.ShortName is not null || change.Description is not null
                 || change.StartNotice is not null || change.EndNotice is not null || change.StartsAt is not null || change.EndsAt is not null
-                || change.DrawMultipliers is not null)
+                || change.DrawMultipliers is not null || change.LuckyCharacter is not null)
                 throw new ArgumentException("启停操作不能携带配置字段。");
             if (change.Action == "enable" && (c.StartsAt is null || c.EndsAt is null))
                 throw new ArgumentException("请先配置活动有效期。");

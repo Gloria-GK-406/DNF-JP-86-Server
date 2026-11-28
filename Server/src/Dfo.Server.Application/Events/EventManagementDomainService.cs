@@ -47,6 +47,8 @@ internal sealed class EventManagementDomainService(IEnumerable<IManagedEventDoma
     public async ValueTask<ManagedEventList> ChangeAsync(EventChange change,string actor,DateTimeOffset now,CancellationToken ct)
     {
         var e = events.SingleOrDefault(e => e.EventId==change.EventId) ?? throw new ArgumentException("活动未注册。");
+        if (change.LuckyCharacter is not null && e is not LuckyCharacterEventDomainService)
+            throw new ArgumentException("该活动不支持幸运职业设置。");
         await e.ChangeAsync(change,actor,now,ct);
         // GM already records ManagedEventConfigurationChanged in this transaction.
         await lifecycle.ReconcileAsync(e.EventId, now, ct, notifyClients: false);

@@ -26,6 +26,9 @@ internal sealed class IndependentDropRuleService(
     public bool Covers(MonsterDropRequest request) =>
         cache.Value.Rows.ContainsKey((request.Context.SourceType, request.MonsterCode));
 
+    internal static int BossEquipmentBonusPercent(ImmutableArray<BossEquipmentDropBenefit> effects) =>
+        (int)Math.Min(int.MaxValue, effects.Sum(effect => (long)Math.Max(effect.Percent, 0)));
+
     /// <remarks>Party trial counts are applied once, never once per member.</remarks>
     public IReadOnlyList<RolledDrop> Draw(MonsterDropRequest request, int playerLevel, int growthBonusPercent = 0)
     {

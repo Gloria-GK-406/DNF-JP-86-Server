@@ -31,46 +31,27 @@ internal sealed class ExperienceCalculationDomainService(
                     kill.Difficulty, kill.DungeonWeight, kill.PartyMemberCount, kill.IsNamedMonster));
                 var result = new ExperienceBreakdown(Base: worth);
                 if (worth == 0) return result;
-                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion, cancellationToken)
-                    .ConfigureAwait(false))
-                    result = result.Add(modifier.Kind, Floor(worth * modifier.Rate));
-                _ = result.Total;
-                return result;
+                return ExperienceRuleService.ApplyBonuses(result, await bonuses.CollectAsync(kill.Occasion, cancellationToken)
+                    .ConfigureAwait(false));
             case ClearExperienceContext clear:
                 var calculated = valuation.WorthOfClear(clear.Clear with { CharacterLevel = characterLevel });
                 var settlement = new ExperienceBreakdown(Base: calculated.Base, ClearRank: calculated.RankBonus);
-                foreach (var modifier in await bonuses.CollectAsync(clear.Occasion, cancellationToken)
-                    .ConfigureAwait(false))
-                {
-                    // Black diamond includes rank, but never compounds other premium bonuses.
-                    var basis = modifier.Kind == ExperienceBonusKind.BlackDiamond
-                        ? (double)calculated.Base + calculated.RankBonus : calculated.Base;
-                    settlement = settlement.Add(modifier.Kind, Floor(basis * modifier.Rate));
-                }
-                _ = settlement.Total;
-                return settlement;
+                return ExperienceRuleService.ApplyBonuses(settlement, await bonuses.CollectAsync(clear.Occasion, cancellationToken)
+                    .ConfigureAwait(false));
             case TowerKillExperienceContext { Tower: DungeonParticipationMode.BossTower } kill:
                 var bossKillBase = await bossTower
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false);
                 var bossKill = new ExperienceBreakdown(Base: bossKillBase);
                 if (bossKillBase == 0) return bossKill;
-                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion with
-                    { Event = ExperienceEvent.MonsterKill, AllowGuildExperience = false }, cancellationToken).ConfigureAwait(false))
-                    bossKill = bossKill.Add(modifier.Kind, Floor(bossKillBase * modifier.Rate));
-                _ = bossKill.Total;
-                return bossKill;
+                return ExperienceRuleService.ApplyBonuses(bossKill, await bonuses.CollectAsync(kill.Occasion with
+                    { Event = ExperienceEvent.MonsterKill, AllowGuildExperience = false }, cancellationToken).ConfigureAwait(false));
             case TowerClearExperienceContext { Tower: DungeonParticipationMode.BossTower } clear:
                 var bossBase = await bossTower
                     .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken).ConfigureAwait(false);
-                var remaining = 1_100_000u - Math.Min(1_100_000u, bossBase);
-                var bossResult = new ExperienceBreakdown(Base: Math.Min(1_100_000u, bossBase));
-                foreach (var modifier in await bonuses.CollectAsync(clear.Occasion with { Event = ExperienceEvent.DungeonClear }, cancellationToken).ConfigureAwait(false))
-                {
-                    var amount = Math.Min(remaining, Floor(bossBase * modifier.Rate));
-                    bossResult = bossResult.Add(modifier.Kind, amount);
-                    remaining -= amount;
-                }
-                return bossResult;
+                const uint limit = 1_100_000;
+                var bossResult = new ExperienceBreakdown(Base: Math.Min(limit, bossBase));
+                return ExperienceRuleService.ApplyBonuses(bossResult, await bonuses.CollectAsync(clear.Occasion with
+                    { Event = ExperienceEvent.DungeonClear }, cancellationToken).ConfigureAwait(false), limit);
             case TowerKillExperienceContext { Tower: DungeonParticipationMode.IllusionTower } kill:
                 return new(Base: await tower
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken, kill.Occasion.DungeonId).ConfigureAwait(false));
@@ -83,7 +64,4 @@ internal sealed class ExperienceCalculationDomainService(
                 throw new ArgumentOutOfRangeException(nameof(context));
         }
     }
-
-    private static uint Floor(double value) => value <= 0 || double.IsNaN(value) ? 0
-        : checked((uint)Math.Floor(value));
 }

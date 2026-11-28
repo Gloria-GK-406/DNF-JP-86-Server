@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.World;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -11,6 +12,10 @@ internal static class DungeonRunRegistration
     {
         services.TryAddSingleton<DungeonRunStore>();
         services.TryAddSingleton<DungeonSecretShopRuleService>();
+        services.TryAddSingleton<ILuckyDungeonEntryBenefits, LuckyDungeonEntryBenefits>();
+        services.TryAddSingleton<DungeonFatigueCosts>();
+        services.TryAddSingleton<DungeonFatigueRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonFatigueContext>, DungeonFatigueBurningBenefits>());
         services.TryAddSingleton<IDungeonRunQueryDomainService>(sp => sp.GetRequiredService<DungeonRunStore>());
         services.TryAddSingleton<IDungeonRunEntryDomainService, DungeonRunStore.EntryService>();
         services.TryAddSingleton<IDungeonRunCombatDomainService, DungeonRunStore.CombatService>();

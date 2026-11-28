@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,8 @@ internal static class GameplayParametersRegistration
         services.TryAddSingleton<GameplayParameterRuleService>();
         services.TryAddSingleton<GameplayParametersDomainService>();
         services.TryAddSingleton<IFatigueConsumptionQuery>(p => p.GetRequiredService<GameplayParametersDomainService>());
-        services.TryAddSingleton<IDropDrawMultiplierDomainService>(p => p.GetRequiredService<GameplayParametersDomainService>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<GlobalDropBenefitContext>, DropDrawMultiplierBenefits>());
+        services.TryAddSingleton<IDropDrawMultiplierDomainService, DropDrawMultiplierDomainService>();
         return services;
     }
 }

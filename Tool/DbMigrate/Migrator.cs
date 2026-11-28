@@ -64,6 +64,7 @@ public static class Migrator
             [46] = AddGuildMedalAura,
             [47] = GuildMembershipUpgrade.Apply,
             [48] = connection => CharacterDatabaseSchema.DeclareConsumableCooldowns(connection),
+            [49] = connection => CharacterDatabaseSchema.DeclareTimedItemEffects(connection),
         };
 
     private static void AddGuildMedalAura(SqliteConnection connection)

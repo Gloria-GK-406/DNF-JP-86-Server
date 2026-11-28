@@ -30,7 +30,7 @@ public sealed class MonsterKillRewardsDomainService(ICharacterExperienceAwardDom
     {
         footprint.DemandEffects(new(accountId, characterId, session));
         var award = kill.IsMonster ? await experience.AwardAsync(
-            new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill, accountId, characterId, dungeonId),
+            new KillExperienceContext(new ExperienceOccasion(ExperienceEvent.MonsterKill, accountId, characterId, dungeonId, RunId: runId),
                 kill.Level, kill.Rank, difficulty, weight, partyMemberCount, kill.IsNamedMonster),
             clock.GetUtcNow(), session, footprint, ct).ConfigureAwait(false) : null;
         footprint.DemandEffects(new(accountId, characterId, session));

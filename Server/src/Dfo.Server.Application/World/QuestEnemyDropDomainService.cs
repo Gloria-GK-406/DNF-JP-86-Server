@@ -1,4 +1,6 @@
-using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -11,7 +13,7 @@ internal sealed class QuestEnemyDropDomainService(
     IQuestEnemyDropRuleService rules,
     ICharacterQuestLogDomainService logs,
     ICharacterContainerDomainService containers,
-    IPremiumServiceDomainService premiums) : IQuestEnemyDropDomainService
+    GameplayBenefitsQuery<AccountId> dropBenefits) : IQuestEnemyDropDomainService
 {
     internal ValueTask<IReadOnlyList<RolledDrop>> DrawAsync(
         MonsterDropRequest request, MonsterDropParticipant participant, CancellationToken cancellationToken) =>
@@ -33,8 +35,8 @@ internal sealed class QuestEnemyDropDomainService(
             .ToDictionary(group => group.Key, group => group.Sum(item => (long)item.Count));
         var carried = await logs.LogOf(participant.AccountId, participant.CharacterId)
             .CarriedAsync(cancellationToken).ConfigureAwait(false);
-        var hasQuestHelper = carried.Count > 0 && await premiums.For(participant.AccountId)
-            .HasBenefitAsync(PremiumBenefit.QuestItemDropBonus, cancellationToken).ConfigureAwait(false);
+        var hasQuestHelper = carried.Count > 0 && (await dropBenefits.ReadAsync(participant.AccountId, cancellationToken,
+            GameplayBenefitScope.For(participant.AccountId)).ConfigureAwait(false)).Effects<QuestHelperDropBenefit>().Any();
         return await rules.DrawAsync(kill, participant,
             carried.Select(active => active.QuestId).ToArray(), held, hasQuestHelper, cancellationToken)
             .ConfigureAwait(false);

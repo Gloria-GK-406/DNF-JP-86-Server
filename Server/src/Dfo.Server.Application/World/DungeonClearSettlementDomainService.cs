@@ -161,7 +161,7 @@ internal sealed class DungeonClearSettlementDomainService(
             await luckyStars.GrantForClearAsync(accountId, characterId, new(runId), cancellationToken).ConfigureAwait(false);
         var award = await experience.AwardAsync(new ClearExperienceContext(
                 new ExperienceOccasion(ExperienceEvent.DungeonClear, accountId,
-                    characterId, dungeonId), clear), now, session,
+                    characterId, dungeonId, RunId: runId == Guid.Empty ? null : new(runId)), clear), now, session,
             footprint, cancellationToken).ConfigureAwait(false);
         var changed = award is not null && runId != Guid.Empty
             && await attendance.RecordClearAsync(accountId,runId,dungeonId,settlementLevel,now,cancellationToken);

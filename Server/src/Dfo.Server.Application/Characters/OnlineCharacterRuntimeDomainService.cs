@@ -26,7 +26,7 @@ namespace Dfo.Server.Application.Characters;
 /// </remarks>
 internal sealed class OnlineCharacterRuntimeDomainService(
     TimeProvider clock, OnlineCharacterLocationDomainService locations, IPlayerTradeDomainService trades)
-    : IOnlineCharacterRuntimeDomainService
+    : IOnlineCharacterRuntimeDomainService, Dfo.Server.Abstractions.Events.ILuckyCharacterBurning
 {
     private readonly ConcurrentDictionary<CharacterId, Entry> entries = new();
 
@@ -147,16 +147,24 @@ internal sealed class OnlineCharacterRuntimeDomainService(
             throw new ArgumentOutOfRangeException(nameof(bonusRate));
         if (duration <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(duration));
-        var potion = new SpiritPotion(bonusRate, clock.GetUtcNow().Add(duration));
+        var potion = new SpiritPotionStatus(bonusRate, clock.GetUtcNow().Add(duration));
         _ = TryChange(session, current => current with { Potion = potion });
     }
 
     public double SpiritPotionBonusRateOf(CharacterId characterId) =>
-        entries.TryGetValue(characterId, out var entry)
-        && entry.Potion is { } potion
-        && clock.GetUtcNow() < potion.ExpiresAt
-            ? potion.Rate
-            : 0;
+        SpiritPotionOf(characterId) is { } potion && clock.GetUtcNow() < potion.ExpiresAt ? potion.Rate : 0;
+
+    public SpiritPotionStatus? SpiritPotionOf(CharacterId characterId) =>
+        entries.TryGetValue(characterId, out var entry) ? entry.Potion : null;
+
+    public bool IsEnabled(CharacterId character, long revision) =>
+        entries.TryGetValue(character, out var entry) && entry.BurningRevision == revision;
+
+    public bool TrySet(SelectedSessionIdentity session, long revision, bool enabled)
+    {
+        GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(TrySet));
+        return TryChange(session, current => current with { BurningRevision = enabled ? revision : null }) is not null;
+    }
 
     /// <summary>Replaces the record this session owns, or answers null when it owns none.</summary>
     private Entry? TryChange(SelectedSessionIdentity session, Func<Entry, Entry> change)
@@ -170,15 +178,15 @@ internal sealed class OnlineCharacterRuntimeDomainService(
         return null;
     }
 
-    private sealed record SpiritPotion(double Rate, DateTimeOffset ExpiresAt);
 
     /// <summary>One character's record, compared by reference so a swap only replaces what was read.</summary>
     private sealed record Entry(
         SelectedSessionIdentity Session,
         byte HpPercent,
         ImmutableDictionary<ItemCooldownKey, long> Cooldowns,
-        SpiritPotion? Potion)
+        SpiritPotionStatus? Potion)
     {
+        public long? BurningRevision { get; init; }
         public bool Equals(Entry? other) => ReferenceEquals(this, other);
 
         public override int GetHashCode() => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this);

@@ -1,11 +1,14 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 
 namespace Dfo.Server.Application.World;
 
 internal sealed class QuestHelperGroundBonusDomainService(
-    IPremiumServiceDomainService premiums,
+    GameplayBenefitsQuery<AccountId> dropBenefits,
     IPremiumServiceRuleService rules,
     IQuestMaterialRequirementDomainService quests) : IQuestHelperGroundBonusDomainService
 {
@@ -15,7 +18,8 @@ internal sealed class QuestHelperGroundBonusDomainService(
         cancellationToken.ThrowIfCancellationRequested();
         var active = false;
         foreach (var account in context.Participants.Select(p => p.AccountId).Distinct())
-            if (await premiums.For(account).HasBenefitAsync(PremiumBenefit.QuestItemDropBonus, cancellationToken).ConfigureAwait(false))
+            if ((await dropBenefits.ReadAsync(account, cancellationToken, GameplayBenefitScope.For(account))
+                    .ConfigureAwait(false)).Effects<QuestHelperDropBenefit>().Any())
             {
                 active = true;
                 break;

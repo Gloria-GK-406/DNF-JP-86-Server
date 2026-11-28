@@ -75,8 +75,11 @@ internal static class CharactersRegistration
         // What a character being played is like right now: position, vitals, cooldowns and the
         // spirit potion, owned by the session generation that began it. The position is kept by the
         // location service, which only this runtime writes.
-        services.TryAddSingleton<
-            IOnlineCharacterRuntimeDomainService, OnlineCharacterRuntimeDomainService>();
+        services.TryAddSingleton<OnlineCharacterRuntimeDomainService>();
+        services.TryAddSingleton<IOnlineCharacterRuntimeDomainService>(provider =>
+            provider.GetRequiredService<OnlineCharacterRuntimeDomainService>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.ILuckyCharacterBurning>(provider =>
+            provider.GetRequiredService<OnlineCharacterRuntimeDomainService>());
         // A character's keys and options, asked by identifier. The entry load is the only other
         // reader of those two tables and it is left alone: it builds its frames from rows it has
         // already read, and this reads the same rows for anyone who is not entry.

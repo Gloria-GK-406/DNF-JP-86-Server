@@ -48,6 +48,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
+## A21 燃烧状态与幸运角色的关系
+
+**ClientStatic / Confirmed（2026-11-28）**。`RVA 0x00DD83E0–0x00DD8527` 消费 `u16 value + u8 state`，正文共 3 字节。`value=0,state=0` 在 VA `0x011D8446` 检查本地幸运标记，命中时仍可创建疲劳燃烧入口。城镇控件 VA `0x01283AD0` 刷新勾选状态，在 `0x01283B19` 和 `0x01283B35` 将状态 1、2 都绘为已勾选，在 `0x01283B6F` 将状态 0 绘为未勾选。VA `0x025D1360` 仅在状态 2 下预测普通地图双倍疲劳。幸运标记来自 [NOTI `0x0406`](NOTI-0x0406.md#a21-幸运角色名单) 和随后技能重算。
+
+**CurrentImplementation**。幸运活动发送 `value=0`，关闭用状态 0，开启用状态 2。资格单独由名单和技能重算计算，进城或刷新活动时仍按此顺序交付。玩家开关请求见 [CMD `0x0233`](../client-to-server/0x0233.md)。隔离服 TCP 验证了默认值、开关回包和选图界面切换，A21 交互待用户复验。[通知编码](../../../Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationMessages.cs#L413)
+
 <!-- rks:a12:begin -->
 
 > **本区结论得出于 A12 客户端**（SHA-256 `F78F0AEA…`），**A21 上尚未复核**。
@@ -80,8 +86,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## 服务端实现映射
 
-尚未实现。**注意**：本协议已在实机流量里出现（见上方实测字段表），"尚未实现"指的是
-服务端侧没有对应 slice，不是"没观察到"。
+选角初始化和幸运角色开关共用 `FatigueAccelerationStateMessage`。上方运行时表来自 A12。A21 幸运角色的状态显示与跨场景行为待单独实机验证。
 
 ## 待实机补全
 

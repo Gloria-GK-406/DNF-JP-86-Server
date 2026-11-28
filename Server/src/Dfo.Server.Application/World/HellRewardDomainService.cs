@@ -11,7 +11,7 @@ internal sealed class HellRewardDomainService(IHellRewardRuleService rules,
     public async ValueTask<HellActorReward> FreezeActorAsync(int code, MonsterDropContext context, CancellationToken token)
     {
         var eligible = rules.EligibleForGroupReward(code, context.SourceType == Dfo.Server.Abstractions.Content.IndependentDropSourceType.APC);
-        var loot = new List<RolledDrop>(await drops.GenerateIndependentAsync(code, context, 0, token).ConfigureAwait(false));
+        var loot = new List<RolledDrop>(await drops.GenerateIndependentAsync(code, context, token).ConfigureAwait(false));
         foreach (var participant in context.Participants)
             loot.AddRange(await drops.GeneratePersonalAsync(code, participant.CharacterId, context, token).ConfigureAwait(false));
         return new(loot.ToArray(), eligible);

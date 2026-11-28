@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
@@ -18,7 +19,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
     IDungeonParticipationDomainService participation, IReviveCoinDomainService reviveCoins,
     Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
     IOpeningInventoryDomainService openingInventory,
-    IGuildDungeonDomainService guildDungeons) : IItemUseEffectDomainService
+    IGuildDungeonDomainService guildDungeons, ITimedItemEffectTable itemEffects) : IItemUseEffectDomainService
 {
     private enum UsePath { Ordinary, LuckyStarAction, GuildExtensionAction }
 
@@ -86,6 +87,10 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
+        if (rule.ReinforcementPotion is not null &&
+            (await itemEffects.ReadActiveAsync(session.CharacterId, at, ct).ConfigureAwait(false))
+                .Any(row => row.ItemId == item.ItemId))
+            return new(ItemUsability.OnCooldown, item.ItemId, item.Count);
         if (path == UsePath.GuildExtensionAction)
         {
             if (await rules.GuildExtensionCostAsync(item.ItemId, source, plan, ct).ConfigureAwait(false) is not { } cost)

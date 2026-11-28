@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Characters;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Data.World;
@@ -16,6 +17,62 @@ namespace Dfo.Server.Application.Tests.World;
 
 public sealed class DungeonVisitDomainServiceTests
 {
+    [Theory]
+    [InlineData(false, true, null, 4, true, true, 1)]
+    [InlineData(true, true, null, 2, false, false, 1)]
+    [InlineData(false, false, null, 0, false, false, 1)]
+    [InlineData(false, true, 1, 1, false, false, 1)]
+    [InlineData(false, true, 2, 2, true, false, 1)]
+    [InlineData(false, true, 3, 3, true, false, 1)]
+    [InlineData(false, true, null, 12, true, true, 3)]
+    [InlineData(false, true, 7, 7, true, false, 3)]
+    [InlineData(true, true, null, 4, false, false, 2)]
+    public async Task Lucky_fatigue_sets_the_run_decision_and_charges_each_first_visit(
+        bool prohibited, bool consumes, int? startingRemaining, int expectedUsed, bool entryBurn, bool nextRoomBurn, int otherMultiplier)
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            await using var fixture = new LearningFixture(configure: services =>
+            {
+                services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Events.ILuckyCharacterEventQuery>(
+                    (_, _) => ValueTask.FromResult(new Dfo.Server.Data.Events.LuckyCharacterPeriod(7, [12]))));
+                services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Events.ILuckyCharacterBurning>(
+                    (_, _) => true));
+                services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Events.IFatigueBurningDungeonContentSource>(
+                    (_, _) => prohibited ? new HashSet<int> { TwoRoomLayout.DungeonId } : new HashSet<int>()));
+            });
+            await fixture.SeedAsync();
+            var character = fixture.Session.CharacterId;
+            if (otherMultiplier != 1)
+                Assert.True(fixture.Services.GetRequiredService<IGameplayBenefitRegistry>().Replace(
+                    new("fatigue-test", GameplayBenefitScope.For(character),
+                        new GameplayBenefit("fatigue-multiplier", "fatigue multiplier", 0, new FatigueCostMultiplier(otherMultiplier))), 1));
+            var runs = TestParties.Runs(fixture.Scope);
+            var layout = TwoRoomLayout with { ConsumesFatigue = consumes };
+            var visits = Bound(fixture, runs, layout, fixture.Services.GetRequiredService<ILuckyDungeonEntryBenefits>());
+            var fatigue = fixture.Services.GetRequiredService<ICharacterFatigueDomainService>();
+            if (startingRemaining is { } points)
+            {
+                var full = (await fatigue.BalanceOfAsync(character, default)).Remaining;
+                await using var frame = fixture.Scope.Begin();
+                await fatigue.SpendAsync(character, checked((ushort)(full - points)), default);
+                await frame.CommitAsync(default);
+            }
+            var priorUsed = (await fatigue.BalanceOfAsync(character, default)).Used;
+
+            Assert.NotNull(await visits.EnterAsync(character, layout.DungeonId, 0, DungeonEntryFacts.None, default));
+            var first = runs.Find(character)!;
+            Assert.True(first.Participant!.IsLuckyCharacter);
+            Assert.Equal(entryBurn, first.Participant.BurnsFatigue);
+            Assert.Equal(entryBurn, first.CurrentCellState.FatigueBurnedBy.Contains(character));
+            Assert.NotNull(await visits.MoveAsync(character, first, new(1, 0), default));
+            Assert.Equal(nextRoomBurn, runs.Find(character)!.CurrentCellState.FatigueBurnedBy.Contains(character));
+            Assert.NotNull(await visits.MoveAsync(character, runs.Find(character)!, new(0, 0), default));
+            Assert.Equal(entryBurn, runs.Find(character)!.CurrentCellState.FatigueBurnedBy.Contains(character));
+            Assert.Equal(expectedUsed, (await fatigue.BalanceOfAsync(character, default)).Used - priorUsed);
+        });
+    }
+
     [SkippableTheory]
     [InlineData(4, 0)]
     [InlineData(1, 1)]
@@ -480,10 +537,12 @@ public sealed class DungeonVisitDomainServiceTests
         });
     }
 
-    private static IDungeonVisitDomainService Bound(LearningFixture f, IDungeonRunDomainService runs, DungeonLayout layout) =>
+    private static IDungeonVisitDomainService Bound(LearningFixture f, IDungeonRunDomainService runs, DungeonLayout layout,
+        ILuckyDungeonEntryBenefits? luckyCharacters = null) =>
         UseCaseDungeons.Visits(new TransactionalDungeonVisitDomainService(Dfo.Server.Application.Tests.Support.DungeonVisitTestFactory.Create(new RecordingLayouts(layout), runs,
             new ImmediateSelection(), new RecordingCellFactory(), new MaximumDifficulty(), new DungeonDifficultyRuleService(TestRequired.NoDungeonAdmissions),
-            f.Services.GetRequiredService<ICharacterFatigueDomainService>()), f.Scope), f.Scope);
+            f.Services.GetRequiredService<ICharacterFatigueDomainService>(), luckyCharacters: luckyCharacters,
+            fatigueCosts: f.Services.GetRequiredService<DungeonFatigueCosts>()), f.Scope), f.Scope);
 
     private sealed class TestFatigue : Dfo.Server.Abstractions.Characters.ICharacterFatigueDomainService
     {

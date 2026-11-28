@@ -366,7 +366,8 @@ public sealed class QuestEnemyDropDomainServiceTests
             TestGameplay.Run(() => containers.Register(Member, new Bag(10149163, 0)));
         var service = new QuestEnemyDropDomainService(
             new QuestEnemyDropRuleService(new QuestRules(definition), new PremiumServiceRuleService(new PremiumRules()),
-                new Placement(questItem)), logs, containers, premiums ?? new NoPremiums());
+                new Placement(questItem)), logs, containers,
+            TestGameplayBenefits.Query(new QuestHelperDropBenefits(premiums ?? new NoPremiums())));
         var layout = Layout(dungeonId, purpose);
         var run = new DungeonCellCreationContext(
             DungeonRunId.New(),

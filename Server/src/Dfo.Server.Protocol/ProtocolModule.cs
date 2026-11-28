@@ -109,6 +109,7 @@ using Dfo.Server.Protocol.Game.AvatarCompound;
 using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
 using Dfo.Server.Protocol.Game.SecretShop;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
@@ -322,6 +323,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddUnansweredReportsSlice();
         services.AddMoveItemSpaceSlice();
         services.AddLearnSkillSlice();
+        services.AddLuckyCharacterSlice();
         services.AddMagicBoxBatchOpeningSlice();
         services.AddMagicBoxSingleOpeningSlice();
         services.AddVendingMachineSlice();

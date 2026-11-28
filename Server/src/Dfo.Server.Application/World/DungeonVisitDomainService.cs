@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Characters;
@@ -24,7 +25,7 @@ internal sealed class DungeonVisitDomainService(
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterFatigueDomainService fatigue, IDungeonAdmissionDomainService admission,
-    IIllusionTowerDomainService tower,
+    IIllusionTowerDomainService tower, ILuckyDungeonEntryBenefits luckyCharacters, DungeonFatigueCosts fatigueCosts, TimeProvider clock,
     ILogger<DungeonVisitDomainService> logger) : IDungeonVisitDomainService
 {
     private readonly ILogger<DungeonVisitDomainService> logger = logger;
@@ -98,7 +99,17 @@ internal sealed class DungeonVisitDomainService(
     {
         var difficulty = facts.Difficulty;
         var runId = DungeonRunId.New();
-        var startedAt = DateTimeOffset.UtcNow;
+        var startedAt = clock.GetUtcNow();
+        var benefits = await luckyCharacters.CaptureAsync(participants, layout, startedAt, cancellationToken)
+            .ConfigureAwait(false);
+        participants = benefits.Participants;
+        layout = layout with { LuckyCharactersAtEntry = benefits.Period };
+        var payments = await fatigueCosts.PrepareAsync(participants, layout, isEntry: true, startedAt, cancellationToken)
+            .ConfigureAwait(false);
+        var burning = BurningMembers(payments);
+        if (participants.Any(participant => participant.BurnsFatigue))
+            participants = participants.Select(participant => participant with { BurnsFatigue = burning.Contains(participant.CharacterId) })
+                .ToArray();
         var initialCell = await cells.CreateAsync(
             new DungeonCellCreationContext(
                 runId,
@@ -112,10 +123,9 @@ internal sealed class DungeonVisitDomainService(
         if (!tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
         if (layout.ConsumesFatigue)
-            await fatigue.SpendBatchAsync(participants.Select(participant => participant.CharacterId).ToArray(),
-                layout.EntryOnlyFatigue ?? 1, cancellationToken).ConfigureAwait(false);
+            await fatigue.SpendBatchAsync(payments.Select(payment => payment.Charge).ToArray(), cancellationToken).ConfigureAwait(false);
         var change = runs.PreparePartyEntry(
-            participants, layout, difficulty, initialCell, runId, startedAt);
+            participants, layout, difficulty, initialCell with { FatigueBurnedBy = burning }, runId, startedAt);
         var createdVisits = participants.ToDictionary(
             participant => participant.CharacterId,
             participant => this.DescribeCreatedCell(
@@ -173,6 +183,7 @@ internal sealed class DungeonVisitDomainService(
             return Refused(DungeonMoveFailure.Disconnected);
 
         DungeonCellSeed? preparedCell = null;
+        IReadOnlyList<DungeonFatiguePayment> payments = [];
         if (firstEntry)
         {
             var selected = await layouts.SelectMapAsync(latest.Layout, itemWarp ? null : latest.CurrentCell, target, cancellationToken)
@@ -191,6 +202,9 @@ internal sealed class DungeonVisitDomainService(
                     latest.StartedAt,
                     latest.Participants),
                 cancellationToken).ConfigureAwait(false);
+            payments = await fatigueCosts.PrepareAsync(latest.Participants, latest.Layout, isEntry: false,
+                clock.GetUtcNow(), cancellationToken).ConfigureAwait(false);
+            preparedCell = preparedCell with { FatigueBurnedBy = BurningMembers(payments) };
         }
 
         var entered = itemWarp
@@ -202,10 +216,16 @@ internal sealed class DungeonVisitDomainService(
                 characterId, entered.RunId, entered.Layout.DungeonId, entered.CurrentRoomMapId, entered.RoomVersion,
                 firstEntry, entered.CurrentCellState.Actors.Count, entered.CurrentCellState.Objects.Count);
         if (firstEntry && entered.Layout.ConsumesFatigue && entered.Layout.EntryOnlyFatigue is null)
-            await fatigue.SpendBatchAsync(entered.Participants.Select(participant => participant.CharacterId).ToArray(),
-                1, cancellationToken).ConfigureAwait(false);
+        {
+            var activeMembers = entered.Participants.Select(participant => participant.CharacterId).ToHashSet();
+            await fatigue.SpendBatchAsync(payments.Select(payment => payment.Charge)
+                .Where(charge => activeMembers.Contains(charge.Character)).ToArray(), cancellationToken).ConfigureAwait(false);
+        }
         return new(this.DescribeCreatedCell(entered, firstEntry), null);
     }
+
+    private static ImmutableHashSet<CharacterId> BurningMembers(IReadOnlyList<DungeonFatiguePayment> payments) =>
+        payments.Where(payment => payment.BurnsFatigue).Select(payment => payment.Charge.Character).ToImmutableHashSet();
 
     private DungeonRoomVisit DescribeCreatedCell(DungeonRunState run, bool firstEntry)
     {

@@ -24,6 +24,11 @@ internal static class EventsRegistration
             fact => fact.EventId.ToString(System.Globalization.CultureInfo.InvariantCulture));
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, UnlimitedFatigueEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService, DropRateEventDomainService>();
+        services.AddSingleton<LuckyCharacterEventDomainService>();
+        services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<LuckyCharacterEventDomainService>());
+        services.AddSingleton<Dfo.Server.Abstractions.Events.ILuckyCharacterEventQuery>(sp => sp.GetRequiredService<LuckyCharacterEventDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.World.LuckyCharacterBenefitRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService, LuckyCharacterPlayerDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IManagedEventLifecycleDomainService, ManagedEventLifecycleDomainService>();
         services.AddInternalCommandHandler<InitializeManagedEventsCommand, bool, InitializeManagedEventsCommandHandler>();
         services.AddScoped<ManagedEventLifecycleTask>();

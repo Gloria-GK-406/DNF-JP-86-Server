@@ -37,10 +37,14 @@ internal static class ProtocolAlgorithmFixture
                 : parameter.ParameterType == typeof(IExpertStoreDomainService) ? Stores(values)
                 : parameter.ParameterType == typeof(IDungeonExitDomainService) ? Exit(values.ToArray())
                 : parameter.ParameterType == typeof(IEntryPlacementRuleService) ? Placement(values)
+                : parameter.ParameterType == typeof(Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService)
+                    ? TestRequired.Absent<Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService>((method, _) =>
+                        method.Name == "ReadRosterAsync" ? ValueTask.FromResult(Dfo.Server.Data.Events.LuckyCharacterPeriod.Closed) : null)
                 : Default(parameter.ParameterType))).ToArray());
         suppliedTo.AddOrUpdate(created, values.ToArray());
         return created;
     }
+
     // Departures go through the exit service; unless a test supplies one, it is built over the
     // party and run departure doubles the test supplied.
     internal static IDungeonExitDomainService Exit(params object?[] values) =>

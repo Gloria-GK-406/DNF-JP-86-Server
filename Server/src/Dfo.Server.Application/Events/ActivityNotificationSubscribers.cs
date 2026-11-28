@@ -10,7 +10,11 @@ internal sealed class EventsActivationNotificationSubscriber(IEventService event
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<ManagedEventActivationChanged> message, CancellationToken ct) =>
         await events.ProjectAsync(new NotificationAudience.TheseSessions(online.Snapshot()),
-            new EventsChanged { RefreshQuestOffers = message.Payload.EventId == Dfo.Server.Application.World.SouthernDaleRuleService.ActivityId }, ct);
+            new EventsChanged
+            {
+                RefreshQuestOffers = message.Payload.EventId == Dfo.Server.Application.World.SouthernDaleRuleService.ActivityId,
+                RefreshLuckyCharacters = message.Payload.EventId == LuckyCharacterEventDomainService.ActivityId,
+            }, ct);
 }
 
 internal sealed class JoustLifecycleNotificationSubscriber(IEventService events, ISelectedSessionSnapshotQuery online)
@@ -35,5 +39,9 @@ internal sealed class EventsConfigurationNotificationSubscriber(IEventService ev
 {
     public async ValueTask HandleAsync(DomainEventEnvelope<ManagedEventConfigurationChanged> message, CancellationToken cancellationToken) =>
         await events.ProjectAsync(new NotificationAudience.TheseSessions(online.Snapshot()),
-            new EventsChanged { RefreshQuestOffers = message.Payload.EventId == Dfo.Server.Application.World.SouthernDaleRuleService.ActivityId }, cancellationToken);
+            new EventsChanged
+            {
+                RefreshQuestOffers = message.Payload.EventId == Dfo.Server.Application.World.SouthernDaleRuleService.ActivityId,
+                RefreshLuckyCharacters = message.Payload.EventId == LuckyCharacterEventDomainService.ActivityId,
+            }, cancellationToken);
 }

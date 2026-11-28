@@ -275,5 +275,5 @@ internal sealed class InventorySide
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
         new SqliteCharacterRentalTable(this.database, clock: TimeProvider.System),
-        Store, Scope);
+        Store, Scope, new SqliteTimedItemEffectTable(this.database), TimeProvider.System);
 }

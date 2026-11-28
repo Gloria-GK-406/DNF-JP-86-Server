@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
@@ -14,6 +15,100 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class EquipmentReinforcementDomainTests
 {
+    [Dfo.Server.Testing.PvfFact]
+    public async Task Real_reinforcement_potion_commits_with_consumption_survives_reentry_and_expires()
+    {
+        const int potionId = 10004687;
+        await TestGameplay.RunAsync(async () =>
+        {
+            using var archive = new Dfo.Server.Infrastructure.Content.PvfArchiveProvider(new());
+            var definitions = new Dfo.Server.Infrastructure.Content.PvfItemUseRuleDefinitionSource(archive);
+            Assert.Equal(3000, (await definitions.GetAsync(potionId, default))?.ReinforcementPotion?.SuccessUnits);
+            Assert.Equal(10000, (await definitions.GetAsync(10007343, default))?.ReinforcementPotion?.SuccessUnits);
+            var rolls = new CountingRoll(0);
+            using var shop = Fixture(failureWeight: 1500, configure: services =>
+            {
+                services.AddSingleton<IItemUseRuleDefinitionSource>(definitions);
+                services.AddSingleton<IEquipmentReinforcementRollSource>(rolls);
+            });
+            await shop.SeedCore(9, Piece(0));
+            await shop.Seed(121, 1000, 50, 3);
+            await shop.Seed(101, potionId, 2);
+            var expiry = shop.Clock.GetUtcNow().AddMinutes(3);
+            shop.Sql($"INSERT INTO character_item_effects VALUES (2, 0, {potionId}, 77)");
+
+            Assert.Equal(ItemUsability.Allowed, (await UsePotion(shop, commit: false)).Status);
+            Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_timed_item_effects"));
+            Assert.Equal(2, shop.Count(potionId));
+
+            Assert.Equal(ItemUsability.Allowed, (await UsePotion(shop, commit: true)).Status);
+            Assert.Equal(1, shop.Count(potionId));
+            Assert.Equal(1, shop.Scalar($"SELECT COUNT(*) FROM character_timed_item_effects WHERE item_id = {potionId} AND expires_at_utc_ticks = {expiry.UtcTicks}"));
+            Assert.Equal(ItemUsability.OnCooldown, (await UsePotion(shop, commit: true)).Status);
+
+            // The next settlement reads stored state after selecting the character again.
+            var containers = shop.Services.GetRequiredService<ICharacterContainerDomainService>();
+            containers.Clear(shop.Session.CharacterId);
+            shop.Select(2);
+            var legacy = (await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+                .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default)).ItemValues.Effects;
+            Assert.Equal(77, Assert.Single(legacy, row => row.ItemId == potionId).Value);
+            Assert.Empty((await shop.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ITimedItemEffectTable>()
+                .ReadActiveAsync(shop.Session.CharacterId, shop.Clock.GetUtcNow(), default)));
+            containers.Clear(shop.Session.CharacterId);
+            shop.Select(1);
+            var inventory = await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+                .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default);
+            Assert.Equal(180, Assert.Single(inventory.ItemValues.Effects, row => row.ItemId == potionId).Value);
+            var boosted = await Reinforce(shop);
+            Assert.Equal(EquipmentReinforcementOutcome.Succeeded, boosted.Receipt!.Outcome);
+            Assert.Equal(1, rolls.Calls);
+
+            await shop.SeedCore(9, Piece(0));
+            shop.Clock.Advance(TimeSpan.FromMinutes(3));
+            var expired = await Reinforce(shop);
+            Assert.NotEqual(EquipmentReinforcementOutcome.Succeeded, expired.Receipt!.Outcome);
+            Assert.DoesNotContain((await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+                .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default)).ItemValues.Effects,
+                row => row.ItemId == potionId);
+        });
+    }
+
+    [Fact]
+    public async Task Published_role_benefit_uses_the_same_reinforcement_roll()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var rolls = new CountingRoll(0);
+            using var shop = Fixture(failureWeight: 1500, configure: services =>
+                services.AddSingleton<IEquipmentReinforcementRollSource>(rolls));
+            await shop.SeedCore(9, Piece(0));
+            await shop.Seed(121, 1000, 20, 3);
+            var scope = GameplayBenefitScope.For(shop.Session.CharacterId);
+            var registry = shop.Services.GetRequiredService<IGameplayBenefitRegistry>();
+            Assert.True(registry.Replace(new("test-benefit", scope,
+                new GameplayBenefit("reinforce", "reinforcement event", 0, new EquipmentReinforcementChanceBenefit(1500),
+                    EndsAt: shop.Clock.GetUtcNow().AddMinutes(1))), 1));
+
+            Assert.Equal(EquipmentReinforcementOutcome.Succeeded, (await Reinforce(shop)).Receipt!.Outcome);
+            Assert.Equal(1, rolls.Calls);
+        });
+    }
+
+    private static async ValueTask<ItemUseApplication> UsePotion(ShopFixture shop, bool commit)
+    {
+        var scope = (DomainTransactionScope)shop.Services.GetRequiredService<IDomainTransactionAccessor>();
+        await using var transaction = scope.Begin();
+        using var footprint = new TestEffectFootprints.Lease(shop.Session);
+        var location = new BusinessSlot(BusinessInventorySpace.Consumable, 36);
+        var bound = shop.Services.GetRequiredService<IBusinessInventorySlotDomainService>().Get(shop.Session.CharacterId, location);
+        var item = await bound.Container.GetAsync(bound.Slot.Index, default);
+        var result = await shop.Services.GetRequiredService<IItemUseEffectDomainService>()
+            .UseAsync(shop.Session, location, item!, footprint, default);
+        if (commit && result.Status == ItemUsability.Allowed) await transaction.CommitAsync(default);
+        return result;
+    }
+
     [Dfo.Server.Testing.PvfFact]
     public async Task Fixed_level_coupon_sets_twelve_consumes_one_coupon_and_no_npc_cost()
     {

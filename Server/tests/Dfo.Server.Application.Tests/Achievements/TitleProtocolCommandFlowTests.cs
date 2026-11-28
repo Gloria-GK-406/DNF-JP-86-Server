@@ -322,7 +322,14 @@ public sealed class TitleProtocolCommandFlowTests(ITestOutputHelper output)
         public ValueTask<CommandWriteResult<T>> WriteResultAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CommandWorkUnit, CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull { trace.Units.Add((false, d)); return actual.WriteResultAsync(c, d, a, ct); }
         public async ValueTask<T> ReadOnlyAsync<T>(CommandExecutionContext c, CommandWorkUnitDeclaration d, Func<CancellationToken, ValueTask<T>> a, CancellationToken ct = default) where T : notnull { trace.Units.Add((true, d)); var result = await actual.ReadOnlyAsync(c, d, a, ct); trace.AfterUnit?.Invoke(); return result; }
     }
-    private sealed class EventView(IWeeklyAttendanceDomainService attendance, TimeProvider clock) : IEventPlayerProjectionDomainService { public async ValueTask<EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity s, CancellationToken ct) => new([], await attendance.StateAsync(s.AccountId, clock.GetUtcNow(), ct)); }
+    private sealed class EventView(IWeeklyAttendanceDomainService attendance, TimeProvider clock) : IEventPlayerProjectionDomainService
+    {
+        public ValueTask<EventPlayerSnapshot> ReadNowAsync(SelectedSessionIdentity session, CancellationToken ct) =>
+            ReadAtAsync(session.AccountId, session.CharacterId, 0, false, clock.GetUtcNow(), ct);
+
+        public async ValueTask<EventPlayerSnapshot> ReadAtAsync(AccountId account, CharacterId character, int job,
+            bool pvp, DateTimeOffset at, CancellationToken ct) => new([], await attendance.StateAsync(account, at, ct));
+    }
     private sealed class Content : ITitleBookDefinitionSource, IAchievementDefinitionSource, IItemPlacementDefinitionSource, IEquipmentSlotDefinitionSource, IEquipmentRequirementDefinitionSource, IAchievementCharacterFactsDomainService, IWeeklyAttendanceRuleService {
         IReadOnlyList<TitleBookCategoryDefinition> ITitleBookDefinitionSource.Load() => Enumerable.Range(0, 5).Select(c => new TitleBookCategoryDefinition(c, 20, c == 4 ? [new(4, 10, 0, -1, [26596, 26628])] : [])).ToArray();
         IReadOnlyList<AchievementDefinition> IAchievementDefinitionSource.Load() => [new(9001, 1, 99, new("huntmonster", -1, [-1, -1, -1, 30], 1), [])];

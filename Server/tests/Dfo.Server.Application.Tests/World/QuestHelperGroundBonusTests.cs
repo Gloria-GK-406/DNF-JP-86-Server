@@ -40,7 +40,7 @@ public sealed class QuestHelperGroundBonusTests
         await storage.SeedAsync();
         var query = new Materials();
         var service = new QuestHelperGroundBonusDomainService(
-            storage.Services.GetRequiredService<IPremiumServiceDomainService>(),
+            TestGameplayBenefits.Query(new QuestHelperDropBenefits(storage.Services.GetRequiredService<IPremiumServiceDomainService>())),
             new PremiumServiceRuleService(new Definitions()), query);
         var context = Context();
         var original = Cell(context);
@@ -76,7 +76,7 @@ public sealed class QuestHelperGroundBonusTests
         storage.Sql("INSERT INTO account_premiums(account_id,premium_type,end_time) VALUES(1,582,4000000000)");
         var query = new Materials(empty: true);
         var service = new QuestHelperGroundBonusDomainService(
-            storage.Services.GetRequiredService<IPremiumServiceDomainService>(),
+            TestGameplayBenefits.Query(new QuestHelperDropBenefits(storage.Services.GetRequiredService<IPremiumServiceDomainService>())),
             new PremiumServiceRuleService(new Definitions()), query);
         var context = Context();
         var cell = Cell(context);

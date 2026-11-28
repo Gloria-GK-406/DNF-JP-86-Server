@@ -134,7 +134,11 @@ public sealed record DungeonRunParticipant(
     AccountId AccountId,
     CharacterId CharacterId,
     byte Slot,
-    bool IsLeader);
+    bool IsLeader)
+{
+    public bool IsLuckyCharacter { get; init; }
+    public bool BurnsFatigue { get; init; }
+}
 
 /// <summary>Immutable eligibility at the instant the clear opened, independent of later party or guild changes.</summary>
 public sealed record DungeonClearParticipant(AccountId AccountId, CharacterId CharacterId, long? MembershipId)

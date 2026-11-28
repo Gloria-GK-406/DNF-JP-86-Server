@@ -9,7 +9,7 @@ public sealed record DungeonKillExperienceEntry(
 /// <summary>Already granted kill EXP, never an additional settlement grant.</summary>
 public sealed record DungeonKillExperienceSummary(
     uint Ordinary = 0, uint Champion = 0, uint SuperChampion = 0, uint Boss = 0,
-    uint GrowthContract = 0)
+    uint GrowthContract = 0, uint FatigueBurning = 0)
 {
     public ImmutableArray<DungeonKillExperienceEntry> Actors { get; init; } = [];
 
@@ -17,6 +17,7 @@ public sealed record DungeonKillExperienceSummary(
         Add(entry.Rank, entry.Experience.Base) with
         {
             GrowthContract = checked(GrowthContract + entry.Experience.GrowthContract),
+            FatigueBurning = checked(FatigueBurning + entry.Experience.FatigueBurning),
             Actors = Actors.Add(entry),
         };
 

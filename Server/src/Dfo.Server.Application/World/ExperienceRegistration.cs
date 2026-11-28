@@ -1,6 +1,7 @@
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Mail;
 using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Authentication;
 using Dfo.Server.Abstractions.Characters;
@@ -44,8 +45,16 @@ internal static class ExperienceRegistration
                 bool.TryParse(configuration["Experience:LabelProbe"], out var probe) && probe));
         // What a kill, a clear and a channel are worth, and how much of it a level costs. The
         // one reader of the four archive declarations and the two operator dials behind them.
-        services.TryAddSingleton<IExperienceRuleService, ExperienceRuleService>();
+        services.TryAddSingleton<ExperienceRuleService>();
+        services.TryAddSingleton<IExperienceRuleService>(provider => provider.GetRequiredService<ExperienceRuleService>());
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
+        services.TryAddSingleton<Dfo.Server.Application.Benefits.GameplayBenefitsQuery<DungeonExperienceBenefitContext>>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, PremiumExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, ChannelExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, GuildExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, SpiritPotionExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, AdventureGroupExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, RunExperienceBenefits>());
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
         services.TryAddSingleton<IExperienceCalculationDomainService, ExperienceCalculationDomainService>();

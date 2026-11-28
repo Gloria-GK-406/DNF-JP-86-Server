@@ -442,7 +442,14 @@ internal static partial class StateSynchronizationPayloadCodec
 
     public static byte[] EncodeItemValues(IReadOnlyList<InventoryItemValueState> entries)
     {
-        if (entries.Count > byte.MaxValue) throw CountError("item value", "u8");
+        if (entries.Count > byte.MaxValue)
+        {
+            var existing = entries.Where(value => !value.IsTimedEffect).ToArray();
+            if (existing.Length > byte.MaxValue) throw CountError("item value", "u8");
+            // Existing effect magnitudes (and cooldown entries) have priority on the wire.
+            entries = existing.Concat(entries.Where(value => value.IsTimedEffect).OrderBy(value => value.SortOrder)
+                .Take(byte.MaxValue - existing.Length)).ToArray();
+        }
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream); writer.Write(checked((byte)entries.Count));
         foreach (var entry in entries.OrderBy(value => value.SortOrder)) { writer.Write(entry.ItemId); writer.Write(entry.Value); } return stream.ToArray();
     }

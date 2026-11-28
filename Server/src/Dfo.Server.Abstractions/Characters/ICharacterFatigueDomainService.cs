@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Abstractions.Characters;
@@ -8,6 +9,10 @@ public readonly record struct CharacterFatigueBalance(ushort Total, ushort Used)
     public int ConsumedToday { get; init; }
     public ushort Remaining => Used >= Total ? (ushort)0 : (ushort)(Total - Used);
 }
+
+public readonly record struct CharacterFatigueCharge(CharacterId Character, ushort Points, bool RequireFullCharge = false);
+
+public sealed record FatigueCostMultiplier(decimal Factor, bool RequireFullCharge = false) : IGameplayBenefitEffect;
 
 /// <summary>Character fatigue; total is configured base plus the account entitlement bonus.</summary>
 /// <remarks>Mutations require a domain transaction. Refund restores balance without reducing cumulative daily spending.</remarks>
@@ -30,6 +35,17 @@ public interface ICharacterFatigueDomainService
     {
         foreach (var character in characters)
             await SpendAsync(character, points, cancellationToken).ConfigureAwait(false);
+    }
+    /// <summary>Applies the prepared amounts, rejecting a required full charge if the balance no longer covers it.</summary>
+    async ValueTask SpendBatchAsync(IReadOnlyList<CharacterFatigueCharge> charges, CancellationToken cancellationToken)
+    {
+        foreach (var charge in charges)
+        {
+            if (charge.RequireFullCharge &&
+                (await BalanceOfAsync(charge.Character, cancellationToken).ConfigureAwait(false)).Remaining < charge.Points)
+                throw new InvalidOperationException("Fatigue balance no longer covers the prepared charge.");
+            await SpendAsync(charge.Character, charge.Points, cancellationToken).ConfigureAwait(false);
+        }
     }
     ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);
 }

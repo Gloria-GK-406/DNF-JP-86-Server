@@ -109,7 +109,8 @@ public sealed partial class DungeonCellFactoryTests
         var logger = new CapacityLogger<Dfo.Server.Application.World.DungeonCellFactory>();
         var factory = new Dfo.Server.Application.World.DungeonCellFactory(room, new NoPlacement(), new CapacityLoot(),
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(),
-            new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), logger);
+            new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), logger,
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits(TestGameplayBenefits.LuckyRules)));
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(77, 0, 1, 1, cell, cell, 123, 456,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123) });
@@ -137,7 +138,7 @@ public sealed partial class DungeonCellFactoryTests
                 2000 + i, 1, DropRarity.Common, DropItemKind.Stackable)).ToArray());
         public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(int id, CharacterId character, MonsterDropContext context, CancellationToken ct) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
-        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int id, MonsterDropContext context, int bonus, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int id, MonsterDropContext context, CancellationToken ct) => throw new NotSupportedException();
     }
 }
 
@@ -155,10 +156,10 @@ public sealed partial class MonsterDropDomainServiceTests
         var service = Build(GoldAndEquipment(), independent: independent,
             multipliers: new FixedDrawMultipliers((DropDrawEntry.IndependentMonster, multiplier)));
         var context = Kill(Run());
-        var result = await service.GenerateIndependentAsync(17, context, 0, default);
+        var result = await service.GenerateIndependentAsync(17, context, default);
         Assert.Equal(Enumerable.Range(0, multiplier).SelectMany(round => Enumerable.Range(0, perRound)
             .Select(i => 1000 + round * 1000 + i)).Take(255), result.Select(x => x.ItemId));
-        Assert.Equal(result, await service.GenerateIndependentAsync(17, context, 0, default));
+        Assert.Equal(result, await service.GenerateIndependentAsync(17, context, default));
     }
 
     private sealed class CapacityIndependent(int count) : IIndependentDropRuleService

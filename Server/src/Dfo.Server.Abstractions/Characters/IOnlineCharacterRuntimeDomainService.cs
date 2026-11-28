@@ -5,6 +5,8 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Characters;
 
+public sealed record SpiritPotionStatus(double Rate, DateTimeOffset ExpiresAt);
+
 /// <summary>
 /// What a character being played is like right now: where it is, its vitals, the cooldowns it is
 /// waiting on and the spirit potion it is under.
@@ -102,4 +104,5 @@ public interface IOnlineCharacterRuntimeDomainService
 
     /// <summary>The spirit potion's experience bonus, or zero when none is running.</summary>
     double SpiritPotionBonusRateOf(CharacterId characterId);
+    SpiritPotionStatus? SpiritPotionOf(CharacterId characterId) => null;
 }

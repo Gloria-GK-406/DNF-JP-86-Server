@@ -72,6 +72,8 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement, IS
             effects.Add(new StartItemCooldownEffect(item.ItemId, cooldown));
         if (rule.ExpBonusRate > 0 && rule.EffectDurationMilliseconds > 0)
             effects.Add(new StartSpiritPotionEffect(rule.ExpBonusRate, TimeSpan.FromMilliseconds(rule.EffectDurationMilliseconds)));
+        if (rule.ReinforcementPotion is not null)
+            effects.Add(new StartReinforcementPotionEffect(item.ItemId, TimeSpan.FromMilliseconds(rule.EffectDurationMilliseconds)));
         if (item.ItemId == 24) effects.Add(new AddPetStomachEffect(currentPetUid!.Value, 30));
         return new(ItemUsability.Allowed, effects.AsReadOnly());
     }

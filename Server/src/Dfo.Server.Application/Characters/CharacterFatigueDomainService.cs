@@ -34,16 +34,25 @@ internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
         await table.ReadAsync(id, token).ConfigureAwait(false) is { } row && days.PeriodDay(row.UpdatedAt) == day
             ? row.ConsumedToday : 0;
     public ValueTask SpendAsync(CharacterId id, ushort points, CancellationToken token) => SpendBatchAsync([id], points, token);
-    public async ValueTask SpendBatchAsync(IReadOnlyList<CharacterId> characters, ushort points, CancellationToken token)
+    public ValueTask SpendBatchAsync(IReadOnlyList<CharacterId> characters, ushort points, CancellationToken token) =>
+        SpendBatchAsync(characters.Select(character => new CharacterFatigueCharge(character, points)).ToArray(), token);
+
+    public async ValueTask SpendBatchAsync(IReadOnlyList<CharacterFatigueCharge> charges, CancellationToken token)
     {
         if (transactions.Current is null || transactions.Current.IsReadOnly)
             throw new InvalidOperationException("Fatigue changes require a writable transaction.");
-        if (!await consumption.ShouldConsumeAsync(token).ConfigureAwait(false)) return;
-        foreach (var character in characters)
-            await ChangeAsync(character, points, false, token).ConfigureAwait(false);
+        if (!await consumption.ShouldConsumeAsync(token).ConfigureAwait(false))
+        {
+            if (charges.Any(charge => charge.RequireFullCharge))
+                throw new InvalidOperationException("Fatigue consumption changed after preparing a required charge.");
+            return;
+        }
+        foreach (var charge in charges)
+            await ChangeAsync(charge.Character, charge.Points, false, token, charge.RequireFullCharge).ConfigureAwait(false);
     }
     public ValueTask RefundAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, true, token);
-    private async ValueTask ChangeAsync(CharacterId id, ushort points, bool restore, CancellationToken token)
+    private async ValueTask ChangeAsync(CharacterId id, ushort points, bool restore, CancellationToken token,
+        bool requireFullCharge = false)
     {
         if (transactions.Current is null || transactions.Current.IsReadOnly) throw new InvalidOperationException("Fatigue changes require a writable transaction.");
         var total = await TotalAsync(id, token).ConfigureAwait(false);
@@ -52,6 +61,8 @@ internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
         var current = Current(old, now);
         var used = Math.Min(total, current.Used);
         var actual = restore ? Math.Min(used, points) : Math.Min(total - used, points);
+        if (requireFullCharge && actual != points)
+            throw new InvalidOperationException("Fatigue balance no longer covers the prepared charge.");
         var updated = new CharacterFatigueRow(restore ? used - actual : used + actual,
             restore ? current.ConsumedToday : checked(current.ConsumedToday + actual), now);
         if (await table.TryWriteAsync(id, old, updated, token).ConfigureAwait(false) != 1)

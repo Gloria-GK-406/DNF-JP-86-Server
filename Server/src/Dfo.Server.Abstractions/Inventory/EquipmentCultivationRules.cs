@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Inventory;
 
@@ -49,10 +50,11 @@ public interface IEquipmentReinforcementRule
     int MaterialCount { get; }
     bool CanDestroy { get; }
     bool CanUseAutomaticProtection { get; }
+    bool CanUseChanceBenefits => false;
     ValueTask<EquipmentReinforcementProtectionDefinition?> ProtectionAsync(int itemId, CancellationToken ct);
     ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
         IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct);
-    bool TryReinforce(int draw);
+    bool TryReinforce(int draw, ImmutableArray<EquipmentReinforcementChanceBenefit> chanceBenefits);
 }
 
 public interface IEquipmentEnchantRuleService

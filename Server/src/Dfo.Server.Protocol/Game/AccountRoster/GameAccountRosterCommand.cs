@@ -9,6 +9,7 @@ using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Protocol.Game.HiddenCharacterInfo;
 using Dfo.Server.Protocol.Game.HonorLevel;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
 using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 
 namespace Dfo.Server.Protocol.Game.AccountRoster;
@@ -25,6 +26,7 @@ public sealed class GameAccountRosterCommandHandler(
     ICharacterRosterDomainService characters,
     IAccountHonorDomainService honor,
     IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch,
+    Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService luckyCharacters,
     IGameCommandOutbox outbox) : ICommandHandler<GameAccountRosterCommand, AccountCharacterRoster>
 {
     public async ValueTask<AccountCharacterRoster> HandleAsync(CommandExecutionContext context,
@@ -41,10 +43,13 @@ public sealed class GameAccountRosterCommandHandler(
         // A21 can query again while handling the return roster. A second roster makes the client
         // select the newly saved representative twice before the first selection completes.
         if (!representativeSwitch.HasPublishedRoster(command.Dispatch.Connection, accountId))
+        {
+            await LuckyCharacterRosterProjection.RegisterAsync(luckyCharacters, outbox, command.Dispatch.Connection, cancellationToken).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(
                 command.Dispatch.Connection.ConnectionId,
                 new AccountCharacterRosterResponse(roster, AnswersRosterQuery: true),
                 cancellationToken).ConfigureAwait(false);
+        }
 
         // Pushed, not awaited. The client does send its own 0x0286 request and this server answers
         // that too, but the reference server does not wait to be asked: it puts the reply straight

@@ -25,6 +25,23 @@ namespace Dfo.Server.Protocol.Tests.Game.DungeonClear;
 public sealed class DungeonClearCodecTests
 {
     [Fact]
+    public void Lucky_clear_and_fatigue_burning_use_separate_slots()
+    {
+        var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(1000, 0);
+        var body = DungeonClearPayloadCodec.EncodeClearDungeonReward(1000, 0,
+            killExperience: new(FatigueBurning: 400),
+            experience: new(Base: 1000, FatigueBurning: 1000, LuckyCharacter: 150, LuckyCharacterParty: 100));
+
+        Assert.Equal(1000u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(57)));
+        Assert.Equal(0u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(73)));
+        Assert.Equal(400u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(81)));
+        Assert.Equal(150u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(127)));
+        Assert.Equal(100u, BinaryPrimitives.ReadUInt32LittleEndian(body.AsSpan(135)));
+        foreach (var offset in new[] { 57, 81, 127, 135 }) body.AsSpan(offset, 4).Clear();
+        Assert.Equal(baseline, body);
+    }
+
+    [Fact]
     public void Actor_entries_use_sequences_keep_granted_base_and_preserve_card_tail()
     {
         var baseline = DungeonClearPayloadCodec.EncodeClearDungeonReward(350, 70,

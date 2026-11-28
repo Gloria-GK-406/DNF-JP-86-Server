@@ -53,6 +53,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
 
     private const string StackableListPath = "stackable/stackable.lst";
     private const string UnlimitedTypePrefix = "[unlimited";
+    private const string ReinforcementPotionType = "[item upgrad buff usual upgrade]";
 
     private static readonly Dictionary<string, ItemUsePlace> PlaceTokens =
         new(StringComparer.OrdinalIgnoreCase)
@@ -98,14 +99,14 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             StackablesIndex(archive);
 
             var rule = stackables.TryGetValue(itemId, out var entry)
-                ? Read(archive, "stackable/" + entry.RelativePath)
+                ? Read(archive, "stackable/" + entry.RelativePath, itemId)
                 : null;
             cache[itemId] = rule;
             return ValueTask.FromResult(rule);
         }
     }
 
-    private static ItemUseRule Read(PvfArchive archive, string path)
+    private static ItemUseRule Read(PvfArchive archive, string path, int itemId)
     {
         var reader = archive.OpenScript(path);
 
@@ -114,7 +115,8 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
                 archive, ref reader, Fields.StackableTypeField, out var typeToken, ref unreadable)
             ? archive.ResolveString(typeToken.Value)
             : null;
-        var summonsApc = PvfDocument.Open(archive, path).AtRoot().TryRead(PvfField.Tokens("[summon apc]", optional: true), out var summoned) && summoned.Count > 0;
+        var root = PvfDocument.Open(archive, path).AtRoot();
+        var summonsApc = root.TryRead(PvfField.Tokens("[summon apc]", optional: true), out var summoned) && summoned.Count > 0;
         var action = TryReadFirstString(
                 archive, ref reader, Fields.ActionTypeField, out var actionToken, ref unreadable)
             ? archive.ResolveString(actionToken.Value)
@@ -131,6 +133,26 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             ref reader, Fields.StatChangeDurationField, ref unreadable);
         if (expBonusRate > 0 && effectDuration <= 0)
             unreadable = true;
+        ReinforcementPotionDefinition? reinforcementPotion = null;
+        if (stackableType == ReinforcementPotionType || stackableType == "[expert town potion]" && itemId is 2600025 or 2749959 or 10007343)
+        {
+            var type = RootSectionValues(archive, ref reader, Fields.StackableTypeField, out _, out _);
+            var maintenanceValues = root.TryRead(PvfField.Tokens("[effect maintenance]", optional: true), out var effectMaintenance)
+                && effectMaintenance.Count == 4 && effectMaintenance.All(value => value.Kind == PvfTokenKind.Int32);
+            var name = root.TryRead(PvfField.String("[name]", optional: true), out var label)
+                && !string.IsNullOrWhiteSpace(label) ? label : $"item {itemId}";
+            var units = stackableType switch
+            {
+                ReinforcementPotionType when type is [_, { Kind: PvfTokenKind.Int32, Value: var weight }] => weight,
+                ReinforcementPotionType => 0,
+                _ when itemId == 10007343 => ReadCrystalChance(),
+                // ServerS4A21 gives the two legacy secret potions one percentage point.
+                _ => 1000,
+            };
+            if (maintenanceValues && effectDuration > 0 && units is > 0 and <= 100_000)
+                reinforcementPotion = new(name, units, itemId == 10007343);
+            else unreadable = true;
+        }
         var jobText = AllStrings(archive, ref reader, Fields.UsableJobField, ref unreadable);
         var placeText = AllStrings(archive, ref reader, Fields.ActionUsablePlaceField, ref unreadable);
         var dungeons = RootSectionValues(archive, ref reader, Fields.ActionUsableDungeonField, out var duplicateDungeons, out _);
@@ -172,9 +194,17 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             AllowedDungeonIds = allowedDungeons,
             SummonsApc = summonsApc,
             StackableType = stackableType,
+            ReinforcementPotion = reinforcementPotion,
             CooldownMaintenance = maintenance,
             SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null,
         };
+
+        int ReadCrystalChance()
+        {
+            if (!root.TryRead(PvfField.String("[explain]", optional: true), out var explain)) return 0;
+            var match = System.Text.RegularExpressions.Regex.Match(explain, @"强化成功率增加\s*(\d{1,3})\s*%");
+            return match.Success && int.TryParse(match.Groups[1].Value, out var percent) ? percent * 1000 : 0;
+        }
     }
 
     /// <summary>

@@ -168,6 +168,7 @@ public sealed class PersistenceModule : IServerModule
         services.TryAddSingleton<ICharacterGoldLimitTable>(
             provider => new SqliteCharacterGoldLimitTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<IConsumableCooldownTable, SqliteConsumableCooldownTable>();
+        services.TryAddSingleton<ITimedItemEffectTable, SqliteTimedItemEffectTable>();
         services.TryAddSingleton<ICharacterItemEffectTable>(
             provider => new SqliteCharacterItemEffectTable(provider.GetRequiredService<SqliteDatabase>()));
         services.TryAddSingleton<ICharacterItemLockTable>(

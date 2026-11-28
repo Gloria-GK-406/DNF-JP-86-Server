@@ -1,8 +1,10 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.Logging;
-using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
 using Dfo.Server.Abstractions.Characters;
 
 namespace Dfo.Server.Application.World;
@@ -23,7 +25,7 @@ internal sealed partial class MonsterDropDomainService(
     IMonsterDeclaredDropRuleService declaredDrops,
     IExtraDropRuleService extraDrops,
     IIndependentDropRuleService independentDrops,
-    IPremiumServiceDomainService premiums, ICharacterDomainService characters,
+    GameplayBenefitsQuery<MonsterDropContext> dropBenefits, ICharacterDomainService characters,
     IDimensionDungeonRuleService dimensions,
     IDropMaterializationRuleService materialization) : IMonsterDropDomainService
 {
@@ -36,15 +38,21 @@ internal sealed partial class MonsterDropDomainService(
         var multipliers = context.DrawMultipliers;
         if (context.SourceType == IndependentDropSourceType.APC)
             return await IndependentAsync(request, 0, multipliers, cancellationToken).ConfigureAwait(false);
-        result.AddRange(this.GenerateRandomDrops(request, multipliers));
+        result.AddRange(this.GenerateRandomDrops(request, multipliers, out var includeOrdinaryItems));
         result.AddRange(GenerateMonsterDeclared(request, multipliers));
-        var growthBonus = context.MonsterRank == 3
-            ? await premiums.GetBossEquipmentDropBonusPercentAsync(
-                context.Participants.Select(p => p.AccountId).ToArray(), cancellationToken).ConfigureAwait(false)
-            : 0;
-        result.AddRange(await IndependentAsync(request, growthBonus, multipliers, cancellationToken).ConfigureAwait(false));
+        var bossEquipmentBonus = 0;
+        if (context.MonsterRank == 3)
+        {
+            var declared = await dropBenefits.ReadAsync(context, cancellationToken, GameplayBenefitScope.Global,
+                DropBenefitScopes.Run(context.RunId)).ConfigureAwait(false);
+            bossEquipmentBonus = IndependentDropRuleService.BossEquipmentBonusPercent(
+                declared.Effects<BossEquipmentDropBenefit>().ToImmutableArray());
+        }
+        result.AddRange(await IndependentAsync(request, bossEquipmentBonus, multipliers, cancellationToken).ConfigureAwait(false));
         result.AddRange(Rounds(request, DropDrawEntry.World, multipliers, worldDrops.Draw));
         result.AddRange(GenerateSpecialMode(request));
+        if (includeOrdinaryItems && !context.SharedEquipmentBonuses.IsDefaultOrEmpty)
+            result.AddRange(GenerateSharedEquipmentBonuses(request));
         return result;
     }
 
@@ -74,11 +82,11 @@ internal sealed partial class MonsterDropDomainService(
     }
 
     public async ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
-        int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken cancellationToken)
+        int monsterId, MonsterDropContext context, CancellationToken cancellationToken)
     {
         Validate(context, cancellationToken);
         var multipliers = context.DrawMultipliers;
-        var drops = await IndependentAsync(new(monsterId, context), growthBonusPercent, multipliers, cancellationToken)
+        var drops = await IndependentAsync(new(monsterId, context), 0, multipliers, cancellationToken)
             .ConfigureAwait(false);
         var selected = materialization.Rule.SelectIndependent(drops);
         if (selected.Count.Discarded > 0)

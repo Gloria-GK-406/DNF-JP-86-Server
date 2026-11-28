@@ -16,6 +16,8 @@ using Dfo.Server.Application.World;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
+using Dfo.Server.Abstractions.Benefits;
+
 namespace Dfo.Server.Application.Quests;
 
 /// <summary>What the Quests domain registers; called once from <see cref="Dfo.Server.Application.ApplicationModule"/>.</summary>
@@ -35,6 +37,7 @@ internal static class QuestsRegistration
         services.TryAddSingleton<IQuestMaterialRequirementDomainService, QuestMaterialRequirementDomainService>();
         services.TryAddSingleton<IQuestRewardRuleService, QuestRewardRuleService>();
         services.TryAddSingleton<IQuestCompletionEffectRuleService, QuestCompletionEffectRuleService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<QuestExperienceBenefitContext>, QuestExperienceBenefits>());
         services.TryAddSingleton<IQuestCompletionDomainService, QuestCompletionDomainService>();
         // Recomputing a session's offer list after a level or a quest moved what it is made of.
         services.TryAddSingleton<

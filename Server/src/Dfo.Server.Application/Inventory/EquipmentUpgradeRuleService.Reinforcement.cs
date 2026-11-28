@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -9,6 +10,9 @@ internal sealed partial class EquipmentUpgradeRuleService
 {
     private static bool AllowsMedalUpgrade(EquipmentUpgradeKind kind, bool hasProtection) =>
         kind == EquipmentUpgradeKind.Reinforcement && !hasProtection;
+
+    public static EquipmentReinforcementChanceBenefit PotionChanceBenefit(ReinforcementPotionDefinition potion) =>
+        new(potion.SuccessUnits, potion.IsCrystal ? "reinforcement-crystal" : "reinforcement-secret-potion");
 
     public static bool AcceptsReinforcementSlot(BusinessInventorySpace space, EquipmentUpgradeKind kind, bool hasProtection) =>
         space == BusinessInventorySpace.GuildMedal ? AllowsMedalUpgrade(kind, hasProtection)
@@ -108,6 +112,7 @@ internal sealed partial class EquipmentUpgradeRuleService
         public bool CanDestroy => canDestroy;
         public bool CanUseAutomaticProtection => !medal && (canDestroy
             || kind == EquipmentUpgradeKind.Amplification && row.PenaltyType == 2);
+        public bool CanUseChanceBenefits => !medal && kind == EquipmentUpgradeKind.Reinforcement;
         public ValueTask<EquipmentReinforcementProtectionDefinition?> ProtectionAsync(int itemId, CancellationToken ct) =>
             medal ? ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null) : definitions.GetProtectionAsync(itemId, ct, kind);
 
@@ -129,13 +134,25 @@ internal sealed partial class EquipmentUpgradeRuleService
                 .ThenBy(choice => choice.Slot.Space).ThenBy(choice => choice.Slot.Index).FirstOrDefault();
         }
 
-        public bool TryReinforce(int draw)
+        public bool TryReinforce(int draw, ImmutableArray<EquipmentReinforcementChanceBenefit> chanceBenefits)
         {
-            var succeeded = EquipmentReinforcementRules.Succeeds(row.FailureThreshold, draw);
+            var failureThreshold = CanUseChanceBenefits && !chanceBenefits.IsDefaultOrEmpty
+                ? ApplyChanceBenefits(chanceBenefits) : row.FailureThreshold;
+            var succeeded = EquipmentReinforcementRules.Succeeds(failureThreshold, draw);
             logger.LogInformation(
                 "REINFORCEMENT_ROLL kind={Kind} item={ItemId} old={OldLevel} target={TargetLevel} draw={Draw} failureThreshold={FailureThreshold} scale=100000 succeeded={Succeeded}",
-                kind, itemId, oldLevel, row.TargetLevel, draw, row.FailureThreshold, succeeded);
+                kind, itemId, oldLevel, row.TargetLevel, draw, failureThreshold, succeeded);
             return succeeded;
+        }
+
+        private int ApplyChanceBenefits(ImmutableArray<EquipmentReinforcementChanceBenefit> chanceBenefits)
+        {
+            var independent = chanceBenefits.Where(effect => effect.ExclusiveGroup is null)
+                .Sum(effect => (long)effect.SuccessUnits);
+            var exclusive = chanceBenefits.Where(effect => effect.ExclusiveGroup is not null)
+                .GroupBy(effect => effect.ExclusiveGroup, StringComparer.Ordinal)
+                .Sum(group => (long)group.Max(effect => effect.SuccessUnits));
+            return (int)Math.Max(0, row.FailureThreshold - independent - exclusive);
         }
     }
 

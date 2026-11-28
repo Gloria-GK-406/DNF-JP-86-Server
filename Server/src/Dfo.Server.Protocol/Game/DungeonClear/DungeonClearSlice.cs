@@ -270,6 +270,8 @@ internal static class DungeonClearPayloadCodec
                 2 => experience?.BlackDiamond ?? 0u,
                 7 => experience?.AdventureGroup ?? 0u, // ClientStatic: 「冒险团奖励」 row, body+45.
                 9 => experience?.GrowthContract ?? 0u,
+                10 => experience?.FatigueBurning ?? 0u,
+                16 => killExperience?.FatigueBurning ?? 0u, // Already awarded kills; display only.
                 18 => killExperience?.GrowthContract ?? 0u, // Already awarded kills; display only.
                 _ => 0u,
             });
@@ -281,9 +283,12 @@ internal static class DungeonClearPayloadCodec
         writer.Write(0u);
         writer.Write(0u);
 
-        // Five fixed values the reader consumes before the score quartet.
-        for (var index = 0; index < 5; index++)
-            writer.Write(0);
+        // Five values after the two lists. A21 includes the third and fifth in the clear total.
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write(experience?.LuckyCharacter ?? 0u);
+        writer.Write(0);
+        writer.Write(experience?.LuckyCharacterParty ?? 0u);
 
         // The score quartet: reserved, champion, super champion, boss.
         var kills = killExperience ?? new();

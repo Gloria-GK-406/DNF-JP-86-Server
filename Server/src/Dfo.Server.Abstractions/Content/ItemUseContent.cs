@@ -98,11 +98,14 @@ public sealed record ItemUseRule(
     /// </remarks>
     public bool SummonsApc { get; init; }
     public string? StackableType { get; init; }
+    public ReinforcementPotionDefinition? ReinforcementPotion { get; init; }
     public ItemCooldownMaintenance CooldownMaintenance { get; init; }
     public IReadOnlyList<int> AllowedDungeonIds { get; init; } = [];
     public byte? SharedEffectSelector { get; init; }
     public bool IsReadable => Jobs.IsValid && Places.IsValid && !HasUnreadableDeclaration;
 }
+
+public sealed record ReinforcementPotionDefinition(string Name, int SuccessUnits, bool IsCrystal);
 
 /// <summary>Answers what the archive declares about using an item.</summary>
 public interface IItemUseRuleDefinitionSource

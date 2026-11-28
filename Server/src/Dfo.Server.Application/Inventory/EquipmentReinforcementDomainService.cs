@@ -1,4 +1,7 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -23,7 +26,8 @@ internal sealed class EquipmentReinforcementDomainService(
     ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IEquipmentReinforcementRollSource rolls,
     IEventService events,
-    TimeProvider timeProvider) : IEquipmentReinforcementDomainService
+    TimeProvider timeProvider,
+    GameplayBenefitsQuery<SelectedSessionIdentity> reinforcementBenefits) : IEquipmentReinforcementDomainService
 {
     public async ValueTask<EquipmentReinforcementResult> ReinforceAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, int expectedItemId,
@@ -110,9 +114,16 @@ internal sealed class EquipmentReinforcementDomainService(
                 protectionDefinition = selected.Definition;
             }
         }
+        ImmutableArray<EquipmentReinforcementChanceBenefit> chanceBenefits = [];
+        if (rule.CanUseChanceBenefits)
+        {
+            var snapshot = await reinforcementBenefits.ReadAsync(session, ct, GameplayBenefitScope.Global,
+                GameplayBenefitScope.For(session.AccountId), GameplayBenefitScope.For(session.CharacterId)).ConfigureAwait(false);
+            chanceBenefits = snapshot.Effects<EquipmentReinforcementChanceBenefit>().ToImmutableArray();
+        }
         var draw = rolls.Next(rule.RollUpperBound);
         rule = rule.ResolveRoll(draw);
-        var succeeded = rule.TryReinforce(draw);
+        var succeeded = rule.TryReinforce(draw, chanceBenefits);
         var plan = await plans.ReinforcementAsync(target, rule,
             new(materialLocation, rule.MaterialItemId, rule.MaterialCount),
             protectionSlot is { } ticket ? new(ticket, protectionItem!.ItemId, 1) : null,

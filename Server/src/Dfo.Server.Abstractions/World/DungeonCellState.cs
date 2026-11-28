@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
@@ -106,6 +107,7 @@ public sealed record DungeonCellState(
     IReadOnlyList<DungeonGroundItem> GroundItems,
     bool ClearOpen = false)
 {
+    public ImmutableHashSet<CharacterId> FatigueBurnedBy { get; init; } = [];
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
     public IReadOnlyList<DungeonRoomMechanismState> Mechanisms { get; init; } = [];
@@ -134,6 +136,7 @@ public sealed record DungeonCellSeed(
     IReadOnlyList<DungeonGroundItem> GroundItems,
     bool IsComplete = true)
 {
+    public ImmutableHashSet<CharacterId> FatigueBurnedBy { get; init; } = [];
     public IReadOnlyList<DungeonCellObjectState> Objects { get; init; } = [];
     public IReadOnlyList<DungeonCellHellGroupState> HellGroups { get; init; } = [];
     public IReadOnlyList<DungeonRoomMechanismDefinition> Mechanisms { get; init; } = [];
@@ -146,6 +149,7 @@ public sealed record DungeonCellSeed(
         this.FirstActorSequence,
         this.Actors,
         this.GroundItems) { Objects = this.Objects, HellGroups = this.HellGroups, MechanismBlocksClear = this.MechanismBlocksClear,
+            FatigueBurnedBy = FatigueBurnedBy,
             Mechanisms = this.Mechanisms.Select(definition => new DungeonRoomMechanismState(definition)).ToArray() };
 
     public static DungeonCellSeed CompleteEmpty(MazeCell cell, int mapId) =>

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.World;
 
@@ -49,6 +50,32 @@ internal sealed class DropRuleService(
                 kill.Context.Difficulty,
                 kill.PartyMemberCount,
                 options.RateBasis);
+    }
+
+    internal static IEnumerable<SharedEquipmentRound> SharedEquipmentRounds(MonsterDropRequest request)
+    {
+        var context = request.Context;
+        var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence);
+        var firstRound = DropDrawMultipliers.Maximum + 1;
+        var chance = new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.MonsterEquipment, firstRound)));
+        // Keep the bonus stream separate from configurable base draws. Each bonus round serves all eligible rarities.
+        var halfRound = chance.Next(2) == 2 ? 1 : 0;
+        var roundsByRarity = context.SharedEquipmentBonuses.GroupBy(benefit => benefit.Rarity)
+            .ToImmutableDictionary(group => group.Key, group =>
+            {
+                var units = Math.Min(DropDrawMultipliers.Maximum * 2L, group.Sum(benefit => (long)benefit.HalfRounds));
+                return (int)((units + halfRound) / 2);
+            });
+        var extraRounds = roundsByRarity.Values.DefaultIfEmpty().Max();
+        for (var extra = 1; extra <= extraRounds; extra++)
+            yield return new(new(DropDrawEntry.MonsterEquipment, firstRound + extra), extra, roundsByRarity);
+    }
+
+    internal readonly record struct SharedEquipmentRound(
+        DropDrawRound Draw, int ExtraRound, ImmutableDictionary<DropRarity, int> RoundsByRarity)
+    {
+        public bool Includes(RolledDrop item) =>
+            item.Kind == DropItemKind.Equipment && RoundsByRarity.GetValueOrDefault(item.Rarity) >= ExtraRound;
     }
 
     public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest kill, DropRates rates, bool includeItems = true, int attempt = 0)

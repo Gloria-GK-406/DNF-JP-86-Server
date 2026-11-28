@@ -177,10 +177,10 @@ public sealed class MonsterDeathCodecTests
             Assert.Equal(clientName, declared.ClientName);
         }
 
-        // Clear-only bonuses have no declared line in the monster EXP notification.
+        // Clear-only bonuses and lucky kill EXP have no separate line in this notification.
         var declarable = Enum.GetValues<ExperienceBonusKind>()
             .Where(kind => kind is not (ExperienceBonusKind.Unlisted or ExperienceBonusKind.SpiritPotion or ExperienceBonusKind.BlackDiamond
-                or ExperienceBonusKind.AdventureGroup));
+                or ExperienceBonusKind.AdventureGroup or ExperienceBonusKind.LuckyCharacter or ExperienceBonusKind.LuckyCharacterParty));
         Assert.Equal(
             declarable.Order(),
             MonsterDeathPayloadCodec.NamedLines.Select(line => line.Kind).Order());

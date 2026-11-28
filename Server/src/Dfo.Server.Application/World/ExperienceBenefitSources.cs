@@ -1,0 +1,107 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.World;
+
+namespace Dfo.Server.Application.World;
+
+internal readonly record struct DungeonExperienceBenefitContext(ExperienceOccasion Occasion, int ListenerPort);
+
+internal static class DungeonExperienceBenefits
+{
+    public static GameplayBenefit Entry(string key, string name, int order, ExperienceEvent occasion,
+        double rate, ExperienceBonusKind kind, DateTimeOffset? endsAt = null,
+        ExperienceBonusBasis basis = ExperienceBonusBasis.Base) =>
+        new(key, name, order, new ExperienceBenefit(occasion, new(name, rate, kind, basis)), EndsAt: endsAt);
+}
+
+internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService premiums, ExperienceRuleService rules)
+    : IGameplayBenefitSource<DungeonExperienceBenefitContext>
+{
+    public async ValueTask<GameplayBenefitBatch> DescribeAsync(
+        DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
+    {
+        var occasion = context.Occasion;
+        var account = premiums.For(occasion.Account);
+        var entries = await account.ReadAtAsync(at, ct).ConfigureAwait(false);
+        var blackDiamond = occasion.Event == ExperienceEvent.DungeonClear
+            ? await account.GetBlackDiamondExperienceBonusRateAsync(ct).ConfigureAwait(false) : 0;
+        return new("premium-services", GameplayBenefitScope.For(occasion.Account),
+            rules.PremiumBenefits(entries, at, occasion.Event, blackDiamond));
+    }
+}
+
+internal sealed class ChannelExperienceBenefits(IChannelEntryDomainService channels, ExperienceRuleService rules)
+    : IGameplayBenefitSource<DungeonExperienceBenefitContext>
+{
+    public async ValueTask<GameplayBenefitBatch> DescribeAsync(
+        DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
+    {
+        var occasion = context.Occasion;
+        var channel = await channels.ResolveAsync(context.ListenerPort, ct).ConfigureAwait(false);
+        return new("channel", GameplayBenefitScope.For(occasion.Character),
+            rules.ChannelBenefits(occasion.Event, channel.ChannelId, occasion.DungeonId));
+    }
+}
+
+internal sealed class GuildExperienceBenefits(IGuildBenefitDomainService guilds)
+    : IGameplayBenefitSource<DungeonExperienceBenefitContext>
+{
+    public async ValueTask<GameplayBenefitBatch> DescribeAsync(
+        DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
+    {
+        var occasion = context.Occasion;
+        var rate = occasion.Event == ExperienceEvent.MonsterKill && occasion.AllowGuildExperience
+            ? await guilds.ReadMonsterExperienceRateAsync(occasion.Character, ct).ConfigureAwait(false) : 0;
+        return new("guild", GameplayBenefitScope.For(occasion.Character),
+            rate > 0 ? [DungeonExperienceBenefits.Entry("experience", "guild", 300, occasion.Event, rate, ExperienceBonusKind.GuildReward)] : []);
+    }
+}
+
+internal sealed class SpiritPotionExperienceBenefits(IOnlineCharacterRuntimeDomainService runtime)
+    : IGameplayBenefitSource<DungeonExperienceBenefitContext>
+{
+    public ValueTask<GameplayBenefitBatch> DescribeAsync(
+        DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
+    {
+        var occasion = context.Occasion;
+        var potion = runtime.SpiritPotionOf(occasion.Character);
+        // 70Reference: the timed potion affects settlement only.
+        return ValueTask.FromResult(new GameplayBenefitBatch("spirit-potion", GameplayBenefitScope.For(occasion.Character),
+            occasion.Event == ExperienceEvent.DungeonClear && potion is { } active
+                ? [DungeonExperienceBenefits.Entry("experience", "spirit potion", 500, occasion.Event, active.Rate,
+                    ExperienceBonusKind.SpiritPotion, active.ExpiresAt)] : []));
+    }
+}
+
+internal sealed class AdventureGroupExperienceBenefits(IAdventureGroupDomainService groups)
+    : IGameplayBenefitSource<DungeonExperienceBenefitContext>
+{
+    public async ValueTask<GameplayBenefitBatch> DescribeAsync(
+        DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
+    {
+        var occasion = context.Occasion;
+        var rate = occasion.Event == ExperienceEvent.DungeonClear
+            ? await groups.ClearExperienceRateAsync(occasion.Account, occasion.Character, ct).ConfigureAwait(false) : 0;
+        return new("adventure-group", GameplayBenefitScope.For(occasion.Character),
+            rate > 0 ? [DungeonExperienceBenefits.Entry("experience", "adventure group", 600, occasion.Event, rate,
+                ExperienceBonusKind.AdventureGroup)] : []);
+    }
+}
+
+internal sealed class RunExperienceBenefits(IDungeonRunQueryDomainService runs, LuckyCharacterBenefitRuleService rules)
+    : IGameplayBenefitSource<DungeonExperienceBenefitContext>
+{
+    public ValueTask<GameplayBenefitBatch> DescribeAsync(
+        DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
+    {
+        var occasion = context.Occasion;
+        var run = occasion.RunId is not null ? runs.Find(occasion.Character) : null;
+        return ValueTask.FromResult(new GameplayBenefitBatch(LuckyCharacterBenefitRuleService.RunSource,
+            GameplayBenefitScope.For(occasion.Character), rules.RunExperience(occasion, run)));
+    }
+}

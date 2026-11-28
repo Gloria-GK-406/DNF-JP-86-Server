@@ -5,6 +5,31 @@ namespace DbMigrate.Tests;
 
 public sealed class SchemaVersionTests
 {
+    [Fact]
+    public void Version_forty_nine_adds_timed_effects_and_preserves_legacy_effect_magnitudes()
+    {
+        var path = Unversioned.NewPath("timed-item-effects-v49");
+        try
+        {
+            _ = Unversioned.Open(path);
+            var freshShape = ShapeOf(path);
+            Execute(path, """
+                DROP TABLE character_timed_item_effects;
+                PRAGMA user_version=49;
+                INSERT INTO accounts(account_id,m_id) VALUES(7,'kept');
+                INSERT INTO characters(character_id,account_id,name) VALUES(71,7,'member');
+                INSERT INTO character_item_effects(character_id,sort_order,item_id,value) VALUES(71,0,10004687,180);
+                """);
+            var migrated = Migrator.Migrate(path, backup: false);
+            Assert.Equal((49L, (long)CharacterDatabaseSchema.Version), (migrated.From, migrated.To));
+            Assert.Equal(freshShape, ShapeOf(path));
+            Assert.Equal(180, Scalar(path, "SELECT value FROM character_item_effects WHERE character_id=71 AND item_id=10004687"));
+            Assert.Equal(0, Scalar(path, "SELECT COUNT(*) FROM character_timed_item_effects"));
+            Assert.Null(Migrator.Migrate(path).Backup);
+        }
+        finally { SqliteConnection.ClearAllPools(); File.Delete(path); }
+    }
+
     [Theory]
     [InlineData(20)]
     [InlineData(40)]

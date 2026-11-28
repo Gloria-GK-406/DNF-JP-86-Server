@@ -1,4 +1,5 @@
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Achievements;
@@ -115,7 +116,9 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         effects.Add(new SetCarriedQuestEffect(target, null));
         effects.Add(new SetClearedQuestEffect(questId, facts.Quests.Cleared.FirstOrDefault(x => x.QuestId == questId)?.Mark, IQuestLog.ClearedMark));
         effects.AddRange(rewardEffects);
-        var xp = experience.DecideAward(facts.Progress, new ExperienceBreakdown(Base: reward.Experience));
+        var experienceBreakdown = ExperienceRuleService.ApplyBonuses(
+            new ExperienceBreakdown(Base: reward.Experience), facts.ExperienceModifiers);
+        var xp = experience.DecideAward(facts.Progress, experienceBreakdown);
         effects.Add(new CharacterExperienceEffect(xp));
         byte? packedGrowType = reward.GrowType;
         if (reward.GrowType is { } grow)

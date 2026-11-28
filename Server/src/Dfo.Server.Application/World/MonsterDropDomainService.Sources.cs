@@ -9,19 +9,36 @@ internal sealed partial class MonsterDropDomainService
     private static readonly ImmutableArray<DropDrawEntry> OrdinaryEntries =
         [DropDrawEntry.MonsterGold, DropDrawEntry.MonsterStackable, DropDrawEntry.MonsterEquipment];
 
-    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request, DropDrawMultipliers multipliers)
+    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request, DropDrawMultipliers multipliers,
+        out bool includeOrdinaryItems)
     {
+        includeOrdinaryItems = false;
         if (request.MonsterRank is < 0 or > 3 || request.Context.RandomDropCount == 0)
             return [];
         var result = new List<RolledDrop>();
         // One shared success flag across the entire Extra phase, not per-attempt fallback.
         for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
             result.AddRange(extraDrops.Draw(request, attempt));
-        var includeOrdinaryItems = result.Count == 0;
+        includeOrdinaryItems = result.Count == 0;
         for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
             result.AddRange(this.GenerateOrdinary(request, includeOrdinaryItems, attempt));
         result.AddRange(this.GenerateExtraRounds(request, multipliers));
         return result;
+    }
+
+    private IEnumerable<RolledDrop> GenerateSharedEquipmentBonuses(MonsterDropRequest request)
+    {
+        if (dropRules.RatesFor(request) is not { } rawRates)
+            yield break;
+        var rates = adjuster.Adjust(request.CharacterId, rawRates);
+        foreach (var round in DropRuleService.SharedEquipmentRounds(request))
+        {
+            var bonusDraw = request with { Draw = round.Draw };
+            for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
+                foreach (var drop in dropRules.DrawFor(bonusDraw, rates, includeItems: true, attempt))
+                    if (round.Includes(drop))
+                        yield return drop with { OwnerCharacterId = null };
+        }
     }
 
     /// <remarks>

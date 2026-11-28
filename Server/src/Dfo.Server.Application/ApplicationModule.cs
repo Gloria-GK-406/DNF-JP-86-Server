@@ -103,6 +103,8 @@ public sealed class ApplicationModule : IServerModule
             AllowAdvertisedPortFallback:
                 !bool.TryParse(configuration["LauncherAuth:Enabled"], out var launcherEnabled)
                 || !launcherEnabled));
+        services.TryAddSingleton<Dfo.Server.Abstractions.Benefits.IGameplayBenefitRegistry, Benefits.GameplayBenefitRegistry>();
+        services.TryAddSingleton(typeof(Benefits.GameplayBenefitsQuery<>));
         services.AddExperience(configuration);
         services.AddUsers();
         services.AddQuests();

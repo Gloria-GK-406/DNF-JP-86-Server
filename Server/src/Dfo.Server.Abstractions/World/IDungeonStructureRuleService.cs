@@ -153,6 +153,8 @@ public sealed record DungeonLayout(
     DungeonRunPurpose Purpose = default,
     bool ConsumesFatigue = true)
 {
+    public Dfo.Server.Data.Events.LuckyCharacterPeriod LuckyCharactersAtEntry { get; init; } =
+        Dfo.Server.Data.Events.LuckyCharacterPeriod.Closed;
     /// <summary>The run's gameplay kind and the plan that kind froze at entry.</summary>
     public DungeonRunMode Mode { get; init; } = DungeonRunMode.Ordinary;
     public ushort? EntryOnlyFatigue { get; init; }

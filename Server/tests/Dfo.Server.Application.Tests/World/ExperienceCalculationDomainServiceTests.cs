@@ -17,7 +17,7 @@ public sealed class ExperienceCalculationDomainServiceTests
             Occasion(ExperienceEvent.MonsterKill), 5, MonsterRank.Champion, 0, 1, 1, true), 3, default);
         Assert.True(valuation.Last.IsNamedMonster);
         Assert.Equal(MonsterRank.Champion, valuation.Last.Rank);
-        Assert.Equal(new ExperienceBreakdown(Base: 225, Channel: 22, GrowthContract: 45, FatigueBurning: 225), result);
+        Assert.Equal(new ExperienceBreakdown(Base: 225, Channel: 22, GrowthContract: 45, FatigueBurning: 292), result);
     }
 
     private sealed class NamedWorth : IExperienceValuationDomainService
@@ -35,8 +35,32 @@ public sealed class ExperienceCalculationDomainServiceTests
             Occasion(ExperienceEvent.MonsterKill), 5, MonsterRank.Ordinary, 0, 1, 1),
             3, CancellationToken.None);
         Assert.Equal(new ExperienceBreakdown(Base: 75, Channel: 6, GrowthContract: 15,
-            FatigueBurning: 75), result);
-        Assert.Equal(171u, result.Total);
+            FatigueBurning: 96), result);
+        Assert.Equal(192u, result.Total);
+    }
+
+    [Theory]
+    [InlineData(ExperienceBonusKind.FatigueBurn)]
+    [InlineData(ExperienceBonusKind.SeriaBlessing)]
+    public async Task TotalBasedBonusDoublesTheClearAndUsesTheDeclaredDisplayLine(ExperienceBonusKind display)
+    {
+        var bonuses = TestRequired.Absent<IExperienceBonusDomainService>((_, _) =>
+            ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([
+                new("double experience", 1, display, ExperienceBonusBasis.TotalAfterBaseBonuses),
+                new("lucky", .15, ExperienceBonusKind.LuckyCharacter),
+                new("lucky party", .10, ExperienceBonusKind.LuckyCharacterParty),
+            ]));
+        var service = new ExperienceCalculationDomainService(new FixedWorth(1000, 200), bonuses,
+            tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(),
+            bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>());
+        var clear = await service.CalculateAsync(new ClearExperienceContext(
+            Occasion(ExperienceEvent.DungeonClear), new(5, 0, 1, 80)), 3, default);
+
+        Assert.Equal(150u, clear.LuckyCharacter);
+        Assert.Equal(100u, clear.LuckyCharacterParty);
+        Assert.Equal(display == ExperienceBonusKind.FatigueBurn ? 1450u : 0u, clear.FatigueBurning);
+        Assert.Equal(display == ExperienceBonusKind.SeriaBlessing ? 1450u : 0u, clear.Channel);
+        Assert.Equal(2900u, clear.Total);
     }
 
     [Fact]
@@ -142,7 +166,7 @@ public sealed class ExperienceCalculationDomainServiceTests
             return ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([
                 new("growth", .2, ExperienceBonusKind.GrowthContract),
                 new("potion", 1, ExperienceBonusKind.SpiritPotion),
-                new("black diamond", .05, ExperienceBonusKind.BlackDiamond)]);
+                new("black diamond", .05, ExperienceBonusKind.BlackDiamond, ExperienceBonusBasis.BaseAndClearRank)]);
         }
     }
     private sealed class Bonuses : IExperienceBonusDomainService
@@ -153,6 +177,6 @@ public sealed class ExperienceCalculationDomainServiceTests
                 new("channel", .05, ExperienceBonusKind.SeriaBlessing),
                 new("another channel source", .05, ExperienceBonusKind.SeriaBlessing),
                 new("growth", .2, ExperienceBonusKind.GrowthContract),
-                new("burning", 1, ExperienceBonusKind.FatigueBurn)]);
+                new("burning", 1, ExperienceBonusKind.FatigueBurn, ExperienceBonusBasis.TotalAfterBaseBonuses)]);
     }
 }

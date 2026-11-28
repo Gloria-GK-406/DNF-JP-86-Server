@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Accounts;
 
@@ -14,30 +15,26 @@ public sealed record ExperienceEntitlementPolicy(IReadOnlyDictionary<int, double
 
 internal static class ExperienceBonusRules
 {
-    public static void FromAccountEntitlements(
-        IReadOnlyList<AccountPremiumEntryState> premiums,
-        DateTimeOffset now,
-        ExperienceEvent occasion,
-        ExperienceEntitlementPolicy policy,
-        ICollection<ExperienceModifier> into)
+    public static void FromAccountEntitlements(IReadOnlyList<AccountPremiumEntryState> premiums, DateTimeOffset at,
+        ExperienceEvent occasion, ExperienceEntitlementPolicy policy, ICollection<GameplayBenefit> into)
     {
-        ArgumentNullException.ThrowIfNull(policy);
-        ArgumentNullException.ThrowIfNull(into);
-        _ = occasion;
-        foreach (var premium in premiums)
+        for (var index = 0; index < premiums.Count; index++)
         {
+            var premium = premiums[index];
             if (premium.PremiumType == (int)PremiumServiceType.GrowthContract
-                || premium.ExpiresAtUnixSeconds <= now.ToUnixTimeSeconds()) continue;
+                || premium.ExpiresAtUnixSeconds <= at.ToUnixTimeSeconds()) continue;
             var rate = policy.RateFor(premium.PremiumType);
             if (rate > 0)
-                into.Add(new($"premium type {premium.PremiumType}", rate, ExperienceBonusKind.Unlisted));
+                into.Add(DungeonExperienceBenefits.Entry($"legacy-{premium.PremiumType}", $"premium type {premium.PremiumType}",
+                    index - premiums.Count, occasion, rate, ExperienceBonusKind.Unlisted,
+                    DateTimeOffset.FromUnixTimeSeconds(premium.ExpiresAtUnixSeconds)));
         }
     }
 
-    public static void FromChannel(ExperienceEvent occasion, double rate, ICollection<ExperienceModifier> into)
+    public static void FromChannel(ExperienceEvent occasion, double rate, ICollection<GameplayBenefit> into)
     {
-        ArgumentNullException.ThrowIfNull(into);
         if (occasion == ExperienceEvent.MonsterKill && rate > 0)
-            into.Add(new("channel", rate, ExperienceBonusKind.SeriaBlessing));
+            into.Add(DungeonExperienceBenefits.Entry("seria-blessing", "channel", 100, occasion, rate,
+                ExperienceBonusKind.SeriaBlessing));
     }
 }

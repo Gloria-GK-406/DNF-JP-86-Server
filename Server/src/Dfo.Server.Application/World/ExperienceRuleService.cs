@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Accounts;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -7,21 +10,15 @@ using Dfo.Server.Data.Accounts;
 namespace Dfo.Server.Application.World;
 
 /// <summary>
-/// The one reader of everything that decides an experience award.
+/// Values base experience, rank and progression from archive and tuning.
 /// </summary>
-/// <remarks>
-/// The three pure rule classes are called from here and nowhere else. That is the point of the
-/// arrangement: what a kill is worth, what a clear is worth and what a term adds were each written
-/// as a function of their inputs, and until now each caller fetched those inputs for itself. A
-/// caller that fetched one of them differently was a caller that paid a different amount.
-/// </remarks>
 internal sealed class ExperienceRuleService(
     IExperienceParameterSource parameters,
     IDungeonRankGradeSource rankGrades,
     IDungeonExperienceProgressionPolicySource progression,
     IChannelExperienceSource channels,
-    ExperienceTuning tuning,
-    ExperienceEntitlementPolicy entitlements) : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
+    ExperienceTuning tuning, ExperienceEntitlementPolicy entitlements, IPremiumServiceRuleService premiumRules)
+    : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<DungeonExperienceProgressionPolicy> policy = new(progression.Load);
     private CharacterExperienceScale? scale;
@@ -48,22 +45,58 @@ internal sealed class ExperienceRuleService(
                 clearBase, clear.ClientRankPoint, rankGrades.Load(), settings));
     }
 
-    public IReadOnlyList<ExperienceModifier> ModifiersFor(
-        ExperienceEvent occasion,
-        IReadOnlyList<AccountPremiumEntryState> premiums,
-        DateTimeOffset now,
-        int channelId,
-        int dungeonId)
+    public DungeonExperienceProgressionPolicy Progression() => policy.Value;
+
+    internal static ImmutableArray<ExperienceModifier> ModifiersFor(
+        ExperienceEvent occasion, ImmutableArray<ExperienceBenefit> effects) =>
+        effects.Where(effect => effect.AppliesTo(occasion)).Select(effect => effect.Modifier).ToImmutableArray();
+
+    internal static ExperienceBreakdown ApplyBonuses(ExperienceBreakdown award, IReadOnlyList<ExperienceModifier> modifiers,
+        uint? limit = null)
     {
-        var found = new List<ExperienceModifier>();
-        ExperienceBonusRules.FromAccountEntitlements(
-            premiums, now, occasion, entitlements, found);
-        ExperienceBonusRules.FromChannel(
-            occasion, channels.Load().RateFor(channelId, dungeonId), found);
-        return found;
+        uint Cap(uint amount) => limit is { } maximum ? Math.Min(maximum - award.Total, amount) : amount;
+
+        foreach (var modifier in modifiers)
+        {
+            if (modifier.Basis == ExperienceBonusBasis.TotalAfterBaseBonuses) continue;
+            var basis = modifier.Basis == ExperienceBonusBasis.BaseAndClearRank
+                ? (double)award.Base + award.ClearRank : award.Base;
+            award = award.Add(modifier.Kind, Cap(Floor(basis * modifier.Rate)));
+        }
+        var subtotal = award.Total;
+        foreach (var group in modifiers.Where(modifier => modifier.Basis == ExperienceBonusBasis.TotalAfterBaseBonuses)
+            .GroupBy(modifier => modifier.Kind))
+            award = award.Add(group.Key, Cap(Floor(subtotal * group.Sum(modifier => modifier.Rate))));
+        _ = award.Total;
+        return award;
     }
 
-    public DungeonExperienceProgressionPolicy Progression() => policy.Value;
+    private static uint Floor(double value) => value <= 0 || double.IsNaN(value) ? 0
+        : checked((uint)Math.Floor(value));
+
+    internal ImmutableArray<GameplayBenefit> ChannelBenefits(ExperienceEvent occasion, int channelId, int dungeonId)
+    {
+        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
+        ExperienceBonusRules.FromChannel(occasion, channels.Load().RateFor(channelId, dungeonId), found);
+        return found.ToImmutable();
+    }
+
+    internal ImmutableArray<GameplayBenefit> PremiumBenefits(IReadOnlyList<AccountPremiumEntryState> entries,
+        DateTimeOffset at, ExperienceEvent occasion, double blackDiamond)
+    {
+        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
+        ExperienceBonusRules.FromAccountEntitlements(entries, at, occasion, entitlements, found);
+        var growth = entries.SingleOrDefault(item => item.PremiumType == (int)PremiumServiceType.GrowthContract);
+        if (occasion is ExperienceEvent.MonsterKill or ExperienceEvent.DungeonClear
+            && growth is { } term && term.ExpiresAtUnixSeconds > at.ToUnixTimeSeconds()
+            && premiumRules.GrowthExperienceBonusRate is > 0 and var growthRate)
+            found.Add(DungeonExperienceBenefits.Entry("growth-contract", "growth contract", 200, occasion,
+                growthRate, ExperienceBonusKind.GrowthContract, DateTimeOffset.FromUnixTimeSeconds(term.ExpiresAtUnixSeconds)));
+        if (occasion == ExperienceEvent.DungeonClear && blackDiamond > 0)
+            found.Add(DungeonExperienceBenefits.Entry("black-diamond", "black diamond", 400, occasion,
+                blackDiamond, ExperienceBonusKind.BlackDiamond, basis: ExperienceBonusBasis.BaseAndClearRank));
+        return found.ToImmutable();
+    }
 
     public string Name => "experience-rules";
 

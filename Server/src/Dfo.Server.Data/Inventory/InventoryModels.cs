@@ -281,7 +281,10 @@ public enum InventoryItemValueListType : byte
 public sealed record InventoryItemValueState(
     int SortOrder,
     int ItemId,
-    int Value);
+    int Value)
+{
+    public bool IsTimedEffect { get; init; }
+}
 
 public sealed record CharacterItemValueEntryState(
     IReadOnlyList<InventoryItemValueState> Cooldowns,
