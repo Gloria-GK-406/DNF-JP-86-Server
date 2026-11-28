@@ -1,5 +1,12 @@
 # 协议清单
 
+## 2026-11-28 选角每日副本提示（普通角色，待A21验收）
+
+ClientStatic：完成 [CMD02C1](game/client-to-server/0x02C1.md) 的27字节成功响应、角色列表索引、四类提示的显示条件及PVF边界。
+CurrentImplementation：按认证账号列表位置读取镜像、绝望、异界与暗精灵权威进度，保留原日切；无认证或无效索引拒绝。
+[NOTI0002尾部](game/server-to-client/NOTI-0x0002.md#a21-roster-36字节尾部读序)补齐36字节实际读序，未扩展地狱模式。
+自动化通过不等于ClientVerified，见[实施与验收](../Document/tasks/roster-daily-info/README.md)。
+
 ## 2026-11-28 玩家交易（#41，A21 正常路径通过）
 
 CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应答](game/client-to-server/0x000B.md) 的 type 1、[交易栏移位](game/client-to-server/0x0013.md) 和 [状态推进](game/client-to-server/0x0018.md)。双边最终确认触发一次交换事务，窗口关闭后返回权威背包。用户确认 A21 双端完成正常交易（ClientVerified）。拒绝及其他边界场景按后续 bug 反馈跟踪。[双端验收](../Document/tasks/player-trade-41/a21-user-test.md)

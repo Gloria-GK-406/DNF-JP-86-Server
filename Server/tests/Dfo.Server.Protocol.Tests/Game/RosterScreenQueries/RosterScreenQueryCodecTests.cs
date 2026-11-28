@@ -68,7 +68,7 @@ public sealed class RosterScreenQueryCodecTests
         var request = ContentsPlayInfoPayloadCodec.Decode(
             GameMessageMetadata.Empty, [0x01]);
 
-        Assert.Equal(0x01, request.Selector);
+        Assert.Equal(0x01, request.RosterIndex);
     }
 
     [Theory]
@@ -80,17 +80,33 @@ public sealed class RosterScreenQueryCodecTests
                 GameMessageMetadata.Empty, new byte[bodyLength]));
 
     [Fact]
-    public void ContentsPlayInfoReplyIsTheEnvelopeThenEighteenBytes()
+    public void ContentsPlayInfoReplyContainsTheCompleteA21Record()
     {
-        // Eighteen is what the client's handler reads (u8, u8, u32 x4) before its trail enters the
-        // packed region. Under-filling is the dangerous direction: a short body makes the handler
-        // pull the shortfall out of the next frame.
-        var reply = ContentsPlayInfoPayloadCodec.EncodeResponse();
+        var state = new ContentsPlayInfoState(new(43, 0, []), new(default, 4, 1, 2),
+            new(7, 3), new(1, 2, 1, 0, []));
+        var reply = ContentsPlayInfoPayloadCodec.EncodeResponse(new(5, state));
 
-        Assert.Equal(19, reply.Length);
-        Assert.Equal(0x01, reply[0]);
-        Assert.All(reply[1..], value => Assert.Equal(0, value));
+        // Independent A21 reader order: success, roster index, full mode, tower used/floor,
+        // dimension remaining/extra, mirror used, ruins remaining.
+        Assert.Equal(Convert.FromHexString("010500010000002A00000001000000020000000700000002000000"), reply);
     }
+
+    [Theory]
+    [InlineData(1, 1, 0, 0)]
+    [InlineData(100, 0, 1, 99)]
+    public void ContentsPlayInfoProjectsOrdinaryTowerAvailability(int floor, byte remaining, int used, int progress)
+    {
+        var state = new ContentsPlayInfoState(new(floor, remaining, []), new(default, 0, 5, 0),
+            new(), new(0, 2, 1, 0, []));
+        var body = ContentsPlayInfoPayloadCodec.EncodeResponse(new(0, state));
+        Assert.Equal(27, body.Length);
+        Assert.Equal(used, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(3)));
+        Assert.Equal(progress, System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(7)));
+    }
+
+    [Fact]
+    public void ContentsPlayInfoRejectsWithoutAShortSuccessRecord() =>
+        Assert.Equal(new byte[] { 0, 0 }, ContentsPlayInfoPayloadCodec.EncodeResponse(new(4, null)));
 
     [Fact]
     public void SelectCharacter_ReadsTheRosterPosition()

@@ -1,3 +1,7 @@
+using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Quests;
+using Dfo.Server.Abstractions.UsageQuotas;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Abstractions.Networking;
@@ -6,24 +10,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.ContentsPlayInfo;
 
-/// <summary>
-/// CMD 0x02C1 <c>CONTENTS_PLAY_INFO</c>: a one-byte query the client sends from the roster screen,
-/// immediately before SELECT_CHARACTER. The client registers a receive handler for the same type
-/// (RVA 0x008C6DD0), so the server must answer.
-/// </summary>
-/// <remarks>
-/// First observed 2026-08-16 with body <c>01</c>. The static census reports a closed one-byte
-/// layout at the single builder site, so the byte is the whole request; its meaning is unknown and
-/// the upstream server has the name in its enum but no handler for it.
-/// </remarks>
+/// <summary>A21 roster hover query. The byte indexes the account roster, not a persistent slot.</summary>
 public sealed record ContentsPlayInfoRequest(
     GameMessageMetadata Metadata,
-    byte Selector) : IClientNetworkMessage
+    byte RosterIndex) : IClientNetworkMessage
 {
     public ClientMessageType MessageType => ClientMessageType.GameContentsPlayInfo;
 }
 
-public sealed record ContentsPlayInfoResponse : IGameCmdMessage
+public sealed record ContentsPlayInfoState(DespairTowerStatus Despair, DimensionQuotaSnapshot Dimension,
+    MirrorDailyQuota Mirror, DarkElfRuinsSelection Ruins);
+
+/// <summary>A null state is a refused query, not a fabricated all-zero character.</summary>
+public sealed record ContentsPlayInfoResponse(byte RosterIndex, ContentsPlayInfoState? State) : IGameCmdMessage
 {
     public ServerMessageType MessageType => ServerMessageType.GameContentsPlayInfo;
 }
@@ -46,25 +45,28 @@ internal static class ContentsPlayInfoPayloadCodec
         return new ContentsPlayInfoRequest(metadata, body[0]);
     }
 
-    /// <summary>
-    /// The <see cref="GameCmdEnvelope"/> acceptance followed by eighteen zero bytes, matching the
-    /// field widths the client's receive handler reads.
-    /// </summary>
-    /// <remarks>
-    /// Walking the handler at RVA 0x008C6DD0 recovers <c>u8, u8, u32, u32, u32, u32</c> before the
-    /// trail enters the packed region, so eighteen is a floor rather than a proven total. That is
-    /// the safe side to be wrong on: the inbound stream refills across frames, so a body shorter
-    /// than the handler reads pulls bytes out of the next frame -- the failure already documented
-    /// for the bare EXIT refusal -- while a longer one is dropped when the next frame re-bases the
-    /// cursor.
-    ///
-    /// The values are zero because none of the six fields has a known meaning. Replace them with
-    /// evidence, not with plausible-looking numbers.
-    /// </remarks>
-    public const int ResponsePayloadLength = 18;
+    // A21 VA 0110D580: index, mode, then six i32 values, after the success byte.
+    public const int ResponsePayloadLength = 26;
 
-    public static byte[] EncodeResponse() =>
-        GameCmdEnvelope.Accept(new byte[ResponsePayloadLength]);
+    public static byte[] EncodeResponse(ContentsPlayInfoResponse response)
+    {
+        if (response.State is not { } state) return GameCmdEnvelope.Refuse(0);
+        var payload = new byte[ResponsePayloadLength];
+        payload[0] = response.RosterIndex;
+        payload[1] = 0; // Full record; modes 1/2 replace subsets with client-side defaults.
+        // The ordinary-character client displays 1-used and (progress%100)+1. Project the
+        // domain's available free attempt and next floor, including a finished tower cycle.
+        Write(2, 1 - state.Despair.FreeEntriesRemaining);
+        Write(6, state.Despair.NextFloor - 1);
+        Write(10, state.Dimension.Remaining);
+        Write(14, state.Dimension.ExtraRemaining);
+        Write(18, state.Mirror.Entries);
+        Write(22, state.Ruins.Remaining);
+        return GameCmdEnvelope.Accept(payload);
+
+        void Write(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(offset), value);
+    }
+
 }
 
 internal sealed class ContentsPlayInfoMessageDecoder : IGameMessageDecoder
@@ -87,5 +89,5 @@ internal sealed class ContentsPlayInfoResponseEncoder
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(
         ContentsPlayInfoResponse message) =>
         OnePayload(message,
-            ContentsPlayInfoPayloadCodec.EncodeResponse());
+            ContentsPlayInfoPayloadCodec.EncodeResponse(message));
 }
