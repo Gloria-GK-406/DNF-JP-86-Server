@@ -20,6 +20,10 @@ CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应�
 [CMD `0x0128`](game/client-to-server/0x0128.md) 按 8 字节布局处理金币和道具购买。
 ClientVerified（有限范围）：用户确认赫顿玛尔旧街区单人结算后的金币商店路径符合预期。双人、道具支付和逐字段报文证据未在本轮确认。见 [实机记录](../Document/tasks/gabriel-secret-shop/user-test.md#本轮实机结果)。
 
+## 2026-11-28 A21 幸运角色（ClientStatic，待实机）
+
+[NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md) 已定位幸运角色职业名单和客户端激活路径。[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 已闭合本人和队友两笔通关经验到明细与合计的字段。[CMD `0x0233`](game/client-to-server/0x0233.md) 和 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 已静态识别为燃烧请求和状态同步。原生选角刷新时机和非零奖励待实机。
+
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
 公会分支已接 [验名](game/client-to-server/0x009C.md)、[宣传](game/client-to-server/0x02E2.md)、[单人许可请求](game/client-to-server/0x02E4.md)、取消与 [创建提交](game/client-to-server/0x0044.md)，并发送 [许可通知](game/server-to-client/NOTI-0x02AE.md) 和 [创建通知](game/server-to-client/NOTI-0x0047.md)。A21 实测创建了中文公会，库中记录唯一会长并扣除一次创建费。隔离线路已验证补发的 [当前角色职级](game/server-to-client/NOTI-0x007F.md)。身份相关的换角与重登观测见 [A21 验收](../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。

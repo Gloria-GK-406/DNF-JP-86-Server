@@ -48,6 +48,12 @@ BodyLength = 未知（字段集合已知不完整）
 
 <!-- rks:machine:end -->
 
+## A21 燃烧状态与幸运角色的关系
+
+**ClientStatic / Confirmed（2026-11-28）**。`RVA 0x00DD83E0–0x00DD8527` 消费 `u16 value + u8 state`，正文共 3 字节。`state` 有 `0`、`1`、`2`、`3`、`4`、`5` 的显式分支，对应不同的界面状态。`RVA 0x00DD8446` 所在分支读取 [NOTI `0x0406`](NOTI-0x0406.md#a21-幸运角色名单) 所更新的活动对象，命中幸运角色会影响燃烧界面可用性。`value` 的具体口径、各非零状态的操作语义仍缺差分。
+
+**CurrentImplementation**。本服在选角初始化通过 `FatigueAccelerationStateMessage` 发送这两个字段。玩家开关请求见 [CMD `0x0233`](../client-to-server/0x0233.md)。目前没有幸运角色启停的实机样本。[通知编码](../../../Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationMessages.cs#L426)
+
 <!-- rks:a12:begin -->
 
 > **本区结论得出于 A12 客户端**（SHA-256 `F78F0AEA…`），**A21 上尚未复核**。
