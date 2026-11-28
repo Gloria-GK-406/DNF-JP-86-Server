@@ -225,6 +225,7 @@ internal sealed class GameExpertJobProductionCommandHandler(ISelectedSessionDoma
             var error = rejection switch
             {
                 ExpertJobProductionRejection.InventoryFull => (byte)4,
+                ExpertJobProductionRejection.UnpurifiedEquipment => (byte)175,
                 ExpertJobProductionRejection.InvalidItem => input.IsExtraction ? (byte)13 : (byte)19,
                 ExpertJobProductionRejection.InvalidRecipe => (byte)17,
                 ExpertJobProductionRejection.LevelTooLow => (byte)14,

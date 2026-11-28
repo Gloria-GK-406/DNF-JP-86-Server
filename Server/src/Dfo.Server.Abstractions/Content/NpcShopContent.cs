@@ -1,6 +1,12 @@
+using Dfo.Server.Data.ExpertJobs;
+
 namespace Dfo.Server.Abstractions.Content;
 
-public sealed record NpcShopPage(int? Job, IReadOnlyList<int> ItemIds);
+public sealed record NpcShopPage(int? Job, IReadOnlyList<int> ItemIds)
+{
+    public ExpertJobType? ExpertJob { get; init; }
+    public int MinimumExpertJobLevel { get; init; }
+}
 
 public sealed record NpcShopDefinition(int NpcId, int ShopId, IReadOnlyList<NpcShopPage> Pages)
 {

@@ -181,6 +181,7 @@ internal sealed class GameEnchanterStoreCommandHandler(ISelectedSessionDomainSer
             {
                 EnchanterStoreRejection.InvalidItem => (byte)13,
                 EnchanterStoreRejection.InsufficientGold => (byte)21,
+                EnchanterStoreRejection.InsufficientMaterials => (byte)22,
                 EnchanterStoreRejection.Exhausted => (byte)189,
                 _ => (byte)19,
             };

@@ -29,7 +29,8 @@ internal sealed class NpcShopRuleService(
     }
 
     public async ValueTask<NpcShopQuoteResult> QuoteAsync(
-        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken, int? activeVariant = null)
+        int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken,
+        int? activeVariant = null, NpcShopExpertJob expertJob = default)
     {
         if (activeVariant is { } variant && shopId != variant)
             return new(NpcShopRejection.ShopUnavailable, null);
@@ -37,7 +38,7 @@ internal sealed class NpcShopRuleService(
         // Purchase currently admits town shops only; clear-room shops require a separate run authorization.
         if (shop is null || shop.ShopId != shopId || shop.VisibleOnDungeonClear)
             return new(NpcShopRejection.ShopUnavailable, null);
-        if (!OfferedItems(shop, job).Contains(itemId))
+        if (!OfferedItems(shop, job, expertJob).Contains(itemId))
             return new(NpcShopRejection.ItemNotSold, null);
         var definition = await content.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
         var placement = await placementRules.PlacementForAsync(itemId, cancellationToken).ConfigureAwait(false);
@@ -67,13 +68,13 @@ internal sealed class NpcShopRuleService(
     }
 
     public async ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(
-        int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null)
+        int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null, NpcShopExpertJob expertJob = default)
     {
         var shop = await ReadShopAsync(npcId, activeVariant, cancellationToken).ConfigureAwait(false);
         if (shop is null)
             return null;
         var result = new List<NpcShopItemDefinition>();
-        foreach (var itemId in OfferedItems(shop, job))
+        foreach (var itemId in OfferedItems(shop, job, expertJob))
             if (await content.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false)
                 is { IsReadable: true, Limit: not null } item)
                 result.Add(item);
@@ -171,8 +172,10 @@ internal sealed class NpcShopRuleService(
     public string PurchasePeriod(NpcShopPurchaseLimit limit, DateTimeOffset now) =>
         limit.ResetsDaily ? days.PeriodOf(now) : "lifetime";
 
-    private static IEnumerable<int> OfferedItems(NpcShopDefinition shop, byte job) =>
-        shop.Pages.Where(page => page.Job is null || page.Job == job).SelectMany(page => page.ItemIds).Distinct();
+    private static IEnumerable<int> OfferedItems(NpcShopDefinition shop, byte job, NpcShopExpertJob expertJob) =>
+        shop.Pages.Where(page => (page.Job is null || page.Job == job)
+            && (page.ExpertJob is null || page.ExpertJob == expertJob.Type && page.MinimumExpertJobLevel <= expertJob.Level))
+            .SelectMany(page => page.ItemIds).Distinct();
 
     private static IEnumerable<BusinessSlot> CandidateSlots(ItemPlacement placement)
     {

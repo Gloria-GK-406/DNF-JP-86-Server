@@ -2,11 +2,12 @@ using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Abstractions.Inventory;
 
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provider)
-    : IEquipmentEnchantContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
+    : IEquipmentEnchantContentSource, IMonsterCardUpgradeDefinitionSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private static class Fields
     {
@@ -26,6 +27,8 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
     private Dictionary<int, string>? equipment;
     private readonly Dictionary<(int Bead, int Target), EquipmentEnchantDefinition?> cache = [];
     private readonly Dictionary<int, IReadOnlyList<string>> gemEffects = [];
+    private readonly Dictionary<int, MonsterCardUpgradeItem?> upgradeCards = [];
+    private MonsterCardUpgradeDefinition? cardUpgrade;
     private IReadOnlyDictionary<int, HashSet<int>>? expertBeadCards;
 
     // Explicit: the class already has a private Name(archive, token) helper.
@@ -103,6 +106,51 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
             return ValueTask.FromResult(ValidateExpertCard(provider.Archive, cardItemId, upgradeCount, equipmentItemId));
     }
 
+    public ValueTask<MonsterCardUpgradeDefinition?> GetUpgradeDefinitionAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (cardUpgrade is not null) return ValueTask.FromResult<MonsterCardUpgradeDefinition?>(cardUpgrade);
+            const string path = "character/expertjob/enchanter.exj";
+            if (PvfDocument.TryOpen(provider.Archive, path)?.AtRoot() is not { } doc)
+                return ValueTask.FromResult<MonsterCardUpgradeDefinition?>(null);
+            var multiplier = doc.Read(PvfField.Int32("[monster card upgrade calculate const]", optional: true));
+            var cost = doc.Read(PvfField.Int32("[card upgrade cost]", optional: true));
+            if (multiplier <= 0 || cost < 0 || !doc.Sections.Any(section => section.Name == "[card upgrade cost]"))
+                return ValueTask.FromResult<MonsterCardUpgradeDefinition?>(null);
+            return ValueTask.FromResult<MonsterCardUpgradeDefinition?>(cardUpgrade = new(multiplier, cost));
+        }
+    }
+
+    public ValueTask<MonsterCardUpgradeItem?> GetCardAsync(int itemId, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (gate)
+        {
+            if (!upgradeCards.TryGetValue(itemId, out var card))
+                upgradeCards[itemId] = card = ReadUpgradeCard(itemId);
+            return ValueTask.FromResult(card);
+        }
+    }
+
+    private MonsterCardUpgradeItem? ReadUpgradeCard(int itemId)
+    {
+        var archive = provider.Archive;
+        StackablesIndex(archive);
+        if (!stackables.TryGetValue(itemId, out var path)
+            || PvfDocument.TryOpen(archive, "stackable/" + path, PvfPreamble.Ignore) is not { } card)
+            return null;
+        var root = card.AtRoot();
+        if (!IsMonsterCard(archive, root.Sections)) return null;
+        var rarity = root.Read(PvfField.Int32("[rarity]"));
+        if (rarity is < 0 or > 3) return null;
+        var indices = card.Sections.Where(section => section.Name == Fields.EnchantIndexField.Name).ToArray();
+        if (indices.Any(section => section.Values is not [{ Kind: PvfTokenKind.Int32, Value: >= 0 and <= byte.MaxValue }]))
+            return null;
+        return new(rarity, indices.Length == 0 ? [(byte)0] : indices.Select(section => (byte)section.Values[0].Value).ToArray());
+    }
+
     public ValueTask<EquipmentEnchantDefinition?> ResolveExpertBeadAsync(int beadItemId, byte upgradeCount,
         int? equipmentItemId, CancellationToken ct)
     {
@@ -164,9 +212,7 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
             || PvfDocument.TryOpen(archive, "stackable/" + path, PvfPreamble.Ignore) is not { } card)
             return false;
         var sections = card.AtRoot().Sections;
-        var category = PvfSections.Single(sections, Fields.ItemCategoryField, PvfRepeats.AsUndeclared, "card");
-        var categoryName = category is null ? "" : string.Join(' ', category.Values.Select(token => Name(archive, token)));
-        var monsterCard = categoryName == "monster card" || categoryName.StartsWith("monster card ", StringComparison.Ordinal);
+        var monsterCard = IsMonsterCard(archive, sections);
         var type = PvfSections.Single(sections, Fields.StackableTypeField, PvfRepeats.AsUndeclared, "card");
         var material = type?.Values is [var name, { Kind: PvfTokenKind.Int32, Value: 1 }]
             && Name(archive, name) == "material expert job";
@@ -191,6 +237,13 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
             return false;
         var targetType = Name(archive, equipmentType.Values[0]);
         return targetType.Length > 0 && allowed.Values.Skip(1).Any(token => Name(archive, token) == targetType);
+    }
+
+    private static bool IsMonsterCard(PvfArchive archive, IReadOnlyList<PvfSection> sections)
+    {
+        var category = PvfSections.Single(sections, Fields.ItemCategoryField, PvfRepeats.AsUndeclared, "card");
+        var name = category is null ? "" : string.Join(' ', category.Values.Select(token => Name(archive, token)));
+        return name == "monster card" || name.StartsWith("monster card ", StringComparison.Ordinal);
     }
 
     private static bool IsBead(PvfArchive archive, IReadOnlyList<PvfSection> bead)

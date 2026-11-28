@@ -26,7 +26,7 @@ public interface IEnchanterDomainService : IExpertJobProductionService
         CancellationToken ct);
 }
 
-public enum EnchanterStoreRejection { None, InvalidItem, InvalidState, InsufficientGold, Exhausted }
+public enum EnchanterStoreRejection { None, InvalidItem, InvalidState, InsufficientGold, Exhausted, InsufficientMaterials }
 
 public sealed record EnchanterStoreUseResult(EnchanterStoreRejection Rejection, EnchanterStoreUseReceipt? Receipt = null);
 
@@ -53,6 +53,7 @@ public enum ExpertJobProductionRejection
     InsufficientMaterials,
     InsufficientGold,
     InventoryFull,
+    UnpurifiedEquipment,
 }
 
 public sealed record ExpertJobStudyResult(ExpertJobProductionRejection Rejection, int RemainingCount = 0);

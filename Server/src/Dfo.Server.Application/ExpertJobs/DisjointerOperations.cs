@@ -205,7 +205,9 @@ internal static class ExpertMachineRepair
 
 internal static class ExpertJobEquipmentRules
 {
-    internal static int StateOf(ItemSnapshot equipment) => (equipment.AmplifyType & 0x80) != 0 ? 1
+    internal const int UnpurifiedState = 1;
+
+    internal static int StateOf(ItemSnapshot equipment) => (equipment.AmplifyType & 0x80) != 0 ? UnpurifiedState
         : equipment.ChronicleOption0.Id != 0 || equipment.ChronicleOption1.Id != 0 ? 2 : 0;
 
     internal static int Between(Random random, int lower, int upper) =>

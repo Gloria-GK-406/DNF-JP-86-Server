@@ -103,9 +103,10 @@ public sealed class ExpertStoreProtocolFlowTests
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Paid_enchant_settles_fee_card_device_and_only_applies_the_card_on_success(bool succeeds)
+    [InlineData(true, 22)]
+    [InlineData(false, 22)]
+    [InlineData(true, 19)]
+    public async Task Paid_enchant_settles_recipe_costs_and_only_applies_the_card_on_success(bool succeeds, int crystals)
     {
         const ushort enchant = 0x025A;
         const short cardSlot = 65;
@@ -119,6 +120,8 @@ public sealed class ExpertStoreProtocolFlowTests
         var owner = AddOwner(fixture, ownerConnection, ExpertJobType.Enchanter);
         await SeedPiece(fixture, FirstSlot);
         await fixture.SeedCore(cardSlot, StackableItemCore.Create(2, EnchanterContent.Card, 1) with { EnchantUpgradeCount = 2 });
+        await fixture.Seed(66, EnchanterContent.Solvent, 5);
+        await fixture.Seed(67, EnchanterContent.Crystal, crystals);
 
         await Send(fixture, ownerConnection, OpenStore, OpenBody(ExpertStoreKind.EnchantShop));
         Assert.Equal(new byte[] { 1 }, LastFrame(fixture, ownerConnection, 1, OpenStore)[15..]);
@@ -134,16 +137,32 @@ public sealed class ExpertStoreProtocolFlowTests
         await Send(fixture, fixture.Connection, enchant, body);
 
         var acknowledgement = LastFrame(fixture, fixture.Connection, 1, enchant);
+        var profession = fixture.Services.GetRequiredService<IExpertJobDomainService>().Get(owner.CharacterId);
+        var state = await profession.GetStateAsync(default);
+        if (crystals < 20)
+        {
+            Assert.Equal(new byte[] { 0, 22 }, acknowledgement[15..]);
+            Assert.Equal(100000, fixture.Gold);
+            Assert.Equal(100000, OwnerGold(fixture));
+            Assert.Equal(1, fixture.Count(EnchanterContent.Card));
+            Assert.Equal(5, fixture.Count(EnchanterContent.Solvent));
+            Assert.Equal(crystals, fixture.Count(EnchanterContent.Crystal));
+            Assert.Equal(0, InventoryItemCore.Decode(fixture.StoredCore(FirstSlot)).EnchantCardId);
+            Assert.Equal(1, state.EnchanterEndurance);
+            Assert.Equal(0u, state.Experience);
+            return;
+        }
+
         Assert.Equal(1, acknowledgement[15]);
         Assert.Equal(succeeds ? 1 : 0, acknowledgement[16]);
         Assert.Equal(100000 - Price, fixture.Gold);
         Assert.Equal(100000 + Price, OwnerGold(fixture));
         Assert.Equal(0, fixture.Count(EnchanterContent.Card));
+        Assert.Equal(0, fixture.Count(EnchanterContent.Solvent));
+        Assert.Equal(crystals - 20, fixture.Count(EnchanterContent.Crystal));
         var equipment = InventoryItemCore.Decode(fixture.StoredCore(FirstSlot));
         Assert.Equal(succeeds ? EnchanterContent.Card : 0, equipment.EnchantCardId);
         Assert.Equal(succeeds ? 2 : 0, equipment.EnchantUpgradeCount);
-        var profession = fixture.Services.GetRequiredService<IExpertJobDomainService>().Get(owner.CharacterId);
-        var state = await profession.GetStateAsync(default);
         Assert.Equal(0, state.EnchanterEndurance);
         Assert.Equal(succeeds ? 2u : 0u, state.Experience);
         Assert.Equal(owner.WireUserId, BinaryPrimitives.ReadUInt16LittleEndian(
@@ -248,6 +267,8 @@ public sealed class ExpertStoreProtocolFlowTests
     {
         internal const int Recipe = 10015129;
         internal const int Card = 3619;
+        internal const int Solvent = 3227;
+        internal const int Crystal = 3166;
 
         private readonly ExpertJobDefinition definition = new(
             ExpertJobType.Enchanter, [20], [1000], new HashSet<int>(), new HashSet<int>(),
@@ -257,7 +278,8 @@ public sealed class ExpertStoreProtocolFlowTests
             Enchantment = new(
                 new Dictionary<int, EnchanterCardRecipe>
                 {
-                    [Recipe] = new(0, 1, 191, [], new Dictionary<int, int> { [Card] = 2600313 }),
+                    [Recipe] = new(0, 1, 191, [new(Solvent, 5), new(Crystal, 20)],
+                        new Dictionary<int, int> { [Card] = 2600313 }),
                 },
                 new Dictionary<int, EnchanterCardRate> { [1] = new([succeeds ? 100 : 0], new(2, 2)) },
                 1, 1, []),

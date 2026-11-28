@@ -1,8 +1,11 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Application.Tests.Quests;
 using Dfo.Server.Data.ExpertJobs;
+using Dfo.Server.Data.Inventory;
+using Dfo.Server.Infrastructure.Content;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dfo.Server.Application.Tests.Inventory;
@@ -14,6 +17,39 @@ public sealed class ExpertJobCraftProtocolTests
     private const int NextRecipe = 90002;
     private const int Material = 2000;
     private const int Product = 1000;
+
+    [SkippableFact]
+    public async Task Lowest_doll_extractor_rejects_unpurified_equipment_without_changing_inventory()
+    {
+        const ushort extract = 0x01A0;
+        const int equipment = 100170123;
+        const int lowestExtractor = 2600474;
+        const int targetSlot = 9;
+        const int extractorSlot = 87;
+
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var fixture = new ShopFixture(services =>
+            services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>());
+        fixture.Sql($"INSERT INTO character_expert_job(character_id,expert_job_type) VALUES(1,{(byte)ExpertJobType.DollController})");
+        await fixture.SeedCore(targetSlot, StackableItemCore.Create(1, equipment, 1234) with
+        {
+            Durability = 30,
+            AmplifyType = 0x80,
+        });
+        await fixture.Seed(extractorSlot, lowestExtractor, 1);
+        var original = fixture.StoredCore(targetSlot);
+
+        byte[] request = [(byte)ExpertJobType.DollController, extractorSlot, 0, 0, targetSlot, 0];
+        await EffectRequestTransport.SendRaw(fixture, new(1, extract, 0, EffectRequestTransport.FreshSequence(fixture)), request);
+
+        var ack = fixture.Sender.Outbound.Frames.Single(frame =>
+            frame[0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == extract);
+        Assert.Equal(new byte[] { 0, 175 }, ack[15..]);
+        Assert.Equal(original, fixture.StoredCore(targetSlot));
+        Assert.Equal(1, fixture.Count(lowestExtractor));
+        Assert.Equal(0, fixture.Count(2610044));
+        Assert.Equal(0, fixture.Scalar("SELECT expert_job_exp FROM character_expert_job WHERE character_id=1"));
+    }
 
     [Theory]
     [InlineData(ExpertJobType.Alchemist, 193)]

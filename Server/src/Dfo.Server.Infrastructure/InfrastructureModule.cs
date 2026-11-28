@@ -186,7 +186,10 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IEquipmentMagicSealGradeDefinitionSource, PvfEquipmentMagicSealGradeDefinitionSource>();
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
-        services.TryAddSingleton<IEquipmentEnchantContentSource, PvfEquipmentEnchantContentSource>();
+        services.TryAddSingleton<PvfEquipmentEnchantContentSource>();
+        services.TryAddSingleton<IEquipmentEnchantContentSource>(sp => sp.GetRequiredService<PvfEquipmentEnchantContentSource>());
+        services.TryAddSingleton<Dfo.Server.Abstractions.Inventory.IMonsterCardUpgradeDefinitionSource>(
+            sp => sp.GetRequiredService<PvfEquipmentEnchantContentSource>());
         services.TryAddSingleton<IExpertJobDefinitionSource, PvfExpertJobDefinitionSource>();
         services.TryAddSingleton<IEquipmentMagicSealContentSource, PvfEquipmentMagicSealContentSource>();
         services.TryAddSingleton<IEquipmentOutworldContentSource, PvfEquipmentOutworldContentSource>();

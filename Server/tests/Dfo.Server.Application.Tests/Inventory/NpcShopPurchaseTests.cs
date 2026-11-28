@@ -17,11 +17,13 @@ using Dfo.Server.Application.Transactions;
 using Dfo.Server.Application.Users;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
 using Dfo.Server.Infrastructure;
+using Dfo.Server.Infrastructure.Content;
 using Dfo.Server.Persistence;
 using Dfo.Server.Persistence.Database;
 using Dfo.Server.Protocol;
@@ -38,6 +40,32 @@ namespace Dfo.Server.Application.Tests.Inventory;
 
 public sealed class NpcShopPurchaseTests
 {
+    [SkippableTheory]
+    [InlineData(ExpertJobType.Enchanter, true)]
+    [InlineData(ExpertJobType.Alchemist, false)]
+    [InlineData(ExpertJobType.None, false)]
+    public async Task Abelro_sells_the_current_professions_designs_from_the_real_PVF(ExpertJobType profession, bool canBuy)
+    {
+        Skip.If(new PvfContentOptions().ResolveArchivePath() is null, "PVF_ARCHIVE_PATH is not available.");
+        using var shop = new ShopFixture(services =>
+        {
+            services.AddSingleton<INpcShopDefinitionSource, PvfNpcShopDefinitionSource>();
+            services.AddSingleton<IItemPlacementDefinitionSource, PvfItemPlacementDefinitionSource>();
+        });
+        if (profession != ExpertJobType.None)
+            shop.Sql($"INSERT INTO character_expert_job(character_id,expert_job_type,expert_job_exp) VALUES(1,{(byte)profession},249)");
+
+        var extractor = await WholeBuy.Command(shop, 2600513, 1, shop: 64, npc: 144);
+        var product = await WholeBuy.Command(shop, 2600144, 1, shop: 64, npc: 144);
+
+        var expected = canBuy ? NpcShopRejection.None : NpcShopRejection.ItemNotSold;
+        Assert.Equal(expected, extractor.Rejection);
+        Assert.Equal(expected, product.Rejection);
+        Assert.Equal(canBuy ? 1 : 0, shop.Count(2600513));
+        Assert.Equal(canBuy ? 1 : 0, shop.Count(2600144));
+        Assert.Equal(canBuy ? 50000 : 100000, shop.Gold);
+    }
+
     [Theory]
     [InlineData(GuildHallTown.ContributionShopNpcId, GuildHallTown.InitialAreaId, 7, true)]
     [InlineData(GuildHallTown.ContributionShopNpcId, GuildHallTown.InitialAreaId, 9, false)]

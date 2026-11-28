@@ -96,6 +96,7 @@ using Dfo.Server.Protocol.Game.RepairItem;
 using Dfo.Server.Protocol.Game.DisjointItem;
 using Dfo.Server.Protocol.Game.ReinforceItem;
 using Dfo.Server.Protocol.Game.EnchantByBead;
+using Dfo.Server.Protocol.Game.MonsterCardUpgrade;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.CompoundItem;
@@ -251,6 +252,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddEnchanterStoreSlice();
         services.AddReinforceItemSlice();
         services.AddEnchantByBeadSlice();
+        services.AddMonsterCardUpgradeSlice();
         services.AddMagicSealSlice();
         services.AddOutworldSlice();
         services.AddForgingSlice();

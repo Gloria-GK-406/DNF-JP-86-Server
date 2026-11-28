@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
@@ -23,10 +22,6 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, IEquipmentEnchantContentSource enchantContent,
     EnchanterStoreOperations enchanterStores, TimeProvider clock)
 {
-    private static readonly ImmutableArray<BusinessInventorySpace> MaterialSpaces = [BusinessInventorySpace.QuickSlot,
-        BusinessInventorySpace.Consumable, BusinessInventorySpace.Material, BusinessInventorySpace.Quest,
-        BusinessInventorySpace.ExpertMaterial, BusinessInventorySpace.SharedMaterial];
-
     public IAlchemistDomainService BindAlchemist(CharacterId owner) => new Alchemist(this, owner);
     public IDollControllerDomainService BindDollController(CharacterId owner) => new DollController(this, owner);
     public IEnchanterDomainService BindEnchanter(CharacterId owner) => new Enchanter(this, owner);
@@ -105,7 +100,8 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         RecipeEffectCosts costs;
         try
         {
-            costs = materials.MaterialCosts(recipe.Materials, attempts, await HeldMaterialsAsync(owner, ct).ConfigureAwait(false), context.At);
+            var standing = await ExpertJobMaterialInventory.ReadAsync(bags, owner, ct).ConfigureAwait(false);
+            costs = materials.MaterialCosts(recipe.Materials, attempts, standing, context.At);
         }
         catch (OpeningRejectedException error) when (error.Reason is OpeningRejection.MissingMaterial
             or OpeningRejection.InvalidRequest or OpeningRejection.UnsupportedContent)
@@ -174,7 +170,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(card, cardItem.ItemId, 1) };
         try
         {
-            var standing = (await HeldMaterialsAsync(owner, ct).ConfigureAwait(false)).Where(item => item.Slot != card).ToArray();
+            var standing = await ExpertJobMaterialInventory.ReadAsync(bags, owner, ct, excluded: card).ConfigureAwait(false);
             var costs = materials.MaterialCosts(recipe.Materials, 1, standing, context.At);
             plan.AddRange(costs.Items.Select(cost => new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count)));
         }
@@ -225,9 +221,12 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
             return new(ExpertJobProductionRejection.InvalidItem);
 
         var facts = await definitions.GetEquipmentAsync(item.ItemId, ct).ConfigureAwait(false);
-        if (facts is not { CanDisjoint: true, Grade: { } grade }
-            || !production.ExtractionResults.TryGetValue((tool.ItemId, facts.Rarity, ExpertJobEquipmentRules.StateOf(item.Snapshot)), out var rule))
+        if (facts is not { CanDisjoint: true, Grade: { } grade })
             return new(ExpertJobProductionRejection.InvalidItem);
+        var equipmentState = ExpertJobEquipmentRules.StateOf(item.Snapshot);
+        if (!production.ExtractionResults.TryGetValue((tool.ItemId, facts.Rarity, equipmentState), out var rule))
+            return new(equipmentState == ExpertJobEquipmentRules.UnpurifiedState
+                ? ExpertJobProductionRejection.UnpurifiedEquipment : ExpertJobProductionRejection.InvalidItem);
 
         var random = Random.Shared;
         var basis = production.ExtractionSellGoldDivisor is { } divisor
@@ -275,19 +274,6 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     private async ValueTask<bool> HasSkillAsync(CharacterId owner, int skillId, CancellationToken ct) =>
         (await skills.ReadAsync(owner, ct).ConfigureAwait(false))?.Pages.Any(page =>
             page.Skills.Any(skill => skill.SkillId == skillId && skill.Level > 0)) == true;
-
-    private async ValueTask<IReadOnlyList<OpeningHeldItem>> HeldMaterialsAsync(CharacterId owner, CancellationToken ct)
-    {
-        var held = new List<OpeningHeldItem>();
-        foreach (var space in MaterialSpaces)
-        {
-            var container = bags.GetStore(owner, BusinessInventoryOwnership.StoreOf(space)).FindContainer(space);
-            if (container is null) continue;
-            held.AddRange((await container.GetAllAsync(ct).ConfigureAwait(false))
-                .Select(item => new OpeningHeldItem(new(space, item.SlotIndex), item)));
-        }
-        return held;
-    }
 
     private async ValueTask<bool> AddGrantsAsync(List<DomainEffect> plan, IReadOnlyList<OpeningReward> outputs,
         DateTimeOffset at, CancellationToken ct, byte enchantUpgradeCount = 0)

@@ -2,6 +2,7 @@ using Dfo.Pvf.Schema;
 using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
+using Dfo.Server.Data.ExpertJobs;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -159,6 +160,9 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
         var pages = new List<NpcShopPage>();
         var selling = false;
         var categoryEntry = false;
+        var expertCategory = false;
+        var useToggle = false;
+        int? expertLevel = null;
         int? job = null;
         foreach (var section in sections)
         {
@@ -167,8 +171,22 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                 case var fieldName when (Fields.SellInfoField.Matches(fieldName)): selling = true; break;
                 case var fieldName when (Fields.CloseSellInfoField.Matches(fieldName)): selling = false; break;
                 case var fieldName when (Fields.UseCategoryField.Matches(fieldName)) && selling:
-                    if (section.Values.Count != 1 || Text(archive, section.Values[0]) != "basic job")
+                    if (categoryEntry || useToggle || section.Values.Count != 1
+                        || Text(archive, section.Values[0]) is not ("basic job" or "expert job"))
                         return null;
+                    expertCategory = Text(archive, section.Values[0]) == "expert job";
+                    break;
+                case "[use toggle]" when selling && expertCategory && !categoryEntry && !useToggle:
+                    useToggle = true;
+                    expertLevel = null;
+                    break;
+                case "[expert job level]" when useToggle && expertLevel is null:
+                    if (section.Values.Count != 1 || section.Values[0].Kind != PvfTokenKind.Int32 || section.Values[0].Value <= 0)
+                        return null;
+                    expertLevel = section.Values[0].Value;
+                    break;
+                case "[/use toggle]" when useToggle && expertLevel.HasValue:
+                    useToggle = false;
                     break;
                 case var fieldName when (Fields.CategoryEntryField.Matches(fieldName)) && selling: categoryEntry = true; job = null; break;
                 case var fieldName when (Fields.CloseCategoryEntryField.Matches(fieldName)): categoryEntry = false; job = null; break;
@@ -178,12 +196,31 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                     job = section.Values[0].Value;
                     break;
                 case var fieldName when (Fields.ItemListField.Matches(fieldName)) && selling:
-                    if (categoryEntry && job is null
+                    if (useToggle || categoryEntry && job is null
                         || section.Values.Any(value => value.Kind != PvfTokenKind.Int32 || value.Value is 0 or < -1))
                         return null;
-                    pages.Add(new(job, section.Values.Where(value => value.Value > 0).Select(value => value.Value).Distinct().ToArray()));
+                    var itemIds = section.Values.Where(value => value.Value > 0).Select(value => value.Value).Distinct().ToArray();
+                    if (!expertCategory)
+                    {
+                        pages.Add(new(job, itemIds));
+                        break;
+                    }
+                    var expertJob = job switch
+                    {
+                        0 => ExpertJobType.Alchemist,
+                        1 => ExpertJobType.Enchanter,
+                        2 => ExpertJobType.DollController,
+                        3 => ExpertJobType.Disjointer,
+                        _ => ExpertJobType.None,
+                    };
+                    if (expertJob == ExpertJobType.None)
+                        return null;
+                    pages.Add(new(null, itemIds) { ExpertJob = expertJob, MinimumExpertJobLevel = expertLevel ?? 1 });
                     break;
-                case var fieldName when (Fields.TabField.Matches(fieldName) || Fields.CloseTabField.Matches(fieldName) || Fields.CloseItemListField.Matches(fieldName)): break;
+                case var fieldName when (Fields.CloseTabField.Matches(fieldName)):
+                    expertLevel = null;
+                    break;
+                case var fieldName when (Fields.TabField.Matches(fieldName) || Fields.CloseItemListField.Matches(fieldName)): break;
                 default:
                     // Unknown sale conditions must not become an unrestricted item list.
                     if (selling)
@@ -191,7 +228,7 @@ internal sealed class PvfNpcShopDefinitionSource(PvfArchiveProvider provider) : 
                     break;
             }
         }
-        return pages.Count > 0 ? new(npcId, shopId, pages)
+        return pages.Count > 0 && !useToggle ? new(npcId, shopId, pages)
             { VisibleOnDungeonClear = clearVisibility == 1 } : null;
     }
 

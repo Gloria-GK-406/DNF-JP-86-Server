@@ -124,6 +124,8 @@ public sealed class ApplicationModule : IServerModule
         services.TryAddSingleton<DisjointerOperations>();
         services.TryAddSingleton<ExpertJobProductionOperations>();
         services.TryAddSingleton<EnchanterStoreOperations>();
+        services.TryAddSingleton<MonsterCardUpgradeRuleService>();
+        services.TryAddSingleton<IMonsterCardUpgradeDomainService, MonsterCardUpgradeDomainService>();
         services.TryAddSingleton<IExpertJobDomainService, ExpertJobDomainService>();
         services.TryAddSingleton<IQuestClearCouponSettlementDomainService, QuestClearCouponSettlementService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Notices.INoticeStateDomainService, Dfo.Server.Application.Notices.NoticeStateDomainService>();

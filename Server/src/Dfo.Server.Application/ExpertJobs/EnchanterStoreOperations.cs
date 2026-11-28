@@ -17,7 +17,8 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
     IExpertStoreGameplayDomainService gameplay, IExpertStoreDomainService stores, ISelectedSessionDomainService sessions,
     ITownAreaDomainService areas, IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment,
     IEquipmentEnchantContentSource content, ICharacterDomainService characters, IInventoryEffectPreflightDomainService preflight,
-    IApplyEffectsDomainService effects, TimeProvider clock)
+    IApplyEffectsDomainService effects, ICharacterBusinessInventoryDomainService bags,
+    IOpeningEffectPlanRuleService materials, TimeProvider clock)
 {
     public async ValueTask<EnchanterStoreUseResult> EnchantAsync(CharacterId owner, ExpertStoreVisit visit, int recipeId,
         BusinessSlot cardSlot, BusinessSlot targetSlot, IEffectFootprintRecorder footprint, CancellationToken ct)
@@ -65,9 +66,26 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
                 != InventoryEffectRejection.None)
             return new(EnchanterStoreRejection.InsufficientGold);
 
+        var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(cardSlot, card.ItemId, 1) };
+        if (recipe.Materials.Count > 0)
+        {
+            try
+            {
+                var standing = await ExpertJobMaterialInventory.ReadAsync(bags, actor.CharacterId, ct, excluded: cardSlot)
+                    .ConfigureAwait(false);
+                var costs = materials.MaterialCosts(recipe.Materials, 1, standing, now);
+                plan.AddRange(costs.Items.Select(cost => new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count)));
+            }
+            catch (OpeningRejectedException error) when (error.Reason is OpeningRejection.MissingMaterial
+                or OpeningRejection.InvalidRequest or OpeningRejection.UnsupportedContent)
+            {
+                return new(error.Reason == OpeningRejection.MissingMaterial
+                    ? EnchanterStoreRejection.InsufficientMaterials : EnchanterStoreRejection.InvalidItem);
+            }
+        }
+
         var random = Random.Shared;
         var succeeded = random.Next(100) < rate.SuccessByQualification[recipe.Qualification];
-        var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(cardSlot, card.ItemId, 1) };
         if (price > 0) plan.Add(new SpendGoldEffect(price));
         if (succeeded) plan.Add(new SetEquipmentEnchantmentEffect(new(target, target.ItemId), card.ItemId, card.Snapshot.EnchantUpgradeCount));
         var prepared = await preflight.PreviewAsync(guestContext, plan, ct).ConfigureAwait(false);
