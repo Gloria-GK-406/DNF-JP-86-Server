@@ -16,13 +16,16 @@ public sealed class SeriaEquipmentCompoundTests
     private const int Crystal = 3244;
     private static readonly byte[] SingleItem = Convert.FromHexString("090000000700");
 
-    [Fact]
-    public async Task Settlement_projects_replacement_and_exact_costs_before_ack_and_deduplicates_same_frame()
+    [Theory]
+    [InlineData("090000000700")]
+    [InlineData("090001001000")]
+    public async Task Settlement_projects_replacement_and_exact_costs_before_ack_and_deduplicates_same_frame(string request)
     {
+        var body = Convert.FromHexString(request);
         using var fixture = Create();
         await Seed(fixture, 2);
         var sourceUid = fixture.Scalar("SELECT item_uid FROM items WHERE substr(hex(item_core),3,8)='B80B0000'");
-        await Send(fixture, 7, SingleItem);
+        await Send(fixture, 7, body);
         Assert.Equal(0, fixture.Count(Source));
         Assert.Equal(1, fixture.Count(Result));
         Assert.Equal(1, fixture.Count(Crystal));
@@ -43,12 +46,12 @@ public sealed class SeriaEquipmentCompoundTests
         Assert.Contains(rows, row => BitConverter.ToUInt16(row) == 360
             && BitConverter.ToInt32(row, 2) == Soul && BitConverter.ToInt32(row, 6) == 1);
 
-        await Send(fixture, 7, SingleItem);
+        await Send(fixture, 7, body);
         Assert.Single(fixture.Sender.Messages.OfType<EquipmentCompoundResponse>());
         Assert.Equal(1, fixture.SharedCount(Soul));
         Assert.Equal(1, fixture.Count(Crystal));
 
-        await Send(fixture, 8, SingleItem);
+        await Send(fixture, 8, body);
         Assert.Equal(2, fixture.Sender.Messages.OfType<EquipmentCompoundResponse>().Count());
         Assert.Equal(0, fixture.SharedCount(Soul));
         Assert.Equal(0, fixture.Count(Crystal));
@@ -159,8 +162,8 @@ public sealed class SeriaEquipmentCompoundTests
             return new(
                 new Dictionary<int, IReadOnlySet<string>> { [7] = new HashSet<string> { "cl coat" } },
                 new HashSet<int>(), new Dictionary<int, double>(), 1,
-                new Dictionary<(int, bool), IReadOnlyList<RecipeAmount>> { [(2, true)] = [new(Soul, 1), new(Crystal, 1)] },
-                new Dictionary<(int, bool), IReadOnlyDictionary<int, int>> { [(2, true)] = new Dictionary<int, int> { [65] = 1 } },
+                new Dictionary<(int, bool), IReadOnlyList<RecipeAmount>> { [(2, true)] = [new(Soul, 1), new(Crystal, 1)], [(2, false)] = [new(Soul, 1), new(Crystal, 1)] },
+                new Dictionary<(int, bool), IReadOnlyDictionary<int, int>> { [(2, true)] = new Dictionary<int, int> { [65] = 1 }, [(2, false)] = new Dictionary<int, int> { [65] = 1 } },
                 new Dictionary<int, IReadOnlyList<EquipmentCompoundLevel>> { [2] = [new(65, 1, 0)] },
                 new Dictionary<int, EquipmentCompoundTemplate> { [Source] = source, [Result] = result },
                 new Dictionary<(int, int), IReadOnlyList<EquipmentCompoundTemplate>> { [(2, 65)] = emptyPool ? [] : [result] });

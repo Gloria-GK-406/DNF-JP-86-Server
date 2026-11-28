@@ -30,7 +30,7 @@ internal sealed class EquipmentCompoundDomainService(
         footprint.DemandEffects(new(session.AccountId, session.CharacterId, session));
         if (!sessions.IsInWorld(session) || towns.Find(session.CharacterId)?.Session != session)
             throw new OpeningRejectedException(OpeningRejection.NoSession, "Equipment compound requires an active town session.");
-        if (source.Space != BusinessInventorySpace.CarriedEquipment || part is < 0 or > 15)
+        if (source.Space != BusinessInventorySpace.CarriedEquipment)
             throw new OpeningRejectedException(OpeningRejection.InvalidRequest, "Invalid equipment compound input.");
         var instance = await equipment.Of(session.CharacterId).FindAtAsync(source, ct).ConfigureAwait(false);
         var now = clock.GetUtcNow();
