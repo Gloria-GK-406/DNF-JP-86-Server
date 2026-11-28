@@ -515,6 +515,16 @@ public sealed class CommandRegistrationTests : IDisposable
     }
 
     [Fact]
+    public void Secret_shop_buy_and_window_reports_have_production_routes()
+    {
+        using var provider = BuildProductionGraph();
+        var routes = provider.GetRequiredService<Dfo.Server.Application.Dispatching.MessageHandlerRegistry>();
+
+        Assert.True(routes.TryGet((ClientMessageType)0x0001_0128, out _));
+        Assert.True(routes.TryGet((ClientMessageType)0x0001_0129, out _));
+    }
+
+    [Fact]
     public void Every_registered_command_handler_resolves_from_the_production_graph()
     {
         using var provider = BuildProductionGraph();

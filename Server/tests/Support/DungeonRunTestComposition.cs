@@ -121,9 +121,10 @@ namespace Dfo.Server.Testing
             ICreatureRuntimeDomainService creatures, IDungeonLifecycleDomainService lifecycle, TimeProvider clock,
             IDungeonRoomMechanismRuleService mechanismRules, IDungeonDeadlineWake deadlines,
             ISealedTreasureRuleService sealedTreasureRules, IDungeonParticipationDomainService participation,
-            IGiantDragonRuleService giantDragons)
+            IGiantDragonRuleService giantDragons, IDungeonSecretShopContentSource? secretShops)
         {
-            var store = new DungeonRunStore(parties, deadlines, participation, weakness, creatures);
+            var store = new DungeonRunStore(parties, deadlines, participation, weakness, creatures,
+                new DungeonSecretShopRuleService(secretShops ?? TestRequired.NoSecretShops));
             var services = new Dictionary<Type, object>
             {
                 [typeof(IDungeonRunQueryDomainService)] = store,
@@ -137,7 +138,7 @@ namespace Dfo.Server.Testing
                 [typeof(IDungeonRunGroundDropDomainService)] = new DungeonRunStore.GroundDropService(store, transactions, clock,
                     sealedTreasureRules),
                 [typeof(IDungeonRunSettlementDomainService)] = new DungeonRunStore.SettlementService(store, clock,
-                    new DungeonSettlementRuleService()),
+                    new DungeonSettlementRuleService(), transactions),
                 [typeof(IDungeonRunCardDomainService)] = new DungeonRunStore.CardService(store, transactions),
                 [typeof(IDungeonRunTimerDomainService)] = new DungeonRunStore.TimerService(store, transactions, weakness, lifecycle,
                     mechanismRules),
@@ -145,5 +146,6 @@ namespace Dfo.Server.Testing
             };
             return Compose(type => services[type]);
         }
+
     }
 }

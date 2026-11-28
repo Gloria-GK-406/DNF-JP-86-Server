@@ -252,6 +252,7 @@ public sealed class GameplayWriteEntryTableTests
         ["SettlementService.TryOpenClear(CharacterId, DungeonRunId, Int64, IReadOnlyDictionary<CharacterId, Int64>)"] = W,
         ["CardService.TryReserveClearRewardCard(CharacterId, DungeonRunId, ClearRewardCardKind, Int32)"] = W,
         ["SettlementService.TrySettle(CharacterId)"] = W,
+        ["SettlementService.TryStageSecretShopPurchase(CharacterId, DungeonRunId, Int32, Int32)"] = W,
         ["CombatService.WillClearMap(DungeonActorDeathClaim)"] = R,
 
         // CreatureRuntimeDomainService

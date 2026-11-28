@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Creatures;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.Transactions;
@@ -44,7 +45,8 @@ internal static class TestParties
         IDungeonDeadlineWake? deadlines = null,
         ISealedTreasureRuleService? sealedTreasureRules = null,
         IDungeonParticipationDomainService? participation = null,
-        IGiantDragonRuleService? giantDragons = null)
+        IGiantDragonRuleService? giantDragons = null,
+        IDungeonSecretShopContentSource? secretShops = null)
     {
         parties ??= Create();
         var runs = DungeonRunTestComposition.Build(
@@ -56,7 +58,8 @@ internal static class TestParties
             deadlines ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonDeadlineWake>(),
             sealedTreasureRules ?? new SealedTreasureRuleService(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IDungeonDefinitionSource>()),
             participation ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(),
-            giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IGiantDragonRuleService>());
+            giantDragons ?? Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.World.IGiantDragonRuleService>(),
+            secretShops);
         PartiesOfRuns.AddOrUpdate(runs, parties);
         return runs;
     }

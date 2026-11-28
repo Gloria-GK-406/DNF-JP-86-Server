@@ -45,6 +45,9 @@ public sealed record NpcShopPurchaseResult(NpcShopRejection Rejection, NpcShopPu
     public static NpcShopPurchaseResult Refused(NpcShopRejection reason) => new(reason, null);
 }
 
+public sealed record SecretShopPurchaseResult(NpcShopRejection Rejection, NpcShopPurchaseReceipt? Receipt = null,
+    int RemainingStock = 0, int CostItemId = 0, int CostItemRemaining = 0);
+
 public sealed record NpcShopPurchaseCount(int ItemId, int Count);
 
 public sealed record NpcShopPurchaseCountsResult(

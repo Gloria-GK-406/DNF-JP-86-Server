@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Guilds;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Inventory;
 
@@ -65,6 +66,36 @@ internal sealed class NpcShopRuleService(
         if (totalGold > int.MaxValue)
             return new(NpcShopRejection.InvalidCount, null);
         return new(NpcShopRejection.None, new(definition, placement, count, (int)totalGold, materials));
+    }
+
+    public async ValueTask<NpcShopQuoteResult> QuoteSecretAsync(
+        DungeonSecretShopItem item, int rawCount, CancellationToken cancellationToken)
+    {
+        // The reference treats zero as a single purchase. The A21 wire shape is known,
+        // while its zero-quantity cases still need a client capture.
+        var count = rawCount == 0 ? 1 : rawCount;
+        if (count is <= 0 or > short.MaxValue)
+            return new(NpcShopRejection.InvalidCount, null);
+        if (count > item.RemainingCount)
+            return new(NpcShopRejection.PurchaseLimitReached, null);
+
+        var definition = await content.GetItemAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
+        var placement = await placementRules.PlacementForAsync(item.ItemId, cancellationToken).ConfigureAwait(false);
+        if (definition is null || placement is null || placement.ItemKind == 0
+            || placement.WorldClass is not (ItemWorldClass.Equipment or ItemWorldClass.Interchangeable))
+            return new(NpcShopRejection.UnsupportedItem, null);
+        if (placement.WorldClass == ItemWorldClass.Equipment && count != 1)
+            return new(NpcShopRejection.InvalidCount, null);
+
+        var total = (long)item.UnitPrice * count;
+        if (total is < 0 or > int.MaxValue)
+            return new(NpcShopRejection.InvalidCount, null);
+
+        // The rolled offer defines the price, currency and limit. Item content supplies grant attributes.
+        var grant = definition with { Limit = null };
+        return item.CostItemId == 0
+            ? new(NpcShopRejection.None, new(grant, placement, count, (int)total, []))
+            : new(NpcShopRejection.None, new(grant, placement, count, 0, [new(item.CostItemId, (int)total)]));
     }
 
     public async ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(

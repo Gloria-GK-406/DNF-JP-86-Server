@@ -120,12 +120,15 @@ internal sealed partial class DungeonRunStore
         private readonly DungeonRunStore store;
         private readonly TimeProvider clock;
         private readonly IDungeonSettlementRuleService settlementRules;
+        private readonly IDomainTransactionAccessor transactions;
 
-        public SettlementService(DungeonRunStore store, TimeProvider clock, IDungeonSettlementRuleService settlementRules)
+        public SettlementService(DungeonRunStore store, TimeProvider clock, IDungeonSettlementRuleService settlementRules,
+            IDomainTransactionAccessor transactions)
         {
             this.store = store;
             this.clock = clock;
             this.settlementRules = settlementRules;
+            this.transactions = transactions;
         }
 
         public DungeonRunState? Find(CharacterId characterId) => this.store.Find(characterId);

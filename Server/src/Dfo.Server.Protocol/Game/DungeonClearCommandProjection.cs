@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.Dungeons;
+using Dfo.Server.Protocol.Game.SecretShop;
 
 using Dfo.Server.Protocol.Game.DungeonClear;
 namespace Dfo.Server.Protocol.Game;
@@ -35,7 +36,12 @@ internal static class DungeonClearCommandProjection
                 ? [.. Dfo.Server.Protocol.Game.DarkElfRuins.RuinsProjection.ClearPreamble(run)]
                 : raidSettling && run?.Layout.Mode is DungeonRunMode.AntonRaid ? [] : [new EnableClearDungeonNotification()];
             if (run?.Layout.Mode is not (DungeonRunMode.DarkElfRuins or DungeonRunMode.AntonRaid))
-                frames.Add(new SecretShopNpcNotification(GameProtocol.SecretShopNpcId));
+            {
+                var shop = run?.SecretShop;
+                frames.Add(new SecretShopNpcNotification(shop?.NpcId ?? GameProtocol.SecretShopNpcId));
+                if (shop is not null)
+                    frames.Add(new SecretShopItemsNotification([.. shop.Items.Where(item => item.RemainingCount > 0)]));
+            }
             if (quests.IsCycleClear(run))
             {
                 // The map-clear subscriber is asynchronous. Resynchronize an already-ready

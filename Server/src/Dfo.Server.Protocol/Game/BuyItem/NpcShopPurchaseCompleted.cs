@@ -1,7 +1,6 @@
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Sessions;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
@@ -26,18 +25,8 @@ public sealed class NpcShopPurchaseCompletedHandler(ISelectedSessionDomainServic
             || !sessions.IsInWorld(receipt.Session))
             return ValueTask.FromResult<IReadOnlyList<IServerNetworkMessage>>([]);
         var messages = new List<IServerNetworkMessage>();
-        foreach (var change in receipt.MaterialChanges)
-        {
-            var wire = A21InventoryLayout.ToGameSlot(change.Slot);
-            messages.Add(change.Core is { } core
-                ? GameInventoryDelivery.Notification(new(wire.Space,
-                    [new InventoryItemState(null, wire.Index, core.ToCore())], receipt.PreparedAt))
-                : GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.PreparedAt));
-        }
-        var inventory = receipt.GrantedSlots.GroupBy(grant => A21InventoryLayout.ToGameSlot(grant.Slot).Space)
-            .Select(group => GameInventoryDelivery.Notification(new CommittedInventoryUpdateState(group.Key,
-                group.Select(grant => new InventoryItemState(null, A21InventoryLayout.ToGameSlot(grant.Slot).Index,
-                    grant.Core.ToCore())).ToArray(), receipt.PreparedAt))).ToArray();
+        messages.AddRange(NpcShopInventoryProjection.SpentItems(receipt));
+        var inventory = NpcShopInventoryProjection.GrantedItems(receipt);
         if (receipt.Housing is { } housing) messages.Add(new HousingStorageMessage(housing));
         if (receipt.LovePoints is { } points) messages.Add(new WeddingLovePointNotification(receipt.Session.CharacterId.Value, points));
         var projectedStack = receipt.Housing is not null || receipt.GrantedSlots.Count > 0 && receipt.GrantedSlots[0].Core.IsPile;

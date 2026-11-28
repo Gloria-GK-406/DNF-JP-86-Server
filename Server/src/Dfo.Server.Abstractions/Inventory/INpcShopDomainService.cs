@@ -10,6 +10,10 @@ public interface INpcShopDomainService
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
         DateTimeOffset now, IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
 
+    ValueTask<SecretShopPurchaseResult> PurchaseSecretAsync(
+        SelectedSessionIdentity session, int itemId, int rawCount, DateTimeOffset now,
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken);
+
     ValueTask<NpcShopPurchaseCountsResult> PurchaseCountsAsync(
         SelectedSessionIdentity session, int npcId, DateTimeOffset now, CancellationToken cancellationToken);
 }

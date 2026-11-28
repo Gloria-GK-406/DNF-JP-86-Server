@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Abstractions.Inventory;
 
@@ -22,6 +23,9 @@ public interface INpcShopRuleService
     ValueTask<NpcShopQuoteResult> QuoteAsync(
         int npcId, int shopId, byte job, int itemId, int rawCount, CancellationToken cancellationToken,
         int? activeVariant = null, NpcShopExpertJob expertJob = default);
+
+    ValueTask<NpcShopQuoteResult> QuoteSecretAsync(
+        DungeonSecretShopItem item, int rawCount, CancellationToken cancellationToken);
 
     ValueTask<IReadOnlyList<NpcShopItemDefinition>?> LimitedItemsAsync(
         int npcId, byte job, CancellationToken cancellationToken, int? activeVariant = null, NpcShopExpertJob expertJob = default);

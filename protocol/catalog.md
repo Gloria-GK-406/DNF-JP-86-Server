@@ -11,6 +11,15 @@ CurrentImplementation：按认证账号列表位置读取镜像、绝望、异�
 
 CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应答](game/client-to-server/0x000B.md) 的 type 1、[交易栏移位](game/client-to-server/0x0013.md) 和 [状态推进](game/client-to-server/0x0018.md)。双边最终确认触发一次交换事务，窗口关闭后返回权威背包。用户确认 A21 双端完成正常交易（ClientVerified）。拒绝及其他边界场景按后续 bug 反馈跟踪。[双端验收](../Document/tasks/player-trade-41/a21-user-test.md)
 
+## 2026-11-28 A21 加百利秘密商店（#39，单人金币路径已实机验收）
+
+普通副本清场按 PVF 抽一次商人，命中加百利后向同场队员投影各自的货单和库存。
+[NOTI `0x0117`](game/server-to-client/NOTI-0x0117.md) 指定商人，
+[NOTI `0x0118`](game/server-to-client/NOTI-0x0118.md) 随清场发送货单，
+[CMD `0x0129`](game/client-to-server/0x0129.md) 只消费为窗口报告，
+[CMD `0x0128`](game/client-to-server/0x0128.md) 按 8 字节布局处理金币和道具购买。
+ClientVerified（有限范围）：用户确认赫顿玛尔旧街区单人结算后的金币商店路径符合预期。双人、道具支付和逐字段报文证据未在本轮确认。见 [实机记录](../Document/tasks/gabriel-secret-shop/user-test.md#本轮实机结果)。
+
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
 公会分支已接 [验名](game/client-to-server/0x009C.md)、[宣传](game/client-to-server/0x02E2.md)、[单人许可请求](game/client-to-server/0x02E4.md)、取消与 [创建提交](game/client-to-server/0x0044.md)，并发送 [许可通知](game/server-to-client/NOTI-0x02AE.md) 和 [创建通知](game/server-to-client/NOTI-0x0047.md)。A21 实测创建了中文公会，库中记录唯一会长并扣除一次创建费。隔离线路已验证补发的 [当前角色职级](game/server-to-client/NOTI-0x007F.md)。身份相关的换角与重登观测见 [A21 验收](../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。
