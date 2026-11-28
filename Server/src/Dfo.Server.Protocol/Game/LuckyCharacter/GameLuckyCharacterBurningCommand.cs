@@ -73,7 +73,7 @@ internal sealed class GameLuckyCharacterBurningCommandHandler(ISelectedSessionDo
         await outbox.RegisterCmdAsync(connection.ConnectionId, new LuckyCharacterBurningResponse(error), ct)
             .ConfigureAwait(false);
         if (result.Enabled is { } enabled)
-            await outbox.RegisterNotiAsync(connection.ConnectionId, new FatigueAccelerationStateMessage(0, enabled ? (byte)2 : (byte)0), ct)
+            await outbox.RegisterNotiAsync(connection.ConnectionId, FatigueAccelerationStateMessage.FromBurning(enabled), ct)
                 .ConfigureAwait(false);
         return error == 0;
     }

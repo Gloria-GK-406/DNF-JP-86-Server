@@ -142,13 +142,13 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
                 .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             messages.Add(new AvailableQuestListMessage(progress.Level, offers));
         }
-        if (notice.RefreshLuckyCharacters && state.LuckyFatigueState is { } fatigue
+        if (notice.RefreshLuckyCharacters && state.LuckyFatigueBurningEnabled is { } burning
             && dungeonParticipation.Find(session.CharacterId) is null)
         {
             var current = await currentState.ReadAsync(session, ct).ConfigureAwait(false);
             messages.Add(new LuckyCharacterListMessage(state.LuckyCharacters));
             messages.Add(new SkillStateMessage(current.CharacterEntry.Skills));
-            messages.Add(new FatigueAccelerationStateMessage(0, fatigue));
+            messages.Add(FatigueAccelerationStateMessage.FromBurning(burning));
         }
         return sessions.IsInWorld(session) ? messages : [];
     }

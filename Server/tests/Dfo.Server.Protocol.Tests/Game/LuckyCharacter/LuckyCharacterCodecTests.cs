@@ -23,7 +23,7 @@ public sealed class LuckyCharacterCodecTests
             Events = Dfo.Server.Data.Events.EventPlayerSnapshot.Empty with
             {
                 LuckyCharacters = new(3, []),
-                LuckyFatigueState = 0,
+                LuckyFatigueBurningEnabled = false,
             },
         };
         var frames = TownReturnProjection.Frames(session, stopped, seed.Character.Position);
@@ -33,10 +33,10 @@ public sealed class LuckyCharacterCodecTests
     }
 
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(0, true)]
-    [InlineData(2, true)]
-    public void Entry_projects_the_list_before_skill_recalculation_and_fatigue_state(byte state, bool lucky)
+    [InlineData(false, false, 0)]
+    [InlineData(true, false, 0)]
+    [InlineData(true, true, 2)]
+    public void Entry_projects_the_list_before_skill_recalculation_and_fatigue_state(bool lucky, bool burning, byte state)
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var configured = seed with
@@ -44,7 +44,7 @@ public sealed class LuckyCharacterCodecTests
             Events = Dfo.Server.Data.Events.EventPlayerSnapshot.Empty with
             {
                 LuckyCharacters = new(2, lucky ? [seed.Character.Identity.Job] : []),
-                LuckyFatigueState = state,
+                LuckyFatigueBurningEnabled = burning,
             },
         };
         var baseline = SelectedCharacterStateMessageFactory.Create(seed, FriendListRefresh.None);
@@ -56,6 +56,24 @@ public sealed class LuckyCharacterCodecTests
         Assert.Equal(Assert.Single(baseline.OfType<SkillStateMessage>()).EncodeBody(),
             Assert.Single(entry.OfType<SkillStateMessage>()).EncodeBody());
         Assert.Equal(state, Assert.Single(entry.OfType<FatigueAccelerationStateMessage>()).State);
+        Assert.Equal(new byte[] { 0, 0, state }, Assert.Single(entry.OfType<FatigueAccelerationStateMessage>()).EncodeBody());
+    }
+
+    [Fact]
+    public void Entry_retains_legacy_fatigue_values_when_the_lucky_event_has_no_status()
+    {
+        var seed = SelectCharacterPayloadTestData.CreateComplete();
+        seed = seed with
+        {
+            CharacterEntry = seed.CharacterEntry with
+            {
+                Progression = seed.CharacterEntry.Progression with { FatigueAccelerationValue = 300, FatigueAccelerationState = 1 },
+            },
+            Events = Dfo.Server.Data.Events.EventPlayerSnapshot.Empty,
+        };
+        var entry = SelectedCharacterStateMessageFactory.Create(seed, FriendListRefresh.None);
+
+        Assert.Equal(new byte[] { 0x2C, 0x01, 1 }, Assert.Single(entry.OfType<FatigueAccelerationStateMessage>()).EncodeBody());
     }
 
     [Theory]

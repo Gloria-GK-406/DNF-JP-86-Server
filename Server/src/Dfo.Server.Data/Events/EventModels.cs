@@ -49,7 +49,8 @@ public sealed record WeeklyAttendanceState(bool Active, int AttendanceCount, int
 public sealed record EventPlayerSnapshot(EventInfo[] Information, WeeklyAttendanceState Attendance, JoustState? Joust = null)
 {
     public LuckyCharacterPeriod LuckyCharacters { get; init; } = LuckyCharacterPeriod.Closed;
-    public byte? LuckyFatigueState { get; init; }
+    /// <summary>Null when the lucky-character event does not supply a burning status for this character.</summary>
+    public bool? LuckyFatigueBurningEnabled { get; init; }
     public ScheduledDungeonState[] ScheduledDungeons { get; init; } = [];
     public ScheduledQuestState[] ScheduledQuests { get; init; } = [];
     public ScheduledActivityState[] ScheduledActivities { get; init; } = [];

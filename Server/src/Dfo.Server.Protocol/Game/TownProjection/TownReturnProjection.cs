@@ -48,10 +48,10 @@ internal static class TownReturnProjection
         var frames = FramesWithState(session, result, position, visiblePeers);
         if (!ownState)
             return [.. frames.Skip(1)];
-        if (result.Events is not { LuckyFatigueState: { } fatigue } events)
+        if (result.Events is not { LuckyFatigueBurningEnabled: { } burning } events)
             return frames;
         return [.. frames, new LuckyCharacterListMessage(events.LuckyCharacters),
-            new SkillStateMessage(result.CharacterEntry.Skills), new FatigueAccelerationStateMessage(0, fatigue)];
+            new SkillStateMessage(result.CharacterEntry.Skills), FatigueAccelerationStateMessage.FromBurning(burning)];
     }
 
     private static IReadOnlyList<IGameServerMessage> FramesWithState(

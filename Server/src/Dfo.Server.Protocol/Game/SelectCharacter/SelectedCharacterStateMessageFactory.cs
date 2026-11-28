@@ -139,9 +139,10 @@ internal static class SelectedCharacterStateMessageFactory
         if (result.Capsules is { } capsules) messages.Add(new Dfo.Server.Protocol.Game.MarriageHousing.CapsuleStateMessage(capsules));
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));
-        messages.Add(new FatigueAccelerationStateMessage(
-            result.Events?.LuckyFatigueState is not null ? (ushort)0 : result.CharacterEntry.Progression.FatigueAccelerationValue,
-            result.Events?.LuckyFatigueState ?? result.CharacterEntry.Progression.FatigueAccelerationState));
+        messages.Add(result.Events?.LuckyFatigueBurningEnabled is { } burning
+            ? FatigueAccelerationStateMessage.FromBurning(burning)
+            : new FatigueAccelerationStateMessage(result.CharacterEntry.Progression.FatigueAccelerationValue,
+                result.CharacterEntry.Progression.FatigueAccelerationState));
         messages.Add(new MailboxStateMessage(result.CharacterEntry.Features.Mailbox));
         messages.Add(new PvpMissionStateMessage(result.CharacterEntry.Features.PvpMissions));
 

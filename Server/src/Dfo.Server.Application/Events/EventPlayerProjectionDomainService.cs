@@ -33,19 +33,19 @@ internal sealed class EventPlayerProjectionDomainService(IEventManagementDomainS
         bool pvp, DateTimeOffset at, LuckyCharacterPeriod lucky, CancellationToken ct)
     {
         var information = await events.GetEventInfoListAsync(account, at, ct).ConfigureAwait(false);
-        byte? fatigueState = null;
+        bool? burningEnabled = null;
         if (pvp)
             lucky = lucky with { Jobs = [] };
         else if (lucky.Revision > 0)
         {
-            fatigueState = lucky.Includes(job) && burning.IsEnabled(character, lucky.Revision) ? (byte)2 : (byte)0;
+            burningEnabled = lucky.Includes(job) && burning.IsEnabled(character, lucky.Revision);
         }
         return EventPlayerSnapshotProjection.WithScheduledDungeons(new(information,
             await attendance.StateAsync(account, at, ct).ConfigureAwait(false),
             await joust.ReadAsync(character, at, ct).ConfigureAwait(false))
         {
             LuckyCharacters = lucky,
-            LuckyFatigueState = fatigueState,
+            LuckyFatigueBurningEnabled = burningEnabled,
         });
     }
 }

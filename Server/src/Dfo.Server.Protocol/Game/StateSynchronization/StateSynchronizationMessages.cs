@@ -414,6 +414,8 @@ internal sealed record FatigueAccelerationStateMessage(
     ushort Value,
     byte State) : GameStateSynchronizationMessage, IGameNotiMessage
 {
+    internal static FatigueAccelerationStateMessage FromBurning(bool enabled) => new(0, enabled ? (byte)2 : (byte)0);
+
     internal override ushort Type => 0x01EB;
     internal override byte[] EncodeBody() => StateSynchronizationPayloadCodec.EncodeFatigueAcceleration(Value, State);
 }
