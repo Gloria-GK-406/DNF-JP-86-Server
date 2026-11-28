@@ -27,7 +27,7 @@ internal sealed class NpcShopDomainService(
     INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower, IDungeonParticipationDomainService participation,
     IGuildHallAccessDomainService halls, IGuildDungeonDomainService guildDungeons,
-    IExpertJobQueryDomainService expertJobs) : INpcShopDomainService
+    IExpertJobQueryDomainService expertJobs, IDungeonRunSettlementDomainService dungeonRuns) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -55,6 +55,43 @@ internal sealed class NpcShopDomainService(
         if (priced.Quote is not { } quote)
             return NpcShopPurchaseResult.Refused(priced.Rejection);
 
+        return await ExecutePurchaseAsync(session, character, npcId, quote, now, footprint, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async ValueTask<SecretShopPurchaseResult> PurchaseSecretAsync(
+        SelectedSessionIdentity session, int itemId, int rawCount, DateTimeOffset now,
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
+    {
+        footprint.DemandActive(session);
+        if (!sessions.IsInWorld(session))
+            return new(NpcShopRejection.NoSession);
+        if (dungeonRuns.Find(session.CharacterId) is not { SecretShop: { } offer } run)
+            return new(NpcShopRejection.ShopUnavailable);
+        if (offer.Items.FirstOrDefault(item => item.ItemId == itemId) is not { } product)
+            return new(NpcShopRejection.ItemNotSold);
+
+        var priced = await rules.QuoteSecretAsync(product, rawCount, cancellationToken).ConfigureAwait(false);
+        if (priced.Quote is not { } quote)
+            return new(priced.Rejection);
+
+        var purchase = await ExecutePurchaseAsync(session, characters.Get(session.CharacterId),
+            offer.NpcId, quote, now, footprint, cancellationToken).ConfigureAwait(false);
+        if (purchase.Receipt is not { } receipt)
+            return new(purchase.Rejection);
+
+        if (!dungeonRuns.TryStageSecretShopPurchase(session.CharacterId, run.RunId, itemId, quote.Count))
+            throw new NpcShopPurchaseRejectedException(NpcShopRejection.ShopUnavailable);
+        var costItemRemaining = receipt.MaterialChanges.FirstOrDefault()?.Core?.Count ?? 0;
+        return new(NpcShopRejection.None, receipt, product.RemainingCount - quote.Count,
+            product.CostItemId, costItemRemaining);
+    }
+
+    private async ValueTask<NpcShopPurchaseResult> ExecutePurchaseAsync(SelectedSessionIdentity session,
+        ICharacter character, int npcId, NpcShopQuote quote, DateTimeOffset now,
+        IEffectFootprintRecorder footprint, CancellationToken cancellationToken)
+    {
+        var itemId = quote.Definition.ItemId;
         var spaces = new HashSet<BusinessInventorySpace> { quote.Placement.Destination.Space };
         if (quote.Placement.Destination.Space != BusinessInventorySpace.SharedMaterial && ItemSlotRuleService.AllowsQuickSlot(quote.Placement))
             spaces.Add(BusinessInventorySpace.QuickSlot);
@@ -105,7 +142,8 @@ internal sealed class NpcShopDomainService(
             return NpcShopPurchaseResult.Refused(NpcShopRejection.NoSession);
         var cera = checked((int)wallet.Cera);
 
-        footprint.RecordInventorySlots(session, plan.MaterialChanges.Select(x => x.Slot).ToArray());
+        footprint.RecordInventorySlots(session,
+            plan.MaterialChanges.Select(change => change.Slot).Concat(plan.GrantedSlots.Select(grant => grant.Slot)).Distinct().ToArray());
         if (quote.GoldCost > 0)
         {
             footprint.DemandActive(session);

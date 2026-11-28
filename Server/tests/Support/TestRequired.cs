@@ -22,6 +22,12 @@ internal static class TestRequired
         Absent<Dfo.Server.Abstractions.Trade.IPlayerTradeDomainService>();
 
     public static IAccountHonorDomainService InitialHonor { get; } = new FreshAccountHonor();
+    public static IDungeonSecretShopContentSource NoSecretShops { get; } = new EmptySecretShops();
+
+    private sealed class EmptySecretShops : IDungeonSecretShopContentSource
+    {
+        public DungeonSecretShopCatalog Read() => DungeonSecretShopCatalog.Empty;
+    }
 
     private sealed class FreshAccountHonor : IAccountHonorDomainService
     {
@@ -146,6 +152,7 @@ internal static class TestRequired
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ISealedTreasureRuleService>(
             new Dfo.Server.Application.World.SealedTreasureRuleService(Absent<IDungeonDefinitionSource>()));
         services.TryAddSingleton<Dfo.Server.Abstractions.World.IDungeonSettlementRuleService>(new Dfo.Server.Application.World.DungeonSettlementRuleService());
+        services.TryAddSingleton(NoSecretShops);
         services.TryAddSingleton<Dfo.Server.Abstractions.World.ILostLandFeverRuleService>(new Dfo.Server.Application.World.LostLandFeverRuleService());
         services.TryAddSingleton(TimeProvider.System);
         return services;

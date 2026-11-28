@@ -41,6 +41,7 @@ public sealed record DungeonRunState(
     DungeonCellState? CurrentCellState = null)
 {
     public DateTimeOffset? ClearedAt { get; init; }
+    public DungeonSecretShopOffer? SecretShop { get; init; }
     public ImmutableArray<DungeonClearParticipant> ClearParticipants { get; init; } = [];
     public ImmutableHashSet<MazeCell> ClearedCells { get; init; } = [];
     /// <summary>Codes of every room object this run has destroyed, once per destruction.</summary>
@@ -672,6 +673,9 @@ public interface IDungeonRunSettlementDomainService : IDungeonRunQueryDomainServ
 
     /// <summary>Releases exactly this failed settlement attempt for retry.</summary>
     bool ReleaseSettlement(DungeonSettlementClaim claim);
+
+    /// <summary>Enlists the participant's current stock debit in the purchase transaction.</summary>
+    bool TryStageSecretShopPurchase(CharacterId characterId, DungeonRunId runId, int itemId, int count);
 }
 
 /// <summary>Lays out a clear's reward cards and claims their positions.</summary>

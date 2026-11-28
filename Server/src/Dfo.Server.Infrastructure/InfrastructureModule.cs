@@ -113,6 +113,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IQuestParameterSource, PvfQuestParameterSource>();
         services.TryAddSingleton<IExperienceParameterSource, PvfExperienceParameterSource>();
         services.TryAddSingleton<IDungeonRankGradeSource, PvfDungeonRankGradeSource>();
+        services.TryAddSingleton<IDungeonSecretShopContentSource, PvfDungeonSecretShopContentSource>();
         services.TryAddSingleton<IGoldCarryLimitSource, PvfGoldCarryLimitSource>();
         services.TryAddSingleton<ICharacterManageContentSource, PvfCharacterManageContentSource>();
         services.TryAddSingleton<ICollectionBoxDefinitionSource, PvfCollectionBoxDefinitionSource>();
@@ -240,6 +241,7 @@ public sealed class InfrastructureModule : IServerModule
         .AddContentWarmup<IInitialEquipmentDefinitionSource>()
         .AddContentWarmup<IInitialSkillDefinitionSource>()
         .AddContentWarmup<IDungeonDefinitionSource>()
+        .AddContentWarmup<IDungeonSecretShopContentSource>()
         .AddContentWarmup<IDungeonMapDefinitionSource>()
         .AddContentWarmup<IDungeonRoomDropSource>()
         .AddContentWarmup<IDungeonRoomActorSource>()

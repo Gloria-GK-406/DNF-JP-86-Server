@@ -93,12 +93,15 @@ internal sealed partial class DungeonRunStore
                         member.CharacterId == membership.LeaderCharacterId))];
             }
         }
+        public int EntryParticipantCount => this.entryParticipants.Length;
+
         /// <summary>Everyone who entered, in entry order.</summary>
         public IEnumerable<CharacterId> EntrantIds =>
             this.entryParticipants.Select(participant => participant.CharacterId);
         public DungeonRunParticipant Leader =>
             this.Participants.Single(participant => participant.IsLeader);
         public DateTimeOffset? ClearedAt { get; set; }
+        public int? SecretShopNpcId { get; set; }
         public ImmutableArray<DungeonClearParticipant> ClearParticipants { get; set; } = [];
         public DungeonLayout Layout { get; }
         public DungeonRunModeState? ModeState { get; set; }
@@ -217,6 +220,8 @@ internal sealed partial class DungeonRunStore
                 EntryPurposeOwner = this.entryParticipants.Single(participant => participant.IsLeader),
                 Kills = this.kills.ToImmutableArray(),
                 ClearedAt = this.ClearedAt,
+                SecretShop = !progress.Released && this.SecretShopNpcId is { } shopNpc && !progress.SecretShopItems.IsEmpty
+                    ? new(shopNpc, progress.SecretShopItems) : null,
                 ClearParticipants = this.ClearParticipants,
                 ClearedCells = this.Cells.Where(x => x.Value.IsCleared).Select(x => x.Key).ToImmutableHashSet(),
                 DestroyedObjectCodes = this.Cells.Values.SelectMany(cell => cell.DestroyedObjectCodes).ToImmutableArray(),
@@ -458,6 +463,7 @@ internal sealed partial class DungeonRunStore
 
     private sealed class ParticipantProgress
     {
+        public ImmutableArray<DungeonSecretShopItem> SecretShopItems { get; set; } = [];
         public bool IsSettled { get; set; }
         public ClearRewardCardSet? ClearRewardCards { get; set; }
         public bool CardLayoutOpen { get; set; }

@@ -109,6 +109,7 @@ using Dfo.Server.Protocol.Game.Forging;
 using Dfo.Server.Protocol.Game.EquipmentDurability;
 using Dfo.Server.Protocol.Game.LearnSkill;
 using Dfo.Server.Protocol.Game.ShopPurchaseCount;
+using Dfo.Server.Protocol.Game.SecretShop;
 using Dfo.Server.Protocol.Game.TutorialLevelUp;
 using Dfo.Server.Protocol.Game.UnansweredReports;
 using Dfo.Server.Protocol.Game.CardReward;
@@ -233,6 +234,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddRoomMechanismsSlice();
         services.AddNotificationCatalog(typeof(Dfo.Server.Abstractions.Mail.MailDelivered).Assembly);
         services.AddBuyItemSlice();
+        services.AddSecretShopSlice();
         services.AddWarehouseSlice();
         services.AddNotificationHandler<Dfo.Server.Abstractions.Accounts.AccountWalletChanged, AccountWalletChangedHandler>();
         services.AddNotificationHandler<OpeningCompleted, OpeningCompletedHandler>();

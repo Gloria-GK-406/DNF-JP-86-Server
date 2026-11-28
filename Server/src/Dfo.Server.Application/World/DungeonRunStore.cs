@@ -18,7 +18,8 @@ namespace Dfo.Server.Application.World;
 /// dependencies and registration, and none holds state (<c>DungeonRunServiceStructureTests</c>).
 /// </remarks>
 internal sealed partial class DungeonRunStore(IPartyService parties, IDungeonDeadlineWake deadlines,
-    IDungeonParticipationDomainService participation, IWeaknessDomainService weakness, ICreatureRuntimeDomainService creatures)
+    IDungeonParticipationDomainService participation, IWeaknessDomainService weakness, ICreatureRuntimeDomainService creatures,
+    DungeonSecretShopRuleService secretShopRules)
     : IDungeonRunQueryDomainService
 {
     private readonly object gate = new();
@@ -134,10 +135,21 @@ internal sealed partial class DungeonRunStore(IPartyService parties, IDungeonDea
                 return null;
             }
 
+            var members = aggregate.Participants;
+            if (aggregate.SecretShopNpcId is null)
+            {
+                var (npc, pool) = secretShopRules.Choose(aggregate.Layout, aggregate.EntryParticipantCount, Random.Shared.Next);
+                if (pool is not null)
+                    foreach (var member in members)
+                        aggregate.ProgressFor(member.CharacterId).SecretShopItems =
+                            DungeonSecretShopRuleService.DrawOffer(npc, pool, Random.Shared.Next).Items;
+                aggregate.SecretShopNpcId = npc;
+            }
+
             var cell = aggregate.Cells[aggregate.CurrentCell];
             cell.ClearOpen = true;
             aggregate.ClearedAt = at;
-            aggregate.ClearParticipants = [.. aggregate.Participants.Select(member =>
+            aggregate.ClearParticipants = [.. members.Select(member =>
                 new DungeonClearParticipant(member.AccountId, member.CharacterId,
                     membershipsAtClear?.TryGetValue(member.CharacterId, out var membershipId) == true ? membershipId : null))];
             cell.Revision++;
@@ -145,7 +157,7 @@ internal sealed partial class DungeonRunStore(IPartyService parties, IDungeonDea
             return new DungeonClearChange(
                 aggregate.RunId,
                 aggregate.RuntimeRevision,
-                [.. aggregate.Participants
+                [.. members
                     .OrderBy(participant => participant.Slot)
                     .Select(participant => participant.CharacterId)]);
         }

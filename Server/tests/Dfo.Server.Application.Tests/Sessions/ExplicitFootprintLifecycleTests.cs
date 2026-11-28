@@ -83,6 +83,7 @@ public sealed class ExplicitFootprintLifecycleTests
         var methods = new[]
         {
             typeof(INpcShopDomainService).GetMethod("PurchaseAsync")!, typeof(IItemSocketDomainService).GetMethod("ApplyAsync")!,
+            typeof(INpcShopDomainService).GetMethod("PurchaseSecretAsync")!,
             typeof(IAvatarCompoundDomainService).GetMethod("CompoundAsync")!, typeof(IItemUseEffectDomainService).GetMethod("UseAsync")!,
             typeof(ISharedEffectDomainService).GetMethod("UseAsync")!,
             typeof(Dfo.Server.Abstractions.Marriage.IMarriageHousingDomainService).GetMethod("ExecuteAsync")!,

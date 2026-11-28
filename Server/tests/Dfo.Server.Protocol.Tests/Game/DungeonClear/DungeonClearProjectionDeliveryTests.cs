@@ -14,6 +14,7 @@ using Dfo.Server.Protocol.Game;
 using Dfo.Server.Protocol.Game.DungeonClear;
 using Dfo.Server.Protocol.Game.Dungeons;
 using Dfo.Server.Protocol.Game.EplpRechallenge;
+using Dfo.Server.Protocol.Game.SecretShop;
 using Dfo.Server.Protocol.Game.QuestProgress;
 using Dfo.Server.Protocol.Game.StateSynchronization;
 using Dfo.Server.Testing;
@@ -24,6 +25,25 @@ public sealed class DungeonClearProjectionDeliveryTests
 {
     private static readonly SelectedSessionIdentity Leader = Session(1, "leader", 1);
     private static readonly SelectedSessionIdentity Helper = Session(2, "helper", 1);
+
+    [Fact]
+    public async Task Gabriel_appears_for_both_members_and_delivers_their_goods_before_open()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var world = Build([Leader, Helper], [Leader, Helper], secretShops: new GabrielContent());
+            var change = world.Runs.TryOpenClear(Leader.CharacterId, world.Run.RunId, world.Run.RoomVersion)!;
+
+            Assert.Equal(2, await world.Projection.DeliverAsync(Leader, change, default));
+            foreach (var session in new[] { Leader, Helper })
+            {
+                Assert.Collection(world.Sender.For(session.ConnectionId),
+                    message => Assert.IsType<EnableClearDungeonNotification>(message),
+                    message => Assert.Equal(1003, Assert.IsType<SecretShopNpcNotification>(message).NpcId),
+                    message => Assert.Equal(3033, Assert.Single(Assert.IsType<SecretShopItemsNotification>(message).Items).ItemId));
+            }
+        });
+    }
 
     [Fact]
     public async Task Cycle_clear_invites_the_native_client_to_submit_after_clear_and_shop()
@@ -210,9 +230,9 @@ public sealed class DungeonClearProjectionDeliveryTests
         IReadOnlyList<SelectedSessionIdentity> frozen,
         IReadOnlyList<SelectedSessionIdentity> current,
         bool cycle = false,
-        IQuestQueryDomainService? queries = null)
+        IQuestQueryDomainService? queries = null, IDungeonSecretShopContentSource? secretShops = null)
     {
-        var runs = TestParties.Runs();
+        var runs = TestParties.Runs(secretShops: secretShops);
         var run = runs.BeginParty(
             frozen.Select((session, index) => new DungeonRunParticipant(
                 session.AccountId,
@@ -241,6 +261,12 @@ public sealed class DungeonClearProjectionDeliveryTests
         8153,
         7,
         new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(8153)});
+
+    private sealed class GabrielContent : IDungeonSecretShopContentSource
+    {
+        public DungeonSecretShopCatalog Read() => new([], [new(144, 1003, [1])], [],
+            [new(1003, 144, true, 1, [new(new(3033, 100, 0, 100), 1)])]);
+    }
 
     private static SelectedSessionIdentity Session(int id, string connection, long generation) =>
         SelectedSessionIdentity.Create(

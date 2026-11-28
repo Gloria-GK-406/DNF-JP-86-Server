@@ -202,6 +202,8 @@ internal abstract class DungeonRunServiceStub : IDungeonRunDomainService
     public virtual DungeonRunState? TrySettle(CharacterId characterId) =>
         throw new NotSupportedException("TrySettle is not part of this stub.");
 
+    public virtual bool TryStageSecretShopPurchase(CharacterId characterId, DungeonRunId runId, int itemId, int count) => false;
+
     public virtual DungeonSettlementClaim? TryClaimSettlement(CharacterId characterId) =>
         TrySettle(characterId) is { } run
             ? new DungeonSettlementClaim(characterId, run, 0, run.RunId)
