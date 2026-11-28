@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
@@ -131,9 +132,23 @@ public enum ExperienceBonusKind
 /// </param>
 /// <param name="Rate">How much of the occasion's worth this adds.</param>
 public readonly record struct ExperienceModifier(
-    string Source, double Rate, ExperienceBonusKind Kind = ExperienceBonusKind.Unlisted);
+    string Source, double Rate, ExperienceBonusKind Kind = ExperienceBonusKind.Unlisted,
+    ExperienceBonusBasis Basis = ExperienceBonusBasis.Base);
 
-public readonly record struct ExperienceBenefit(ExperienceEvent Event, ExperienceModifier Modifier) : IGameplayBenefitEffect;
+public enum ExperienceBonusBasis
+{
+    Base,
+    BaseAndClearRank,
+    TotalAfterBaseBonuses,
+}
+
+public readonly record struct ExperienceBenefit(ImmutableArray<ExperienceEvent> Events, ExperienceModifier Modifier)
+    : IGameplayBenefitEffect
+{
+    public ExperienceBenefit(ExperienceEvent occasion, ExperienceModifier modifier) : this([occasion], modifier) { }
+
+    public bool AppliesTo(ExperienceEvent occasion) => Events.Contains(occasion);
+}
 
 /// <summary>Reads declared gameplay benefits for a dungeon experience award.</summary>
 public interface IExperienceBonusDomainService

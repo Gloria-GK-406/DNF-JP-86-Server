@@ -124,9 +124,9 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         {
             var declared = await experienceBenefits.ReadAsync(new(facts.Identity, questId), ct,
                 GameplayBenefitScope.Global, GameplayBenefitScope.For(facts.Identity.CharacterId)).ConfigureAwait(false);
-            experienceBreakdown = ExperienceCalculationDomainService.ApplyBaseBonuses(experienceBreakdown,
-                declared.Effects<ExperienceBenefit>().Where(effect => effect.Event == ExperienceEvent.QuestCompletion)
-                    .Select(effect => effect.Modifier));
+            experienceBreakdown = ExperienceCalculationDomainService.ApplyBonuses(experienceBreakdown,
+                declared.Effects<ExperienceBenefit>().Where(effect => effect.AppliesTo(ExperienceEvent.QuestCompletion))
+                    .Select(effect => effect.Modifier).ToArray());
         }
         var xp = experience.DecideAward(facts.Progress, experienceBreakdown);
         effects.Add(new CharacterExperienceEffect(xp));

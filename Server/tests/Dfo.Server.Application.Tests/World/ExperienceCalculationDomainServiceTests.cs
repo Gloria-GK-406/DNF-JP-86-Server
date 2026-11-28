@@ -39,12 +39,14 @@ public sealed class ExperienceCalculationDomainServiceTests
         Assert.Equal(192u, result.Total);
     }
 
-    [Fact]
-    public async Task FatigueBurningDoublesTheClearIncludingRankAndLuckyLines()
+    [Theory]
+    [InlineData(ExperienceBonusKind.FatigueBurn)]
+    [InlineData(ExperienceBonusKind.SeriaBlessing)]
+    public async Task TotalBasedBonusDoublesTheClearAndUsesTheDeclaredDisplayLine(ExperienceBonusKind display)
     {
         var bonuses = TestRequired.Absent<IExperienceBonusDomainService>((_, _) =>
             ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([
-                new("burning", 1, ExperienceBonusKind.FatigueBurn),
+                new("double experience", 1, display, ExperienceBonusBasis.TotalAfterBaseBonuses),
                 new("lucky", .15, ExperienceBonusKind.LuckyCharacter),
                 new("lucky party", .10, ExperienceBonusKind.LuckyCharacterParty),
             ]));
@@ -56,7 +58,8 @@ public sealed class ExperienceCalculationDomainServiceTests
 
         Assert.Equal(150u, clear.LuckyCharacter);
         Assert.Equal(100u, clear.LuckyCharacterParty);
-        Assert.Equal(1450u, clear.FatigueBurning);
+        Assert.Equal(display == ExperienceBonusKind.FatigueBurn ? 1450u : 0u, clear.FatigueBurning);
+        Assert.Equal(display == ExperienceBonusKind.SeriaBlessing ? 1450u : 0u, clear.Channel);
         Assert.Equal(2900u, clear.Total);
     }
 
@@ -163,7 +166,7 @@ public sealed class ExperienceCalculationDomainServiceTests
             return ValueTask.FromResult<IReadOnlyList<ExperienceModifier>>([
                 new("growth", .2, ExperienceBonusKind.GrowthContract),
                 new("potion", 1, ExperienceBonusKind.SpiritPotion),
-                new("black diamond", .05, ExperienceBonusKind.BlackDiamond)]);
+                new("black diamond", .05, ExperienceBonusKind.BlackDiamond, ExperienceBonusBasis.BaseAndClearRank)]);
         }
     }
     private sealed class Bonuses : IExperienceBonusDomainService
@@ -174,6 +177,6 @@ public sealed class ExperienceCalculationDomainServiceTests
                 new("channel", .05, ExperienceBonusKind.SeriaBlessing),
                 new("another channel source", .05, ExperienceBonusKind.SeriaBlessing),
                 new("growth", .2, ExperienceBonusKind.GrowthContract),
-                new("burning", 1, ExperienceBonusKind.FatigueBurn)]);
+                new("burning", 1, ExperienceBonusKind.FatigueBurn, ExperienceBonusBasis.TotalAfterBaseBonuses)]);
     }
 }

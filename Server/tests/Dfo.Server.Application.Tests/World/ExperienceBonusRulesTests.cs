@@ -105,7 +105,7 @@ public sealed class ExperienceBonusRulesTests
         var found = new List<GameplayBenefit>();
         ExperienceBonusRules.FromChannel(ExperienceEvent.MonsterKill, DeclaredRate, found);
 
-        var channel = Assert.IsType<ExperienceBenefit>(Assert.Single(found).Effect).Modifier;
+        var channel = Assert.IsType<ExperienceBenefit>(Assert.Single(Assert.Single(found).Effects)).Modifier;
         Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
         Assert.Equal(captured, worth + (uint)Math.Floor(worth * channel.Rate));
     }
@@ -179,6 +179,6 @@ public sealed class ExperienceBonusRulesTests
         var found = new List<GameplayBenefit>();
         ExperienceBonusRules.FromAccountEntitlements(
             premiums, Now, ExperienceEvent.MonsterKill, policy, found);
-        return found.Select(benefit => Assert.IsType<ExperienceBenefit>(benefit.Effect).Modifier).ToList();
+        return found.Select(benefit => Assert.IsType<ExperienceBenefit>(Assert.Single(benefit.Effects)).Modifier).ToList();
     }
 }

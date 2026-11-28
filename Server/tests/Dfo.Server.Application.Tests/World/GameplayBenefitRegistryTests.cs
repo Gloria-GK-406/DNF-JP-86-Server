@@ -24,12 +24,13 @@ public sealed class GameplayBenefitRegistryTests
         Assert.True(registry.Replace(new("world", global,
             new GameplayBenefit("b", "global bonus", 40, new Effect(4))), 1));
         Assert.True(registry.Replace(new("event", character,
-            new GameplayBenefit("a", "always active", 20, new Effect(2)),
+            new GameplayBenefit("a", "always active", 20, [new Effect(2), new SecondaryEffect(20)]),
             new GameplayBenefit("timed", "ends tomorrow", 10, new Effect(1), at, at.AddDays(1)),
             new GameplayBenefit("future", "starts tomorrow", 30, new Effect(3), at.AddDays(1))), 3));
         Assert.True(registry.Replace(new("event", stranger, new GameplayBenefit("other", "other character", 0, new Effect(0))), 1));
         var frozen = await query.ReadAtAsync(0, at, default, character, global);
         Assert.Equal([1, 2, 4], frozen.Effects<Effect>().Select(effect => effect.Value));
+        Assert.Equal(20, Assert.Single(frozen.Effects<SecondaryEffect>()).Value);
         Assert.Equal("event", frozen.Active[0].Source);
         Assert.Equal(character, frozen.Active[0].Scope);
         Assert.DoesNotContain(frozen.Declarations, batch => batch.Scope == stranger);
@@ -41,8 +42,10 @@ public sealed class GameplayBenefitRegistryTests
         var cleared = await query.ReadAtAsync(0, at, default, character, global);
         Assert.Empty(Assert.Single(cleared.Declarations, batch => batch.Source == "event").Benefits);
         Assert.Equal(4, Assert.Single(cleared.Effects<Effect>()).Value);
+        Assert.Empty(cleared.Effects<SecondaryEffect>());
         Assert.Equal([1, 2, 4], frozen.Effects<Effect>().Select(effect => effect.Value));
     }
 
     private readonly record struct Effect(int Value) : IGameplayBenefitEffect;
+    private readonly record struct SecondaryEffect(int Value) : IGameplayBenefitEffect;
 }

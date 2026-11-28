@@ -16,9 +16,13 @@ public readonly record struct GameplayBenefitScope(string Kind, string Key)
         new("character", character.Value.ToString(CultureInfo.InvariantCulture));
 }
 
-public sealed record GameplayBenefit(string Key, string Name, int Order, IGameplayBenefitEffect Effect,
+public sealed record GameplayBenefit(string Key, string Name, int Order, ImmutableArray<IGameplayBenefitEffect> Effects,
     DateTimeOffset? StartsAt = null, DateTimeOffset? EndsAt = null)
 {
+    public GameplayBenefit(string Key, string Name, int Order, IGameplayBenefitEffect Effect,
+        DateTimeOffset? StartsAt = null, DateTimeOffset? EndsAt = null)
+        : this(Key, Name, Order, [Effect], StartsAt, EndsAt) { }
+
     public bool IsActiveAt(DateTimeOffset at) =>
         (StartsAt is null || StartsAt <= at) && (EndsAt is null || at < EndsAt);
 }
@@ -36,8 +40,8 @@ public sealed record GameplayBenefitBatch
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(benefit.Key);
             ArgumentException.ThrowIfNullOrWhiteSpace(benefit.Name);
-            ArgumentNullException.ThrowIfNull(benefit.Effect);
-            if (!keys.Add(benefit.Key) || benefit.StartsAt >= benefit.EndsAt)
+            if (benefit.Effects.IsDefaultOrEmpty || benefit.Effects.Any(effect => effect is null)
+                || !keys.Add(benefit.Key) || benefit.StartsAt >= benefit.EndsAt)
                 throw new ArgumentException($"Invalid benefit {source}/{benefit.Key}.", nameof(benefits));
         }
         Source = source;
@@ -88,5 +92,5 @@ public sealed class GameplayBenefitSnapshot
     public ImmutableArray<GameplayBenefitBatch> Declarations { get; }
     public ImmutableArray<GameplayBenefitEntry> Active { get; }
     public IEnumerable<TEffect> Effects<TEffect>() where TEffect : IGameplayBenefitEffect =>
-        Active.Select(entry => entry.Benefit.Effect).OfType<TEffect>();
+        Active.SelectMany(entry => entry.Benefit.Effects).OfType<TEffect>();
 }

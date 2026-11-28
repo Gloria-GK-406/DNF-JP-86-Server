@@ -19,7 +19,7 @@ internal sealed class ExperienceBonusDomainService(
             GameplayBenefitScope.Global, GameplayBenefitScope.For(occasion.Account), GameplayBenefitScope.For(occasion.Character))
             .ConfigureAwait(false);
         return sessions.IsInWorld(session)
-            ? snapshot.Effects<ExperienceBenefit>().Where(effect => effect.Event == occasion.Event)
+            ? snapshot.Effects<ExperienceBenefit>().Where(effect => effect.AppliesTo(occasion.Event))
                 .Select(effect => effect.Modifier).ToArray()
             : [];
     }

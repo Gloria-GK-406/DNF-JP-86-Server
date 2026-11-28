@@ -14,8 +14,9 @@ internal readonly record struct DungeonExperienceBenefitContext(ExperienceOccasi
 internal static class DungeonExperienceBenefits
 {
     public static GameplayBenefit Entry(string key, string name, int order, ExperienceEvent occasion,
-        double rate, ExperienceBonusKind kind, DateTimeOffset? endsAt = null) =>
-        new(key, name, order, new ExperienceBenefit(occasion, new(name, rate, kind)), EndsAt: endsAt);
+        double rate, ExperienceBonusKind kind, DateTimeOffset? endsAt = null,
+        ExperienceBonusBasis basis = ExperienceBonusBasis.Base) =>
+        new(key, name, order, new ExperienceBenefit(occasion, new(name, rate, kind, basis)), EndsAt: endsAt);
 }
 
 internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService premiums,
@@ -39,7 +40,7 @@ internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService pre
         if (occasion.Event == ExperienceEvent.DungeonClear
             && await account.GetBlackDiamondExperienceBonusRateAsync(ct).ConfigureAwait(false) is > 0 and var blackDiamond)
             found.Add(DungeonExperienceBenefits.Entry("black-diamond", "black diamond", 400, occasion.Event,
-                blackDiamond, ExperienceBonusKind.BlackDiamond));
+                blackDiamond, ExperienceBonusKind.BlackDiamond, basis: ExperienceBonusBasis.BaseAndClearRank));
         return new("premium-services", GameplayBenefitScope.For(occasion.Account), found.ToImmutable());
     }
 }
@@ -125,10 +126,9 @@ internal sealed class RunExperienceBenefits(IDungeonRunQueryDomainService runs)
                     0.10, ExperienceBonusKind.LuckyCharacterParty));
             if (participant.BurnsFatigue && (occasion.Event == ExperienceEvent.DungeonClear
                 || run.Layout.EntryOnlyFatigue is not null || run.CurrentCellState.FatigueBurnedBy.Contains(occasion.Character)))
-                found.Add(DungeonExperienceBenefits.Entry("fatigue-burning", "fatigue burning", 900, occasion.Event,
-                    1.0, ExperienceBonusKind.FatigueBurn));
+                found.Add(FatigueBurningBenefit.Declaration);
         }
-        return ValueTask.FromResult(new GameplayBenefitBatch("dungeon-run", GameplayBenefitScope.For(occasion.Character),
+        return ValueTask.FromResult(new GameplayBenefitBatch(FatigueBurningBenefit.Source, GameplayBenefitScope.For(occasion.Character),
             found.ToImmutable()));
     }
 }
