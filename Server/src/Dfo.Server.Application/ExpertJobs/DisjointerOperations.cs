@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Inventory;
@@ -14,7 +13,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.ExpertJobs;
 
 internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJobRuleService definitions,
-    EquipmentDisjointRuleService equipmentRules, IEquipmentDomainService equipment,
+    DisjointMachineRuleService machineRules, IEquipmentDomainService equipment,
     IPackageOpeningRuleService grants, IInventoryEffectPreflightDomainService preview, IApplyEffectsDomainService effects,
     IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
     IExpertStoreGameplayDomainService gameplay, IExpertStoreDomainService stores,
@@ -52,23 +51,18 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
             || await equipment.Of(guest.CharacterId).FindAtAsync(slot, ct).ConfigureAwait(false) is not { } instance)
             return new(DisjointMachineRejection.InvalidItem);
         var item = await instance.ReadAsync(ct).ConfigureAwait(false);
-        if (item.Snapshot.EquipmentLockId != 0 || item.Snapshot.SortLockFlag != 0 || item.Snapshot.Lifetime.IsExpired(at)
-            || await equipmentRules.ExpertTargetAsync(item.Snapshot, ct).ConfigureAwait(false) is not { } target)
+        if (item.Snapshot.EquipmentLockId != 0 || item.Snapshot.SortLockFlag != 0 || item.Snapshot.Lifetime.IsExpired(at))
             return new(DisjointMachineRejection.InvalidItem);
 
-        if (!machine.Results.TryGetValue((state.DisjointMachineGrade - 1, target.Definition.Rarity, target.State), out var material))
-            return new(target.State == EquipmentDisjointRuleService.UnpurifiedState
-                ? DisjointMachineRejection.GradeTooLow : DisjointMachineRejection.InvalidItem);
-        var random = new Random(Random.Shared.Next());
-        var rewards = await CalculateRewardsAsync(machine, target.Definition, material, target.Grade, selfService, random, ct)
-            .ConfigureAwait(false);
-        if (rewards.Length == 0) return new(DisjointMachineRejection.InvalidItem);
+        var decision = await machineRules.ResolveAsync(machine, item.Snapshot, state.DisjointMachineGrade,
+            state.DisjointMachineEndurance, selfService, Random.Shared.Next(), ct).ConfigureAwait(false);
+        if (decision.Plan is not { } operation) return new(decision.Rejection);
 
         var plan = new List<DomainEffect> { new DestroyEquipmentEffect(new EquipmentEffectTarget(item, item.ItemId)) };
         if (price > 0) plan.Add(new SpendGoldEffect(price));
         try
         {
-            foreach (var grant in await grants.PrepareAsync(rewards, at, ct).ConfigureAwait(false))
+            foreach (var grant in await grants.PrepareAsync(operation.Rewards, at, ct).ConfigureAwait(false))
             {
                 if (grant.Item.Placement.Destination.Space is not (BusinessInventorySpace.Consumable
                     or BusinessInventorySpace.Material or BusinessInventorySpace.Quest
@@ -86,9 +80,8 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
         if (preparation.Rejection != InventoryEffectRejection.None || preparation.RewardEntries > byte.MaxValue)
             return new(DisjointMachineRejection.InvalidItem);
 
-        var endurance = Math.Max(0, state.DisjointMachineEndurance - ExpertJobEquipmentRules.Between(random, machine.MinimumWear, machine.MaximumWear));
-        var progress = definition.Advance(state,
-            ExpertJobEquipmentRules.Between(random, machine.MinimumExperience, machine.MaximumExperience));
+        var endurance = operation.Endurance;
+        var progress = definition.Advance(state, operation.ExperienceGain);
         var closure = endurance == 0 ? stores.StageClose(visit.Store)
             ?? throw new InvalidOperationException("The exhausting disjoint machine could not be staged for closure.") : null;
 
@@ -103,28 +96,6 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
             await requester.GoldAsync(ct).ConfigureAwait(false), await beneficiary.GoldAsync(ct).ConfigureAwait(false),
             endurance, progress.ExperienceChanged, closure));
     }
-
-    private async ValueTask<OpeningReward[]> CalculateRewardsAsync(DisjointMachineDefinition machine, EquipmentDisjointDefinition equipment,
-        DisjointMachineMaterialRule material, int grade, bool selfService, Random random, CancellationToken ct)
-    {
-        var adjustedGold = Math.Max(1, Math.Floor(equipment.SellGold * 1.1));
-        var rewards = new List<EquipmentDisjointReward>();
-        if (material.ItemId > 0)
-            rewards.Add(new(material.ItemId, PositiveCount(adjustedGold * material.Multiplier / machine.BaseDivisor)));
-        var great = random.Next(10000) < Math.Clamp(material.GreatChance, 0, 100) * 100;
-        var extraTable = great ? material.GreatTable : material.AdditionalTable;
-        var choices = great ? machine.GreatResults : machine.AdditionalResults;
-        var extra = ExpertJobEquipmentRules.Select(choices, extraTable, grade, random);
-        if (extra is { ItemId: > 0 })
-            rewards.Add(new(extra.ItemId, extra.Divisor > 0 ? PositiveCount(grade / extra.Divisor) : 1));
-        await equipmentRules.AddEquipmentSoulsAsync(rewards, equipment, random, ct).ConfigureAwait(false);
-        if (selfService && equipment.Rarity > 1 && random.Next(100) < machine.SelfServiceChance)
-            rewards.Add(new(machine.SelfServiceItemId, machine.SelfServiceCount));
-        return rewards.GroupBy(reward => reward.ItemId)
-            .Select(group => new OpeningReward(group.Key, checked(group.Sum(reward => reward.Count)))).ToArray();
-    }
-
-    private static int PositiveCount(double value) => (int)Math.Clamp(Math.Floor(value), 1, int.MaxValue);
 
     private async ValueTask<ExpertMachineMaintenanceResult> MaintainAsync(CharacterId owner, SelectedSessionIdentity session,
         bool upgrade, IEffectFootprintRecorder footprint, CancellationToken ct)
@@ -206,17 +177,4 @@ internal static class ExpertJobEquipmentRules
 {
     internal static int Between(Random random, int lower, int upper) =>
         upper <= lower ? lower : checked((int)random.NextInt64(lower, (long)upper + 1));
-
-    internal static DisjointMachineSelectionRule? Select(IReadOnlyList<DisjointMachineSelectionRule> choices,
-        int table, int grade, Random random)
-    {
-        var roll = random.Next(10000);
-        foreach (var rule in choices)
-        {
-            if (rule.Table != table || grade < rule.MinimumGrade || grade > rule.MaximumGrade) continue;
-            roll -= Math.Clamp(rule.Weight, 0, 10000);
-            if (roll < 0) return rule;
-        }
-        return null;
-    }
 }

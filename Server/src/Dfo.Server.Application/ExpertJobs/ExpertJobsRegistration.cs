@@ -9,6 +9,7 @@ internal static class ExpertJobsRegistration
     internal static void AddExpertJobs(this IServiceCollection services)
     {
         services.TryAddSingleton<IExpertJobRuleService, ExpertJobRuleService>();
+        services.TryAddSingleton<DisjointMachineRuleService>();
         services.TryAddSingleton<DisjointerOperations>();
         services.TryAddSingleton<ExpertJobProductionOperations>();
         services.TryAddSingleton<EnchanterStoreOperations>();
