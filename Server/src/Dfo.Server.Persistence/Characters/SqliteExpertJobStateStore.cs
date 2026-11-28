@@ -13,21 +13,22 @@ internal sealed class SqliteExpertJobStateStore(SqliteDatabase database, ICharac
     {
         var row = await jobs.FindAsync(character, ct).ConfigureAwait(false);
         if (row is null) return ExpertJobState.Empty;
-        if (row.ExpertJobType is < 0 or > 4 || row.GiveUpCount is < 0 or > byte.MaxValue)
+        if (row.ExpertJobType is < 0 or > (int)ExpertJobType.DollController || row.GiveUpCount is < 0 or > byte.MaxValue)
             throw new InvalidDataException("Invalid stored expert-job identity.");
         if (row.ExpertJobType == 0)
             return ExpertJobState.Empty with { GiveUpCount = (byte)row.GiveUpCount };
-        return new((ExpertJobType)row.ExpertJobType, checked((uint)row.ExpertJobExperience),
+        if (row.ExpertJobExperience is < 0 or > uint.MaxValue)
+            throw new InvalidDataException("Invalid stored expert-job experience.");
+        var state = new ExpertJobState((ExpertJobType)row.ExpertJobType, (uint)row.ExpertJobExperience,
             (byte)row.GiveUpCount, row.DisjointMachineGrade, row.DisjointMachineEndurance,
             row.EnchanterEndurance, await recipes.ReadAsync(character, ct).ConfigureAwait(false));
+        Validate(state);
+        return state;
     }
 
     public async ValueTask WriteAsync(CharacterId character, ExpertJobState state, CancellationToken ct)
     {
-        if (!Enum.IsDefined(state.Type) || state.DisjointMachineGrade < 0 || state.DisjointMachineEndurance < 0
-            || state.EnchanterEndurance < 0 || state.LearnedRecipeIds.Count > byte.MaxValue
-            || state.LearnedRecipeIds.Any(id => id <= 0))
-            throw new InvalidDataException("Invalid expert-job state.");
+        Validate(state);
         await database.ExecuteAsync("""
             INSERT INTO character_expert_job (character_id, expert_job_type, expert_job_exp, giveup_count,
                 disjoint_machine_grade, disjoint_machine_endurance, enchanter_endurance)
@@ -56,6 +57,17 @@ internal sealed class SqliteExpertJobStateStore(SqliteDatabase database, ICharac
             await database.ExecuteAsync("INSERT INTO character_expert_job_recipes (character_id, recipe_id) VALUES (@id, @recipe);",
                 p => { p.AddWithValue("@id", character.Value); p.AddWithValue("@recipe", added); }, ct).ConfigureAwait(false);
     }
+
+    private static void Validate(ExpertJobState state)
+    {
+        if (!Enum.IsDefined(state.Type) || state.DisjointMachineGrade < 0 || state.DisjointMachineEndurance < 0
+            || state.EnchanterEndurance < 0 || state.LearnedRecipeIds.Count > byte.MaxValue
+            || state.LearnedRecipeIds.Any(id => id <= 0))
+            throw new InvalidDataException("Invalid expert-job state.");
+    }
+
+    public ValueTask InitializeAsync(CharacterId character, CancellationToken ct) =>
+        jobs.InsertIfAbsentAsync(character, ct);
 
     public async ValueTask DeleteAsync(CharacterId character, CancellationToken ct)
     {

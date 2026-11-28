@@ -11,73 +11,28 @@ namespace Dfo.Server.Application.Sessions;
 internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transactions) : IExpertStoreDomainService
 {
     private readonly Lock gate = new();
-    private readonly Dictionary<CharacterId, StoreOwner> open = [];
+    private readonly Dictionary<CharacterId, ExpertStoreSnapshot> open = [];
     private readonly Dictionary<CharacterId, ExpertStoreVisit> visitors = [];
     private readonly Dictionary<CharacterId, PendingClosures> reserved = [];
     private long lastInstance;
 
-    public void Open(CharacterId ownerCharacterId)
-    {
-        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(Open));
-        SetLegacyOpen(ownerCharacterId, null);
-    }
-
-    public void Open(SelectedSessionIdentity session)
-    {
-        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(Open));
-        SetLegacyOpen(session.CharacterId, session);
-    }
-
-    private void SetLegacyOpen(CharacterId owner, SelectedSessionIdentity? session)
-    {
-        lock (gate)
-        {
-            DemandUnreserved(owner);
-            if (open.TryGetValue(owner, out var existing)) Remove(existing, owner);
-            open[owner] = new(session, null);
-        }
-    }
-
-    public bool Close(CharacterId ownerCharacterId)
-    {
-        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(Close));
-        lock (gate)
-        {
-            if (!open.TryGetValue(ownerCharacterId, out var current)) return false;
-            DemandUnreserved(ownerCharacterId);
-            Remove(current, ownerCharacterId);
-            return true;
-        }
-    }
-
-    public bool CloseExact(SelectedSessionIdentity session)
-    {
-        GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(CloseExact));
-        return CloseSession(session).Closed;
-    }
-
     public ExpertStoreClosure? CloseOwned(SelectedSessionIdentity exactOwner)
     {
         GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(CloseOwned));
-        return CloseSession(exactOwner).Closure;
-    }
-
-    private (bool Closed, ExpertStoreClosure? Closure) CloseSession(SelectedSessionIdentity session)
-    {
         lock (gate)
         {
-            var owned = open.GetValueOrDefault(session.CharacterId);
-            if (owned is null || owned.Session != session)
+            var store = FindOwnedLocked(exactOwner);
+            if (store is null)
             {
-                LeaveLocked(session);
-                return (false, null);
+                LeaveLocked(exactOwner);
+                return null;
             }
 
-            DemandUnreserved(session.CharacterId);
-            var closure = owned.Store is { } store ? CaptureClosure(store) : null;
-            LeaveLocked(session);
-            Remove(owned, session.CharacterId);
-            return (true, closure);
+            DemandUnreserved(exactOwner.CharacterId);
+            var closure = CaptureClosure(store);
+            LeaveLocked(exactOwner);
+            Remove(store);
+            return closure;
         }
     }
 
@@ -88,7 +43,7 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
 
     public bool HasOpenStore(SelectedSessionIdentity exactOwner)
     {
-        lock (gate) return open.GetValueOrDefault(exactOwner.CharacterId)?.Session == exactOwner;
+        lock (gate) return FindOwnedLocked(exactOwner) is not null;
     }
 
     public ExpertStoreSnapshot? TryOpen(SelectedSessionIdentity owner, TownAreaKey area, ExpertStorePlacement placement)
@@ -99,23 +54,23 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
             if (open.ContainsKey(owner.CharacterId)) return null;
             DemandUnreserved(owner.CharacterId);
             var store = new ExpertStoreSnapshot(checked(++lastInstance), owner, area, placement);
-            open.Add(owner.CharacterId, new(owner, store));
+            open.Add(owner.CharacterId, store);
             return store;
         }
     }
 
     public ExpertStoreSnapshot? FindOwned(SelectedSessionIdentity owner)
     {
-        lock (gate)
-            return open.GetValueOrDefault(owner.CharacterId) is { } current && current.Session == owner
-                ? current.Store : null;
+        lock (gate) return FindOwnedLocked(owner);
     }
+
+    private ExpertStoreSnapshot? FindOwnedLocked(SelectedSessionIdentity owner) =>
+        open.GetValueOrDefault(owner.CharacterId) is { } store && store.Owner == owner ? store : null;
 
     public IReadOnlyList<ExpertStoreSnapshot> In(TownAreaKey area)
     {
         lock (gate)
-            return open.Values.Select(owner => owner.Store).OfType<ExpertStoreSnapshot>()
-                .Where(store => store.Area == area).OrderBy(store => store.Owner.CharacterId.Value).ToArray();
+            return open.Values.Where(store => store.Area == area).OrderBy(store => store.Owner.CharacterId.Value).ToArray();
     }
 
     public bool Enter(SelectedSessionIdentity visitor, ExpertStoreSnapshot store)
@@ -148,7 +103,7 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
         lock (gate)
         {
             if (!IsCurrent(expected)) return null;
-            Pending().Schedule(expected.Owner.CharacterId, open[expected.Owner.CharacterId]);
+            Pending().Schedule(expected);
             return CaptureClosure(expected);
         }
     }
@@ -158,9 +113,9 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
         GameplayWriteAssertion.Writing(nameof(ExpertStoreDomainService) + "." + nameof(StageCloseOwned));
         lock (gate)
         {
-            if (!open.TryGetValue(exactOwner.CharacterId, out var owned) || owned.Session != exactOwner) return null;
-            Pending().Schedule(exactOwner.CharacterId, owned);
-            return owned.Store is { } store ? CaptureClosure(store) : null;
+            if (FindOwnedLocked(exactOwner) is not { } store) return null;
+            Pending().Schedule(store);
+            return CaptureClosure(store);
         }
     }
 
@@ -169,7 +124,7 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
         .Enlist(this, () => new PendingClosures(this));
 
     private bool IsCurrent(ExpertStoreSnapshot store) =>
-        ReferenceEquals(open.GetValueOrDefault(store.Owner.CharacterId)?.Store, store);
+        ReferenceEquals(open.GetValueOrDefault(store.Owner.CharacterId), store);
 
     private bool LeaveLocked(SelectedSessionIdentity visitor) =>
         visitors.TryGetValue(visitor.CharacterId, out var entry) && entry.Visitor == visitor
@@ -179,10 +134,9 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
         visitors.Values.Where(visit => ReferenceEquals(visit.Store, store))
             .Select(visit => visit.Visitor).OrderBy(visitor => visitor.CharacterId.Value).ToArray());
 
-    private void Remove(StoreOwner owned, CharacterId character)
+    private void Remove(ExpertStoreSnapshot store)
     {
-        open.Remove(character);
-        if (owned.Store is not { } store) return;
+        open.Remove(store.Owner.CharacterId);
         foreach (var entry in visitors.ToArray())
             if (ReferenceEquals(entry.Value.Store, store))
                 visitors.Remove(entry.Key);
@@ -194,14 +148,12 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
             throw new InvalidOperationException("An asset transaction is preparing to close this expert store.");
     }
 
-    private sealed record StoreOwner(SelectedSessionIdentity? Session, ExpertStoreSnapshot? Store);
-
     private sealed class PendingClosures(ExpertStoreDomainService registry) : ITransactionParticipant
     {
-        private readonly Dictionary<CharacterId, StoreOwner> closures = [];
+        private readonly Dictionary<CharacterId, ExpertStoreSnapshot> closures = [];
         public bool CommitCanFail => false;
 
-        public void Schedule(CharacterId owner, StoreOwner expected) => closures[owner] = expected;
+        public void Schedule(ExpertStoreSnapshot expected) => closures[expected.Owner.CharacterId] = expected;
 
         public ValueTask PrepareAsync(CancellationToken cancellationToken)
         {
@@ -223,7 +175,7 @@ internal sealed class ExpertStoreDomainService(IDomainTransactionAccessor transa
             lock (registry.gate)
                 foreach (var (owner, expected) in closures)
                 {
-                    registry.Remove(expected, owner);
+                    registry.Remove(expected);
                     registry.reserved.Remove(owner);
                 }
             return ValueTask.CompletedTask;

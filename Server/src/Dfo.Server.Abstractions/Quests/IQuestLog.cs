@@ -242,6 +242,9 @@ public interface IQuestLog
     /// <returns>False when the character is not carrying that quest.</returns>
     ValueTask<bool> GiveUpAsync(int questId, CancellationToken cancellationToken);
 
+    /// <summary>Retire the specified quests from carried, cleared, and tracked state in the current transaction.</summary>
+    ValueTask ForgetAsync(IReadOnlySet<int> questIds, CancellationToken cancellationToken);
+
     /// <summary>
     /// Replaces which quests the character asked to be told about.
     /// </summary>

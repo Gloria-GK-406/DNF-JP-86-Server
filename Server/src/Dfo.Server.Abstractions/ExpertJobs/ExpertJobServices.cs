@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.Inventory;
@@ -13,8 +14,19 @@ public interface IExpertJobStateStore
 {
     ValueTask<ExpertJobState> ReadAsync(CharacterId character, CancellationToken ct);
     ValueTask WriteAsync(CharacterId character, ExpertJobState state, CancellationToken ct);
+    ValueTask InitializeAsync(CharacterId character, CancellationToken ct);
     ValueTask DeleteAsync(CharacterId character, CancellationToken ct);
 }
+
+public interface IExpertJobQueryDomainService
+{
+    ValueTask<ExpertJobState> ReadAsync(CharacterId character, CancellationToken ct);
+    ValueTask<ExpertJobProgress?> DescribeAsync(ExpertJobState state, CancellationToken ct);
+}
+
+public sealed record ExpertJobProgress(int Level, IReadOnlyList<byte> CardQualifications, IReadOnlyDictionary<int, byte> GrantedSkills);
+
+public sealed record ExpertJobExperienceChange(ExpertJobState State, bool ExperienceChanged, bool LevelChanged);
 
 public interface IExpertJobDomainService
 {
@@ -30,7 +42,7 @@ public interface ICharacterExpertJob
     ValueTask<IEnchanterDomainService?> GetEnchanterAsync(CancellationToken ct);
     ValueTask<ExpertJobStudyResult?> TryLearnRecipeAsync(SelectedSessionIdentity session, BusinessSlot source,
         ItemReference drawing, IEffectFootprintRecorder footprint, CancellationToken ct);
-    ValueTask<bool> JoinFromQuestAsync(OwnedCharacterId owner, ushort questId, ExpertJobType type, CancellationToken ct);
+    ValueTask<bool> JoinFromQuestAsync(ExpertJobQuestGrant grant, CancellationToken ct);
     ValueTask<ExpertJobGiveUpResult> GiveUpAsync(SelectedSessionIdentity session, IEffectFootprintRecorder footprint, CancellationToken ct);
 }
 
@@ -58,6 +70,16 @@ public sealed record ExpertJobDefinition(
 
     public int LevelAt(uint experience) => Math.Min(ExperienceThresholds.Count,
         1 + ExperienceThresholds.TakeWhile(threshold => experience >= threshold).Count());
+
+    public ExpertJobExperienceChange Advance(ExpertJobState current, long gain)
+    {
+        var experience = current.Experience + (uint)Math.Clamp(gain, 0, uint.MaxValue - current.Experience);
+        var levelChanged = LevelAt(experience) != LevelAt(current.Experience);
+        var learned = levelChanged ? current.LearnedRecipeIds.Union(RecipesAt(experience)).Order().ToArray()
+            : current.LearnedRecipeIds;
+        return new(current with { Experience = experience, LearnedRecipeIds = learned },
+            experience != current.Experience, levelChanged);
+    }
 
     public IReadOnlyList<int> RecipesAt(uint experience)
     {

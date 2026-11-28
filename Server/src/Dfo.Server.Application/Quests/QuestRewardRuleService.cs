@@ -1,4 +1,3 @@
-using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -40,12 +39,10 @@ internal sealed class QuestRewardRuleService(ICycleDungeonRuleService cycles) : 
         if (slotRewards.Length > 1 || slotRewards.Any(reward => reward.Values.Count != 1 || reward.Values[0] is not (0 or 1)))
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidSlotExpansionReward);
         var extraSlot = slotRewards.Length == 0 ? ExtraEquipmentSlots.None : (ExtraEquipmentSlots)(1 << slotRewards[0].Values[0]);
-        var expertRewards = definition.Rewards.Where(reward => reward.Kind == QuestRewardKind.ExpertJob).ToArray();
-        if (expertRewards.Length > 1 || expertRewards.Any(reward => reward.Values is not [>= 1 and <= 4])
-            || expertRewards.Length != 0 && (definition.JobChangeQuestCode != 20 || growType is not null
+        var (hasExpertJobReward, expertJob) = QuestAvailabilityRuleService.ReadExpertJobReward(definition);
+        if (hasExpertJobReward && (expertJob is null || definition.JobChangeQuestCode != 20 || growType is not null
                 || awakening is not null || extraSlot != ExtraEquipmentSlots.None || definition.Grade == QuestGrade.Circle))
             return QuestRewardResolution.Refused(QuestRewardRejection.InvalidExpertJobReward);
-        ExpertJobType? expertJob = expertRewards.Length == 0 ? null : (ExpertJobType)expertRewards[0].Values[0];
         var declaration = definition.ItemRewards;
         var eligibleSelection = declaration.Selectable
             .Where(rule => Matches(rule, candidate))

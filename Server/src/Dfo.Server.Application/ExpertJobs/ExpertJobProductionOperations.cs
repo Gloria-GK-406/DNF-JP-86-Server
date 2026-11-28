@@ -17,9 +17,9 @@ namespace Dfo.Server.Application.ExpertJobs;
 internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states, IExpertJobRuleService rules,
     ISelectedSessionDomainService sessions, IDungeonParticipationDomainService dungeons, IExpertStoreDomainService stores,
     ICharacterSkillStateDomainService skills, ICharacterBusinessInventoryDomainService bags,
-    IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment, IEquipmentDisjointDefinitionSource definitions,
+    IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment, EquipmentDisjointRuleService equipmentRules,
     IOpeningEffectPlanRuleService materials, IPackageOpeningRuleService rewards, IInventoryEffectPreflightDomainService preflight,
-    IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, IEquipmentEnchantContentSource enchantContent,
+    IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, IEquipmentEnchantRuleService enchantRules,
     EnchanterStoreOperations enchanterStores, TimeProvider clock)
 {
     public IAlchemistDomainService BindAlchemist(CharacterId owner) => new Alchemist(this, owner);
@@ -163,8 +163,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
             || !recipe.BeadsByCardId.TryGetValue(cardItem.ItemId, out var bead))
             return new(ExpertJobProductionRejection.InvalidItem);
         var upgradeCount = cardItem.Snapshot.EnchantUpgradeCount;
-        if (!await enchantContent.ValidateExpertCardAsync(cardItem.ItemId, upgradeCount, null, ct).ConfigureAwait(false)
-            || await enchantContent.ResolveExpertBeadAsync(bead, upgradeCount, null, ct).ConfigureAwait(false) is null)
+        if (!await enchantRules.CanProduceExpertBeadAsync(cardItem.Snapshot, bead, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidItem);
 
         var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(card, cardItem.ItemId, 1) };
@@ -220,12 +219,11 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
             || item.Snapshot.Lifetime.IsExpired(context.At))
             return new(ExpertJobProductionRejection.InvalidItem);
 
-        var facts = await definitions.GetEquipmentAsync(item.ItemId, ct).ConfigureAwait(false);
-        if (facts is not { CanDisjoint: true, Grade: { } grade })
+        if (await equipmentRules.ExpertTargetAsync(item.Snapshot, ct).ConfigureAwait(false) is not { } targetFacts)
             return new(ExpertJobProductionRejection.InvalidItem);
-        var equipmentState = ExpertJobEquipmentRules.StateOf(item.Snapshot);
+        var (facts, grade, equipmentState) = targetFacts;
         if (!production.ExtractionResults.TryGetValue((tool.ItemId, facts.Rarity, equipmentState), out var rule))
-            return new(equipmentState == ExpertJobEquipmentRules.UnpurifiedState
+            return new(equipmentState == EquipmentDisjointRuleService.UnpurifiedState
                 ? ExpertJobProductionRejection.UnpurifiedEquipment : ExpertJobProductionRejection.InvalidItem);
 
         var random = Random.Shared;
@@ -313,23 +311,18 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         ExpertJobDefinition definition, ExpertJobState state, long gain, CancellationToken ct)
     {
         var applied = await effects.ApplyAsync(context, plan, ct).ConfigureAwait(false);
-        var experience = (uint)Math.Min(uint.MaxValue, state.Experience + gain);
-        var previousLevel = definition.LevelAt(state.Experience);
-        var level = definition.LevelAt(experience);
-        if (experience != state.Experience)
+        var progress = definition.Advance(state, gain);
+        if (progress.ExperienceChanged)
         {
-            var learned = level == previousLevel ? state.LearnedRecipeIds
-                : state.LearnedRecipeIds.Union(definition.RecipesAt(experience)).Order().ToArray();
             context.Footprint.DemandEffects(context.Owner);
-            await states.WriteAsync(context.CharacterId, state with { Experience = experience, LearnedRecipeIds = learned }, ct)
-                .ConfigureAwait(false);
+            await states.WriteAsync(context.CharacterId, progress.State, ct).ConfigureAwait(false);
         }
         var changes = await EquipmentEffectReceiptProjection.FinalSlotsAsync(context.CharacterId, applied, slots, ct).ConfigureAwait(false);
         var products = applied.Changes<PreparedItemGrantChange>().SelectMany(change => change.Rewards).ToArray();
         var emptied = applied.Changes<ContainerConsumptionChange>().Where(change => change.RemainingCount == 0)
             .Select(change => change.Slot).ToHashSet();
         return new(changes, products, context.At, applied.Changes<GoldEffectChange>().SingleOrDefault()?.Remaining,
-            experience != state.Experience, level != previousLevel)
+            progress.ExperienceChanged, progress.LevelChanged)
         {
             ReplacedSlots = changes.Where(change => change.Core is not null && emptied.Contains(change.Slot))
                 .Select(change => change.Slot).ToArray(),

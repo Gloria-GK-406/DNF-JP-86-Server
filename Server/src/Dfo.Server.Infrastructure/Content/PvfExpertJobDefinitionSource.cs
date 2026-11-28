@@ -40,12 +40,16 @@ internal sealed partial class PvfExpertJobDefinitionSource(PvfArchiveProvider pr
         }
     }
 
-    private static ExpertJobDefinition? Read(PvfArchive archive, ExpertJobType type)
+    internal static string? DefinitionPath(PvfArchive archive, ExpertJobType type)
     {
         if (archive.FindFile(Catalog) < 0) return null;
         var relative = PvfListFile.Read(archive, Catalog).SingleOrDefault(entry => entry.Id == (int)type).RelativePath;
-        if (string.IsNullOrEmpty(relative)) return null;
-        var path = "character/" + relative;
+        return string.IsNullOrEmpty(relative) ? null : "character/" + relative;
+    }
+
+    private static ExpertJobDefinition? Read(PvfArchive archive, ExpertJobType type)
+    {
+        if (DefinitionPath(archive, type) is not { } path) return null;
         var doc = PvfDocument.Open(archive, path);
         var root = doc.AtRoot();
         var experience = root.Read(PvfField.Tokens("[expertness exp]"));

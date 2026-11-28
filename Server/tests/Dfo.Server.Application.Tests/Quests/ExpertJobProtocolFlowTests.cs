@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Data.ExpertJobs;
@@ -149,6 +150,46 @@ public sealed class ExpertJobProtocolFlowTests
         Assert.Equal(2, LearnedPages(fixture, 191));
         var job = fixture.Services.GetRequiredService<IExpertJobDomainService>().Get(fixture.Session.CharacterId);
         Assert.Contains(drawing, (await job.GetStateAsync(default)).LearnedRecipeIds);
+    }
+
+    [SkippableFact]
+    public async Task Entry_and_current_profession_share_the_same_legacy_state_and_validation()
+    {
+        using var host = ArchiveFixture();
+        var fixture = host.Host;
+        var account = fixture.Session.AccountId;
+        var character = fixture.Session.CharacterId;
+        var query = fixture.Services.GetRequiredService<IExpertJobQueryDomainService>();
+        var entry = fixture.Services.GetRequiredService<ICharacterEntryStateRepository>();
+        Assert.Equal(ExpertJobType.None, (await query.ReadAsync(character, default)).Type);
+
+        fixture.Sql("""
+            INSERT INTO character_expert_job (character_id, expert_job_type, expert_job_exp, giveup_count, disjoint_machine_grade)
+            VALUES (1, 0, 73, 2, 9);
+            INSERT INTO character_expert_job_recipes (character_id, recipe_id) VALUES (1, 17);
+            """);
+
+        var job = await query.ReadAsync(character, default);
+        var initial = await entry.LoadAsync(account, character, default);
+        Assert.Equal(ExpertJobType.None, job.Type);
+        Assert.Equal(0u, job.Experience);
+        Assert.Equal((byte)2, job.GiveUpCount);
+        Assert.Empty(job.LearnedRecipeIds);
+        Assert.Equal((int)job.Type, initial.Profile.ExpertJob.Type);
+        Assert.Equal((long)job.Experience, initial.Profile.ExpertJob.Experience);
+        Assert.Equal(job.GiveUpCount, initial.Features.ExpertJob.GiveupCount);
+        Assert.Equal(job.DisjointMachineGrade, initial.Features.ExpertJob.DisjointMachineGrade);
+        Assert.Empty(initial.Features.ExpertJob.RecipeIds);
+
+        fixture.Sql("UPDATE character_expert_job SET expert_job_type = 3, disjoint_machine_grade = 1 WHERE character_id = 1;");
+        var disjointer = await query.ReadAsync(character, default);
+        var active = await entry.LoadAsync(account, character, default);
+        Assert.Equal(0, disjointer.DisjointMachineEndurance);
+        Assert.Equal(disjointer.DisjointMachineEndurance, active.Features.ExpertJob.DisjointMachineEndurance);
+
+        fixture.Sql("UPDATE character_expert_job SET disjoint_machine_grade = -1 WHERE character_id = 1;");
+        await Assert.ThrowsAsync<InvalidDataException>(() => query.ReadAsync(character, default).AsTask());
+        await Assert.ThrowsAsync<InvalidDataException>(() => entry.LoadAsync(account, character, default).AsTask());
     }
 
     private static CeraShopFixture ArchiveFixture()

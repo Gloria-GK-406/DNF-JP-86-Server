@@ -17,6 +17,13 @@ internal sealed class EquipmentEnchantRuleService(IEquipmentEnchantContentSource
         return Matches(ordinary, bead.ItemId) ? new(ordinary!.CardItemId, null) : null;
     }
 
+    public ValueTask<bool> AcceptsExpertCardAsync(ItemSnapshot card, int equipmentItemId, CancellationToken ct) =>
+        content.ValidateExpertCardAsync(card.ItemId, card.EnchantUpgradeCount, equipmentItemId, ct);
+
+    public async ValueTask<bool> CanProduceExpertBeadAsync(ItemSnapshot card, int beadItemId, CancellationToken ct) =>
+        await content.ValidateExpertCardAsync(card.ItemId, card.EnchantUpgradeCount, null, ct).ConfigureAwait(false)
+        && await content.ResolveExpertBeadAsync(beadItemId, card.EnchantUpgradeCount, null, ct).ConfigureAwait(false) is not null;
+
     private static bool Matches(EquipmentEnchantDefinition? definition, int beadItemId) =>
         definition is { CardItemId: > 0 } && definition.BeadItemId == beadItemId;
 }

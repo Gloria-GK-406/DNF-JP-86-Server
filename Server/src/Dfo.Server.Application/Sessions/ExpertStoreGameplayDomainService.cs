@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Abstractions.Parties;
 using Dfo.Server.Abstractions.PrivateStore;
@@ -13,7 +12,7 @@ namespace Dfo.Server.Application.Sessions;
 
 internal sealed class ExpertStoreGameplayDomainService(
     IExpertStoreDomainService stores, ISelectedSessionDomainService sessions, ITownAreaDomainService townAreas,
-    ITownDefinitionSource towns, IExpertJobStateStore jobs, IExpertJobRuleService rules, IPartyService parties,
+    ExpertStorePlacementRuleService placementRules, IExpertJobQueryDomainService jobs, IExpertJobRuleService rules, IPartyService parties,
     IPrivateStoreQueryDomainService privateStores, IOnlineCharacterRuntimeDomainService onlineCharacters) : IExpertStoreGameplayDomainService
 {
     public async ValueTask<ExpertStoreResult> OpenAsync(SelectedSessionIdentity owner, ExpertStorePlacement placement, CancellationToken ct)
@@ -28,13 +27,9 @@ internal sealed class ExpertStoreGameplayDomainService(
         if (await MachineAsync(owner, placement.Kind, ct).ConfigureAwait(false) is not { } machine
             || placement.Cost > machine.Definition.MaximumStoreCharge)
             return new(ExpertStoreRejection.InvalidState);
-        var town = await towns.GetAsync(standing.Area.TownId, ct).ConfigureAwait(false);
-        var area = town?.AreaAt(standing.Area.AreaId);
-        if (area is null || await towns.GetMapGeometryAsync(area.MapPath, ct).ConfigureAwait(false) is not { } geometry
-            || geometry.NpcPositions is not { } npcPositions || !geometry.IsWalkable(placement.X, placement.Y))
-            return new(ExpertStoreRejection.UnavailablePoint);
-        if (npcPositions.Any(npc => Math.Abs((long)npc.X - placement.X) < 80 && Math.Abs((long)npc.Y - placement.Y) < 150))
-            return new(ExpertStoreRejection.RestrictedCommercialZone);
+        var location = await placementRules.CheckAsync(standing.Area, placement.X, placement.Y, ct).ConfigureAwait(false);
+        if (location != ExpertStoreRejection.None)
+            return new(location);
 
         if (Standing(owner)?.Area != standing.Area || stores.TryOpen(owner, standing.Area, placement) is not { } store)
             return new(ExpertStoreRejection.InvalidState);

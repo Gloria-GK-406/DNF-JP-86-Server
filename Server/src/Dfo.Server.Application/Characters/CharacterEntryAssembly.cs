@@ -56,13 +56,11 @@ internal sealed class CharacterEntryAssembly(
     ICharacterTitleBookTable titleBooks,
     ICharacterAchievementTable achievements,
     ICharacterCollectionBoxTable collectionBoxes,
-    ICharacterExpertJobTable expertJob,
-    ICharacterExpertRecipeTable expertRecipes,
     ICharacterPvpMissionTable pvpMissions,
     IMailboxQueryDomainService mailbox,
     IGoldLimitRuleService goldLimits, IPremiumServiceUsageDomainService premiumServices, ICharacterSkillBuildTable skillBuilds,
     Dfo.Server.Application.Marriage.IMarriageRelations marriageRelations,
-    IExpertJobRuleService expertJobRules) : ICharacterEntryStateRepository
+    IExpertJobQueryDomainService expertJobs) : ICharacterEntryStateRepository
 {
     /// <summary>How many of the inbox a character is shown on entry.</summary>
 
@@ -79,15 +77,15 @@ internal sealed class CharacterEntryAssembly(
                 nameof(accountId), "Identifiers must be positive.");
         }
 
-        var jobRow = await expertJob.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
-        var profile = await LoadProfileAsync(accountId, characterId, jobRow, cancellationToken)
+        var jobState = await expertJobs.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var profile = await LoadProfileAsync(accountId, characterId, jobState, cancellationToken)
             .ConfigureAwait(false);
         var skillState = await LoadSkillsAsync(characterId, profile.Job, cancellationToken)
             .ConfigureAwait(false);
         var quests = await LoadQuestsAsync(characterId, cancellationToken).ConfigureAwait(false);
         var progression = await LoadProgressionAsync(characterId, profile.Level, cancellationToken)
             .ConfigureAwait(false);
-        var features = await LoadFeaturesAsync(characterId, jobRow, cancellationToken).ConfigureAwait(false);
+        var features = await LoadFeaturesAsync(characterId, jobState, cancellationToken).ConfigureAwait(false);
         return new CharacterEntryStorageRecord(
             accountId, characterId, profile, skillState, quests, progression, features);
     }
@@ -132,7 +130,7 @@ internal sealed class CharacterEntryAssembly(
             s.EquipListTrailing, s.FlagByte, s.ServerTimestamp, s.QuestShopCount);
 
     private async ValueTask<CharacterProfileStorageRecord> LoadProfileAsync(
-        AccountId accountId, CharacterId characterId, CharacterExpertJobRow? jobRow, CancellationToken cancellationToken)
+        AccountId accountId, CharacterId characterId, ExpertJobState jobState, CancellationToken cancellationToken)
     {
         var row = await characters.FindEntryAsync(characterId, cancellationToken)
             .ConfigureAwait(false);
@@ -160,7 +158,7 @@ internal sealed class CharacterEntryAssembly(
         var settingsState = new CharacterSettingsStorageRecord(settingsRow.UserStateBits);
         var pvpState = new CharacterPvpStandingStorageRecord([]);
         var expertJobState = new CharacterExpertJobStorageRecord(
-            jobRow?.ExpertJobType ?? 0, jobRow?.ExpertJobType is > 0 ? jobRow.ExpertJobExperience : 0);
+            (int)jobState.Type, jobState.Experience);
         var statsState = DerivedStats(statsRow);
         var guildState = new CharacterGuildStandingStorageRecord(row.GuildLevel, row.GuildPowerWar);
         var flags = (settingsRow.OptionBlob, true);
@@ -179,7 +177,7 @@ internal sealed class CharacterEntryAssembly(
 
         var builds = await skillBuilds.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
         var projectedTree = builds.SkillTreeIndex;
-        RequireProfileInRange(conditionState, settingsState, expertJobState,
+        RequireProfileInRange(conditionState, settingsState,
             statsState, guildState, projectedTree,
             row.NameTagItemId, row.NameTagExpireTime);
         var dimensionRows = new List<(int, long, int, int)>();
@@ -392,7 +390,7 @@ internal sealed class CharacterEntryAssembly(
     }
 
     private async ValueTask<CharacterFeatureStorageRecord> LoadFeaturesAsync(
-        CharacterId characterId, CharacterExpertJobRow? jobRow, CancellationToken cancellationToken)
+        CharacterId characterId, ExpertJobState jobState, CancellationToken cancellationToken)
     {
         var pets = new List<CharacterPetStorageRow>();
         foreach (var row in await creatures.ReadAsync(characterId, cancellationToken)
@@ -460,24 +458,12 @@ internal sealed class CharacterEntryAssembly(
             collection.Add((row.BoxIndex, row.SlotIndex, row.ItemId));
         }
 
-        var workshop = jobRow ?? new CharacterExpertJobRow(0, 0, 0, 0, 0, 0);
-        var recipes = workshop.ExpertJobType == 0 ? []
-            : await expertRecipes.ReadAsync(characterId, cancellationToken).ConfigureAwait(false);
         CharacterExpertProtocolState? expertProtocol = null;
-        if (workshop.ExpertJobType == (int)ExpertJobType.Enchanter)
+        if (jobState.Type == ExpertJobType.Enchanter)
         {
-            var enchanter = await expertJobRules.FindAsync(ExpertJobType.Enchanter, cancellationToken).ConfigureAwait(false);
-            if (enchanter is null) throw new InvalidDataException("Enchanter content is unavailable.");
-            var experience = checked((uint)workshop.ExpertJobExperience);
-            expertProtocol = new(enchanter.CardQualificationsAt(experience), enchanter.LevelAt(experience));
-        }
-        if (workshop.ExpertJobType is < 0 or > byte.MaxValue
-            || workshop.GiveUpCount is < 0 or > byte.MaxValue
-            || workshop.DisjointMachineGrade < 0 || workshop.DisjointMachineEndurance < 0
-            || workshop.EnchanterEndurance < 0
-            || recipes.Any(value => value <= 0))
-        {
-            throw new InvalidDataException("Expert job state is out of range.");
+            var enchanter = await expertJobs.DescribeAsync(jobState, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidDataException("Enchanter content is unavailable.");
+            expertProtocol = new(enchanter.CardQualifications, enchanter.Level);
         }
 
         var inbox = await mailbox.ReadStorageAsync(characterId, cancellationToken).ConfigureAwait(false);
@@ -495,8 +481,8 @@ internal sealed class CharacterEntryAssembly(
 
         return new CharacterFeatureStorageRecord(
             pets, books, completed, collection,
-            (workshop.ExpertJobType, workshop.GiveUpCount, workshop.DisjointMachineGrade,
-                workshop.DisjointMachineEndurance, workshop.EnchanterEndurance, recipes),
+            ((int)jobState.Type, jobState.GiveUpCount, jobState.DisjointMachineGrade,
+                jobState.DisjointMachineEndurance, jobState.EnchanterEndurance, jobState.LearnedRecipeIds),
             inbox, missions) { ExpertProtocol = expertProtocol };
     }
 
@@ -523,7 +509,6 @@ internal sealed class CharacterEntryAssembly(
     private static void RequireProfileInRange(
         CharacterConditionStorageRecord c,
         CharacterSettingsStorageRecord settings,
-        CharacterExpertJobStorageRecord job,
         CharacterDerivedStatsStorageRecord stats,
         CharacterGuildStandingStorageRecord guild,
         int skillTreeIndex,
@@ -531,7 +516,6 @@ internal sealed class CharacterEntryAssembly(
         long nameTagExpireTime)
     {
         if (c.Stamina is < 0 or > byte.MaxValue || c.FatiguePenalty is < 0 or > uint.MaxValue
-            || job.Type is < 0 or > (int)ExpertJobType.DollController || job.Experience is < 0 or > uint.MaxValue
             || c.HardcoreDeathCount is < 0 or > ushort.MaxValue
             || settings.UserStateBits is < 0 or > uint.MaxValue
             || c.ChatBanEndTime is < 0 or > uint.MaxValue || c.MoodValue is < 0 or > ushort.MaxValue

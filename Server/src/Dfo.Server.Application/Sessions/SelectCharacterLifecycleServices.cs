@@ -84,6 +84,7 @@ internal sealed class SelectedSessionCleanupService(
         var audience = new List<SelectedSessionIdentity>();
         var peerNotices = new List<SelectedSessionCleanupNotice>();
         var required = new List<SelectedSessionCleanupNotice>();
+        SelectedSessionExpertStoreDeparture? expertStoreDeparture = null;
         var partyNotifications = PartyNotificationPlan.Empty;
         var partyRecipients = PartyNotificationRecipientPlan.Empty;
         IReadOnlyList<Dfo.Server.Data.Chat.ChatConversationDeparture> conversationDepartures = [];
@@ -100,32 +101,10 @@ internal sealed class SelectedSessionCleanupService(
             // Asked here rather than at the moment of sending, because the presence record this
             // departure is leaving is withdrawn a few statements below: resolving the area later
             // would be asking about a different moment.
-            foreach (var peer in townAreas.Find(currentMember.Area)?.Members
-                         .Where(member => member.SharesTownPresence
-                             && member.CharacterId != session.CharacterId)
-                     ?? [])
-            {
-                if (sessions.TryGetInWorld(peer.CharacterId, out var exact)
-                    && peer.Session == exact)
-                {
-                    audience.Add(exact);
-                }
-            }
-
-            // One set for all of them, because they never differ; saying it once is what makes that
-            // true rather than coincidental.
+            audience.AddRange(TownPeers(currentMember.Area, session));
             if (audience.Count > 0)
-            {
-                if (expertStores.HasOpenStore(session))
-                    peerNotices.Add(new SelectedSessionCleanupNotice(
-                        SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
                 peerNotices.Add(new SelectedSessionCleanupNotice(
                     SelectedSessionCleanupNoticeKind.TownDeparture, session.WireUserId));
-            }
-
-            if (includeOwner && expertStores.HasOpenStore(session))
-                required.Add(new SelectedSessionCleanupNotice(
-                    SelectedSessionCleanupNoticeKind.ExpertStoreClosed, session.WireUserId));
         }
 
         // Every mutation is exact and isolated; a stale session can attempt all safely.
@@ -224,7 +203,28 @@ internal sealed class SelectedSessionCleanupService(
                 }
             }
         }
-        Run(() => expertStores.CloseExact(session));
+        Run(() =>
+        {
+            if (expertStores.CloseOwned(session) is not { } closure)
+                return false;
+            var store = closure.Store;
+            var closed = new SelectedSessionCleanupNotice(SelectedSessionCleanupNoticeKind.ExpertStoreClosed, store.Owner.WireUserId);
+            var inStoreArea = currentMember is { } member && member.Session == session && member.Area == store.Area;
+            if (includeOwner)
+                required.Add(closed);
+            if (inStoreArea && audience.Count > 0)
+                peerNotices.Insert(0, closed);
+
+            // Town peers already receive the close in their departure batch. A visitor that is
+            // outside that batch still needs its store window closed on the original session.
+            var otherRecipients = inStoreArea
+                ? closure.Visitors.Except(audience)
+                : closure.Visitors.Union(TownPeers(store.Area, store.Owner));
+            var exact = otherRecipients.Where(visitor => visitor != store.Owner && sessions.IsInWorld(visitor)).ToArray();
+            if (exact.Length > 0)
+                expertStoreDeparture = new(closed, exact);
+            return true;
+        });
         Run(() => { housing.CloseExact(session); return true; });
         Run(() => pvp.ClearReadyExact(session));
         if (SeatedRoom(session) is not null)
@@ -295,6 +295,7 @@ internal sealed class SelectedSessionCleanupService(
             FriendDeparture = friendDeparture,
             GuildDeparture = guildDeparture,
             RaidDeparture = raidDeparture,
+            ExpertStoreDeparture = expertStoreDeparture,
         };
         if (failures.Count != 0)
             throw new SelectedSessionCleanupFailure(notificationPlan, failures);
@@ -311,6 +312,15 @@ internal sealed class SelectedSessionCleanupService(
         {
             try { await action().ConfigureAwait(false); }
             catch (Exception error) { failures.Add(error); }
+        }
+    }
+
+    private IEnumerable<SelectedSessionIdentity> TownPeers(TownAreaKey area, SelectedSessionIdentity leaving)
+    {
+        foreach (var member in townAreas.Find(area)?.Members ?? [])
+        {
+            if (member.CharacterId != leaving.CharacterId && member.SharesTownPresence && sessions.IsInWorld(member.Session))
+                yield return member.Session;
         }
     }
 

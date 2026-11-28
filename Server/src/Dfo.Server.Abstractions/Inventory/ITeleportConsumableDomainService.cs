@@ -25,10 +25,24 @@ public interface ITeleportConsumableRuleService
 }
 public sealed record MoveToTownEffect(CharacterPositionState Expected, CharacterPositionState Destination,
     bool PersistsPosition, TownAreaKey SourceArea, int ChannelId) : DomainEffect;
-public sealed record TownPositionChange(CharacterPositionState Before, CharacterPositionState After) : EffectChange;
+
+/// <summary>The town membership and store changes published by this transaction on commit.</summary>
+public interface ITownCrossingResult
+{
+    TownAreaMembershipChange? Change { get; }
+}
+
+public sealed record TownPositionChange(CharacterPositionState Before, CharacterPositionState After) : EffectChange
+{
+    public ITownCrossingResult? Crossing { get; init; }
+}
+
 public sealed record TeleportConsumableReceipt(SelectedSessionIdentity Session, BusinessSlot Source,
-    int ItemId, int Remaining, CharacterPositionState Position, TimeSpan Cooldown, DateTimeOffset At,
-    ItemSnapshot? RemainingCore, ItemIdentity? Identity);
+    int ItemId, int Remaining, TownPositionChange Movement, TimeSpan Cooldown, DateTimeOffset At,
+    ItemSnapshot? RemainingCore, ItemIdentity? Identity)
+{
+    public CharacterPositionState Position => Movement.After;
+}
 public sealed record TeleportConsumableResult(ItemUsability Status, TeleportConsumableReceipt? Receipt = null);
 public interface ITeleportConsumableDomainService
 {

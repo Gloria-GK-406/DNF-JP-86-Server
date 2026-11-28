@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.ExpertJobs;
 internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExpertJobRuleService rules,
     IExpertStoreGameplayDomainService gameplay, IExpertStoreDomainService stores, ISelectedSessionDomainService sessions,
     ITownAreaDomainService areas, IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment,
-    IEquipmentEnchantContentSource content, ICharacterDomainService characters, IInventoryEffectPreflightDomainService preflight,
+    IEquipmentEnchantRuleService enchantRules, ICharacterDomainService characters, IInventoryEffectPreflightDomainService preflight,
     IApplyEffectsDomainService effects, ICharacterBusinessInventoryDomainService bags,
     IOpeningEffectPlanRuleService materials, TimeProvider clock)
 {
@@ -52,7 +52,7 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
         if (card is not { IsPile: true, Count: > 0 } || !CanUse(card.Snapshot, now)
             || target is null || !CanUse(target.Snapshot, now)
             || !recipe.BeadsByCardId.ContainsKey(card.ItemId)
-            || !await content.ValidateExpertCardAsync(card.ItemId, card.Snapshot.EnchantUpgradeCount, target.ItemId, ct)
+            || !await enchantRules.AcceptsExpertCardAsync(card.Snapshot, target.ItemId, ct)
                 .ConfigureAwait(false))
             return new(EnchanterStoreRejection.InvalidItem);
 
@@ -95,25 +95,18 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
 
         var endurance = state.EnchanterEndurance - wear;
         var gain = succeeded ? ExpertJobEquipmentRules.Between(random, rate.Experience.Minimum, rate.Experience.Maximum) : 0;
-        var experience = (uint)Math.Min(uint.MaxValue, (long)state.Experience + gain);
-        var levelChanged = definition.LevelAt(experience) != level;
+        var progress = definition.Advance(state, gain);
         var closure = endurance == 0 ? stores.StageClose(visit.Store)
             ?? throw new InvalidOperationException("The exhausting enchant shop could not be staged for closure.") : null;
         var applied = await effects.ApplyAsync(guestContext, plan, ct).ConfigureAwait(false);
         if (price > 0)
             _ = await effects.ApplyAsync(ownerContext, credit, ct).ConfigureAwait(false);
         footprint.DemandEffects(ownerContext.Owner);
-        await states.WriteAsync(owner, state with
-        {
-            EnchanterEndurance = endurance,
-            Experience = experience,
-            LearnedRecipeIds = levelChanged ? state.LearnedRecipeIds.Union(definition.RecipesAt(experience)).Order().ToArray()
-                : state.LearnedRecipeIds,
-        }, ct).ConfigureAwait(false);
+        await states.WriteAsync(owner, progress.State with { EnchanterEndurance = endurance }, ct).ConfigureAwait(false);
         var changes = await EquipmentEffectReceiptProjection.FinalSlotsAsync(actor.CharacterId, applied, slots, ct).ConfigureAwait(false);
-        return new(EnchanterStoreRejection.None, new(succeeded, experience, endurance,
+        return new(EnchanterStoreRejection.None, new(succeeded, progress.State.Experience, endurance,
             await guest.GoldAsync(ct).ConfigureAwait(false), await beneficiary.GoldAsync(ct).ConfigureAwait(false),
-            changes, now, experience != state.Experience, levelChanged, closure));
+            changes, now, progress.ExperienceChanged, progress.LevelChanged, closure));
     }
 
     private static bool CanUse(ItemSnapshot item, DateTimeOffset now) =>

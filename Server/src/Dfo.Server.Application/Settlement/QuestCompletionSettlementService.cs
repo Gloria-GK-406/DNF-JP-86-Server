@@ -53,12 +53,12 @@ internal sealed class QuestCompletionSettlementService(IQuestCompletionDomainSer
             return new(false, quest, null, null, null, ordinary.Projection, null);
         var result = await apply.ApplyAsync(context, plan.Effects, ct).ConfigureAwait(false);
         footprint.DemandEffects(context.Owner);
-        var expertJob = plan.Reward?.ExpertJob;
-        if (expertJob is { } type
-            && !await expertJobs.Get(character).JoinFromQuestAsync(new OwnedCharacterId(account, character), quest, type, ct).ConfigureAwait(false))
+        var profession = ordinary.ExpertJobGrant;
+        if (profession is not null
+            && !await expertJobs.Get(character).JoinFromQuestAsync(profession, ct).ConfigureAwait(false))
             throw new InvalidOperationException("The expert-job quest could not grant its reward.");
         await events.EnqueueAsync(new QuestCompleted(character, quest), ct).ConfigureAwait(false);
         var projection = plan.Projection is null ? null : await mirror.MergeAsync(character, plan.Projection, ct).ConfigureAwait(false);
-        return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType) { Awakening = plan.Awakening, ExpertJob = expertJob };
+        return new(true, quest, ordinary.Objective, plan.Award, result, projection, plan.GrowType) { Awakening = plan.Awakening, ExpertJob = profession?.Type };
     }
 }

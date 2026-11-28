@@ -146,18 +146,18 @@ internal sealed class GameGuildPartyTeleportCommandHandler(
                 ? "队员状态已变化，请重新发起传送。"
                 : "公会组队传送剩余次数不足。").ConfigureAwait(false);
 
-        var moved = new List<(TownAreaMember Member, SelectCharacterResult View)>(priorViews.Count);
+        var moved = new List<(TownAreaMember Member, SelectCharacterResult View, TownAreaMembershipChange Crossing)>(priorViews.Count);
         foreach (var (member, view) in priorViews)
             if (transit.Cross(member.Session, plan.Destination, plan.Position.X, plan.Position.Y,
-                    sharesTownPresence: true, direction: plan.Position.Direction) is not null)
-                moved.Add((member, view));
+                    sharesTownPresence: true, direction: plan.Position.Direction) is { } crossing)
+                moved.Add((member, view, crossing));
 
         await outbox.RegisterCmdAsync(connection.ConnectionId, new GuildPartyTeleportReply(true, target.TownId), ct)
             .ConfigureAwait(false);
         var partyTown = new PartyTownProjectionDelivery(parties, areas, sessions, projections, partyState);
-        foreach (var (member, view) in moved)
+        foreach (var (member, view, crossing) in moved)
             await TownMovementProjection.TownProjectTransferAsync(sessions, areas, projections, partyTown, views,
-                housing, outbox, member.Session.ConnectionId, member.Session, view, member, ct).ConfigureAwait(false);
+                housing, outbox, member.Session.ConnectionId, member.Session, view, member, ct, crossing.ClosedExpertStore).ConfigureAwait(false);
 
         await projections.ProjectAsync(new NotificationAudience.TheseCharacters(
             settlement.Panel.Members.Select(member => member.Character).ToArray()), settlement.Panel, ct).ConfigureAwait(false);

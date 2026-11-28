@@ -3,6 +3,7 @@ using Dfo.Pvf;
 using Dfo.Pvf.Tokens;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Data.ExpertJobs;
 
 namespace Dfo.Server.Infrastructure.Content;
 
@@ -112,8 +113,9 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
         lock (gate)
         {
             if (cardUpgrade is not null) return ValueTask.FromResult<MonsterCardUpgradeDefinition?>(cardUpgrade);
-            const string path = "character/expertjob/enchanter.exj";
-            if (PvfDocument.TryOpen(provider.Archive, path)?.AtRoot() is not { } doc)
+            var archive = provider.Archive;
+            if (PvfExpertJobDefinitionSource.DefinitionPath(archive, ExpertJobType.Enchanter) is not { } path
+                || PvfDocument.TryOpen(archive, path)?.AtRoot() is not { } doc)
                 return ValueTask.FromResult<MonsterCardUpgradeDefinition?>(null);
             var multiplier = doc.Read(PvfField.Int32("[monster card upgrade calculate const]", optional: true));
             var cost = doc.Read(PvfField.Int32("[card upgrade cost]", optional: true));
@@ -145,10 +147,8 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
         if (!IsMonsterCard(archive, root.Sections)) return null;
         var rarity = root.Read(PvfField.Int32("[rarity]"));
         if (rarity is < 0 or > 3) return null;
-        var indices = card.Sections.Where(section => section.Name == Fields.EnchantIndexField.Name).ToArray();
-        if (indices.Any(section => section.Values is not [{ Kind: PvfTokenKind.Int32, Value: >= 0 and <= byte.MaxValue }]))
-            return null;
-        return new(rarity, indices.Length == 0 ? [(byte)0] : indices.Select(section => (byte)section.Values[0].Value).ToArray());
+        var ranks = ReadDeclaredEnchantRanks(card.Sections);
+        return ranks is null ? null : new(rarity, ranks.Length == 0 ? [(byte)0] : ranks);
     }
 
     public ValueTask<EquipmentEnchantDefinition?> ResolveExpertBeadAsync(int beadItemId, byte upgradeCount,
@@ -219,11 +219,9 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
         var allowed = PvfSections.Single(sections, Fields.StringDataField, PvfRepeats.AsUndeclared, "card");
         if (allowed is null || allowed.Values.Count < 2 || allowed.Values.Any(token => !token.IsString))
             return false;
-        var indices = card.Sections.Where(section => section.Name == Fields.EnchantIndexField.Name).ToArray();
-        if (!(monsterCard || material && indices.Length != 0)
-            || (indices.Length == 0 ? upgradeCount != 0
-                : indices.Any(section => section.Values is not [{ Kind: PvfTokenKind.Int32 }])
-                  || !indices.Any(section => section.Values[0].Value == upgradeCount)))
+        var ranks = ReadDeclaredEnchantRanks(card.Sections);
+        if (ranks is null || !(monsterCard || material && ranks.Length != 0)
+            || (ranks.Length == 0 ? upgradeCount != 0 : !ranks.Contains(upgradeCount)))
             return false;
         if (equipmentItemId is not { } targetId) return true;
         EquipmentIndex(archive);
@@ -272,13 +270,20 @@ internal sealed class PvfEquipmentEnchantContentSource(PvfArchiveProvider provid
         catch (InvalidOperationException) { return []; }
     }
 
-    internal static bool HasSupportedEnchantIndex(
-        IReadOnlyList<PvfSection> sections)
+    internal static bool HasSupportedEnchantIndex(IReadOnlyList<PvfSection> sections) =>
+        ReadDeclaredEnchantRanks(sections) is [0];
+
+    internal static byte[]? ReadDeclaredEnchantRanks(IReadOnlyList<PvfSection> sections)
     {
-        var matches = sections.Where(section => section.Name == Fields.EnchantIndexField.Name).ToArray();
-        return matches.Length == 1 && matches[0].Values.Count == 1
-            && matches[0].Values[0].Kind == PvfTokenKind.Int32
-            && matches[0].Values[0].Value == 0;
+        var ranks = new List<byte>();
+        foreach (var section in sections)
+        {
+            if (section.Name != Fields.EnchantIndexField.Name) continue;
+            if (section.Values is not [{ Kind: PvfTokenKind.Int32, Value: >= 0 and <= byte.MaxValue } token])
+                return null;
+            ranks.Add((byte)token.Value);
+        }
+        return ranks.ToArray();
     }
 
     private static string Name(PvfArchive archive, PvfToken token) => token.IsString

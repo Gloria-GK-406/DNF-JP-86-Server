@@ -105,6 +105,8 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IItemSaleRuleService, ItemSaleRuleService>();
         services.TryAddSingleton<IEquipmentRepairRuleService, EquipmentRepairRuleService>();
         services.TryAddSingleton<IEquipmentEnchantRuleService, EquipmentEnchantRuleService>();
+        services.TryAddSingleton<MonsterCardUpgradeRuleService>();
+        services.TryAddSingleton<IMonsterCardUpgradeDomainService, MonsterCardUpgradeDomainService>();
         services.TryAddSingleton<IEquipmentUpgradeRuleService, EquipmentUpgradeRuleService>();
         services.TryAddSingleton<IEquipmentReinforcementFailureRuleService, EquipmentReinforcementFailureRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
@@ -128,7 +130,8 @@ internal static class InventoryRegistration
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEquipmentEmancipatePolicy, DragonLeapEmancipatePolicy>());
         services.TryAddSingleton<IEquipmentEmancipateDomainService, EquipmentEmancipateDomainService>();
         services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
-        services.TryAddSingleton<IEquipmentDisjointRuleService, EquipmentDisjointRuleService>();
+        services.TryAddSingleton<EquipmentDisjointRuleService>();
+        services.TryAddSingleton<IEquipmentDisjointRuleService>(provider => provider.GetRequiredService<EquipmentDisjointRuleService>());
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();
         services.TryAddSingleton<IEquipmentDurabilityDomainService, EquipmentDurabilityDomainService>();
         services.TryAddSingleton<IItemDiscardDomainService, ItemDiscardDomainService>();

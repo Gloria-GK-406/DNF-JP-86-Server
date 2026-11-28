@@ -102,7 +102,6 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
 {
     private readonly ISelectedSessionDomainService sessions;
     private readonly ITownAreaDomainService townAreas;
-    private readonly IExpertStoreDomainService expertStores;
     private readonly ICommandProjections projections;
     private readonly IPartyProjectionStateDomainService projectionState;
     private readonly ILogger logger;
@@ -120,12 +119,11 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
         ISelectedCharacterCurrentViewDomainService currentViews, ITownAreaDomainService townAreas, IChannelEntryDomainService channels, ITeleportConsumableDomainService teleports,
         ICommandWorkUnits units, ICommandProjections projections, IGameCommandOutbox outbox,
         Dfo.Server.Abstractions.Parties.IPartyService parties, Dfo.Server.Abstractions.Networking.IPartyProjectionStateDomainService projectionState,
-        ILogger<GameTeleportCommandHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
-        IExpertStoreDomainService expertStores)
+        ILogger<GameTeleportCommandHandler> logger, Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing)
 
     {
         this.sessions = sessions; this.townAreas = townAreas; this.projections = projections; this.projectionState = projectionState; this.logger = logger; this.currentViews = currentViews; this.housing = housing; this.onlineUsers = onlineUsers; this.parties = parties; this.users = onlineUsers; this.channels = channels; this.teleports = teleports;
-      this.units = units; this.outbox = outbox; this.expertStores = expertStores; }
+      this.units = units; this.outbox = outbox; }
     public ValueTask<bool> HandleAsync(CommandExecutionContext execution, GameTeleportCommand command, CancellationToken ct) =>
         TeleportAsync(execution, command.Dispatch, command.Input, ct);
     private async ValueTask<bool> TeleportAsync(CommandExecutionContext execution, NetworkDispatchContext context, TeleportRequest request, CancellationToken ct)
@@ -150,7 +148,6 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
         var channel = await channels.ResolveAsync(context.Connection.ListenerPort, ct).ConfigureAwait(false);
         if (execution.Request is not CommandRequestContext.ProtocolEffectSelected selected || session != selected.Recipient.Session)
             throw new InvalidOperationException("Teleport requires its original selected actor.");
-        var previousStore = expertStores.FindOwned(session);
         var result = await units.WriteAsync(execution, new("Teleport", [selected.Recipient], CommandWorkUnitKind.MainSettlement),
             (unit, token) => teleports.UseAsync(session, source, request.ItemId, request.TownId, channel, unit.Footprint, token), ct).ConfigureAwait(false);
         if (result.Receipt is not { } receipt)
@@ -170,9 +167,7 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
             messages.AddRange(GameInventoryDelivery.Notifications([new(wire.Space,
                 [new InventoryItemState(receipt.Identity, wire.Index, receipt.RemainingCore.ToCore())], receipt.At)]));
         await outbox.RegisterBatchAsync(context.Connection, messages, ct).ConfigureAwait(false);
-        // The teleport crosses during effect commit, so the normal crossing result is not returned to this command.
-        var closed = previousStore is not null && expertStores.FindOwned(session) is null
-            ? new ExpertStoreClosure(previousStore, []) : null;
+        var closed = receipt.Movement.Crossing?.Change?.ClosedExpertStore;
         if (!await TownMovementProjection.TownProjectTransferAsync(sessions, townAreas, projections, new PartyTownProjectionDelivery(parties, townAreas, sessions, projections, projectionState), currentViews, housing, outbox, context.Connection.ConnectionId, session, view, previous, ct, closed).ConfigureAwait(false))
             logger.LogWarning("TELEPORT committed but town projection lost its membership character={Character}", session.CharacterId);
         logger.LogInformation("TELEPORT character={Character} item={Item} remaining={Remaining} destination={Town}:{Area} ({X},{Y})",

@@ -32,6 +32,9 @@ internal static class CleanupNotificationStages
                 new([.. plan.RequiredOwnerNotices.Select(CleanupNoticeMessages.ToMessage)], []), cancellationToken).ConfigureAwait(false);
 
         order.Delivery = OutboundDelivery.BestEffort;
+        if (plan.ExpertStoreDeparture is { } store)
+            await projections.ProjectAsync(new NotificationAudience.TheseSessions(store.Audience),
+                new SessionCleanupAnnounced([store.Notice]), cancellationToken).ConfigureAwait(false);
         if (plan.PeerAudience.Count > 0 && plan.PeerNotices.Count > 0)
             await projections.ProjectAsync(new NotificationAudience.TheseSessions(plan.PeerAudience),
                 new SessionCleanupAnnounced(plan.PeerNotices), cancellationToken).ConfigureAwait(false);

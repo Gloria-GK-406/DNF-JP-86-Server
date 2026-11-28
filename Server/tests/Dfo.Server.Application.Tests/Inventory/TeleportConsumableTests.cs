@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Tests.Support;
+using Dfo.Server.Application.Tests.World;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Game;
 using Dfo.Server.Data.Networking;
@@ -74,9 +75,19 @@ public sealed class TeleportConsumableTests
     }
 
     [Fact]
-    public async Task Position_write_failure_rolls_back_consumption_memory_and_cooldown_and_same_request_can_retry()
+    public async Task Position_write_failure_preserves_the_store_until_retry_closes_its_exact_visit()
     {
         using var f = Fixture(); await f.Seed(65, 2000, 2);
+        var stores = f.Services.GetRequiredService<IExpertStoreDomainService>();
+        var (store, visitor) = await TestGameplay.RunAsync(f.Services, async () =>
+        {
+            var guest = await TowerSourceMembers.AddAsync(f, 3, 2, 2, 4000);
+            var area = f.Services.GetRequiredService<ITownAreaDomainService>().Find(f.Session.CharacterId)!.Area;
+            var opened = Assert.IsType<ExpertStoreSnapshot>(stores.TryOpen(f.Session, area,
+                new(ExpertStoreKind.DisjointMachine, [], 0, 0, 0, 0)));
+            Assert.True(stores.Enter(guest, opened));
+            return (opened, guest);
+        });
         f.Sql("CREATE TRIGGER fail_teleport BEFORE UPDATE OF town_id ON characters BEGIN SELECT RAISE(ABORT,'teleport failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => Send(f).AsTask());
         Assert.Equal(2, f.Count(2000));
@@ -87,11 +98,19 @@ public sealed class TeleportConsumableTests
             Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId, ItemCooldownKey.ForItem(2000)));
         });
         Assert.Empty(f.Sender.Messages);
+        Assert.Same(store, stores.Visiting(visitor)?.Store);
+        Assert.Empty(f.Sender.Outbound.MessagesFor(visitor.ConnectionId));
         f.Sql("DROP TRIGGER fail_teleport"); await Send(f);
         TestGameplay.Run(f.Services, () =>
         {
             Assert.Equal(1, f.Count(2000)); Assert.Equal(Destination, f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().PositionOf(f.Session.CharacterId));
         });
+        Assert.Null(stores.Visiting(visitor));
+        Assert.Equal(f.Session.WireUserId, Assert.Single(f.Sender.Outbound.MessagesFor(visitor.ConnectionId)
+            .OfType<Dfo.Server.Protocol.Game.StateSynchronization.ExpertStoreClosedMessage>()).OwnerUserId);
+        await Send(f);
+        Assert.Single(f.Sender.Outbound.MessagesFor(visitor.ConnectionId)
+            .OfType<Dfo.Server.Protocol.Game.StateSynchronization.ExpertStoreClosedMessage>());
     }
 
     [Fact]

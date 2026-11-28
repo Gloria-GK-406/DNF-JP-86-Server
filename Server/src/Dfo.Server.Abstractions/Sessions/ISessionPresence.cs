@@ -129,16 +129,6 @@ public interface ISelectedSessionPositionPersistence
 /// </remarks>
 public interface IExpertStoreDomainService
 {
-    /// <summary>Records that a character has a store open.</summary>
-    void Open(CharacterId ownerCharacterId);
-
-    void Open(SelectedSessionIdentity session);
-
-    /// <summary>Records that a character's store is closed. False when none was open.</summary>
-    bool Close(CharacterId ownerCharacterId);
-
-    bool CloseExact(SelectedSessionIdentity session);
-
     /// <summary>Whether this character has a store standing open.</summary>
     bool HasOpenStore(CharacterId ownerCharacterId);
 
@@ -156,6 +146,7 @@ public interface IExpertStoreDomainService
 
     bool Leave(SelectedSessionIdentity visitor);
 
+    /// <summary>Ends the exact session's visit and closes any store it owns, returning the closed instance and its visitors.</summary>
     ExpertStoreClosure? CloseOwned(SelectedSessionIdentity exactOwner);
 
     ExpertStoreClosure? StageClose(ExpertStoreSnapshot expected);

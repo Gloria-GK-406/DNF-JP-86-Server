@@ -13,11 +13,9 @@ internal sealed partial class PvfExpertJobDefinitionSource
 
     internal static IReadOnlyDictionary<int, HashSet<int>> ReadExpertBeadCards(PvfArchive archive)
     {
-        if (archive.FindFile(Catalog) < 0) return new Dictionary<int, HashSet<int>>();
-        var path = PvfListFile.Read(archive, Catalog).SingleOrDefault(entry => entry.Id == (int)ExpertJobType.Enchanter).RelativePath;
-        if (string.IsNullOrEmpty(path)) return new Dictionary<int, HashSet<int>>();
-        path = "character/" + path;
-        if (PvfDocument.TryOpen(archive, path) is not { } doc) return new Dictionary<int, HashSet<int>>();
+        if (DefinitionPath(archive, ExpertJobType.Enchanter) is not { } path
+            || PvfDocument.TryOpen(archive, path) is not { } doc)
+            return new Dictionary<int, HashSet<int>>();
         return ReadCardRecipeGroups(doc, path).SelectMany(group => group.Beads)
             .GroupBy(pair => pair.Value)
             .ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToHashSet());

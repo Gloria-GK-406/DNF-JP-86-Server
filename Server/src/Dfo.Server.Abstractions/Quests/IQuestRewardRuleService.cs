@@ -5,6 +5,9 @@ namespace Dfo.Server.Abstractions.Quests;
 
 public sealed record QuestRewardCandidate(byte Job, byte GrowType, byte Level);
 
+/// <summary>A profession reward confirmed by quest completion preparation.</summary>
+public sealed record ExpertJobQuestGrant(Dfo.Server.Abstractions.Characters.OwnedCharacterId Owner, ushort QuestId, ExpertJobType Type);
+
 public sealed record QuestRewardItemGrant(int ItemId, int Count);
 
 public sealed record QuestCompletionRewardPlan(

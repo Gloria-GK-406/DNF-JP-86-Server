@@ -17,7 +17,7 @@ internal sealed class QuestFactsDomainService(ICharacterContainerDomainService c
     IQuestStateRuleService rules, ICharacterTable owners, ICreatureDomainStore creatures, AmbientStoreAccess stores,
     IItemDomainStore items, IGiantDragonCrystalExchangeDomainService crystalExchange,
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
-    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern, IExpertJobStateStore expertJobs) : IQuestFactsDomainService
+    Dfo.Server.Abstractions.World.ISouthernDaleQuestDomainService southern, IExpertJobQueryDomainService expertJobs) : IQuestFactsDomainService
 {
     public async ValueTask<QuestHoldingsFacts> HoldingsAsync(CharacterId character, CancellationToken ct)
     {

@@ -62,10 +62,10 @@ internal sealed class MonsterCardUpgradeDomainService(MonsterCardUpgradeRuleServ
 
         var remainingTarget = targetCard.Count - (sameSlot ? 1 : 0);
         var upgraded = targetCard.Snapshot with { Count = 1, EnchantUpgradeCount = (byte)(targetCard.Snapshot.EnchantUpgradeCount + 1) };
-        BoundInventorySlot? splitDestination = null;
+        (IBusinessItemContainer Container, ItemArrival Arrival)? splitDestination = null;
         if (remainingTarget > 1)
         {
-            splitDestination = await ReserveSplitSlotAsync(session.CharacterId, upgraded, materialSlot, ct)
+            splitDestination = await PlanSplitArrivalAsync(session.CharacterId, upgraded, materialSlot, ct)
                 .ConfigureAwait(false);
             if (splitDestination is null) return new(MonsterCardUpgradeRejection.InventoryFull);
         }
@@ -84,22 +84,22 @@ internal sealed class MonsterCardUpgradeDomainService(MonsterCardUpgradeRuleServ
                 ? await target.Container.GetAsync(targetSlot.Index, ct).ConfigureAwait(false)
                     ?? throw new InvalidOperationException("Target card vanished after taking the material.")
                 : targetCard;
-            if (splitDestination is null)
-                _ = await target.Container.UpdateAsync(currentTarget, _ => upgraded, ct).ConfigureAwait(false);
-            else
+            if (splitDestination is { } destination)
             {
                 _ = await ItemContainerOperations.ConsumeAsync(target.Container, currentTarget, 1, lifecycle, ct).ConfigureAwait(false);
-                var card = await lifecycle.CreateAsync(upgraded, ct).ConfigureAwait(false);
-                _ = await splitDestination.Container.PutAsync(splitDestination.Slot.Index, card, ct).ConfigureAwait(false);
+                _ = await ItemContainerOperations.ApplyArrivalAsync(destination.Container, destination.Arrival,
+                    upgraded, lifecycle, ct).ConfigureAwait(false);
             }
+            else
+                _ = await target.Container.UpdateAsync(currentTarget, _ => upgraded, ct).ConfigureAwait(false);
         }
 
         return new(MonsterCardUpgradeRejection.None, new(targetCard.ItemId,
             succeeded ? upgraded.EnchantUpgradeCount : targetCard.Snapshot.EnchantUpgradeCount, succeeded, now));
     }
 
-    private async ValueTask<BoundInventorySlot?> ReserveSplitSlotAsync(CharacterId owner, ItemSnapshot upgraded,
-        BusinessSlot materialSlot, CancellationToken ct)
+    private async ValueTask<(IBusinessItemContainer Container, ItemArrival Arrival)?> PlanSplitArrivalAsync(
+        CharacterId owner, ItemSnapshot upgraded, BusinessSlot materialSlot, CancellationToken ct)
     {
         var placement = await placements.PlacementForAsync(upgraded.ItemId, ct).ConfigureAwait(false);
         if (placement is null || !IsCardSpace(placement.Destination.Space)) return null;
@@ -120,10 +120,11 @@ internal sealed class MonsterCardUpgradeDomainService(MonsterCardUpgradeRuleServ
                 matching.Add(new(slot, remaining));
         }
 
-        return arrivals.ForGrant(matching, 1, bounded, occupied) switch
+        var arrival = arrivals.ForGrant(matching, 1, bounded, occupied);
+        return arrival switch
         {
-            ItemArrival.IntoEmptySlot empty => new(empty.Slot, bag),
-            ItemArrival.OntoExistingPile pile => new(pile.Slot, bag),
+            ItemArrival.IntoEmptySlot empty when empty.Slot.Space == space => (bag, arrival),
+            ItemArrival.OntoExistingPile pile when pile.Slot.Space == space => (bag, arrival),
             _ => null,
         };
     }

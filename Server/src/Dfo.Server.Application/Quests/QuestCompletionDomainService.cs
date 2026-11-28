@@ -20,7 +20,7 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
     IMirrorAradQuestDomainService mirror,
     Dfo.Server.Abstractions.Marriage.IMarriageQuestDomainService marriage,
     IQuestFactsDomainService questFacts, IQuestAvailabilityRuleService availability,
-    IExpertJobStateStore expertJobs, IExpertJobRuleService expertJobRules) : IQuestCompletionDomainService
+    IExpertJobQueryDomainService expertJobs) : IQuestCompletionDomainService
 {
     public async ValueTask<QuestCompletionPreparation> PrepareAsync(AccountId account, CharacterId id, ushort quest,
         ushort selection, ushort count, DateTimeOffset at, IEffectFootprintRecorder footprint, CancellationToken ct, SelectedSessionIdentity? session = null)
@@ -61,8 +61,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
         if (reward.Plan.GrowType is not null)
         {
             var expertJob = await expertJobs.ReadAsync(id, ct).ConfigureAwait(false);
-            if (await expertJobRules.FindAsync(expertJob.Type, ct).ConfigureAwait(false) is { } expertRules)
-                facts = facts with { ExpertSkillGrants = expertRules.Skills };
+            if (await expertJobs.DescribeAsync(expertJob, ct).ConfigureAwait(false) is { } expertProgress)
+                facts = facts with { ExpertSkillGrants = expertProgress.GrantedSkills };
         }
         var rewards = await rules.RewardsAsync(reward.Plan, facts, ct).ConfigureAwait(false);
         var context = new EffectExecutionContext(account, id, at, footprint, session);
@@ -72,6 +72,11 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
             || inventory.RewardEntries + goldEntry > byte.MaxValue)
             return Refuse(projected);
         var plan = await rules.CompleteAsync(quest, reward.Plan, facts, rewards, inventory.Holdings!, ct).ConfigureAwait(false);
-        return new(true, quest, definition.ObjectiveTypeCode, plan with { Reward = reward.Plan }, plan.Projection);
+        var profession = reward.Plan.ExpertJob is { } type
+            ? new ExpertJobQuestGrant(new(account, id), quest, type) : null;
+        return new(true, quest, definition.ObjectiveTypeCode, plan with { Reward = reward.Plan }, plan.Projection)
+        {
+            ExpertJobGrant = profession,
+        };
     }
 }

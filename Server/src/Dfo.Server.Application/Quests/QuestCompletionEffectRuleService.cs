@@ -1,3 +1,4 @@
+using Dfo.Server.Application.Characters;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Achievements;
@@ -136,9 +137,11 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
                 var occupied = new HashSet<int>();
                 foreach (var rule in skills.GetAll(career.Job).OrderBy(x => x.SkillId))
                 {
-                    var free = Math.Max(rule.GetFreeLevel(career, xp.Award.Level), facts.ExpertSkillGrants.GetValueOrDefault(rule.SkillId));
+                    var sourceGrant = facts.ExpertSkillGrants.GetValueOrDefault(rule.SkillId);
+                    var free = CharacterSkillGrantRules.MinimumLevel(rule, career, xp.Award.Level, sourceGrant);
                     if (free <= 0) continue;
-                    var slot = rule.FindAvailableSlot(occupied) ?? throw new InvalidDataException("No slot for a granted skill.");
+                    var slot = CharacterSkillGrantRules.Slot(rule, occupied, sourceGrant)
+                        ?? throw new InvalidDataException("No slot for a granted skill.");
                     effects.Add(new SetLearnedSkillEffect(page.PageIndex, slot, rule.SkillId, null, checked((byte)free)));
                     occupied.Add(slot);
                 }

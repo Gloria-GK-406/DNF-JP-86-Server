@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.Transactions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.World.BossTower;
@@ -549,11 +550,14 @@ public sealed class GameplayWriteAssertionTests
         var stores = new Dfo.Server.Application.Sessions.ExpertStoreDomainService(TestRequired.TransactionScope());
         var seen = ViolationCapture.Attach();
 
-        Assert.Throws<GameplayOffExecutorException>(() => stores.Open(Character));
+        var session = Session();
+        var area = new TownAreaKey(1, 1, 0);
+        var placement = new ExpertStorePlacement(ExpertStoreKind.DisjointMachine, [], 0, 0, 0, 0);
+        Assert.Throws<GameplayOffExecutorException>(() => stores.TryOpen(session, area, placement));
 
-        AssertOneViolation(seen, "ExpertStoreDomainService.Open");
+        AssertOneViolation(seen, "ExpertStoreDomainService.TryOpen");
         Assert.False(stores.HasOpenStore(Character));
-        TestGameplay.Run(() => stores.Open(Character));
+        TestGameplay.Run(() => Assert.NotNull(stores.TryOpen(session, area, placement)));
         Assert.True(stores.HasOpenStore(Character));
     }
 

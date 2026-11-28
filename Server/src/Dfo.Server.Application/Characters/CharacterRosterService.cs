@@ -33,7 +33,6 @@ internal sealed class CharacterRosterService(
     ICharacterPvpRecordTable pvpRecord,
     ICharacterPvpSkillStateTable pvpSkillState,
     ICharacterSettingsTable settings,
-    ICharacterExpertJobTable expertJob,
     ICharacterContainerStateTable containerState,
     ICharacterItemTable items,
     IItemPlacementRuleService placementRules, ICharacterFatigueDomainService fatigue,
@@ -236,7 +235,7 @@ internal sealed class CharacterRosterService(
         await pvpRecord.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
         await pvpSkillState.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
         await settings.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
-        await expertJob.InsertIfAbsentAsync(characterId, cancellationToken).ConfigureAwait(false);
+        await expertJobState.InitializeAsync(characterId, cancellationToken).ConfigureAwait(false);
         await containerState.InsertIfAbsentAsync(
             characterId, (int)InventoryContainerType.Main, InitialMainContainerSlots,
             cancellationToken).ConfigureAwait(false);

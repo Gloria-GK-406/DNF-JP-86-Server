@@ -14,7 +14,7 @@ using Dfo.Server.Data.World;
 namespace Dfo.Server.Application.ExpertJobs;
 
 internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJobRuleService definitions,
-    IEquipmentDisjointDefinitionSource equipmentDefinitions, IEquipmentDomainService equipment,
+    EquipmentDisjointRuleService equipmentRules, IEquipmentDomainService equipment,
     IPackageOpeningRuleService grants, IInventoryEffectPreflightDomainService preview, IApplyEffectsDomainService effects,
     IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
     IExpertStoreGameplayDomainService gameplay, IExpertStoreDomainService stores,
@@ -27,7 +27,7 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
     {
         if (owner != visit.Store.Owner.CharacterId || visit.Store.Kind != ExpertStoreKind.DisjointMachine
             || await gameplay.ValidateUseAsync(visit, ct).ConfigureAwait(false) is not { Type: ExpertJobType.Disjointer } state
-            || await definitions.FindAsync(ExpertJobType.Disjointer, ct).ConfigureAwait(false) is not { DisjointMachine: { } machine })
+            || await definitions.FindAsync(ExpertJobType.Disjointer, ct).ConfigureAwait(false) is not { DisjointMachine: { } machine } definition)
             return new(DisjointMachineRejection.InvalidStore);
         if (state.DisjointMachineEndurance <= 0) return new(DisjointMachineRejection.Exhausted);
 
@@ -53,16 +53,15 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
             return new(DisjointMachineRejection.InvalidItem);
         var item = await instance.ReadAsync(ct).ConfigureAwait(false);
         if (item.Snapshot.EquipmentLockId != 0 || item.Snapshot.SortLockFlag != 0 || item.Snapshot.Lifetime.IsExpired(at)
-            || await equipmentDefinitions.GetEquipmentAsync(item.ItemId, ct).ConfigureAwait(false)
-                is not { CanDisjoint: true, Grade: { } grade } definition)
+            || await equipmentRules.ExpertTargetAsync(item.Snapshot, ct).ConfigureAwait(false) is not { } target)
             return new(DisjointMachineRejection.InvalidItem);
 
-        var equipmentState = ExpertJobEquipmentRules.StateOf(item.Snapshot);
-        if (!machine.Results.TryGetValue((state.DisjointMachineGrade - 1, definition.Rarity, equipmentState), out var material))
-            return new(equipmentState == 1 ? DisjointMachineRejection.GradeTooLow : DisjointMachineRejection.InvalidItem);
+        if (!machine.Results.TryGetValue((state.DisjointMachineGrade - 1, target.Definition.Rarity, target.State), out var material))
+            return new(target.State == EquipmentDisjointRuleService.UnpurifiedState
+                ? DisjointMachineRejection.GradeTooLow : DisjointMachineRejection.InvalidItem);
         var random = new Random(Random.Shared.Next());
-        var rewards = CalculateRewards(machine, definition, material, grade, selfService, random,
-            await equipmentDefinitions.GetSystemTableAsync(ct).ConfigureAwait(false));
+        var rewards = await CalculateRewardsAsync(machine, target.Definition, material, target.Grade, selfService, random, ct)
+            .ConfigureAwait(false);
         if (rewards.Length == 0) return new(DisjointMachineRejection.InvalidItem);
 
         var plan = new List<DomainEffect> { new DestroyEquipmentEffect(new EquipmentEffectTarget(item, item.ItemId)) };
@@ -88,8 +87,8 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
             return new(DisjointMachineRejection.InvalidItem);
 
         var endurance = Math.Max(0, state.DisjointMachineEndurance - ExpertJobEquipmentRules.Between(random, machine.MinimumWear, machine.MaximumWear));
-        var experience = (uint)Math.Min(uint.MaxValue, (long)state.Experience
-            + ExpertJobEquipmentRules.Between(random, machine.MinimumExperience, machine.MaximumExperience));
+        var progress = definition.Advance(state,
+            ExpertJobEquipmentRules.Between(random, machine.MinimumExperience, machine.MaximumExperience));
         var closure = endurance == 0 ? stores.StageClose(visit.Store)
             ?? throw new InvalidOperationException("The exhausting disjoint machine could not be staged for closure.") : null;
 
@@ -97,16 +96,16 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
         if (price > 0)
             _ = await effects.ApplyAsync(ownerContext, [new GrantOpeningGoldEffect(price)], ct).ConfigureAwait(false);
         footprint.DemandEffects(ownerContext.Owner);
-        await states.WriteAsync(owner, state with { DisjointMachineEndurance = endurance, Experience = experience }, ct).ConfigureAwait(false);
+        await states.WriteAsync(owner, progress.State with { DisjointMachineEndurance = endurance }, ct).ConfigureAwait(false);
         var output = applied.Changes<PreparedItemGrantChange>().SelectMany(change => change.Rewards).ToArray();
         var changes = await EquipmentEffectReceiptProjection.FinalSlotsAsync(guest.CharacterId, applied, slots, ct).ConfigureAwait(false);
         return new(DisjointMachineRejection.None, new(output, changes, at,
             await requester.GoldAsync(ct).ConfigureAwait(false), await beneficiary.GoldAsync(ct).ConfigureAwait(false),
-            endurance, experience != state.Experience, closure));
+            endurance, progress.ExperienceChanged, closure));
     }
 
-    private static OpeningReward[] CalculateRewards(DisjointMachineDefinition machine, EquipmentDisjointDefinition equipment,
-        DisjointMachineMaterialRule material, int grade, bool selfService, Random random, EquipmentDisjointTable? table)
+    private async ValueTask<OpeningReward[]> CalculateRewardsAsync(DisjointMachineDefinition machine, EquipmentDisjointDefinition equipment,
+        DisjointMachineMaterialRule material, int grade, bool selfService, Random random, CancellationToken ct)
     {
         var adjustedGold = Math.Max(1, Math.Floor(equipment.SellGold * 1.1));
         var rewards = new List<EquipmentDisjointReward>();
@@ -118,7 +117,7 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
         var extra = ExpertJobEquipmentRules.Select(choices, extraTable, grade, random);
         if (extra is { ItemId: > 0 })
             rewards.Add(new(extra.ItemId, extra.Divisor > 0 ? PositiveCount(grade / extra.Divisor) : 1));
-        if (table is not null) EquipmentDisjointRuleService.AddEquipmentSouls(rewards, equipment, table, random);
+        await equipmentRules.AddEquipmentSoulsAsync(rewards, equipment, random, ct).ConfigureAwait(false);
         if (selfService && equipment.Rarity > 1 && random.Next(100) < machine.SelfServiceChance)
             rewards.Add(new(machine.SelfServiceItemId, machine.SelfServiceCount));
         return rewards.GroupBy(reward => reward.ItemId)
@@ -205,11 +204,6 @@ internal static class ExpertMachineRepair
 
 internal static class ExpertJobEquipmentRules
 {
-    internal const int UnpurifiedState = 1;
-
-    internal static int StateOf(ItemSnapshot equipment) => (equipment.AmplifyType & 0x80) != 0 ? UnpurifiedState
-        : equipment.ChronicleOption0.Id != 0 || equipment.ChronicleOption1.Id != 0 ? 2 : 0;
-
     internal static int Between(Random random, int lower, int upper) =>
         upper <= lower ? lower : checked((int)random.NextInt64(lower, (long)upper + 1));
 

@@ -124,6 +124,11 @@ public sealed record SelectedSessionCleanupNotice(
     SelectedSessionCleanupNoticeKind Kind,
     ushort UserId);
 
+/// <summary>A closed store's recipients outside the batch already carrying its town departure.</summary>
+public sealed record SelectedSessionExpertStoreDeparture(
+    SelectedSessionCleanupNotice Notice,
+    IReadOnlyList<SelectedSessionIdentity> Audience);
+
 public sealed record PartyDirectoryRecipientGroup(
     PartyDirectoryScope Scope,
     IReadOnlyList<SelectedSessionIdentity> Sessions);
@@ -183,6 +188,8 @@ public sealed record SelectedSessionCleanupNotificationPlan(
     public Dfo.Server.Data.Guilds.GuildPresenceAudience? GuildDeparture { get; init; }
 
     public Dfo.Server.Data.Raids.AntonRaidRecruitmentChange? RaidDeparture { get; init; }
+
+    public SelectedSessionExpertStoreDeparture? ExpertStoreDeparture { get; init; }
 
     public SelectedSessionCleanupNotificationPlan(
         NetworkConnectionId ownerConnectionId,

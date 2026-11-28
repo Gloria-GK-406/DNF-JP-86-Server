@@ -112,7 +112,6 @@ public sealed class ClassificationRefusalTests
             new SqliteCharacterPvpRecordTable(database.Value),
             new SqliteCharacterPvpSkillStateTable(database.Value),
             new SqliteCharacterSettingsTable(database.Value),
-            new SqliteCharacterExpertJobTable(database.Value),
             new SqliteCharacterContainerStateTable(database.Value),
             new SqliteCharacterItemTable(database.Value),
             Rules(declared), new Dfo.Server.Persistence.Tests.Support.RosterTestFatigue(),

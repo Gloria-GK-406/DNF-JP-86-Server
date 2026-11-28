@@ -59,7 +59,6 @@ internal sealed class CharacterSide
         new SqliteCharacterPvpRecordTable(this.database),
         new SqliteCharacterPvpSkillStateTable(this.database),
         new SqliteCharacterSettingsTable(this.database),
-        new SqliteCharacterExpertJobTable(this.database),
         new SqliteCharacterContainerStateTable(this.database),
         items,
         new ItemPlacementRuleService(new WornPieces(), new NoWornSlots()), new RosterTestFatigue(),
@@ -221,8 +220,6 @@ internal sealed class CharacterSide
             new SqliteCharacterTitleBookTable(this.database),
             new SqliteCharacterAchievementTable(this.database),
             new SqliteCharacterCollectionBoxTable(this.database),
-            new SqliteCharacterExpertJobTable(this.database),
-            new SqliteCharacterExpertRecipeTable(this.database),
             new SqliteCharacterPvpMissionTable(this.database),
             new Dfo.Server.Application.Mail.MailboxQueryDomainService(new Dfo.Server.Persistence.Mail.SqliteMailboxRepository(this.database, transactions: TestRequired.TransactionScope(), items: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IItemDomainStore>()), TimeProvider.System,
                 new SqliteMailboxMessageTable(this.database), new SqliteMailboxAttachmentTable(this.database),
@@ -235,7 +232,10 @@ internal sealed class CharacterSide
                     this.Scope, null!),
                 new PremiumServiceRuleService(new UsageRules()),
                 new DailyResetRuleService(new ResetSettings()), this.Scope, TimeProvider.System, null!), new SqliteCharacterSkillBuildTable(this.database), marriageRelations: TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>(),
-            expertJobRules: TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobRuleService>());
+            expertJobs: new Dfo.Server.Application.ExpertJobs.ExpertJobQueryDomainService(
+                new SqliteExpertJobStateStore(this.database, new SqliteCharacterExpertJobTable(this.database),
+                    new SqliteCharacterExpertRecipeTable(this.database)),
+                TestRequired.Absent<Dfo.Server.Abstractions.ExpertJobs.IExpertJobRuleService>()));
 
     /// <summary>
     /// The roster with a use case around every call, which is how the server dispatches these.

@@ -10,7 +10,6 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
-using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.OnlineUsers;
 using Dfo.Server.Data.World;
@@ -28,7 +27,7 @@ internal sealed class NpcShopDomainService(
     INpcShopPurchaseTable purchases, IItemLifecycleDomainService lifecycle, IItemGrantDomainService grants,
     Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService bossTower, IDungeonParticipationDomainService participation,
     IGuildHallAccessDomainService halls, IGuildDungeonDomainService guildDungeons,
-    IExpertJobDomainService expertJobs, IExpertJobRuleService expertJobRules) : INpcShopDomainService
+    IExpertJobQueryDomainService expertJobs) : INpcShopDomainService
 {
     public async ValueTask<NpcShopPurchaseResult> PurchaseAsync(
         SelectedSessionIdentity session, int itemId, int rawCount, int shopId, int npcId,
@@ -165,10 +164,9 @@ internal sealed class NpcShopDomainService(
 
     private async ValueTask<NpcShopExpertJob> ReadExpertJobAsync(CharacterId owner, CancellationToken ct)
     {
-        var state = await expertJobs.Get(owner).GetStateAsync(ct).ConfigureAwait(false);
-        if (state.Type == ExpertJobType.None || await expertJobRules.FindAsync(state.Type, ct).ConfigureAwait(false) is not { } definition)
-            return default;
-        return new(state.Type, definition.LevelAt(state.Experience));
+        var state = await expertJobs.ReadAsync(owner, ct).ConfigureAwait(false);
+        return await expertJobs.DescribeAsync(state, ct).ConfigureAwait(false) is { } progress
+            ? new(state.Type, progress.Level) : default;
     }
 
     private async ValueTask<(bool Allowed, int? ActiveVariant)> GuildAccessAsync(SelectedSessionIdentity session,

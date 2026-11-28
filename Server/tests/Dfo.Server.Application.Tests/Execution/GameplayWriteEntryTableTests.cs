@@ -565,8 +565,6 @@ public sealed class GameplayWriteEntryTableTests
         ["HousingState.SaveAsync(HousingSnapshot, CancellationToken)"] = W,
 
         // ExpertStoreDomainService
-        ["ExpertStoreDomainService.Close(CharacterId)"] = W,
-        ["ExpertStoreDomainService.CloseExact(SelectedSessionIdentity)"] = W,
         ["ExpertStoreDomainService.CloseOwned(SelectedSessionIdentity)"] = W,
         ["ExpertStoreDomainService.Enter(SelectedSessionIdentity, ExpertStoreSnapshot)"] = W,
         ["ExpertStoreDomainService.FindOwned(SelectedSessionIdentity)"] = R,
@@ -574,8 +572,6 @@ public sealed class GameplayWriteEntryTableTests
         ["ExpertStoreDomainService.HasOpenStore(SelectedSessionIdentity)"] = R,
         ["ExpertStoreDomainService.In(TownAreaKey)"] = R,
         ["ExpertStoreDomainService.Leave(SelectedSessionIdentity)"] = W,
-        ["ExpertStoreDomainService.Open(CharacterId)"] = W,
-        ["ExpertStoreDomainService.Open(SelectedSessionIdentity)"] = W,
         ["ExpertStoreDomainService.StageClose(ExpertStoreSnapshot)"] = W,
         ["ExpertStoreDomainService.StageCloseOwned(SelectedSessionIdentity)"] = W,
         ["ExpertStoreDomainService.TryOpen(SelectedSessionIdentity, TownAreaKey, ExpertStorePlacement)"] = W,

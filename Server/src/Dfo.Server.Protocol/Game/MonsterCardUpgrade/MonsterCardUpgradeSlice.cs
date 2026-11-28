@@ -67,7 +67,7 @@ internal sealed class GameMonsterCardUpgradeCommandHandler(ISelectedSessionDomai
         var connection = command.Dispatch.Connection;
         var request = command.Input;
         if (request.TargetSlot < 0 || request.MaterialSlot < 0
-            || request.Metadata is { InboundOrdinal: not null, SequenceIsFresh: false }
+            || GameRequestFreshness.IsStale(request.Metadata)
             || !sessions.TryGetInWorld(connection.ConnectionId, out var actor))
             return await RejectAsync(0x13).ConfigureAwait(false);
         BusinessSlot target;

@@ -164,12 +164,14 @@ public sealed class CleanupNotificationDeliveryTests
     public async Task Each_half_becomes_the_frames_it_always_did()
     {
         var peer = Peer(9);
-        await using var outbound = Outbound(peer);
+        var outsideVisitor = Peer(10);
+        await using var outbound = Outbound(peer, outsideVisitor);
         var notifications = outbound.Projections;
 
         await outbound.RunAsync(async () => await Delivery(outbound).DeliverAsync(
             new SelectedSessionCleanupNotificationPlan(
-                Owner, [StoreClosed], [peer], [StoreClosed, Departed]),
+                Owner, [StoreClosed], [peer], [StoreClosed, Departed])
+            { ExpertStoreDeparture = new(StoreClosed, [outsideVisitor]) },
             CancellationToken.None));
 
         var direct = outbound.Recorder.Entries.Single(entry => entry.Connection.ConnectionId == Owner);
@@ -178,7 +180,13 @@ public sealed class CleanupNotificationDeliveryTests
             Assert.Single(direct.Messages).GetType().Name);
         Assert.Equal(OutboundDelivery.Required, direct.Delivery);
 
-        var (audience, notification) = Assert.Single(notifications.Published);
+        var published = notifications.Published.ToArray();
+        Assert.Equal(2, published.Length);
+        var (visitorAudience, visitorNotification) = published[0];
+        Assert.Equal([outsideVisitor], Assert.IsType<NotificationAudience.TheseSessions>(visitorAudience).Sessions);
+        Assert.Equal(StoreClosed, Assert.Single(Assert.IsType<SessionCleanupAnnounced>(visitorNotification).Notices));
+
+        var (audience, notification) = published[1];
         Assert.Equal(
             [peer], Assert.IsType<NotificationAudience.TheseSessions>(audience).Sessions);
         Assert.Equal(
