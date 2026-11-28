@@ -48,6 +48,7 @@ using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.Parties;
 using Microsoft.Extensions.Logging;
+using Dfo.Server.Protocol.Game.Trade;
 
 namespace Dfo.Server.Protocol.Game.Party;
 
@@ -163,7 +164,7 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
     ICommandProjections projections, IPartyProjectionStateDomainService projectionState, IOutboundOrdering ordering,
     IDungeonRunQueryDomainService runs, IAntonRaidDomainService raids, IGameCommandOutbox outbox,
     IPvpRoomDomainService rooms, ISelectedCharacterCurrentViewDomainService currentViews, ICommandWorkUnits units,
-    ILogger<GameRequestPeerCommandHandler> logger, AntonRaidSquadProjection raidSquads)
+    ILogger<GameRequestPeerCommandHandler> logger, AntonRaidSquadProjection raidSquads, TradeProtocol? trade = null)
     : ICommandHandler<GameRequestPeerCommand, bool>
 {
 
@@ -174,6 +175,9 @@ internal sealed partial class GameRequestPeerCommandHandler(ISelectedSessionDoma
         var message = command.Input;
         var request = commandContext.Request ?? throw new InvalidOperationException("A party protocol request is required.");
         request.DemandCurrent();
+        if (message.RequestType == TradeProtocol.PeerType && trade is not null)
+            return await trade.InviteAsync(commandContext, context.Connection, message.Metadata,
+                message.TargetWireUserId, message.PeerValue, message.Tail, cancellationToken).ConfigureAwait(false);
         if (message.RequestType == PvpRoomInviteRequestMessage.RequestType)
             return await InviteToRoomAsync(commandContext, command, cancellationToken).ConfigureAwait(false);
         if (message.RequestType != 0)
@@ -332,7 +336,7 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
     IGameSessionEndpointDomainService endpoints, IWeaknessDomainService weakness, ICommandWorkUnits units,
     ILogger<GameResponsePeerCommandHandler> logger, AntonRaidSquadProjection raidSquads,
     IPvpTotalMatchCandidateQueryDomainService totalMatchCandidates,
-    TimeProvider clock)
+    TimeProvider clock, TradeProtocol? trade = null)
     :
       ICommandHandler<GameResponsePeerCommand, bool>
 {
@@ -344,6 +348,9 @@ internal sealed partial class GameResponsePeerCommandHandler(ISelectedSessionDom
         var message = command.Input;
         var request = commandContext.Request ?? throw new InvalidOperationException("A party protocol request is required.");
         request.DemandCurrent();
+        if (message.RequestType == TradeProtocol.PeerType && trade is not null)
+            return await trade.RespondAsync(commandContext, context.Connection, message.Metadata,
+                message.InviterWireUserId, message.PeerValue, message.Tail, cancellationToken).ConfigureAwait(false);
         if (message.RequestType == PvpRoomInviteRequestMessage.RequestType)
             return await AcceptRoomInviteAsync(commandContext, command, cancellationToken).ConfigureAwait(false);
         if (message.RequestType != 0)

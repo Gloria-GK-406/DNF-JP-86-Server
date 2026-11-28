@@ -359,6 +359,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddUnitedFriendSlice();
         Dfo.Server.Protocol.Game.Auction.AuctionRegistration.AddAuctionSlice(services);
         Dfo.Server.Protocol.Game.PrivateStore.PrivateStoreRegistration.AddPrivateStoreSlice(services);
+        Dfo.Server.Protocol.Game.Trade.TradeRegistration.AddPlayerTradeSlice(services);
         Dfo.Server.Protocol.Game.GuildCreation.GuildCreationRegistration.AddGuildCreationSlice(services);
         Dfo.Server.Protocol.Game.GuildMemberInfo.GuildMemberInfoRegistration.AddGuildMemberInfoSlice(services);
         Dfo.Server.Protocol.Game.GuildInfo.GuildInfoRegistration.AddGuildInfoSlice(services);

@@ -378,6 +378,7 @@ public enum ClientMessageType
 
     // An item changing slots, the quick-slot bar included. See Game/MoveItemSpace.
     GameMoveItemSpace = 0x0001_0013,
+    GameSetTradeState = 0x0001_0018,
     GameSortItem = 0x0001_0014,
     GameSortLock = 0x0001_02CA,
     GameSortUnlock = 0x0001_02CB,

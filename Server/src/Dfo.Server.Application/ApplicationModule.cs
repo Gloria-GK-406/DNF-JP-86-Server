@@ -91,6 +91,8 @@ public sealed class ApplicationModule : IServerModule
         Dfo.Server.Application.Guilds.GuildRegistration.AddGuilds(services);
         Dfo.Server.Application.Auction.AuctionRegistration.AddAuction(services, configuration);
         Dfo.Server.Application.PrivateStore.PrivateStoreRegistration.AddPrivateStore(services);
+        services.TryAddSingleton<Dfo.Server.Application.Trade.PlayerTradeAssets>();
+        services.TryAddSingleton<Dfo.Server.Application.Trade.PlayerTradeDomainService>();
         services.AddEvents(configuration);
         Dfo.Server.Application.GameplayParameters.GameplayParametersRegistration.AddGameplayParameters(services);
         services.TryAddSingleton(new ChannelListenerOptions(
