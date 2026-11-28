@@ -2,6 +2,8 @@ using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 
+using Dfo.Server.Abstractions.Benefits;
+
 namespace Dfo.Server.Application.Tests.World;
 
 [Trait("Category", "Unit")]
@@ -100,10 +102,10 @@ public sealed class ExperienceBonusRulesTests
     [InlineData(146u, 153u)]
     public void TheDeclaredRateReproducesEachCapturedAward(uint worth, uint captured)
     {
-        var found = new List<ExperienceModifier>();
+        var found = new List<GameplayBenefit>();
         ExperienceBonusRules.FromChannel(ExperienceEvent.MonsterKill, DeclaredRate, found);
 
-        var channel = Assert.Single(found);
+        var channel = Assert.IsType<ExperienceBenefit>(Assert.Single(found).Effect).Modifier;
         Assert.Equal(ExperienceBonusKind.SeriaBlessing, channel.Kind);
         Assert.Equal(captured, worth + (uint)Math.Floor(worth * channel.Rate));
     }
@@ -120,7 +122,7 @@ public sealed class ExperienceBonusRulesTests
     [InlineData(ExperienceEvent.QuestCompletion)]
     public void TheChannelAddsNothingToAnOccasionItWasNotMeasuredAgainst(ExperienceEvent occasion)
     {
-        var found = new List<ExperienceModifier>();
+        var found = new List<GameplayBenefit>();
         ExperienceBonusRules.FromChannel(occasion, DeclaredRate, found);
 
         Assert.Empty(found);
@@ -137,7 +139,7 @@ public sealed class ExperienceBonusRulesTests
     [Fact]
     public void AChannelThatAddsNothingProducesNoLine()
     {
-        var found = new List<ExperienceModifier>();
+        var found = new List<GameplayBenefit>();
         ExperienceBonusRules.FromChannel(ExperienceEvent.MonsterKill, 0, found);
 
         Assert.Empty(found);
@@ -174,9 +176,9 @@ public sealed class ExperienceBonusRulesTests
     private static List<ExperienceModifier> Collect(
         ExperienceEntitlementPolicy policy, params AccountPremiumEntryState[] premiums)
     {
-        var found = new List<ExperienceModifier>();
+        var found = new List<GameplayBenefit>();
         ExperienceBonusRules.FromAccountEntitlements(
             premiums, Now, ExperienceEvent.MonsterKill, policy, found);
-        return found;
+        return found.Select(benefit => Assert.IsType<ExperienceBenefit>(benefit.Effect).Modifier).ToList();
     }
 }

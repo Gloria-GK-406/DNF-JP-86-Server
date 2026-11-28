@@ -1,4 +1,6 @@
 using Dfo.Server.Abstractions.Characters;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
 using Dfo.Server.Abstractions.Effects;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.DomainEvents;
@@ -23,7 +25,8 @@ internal sealed class EquipmentReinforcementDomainService(
     ICharacterDomainService characters, ICharacterItemUseDomainService itemUse,
     IEquipmentReinforcementRollSource rolls,
     IEventService events,
-    TimeProvider timeProvider) : IEquipmentReinforcementDomainService
+    TimeProvider timeProvider,
+    GameplayBenefitsQuery<SelectedSessionIdentity> reinforcementBenefits) : IEquipmentReinforcementDomainService
 {
     public async ValueTask<EquipmentReinforcementResult> ReinforceAsync(
         SelectedSessionIdentity session, BusinessSlot targetSlot, int expectedItemId,
@@ -110,9 +113,21 @@ internal sealed class EquipmentReinforcementDomainService(
                 protectionDefinition = selected.Definition;
             }
         }
+        var bonusUnits = 0;
+        if (!quote.IsTicket && kind == EquipmentUpgradeKind.Reinforcement && targetSlot.Space != BusinessInventorySpace.GuildMedal)
+        {
+            var snapshot = await reinforcementBenefits.ReadAsync(session, ct, GameplayBenefitScope.Global,
+                GameplayBenefitScope.For(session.AccountId), GameplayBenefitScope.For(session.CharacterId)).ConfigureAwait(false);
+            var chanceBonuses = snapshot.Effects<EquipmentReinforcementChanceBenefit>().ToArray();
+            var independent = chanceBonuses.Where(effect => effect.ExclusiveGroup is null).Sum(effect => (long)effect.SuccessUnits);
+            var grouped = chanceBonuses.Where(effect => effect.ExclusiveGroup is not null)
+                .GroupBy(effect => effect.ExclusiveGroup, StringComparer.Ordinal)
+                .Sum(group => (long)group.Max(effect => effect.SuccessUnits));
+            bonusUnits = (int)Math.Min(rule.RollUpperBound, independent + grouped);
+        }
         var draw = rolls.Next(rule.RollUpperBound);
         rule = rule.ResolveRoll(draw);
-        var succeeded = rule.TryReinforce(draw);
+        var succeeded = rule.TryReinforce(draw, bonusUnits);
         var plan = await plans.ReinforcementAsync(target, rule,
             new(materialLocation, rule.MaterialItemId, rule.MaterialCount),
             protectionSlot is { } ticket ? new(ticket, protectionItem!.ItemId, 1) : null,

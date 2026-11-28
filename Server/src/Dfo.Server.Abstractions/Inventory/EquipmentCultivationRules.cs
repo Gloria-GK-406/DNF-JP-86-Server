@@ -52,7 +52,7 @@ public interface IEquipmentReinforcementRule
     ValueTask<EquipmentReinforcementProtectionDefinition?> ProtectionAsync(int itemId, CancellationToken ct);
     ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
         IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct);
-    bool TryReinforce(int draw);
+    bool TryReinforce(int draw, int successBonusUnits = 0);
 }
 
 public interface IEquipmentEnchantRuleService

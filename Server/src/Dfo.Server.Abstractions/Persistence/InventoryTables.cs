@@ -241,11 +241,14 @@ public interface ICharacterGoldLimitTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>How strong each of the effects a character's items are giving is.</summary>
+/// <summary>The values of a character's active and historical item effects.</summary>
 public interface ICharacterItemEffectTable
 {
     ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
         CharacterId characterId, CancellationToken cancellationToken);
+
+    /// <summary>Stores a timed effect's Unix expiry if the same item does not already have a live effect.</summary>
+    ValueTask<bool> TryStartAsync(CharacterId characterId, int itemId, int now, int expiresAt, CancellationToken ct);
 }
 
 /// <summary>Which of a character's slots are locked.</summary>

@@ -17,6 +17,9 @@ using Dfo.Server.Application.World;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Data.World;
+
 namespace Dfo.Server.Application.Inventory;
 
 /// <summary>What the Inventory domain registers; called once from <see cref="Dfo.Server.Application.ApplicationModule"/>.</summary>
@@ -113,6 +116,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IEquipmentReinforcementFailureRuleService, EquipmentReinforcementFailureRuleService>();
         services.TryAddSingleton<IEquipmentRepairDomainService, EquipmentRepairDomainService>();
         services.TryAddSingleton<IEquipmentReinforcementRollSource, EquipmentReinforcementRollSource>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<SelectedSessionIdentity>, ReinforcementPotionBenefits>());
         services.TryAddSingleton<IEquipmentReinforcementDomainService, EquipmentReinforcementDomainService>();
         services.TryAddSingleton<IEquipmentEnchantDomainService, EquipmentEnchantDomainService>();
         services.TryAddSingleton<GuardianGemRuleService>();

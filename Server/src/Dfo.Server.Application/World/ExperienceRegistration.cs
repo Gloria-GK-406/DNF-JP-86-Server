@@ -1,6 +1,7 @@
 using Dfo.Server.Application.Administration;
 using Dfo.Server.Application.Mail;
 using Dfo.Server.Abstractions.Authentication;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Application.Authentication;
 using Dfo.Server.Data.Authentication;
 using Dfo.Server.Abstractions.Characters;
@@ -46,6 +47,12 @@ internal static class ExperienceRegistration
         // one reader of the four archive declarations and the two operator dials behind them.
         services.TryAddSingleton<IExperienceRuleService, ExperienceRuleService>();
         services.TryAddSingleton<IExperienceBonusDomainService, ExperienceBonusDomainService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, PremiumExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, ChannelExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, GuildExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, SpiritPotionExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, AdventureGroupExperienceBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonExperienceBenefitContext>, RunExperienceBenefits>());
         services.TryAddSingleton<
             IExperienceValuationDomainService, ExperienceValuationDomainService>();
         services.TryAddSingleton<IExperienceCalculationDomainService, ExperienceCalculationDomainService>();

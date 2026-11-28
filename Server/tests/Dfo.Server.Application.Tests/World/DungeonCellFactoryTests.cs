@@ -27,7 +27,8 @@ public sealed partial class DungeonCellFactoryTests
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(60064) })
         { Mode = new DungeonRunMode.Hell(new(1, cell, 60064, [])) };
         var factory = new DungeonCellFactory(new HellRoom(), new NoPlacement(), new RecordingLoot(),
-            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new FrozenHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance);
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new FrozenHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance,
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 60064, 0,
             DateTimeOffset.UnixEpoch, [new(new(1), new(10), 0, true)]), default);
         Assert.Empty(seed.GroundItems);
@@ -70,7 +71,8 @@ public sealed partial class DungeonCellFactoryTests
             var rooms = new DungeonRoomRuleService(source, source, source, source, mechanisms: new Dfo.Server.Application.World.DungeonRoomMechanismRuleService());
             var loot = new RecordingLoot();
             var factory = new DungeonCellFactory(rooms, new NoPlacement(), loot,
-                new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance);
+                new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance,
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
             DungeonRunParticipant[] members = [new(new(1), new(10), 0, true)];
             var runs = TestParties.Runs();
             var runId = DungeonRunId.New();
@@ -177,12 +179,14 @@ public sealed partial class DungeonCellFactoryTests
             Cells: new Dictionary<MazeCell, DungeonCellDefinition> { [new MazeCell(0, 0)] = DungeonCellDefinition.Fixed(61000)});
         var participants = Enumerable.Range(0, memberCount)
             .Select(index => new DungeonRunParticipant(new AccountId(index + 1),
-                new CharacterId(index + 10), Slot: (byte)index, IsLeader: index == 0)).ToArray();
+                new CharacterId(index + 10), Slot: (byte)index, IsLeader: index == 0)
+                { IsLuckyCharacter = true }).ToArray();
         var factory = new DungeonCellFactory(
             new OneActorRoom(actorType, hostile, dummy, objectTemplate, sceneWave),
             new NoPlacement(),
             loot,
-            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance);
+            new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance,
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
 
         var seed = await factory.CreateAsync(
             new DungeonCellCreationContext(
@@ -228,6 +232,7 @@ public sealed partial class DungeonCellFactoryTests
             Assert.Equal((ushort)100, context.ActorSequence);
             Assert.Equal(actorType, context.MonsterRank);
             Assert.Equal(3, context.RandomDropCount);
+            Assert.Equal(new SharedEquipmentDropBenefit(DropRarity.Unique, 3), Assert.Single(context.SharedEquipmentBonuses));
             Assert.Equal(new CharacterId(10), context.CharacterId);
             Assert.Equal(participants.Select(p => new MonsterDropParticipant(p.AccountId, p.CharacterId)),
                 context.Participants);
@@ -245,7 +250,8 @@ public sealed partial class DungeonCellFactoryTests
                 new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123)});
             DungeonRunParticipant[] members = [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)];
             var factory = new DungeonCellFactory(new ObjectRoom(), new NoPlacement(), new RecordingLoot(),
-                new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance);
+                new MonsterBoundary(), questLoot, new NoQuestBonus(), new NoHellRewards(), new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), Microsoft.Extensions.Logging.Abstractions.NullLogger<DungeonCellFactory>.Instance,
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
             var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
                 DateTimeOffset.UnixEpoch, members), CancellationToken.None);
             Assert.Empty(seed.Actors);
@@ -334,7 +340,7 @@ public sealed partial class DungeonCellFactoryTests
     private sealed class RecordingLoot : IMonsterDropDomainService
     {
         public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
-            int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken ct) => throw new NotSupportedException();
+            int monsterId, MonsterDropContext context, CancellationToken ct) => throw new NotSupportedException();
         public int CallCount { get; private set; }
         public List<CharacterId> PersonalCalls { get; } = [];
         public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(

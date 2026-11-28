@@ -1,4 +1,5 @@
 using Dfo.Server.Abstractions.Transactions;
+using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -34,7 +35,8 @@ internal sealed class InventoryEntryAssembly(
     ICharacterItemEffectTable itemEffects,
     ICharacterItemLockTable itemLocks,
     ICharacterRentalTable rentals,
-    IItemDomainStore itemStore, IDomainTransactionAccessor transactions)
+    IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
+    IItemUseRuleDefinitionSource itemUseRules, TimeProvider clock)
     : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
 {
     /// <summary>Where the gold a character carries is drawn, and the id it is drawn under.</summary>
@@ -295,13 +297,20 @@ internal sealed class InventoryEntryAssembly(
     {
         var values = new List<InventoryItemValueStorageRecord>();
         var seen = new HashSet<int>();
+        var now = clock.GetUtcNow().ToUnixTimeSeconds();
         foreach (var row in await itemEffects.ReadByCharacterAsync(characterId, cancellationToken).ConfigureAwait(false))
         {
             var storedCharacterId = new CharacterId(row.CharacterId);
             if (storedCharacterId != characterId || row.SortOrder < 0 || !seen.Add(row.SortOrder))
                 throw new InvalidDataException("Character item effects have invalid ownership, order, or duplicate entries.");
 
-            values.Add(new(storedCharacterId, InventoryItemValueListType.Effect, row.SortOrder, row.ItemId, row.Value));
+            var remaining = row.Value;
+            if (await itemUseRules.GetAsync(row.ItemId, cancellationToken).ConfigureAwait(false) is { ReinforcementPotion: not null })
+            {
+                if (row.Value <= now) continue;
+                remaining = checked((int)(row.Value - now));
+            }
+            values.Add(new(storedCharacterId, InventoryItemValueListType.Effect, row.SortOrder, row.ItemId, remaining));
         }
         return values;
     }

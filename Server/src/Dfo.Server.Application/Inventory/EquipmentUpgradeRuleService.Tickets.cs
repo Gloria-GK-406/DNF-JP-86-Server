@@ -61,7 +61,7 @@ internal sealed partial class EquipmentUpgradeRuleService
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null);
         public ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
             IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct) => ValueTask.FromResult<EquipmentProtectionChoice?>(null);
-        public bool TryReinforce(int draw)
+        public bool TryReinforce(int draw, int successBonusUnits = 0)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(draw);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(draw, RollUpperBound);

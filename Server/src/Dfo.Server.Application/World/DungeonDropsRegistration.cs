@@ -1,4 +1,6 @@
 using Dfo.Server.Application.Administration;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Data.Accounts;
 using Dfo.Server.Abstractions.Authentication;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Data.Authentication;
@@ -64,6 +66,9 @@ internal static class DungeonDropsRegistration
         // The seams the command handlers reach the rules through, so that none of them holds a
         // rule service of its own.
         services.TryAddSingleton<IGroundPickupDomainService, GroundPickupDomainService>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonCellCreationContext>, LuckySharedDropBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<MonsterDropContext>, GrowthBossDropBenefits>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<AccountId>, QuestHelperDropBenefits>());
         services.TryAddSingleton<MonsterDropDomainService>();
         services.TryAddSingleton<IMonsterDropDomainService>(services =>
             services.GetRequiredService<MonsterDropDomainService>());

@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Content;
-using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Abstractions.World;
 
@@ -11,21 +10,7 @@ namespace Dfo.Server.Abstractions.World;
 /// </remarks>
 public readonly record struct ClearExperienceWorth(uint Base, uint RankBonus);
 
-/// <summary>
-/// What an occasion pays in experience, what a character's own terms add to it, and how much of it
-/// a level costs.
-/// </summary>
-/// <remarks>
-/// Four archive declarations and two operator dials answer to one subject. The kill parameters and
-/// the tuning decide what a monster is worth; the quest table and the rank grades decide what a
-/// clear is worth; the premium rates and the channel reward decide what is added on top; and the
-/// progression policy decides when the total becomes a level. None of them is a fact about a
-/// character, which is why they are all here and none of them is read where a character is written.
-/// <para>
-/// Everything this answers is a function of what it is handed plus what the archive declares. It
-/// holds no world state and reads none: a caller that knows the character's premiums passes them.
-/// </para>
-/// </remarks>
+/// <summary>Values base experience and translates awards into character progression.</summary>
 public interface IExperienceRuleService
 {
     /// <summary>What a monster of this level is worth on the configured curve, before anything about the run.</summary>
@@ -41,20 +26,6 @@ public interface IExperienceRuleService
 
     /// <summary>What this clear pays, and what its rank adds.</summary>
     ClearExperienceWorth WorthOfClear(in ClearCircumstances clear);
-
-    /// <summary>
-    /// What the character's own terms and the channel they are on add to this award.
-    /// </summary>
-    /// <param name="premiums">
-    /// The account's premium terms as the published session carries them. Handed in rather than
-    /// looked up: which account is playing is world state, and the rules may not go and find it.
-    /// </param>
-    IReadOnlyList<ExperienceModifier> ModifiersFor(
-        ExperienceEvent occasion,
-        IReadOnlyList<AccountPremiumEntryState> premiums,
-        DateTimeOffset now,
-        int channelId,
-        int dungeonId);
 
     /// <summary>How much a level costs, and the caps a run's experience is held to.</summary>
     DungeonExperienceProgressionPolicy Progression();

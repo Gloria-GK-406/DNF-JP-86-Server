@@ -275,5 +275,10 @@ internal sealed class InventorySide
         new SqliteCharacterItemEffectTable(this.database),
         new SqliteCharacterItemLockTable(this.database),
         new SqliteCharacterRentalTable(this.database, clock: TimeProvider.System),
-        Store, Scope);
+        Store, Scope, new NoItemUseRules(), TimeProvider.System);
+
+    private sealed class NoItemUseRules : IItemUseRuleDefinitionSource
+    {
+        public ValueTask<ItemUseRule?> GetAsync(int itemId, CancellationToken ct) => ValueTask.FromResult<ItemUseRule?>(null);
+    }
 }

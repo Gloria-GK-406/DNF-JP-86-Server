@@ -43,11 +43,8 @@ internal sealed class ExperienceCalculationDomainService(
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false);
                 var bossKill = new ExperienceBreakdown(Base: bossKillBase);
                 if (bossKillBase == 0) return bossKill;
-                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion with
-                    { Event = ExperienceEvent.MonsterKill, AllowGuildExperience = false }, cancellationToken).ConfigureAwait(false))
-                    bossKill = bossKill.Add(modifier.Kind, Floor(bossKillBase * modifier.Rate));
-                _ = bossKill.Total;
-                return bossKill;
+                return ApplyBaseBonuses(bossKill, await bonuses.CollectAsync(kill.Occasion with
+                    { Event = ExperienceEvent.MonsterKill, AllowGuildExperience = false }, cancellationToken).ConfigureAwait(false));
             case TowerClearExperienceContext { Tower: DungeonParticipationMode.BossTower } clear:
                 var bossBase = await bossTower
                     .ClearExperienceAsync(characterLevel, clear.RewardLevel, cancellationToken).ConfigureAwait(false);
@@ -90,6 +87,14 @@ internal sealed class ExperienceCalculationDomainService(
         }
         if (burnRate > 0)
             award = award.Add(ExperienceBonusKind.FatigueBurn, Floor(award.Total * burnRate));
+        _ = award.Total;
+        return award;
+    }
+
+    internal static ExperienceBreakdown ApplyBaseBonuses(ExperienceBreakdown award, IEnumerable<ExperienceModifier> modifiers)
+    {
+        foreach (var modifier in modifiers)
+            award = award.Add(modifier.Kind, Floor(award.Base * modifier.Rate));
         _ = award.Total;
         return award;
     }

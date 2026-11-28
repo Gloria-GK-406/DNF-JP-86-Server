@@ -24,7 +24,8 @@ public sealed partial class DungeonCellFactoryTests
         var factory = new DungeonCellFactory(new SnapshotRoom(), new NoPlacement(), new SnapshotLoot(),
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(),
             new NoLostLandDrops(), query, new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits),
-            NullLogger<DungeonCellFactory>.Instance);
+            NullLogger<DungeonCellFactory>.Instance,
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
             DateTimeOffset.UnixEpoch, [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)]), default);
         Assert.Equal(3, Assert.Single(seed.GroundItems).Count);
@@ -64,7 +65,7 @@ public sealed partial class DungeonCellFactoryTests
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([new(2000, context.DrawMultipliers.For(DropDrawEntry.World), DropRarity.Common, DropItemKind.Stackable)]);
         public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(int id, CharacterId character, MonsterDropContext context, CancellationToken ct) =>
             ValueTask.FromResult<IReadOnlyList<RolledDrop>>([new(2001, context.DrawMultipliers.For(DropDrawEntry.World), DropRarity.Common, DropItemKind.Stackable, OwnerCharacterId: character)]);
-        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int id, MonsterDropContext context, int bonus, CancellationToken ct) => throw new NotSupportedException();
+        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int id, MonsterDropContext context, CancellationToken ct) => throw new NotSupportedException();
     }
 }
 

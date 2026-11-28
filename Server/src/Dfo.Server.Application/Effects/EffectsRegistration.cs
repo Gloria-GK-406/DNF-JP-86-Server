@@ -52,6 +52,7 @@ internal static class EffectsRegistration
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, ConsumeFromContainerEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, StartItemCooldownEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, StartSpiritPotionEffectHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, StartReinforcementPotionEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, AddPetStomachEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetFatigueStateEffectHandler>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEffectHandler, SetPurchaseRestrictionEffectHandler>());

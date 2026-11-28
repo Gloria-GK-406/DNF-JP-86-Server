@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Characters;
 
@@ -132,17 +133,9 @@ public enum ExperienceBonusKind
 public readonly record struct ExperienceModifier(
     string Source, double Rate, ExperienceBonusKind Kind = ExperienceBonusKind.Unlisted);
 
-/// <summary>
-/// Everything that increases what a character earns beyond what the occasion itself is worth.
-/// </summary>
-/// <remarks>
-/// One service rather than a registry of self-reporting bonuses, because "which of a character's
-/// things affect experience" is knowledge about experience, not about the character. A character
-/// holds an elixir effect and does not know what it is for; an account holds a premium term and
-/// does not know either. Splitting that knowledge across the domains it reads would scatter one
-/// concern without reducing it.
-/// <para>Account entitlements are read from their authoritative store for each award.</para>
-/// </remarks>
+public readonly record struct ExperienceBenefit(ExperienceEvent Event, ExperienceModifier Modifier) : IGameplayBenefitEffect;
+
+/// <summary>Reads declared gameplay benefits for a dungeon experience award.</summary>
 public interface IExperienceBonusDomainService
 {
     /// <summary>What this character earns on top of this occasion, each reason named.</summary>

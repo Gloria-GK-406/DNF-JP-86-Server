@@ -25,11 +25,13 @@ public readonly record struct ItemCooldownPolicy(ItemCooldownKey Key, ItemCooldo
 
 public sealed record StartItemCooldownEffect(int ItemId, ItemCooldownPolicy Policy) : DomainEffect;
 public sealed record StartSpiritPotionEffect(double BonusRate, TimeSpan Duration) : DomainEffect;
+public sealed record StartReinforcementPotionEffect(int ItemId, TimeSpan Duration) : DomainEffect;
 public sealed record AddPetStomachEffect(int ItemUid, int Amount) : DomainEffect;
 
 public sealed record ContainerConsumptionChange(BusinessSlot Slot, int ItemId, int Consumed, int RemainingCount) : EffectChange;
 public sealed record ItemCooldownChange(ItemCooldownKey Key, TimeSpan Duration) : EffectChange;
 public sealed record SpiritPotionChange(double BonusRate, TimeSpan Duration) : EffectChange;
+public sealed record ReinforcementPotionChange(int ItemId, DateTimeOffset ExpiresAt) : EffectChange;
 public sealed record PetStomachChange(Dfo.Server.Abstractions.Creatures.CreatureRuntimeChange Change) : EffectChange;
 
 public sealed record ItemUsePlan(ItemUsability Status, IReadOnlyList<DomainEffect> Effects);

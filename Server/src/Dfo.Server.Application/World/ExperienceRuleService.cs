@@ -2,26 +2,18 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
-using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.World;
 
 /// <summary>
-/// The one reader of everything that decides an experience award.
+/// Values base experience, rank and progression from archive and tuning.
 /// </summary>
-/// <remarks>
-/// The three pure rule classes are called from here and nowhere else. That is the point of the
-/// arrangement: what a kill is worth, what a clear is worth and what a term adds were each written
-/// as a function of their inputs, and until now each caller fetched those inputs for itself. A
-/// caller that fetched one of them differently was a caller that paid a different amount.
-/// </remarks>
 internal sealed class ExperienceRuleService(
     IExperienceParameterSource parameters,
     IDungeonRankGradeSource rankGrades,
     IDungeonExperienceProgressionPolicySource progression,
     IChannelExperienceSource channels,
-    ExperienceTuning tuning,
-    ExperienceEntitlementPolicy entitlements) : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
+    ExperienceTuning tuning) : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<DungeonExperienceProgressionPolicy> policy = new(progression.Load);
     private CharacterExperienceScale? scale;
@@ -46,21 +38,6 @@ internal sealed class ExperienceRuleService(
             clearBase,
             DungeonClearExperienceRules.RankBonus(
                 clearBase, clear.ClientRankPoint, rankGrades.Load(), settings));
-    }
-
-    public IReadOnlyList<ExperienceModifier> ModifiersFor(
-        ExperienceEvent occasion,
-        IReadOnlyList<AccountPremiumEntryState> premiums,
-        DateTimeOffset now,
-        int channelId,
-        int dungeonId)
-    {
-        var found = new List<ExperienceModifier>();
-        ExperienceBonusRules.FromAccountEntitlements(
-            premiums, now, occasion, entitlements, found);
-        ExperienceBonusRules.FromChannel(
-            occasion, channels.Load().RateFor(channelId, dungeonId), found);
-        return found;
     }
 
     public DungeonExperienceProgressionPolicy Progression() => policy.Value;

@@ -21,7 +21,7 @@ public sealed partial class MonsterDropDomainServiceTests
     {
         var service = new MonsterDropDomainService(new CertainLuckyEquipment(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(),
+            new NoExtraDrops(), new NoIndependentDrops(), TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(),
             TestRequired.Absent<IDimensionDungeonRuleService>(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
 
         var extraCount = 0;
@@ -29,7 +29,7 @@ public sealed partial class MonsterDropDomainServiceTests
         {
             var baseline = Kill(Run(), partyMemberCount: members) with { Seed = seed };
             Assert.Empty(await service.GenerateGroundAsync(17, baseline, default));
-            var ground = await service.GenerateGroundAsync(17, baseline with { LuckyCharacterSharedDrops = true }, default);
+            var ground = await service.GenerateGroundAsync(17, baseline with { SharedEquipmentBonuses = [new(DropRarity.Unique, 3)] }, default);
             Assert.InRange(ground.Count, 1, 2);
             Assert.All(ground, item =>
             {
@@ -71,7 +71,7 @@ public sealed partial class MonsterDropDomainServiceTests
         var independent = new RecordingIndependent();
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), independent, premiums, CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
+            new NoExtraDrops(), independent, TestGameplayBenefits.Query(new GrowthBossDropBenefits(premiums)), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
         await service.GenerateGroundAsync(17, Kill(Run(), rank:3), default);
         Assert.Equal(27, independent.Bonus);
         await service.GenerateGroundAsync(17, Kill(Run(), rank:0), default);
@@ -91,13 +91,13 @@ public sealed partial class MonsterDropDomainServiceTests
         var independent = new LevelRecordingIndependent();
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), independent, new NoGrowthPremiums(), CurrentCharacterStub.Domain(character), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
-        await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
+            new NoExtraDrops(), independent, TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(character), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
+        await service.GenerateIndependentAsync(17, Kill(Run()), default);
         Assert.Equal((1, 20), (reads, independent.Level));
-        await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
+        await service.GenerateIndependentAsync(17, Kill(Run()), default);
         Assert.Equal(2, reads);
         independent.Covered = false;
-        await service.GenerateIndependentAsync(17, Kill(Run()), 0, default);
+        await service.GenerateIndependentAsync(17, Kill(Run()), default);
         Assert.Equal(2, reads);
     }
     private sealed class LevelRecordingIndependent : IIndependentDropRuleService
@@ -133,7 +133,7 @@ public sealed partial class MonsterDropDomainServiceTests
     {
         var service = new MonsterDropDomainService(new RecordingDropRules(), new NoDropRateAdjustment(), new NoQuestDrops(),
             NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
-            new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(),
+            new NoExtraDrops(), new NoIndependentDrops(), TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(),
             new DimensionDungeonRuleService(new DimensionSource()), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
         for (var seed = 0; seed < 128; seed++)
         {
@@ -214,7 +214,7 @@ public sealed partial class MonsterDropDomainServiceTests
             new DropRateOptions { RateBasis = Basis }),
         new NoDropRateAdjustment(),
         quests ?? new NoQuestDrops(),
-        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops(), independent ?? new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits)), multipliers ?? new FixedDrawMultipliers());
+        NullLogger<MonsterDropDomainService>.Instance, world ?? new NoWorldDrops(), new NoDeclaredDrops(), extra ?? new NoExtraDrops(), independent ?? new NoIndependentDrops(), TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits)), multipliers ?? new FixedDrawMultipliers());
 
     private sealed class DropGenerationDriver(MonsterDropDomainService service, IDropDrawMultiplierDomainService parameters)
     {
@@ -222,8 +222,8 @@ public sealed partial class MonsterDropDomainServiceTests
             await service.GenerateGroundAsync(id, context with { DrawMultipliers = await parameters.CurrentAsync(ct) }, ct);
         public async ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(int id, CharacterId character, MonsterDropContext context, CancellationToken ct) =>
             await service.GeneratePersonalAsync(id, character, context with { DrawMultipliers = await parameters.CurrentAsync(ct) }, ct);
-        public async ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int id, MonsterDropContext context, int bonus, CancellationToken ct) =>
-            await service.GenerateIndependentAsync(id, context with { DrawMultipliers = await parameters.CurrentAsync(ct) }, bonus, ct);
+        public async ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int id, MonsterDropContext context, CancellationToken ct) =>
+            await service.GenerateIndependentAsync(id, context with { DrawMultipliers = await parameters.CurrentAsync(ct) }, ct);
     }
 
     private static DungeonCellCreationContext Run() => new(
@@ -255,7 +255,7 @@ public sealed partial class MonsterDropDomainServiceTests
             rules,
             new NoDropRateAdjustment(),
             new NoQuestDrops(),
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
 
         await service.GenerateGroundAsync(65601, Kill(Run(), partyMemberCount: 2), CancellationToken.None);
 
@@ -417,7 +417,7 @@ public sealed partial class MonsterDropDomainServiceTests
     {
         var rules = new RecordingDropRules();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(),
-            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
+            new NoQuestDrops(), NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
         var context = Kill(Run());
         MonsterDropParticipant participant = new(new AccountId(1), Character);
         foreach (var invalid in new[]
@@ -446,7 +446,7 @@ public sealed partial class MonsterDropDomainServiceTests
         var rules = new RecordingDropRules();
         var quests = new RecordingQuestDrops();
         var service = new MonsterDropDomainService(rules, new NoDropRateAdjustment(), quests,
-            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(), new NoExtraDrops(), new NoIndependentDrops(), TestGameplayBenefits.Query<MonsterDropContext>(), CurrentCharacterStub.Domain(), dimensions: TestRequired.Absent<Dfo.Server.Abstractions.World.IDimensionDungeonRuleService>(), materialization: new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
         await service.GeneratePersonalAsync(65601, new CharacterId(2),
             Kill(Run(), partyMemberCount: 2), CancellationToken.None);
         Assert.Null(rules.Asked);

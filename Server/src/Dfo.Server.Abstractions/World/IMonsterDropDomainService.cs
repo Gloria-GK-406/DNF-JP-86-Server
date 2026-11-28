@@ -81,7 +81,7 @@ public sealed record MonsterDropContext(
 {
     /// <summary>Map monster's seventh integer; zero disables both random channels.</summary>
     public int RandomDropCount { get; init; } = 1;
-    public bool LuckyCharacterSharedDrops { get; init; }
+    public ImmutableArray<SharedEquipmentDropBenefit> SharedEquipmentBonuses { get; init; } = [];
     public IndependentDropSourceType SourceType { get; init; } = IndependentDropSourceType.Monster;
     public int PartyMemberCount => this.Participants.Length;
 }
@@ -114,5 +114,5 @@ public interface IMonsterDropDomainService
 
     /// <summary>Only the independent table's ground outcomes, priced at the generating character's current level.</summary>
     ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(
-        int monsterId, MonsterDropContext context, int growthBonusPercent, CancellationToken cancellationToken);
+        int monsterId, MonsterDropContext context, CancellationToken cancellationToken);
 }

@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
@@ -15,7 +17,8 @@ internal sealed class DungeonCellFactory(
     IQuestEnemyDropDomainService questLoot,
     IQuestHelperGroundBonusDomainService questBonus,
     IHellRewardDomainService hellRewards, ILostLandDropRuleService lostLandDrops,
-    IDropDrawMultiplierDomainService drawMultipliers, IDropMaterializationRuleService materialization, ILogger<DungeonCellFactory> logger) : IDungeonCellFactory
+    IDropDrawMultiplierDomainService drawMultipliers, IDropMaterializationRuleService materialization, ILogger<DungeonCellFactory> logger,
+    GameplayBenefitsQuery<DungeonCellCreationContext> dropBenefits) : IDungeonCellFactory
 {
     public async ValueTask<DungeonCellSeed> CreateAsync(
         DungeonCellCreationContext context,
@@ -32,7 +35,9 @@ internal sealed class DungeonCellFactory(
         var participants = context.Participants
             .Select(participant => new MonsterDropParticipant(participant.AccountId, participant.CharacterId))
             .ToImmutableArray();
-        var luckyCharacterSharedDrops = context.Participants.Any(participant => participant.IsLuckyCharacter);
+        var roomBenefits = await dropBenefits.ReadAsync(context, cancellationToken, GameplayBenefitScope.Global,
+            DropBenefitScopes.Run(context.RunId)).ConfigureAwait(false);
+        var sharedEquipmentBonuses = roomBenefits.Effects<SharedEquipmentDropBenefit>().ToImmutableArray();
         var contents = await rooms.DescribeAsync(context, cancellationToken)
             .ConfigureAwait(false);
         if (context.Layout.Mode is DungeonRunMode.Guardian { Plan: var guardian })
@@ -90,7 +95,7 @@ internal sealed class DungeonCellFactory(
                     participants, context.DrawMultipliers)
                 {
                     RandomDropCount = described.Actor.RandomDropCount,
-                    LuckyCharacterSharedDrops = luckyCharacterSharedDrops,
+                    SharedEquipmentBonuses = sharedEquipmentBonuses,
                     SourceType = described.IsAiCharacter
                         ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster,
                 };

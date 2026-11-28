@@ -360,7 +360,7 @@ internal sealed class BossTowerDomainService(
                     killed.Uid, killed.Seed.Level, killed.Seed.ActorType, leader.Session.CharacterId,
                     next.Members.Select(x => new MonsterDropParticipant(x.Session.AccountId, x.Session.CharacterId)).ToImmutableArray(), await drawMultipliers.CurrentAsync(token).ConfigureAwait(false))
                     { SourceType = killed.Seed.ActorType is >= 5 and <= 8 ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster };
-                var drops = await monsterDrops.GenerateIndependentAsync(killed.Seed.TemplateId, dropContext, 0, token).ConfigureAwait(false);
+                var drops = await monsterDrops.GenerateIndependentAsync(killed.Seed.TemplateId, dropContext, token).ConfigureAwait(false);
                 var definition = await rules.DefinitionAsync(token).ConfigureAwait(false);
                 foreach (var drop in drops)
                     if (definition.AutoRootItemIds.Contains(drop.ItemId))

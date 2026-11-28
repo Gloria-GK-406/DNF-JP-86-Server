@@ -1,10 +1,12 @@
 using Dfo.Server.Application.Characters;
+using Dfo.Server.Application.World;
 using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
-using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Abstractions.Benefits;
+using Dfo.Server.Application.Benefits;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -18,7 +20,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
     IItemPlacementRuleService placements, IAccountMaterialRuleService accounts,
     ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures,
     IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService stateRules,
-    ILuckyCharacterEventQuery luckyCharacters, TimeProvider clock)
+    GameplayBenefitsQuery<QuestExperienceBenefitContext> experienceBenefits)
     : IQuestCompletionEffectRuleService
 {
     private readonly IQuestStateRuleService stateRules = stateRules;
@@ -118,10 +120,14 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         effects.Add(new SetClearedQuestEffect(questId, facts.Quests.Cleared.FirstOrDefault(x => x.QuestId == questId)?.Mark, IQuestLog.ClearedMark));
         effects.AddRange(rewardEffects);
         var experienceBreakdown = new ExperienceBreakdown(Base: reward.Experience);
-        if (reward.Experience > 0
-            && (await luckyCharacters.ReadAtAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Includes(facts.Identity.Job)
-            && await quests.FindAsync(questId, ct).ConfigureAwait(false) is { IsEventOnly: not true, Grade: QuestGrade.Epic or QuestGrade.Normal or QuestGrade.Side })
-            experienceBreakdown = experienceBreakdown with { LuckyCharacter = reward.Experience / 10 };
+        if (reward.Experience > 0)
+        {
+            var declared = await experienceBenefits.ReadAsync(new(facts.Identity, questId), ct,
+                GameplayBenefitScope.Global, GameplayBenefitScope.For(facts.Identity.CharacterId)).ConfigureAwait(false);
+            experienceBreakdown = ExperienceCalculationDomainService.ApplyBaseBonuses(experienceBreakdown,
+                declared.Effects<ExperienceBenefit>().Where(effect => effect.Event == ExperienceEvent.QuestCompletion)
+                    .Select(effect => effect.Modifier));
+        }
         var xp = experience.DecideAward(facts.Progress, experienceBreakdown);
         effects.Add(new CharacterExperienceEffect(xp));
         byte? packedGrowType = reward.GrowType;

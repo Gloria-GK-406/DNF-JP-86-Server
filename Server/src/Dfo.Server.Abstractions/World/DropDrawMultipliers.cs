@@ -80,7 +80,7 @@ public sealed class DropDrawMultipliers
         ArgumentNullException.ThrowIfNull(values);
         if (values.Values.Any(value => !IsValid(value)))
             throw new ArgumentOutOfRangeException(nameof(values));
-        this.values = values;
+        this.values = values.ToFrozenDictionary();
     }
 
     public static bool IsValid(int multiplier) => multiplier is >= Minimum and <= Maximum;

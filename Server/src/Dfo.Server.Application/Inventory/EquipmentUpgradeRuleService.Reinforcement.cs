@@ -129,12 +129,15 @@ internal sealed partial class EquipmentUpgradeRuleService
                 .ThenBy(choice => choice.Slot.Space).ThenBy(choice => choice.Slot.Index).FirstOrDefault();
         }
 
-        public bool TryReinforce(int draw)
+        public bool TryReinforce(int draw, int successBonusUnits = 0)
         {
-            var succeeded = EquipmentReinforcementRules.Succeeds(row.FailureThreshold, draw);
+            ArgumentOutOfRangeException.ThrowIfNegative(successBonusUnits);
+            var failureThreshold = !medal && kind == EquipmentUpgradeKind.Reinforcement
+                ? Math.Max(0, row.FailureThreshold - successBonusUnits) : row.FailureThreshold;
+            var succeeded = EquipmentReinforcementRules.Succeeds(failureThreshold, draw);
             logger.LogInformation(
                 "REINFORCEMENT_ROLL kind={Kind} item={ItemId} old={OldLevel} target={TargetLevel} draw={Draw} failureThreshold={FailureThreshold} scale=100000 succeeded={Succeeded}",
-                kind, itemId, oldLevel, row.TargetLevel, draw, row.FailureThreshold, succeeded);
+                kind, itemId, oldLevel, row.TargetLevel, draw, failureThreshold, succeeded);
             return succeeded;
         }
     }

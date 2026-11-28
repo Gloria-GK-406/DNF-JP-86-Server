@@ -159,8 +159,7 @@ public sealed class DungeonEntranceConditionTests
 
     private sealed class NoLoot : IMonsterDropDomainService
     {
-        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int monsterId, MonsterDropContext context,
-            int growthBonusPercent, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
+        public ValueTask<IReadOnlyList<RolledDrop>> GenerateIndependentAsync(int monsterId, MonsterDropContext context, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
         public ValueTask<IReadOnlyList<RolledDrop>> GeneratePersonalAsync(int monsterId, CharacterId characterId,
             MonsterDropContext context, CancellationToken ct) => ValueTask.FromResult<IReadOnlyList<RolledDrop>>([]);
         public ValueTask<IReadOnlyList<RolledDrop>> GenerateGroundAsync(int monsterId, MonsterDropContext context,
