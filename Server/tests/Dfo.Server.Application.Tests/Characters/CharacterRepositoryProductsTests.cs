@@ -96,7 +96,7 @@ public sealed class CharacterRepositoryProductsTests
             new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
         var rules = new FakeItemUseRules((Potion, ItemUseRules.Potion(cooldownMilliseconds: 0)));
         var judgement = new ItemUseRuleService(rules);
-        var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
 
         // Both are being played, so that the row is the only thing left to tell them apart. A
         // character nobody is playing is refused before its row is ever read, and this case would

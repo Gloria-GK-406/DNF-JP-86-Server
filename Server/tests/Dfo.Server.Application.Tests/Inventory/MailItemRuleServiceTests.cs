@@ -44,6 +44,51 @@ public sealed class MailItemRuleServiceTests
             (await rule.CanSendAsync(ItemSnapshot.FromCore(core, false), true, CancellationToken.None)).Refusal);
     }
 
+    [Theory]
+    [InlineData(MailItemAttachType.Free, 0, true)]
+    [InlineData(MailItemAttachType.Sealing, 0, false)]
+    [InlineData(MailItemAttachType.Sealing, 1, true)]
+    [InlineData(MailItemAttachType.Account, 0, false)]
+    public async Task DirectTradeEnforcesAttachmentRules(MailItemAttachType attach, byte seal, bool allowed)
+    {
+        var rule = new MailItemRuleService(new DefinitionSource(attach));
+        var item = ItemSnapshot.FromCore(StackableItemCore.Create(1, 10018, 1) with { SealFlag = seal }, false);
+        var result = await rule.CanTradeAsync(item, BusinessInventorySpace.Consumable, DateTimeOffset.UnixEpoch,
+            CancellationToken.None);
+        Assert.Equal(new PlayerTradeItemDecision(allowed), result);
+    }
+
+    [Theory]
+    [InlineData(0x1F, null)]
+    [InlineData(0x25, 0x05)]
+    [InlineData(0x67, 0x47)]
+    public async Task OnlyDirectTradeCanSpendOneTransferOnALimitedStack(byte original, int? after)
+    {
+        var rule = new MailItemRuleService(new DefinitionSource(MailItemAttachType.TradeLimit));
+        var item = ItemSnapshot.FromCore(StackableItemCore.Create(1, 10018, 4) with { Attribute = original }, isPile: true);
+        var trade = await rule.CanTradeAsync(item, BusinessInventorySpace.Consumable, DateTimeOffset.UnixEpoch,
+            CancellationToken.None);
+        Assert.Equal(new PlayerTradeItemDecision(after.HasValue, (byte?)after), trade);
+        var mail = await rule.CanSendAsync(item, false, CancellationToken.None);
+        Assert.Equal(MailItemSendRefusal.UnsupportedTradeLimit, mail.Refusal);
+    }
+
+    [Theory]
+    [InlineData(3036, 0, true)]
+    [InlineData(3036, 1, false)]
+    [InlineData(10100115, 0, false)]
+    public async Task DirectTradeAllowsOnlyEligibleAccountCrystals(int itemId, byte tradeRestriction, bool allowed)
+    {
+        var rule = new MailItemRuleService(new DefinitionSource(MailItemAttachType.Account));
+        var item = ItemSnapshot.FromCore(StackableItemCore.Create(1, itemId, 1) with
+        {
+            TradeRestriction = tradeRestriction,
+        }, false);
+        var result = await rule.CanTradeAsync(item, BusinessInventorySpace.SharedMaterial, DateTimeOffset.UnixEpoch,
+            CancellationToken.None);
+        Assert.Equal(new PlayerTradeItemDecision(allowed), result);
+    }
+
     private sealed class DefinitionSource(MailItemAttachType attach) : IMailItemDefinitionSource
     {
         public ValueTask<MailItemDefinition?> GetAsync(int itemId, CancellationToken cancellationToken) =>

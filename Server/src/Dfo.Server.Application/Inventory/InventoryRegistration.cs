@@ -129,7 +129,9 @@ internal static class InventoryRegistration
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEquipmentEmancipatePolicy, RequiemEmancipatePolicy>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IEquipmentEmancipatePolicy, DragonLeapEmancipatePolicy>());
         services.TryAddSingleton<IEquipmentEmancipateDomainService, EquipmentEmancipateDomainService>();
-        services.TryAddSingleton<IMailItemRuleService, MailItemRuleService>();
+        services.TryAddSingleton<MailItemRuleService>();
+        services.TryAddSingleton<IMailItemRuleService>(provider => provider.GetRequiredService<MailItemRuleService>());
+        services.TryAddSingleton<IPlayerTradeItemRuleService>(provider => provider.GetRequiredService<MailItemRuleService>());
         services.TryAddSingleton<EquipmentDisjointRuleService>();
         services.TryAddSingleton<IEquipmentDisjointRuleService>(provider => provider.GetRequiredService<EquipmentDisjointRuleService>());
         services.TryAddSingleton<IEquipmentDisjointDomainService, EquipmentDisjointDomainService>();

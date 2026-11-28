@@ -64,7 +64,7 @@ public sealed class SelectedCharacterCurrentViewTests
         {
             var old = Session("old", 1);
             var replacement = Session("replacement", 2);
-            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             vitals.Begin(old, new CharacterPositionState(1, 0, 0, 0, 0), 70);
             vitals.Begin(replacement, new CharacterPositionState(1, 0, 0, 0, 0), 85);
 

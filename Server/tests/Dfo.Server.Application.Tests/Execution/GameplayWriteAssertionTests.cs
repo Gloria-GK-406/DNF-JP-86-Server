@@ -405,7 +405,7 @@ public sealed class GameplayWriteAssertionTests
     [Fact]
     public void OnlineCharacterRuntimeDomainService_refuses_a_write_off_the_executor_and_reads_anywhere()
     {
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
         var session = Session();
         var position = new CharacterPositionState(1, 2, 3, 4, 5);
         var seen = ViolationCapture.Attach();
@@ -447,7 +447,7 @@ public sealed class GameplayWriteAssertionTests
     {
         // Unlike the gates, whose old WaitAsync looked at the token first, a write member never checked it, so
         // the assertion does not either: the violation is reported whatever the caller's token says.
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
         var seen = ViolationCapture.Attach();

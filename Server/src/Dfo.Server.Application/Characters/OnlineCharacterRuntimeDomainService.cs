@@ -25,7 +25,7 @@ namespace Dfo.Server.Application.Characters;
 /// </para>
 /// </remarks>
 internal sealed class OnlineCharacterRuntimeDomainService(
-    TimeProvider clock, OnlineCharacterLocationDomainService locations, IPlayerTradeDomainService? trades = null)
+    TimeProvider clock, OnlineCharacterLocationDomainService locations, IPlayerTradeDomainService trades)
     : IOnlineCharacterRuntimeDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, Entry> entries = new();
@@ -50,7 +50,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(EndExact));
         ArgumentNullException.ThrowIfNull(session);
-        trades?.Invalidate(session);
+        trades.Invalidate(session);
         var ended = locations.End(session);
         while (entries.TryGetValue(session.CharacterId, out var current) && current.Session == session)
         {
@@ -86,7 +86,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(
             Direction = direction ?? standing.Position.Direction,
         };
         var change = locations.Transfer(session, destination, position, sharesTownPresence);
-        if (change is { Kind: TownAreaMembershipChangeKind.Transferred }) trades?.Invalidate(session);
+        if (change is { Kind: TownAreaMembershipChangeKind.Transferred }) trades.Invalidate(session);
         return change;
     }
 
@@ -102,7 +102,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(LeaveTown));
         var change = locations.Depart(session, reason);
-        if (change is not null) trades?.Invalidate(session);
+        if (change is not null) trades.Invalidate(session);
         return change;
     }
 

@@ -137,6 +137,15 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
         new(Rule.Stale, "Game/GuildWarehouse/GameGuildWarehouseTransferCommand.cs", "HandleAsync", 1,
             "0x00F7/0x00F8 guild warehouse: reject replay before moving items between the guild and character"),
 
+        new(Rule.Stale, "Game/Party/PeerTradeCommands.cs", "InviteTradeAsync", 1,
+            "An old peer request cannot open a new trade invitation."),
+        new(Rule.Stale, "Game/Party/PeerTradeCommands.cs", "RespondTradeAsync", 1,
+            "An old peer response cannot accept or refuse a current trade invitation."),
+        new(Rule.Stale, "Game/MoveItemSpace/GameMoveTradeItem.cs", "MoveTradeAsync", 1,
+            "An old item move cannot change the current trade offer."),
+        new(Rule.Stale, "Game/Trade/GameSetTradeStateCommandHandler.cs", "AdvanceAsync", 1,
+            "An old trade command cannot advance or settle the current trade."),
+
         .. Routes.Select(route => new Site(Rule.Locate, route.Path, route.Member, 1, route.Commands + ": the one locate")),
         new(Rule.Locate, PartyStages, "LocatePartyOf", 1,
             "collects the party candidates once and places them through DungeonLocator.LocateParty"),

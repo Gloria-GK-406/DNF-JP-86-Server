@@ -18,6 +18,9 @@ namespace Dfo.Server.Testing;
 /// </remarks>
 internal static class TestRequired
 {
+    public static Dfo.Server.Abstractions.Trade.IPlayerTradeDomainService NoPlayerTrades { get; } =
+        Absent<Dfo.Server.Abstractions.Trade.IPlayerTradeDomainService>();
+
     public static IAccountHonorDomainService InitialHonor { get; } = new FreshAccountHonor();
 
     private sealed class FreshAccountHonor : IAccountHonorDomainService

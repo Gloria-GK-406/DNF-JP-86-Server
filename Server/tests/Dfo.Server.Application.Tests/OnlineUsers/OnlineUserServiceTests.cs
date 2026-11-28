@@ -82,7 +82,7 @@ public sealed class UserServiceTests
             service.Publish(session);
             return session;
         });
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
         TestGameplay.Run(() =>
         {
             runtime.Begin(session, new CharacterPositionState(1, 0, 10, 20, 0), 100);

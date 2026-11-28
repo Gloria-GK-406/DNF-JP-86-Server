@@ -610,7 +610,7 @@ public sealed partial class BossTowerProjectionConcurrencyTests
                 },
             });
             var areas = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations, TestRequired.NoPlayerTrades);
             positions.Begin(party.First, new CharacterPositionState(1, 1, 100, 100, 0), 100);
             positions.LeaveTown(party.First, TownAreaDepartureReason.DungeonEntry);
             var sender = new GiveUpOwnerSender(party.First.ConnectionId);

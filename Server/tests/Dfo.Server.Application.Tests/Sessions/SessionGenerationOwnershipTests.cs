@@ -170,7 +170,7 @@ public sealed class SessionGenerationOwnershipTests
             var session = Session("position", 9);
             var result = await CharacterEntryInventoryTests.CreateLifecycleResultAsync(
                 session.AccountId, session.CharacterId.Value, 1);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             runtime.Begin(session, result.Character.Position, 100);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
@@ -193,7 +193,7 @@ public sealed class SessionGenerationOwnershipTests
         {
             // Teardown is not a command: no unit is open, so the cleanup opens one per step.
             var session = Session("own-steps", 9);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
@@ -240,7 +240,7 @@ public sealed class SessionGenerationOwnershipTests
         await TestGameplay.RunAsync(async () =>
         {
             var session = Session("channel-fails", 9);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             runtime.Begin(session, new CharacterPositionState(1, 0, 10, 10, 0), 100);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
@@ -308,7 +308,7 @@ public sealed class SessionGenerationOwnershipTests
             var session = Session("cleanup-cooldown", 11);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(session);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             runtime.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
             runtime.StartCooldown(session, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
             runtime.ApplySpiritPotion(session, 1, TimeSpan.FromHours(2));
@@ -335,7 +335,7 @@ public sealed class SessionGenerationOwnershipTests
             var returned = Session("cooldown-returned", 13);
             var directory = Dfo.Server.Testing.TestSessions.Directory();
             directory.Select(returned);
-            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             runtime.Begin(returned, new CharacterPositionState(1, 0, 0, 0, 0), 100);
             runtime.StartCooldown(returned, ItemCooldownKey.ForGroup(70), TimeSpan.FromMinutes(30));
             runtime.ApplySpiritPotion(returned, 1, TimeSpan.FromHours(2));
@@ -374,7 +374,7 @@ public sealed class SessionGenerationOwnershipTests
         return new(directory, new CharacterContainerDomainService(TestRequired.TransactionScope()),
             areas, stores ?? new ExpertStoreDomainService(TestRequired.TransactionScope()),
             new PvpLobbyDomainService(), [persistence ?? new RecordingPositionPersistence()],
-            runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations),
+            runtime ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations, TestRequired.NoPlayerTrades),
             channels ?? new StubChannelEntryPolicy(),
             new PassiveParties(), runs ?? TestParties.Runs(), departures ?? [], scope ?? TestRequired.TransactionScope(), creatures: creatures ?? TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(), illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), illusionTowerDepartures: [], housing: TestRequired.Absent<Dfo.Server.Abstractions.Marriage.IMarriageHousingSessionDomainService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerDomainService>(), bossTowerDepartures: [], conversations: new Dfo.Server.Application.Chat.ChatConversationDomainService(), relations: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), identities: new Dfo.Server.Application.Tests.Support.TestCharacterRelations(), pvpRooms: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpRoomDomainService>(), pvpSettlement: TestRequired.Absent<Dfo.Server.Abstractions.Pvp.IPvpSettlementDomainService>(), pvpDepartures: [], logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<SelectedSessionCleanupService>.Instance,
             raids: TestRequired.Absent<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(),
@@ -385,7 +385,7 @@ public sealed class SessionGenerationOwnershipTests
     private sealed class ThrowingRuntime(OnlineCharacterLocationDomainService? locations = null) : IOnlineCharacterRuntimeDomainService
     {
         private readonly OnlineCharacterRuntimeDomainService inner =
-            new(TimeProvider.System, locations ?? new OnlineCharacterLocationDomainService());
+            new(TimeProvider.System, locations ?? new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
 
         public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) => inner.Begin(session, area, position, sharesTownPresence, hpPercent);
         public bool EndExact(SelectedSessionIdentity session) => throw new InvalidOperationException("fault");

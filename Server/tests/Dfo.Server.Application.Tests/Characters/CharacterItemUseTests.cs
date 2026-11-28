@@ -377,7 +377,7 @@ public sealed class CharacterItemUseTests
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
             var usability = ItemUse(CharacterRow.At(level: 50), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.PersistentPotion()))),
-                new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
+                new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades),
                 new SessionPresenceDomainService());
 
             Assert.Equal(
@@ -403,7 +403,7 @@ public sealed class CharacterItemUseTests
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
             var usability = ItemUse(CharacterRow.None, new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.PersistentPotion()))),
-                new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
+                new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades),
                 PresentCharacters.StandingInTown(Character));
 
             Assert.Equal(
@@ -459,7 +459,7 @@ public sealed class CharacterItemUseTests
                 var usability = ItemUse(new SqliteCharacterTable(database), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.PersistentPotion()))),
                 new OnlineCharacterRuntimeDomainService(
                         new AdvanceableTimeProvider(
-                            new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero)), new OnlineCharacterLocationDomainService()),
+                            new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero)), new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades),
                 PresentCharacters.StandingInTown(Character));
 
                 Assert.Equal(
@@ -554,7 +554,7 @@ public sealed class CharacterItemUseTests
         params (int ItemId, ItemUseRule Rule)[] rules)
     {
         var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 18, 12, 0, 0, TimeSpan.Zero));
-        var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
+        var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
         var session = Dfo.Server.Data.World.SelectedSessionIdentity.Create(
             new Dfo.Server.Data.Accounts.AccountId(1), Character,
             new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);

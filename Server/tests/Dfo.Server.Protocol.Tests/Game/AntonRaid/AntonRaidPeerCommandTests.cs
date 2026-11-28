@@ -35,7 +35,7 @@ public sealed class AntonRaidPeerCommandTests
         var leader = sessions.InWorld(registry, new(1), new(1), "leader", 10200);
         var applicant = sessions.InWorld(registry, new(2), new(2), "applicant", 10200);
         var town = new OnlineCharacterLocationDomainService();
-        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, town);
+        var runtime = new OnlineCharacterRuntimeDomainService(TimeProvider.System, town, TestRequired.NoPlayerTrades);
         var area = new TownAreaKey(200, 19, 1);
         var position = new CharacterPositionState(19, 1, 100, 20, 0);
         runtime.Begin(leader, area, position, true, 100);

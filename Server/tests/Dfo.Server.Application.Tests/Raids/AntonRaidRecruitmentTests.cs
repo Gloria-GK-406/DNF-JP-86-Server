@@ -369,7 +369,7 @@ public sealed class AntonRaidRecruitmentTests
         {
             sessions = TestSessions.Directory(out registry);
             var locations = new OnlineCharacterLocationDomainService();
-            runtime = new OnlineCharacterRuntimeDomainService(Clock, locations);
+            runtime = new OnlineCharacterRuntimeDomainService(Clock, locations, TestRequired.NoPlayerTrades);
             Parties = TestParties.Create();
             var item = new ItemReference(new object(), default, 0, 1, new ItemSnapshot { ItemId = 10096296, Count = 1 });
             var container = TestRequired.Absent<IBusinessItemContainer>((method, _) => method.Name == "GetAllAsync"

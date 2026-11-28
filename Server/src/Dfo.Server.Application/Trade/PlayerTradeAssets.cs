@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Trade;
@@ -13,7 +12,7 @@ public sealed class PlayerTradeAssets(
     IBusinessInventorySlotDomainService slots, ICharacterDomainService characters,
     ICharacterCarriedGoldTable balances, ICarriedGoldRuleService goldRules,
     IItemDeliveryDomainService delivery, IItemLifecycleDomainService lifecycle,
-    IMailItemDefinitionSource definitions, TimeProvider clock)
+    IPlayerTradeItemRuleService itemRules, TimeProvider clock)
 {
     internal async ValueTask<TradeOffer?> QuoteAsync(SelectedSessionIdentity owner, TradeSource source,
         int count, CancellationToken ct)
@@ -25,7 +24,7 @@ public sealed class PlayerTradeAssets(
         if (slots.Find(owner.CharacterId, slot) is not { Container: { IsDefault: true, IsPersistent: true } container }
             || await container.GetAsync(slot.Index, ct).ConfigureAwait(false) is not { } item
             || item.ItemId != source.ItemId || count > item.Count
-            || !await MayTransferAsync(item.Snapshot, slot.Space, ct).ConfigureAwait(false))
+            || !(await itemRules.CanTradeAsync(item.Snapshot, slot.Space, clock.GetUtcNow(), ct).ConfigureAwait(false)).Allowed)
             return null;
         return new(source, count, container.StorageId, item.Snapshot);
     }
@@ -63,11 +62,11 @@ public sealed class PlayerTradeAssets(
             if (slots.Find(actor.CharacterId, slot) is not { Container: { IsDefault: true, IsPersistent: true } container }
                 || container.StorageId != offer.Container
                 || await container.GetAsync(slot.Index, ct).ConfigureAwait(false) is not { } item
-                || item.Snapshot != offer.Snapshot || item.Count < offer.Count
-                || !await MayTransferAsync(item.Snapshot, slot.Space, ct).ConfigureAwait(false))
+                || item.Snapshot != offer.Snapshot || item.Count < offer.Count)
                 return null;
-            var limited = (await definitions.GetAsync(item.ItemId, ct).ConfigureAwait(false))?.AttachType == MailItemAttachType.TradeLimit;
-            items.Add(new(container, item, offer.Count, limited));
+            var decision = await itemRules.CanTradeAsync(item.Snapshot, slot.Space, clock.GetUtcNow(), ct).ConfigureAwait(false);
+            if (!decision.Allowed) return null;
+            items.Add(new(container, item, offer.Count, decision.TransferredAttribute));
         }
         return new(items, balance.Carried, checked((int)final));
     }
@@ -78,12 +77,12 @@ public sealed class PlayerTradeAssets(
         foreach (var item in items)
         {
             var record = await item.Container.TakeAsync(item.Reference, item.Count, ct).ConfigureAwait(false);
-            if (item.Limited)
+            if (item.TransferredAttribute is { } attribute)
             {
                 // A pile has no unique item identity. Only the transferred portion spends one use.
                 var snapshot = record.Snapshot;
                 await lifecycle.DeleteItemAsync(record, ct).ConfigureAwait(false);
-                record = await lifecycle.CreateAsync(snapshot with { Attribute = (byte)(snapshot.Attribute - 0x20) },
+                record = await lifecycle.CreateAsync(snapshot with { Attribute = attribute },
                     ct).ConfigureAwait(false);
             }
             await item.Container.FlushAsync(ct).ConfigureAwait(false);
@@ -112,26 +111,6 @@ public sealed class PlayerTradeAssets(
         return actual == side.FinalGold;
     }
 
-    private async ValueTask<bool> MayTransferAsync(ItemSnapshot item, BusinessInventorySpace space, CancellationToken ct)
-    {
-        if (item.IsMirror || item.Type is ItemTraits.Avatar or ItemTraits.Creature
-            || item.AvatarDetail is not null || item.CreatureDetail is not null
-            || item.EquipmentLockId != 0 || item.SortLockFlag != 0 || item.TradeRestriction != 0
-            || item.Lifetime.IsExpired(clock.GetUtcNow()))
-            return false;
-        if (space == BusinessInventorySpace.SharedMaterial)
-            return AccountMaterialCatalog.Definitions.Any(material => material.ItemId == item.ItemId
-                && material.Kind <= AccountMaterialKind.GoldCube);
-        if (await definitions.GetAsync(item.ItemId, ct).ConfigureAwait(false) is not { } definition) return false;
-        return definition.AttachType switch
-        {
-            MailItemAttachType.Free => true,
-            MailItemAttachType.Sealing => item.SealFlag != 0,
-            MailItemAttachType.TradeLimit => item.IsPile && (item.Attribute >> 5) > 0,
-            _ => false,
-        };
-    }
-
-    private sealed record SettlementItem(IBusinessItemContainer Container, ItemReference Reference, int Count, bool Limited);
+    private sealed record SettlementItem(IBusinessItemContainer Container, ItemReference Reference, int Count, byte? TransferredAttribute);
     private sealed record SettlementSide(List<SettlementItem> Items, int OriginalGold, int FinalGold);
 }

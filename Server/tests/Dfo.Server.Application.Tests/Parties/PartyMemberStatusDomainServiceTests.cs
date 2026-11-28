@@ -50,7 +50,7 @@ public sealed class PartyMemberStatusDomainServiceTests
                     },
                 },
             };
-            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
             var sessions = Dfo.Server.Testing.TestSessions.Directory();
             sessions.Select(session);
@@ -93,7 +93,7 @@ public sealed class PartyMemberStatusDomainServiceTests
                     },
                 },
             };
-            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var vitals = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             vitals.Begin(session, result.Character.Position, checked((byte)result.CharacterEntry.Public.DerivedStats.CurrentHpMpPercent));
             var sessions = Dfo.Server.Testing.TestSessions.Directory();
             sessions.Select(session);
