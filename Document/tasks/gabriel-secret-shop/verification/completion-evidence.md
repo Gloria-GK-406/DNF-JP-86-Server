@@ -22,3 +22,13 @@ decision: pass
 - 对不含本功能的 `fe6c55321` 单独取源码、构建并运行，复现选角入场第 32 帧、普通 NPC 商店样本断言和 `PlayerTradeDomainService` 状态普查共三项既有失败。
 
 以上检查支持候选交付。A21 窗口显示、原生客户端成交与双端可见性由用户实机确认。玩家数据库副本和测试连接在用户确定测试窗口后准备。
+
+## PR 前同步主干复验
+
+在 `10fa2d379` 上重放功能提交，源码增量与实机候选一致。对 `f05960d16` 运行 Release 构建和以下验证。
+
+- `dotnet build Server/86JP.Server.slnx -c Release -p:ContinuousIntegrationBuild=true` 通过，0 警告、0 错误。
+- `dotnet test Server/86JP.Server.slnx -c Release --no-build --no-restore -m:1 --filter "Category=Unit"` 通过 2211 项，0 失败、0 跳过。
+- 同一测试入口用 `FullyQualifiedName~DungeonSecretShop|FullyQualifiedName~SecretShopCodecTests|FullyQualifiedName~DungeonClearProjectionDeliveryTests` 定向执行，使用原始 dev PVF，30 项通过，0 失败、0 跳过。
+- `Tool/ProjectReferences` 的 4 项校验通过，检查了 13 个生产项目及 32 条直接引用。
+- [本轮实机记录](../user-test.md#本轮实机结果)涵盖用户确认的单人金币路径及正常概率恢复。远端 Linux CI 与 Codex 审核记录由 PR 保存。

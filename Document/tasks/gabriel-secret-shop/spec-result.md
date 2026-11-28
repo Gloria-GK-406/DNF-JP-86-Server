@@ -17,5 +17,5 @@ terminal_stage: verification
 
 ## Git
 
-- 功能分支 `feature/gabriel-secret-shop`，基线 `fe6c55321045f7099f14821759ac1ee625b8b43f`。
+- 实机候选原功能分支 `feature/gabriel-secret-shop`，基线 `fe6c55321045f7099f14821759ac1ee625b8b43f`。
 - 规划 `3808c76a4`，实现 `5a9143e1c`，实机资料修订 `94757a1e1`。
