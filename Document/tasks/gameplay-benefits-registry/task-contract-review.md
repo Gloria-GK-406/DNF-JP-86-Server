@@ -31,4 +31,3 @@ verdict: approved
 | actual human participation | observed | 用户明确要求通用组件、决定共享归属并授权执行及复扫 | 核心产品边界来自用户决策，技术评审完成契约核对 |
 
 执行中应将普通 Boss 掉落读取的账号成长服务加成纳入范围盘点。它在 [怪物掉落领域服务](../../../Server/src/Dfo.Server.Application/World/MonsterDropDomainService.cs) 单独读取并传入独立掉落，适用契约现有的玩法来源归拢条件。
-
