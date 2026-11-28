@@ -28,23 +28,27 @@ internal sealed class TradeNoticeEncoder : GameNotiMessageEncoder<TradeNotice>
 
 internal static class TradePackets
 {
+    internal const byte PeerType = 1;
+
     internal static TradeNotice Invitation(ushort actor, int peer)
     {
         var body = new byte[11];
         BinaryPrimitives.WriteUInt16LittleEndian(body, actor);
-        body[2] = TradeProtocol.PeerType;
+        body[2] = PeerType;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), peer);
         return new(0x0007, body);
     }
 
     internal static TradePeerReply Accepted(ushort inviter) =>
-        new(0x000B, [1, (byte)inviter, (byte)(inviter >> 8), TradeProtocol.PeerType, 1]);
+        new(0x000B, [1, (byte)inviter, (byte)(inviter >> 8), PeerType, 1]);
+
+    internal static TradePeerReply Refused() => new(0x000B, [0, 0x85, PeerType]);
 
     internal static TradeNotice Open(ushort invitee, int peer)
     {
         var body = new byte[12];
         BinaryPrimitives.WriteUInt16LittleEndian(body, invitee);
-        body[2] = TradeProtocol.PeerType;
+        body[2] = PeerType;
         BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(3), peer);
         body[7] = 1;
         return new(0x0008, body);

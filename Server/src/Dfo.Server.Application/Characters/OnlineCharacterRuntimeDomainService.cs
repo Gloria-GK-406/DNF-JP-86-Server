@@ -5,7 +5,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
-using Dfo.Server.Application.Trade;
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
@@ -25,7 +25,7 @@ namespace Dfo.Server.Application.Characters;
 /// </para>
 /// </remarks>
 internal sealed class OnlineCharacterRuntimeDomainService(
-    TimeProvider clock, OnlineCharacterLocationDomainService locations, PlayerTradeDomainService? trades = null)
+    TimeProvider clock, OnlineCharacterLocationDomainService locations, IPlayerTradeDomainService? trades = null)
     : IOnlineCharacterRuntimeDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, Entry> entries = new();

@@ -2,26 +2,22 @@ using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Relations;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.Trade;
 
-public enum TradeAction { Cancel, Register, Ready, Confirm }
-public enum TradeAdvance { Rejected, Changed, BothRegistered, Settle, Canceled }
-
-public sealed record TradeSource(BusinessSlot? Slot, int ItemId);
 internal sealed record TradeOffer(TradeSource Source, int Count, ContainerId Container, ItemSnapshot? Snapshot);
-public sealed record TradeOfferChange(int TradeSlot, TradeSource Source, int Count, ItemSnapshot? Snapshot);
-public sealed class PreparedTradeOffer
+internal sealed class PreparedTradeOffer : IPreparedTradeOffer
 {
     internal PreparedTradeOffer(int slot, TradeOffer offer) => (Slot, Offer) = (slot, offer);
     internal int Slot { get; }
     internal TradeOffer Offer { get; }
 }
 
-public sealed class PlayerTradeSession
+internal sealed class PlayerTradeSession : IPlayerTradeSession
 {
     internal PlayerTradeSession(SelectedSessionIdentity inviter, SelectedSessionIdentity invitee,
         int peer, DateTimeOffset expiresAt)
@@ -59,18 +55,18 @@ internal sealed class TradeSide
 /// <summary>Owns the transient negotiation. All mutations run on the gameplay executor.</summary>
 public sealed class PlayerTradeDomainService(
     ISelectedSessionDomainService sessions, ITownAreaDomainService towns,
-    ICharacterRelationQueryDomainService relations, PlayerTradeAssets assets, TimeProvider clock)
+    ICharacterRelationQueryDomainService relations, PlayerTradeAssets assets, TimeProvider clock) : IPlayerTradeDomainService
 {
     private readonly Dictionary<SelectedSessionIdentity, PlayerTradeSession> active = [];
 
-    public PlayerTradeSession? Find(SelectedSessionIdentity actor) => active.GetValueOrDefault(actor);
+    public IPlayerTradeSession? Find(SelectedSessionIdentity actor) => active.GetValueOrDefault(actor);
 
     public async ValueTask<bool> CanInviteAsync(SelectedSessionIdentity actor, SelectedSessionIdentity target,
         CancellationToken ct) =>
         Find(actor) is null && Find(target) is null && CanMeet(actor, target)
         && !await BlockedAsync(actor, target, ct).ConfigureAwait(false);
 
-    public PlayerTradeSession? Invite(SelectedSessionIdentity actor, SelectedSessionIdentity target, int peer)
+    public IPlayerTradeSession? Invite(SelectedSessionIdentity actor, SelectedSessionIdentity target, int peer)
     {
         GameplayWriteAssertion.Writing(nameof(Invite));
         if (Find(actor) is not null || Find(target) is not null || !CanMeet(actor, target)) return null;
@@ -80,22 +76,22 @@ public sealed class PlayerTradeDomainService(
         return trade;
     }
 
-    public async ValueTask<bool> CanAcceptAsync(PlayerTradeSession trade, CancellationToken ct) =>
+    public async ValueTask<bool> CanAcceptAsync(IPlayerTradeSession trade, CancellationToken ct) =>
         !trade.Accepted && IsUsable(trade)
         && !await BlockedAsync(trade.Inviter, trade.Invitee, ct).ConfigureAwait(false);
 
-    public bool Accept(PlayerTradeSession trade)
+    public bool Accept(IPlayerTradeSession candidate)
     {
         GameplayWriteAssertion.Writing(nameof(Accept));
-        if (trade.Accepted || !IsUsable(trade)) return false;
+        if (candidate is not PlayerTradeSession trade || trade.Accepted || !IsUsable(trade)) return false;
         trade.Accepted = true;
         return true;
     }
 
-    public async ValueTask<PreparedTradeOffer?> PrepareOfferAsync(PlayerTradeSession trade, SelectedSessionIdentity actor,
+    public async ValueTask<IPreparedTradeOffer?> PrepareOfferAsync(IPlayerTradeSession candidate, SelectedSessionIdentity actor,
         TradeSource source, int count, CancellationToken ct)
     {
-        if (!CanEdit(trade, actor) || count <= 0) return null;
+        if (candidate is not PlayerTradeSession trade || !CanEdit(trade, actor) || count <= 0) return null;
         var offers = trade.Side(actor).Offers;
         var isGold = source.Slot is null;
         var index = isGold ? 0 : Enumerable.Range(3, 9).FirstOrDefault(slot => !offers.ContainsKey(slot), -1);
@@ -103,24 +99,26 @@ public sealed class PlayerTradeDomainService(
         var total = (long)count + (isGold && offers.TryGetValue(0, out var gold) ? gold.Count : 0);
         if (total > int.MaxValue) return null;
         var offer = await assets.QuoteAsync(actor, source, (int)total, ct).ConfigureAwait(false);
-        return offer is null ? null : new(index, offer);
+        return offer is null ? null : new PreparedTradeOffer(index, offer);
     }
 
-    public TradeOfferChange? ApplyOffer(PlayerTradeSession trade, SelectedSessionIdentity actor, PreparedTradeOffer prepared)
+    public TradeOfferChange? ApplyOffer(IPlayerTradeSession candidate, SelectedSessionIdentity actor, IPreparedTradeOffer quote)
     {
         GameplayWriteAssertion.Writing(nameof(ApplyOffer));
-        if (!CanEdit(trade, actor)) return null;
+        if (candidate is not PlayerTradeSession trade || quote is not PreparedTradeOffer prepared
+            || !CanEdit(trade, actor)) return null;
         var offer = prepared.Offer;
         trade.Side(actor).Offers[prepared.Slot] = offer;
         return new(prepared.Slot, offer.Source, offer.Count, offer.Snapshot);
     }
 
-    public TradeOfferChange? Withdraw(PlayerTradeSession trade, SelectedSessionIdentity actor,
+    public TradeOfferChange? Withdraw(IPlayerTradeSession candidate, SelectedSessionIdentity actor,
         int index, int itemId, int count, bool crystalDestination)
     {
         GameplayWriteAssertion.Writing(nameof(Withdraw));
+        if (candidate is not PlayerTradeSession trade || !CanEdit(trade, actor) || count <= 0) return null;
         var offers = trade.Side(actor).Offers;
-        if (!CanEdit(trade, actor) || count <= 0 || !offers.TryGetValue(index, out var offer)
+        if (!offers.TryGetValue(index, out var offer)
             || offer.Source.ItemId != itemId || count > offer.Count
             || crystalDestination && offer.Source.Slot?.Space != BusinessInventorySpace.SharedMaterial) return null;
         var left = offer.Count - count;
@@ -129,10 +127,10 @@ public sealed class PlayerTradeDomainService(
         return new(index, offer.Source, left, offer.Snapshot);
     }
 
-    public TradeAdvance Advance(PlayerTradeSession trade, SelectedSessionIdentity actor, TradeAction action)
+    public TradeAdvance Advance(IPlayerTradeSession candidate, SelectedSessionIdentity actor, TradeAction action)
     {
         GameplayWriteAssertion.Writing(nameof(Advance));
-        if (action == TradeAction.Cancel || !IsUsable(trade)) return TradeAdvance.Canceled;
+        if (action == TradeAction.Cancel || candidate is not PlayerTradeSession trade || !IsUsable(trade)) return TradeAdvance.Canceled;
         if (!trade.Accepted) return TradeAdvance.Rejected;
         var own = trade.Side(actor);
         var other = trade.Side(trade.Opposite(actor));
@@ -152,25 +150,25 @@ public sealed class PlayerTradeDomainService(
         }
     }
 
-    public async ValueTask<bool> SettleAsync(PlayerTradeSession trade, CancellationToken ct) =>
-        trade.Left.Phase == TradePhase.Confirmed && trade.Right.Phase == TradePhase.Confirmed
+    public async ValueTask<bool> SettleAsync(IPlayerTradeSession candidate, CancellationToken ct) =>
+        candidate is PlayerTradeSession trade && trade.Left.Phase == TradePhase.Confirmed && trade.Right.Phase == TradePhase.Confirmed
             && IsUsable(trade) && !await BlockedAsync(trade.Inviter, trade.Invitee, ct).ConfigureAwait(false)
             && await assets.ExchangeAsync(trade, ct).ConfigureAwait(false);
 
-    public bool IsUsable(PlayerTradeSession trade) => !trade.Invalidated
+    public bool IsUsable(IPlayerTradeSession candidate) => candidate is PlayerTradeSession trade && !trade.Invalidated
         && ReferenceEquals(Find(trade.Inviter), trade)
         && (trade.Accepted || trade.ExpiresAt > clock.GetUtcNow()) && CanMeet(trade.Inviter, trade.Invitee);
 
     public void Invalidate(SelectedSessionIdentity actor)
     {
         GameplayWriteAssertion.Writing(nameof(Invalidate));
-        if (Find(actor) is { } trade) trade.Invalidated = true;
+        if (active.TryGetValue(actor, out var trade)) trade.Invalidated = true;
     }
 
-    public PlayerTradeSession[] InvalidTrades() =>
+    public IReadOnlyList<IPlayerTradeSession> InvalidTrades() =>
         [.. active.Values.Distinct().Where(trade => !IsUsable(trade))];
 
-    public bool Close(PlayerTradeSession trade)
+    public bool Close(IPlayerTradeSession trade)
     {
         GameplayWriteAssertion.Writing(nameof(Close));
         if (!ReferenceEquals(Find(trade.Inviter), trade)) return false;

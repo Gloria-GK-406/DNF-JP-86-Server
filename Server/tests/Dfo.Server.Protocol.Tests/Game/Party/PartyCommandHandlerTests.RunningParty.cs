@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Parties;
@@ -206,7 +207,7 @@ public sealed partial class PartyCommandHandlerTests
                     new Dfo.Server.Protocol.Tests.Game.PvpRoom.ScriptedPvpRooms(),
                     ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Sessions.ISelectedCharacterCurrentViewDomainService>(),
                     ProtocolAlgorithmFixture.Default<Dfo.Server.Application.Commands.ICommandWorkUnits>(),
-                    NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()))
+                    NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(), TestRequired.Absent<IPlayerTradeDomainService>()))
                 .SendAsync(new GameRequestPeerCommand(Dispatch(from),
                     new RequestPeerRequest(GameMessageMetadata.Empty, to.WireUserId, 0, 64, [])));
 
@@ -217,7 +218,7 @@ public sealed partial class PartyCommandHandlerTests
                     PeerRoomStandIns.Rooms, PeerRoomStandIns.Lobby, PeerRoomStandIns.Views, PeerRoomStandIns.Online,
                     PeerRoomStandIns.OnlineUsers, PeerRoomStandIns.Endpoints, PeerRoomStandIns.Weakness, PeerRoomStandIns.Units,
                     NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(),
-                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System))
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System, TestRequired.Absent<IPlayerTradeDomainService>()))
                 .SendAsync(new GameResponsePeerCommand(Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, 0, 0, [])));
 

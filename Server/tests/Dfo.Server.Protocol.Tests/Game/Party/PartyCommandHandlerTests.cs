@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Trade;
 
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Abstractions.Execution;
@@ -748,7 +749,7 @@ public sealed partial class PartyCommandHandlerTests
 
     private static RequestPeerHandler DriveRequestPeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<RequestPeerHandler> _) =>
-        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(), TestRequired.Absent<IAntonRaidDomainService>(), new RecordingCommandOutbox(),PeerRoomStandIns.Rooms,PeerRoomStandIns.Views,PeerRoomStandIns.Units,NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()), commands));
+        new(new DirectBus<GameRequestPeerCommand>(new GameRequestPeerCommandHandler(sessions,            town,commands.Domain,new FixedPartyMemberStatus(),new global::Dfo.Server.Testing.TestCommandProjections(projection.Events),projection.Streams,            ProtocolAlgorithmFixture.Default<IOutboundOrdering>(),TestParties.Runs(), TestRequired.Absent<IAntonRaidDomainService>(), new RecordingCommandOutbox(),PeerRoomStandIns.Rooms,PeerRoomStandIns.Views,PeerRoomStandIns.Units,NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(), TestRequired.Absent<IPlayerTradeDomainService>()), commands));
 
     private static ResponsePeerHandler DriveResponsePeer(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<ResponsePeerHandler> _) =>
@@ -759,7 +760,7 @@ public sealed partial class PartyCommandHandlerTests
             PeerRoomStandIns.OnlineUsers, PeerRoomStandIns.Endpoints, PeerRoomStandIns.Weakness, PeerRoomStandIns.Units,
             NullLogger<GameResponsePeerCommandHandler>.Instance,
             ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(),
-            ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System), commands));
+            ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System, TestRequired.Absent<IPlayerTradeDomainService>()), commands));
 
     private static SetPartyInfoHandler DriveSetPartyInfo(ISelectedSessionDomainService sessions,
         ITownAreaDomainService town, RecordingCommandBus commands, TestProjection projection, ILogger<SetPartyInfoHandler> _) =>

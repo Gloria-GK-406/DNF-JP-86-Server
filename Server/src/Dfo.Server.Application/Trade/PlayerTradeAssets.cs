@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.World;
 
