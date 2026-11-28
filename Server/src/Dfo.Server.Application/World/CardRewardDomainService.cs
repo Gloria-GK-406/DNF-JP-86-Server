@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Data.Parties;
 
 namespace Dfo.Server.Application.World;
 
@@ -120,6 +121,11 @@ internal sealed class CardRewardDomainService(
     private ClearRewardCardFace FaceFor(
         DungeonRunState run, ClearRewardSettlement settlement, ClearRewardCardKind kind, bool eligible)
     {
+        var seed = SeedFor(run, kind);
+        var personalSeed = seed ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL);
+        // The entry party key stays stable when a teammate leaves or leadership changes.
+        var usePersonalSeed = kind == ClearRewardCardKind.BlackDiamond
+            || (kind == ClearRewardCardKind.Free && run.PartyKey.Kind == PartyKeyKind.Real);
         var face = cardRules.FaceFor(
             new ClearRewardOccasion(
                 kind,
@@ -132,15 +138,12 @@ internal sealed class CardRewardDomainService(
                 Kills = run.Kills,
                 HasBlackDiamond = eligible,
             },
-            kind is ClearRewardCardKind.BlackDiamond
-                ? SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)
-                : SeedFor(run, kind));
-        return dimensions.DrawCard(run.Layout.DungeonId, face,
-            SeedFor(run, kind) ^ unchecked((ulong)settlement.CharacterId.Value * 0x9E3779B97F4A7C15UL)) ?? face;
+            usePersonalSeed ? personalSeed : seed);
+        return dimensions.DrawCard(run.Layout.DungeonId, face, personalSeed) ?? face;
     }
 
     /// <summary>
-    /// The seed one face of one clear is drawn from.
+    /// The base seed for a card face in one clear.
     /// </summary>
     /// <remarks>
     /// Both halves are facts the run already carries: the seed its maze was laid out from in the
