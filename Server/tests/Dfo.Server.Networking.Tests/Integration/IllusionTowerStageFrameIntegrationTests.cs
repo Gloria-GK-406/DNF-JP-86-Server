@@ -163,14 +163,13 @@ public sealed class IllusionTowerStageFrameIntegrationTests
                 BinaryPrimitives.WriteUInt16LittleEndian(body, drop.Uid);
                 await stream.WriteAsync(ClientFrame(0x002B, body, sequence: 3), timeout.Token);
                 await WaitUntilAsync(() => towers.Find(selected)!.Room.Items.Single().Claimed, timeout.Token);
-                var acknowledged = false;
-                for (var count = 0; count < 8 && !acknowledged; count++)
+                byte[] acknowledgement;
+                do
                 {
-                    var frame = await ReadFrameAsync(stream, timeout.Token);
-                    acknowledged = frame[0] == 1 && BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)) == 0x002B;
-                    if (acknowledged) Assert.Equal(1, frame[GameServerFrameEncoder.HeaderLength]);
+                    acknowledgement = await ReadFrameAsync(stream, timeout.Token);
                 }
-                Assert.True(acknowledged);
+                while (acknowledgement[0] != 1 || BinaryPrimitives.ReadUInt16LittleEndian(acknowledgement.AsSpan(1)) != 0x002B);
+                Assert.Equal(1, acknowledgement[GameServerFrameEncoder.HeaderLength]);
                 var pickup = await ReadFrameAsync(stream, timeout.Token);
                 Assert.Equal(0x0027, BinaryPrimitives.ReadUInt16LittleEndian(pickup.AsSpan(1)));
                 var update = await ReadFrameAsync(stream, timeout.Token);
