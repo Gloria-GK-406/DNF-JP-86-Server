@@ -890,7 +890,7 @@ P01–P10由用户确认通过；实例重构及常规事务回归已交付。�
 
 ## 2026-11-28 赛利亚物品合成
 
-[请求 `0x0197`](game/client-to-server/0x0197.md) 的六字节单底材路径按 PVF 配方扣料并生成装备，八字节形状安全拒绝。[结果](game/server-to-client/CMD-0x0197.md) 在库存投影后发送结果槽位。证据等级为 `ClientStatic + ContentStatic + CurrentImplementation`，待按[实机清单](../Document/tasks/seria-equipment-compound/Human-Test-List.md)核对。
+[请求 `0x0197`](game/client-to-server/0x0197.md) 的六字节单底材路径按 PVF 配方扣料并生成装备，八字节形状安全拒绝。[结果](game/server-to-client/CMD-0x0197.md) 在库存投影后发送结果槽位。用户实机试用后确认功能符合预期，放入普通上衣后显示产物候选的界面行为记为有限范围 `ClientVerified`。逐项验收边界见[验证记录](../Document/tasks/seria-equipment-compound/verification/completion-evidence.md#a21-反馈)。
 
 ## 2026-09-30 CMD0110 宝珠附魔取证
 
