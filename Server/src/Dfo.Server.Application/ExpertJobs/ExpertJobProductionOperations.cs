@@ -14,12 +14,12 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Application.ExpertJobs;
 
-internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states, IExpertJobRuleService rules,
+internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states, IExpertJobRuleService rules, ExpertJobProductionRuleService productionRules,
     ISelectedSessionDomainService sessions, IDungeonParticipationDomainService dungeons, IExpertStoreDomainService stores,
     ICharacterSkillStateDomainService skills, ICharacterBusinessInventoryDomainService bags,
-    IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment, EquipmentDisjointRuleService equipmentRules,
+    IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment,
     IOpeningEffectPlanRuleService materials, IPackageOpeningRuleService rewards, IInventoryEffectPreflightDomainService preflight,
-    IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions, IEquipmentEnchantRuleService enchantRules,
+    IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions,
     EnchanterStoreOperations enchanterStores, TimeProvider clock)
 {
     public IAlchemistDomainService BindAlchemist(CharacterId owner) => new Alchemist(this, owner);
@@ -42,11 +42,11 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         var definition = await rules.FindAsync(type, ct).ConfigureAwait(false);
         if (definition is null)
             return new(ExpertJobProductionRejection.InvalidItem);
-        var requirements = ReadDrawingRequirements(definition, drawing.ItemId);
+        var requirements = productionRules.DrawingRequirements(definition, state.Experience, drawing.ItemId);
         if (requirements is not { } requirement
             || !await HasSkillAsync(owner, requirement.Skill, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidItem);
-        if (requirement.Level > definition.LevelAt(state.Experience) + 2)
+        if (requirement.LevelTooLow)
             return new(ExpertJobProductionRejection.LevelTooLow);
 
         DomainEffect[] plan = [new ConsumeFromContainerEffect(source, drawing.ItemId, 1)];
@@ -63,15 +63,6 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         return new(ExpertJobProductionRejection.None, applied.Changes<ContainerConsumptionChange>().Single().RemainingCount);
     }
 
-    private static (int Level, int Skill)? ReadDrawingRequirements(ExpertJobDefinition definition, int drawing)
-    {
-        if (definition.Production?.Recipes.TryGetValue(drawing, out var recipe) == true)
-            return (recipe.RequiredLevel, recipe.RequiredSkill);
-        if (definition.Enchantment?.CardRecipes.TryGetValue(drawing, out var cardRecipe) == true)
-            return (cardRecipe.RequiredLevel, cardRecipe.RequiredSkill);
-        return null;
-    }
-
     private async ValueTask<ExpertJobCraftResult> CraftAsync(CharacterId owner, ExpertJobType type,
         SelectedSessionIdentity actor, int recipeId, ushort attempts, IEffectFootprintRecorder footprint, CancellationToken ct)
     {
@@ -82,20 +73,12 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         var definition = await rules.FindAsync(type, ct).ConfigureAwait(false);
         if (state.Type != type || definition?.Production is not { } production)
             return new(ExpertJobProductionRejection.InvalidState);
-        if (!production.Recipes.TryGetValue(recipeId, out var recipe) || !state.LearnedRecipeIds.Contains(recipeId)
+        if (productionRules.CraftRecipe(production, state, recipeId) is not { } recipe
             || !await HasSkillAsync(owner, recipe.RequiredSkill, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidRecipe);
 
-        var level = definition.LevelAt(state.Experience);
-        var difference = recipe.RequiredLevel - level;
-        var rate = production.CompoundRates.FirstOrDefault(candidate => candidate.MaximumLevelDifference >= difference)
-            ?? production.CompoundRates.LastOrDefault();
-        if (rate is null && difference > 0)
-            return new(ExpertJobProductionRejection.LevelTooLow);
-        var attemptedCount = (long)recipe.Product.Count * attempts;
-        var goldCost = (long)recipe.GoldCost * attempts;
-        if (attemptedCount > int.MaxValue || goldCost > int.MaxValue)
-            return new(ExpertJobProductionRejection.InvalidRecipe);
+        var (refusal, outcome) = productionRules.ResolveCraft(definition, production, state.Experience, recipe, attempts, Random.Shared.Next());
+        if (outcome is null) return new(refusal);
 
         RecipeEffectCosts costs;
         try
@@ -110,31 +93,19 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
                 ? ExpertJobProductionRejection.InsufficientMaterials : ExpertJobProductionRejection.InvalidRecipe);
         }
 
-        var random = Random.Shared;
-        var experience = rate?.Experience ?? recipe.Experience;
-        var successes = 0;
-        var gain = 0L;
-        for (var attempt = 0; attempt < attempts; attempt++)
-        {
-            if (random.Next(100) >= (rate?.SuccessPercent ?? 100)) continue;
-            successes++;
-            gain += ExpertJobEquipmentRules.Between(random, experience.Minimum, experience.Maximum);
-        }
         var plan = costs.Items.Select(cost => (DomainEffect)new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count)).ToList();
-        if (goldCost > 0) plan.Add(new SpendGoldEffect((int)goldCost));
-        if (successes > 0 && !await AddGrantsAsync(plan, [new(recipe.Product.ItemId, recipe.Product.Count * successes)],
-                context.At, ct).ConfigureAwait(false))
+        if (outcome.GoldCost > 0) plan.Add(new SpendGoldEffect(outcome.GoldCost));
+        if (outcome.Rewards.Length > 0 && !await AddGrantsAsync(plan, outcome.Rewards, context.At, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidRecipe);
 
         var rejection = await PreviewAsync(context, plan, limitRewards: false, ct).ConfigureAwait(false);
-        if (rejection == ExpertJobProductionRejection.InsufficientMaterials && goldCost > 0)
+        if (rejection == ExpertJobProductionRejection.InsufficientMaterials && outcome.GoldCost > 0)
             return new(ExpertJobProductionRejection.InsufficientGold);
         if (rejection != ExpertJobProductionRejection.None)
             return new(rejection);
-        var receipt = await SettleAsync(context, plan, definition, state, gain, ct).ConfigureAwait(false);
+        var receipt = await SettleAsync(context, plan, definition, state, outcome.ExperienceGain, ct).ConfigureAwait(false);
         return new(ExpertJobProductionRejection.None, receipt,
-            recipe.Product with { Count = (int)attemptedCount }, successes, attempts - successes,
-            successes > 0 && production.Extractors.ContainsKey(recipe.Product.ItemId));
+            outcome.AttemptedOutput, outcome.Successes, outcome.Failures, outcome.ExtractorProduct);
     }
 
     private async ValueTask<ExpertJobCraftResult> CraftBeadAsync(CharacterId owner, SelectedSessionIdentity actor,
@@ -147,12 +118,11 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         if (state.Type != ExpertJobType.Enchanter
             || await rules.FindAsync(state.Type, ct).ConfigureAwait(false) is not { Enchantment: { } enchantment } definition)
             return new(ExpertJobProductionRejection.InvalidState);
-        if (!enchantment.CardRecipes.TryGetValue(recipeId, out var recipe) || !state.LearnedRecipeIds.Contains(recipeId)
+        if (productionRules.BeadRecipe(enchantment, state, recipeId) is not { } recipe
             || !await HasSkillAsync(owner, recipe.RequiredSkill, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidRecipe);
-        var level = definition.LevelAt(state.Experience);
-        if (level < recipe.RequiredLevel) return new(ExpertJobProductionRejection.LevelTooLow);
-        if (!enchantment.CardRates.TryGetValue(level, out var rate)) return new(ExpertJobProductionRejection.InvalidRecipe);
+        var (refusal, rollRule) = productionRules.BeadRollRule(definition, enchantment, state.Experience, recipe);
+        if (rollRule is null) return new(refusal);
         if (!card.Space.IsCarriedItemSpace() || card.Space == BusinessInventorySpace.TowerQuickSlot)
             return new(ExpertJobProductionRejection.InvalidItem);
         var cardSlot = slots.Find(owner, card);
@@ -160,10 +130,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         if (cardItem is not { IsPile: true, Count: > 0 } || cardItem.Snapshot.IsMirror
             || cardItem.Snapshot.EquipmentLockId != 0 || cardItem.Snapshot.SortLockFlag != 0
             || cardItem.Snapshot.Lifetime.IsExpired(context.At)
-            || !recipe.BeadsByCardId.TryGetValue(cardItem.ItemId, out var bead))
-            return new(ExpertJobProductionRejection.InvalidItem);
-        var upgradeCount = cardItem.Snapshot.EnchantUpgradeCount;
-        if (!await enchantRules.CanProduceExpertBeadAsync(cardItem.Snapshot, bead, ct).ConfigureAwait(false))
+            || await productionRules.ResolveBeadProductAsync(recipe, cardItem.Snapshot, ct).ConfigureAwait(false) is not { } product)
             return new(ExpertJobProductionRejection.InvalidItem);
 
         var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(card, cardItem.ItemId, 1) };
@@ -180,17 +147,16 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
                 ? ExpertJobProductionRejection.InsufficientMaterials : ExpertJobProductionRejection.InvalidRecipe);
         }
 
-        if (!await AddGrantsAsync(plan, [new(bead, 1)], context.At, ct, upgradeCount).ConfigureAwait(false))
+        if (!await AddGrantsAsync(plan, [product.Reward], context.At, ct, product.UpgradeCount).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidRecipe);
         // Validate capacity for the potential product before rolling, including the card and material debits.
         var rejection = await PreviewAsync(context, plan, limitRewards: false, ct).ConfigureAwait(false);
         if (rejection != ExpertJobProductionRejection.None) return new(rejection);
-        var random = Random.Shared;
-        var success = random.Next(100) < rate.SuccessByQualification[recipe.Qualification];
-        if (!success) plan.RemoveAt(plan.Count - 1);
-        var gain = success ? ExpertJobEquipmentRules.Between(random, rate.Experience.Minimum, rate.Experience.Maximum) : 0;
-        var receipt = await SettleAsync(context, plan, definition, state, gain, ct).ConfigureAwait(false);
-        return new(ExpertJobProductionRejection.None, receipt, new(bead, 1), success ? 1 : 0, success ? 0 : 1);
+        var outcome = productionRules.ResolveBead(rollRule, Random.Shared.Next());
+        if (!outcome.Success) plan.RemoveAt(plan.Count - 1);
+        var receipt = await SettleAsync(context, plan, definition, state, outcome.ExperienceGain, ct).ConfigureAwait(false);
+        return new(ExpertJobProductionRejection.None, receipt, new(product.Reward.ItemId, product.Reward.Count),
+            outcome.Success ? 1 : 0, outcome.Success ? 0 : 1);
     }
 
     private async ValueTask<ExpertJobExtractionResult> ExtractAsync(CharacterId owner, ExpertJobType type,
@@ -213,49 +179,22 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         var instance = await equipment.Of(owner).FindAtAsync(target, ct).ConfigureAwait(false);
         var item = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (tool is not { IsPile: true, Count: > 0 } || tool.Snapshot.Lifetime.IsExpired(context.At)
-            || !production.Extractors.TryGetValue(tool.ItemId, out var toolDefinition)
-            || toolDefinition.RequiredLevel > definition.LevelAt(state.Experience)
             || item is null || item.Snapshot.IsMirror || item.Snapshot.EquipmentLockId != 0 || item.Snapshot.SortLockFlag != 0
             || item.Snapshot.Lifetime.IsExpired(context.At))
             return new(ExpertJobProductionRejection.InvalidItem);
 
-        if (await equipmentRules.ExpertTargetAsync(item.Snapshot, ct).ConfigureAwait(false) is not { } targetFacts)
-            return new(ExpertJobProductionRejection.InvalidItem);
-        var (facts, grade, equipmentState) = targetFacts;
-        if (!production.ExtractionResults.TryGetValue((tool.ItemId, facts.Rarity, equipmentState), out var rule))
-            return new(equipmentState == EquipmentDisjointRuleService.UnpurifiedState
-                ? ExpertJobProductionRejection.UnpurifiedEquipment : ExpertJobProductionRejection.InvalidItem);
-
-        var random = Random.Shared;
-        var basis = production.ExtractionSellGoldDivisor is { } divisor
-            ? Math.Max(1, facts.SellGold) / (double)divisor : Math.Max(1, grade);
-        var outputs = new Dictionary<int, int> { [rule.ItemId] = FloorCount(basis * rule.Multiplier) };
-        var great = random.Next(10000) < rule.GreatChance * 100;
-        var table = great ? rule.GreatTable : rule.AdditionalTable;
-        if (table != 0)
-        {
-            var roll = random.Next(10000);
-            foreach (var row in great ? production.GreatResults : production.AdditionalResults)
-            {
-                if (row.Table != table || grade < row.MinimumGrade || grade > row.MaximumGrade) continue;
-                roll -= Math.Clamp(row.Weight, 0, 10000);
-                if (roll >= 0) continue;
-                outputs[row.ItemId] = checked(outputs.GetValueOrDefault(row.ItemId) + FloorCount(grade * row.Multiplier));
-                break;
-            }
-        }
+        var (refusal, outcome) = await productionRules.ResolveExtractionAsync(definition, production, state.Experience,
+            tool.ItemId, item.Snapshot, Random.Shared.Next(), ct).ConfigureAwait(false);
+        if (outcome is null) return new(refusal);
         var plan = new List<DomainEffect> { new DestroyEquipmentEffect(new(item, item.ItemId)) };
-        if (!await AddGrantsAsync(plan, outputs.Select(output => new OpeningReward(output.Key, output.Value)).ToArray(),
-                context.At, ct).ConfigureAwait(false))
+        if (!await AddGrantsAsync(plan, outcome.Rewards, context.At, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidItem);
         var rejection = await PreviewAsync(context, plan, limitRewards: true, ct).ConfigureAwait(false);
         if (rejection != ExpertJobProductionRejection.None)
             return new(rejection);
-        var gain = ExpertJobEquipmentRules.Between(random, toolDefinition.Experience.Minimum, toolDefinition.Experience.Maximum);
-        return new(ExpertJobProductionRejection.None, await SettleAsync(context, plan, definition, state, gain, ct).ConfigureAwait(false));
+        return new(ExpertJobProductionRejection.None,
+            await SettleAsync(context, plan, definition, state, outcome.ExperienceGain, ct).ConfigureAwait(false));
     }
-
-    private static int FloorCount(double value) => (int)Math.Clamp(Math.Floor(value), 1, int.MaxValue);
 
     private EffectExecutionContext? Context(CharacterId owner, SelectedSessionIdentity actor, IEffectFootprintRecorder footprint)
     {

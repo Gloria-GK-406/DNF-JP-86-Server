@@ -11,6 +11,7 @@ internal static class ExpertJobsRegistration
         services.TryAddSingleton<IExpertJobRuleService, ExpertJobRuleService>();
         services.TryAddSingleton<DisjointMachineRuleService>();
         services.TryAddSingleton<DisjointerOperations>();
+        services.TryAddSingleton<ExpertJobProductionRuleService>();
         services.TryAddSingleton<ExpertJobProductionOperations>();
         services.TryAddSingleton<EnchanterStoreOperations>();
         services.TryAddSingleton<IExpertJobQueryDomainService, ExpertJobQueryDomainService>();
