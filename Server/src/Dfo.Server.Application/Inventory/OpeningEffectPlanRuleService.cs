@@ -108,8 +108,8 @@ internal sealed class OpeningEffectPlanRuleService(IItemUseRuleService useRules)
         }
         if (luckBefore is { } before && luckAfter is { } after) result.Add(new SetSeriaLuckEffect(before, after));
         else if (luckBefore is not null || luckAfter is not null) throw Reject(OpeningRejection.InvalidRequest, "Incomplete luck decision.");
-        if (rule.CooldownMilliseconds > 0)
-            result.Add(new StartItemCooldownEffect(useRules.CooldownKeyFor(sourceId, rule), TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
+        if (useRules.CooldownFor(sourceId, rule) is { } cooldown)
+            result.Add(new StartItemCooldownEffect(sourceId, cooldown));
         return result.ToImmutable();
     }
     private static OpeningRejectedException Reject(OpeningRejection reason, string detail) => new(reason, detail);

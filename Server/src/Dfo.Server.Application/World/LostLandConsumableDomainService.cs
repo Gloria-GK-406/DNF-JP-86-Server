@@ -26,7 +26,7 @@ internal sealed class LostLandConsumableDomainService(ILostLandConsumableRuleSer
         var rule = await rules.PrepareAsync(item.ItemId, kind, origin,
             new(run.CurrentRoomMapId, run.CurrentCell, run.Layout.Cells), token).ConfigureAwait(false)
                 ?? throw Reject("LostLand consumable does not match the action or room.");
-        var facts = await itemUse.FactsAsync(session.CharacterId, rule.CooldownKey, token).ConfigureAwait(false);
+        var facts = await itemUse.FactsAsync(session.CharacterId, rule.Cooldown, at, token).ConfigureAwait(false);
         var plan = rule.Build(source, item, facts, at)
             ?? throw Reject("LostLand consumable is unusable or cooling down.");
         // Transformation is client-owned; a capsule must also commit the destination room.

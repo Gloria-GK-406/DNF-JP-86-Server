@@ -144,6 +144,7 @@ internal static class InventoryRegistration
         services.TryAddSingleton<ILevelUpTicketRuleService, LevelUpTicketRuleService>();
         services.TryAddSingleton<IFatiguePotionDomainService, FatiguePotionDomainService>();
         services.TryAddSingleton<IItemUsageRuleService, ItemUsageRuleService>();
+        services.TryAddSingleton<ConsumableCooldownDomainService>();
         services.TryAddSingleton<IItemUsageDomainService, ItemUsageDomainService>();
         services.AddInternalCommandHandler<InitializeEpicBookCommand, bool, InitializeEpicBookCommandHandler>();
         services.TryAddSingleton<ICharacterInventoryEntryDomainService, CharacterInventoryEntryDomainService>();

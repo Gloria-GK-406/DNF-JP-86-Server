@@ -163,11 +163,30 @@ public sealed class ItemUseJudgementTests
     public void An_item_sharing_no_group_waits_under_its_own_identifier() =>
         Assert.Equal(
             ItemCooldownKey.ForItem(8474),
-            Judgement.CooldownKeyFor(8474, ItemUseRules.Potion(cooltimeGroup: 0)));
+            Judgement.CooldownFor(8474, ItemUseRules.PersistentPotion(cooltimeGroup: 0))?.Key);
+
+    [Theory]
+    [InlineData(false, false, false, 5000, false)]
+    [InlineData(true, false, false, 5000, false)]
+    [InlineData(true, true, false, 5000, false)]
+    [InlineData(true, true, true, 0, false)]
+    [InlineData(true, true, true, 5000, true)]
+    public void Ordinary_cooldown_uses_the_third_flag_and_positive_duration(bool revive, bool dungeon, bool server,
+        int duration, bool persistent)
+    {
+        var rule = ItemUseRules.Potion(duration, cooltimeGroup: 1028) with { CooldownMaintenance = new(revive, dungeon, server) };
+        var policy = Judgement.CooldownFor(8474, rule);
+        if (persistent)
+        {
+            Assert.Equal(new ItemCooldownPolicy(ItemCooldownKey.ForItem(8474), ItemCooldownScope.Persistent,
+                TimeSpan.FromMilliseconds(duration)), policy);
+        }
+        else Assert.Null(policy);
+    }
 
     [Fact]
     public void An_item_declaring_a_group_waits_under_the_group() =>
         Assert.Equal(
-            ItemCooldownKey.ForGroup(70),
-            Judgement.CooldownKeyFor(8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
+            ItemCooldownKey.ForGroup(99),
+            Judgement.CooldownFor(8474, ItemUseRules.ExperiencePotion())?.Key);
 }

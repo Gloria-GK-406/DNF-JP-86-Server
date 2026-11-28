@@ -18,7 +18,7 @@ internal sealed class EquipmentRepairDomainService(
     IEquipmentDomainService equipments,
     IEquipmentRepairRuleService rules, IPremiumServiceDomainService premiums,
     IPremiumServiceUsageDomainService usage, IMaterialConsumptionDomainService materials,
-    IDungeonRunQueryDomainService runs, IOnlineCharacterRuntimeDomainService runtime, TimeProvider clock) : IEquipmentRepairDomainService
+    IDungeonRunQueryDomainService runs, ConsumableCooldownDomainService cooldowns, TimeProvider clock) : IEquipmentRepairDomainService
 {
     public async ValueTask<EquipmentRepairResult> RepairWithCouponAsync(SelectedSessionIdentity session,
         BusinessSlot targetSlot, BusinessSlot couponSlot, CancellationToken ct)
@@ -40,8 +40,8 @@ internal sealed class EquipmentRepairDomainService(
         var consumed = await materials.ConsumeAsync(session, [new(couponSlot, coupon.ItemId, 1)], ct).ConfigureAwait(false);
         if (!consumed.Success) return new(EquipmentRepairRejection.ItemUnavailable);
         await instance!.SetDurabilityAsync(maximum.Value, ct).ConfigureAwait(false);
-        if (coupon.Rule.Cooldown > TimeSpan.Zero)
-            runtime.StartCooldown(session, coupon.Rule.CooldownKey, coupon.Rule.Cooldown);
+        if (coupon.Rule.Cooldown is { } cooldown)
+            await cooldowns.StartAsync(session, coupon.ItemId, cooldown, at, ct).ConfigureAwait(false);
         return new(EquipmentRepairRejection.None, new(session, targetSlot, await characters.Get(session.CharacterId).GoldAsync(ct).ConfigureAwait(false))
             { Coupon = new(couponSlot, consumed.Debits.Single().Remaining) });
 
@@ -73,7 +73,7 @@ internal sealed class EquipmentRepairDomainService(
         if (run is not null && (!run.ReadyParticipants.Contains(session.CharacterId)
             || run.ModeState is DungeonRunModeState.LostLand { Exploration: { } exploration } && exploration.HasExpired(at)))
             return (null, EquipmentRepairRejection.CannotRepair);
-        var candidate = await itemUse.FactsAsync(session.CharacterId, rule.CooldownKey, ct).ConfigureAwait(false);
+        var candidate = await itemUse.FactsAsync(session.CharacterId, rule.Cooldown, at, ct).ConfigureAwait(false);
         return candidate is not null && rule.Allows(candidate, run?.Layout.DungeonId)
             ? (new(slot, item.ItemId, rule, at), EquipmentRepairRejection.None)
             : (null, EquipmentRepairRejection.CannotRepair);
@@ -212,8 +212,8 @@ internal sealed class EquipmentRepairDomainService(
         foreach (var (equipment, quote) in candidates)
             if (quote.Write)
                 await equipment.SetDurabilityAsync(quote.Durability, cancellationToken).ConfigureAwait(false);
-        if (potion is not null && potion.Rule.Cooldown > TimeSpan.Zero)
-            runtime.StartCooldown(session, potion.Rule.CooldownKey, potion.Rule.Cooldown);
+        if (potion?.Rule.Cooldown is { } cooldown)
+            await cooldowns.StartAsync(session, potion.ItemId, cooldown, potion.At, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<EquipmentRepairBagSlot> carriedEquipment = [];
         if (potion is not null && slots.Find(session.CharacterId, new(BusinessInventorySpace.CarriedEquipment, 0)) is { } bag)
         {

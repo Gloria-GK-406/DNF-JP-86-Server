@@ -325,7 +325,7 @@ public sealed class ExplicitEffectExecutionTests
             (new OpenExtraEquipmentSlotEffect(Dfo.Server.Data.Characters.ExtraEquipmentSlots.Support), new ExtraEquipmentSlotChange(Dfo.Server.Data.Characters.ExtraEquipmentSlots.Support), ReplayProjectionNeeds.CharacterAppearance, []),
             (new SetOpeningPremiumEffect(default, 1, 2, new(1, 1)), new OpeningPremiumChange(null!, null!), ReplayProjectionNeeds.Premium, []),
             (new SetDoublePotUsageEffect(null!), new DoublePotUsageChange(null!), ReplayProjectionNeeds.Premium, []),
-            (new StartItemCooldownEffect(default, TimeSpan.FromSeconds(1)), new ItemCooldownChange(default, TimeSpan.FromSeconds(1)), ReplayProjectionNeeds.None, []),
+            (new StartItemCooldownEffect(1, new(default, ItemCooldownScope.SelectedSession, TimeSpan.FromSeconds(1))), new ItemCooldownChange(default, TimeSpan.FromSeconds(1)), ReplayProjectionNeeds.None, []),
             (new StartSpiritPotionEffect(1, TimeSpan.FromSeconds(1)), new SpiritPotionChange(1, TimeSpan.FromSeconds(1)), ReplayProjectionNeeds.None, []),
             (new SetSeriaLuckEffect(1, 2), new SeriaLuckChange(1, 2), ReplayProjectionNeeds.None, []),
         ];
@@ -359,7 +359,7 @@ public sealed class ExplicitEffectExecutionTests
             using var cap = new TestEffectFootprints.Lease(f.Session);
             await using var tx = f.Services.GetRequiredService<DomainTransactionScope>().Begin();
             await f.Services.GetRequiredService<IApplyEffectsDomainService>().ApplyAsync(Context(f, cap),
-                [new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)), new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
+                [new StartItemCooldownEffect(key.Value, new(key, ItemCooldownScope.SelectedSession, TimeSpan.FromSeconds(10))), new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
             cap.Dispose();
             Assert.False(runtime.IsCoolingDown(f.Session.CharacterId, key));
             await tx.CommitAsync(default);

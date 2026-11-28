@@ -1,7 +1,7 @@
 using Dfo.Server.Abstractions.DomainEvents;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.UsageQuotas;
 using Dfo.Server.Abstractions.Configuration;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Transactions;
@@ -10,6 +10,7 @@ using Dfo.Server.Data.Characters;
 namespace Dfo.Server.Application.Inventory;
 
 internal sealed class ItemUsageDomainService(IUsageQuotaDomainService quotas, IItemUsageRuleService rules,
+    IConsumableCooldownTable cooldowns, IItemUseRuleService itemUse,
     TimeProvider clock, IDomainTransactionAccessor transactions, IEventService events) : IItemUsageDomainService
 {
     public async ValueTask<ItemUsageState> GetAsync(CharacterId characterId, int itemId, CancellationToken token)
@@ -35,13 +36,25 @@ internal sealed class ItemUsageDomainService(IUsageQuotaDomainService quotas, II
     public async ValueTask<IReadOnlyList<ItemUsageState>> GetSnapshotAtAsync(CharacterId characterId, DateTimeOffset now, CancellationToken token)
     {
         var rows = await quotas.ReadConsumablesAsync(characterId, token).ConfigureAwait(false);
-        var result = new List<ItemUsageState>();
-        foreach (var pair in rows.OrderBy(x => x.Key))
+        var result = new Dictionary<int, ItemUsageState>();
+        foreach (var pair in rows)
         {
-            var rule = await rules.RuleAsync(pair.Key, token).ConfigureAwait(false);
+            var rule = await rules.TryRuleAsync(pair.Key, token).ConfigureAwait(false);
+            if (rule is null) continue;
             var state = rules.StateOf(pair.Key, pair.Value, rule, now);
-            if (rule.DailyLimit >= 0 || state.CooldownUntil is not null) result.Add(state);
+            if (state.DailyLimit is not null || state.CooldownUntil is not null) result.Add(pair.Key, state);
         }
-        return result;
+
+        foreach (var row in await cooldowns.ReadActiveAsync(characterId, now, token).ConfigureAwait(false))
+        {
+            var use = await itemUse.RuleForAsync(row.ItemId, token).ConfigureAwait(false);
+            if (use is null || itemUse.CooldownFor(row.ItemId, use) is not { Scope: ItemCooldownScope.Persistent } policy
+                || policy.Key != row.Key)
+                continue;
+            result[row.ItemId] = result.TryGetValue(row.ItemId, out var state)
+                ? state with { CooldownUntil = row.ExpiresAt }
+                : new(row.ItemId, 0, null, null, row.ExpiresAt);
+        }
+        return result.Values.OrderBy(state => state.ItemId).ToArray();
     }
 }

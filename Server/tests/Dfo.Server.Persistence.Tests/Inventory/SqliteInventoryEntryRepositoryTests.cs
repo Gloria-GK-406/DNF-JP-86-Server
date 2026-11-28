@@ -112,14 +112,6 @@ public sealed class SqliteInventoryEntryRepositoryTests
                 characterResult.CharacterItemValues,
                 item => Assert.Equal(
                     new InventoryItemValueStorageRecord(
-                        new CharacterId(21), InventoryItemValueListType.Cooldown, 0, 7000, 70),
-                    item),
-                item => Assert.Equal(
-                    new InventoryItemValueStorageRecord(
-                        new CharacterId(21), InventoryItemValueListType.Cooldown, 2, 7002, 72),
-                    item),
-                item => Assert.Equal(
-                    new InventoryItemValueStorageRecord(
                         new CharacterId(21), InventoryItemValueListType.Effect, 1, 8001, 81),
                     item));
             Assert.Equal(
@@ -262,7 +254,7 @@ public sealed class SqliteInventoryEntryRepositoryTests
             var commandText = invalidCase switch
             {
                 "duplicate-item-value" => """
-                    INSERT INTO character_item_cooldowns(character_id, sort_order, item_id, value)
+                    INSERT INTO character_item_effects(character_id, sort_order, item_id, value)
                     VALUES(24, 0, 1, 10), (24, 0, 2, 20);
                     """,
                 "duplicate-lock-id" => """

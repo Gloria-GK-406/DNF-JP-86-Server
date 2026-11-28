@@ -247,7 +247,7 @@ public sealed class CouponProtocolCommandFlowTests(ITestOutputHelper output)
             var trace=given??new Trace();var item=branch==0?490002847:branch==1?2600026:10006007;
             var owner=new CeraShopFixture(questProtocol:true,configure:s=>{
                 var content=new Content();s.AddSingleton<IStackableActionDefinitionSource>(content);s.AddSingleton<IItemUsageRuleSource>(content);
-                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((item,ItemUseRules.Potion(0))));
+                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((item,ItemUseRules.Potion(0) with { Action = branch == 1 ? "[add fatigue]" : null })));
                 s.AddSingleton<IQuestClearCouponRuleService,Selection>();s.AddSingleton<IQuestContentRuleService,Quests>();
                 if(trace.Delivery is {} sender)s.AddSingleton<IOutboundSender>(sender.Recorder);
                 if(branch==0)DomainObserver.Add<IEntryAllowanceItemDomainService>(s,trace);else if(branch==1)DomainObserver.Add<IFatiguePotionDomainService>(s,trace);else DomainObserver.Add<IQuestClearCouponSettlementDomainService>(s,trace);
@@ -267,7 +267,7 @@ public sealed class CouponProtocolCommandFlowTests(ITestOutputHelper output)
     private sealed class Content:IStackableActionDefinitionSource,IItemUsageRuleSource
     {
         public ValueTask<StackableActionDefinition?> GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<StackableActionDefinition?>(id==490002847?new("[add enter limit dungeonincount]",50,85,0,true){EntryDungeonId=3900,EntryIncrease=1}:new("[add fatigue]",1,85,0,true){FatigueRecovery=30});
-        ValueTask<ItemUsageRule?> IItemUsageRuleSource.GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<ItemUsageRule?>(new(1,10000,true));
+        ValueTask<ItemUsageRule?> IItemUsageRuleSource.GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<ItemUsageRule?>(new(1,10000,true) { CooldownMaintenance = new(true, true, true) });
     }
     private sealed class Selection:IQuestClearCouponRuleService
     {public bool IsCoupon(int itemId) => itemId == 10_006_007;

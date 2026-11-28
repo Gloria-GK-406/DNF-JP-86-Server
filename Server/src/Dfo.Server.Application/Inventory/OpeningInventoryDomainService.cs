@@ -37,7 +37,7 @@ internal sealed class OpeningInventoryDomainService(ISelectedSessionDomainServic
         if (item is null || !item.IsPile || item.Count <= 0
             || item.Snapshot.Lifetime.IsExpired(now))
             throw new OpeningRejectedException(OpeningRejection.WrongItem, "Missing, expired or nonstackable source.");
-        var usability = await itemUse.CanUseAsync(session.CharacterId, item.ItemId, ct).ConfigureAwait(false);
+        var usability = await itemUse.CanUseAtAsync(session.CharacterId, item.ItemId, now, ct).ConfigureAwait(false);
         if (usability != ItemUsability.Allowed)
             throw new OpeningRejectedException(OpeningRejection.ItemUnusable, $"Opening source is unusable: {usability}.");
         return item;

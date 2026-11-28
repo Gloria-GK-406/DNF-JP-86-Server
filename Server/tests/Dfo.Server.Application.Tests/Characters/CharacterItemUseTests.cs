@@ -191,7 +191,7 @@ public sealed class CharacterItemUseTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var usability = Build(out _, (8474, ItemUseRules.Potion(cooldownMilliseconds: 0)));
+            var usability = Build(out _, (8474, ItemUseRules.PersistentPotion(cooldownMilliseconds: 0)));
 
             Assert.Equal(
                 ItemUsability.Allowed,
@@ -204,8 +204,8 @@ public sealed class CharacterItemUseTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
-            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+            var usability = Build(out var fixture, (8474, ItemUseRules.PersistentPotion()));
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForItem(8474), 8474, TimeSpan.FromSeconds(10));
 
             fixture.Clock.Advance(TimeSpan.FromSeconds(9));
 
@@ -216,12 +216,28 @@ public sealed class CharacterItemUseTests
     }
 
     [Fact]
+    public async Task Cooldown_preflight_uses_the_settlement_time_even_if_the_clock_reaches_the_deadline()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var usability = Build(out var fixture, (8474, ItemUseRules.PersistentPotion()));
+            var settlementAt = fixture.Clock.GetUtcNow();
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForItem(8474), 8474, TimeSpan.FromMilliseconds(1));
+
+            fixture.Clock.Advance(TimeSpan.FromMilliseconds(1));
+
+            Assert.Equal(ItemUsability.OnCooldown, await usability.CanUseAtAsync(8474, settlementAt, default));
+            Assert.Equal(ItemUsability.Allowed, await usability.CanUseAtAsync(8474, fixture.Clock.GetUtcNow(), default));
+        });
+    }
+
+    [Fact]
     public async Task A_cooldown_that_has_elapsed_no_longer_refuses()
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
-            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+            var usability = Build(out var fixture, (8474, ItemUseRules.PersistentPotion()));
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForItem(8474), 8474, TimeSpan.FromSeconds(10));
 
             fixture.Clock.Advance(TimeSpan.FromSeconds(10));
 
@@ -242,9 +258,9 @@ public sealed class CharacterItemUseTests
         {
             var usability = Build(
                 out var fixture,
-                (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
-                (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
-            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
+                (8474, ItemUseRules.ExperiencePotion()),
+                (9000, ItemUseRules.ExperiencePotion()));
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForGroup(99), 8474, TimeSpan.FromSeconds(3));
 
             Assert.Equal(
                 ItemUsability.OnCooldown,
@@ -263,9 +279,9 @@ public sealed class CharacterItemUseTests
         {
             var usability = Build(
                 out var fixture,
-                (8474, ItemUseRules.Potion(cooltimeGroup: 0)),
-                (9000, ItemUseRules.Potion(cooltimeGroup: 0)));
-            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromSeconds(10));
+                (8474, ItemUseRules.PersistentPotion(cooltimeGroup: 0)),
+                (9000, ItemUseRules.PersistentPotion(cooltimeGroup: 0)));
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForItem(8474), 8474, TimeSpan.FromSeconds(10));
 
             Assert.Equal(
                 ItemUsability.Allowed,
@@ -284,9 +300,9 @@ public sealed class CharacterItemUseTests
         {
             var usability = Build(
                 out var fixture,
-                (70, ItemUseRules.Potion(cooltimeGroup: 0)),
-                (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
-            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(70), TimeSpan.FromSeconds(10));
+                (99, ItemUseRules.PersistentPotion(cooltimeGroup: 0)),
+                (9000, ItemUseRules.ExperiencePotion()));
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForItem(99), 99, TimeSpan.FromSeconds(10));
 
             Assert.Equal(
                 ItemUsability.Allowed,
@@ -304,7 +320,7 @@ public sealed class CharacterItemUseTests
     {
         await TestGameplay.RunAsync(async () =>
         {
-            var usability = Build(out var fixture, (8474, ItemUseRules.Potion()));
+            var usability = Build(out var fixture, (8474, ItemUseRules.PersistentPotion()));
 
             Assert.Equal(
                 ItemUsability.Allowed,
@@ -317,16 +333,14 @@ public sealed class CharacterItemUseTests
     }
 
     /// <remarks>
-    /// Leaving clears the record, so a relog resets every wait. That is wrong for a thirty-minute
-    /// summon and unnoticeable for a ten-second potion; it is written down here so the day it
-    /// matters, the choice is visible rather than discovered.
+    /// Dedicated session cooldowns are tied to the selected session.
     /// </remarks>
     [Fact]
     public void Leaving_clears_the_characters_cooldowns()
     {
         TestGameplay.Run(() =>
         {
-            Build(out var fixture, (8474, ItemUseRules.Potion()));
+            Build(out var fixture, (8474, ItemUseRules.PersistentPotion()));
             fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForItem(8474), TimeSpan.FromMinutes(30));
 
             fixture.Cooldowns.EndExact(fixture.Session);
@@ -362,7 +376,7 @@ public sealed class CharacterItemUseTests
         await TestGameplay.RunAsync(async () =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-            var usability = ItemUse(CharacterRow.At(level: 50), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            var usability = ItemUse(CharacterRow.At(level: 50), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.PersistentPotion()))),
                 new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
                 new SessionPresenceDomainService());
 
@@ -388,7 +402,7 @@ public sealed class CharacterItemUseTests
         await TestGameplay.RunAsync(async () =>
         {
             var clock = new AdvanceableTimeProvider(new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero));
-            var usability = ItemUse(CharacterRow.None, new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+            var usability = ItemUse(CharacterRow.None, new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.PersistentPotion()))),
                 new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService()),
                 PresentCharacters.StandingInTown(Character));
 
@@ -442,7 +456,7 @@ public sealed class CharacterItemUseTests
                     Assert.Equal(1, await insert.ExecuteNonQueryAsync(CancellationToken.None));
                 }
 
-                var usability = ItemUse(new SqliteCharacterTable(database), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.Potion()))),
+                var usability = ItemUse(new SqliteCharacterTable(database), new ItemUseRuleService(new FakeItemUseRules((8474, ItemUseRules.PersistentPotion()))),
                 new OnlineCharacterRuntimeDomainService(
                         new AdvanceableTimeProvider(
                             new DateTimeOffset(2026, 8, 19, 12, 0, 0, TimeSpan.Zero)), new OnlineCharacterLocationDomainService()),
@@ -498,9 +512,9 @@ public sealed class CharacterItemUseTests
                 out var fixture,
                 level: 10,
                 job: 0,
-                (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
-                (9000, ItemUseRules.RequiringLevel(50) with { CooltimeGroup = 70, CooldownMilliseconds = 3_000 }));
-            fixture.Cooldowns.StartCooldown(fixture.Session, ItemCooldownKey.ForGroup(70), TimeSpan.FromSeconds(3));
+                (8474, ItemUseRules.ExperiencePotion()),
+                (9000, ItemUseRules.RequiringLevel(50) with { CooltimeGroup = 99, CooldownMilliseconds = 3_000, ExpBonusRate = 0.1, CooldownMaintenance = new(true, true, true) }));
+            await fixture.StartPersistentCooldown(ItemCooldownKey.ForGroup(99), 8474, TimeSpan.FromSeconds(3));
 
             Assert.Equal(
                 ItemUsability.LevelTooLow,
@@ -511,7 +525,12 @@ public sealed class CharacterItemUseTests
     private sealed record Fixture(
         AdvanceableTimeProvider Clock,
         OnlineCharacterRuntimeDomainService Cooldowns,
-        Dfo.Server.Data.World.SelectedSessionIdentity Session);
+        Dfo.Server.Data.World.SelectedSessionIdentity Session,
+        TestConsumableCooldownTable Table)
+    {
+        public ValueTask<bool> StartPersistentCooldown(ItemCooldownKey key, int source, TimeSpan duration) =>
+            Table.TryStartAsync(Session.CharacterId, new(key, source, Clock.GetUtcNow().Add(duration)), Clock.GetUtcNow(), default);
+    }
 
     private static Usability Build(
         out Fixture fixture,
@@ -540,9 +559,9 @@ public sealed class CharacterItemUseTests
             new Dfo.Server.Data.Accounts.AccountId(1), Character,
             new Dfo.Server.Data.Networking.NetworkConnectionId("Game:item-use"), 2, 10011);
         cooldowns.Begin(session, new CharacterPositionState(1, 0, 0, 0, 0), 100);
-        fixture = new Fixture(clock, cooldowns, session);
+        fixture = new Fixture(clock, cooldowns, session, new TestConsumableCooldownTable());
         return ItemUse(CharacterRow.At(level, job), new ItemUseRuleService(new FakeItemUseRules(rules)),
-            cooldowns, PresentCharacters.StandingInTown(Character), inTower ? new TowerSeat() : null);
+            cooldowns, PresentCharacters.StandingInTown(Character), inTower ? new TowerSeat() : null, fixture.Table, clock);
     }
 
     /// <summary>What the cases ask: whether this one character may use an item, through the item-use service.</summary>
@@ -550,14 +569,19 @@ public sealed class CharacterItemUseTests
     {
         public ValueTask<ItemUsability> CanUseAsync(int itemId, CancellationToken cancellationToken) =>
             service.CanUseAsync(Character, itemId, cancellationToken);
+
+        public ValueTask<ItemUsability> CanUseAtAsync(int itemId, DateTimeOffset at, CancellationToken cancellationToken) =>
+            service.CanUseAtAsync(Character, itemId, at, cancellationToken);
     }
 
     private static Usability ItemUse(ICharacterTable row, IItemUseRuleService judgement,
-        IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IDungeonParticipationDomainService? seats = null) =>
+        IOnlineCharacterRuntimeDomainService runtime, ITownAreaDomainService town, IDungeonParticipationDomainService? seats = null,
+        TestConsumableCooldownTable? table = null, TimeProvider? clock = null) =>
         new(new CharacterItemUseDomainService(
             new CharacterDomainStub(id => new PlayingCharacter(id, new NoCarriedGold(), new StoredCarryLimitOnly(), row,
                 new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!)),
-            judgement, runtime, town, seats ?? NobodyThere.Create<IDungeonParticipationDomainService>()));
+            judgement, new ConsumableCooldownDomainService(table ?? new(), runtime, null!), clock ?? TimeProvider.System,
+            town, seats ?? NobodyThere.Create<IDungeonParticipationDomainService>()));
 
     private static Usability Build(
         out Fixture fixture,

@@ -48,6 +48,12 @@ internal static class ItemUseRules
             Jobs: ItemJobRestriction.Any,
             Places: ItemPlaceRestriction.Anywhere);
 
+    public static ItemUseRule PersistentPotion(int cooldownMilliseconds = 10_000, int cooltimeGroup = 0) =>
+        Potion(cooldownMilliseconds, cooltimeGroup) with { CooldownMaintenance = new(true, true, true) };
+
+    public static ItemUseRule ExperiencePotion(int cooldownMilliseconds = 3_000) =>
+        PersistentPotion(cooldownMilliseconds, 99) with { ExpBonusRate = 0.1 };
+
     /// <summary>One of the eighty-four whose <c>[stackable type]</c> begins with unlimited.</summary>
     public static ItemUseRule Unlimited(int cooldownMilliseconds = 0, int cooltimeGroup = 0) =>
         Potion(cooldownMilliseconds, cooltimeGroup) with { IsConsumedOnUse = false };

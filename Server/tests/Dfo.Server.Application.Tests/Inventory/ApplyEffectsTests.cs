@@ -165,11 +165,11 @@ public sealed class ApplyEffectsTests
             var key = ItemCooldownKey.ForItem(8474);
             await using (var tx = f.Scope.Begin())
             {
-                await f.Executor(new StartItemCooldownEffectHandler(runtime, f.Scope),
+                await f.Executor(new StartItemCooldownEffectHandler(new ConsumableCooldownDomainService(new TestConsumableCooldownTable(), runtime, f.Scope)),
                     new StartSpiritPotionEffectHandler(runtime, f.Scope))
                     .ApplyAsync(context with { Session = sessions.Current },
                         [new ConsumeFromContainerEffect(Source, 8474, 1),
-                            new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
+                            new StartItemCooldownEffect(key.Value, new(key, ItemCooldownScope.SelectedSession, TimeSpan.FromSeconds(10))),
                             new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
                 Assert.False(runtime.IsCoolingDown(Offline.CharacterId, key));
                 await tx.CommitAsync(default);
@@ -198,11 +198,11 @@ public sealed class ApplyEffectsTests
             await using (f.Scope.Begin())
             {
                 await Assert.ThrowsAsync<IOException>(async () => await f.Executor(
-                    new StartItemCooldownEffectHandler(cooldowns, f.Scope),
+                    new StartItemCooldownEffectHandler(new ConsumableCooldownDomainService(new TestConsumableCooldownTable(), cooldowns, f.Scope)),
                     new StartSpiritPotionEffectHandler(potion, f.Scope), new ThrowHandler())
                     .ApplyAsync(context with { Session = sessions.Current },
                         [new ConsumeFromContainerEffect(Source, 8474, 1),
-                            new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
+                            new StartItemCooldownEffect(key.Value, new(key, ItemCooldownScope.SelectedSession, TimeSpan.FromSeconds(10))),
                             new StartSpiritPotionEffect(1, TimeSpan.FromHours(1)), new Throw()], default));
             }
             Assert.Equal(5, f.CountIn(3));
@@ -228,11 +228,11 @@ public sealed class ApplyEffectsTests
             var key = ItemCooldownKey.ForItem(8474);
             await using (var tx = f.Scope.Begin())
             {
-                await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope),
+                await f.Executor(new StartItemCooldownEffectHandler(new ConsumableCooldownDomainService(new TestConsumableCooldownTable(), cooldowns, f.Scope)),
                     new StartSpiritPotionEffectHandler(potion, f.Scope))
                     .ApplyAsync(context with { Session = sessions.Current },
                         [new ConsumeFromContainerEffect(Source, 8474, 1),
-                            new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10)),
+                            new StartItemCooldownEffect(key.Value, new(key, ItemCooldownScope.SelectedSession, TimeSpan.FromSeconds(10))),
                             new StartSpiritPotionEffect(1, TimeSpan.FromHours(1))], default);
                 f.Scope.Current!.Enlist(new object(), () => new RecordingParticipant("fail", [], true)
                     { CommitFailure = new IOException("commit failed") });
@@ -259,8 +259,8 @@ public sealed class ApplyEffectsTests
             var key = ItemCooldownKey.ForItem(8474);
             await using (var tx = f.Scope.Begin())
             {
-                await f.Executor(new StartItemCooldownEffectHandler(cooldowns, f.Scope))
-                    .ApplyAsync(context with { Session = sessions.Current }, [new StartItemCooldownEffect(key, TimeSpan.FromSeconds(10))], default);
+                await f.Executor(new StartItemCooldownEffectHandler(new ConsumableCooldownDomainService(new TestConsumableCooldownTable(), cooldowns, f.Scope)))
+                    .ApplyAsync(context with { Session = sessions.Current }, [new StartItemCooldownEffect(key.Value, new(key, ItemCooldownScope.SelectedSession, TimeSpan.FromSeconds(10)))], default);
                 // The replacement enters the world and begins its own record before the old commit lands.
                 sessions.Current = sessions.Current with { ConnectionGeneration = 2 };
                 cooldowns.Begin(sessions.Current, InTown, 100);

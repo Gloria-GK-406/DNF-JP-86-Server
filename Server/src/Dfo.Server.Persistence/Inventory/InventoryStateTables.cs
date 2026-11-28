@@ -182,33 +182,6 @@ internal sealed class SqliteCharacterGoldLimitTable(SqliteDatabase database)
             cancellationToken);
 }
 
-/// <summary>The <c>character_item_cooldowns</c> table.</summary>
-/// <remarks>
-/// The client expects cooldowns before effects and each by position within its own list. Half of
-/// that order used to be a CASE over a column whose value said which kind of thing a row was; the
-/// half that is about position stays in the statement, and the half that was about kind is now the
-/// order the two reads are made in.
-/// </remarks>
-internal sealed class SqliteCharacterItemCooldownTable(SqliteDatabase database)
-    : ICharacterItemCooldownTable
-{
-    public ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
-        CharacterId characterId, CancellationToken cancellationToken) =>
-        database.ReadAllAsync(
-            """
-            SELECT character_id, sort_order, item_id, value
-            FROM character_item_cooldowns
-            WHERE character_id = @characterId
-            ORDER BY sort_order;
-            """,
-            parameters => parameters.AddWithValue("@characterId", characterId.Value),
-            ItemValue,
-            cancellationToken);
-
-    internal static ItemValueRow ItemValue(Microsoft.Data.Sqlite.SqliteDataReader reader) => new(
-        reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3));
-}
-
 /// <summary>The <c>character_item_effects</c> table.</summary>
 internal sealed class SqliteCharacterItemEffectTable(SqliteDatabase database)
     : ICharacterItemEffectTable
@@ -223,7 +196,7 @@ internal sealed class SqliteCharacterItemEffectTable(SqliteDatabase database)
             ORDER BY sort_order;
             """,
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
-            SqliteCharacterItemCooldownTable.ItemValue,
+            reader => new ItemValueRow(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
             cancellationToken);
 }
 

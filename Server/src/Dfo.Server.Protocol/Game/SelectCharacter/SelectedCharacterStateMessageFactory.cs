@@ -100,7 +100,8 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new CharacterOptionStateMessage(result.CharacterEntry.Settings.OptionBitmap));
         messages.Add(new SecondaryNoticeStateMessage(result.CharacterEntry.Settings.SeenNotices));
         messages.Add(new SkillPointSlotStateMessage(result.CharacterEntry.Skills.SkillPointSlots));
-        messages.Add(new ItemCooldownStateMessage(result.CharacterInventory.ItemValues.Cooldowns));
+        // Legacy rows carry a relative value without a reliable start time.
+        messages.Add(new ItemCooldownStateMessage([]));
         messages.Add(new ItemEffectStateMessage(result.CharacterInventory.ItemValues.Effects));
         messages.Add(new ClientEffectBaselineMessage());
 

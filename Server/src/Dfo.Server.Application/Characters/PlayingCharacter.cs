@@ -173,12 +173,25 @@ internal sealed class ItemUseRuleService(
         return rule;
     }
 
-    public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule)
+    public ItemCooldownPolicy? CooldownFor(int itemId, ItemUseRule rule, bool useSessionCooldown = false)
     {
         ArgumentNullException.ThrowIfNull(rule);
-        return rule.CooltimeGroup > 0
+        if (!rule.IsReadable || rule.CooldownMilliseconds <= 0
+            || rule.Action is "[add fatigue]" or "[random recovery fatigue]")
+            return null;
+
+        if (!rule.CooldownMaintenance.PersistOnServer && !useSessionCooldown) return null;
+        var scope = rule.CooldownMaintenance.PersistOnServer
+            ? ItemCooldownScope.Persistent : ItemCooldownScope.SelectedSession;
+        // Group 99 is the existing experience-potion family. Other PVF groups continue to
+        // drive client-side sharing; only an explicit server rule can give them a durable key.
+        var shares = scope == ItemCooldownScope.SelectedSession
+            ? rule.CooltimeGroup > 0
+            : rule.CooltimeGroup == 99 && rule.ExpBonusRate > 0;
+        var key = shares
             ? ItemCooldownKey.ForGroup(rule.CooltimeGroup)
             : ItemCooldownKey.ForItem(itemId);
+        return new(key, scope, TimeSpan.FromMilliseconds(rule.CooldownMilliseconds));
     }
 
     public ItemUsability Judge(ItemUseRule rule, ItemUseCandidate candidate)

@@ -173,8 +173,12 @@ public interface ICharacterItemUseDomainService
     /// </remarks>
     ValueTask<ItemUsability> CanUseAsync(CharacterId character, int itemId, CancellationToken cancellationToken);
 
+    ValueTask<ItemUsability> CanUseAtAsync(CharacterId character, int itemId, DateTimeOffset at,
+        CancellationToken cancellationToken);
+
     /// <summary>What the character is and where it stands, or null when it is neither standing anywhere nor readable.</summary>
-    ValueTask<ItemUseCandidate?> FactsAsync(CharacterId character, ItemCooldownKey cooldown, CancellationToken cancellationToken);
+    ValueTask<ItemUseCandidate?> FactsAsync(CharacterId character, ItemCooldownPolicy? cooldown, DateTimeOffset at,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -193,7 +197,7 @@ public interface IItemUseRuleService
     ValueTask<ItemUseRule?> RuleForAsync(int itemId, CancellationToken cancellationToken);
 
     /// <summary>The cooldown this item shares, or its own when it shares none.</summary>
-    ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule);
+    ItemCooldownPolicy? CooldownFor(int itemId, ItemUseRule rule, bool useSessionCooldown = false);
 
     /// <summary>
     /// Which of the declared restrictions this candidate falls foul of, or that it falls foul of

@@ -145,7 +145,7 @@ public sealed class FatiguePotionTests
     {
         public StackableActionDefinition Rule = new("[add fatigue]", 1, 85, 0, true)
             { FatigueRecovery = 30 };
-        public ItemUsageRule Usage = new(1, 10000, true);
+        public ItemUsageRule Usage = new(1, 10000, true) { CooldownMaintenance = new(true, true, true) };
         ValueTask<ItemUsageRule?> IItemUsageRuleSource.GetAsync(int id, CancellationToken token) =>
             ValueTask.FromResult<ItemUsageRule?>(Usage);
         public ValueTask<StackableActionDefinition?> GetAsync(int id, CancellationToken token) => ValueTask.FromResult<StackableActionDefinition?>(Rule);
@@ -229,7 +229,7 @@ public sealed class FatiguePotionTests
             await Spend(f, 100); await Use(f, clock);
             Assert.Equal(1, f.Scalar("SELECT value FROM character_daily_counters WHERE counter_key='consumable_used_2600026'"));
 
-            content.Usage = new(-1, 86400000, true);
+            content.Usage = new(-1, 86400000, true) { CooldownMaintenance = new(true, true, true) };
             await Use(f, clock, 7456);
             clock.Now = clock.Now.AddHours(23).AddMinutes(59);
             await Assert.ThrowsAsync<OpeningRejectedException>(() => Use(f, clock, 7456));
@@ -273,7 +273,7 @@ public sealed class FatiguePotionTests
         {
             var clock = new Clock(); var content = new Content();
             content.Rule = content.Rule with { FatigueRecovery = 50 };
-            content.Usage = new(3, 1000, true);
+            content.Usage = new(3, 1000, true) { CooldownMaintenance = new(true, true, true) };
             await using var f = Fixture(clock, content);
             await f.SeedAsync(); await Spend(f, 188);
             await Use(f, clock, 416);

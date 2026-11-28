@@ -19,7 +19,7 @@ namespace Dfo.Server.Persistence.Schema;
 internal static class CharacterDatabaseSchema
 {
     /// <summary>The shape this server reads and writes, as stamped in <c>user_version</c>.</summary>
-    public const int Version = 48;
+    public const int Version = 49;
 
     internal const string PvpTotalMatchTeamsDeclaration = """
         CREATE TABLE IF NOT EXISTS account_pvp_total_match_teams (
@@ -166,6 +166,7 @@ internal static class CharacterDatabaseSchema
     internal static void DeclareTables(SqliteConnection connection, SqliteTransaction? transaction)
     {
         Apply(connection, transaction, Tables);
+        DeclareConsumableCooldowns(connection, transaction);
         DeclareAntonRaidRewards(connection, transaction);
         DeclareGuilds(connection, transaction);
         DeclareGuildDonationHistory(connection, transaction);
@@ -188,6 +189,23 @@ internal static class CharacterDatabaseSchema
         DeclareGuildContributionEntries(connection, transaction);
         Apply(connection, transaction,
             ["CREATE TRIGGER IF NOT EXISTS equipment_rental_item_deleted AFTER DELETE ON items BEGIN DELETE FROM equipment_rental_instances WHERE item_uid=OLD.item_uid; END"]);
+    }
+
+    internal static void DeclareConsumableCooldowns(SqliteConnection connection, SqliteTransaction? transaction = null)
+    {
+        Apply(connection, transaction,
+        [
+            """
+            CREATE TABLE IF NOT EXISTS character_consumable_cooldowns (
+                character_id INTEGER NOT NULL REFERENCES characters(character_id) ON DELETE CASCADE,
+                is_shared INTEGER NOT NULL CHECK (is_shared IN (0, 1)),
+                cooldown_key INTEGER NOT NULL CHECK (cooldown_key > 0),
+                item_id INTEGER NOT NULL CHECK (item_id > 0),
+                expires_at_utc_ticks INTEGER NOT NULL CHECK (expires_at_utc_ticks > 0),
+                PRIMARY KEY (character_id, is_shared, cooldown_key)
+            );
+            """,
+        ]);
     }
 
     internal static void DeclareAntonRaidRewards(SqliteConnection connection, SqliteTransaction? transaction = null)

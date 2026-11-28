@@ -73,6 +73,9 @@ internal class EffectFootprintProjection(ReplayProjectionNeeds minimum)
                 case (OpenAuraSkinSlotEffect, AuraSkinSlotChange): Needs |= ReplayProjectionNeeds.CharacterAppearance; break;
                 case (SetOpeningPremiumEffect, OpeningPremiumChange):
                 case (SetDoublePotUsageEffect, DoublePotUsageChange): Needs |= ReplayProjectionNeeds.Premium; break;
+                case (StartItemCooldownEffect { Policy.Scope: ItemCooldownScope.Persistent }, ItemCooldownChange):
+                    Needs |= ReplayProjectionNeeds.ItemUsage;
+                    break;
                 // These runtime changes have no safe absolute wire representation in the current protocol.
                 case (StartItemCooldownEffect, ItemCooldownChange):
                 case (StartSpiritPotionEffect, SpiritPotionChange):

@@ -21,14 +21,13 @@ internal sealed class EquipmentRepairRuleService(IEquipmentRepairDefinitionSourc
         // The repair use case cannot silently discard additional potion effects.
         return rule is { IsReadable: true, IsConsumedOnUse: true,
             ExpBonusRate: 0, SummonsApc: false, SharedEffectSelector: null } && rule.Action == action
-            ? new CouponRule(rule, uses.CooldownKeyFor(itemId, rule), uses) : null;
+            ? new CouponRule(rule, uses.CooldownFor(itemId, rule), uses) : null;
     }
 
-    private sealed class CouponRule(ItemUseRule rule, ItemCooldownKey key, IItemUseRuleService uses)
+    private sealed class CouponRule(ItemUseRule rule, ItemCooldownPolicy? cooldown, IItemUseRuleService uses)
         : IEquipmentRepairCouponRule
     {
-        public ItemCooldownKey CooldownKey => key;
-        public TimeSpan Cooldown => TimeSpan.FromMilliseconds(rule.CooldownMilliseconds);
+        public ItemCooldownPolicy? Cooldown => cooldown;
         public bool Allows(ItemUseCandidate candidate, int? dungeonId) =>
             uses.Judge(rule, candidate) == ItemUsability.Allowed
             && (rule.AllowedDungeonIds.Count == 0 || dungeonId is { } id && rule.AllowedDungeonIds.Contains(id));

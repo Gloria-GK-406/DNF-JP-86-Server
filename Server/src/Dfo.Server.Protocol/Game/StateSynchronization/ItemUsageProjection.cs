@@ -55,11 +55,15 @@ internal static class ItemUsageSnapshotReader
 }
 internal static class ItemUsageCooldownProjection
 {
+    // The client multiplies the seconds by 1000 in a signed 32-bit value.
+    internal static int WireSeconds(TimeSpan remaining) =>
+        (int)Math.Clamp(Math.Ceiling(remaining.TotalSeconds), 0, int.MaxValue / 1000);
+
     internal static IReadOnlyList<ItemCooldownStateMessage> Snapshot(IReadOnlyList<ItemUsageState> items, DateTimeOffset at)
     {
         var entries = items.Where(item => item.CooldownUntil > at).OrderBy(item => item.ItemId)
             .Select((item, index) => new InventoryItemValueState(index, item.ItemId,
-                checked((int)Math.Ceiling((item.CooldownUntil!.Value - at).TotalSeconds)))).ToArray();
+                WireSeconds(item.CooldownUntil!.Value - at))).ToArray();
         // 00AC upserts cooldowns. Do not invent a reset packet or restart an expired cooldown.
         return entries.Chunk(byte.MaxValue).Select(chunk => new ItemCooldownStateMessage(chunk)).ToArray();
     }

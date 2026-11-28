@@ -67,7 +67,11 @@ public sealed class OpeningProtocolCommandFlowTests(ITestOutputHelper output)
         var trace = new Trace();
         using var opening = new OpeningFixture(services => Configure(services, trace));
         var f = opening.Host;
-        opening.Content.UseRule = opening.Content.UseRule with { CooldownMilliseconds = 5000 };
+        opening.Content.UseRule = opening.Content.UseRule with
+        {
+            CooldownMilliseconds = 5000,
+            CooldownMaintenance = new(true, true, true),
+        };
         opening.Content.Definitions[1000] = opening.Content.Definitions[1000] with { UsesSeriaLuck = true };
         var source = nativeCommit ? 1000 : 1001;
         await f.Seed(80, source, 2); await f.Seed(120, 2000, 5);
@@ -325,8 +329,8 @@ public sealed class OpeningProtocolCommandFlowTests(ITestOutputHelper output)
     private sealed record AssetState(int Sources, int Material, int Reward, int OtherReward, int Gold, int Luck, int Events, int Deliveries);
     private static AssetState Assets(ShopFixture f) => new(f.Count(1000) + f.Count(1001), f.Count(2000), f.Count(3), f.Count(6000), f.Gold,
         f.Scalar("SELECT seria_luck_value FROM accounts WHERE account_id=1"), f.Scalar("SELECT count(*) FROM domain_events"), f.Scalar("SELECT count(*) FROM domain_event_deliveries"));
-    private static bool Cooling(ShopFixture f, int source) => TestGameplay.Run(f.Services, () => f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
-        .IsCoolingDown(f.Session.CharacterId, ItemCooldownKey.ForItem(source)));
+    private static bool Cooling(ShopFixture f, int source) =>
+        f.Scalar($"SELECT COUNT(*) FROM character_consumable_cooldowns WHERE item_id={source}") == 1;
 
     // Read the production ledger's private CWT only; do not Admit, mutate or substitute it.
     private static EffectOperationEntry Entry(ShopFixture f)

@@ -109,9 +109,9 @@ public sealed class LostLandConsumableTests
     }
 
     [Theory]
-    [InlineData(99u, 10092741)]
-    [InlineData(101u, 10093346)]
-    public async Task A_new_request_during_cooldown_never_consumes_another_item(uint action, int item)
+    [InlineData(99u, 10092741, 0)]
+    [InlineData(101u, 10093346, 1)]
+    public async Task A_new_request_is_only_held_by_the_capsule_session_cooldown(uint action, int item, int remaining)
     {
         using var fixture = Fixture();
         await fixture.Seed(65, item, 2);
@@ -123,8 +123,8 @@ public sealed class LostLandConsumableTests
             runs.TryMarkParticipantReady(fixture.Session.CharacterId, moved.RunId, moved.RoomVersion);
         });
         await Send(fixture, action, 0, sequence: 8, originX: action == 101 ? 2u : 0u);
-        Assert.Equal(1, fixture.Count(item));
-        Assert.Equal(new[] { true, false }, fixture.Sender.Messages.OfType<QuestClearCouponResponse>().Select(reply => reply.Succeeded));
+        Assert.Equal(remaining, fixture.Count(item));
+        Assert.Equal(new[] { true, remaining == 0 }, fixture.Sender.Messages.OfType<QuestClearCouponResponse>().Select(reply => reply.Succeeded));
     }
 
     [Theory]

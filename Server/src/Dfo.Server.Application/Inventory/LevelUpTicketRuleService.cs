@@ -47,8 +47,8 @@ internal sealed class LevelUpTicketRuleService(IStackableActionDefinitionSource 
             var rule = await uses.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
             if (rule is not { IsReadable: true }) throw new OpeningRejectedException(OpeningRejection.ItemUnusable, "Unknown item-use rule.");
             effects = [new ConsumeFromContainerEffect(source, item.ItemId, 1)];
-            if (rule.CooldownMilliseconds > 0)
-                effects = effects.Add(new StartItemCooldownEffect(uses.CooldownKeyFor(item.ItemId, rule), TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
+            if (uses.CooldownFor(item.ItemId, rule) is { } cooldown)
+                effects = effects.Add(new StartItemCooldownEffect(item.ItemId, cooldown));
             completed = [];
         }
         return new(target, completed, effects.Add(new SetCharacterLevelEffect(progress, target)));
