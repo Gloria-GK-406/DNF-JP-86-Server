@@ -48,6 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../Dfo.Server.Protocol.Tests/Game/CardPanelFrameReader.cs" Link="Support/CardPanelFrameReader.cs" />
     <Compile Include="../Support/PvfAttributes.cs" Link="Support/PvfAttributes.cs" />
     <Compile Include="../Support/TestSessions.cs" Link="Support/TestSessions.cs" />
     <Compile Include="../Support/DomainCommandFixture.cs" Link="Support/DomainCommandFixture.cs" />
