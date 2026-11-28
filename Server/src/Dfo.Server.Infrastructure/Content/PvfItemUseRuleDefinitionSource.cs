@@ -139,11 +139,16 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             var type = RootSectionValues(archive, ref reader, Fields.StackableTypeField, out _, out _);
             var maintenanceValues = root.TryRead(PvfField.Tokens("[effect maintenance]", optional: true), out var effectMaintenance)
                 && effectMaintenance.Count == 4 && effectMaintenance.All(value => value.Kind == PvfTokenKind.Int32);
-            var name = root.TryRead(PvfField.String("[name]", optional: true), out var label) ? label : $"item {itemId}";
-            var units = stackableType == ReinforcementPotionType
-                ? type is [_, { Kind: PvfTokenKind.Int32, Value: var weight }] ? weight : 0
+            var name = root.TryRead(PvfField.String("[name]", optional: true), out var label)
+                && !string.IsNullOrWhiteSpace(label) ? label : $"item {itemId}";
+            var units = stackableType switch
+            {
+                ReinforcementPotionType when type is [_, { Kind: PvfTokenKind.Int32, Value: var weight }] => weight,
+                ReinforcementPotionType => 0,
+                _ when itemId == 10007343 => ReadCrystalChance(),
                 // ServerS4A21 gives the two legacy secret potions one percentage point.
-                : itemId == 10007343 ? ReadCrystalChance() : 1000;
+                _ => 1000,
+            };
             if (maintenanceValues && effectDuration > 0 && units is > 0 and <= 100_000)
                 reinforcementPotion = new(name, units, itemId == 10007343);
             else unreadable = true;

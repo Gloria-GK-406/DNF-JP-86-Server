@@ -198,24 +198,6 @@ internal sealed class SqliteCharacterItemEffectTable(SqliteDatabase database)
             parameters => parameters.AddWithValue("@characterId", characterId.Value),
             reader => new ItemValueRow(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2), reader.GetInt32(3)),
             cancellationToken);
-
-    public async ValueTask<bool> TryStartAsync(CharacterId characterId, int itemId, int now, int expiresAt, CancellationToken ct) =>
-        await database.ExecuteAsync(
-            """
-            INSERT INTO character_item_effects(character_id, sort_order, item_id, value)
-            SELECT @cid, COALESCE(
-                (SELECT MIN(sort_order) FROM character_item_effects WHERE character_id = @cid AND item_id = @item),
-                (SELECT MAX(sort_order) + 1 FROM character_item_effects WHERE character_id = @cid), 0), @item, @expiry
-            WHERE NOT EXISTS (SELECT 1 FROM character_item_effects WHERE character_id = @cid AND item_id = @item AND value > @now)
-            ON CONFLICT(character_id, sort_order) DO UPDATE SET value = excluded.value;
-            """,
-            parameters =>
-            {
-                parameters.AddWithValue("@cid", characterId.Value);
-                parameters.AddWithValue("@item", itemId);
-                parameters.AddWithValue("@now", now);
-                parameters.AddWithValue("@expiry", expiresAt);
-            }, ct).ConfigureAwait(false) == 1;
 }
 
 /// <summary>The <c>character_item_locks</c> table.</summary>

@@ -19,7 +19,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
     IDungeonParticipationDomainService participation, IReviveCoinDomainService reviveCoins,
     Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService luckyStars,
     IOpeningInventoryDomainService openingInventory,
-    IGuildDungeonDomainService guildDungeons, ICharacterItemEffectTable itemEffects) : IItemUseEffectDomainService
+    IGuildDungeonDomainService guildDungeons, ITimedItemEffectTable itemEffects) : IItemUseEffectDomainService
 {
     private enum UsePath { Ordinary, LuckyStarAction, GuildExtensionAction }
 
@@ -88,8 +88,8 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);
         if (rule.ReinforcementPotion is not null &&
-            (await itemEffects.ReadByCharacterAsync(session.CharacterId, ct).ConfigureAwait(false))
-                .Any(row => row.ItemId == item.ItemId && row.Value > at.ToUnixTimeSeconds()))
+            (await itemEffects.ReadActiveAsync(session.CharacterId, at, ct).ConfigureAwait(false))
+                .Any(row => row.ItemId == item.ItemId))
             return new(ItemUsability.OnCooldown, item.ItemId, item.Count);
         if (path == UsePath.GuildExtensionAction)
         {

@@ -35,22 +35,26 @@ public sealed class EquipmentReinforcementDomainTests
             await shop.Seed(121, 1000, 50, 3);
             await shop.Seed(101, potionId, 2);
             var expiry = shop.Clock.GetUtcNow().AddMinutes(3);
+            shop.Sql($"INSERT INTO character_item_effects VALUES (2, 0, {potionId}, 77)");
 
             Assert.Equal(ItemUsability.Allowed, (await UsePotion(shop, commit: false)).Status);
-            Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_item_effects"));
+            Assert.Equal(0, shop.Scalar("SELECT COUNT(*) FROM character_timed_item_effects"));
             Assert.Equal(2, shop.Count(potionId));
 
             Assert.Equal(ItemUsability.Allowed, (await UsePotion(shop, commit: true)).Status);
             Assert.Equal(1, shop.Count(potionId));
-            Assert.Equal((int)expiry.ToUnixTimeSeconds(), shop.Scalar("SELECT value FROM character_item_effects"));
+            Assert.Equal(1, shop.Scalar($"SELECT COUNT(*) FROM character_timed_item_effects WHERE item_id = {potionId} AND expires_at_utc_ticks = {expiry.UtcTicks}"));
             Assert.Equal(ItemUsability.OnCooldown, (await UsePotion(shop, commit: true)).Status);
 
             // The next settlement reads stored state after selecting the character again.
             var containers = shop.Services.GetRequiredService<ICharacterContainerDomainService>();
             containers.Clear(shop.Session.CharacterId);
             shop.Select(2);
-            Assert.Empty((await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
-                .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default)).ItemValues.Effects);
+            var legacy = (await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()
+                .LoadAsync(shop.Session.AccountId, shop.Session.CharacterId, default)).ItemValues.Effects;
+            Assert.Equal(77, Assert.Single(legacy, row => row.ItemId == potionId).Value);
+            Assert.Empty((await shop.Services.GetRequiredService<Dfo.Server.Abstractions.Persistence.ITimedItemEffectTable>()
+                .ReadActiveAsync(shop.Session.CharacterId, shop.Clock.GetUtcNow(), default)));
             containers.Clear(shop.Session.CharacterId);
             shop.Select(1);
             var inventory = await shop.Services.GetRequiredService<ICharacterInventoryEntryDomainService>()

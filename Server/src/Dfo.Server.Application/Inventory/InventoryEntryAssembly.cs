@@ -1,5 +1,4 @@
 using Dfo.Server.Abstractions.Transactions;
-using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Application.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
@@ -36,7 +35,7 @@ internal sealed class InventoryEntryAssembly(
     ICharacterItemLockTable itemLocks,
     ICharacterRentalTable rentals,
     IItemDomainStore itemStore, IDomainTransactionAccessor transactions,
-    IItemUseRuleDefinitionSource itemUseRules, TimeProvider clock)
+    ITimedItemEffectTable timedItemEffects, TimeProvider clock)
     : ICharacterInventoryEntryRepository, IAccountInventoryEntryRepository
 {
     /// <summary>Where the gold a character carries is drawn, and the id it is drawn under.</summary>
@@ -297,20 +296,27 @@ internal sealed class InventoryEntryAssembly(
     {
         var values = new List<InventoryItemValueStorageRecord>();
         var seen = new HashSet<int>();
-        var now = clock.GetUtcNow().ToUnixTimeSeconds();
+        var at = clock.GetUtcNow();
         foreach (var row in await itemEffects.ReadByCharacterAsync(characterId, cancellationToken).ConfigureAwait(false))
         {
             var storedCharacterId = new CharacterId(row.CharacterId);
             if (storedCharacterId != characterId || row.SortOrder < 0 || !seen.Add(row.SortOrder))
                 throw new InvalidDataException("Character item effects have invalid ownership, order, or duplicate entries.");
 
-            var remaining = row.Value;
-            if (await itemUseRules.GetAsync(row.ItemId, cancellationToken).ConfigureAwait(false) is { ReinforcementPotion: not null })
-            {
-                if (row.Value <= now) continue;
-                remaining = checked((int)(row.Value - now));
-            }
-            values.Add(new(storedCharacterId, InventoryItemValueListType.Effect, row.SortOrder, row.ItemId, remaining));
+            values.Add(new(storedCharacterId, InventoryItemValueListType.Effect, row.SortOrder, row.ItemId, row.Value));
+        }
+
+        // Existing rows carry effect magnitudes. Only the timed authority projects remaining seconds.
+        var announced = values.Select(row => row.ItemId).ToHashSet();
+        var sortOrder = 0;
+        foreach (var effect in await timedItemEffects.ReadActiveAsync(characterId, at, cancellationToken).ConfigureAwait(false))
+        {
+            // The entry effect list uses a one-byte count. Honor existing entries first.
+            if (values.Count >= byte.MaxValue) break;
+            if (!announced.Add(effect.ItemId)) continue;
+            while (!seen.Add(sortOrder)) sortOrder++;
+            var remaining = checked((int)Math.Ceiling((effect.ExpiresAt - at).TotalSeconds));
+            values.Add(new(characterId, InventoryItemValueListType.Effect, sortOrder, effect.ItemId, remaining));
         }
         return values;
     }

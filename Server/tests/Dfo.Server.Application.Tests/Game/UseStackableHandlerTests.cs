@@ -691,7 +691,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var ruleService = new ItemUseEffectRuleService(judgement, Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());
         var useEffects = new ItemUseEffectDomainService(characters, ruleService, apply, null!, clock, events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), experienceItems: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IExperienceItemDomainService>(), entryItems: TestRequired.Absent<Dfo.Server.Abstractions.World.IEntryAllowanceItemDomainService>(), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), reviveCoins: TestRequired.Absent<Dfo.Server.Abstractions.Inventory.IReviveCoinDomainService>(), luckyStars: TestRequired.Absent<Dfo.Server.Abstractions.Rental.IAccountLuckyStarDomainService>(), openingInventory: TestRequired.Absent<IOpeningInventoryDomainService>(),
             guildDungeons: TestRequired.Absent<Dfo.Server.Abstractions.Guilds.IGuildDungeonDomainService>(),
-            itemEffects: TestRequired.Absent<Dfo.Server.Abstractions.Persistence.ICharacterItemEffectTable>());
+            itemEffects: TestRequired.Absent<Dfo.Server.Abstractions.Persistence.ITimedItemEffectTable>());
 
         var areas = new Dfo.Server.Application.World.OnlineCharacterLocationDomainService();
         TestGameplay.Run(() => areas.Enter(new(OneSession.Session, new(1, 1, 1), new(1, 1, 0, 0, 0), true)));
