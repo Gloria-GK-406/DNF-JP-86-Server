@@ -82,7 +82,7 @@ internal sealed class ItemUseEffectDomainService(ICharacterItemUseDomainService 
         if (rule.SummonsApc && participation.Find(session.CharacterId)?.Mode == DungeonParticipationMode.BossTower)
             return new(ItemUsability.PlaceNotAllowed, item.ItemId, item.Count);
         var facts = !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
-            rules.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
+            rules.CooldownFor(item.ItemId, rule), at, ct).ConfigureAwait(false);
         var pet = item.ItemId == 24 ? await creatures.Of(session.CharacterId).CurrentPetAsync(ct).ConfigureAwait(false) : null;
         var plan = rules.Build(rule, source, item, facts, pet?.ItemUid, at);
         if (plan.Status != ItemUsability.Allowed) return new(plan.Status, item.ItemId, item.Count);

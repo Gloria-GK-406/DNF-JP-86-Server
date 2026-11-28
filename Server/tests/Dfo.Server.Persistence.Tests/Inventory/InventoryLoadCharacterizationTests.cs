@@ -36,7 +36,7 @@ public sealed class InventoryLoadCharacterizationTests
     private const int Character = 57;
 
     [Fact]
-    public async Task ACharacterInventoryIsLoadedWithExactlyWhatItWasLoadedWithBefore()
+    public async Task ACharacterInventoryPreservesItsItemsAndEffectsWithoutLegacyCooldowns()
     {
         var path = TempPath();
         try
@@ -405,20 +405,10 @@ public sealed class InventoryLoadCharacterizationTests
         CharacterVirtualResources[2].ItemId = 2003
         CharacterVirtualResources[2].Value = 31
         CharacterItemValues[0].CharacterId.Value = 57
-        CharacterItemValues[0].ListType = Cooldown
+        CharacterItemValues[0].ListType = Effect
         CharacterItemValues[0].SortOrder = 0
-        CharacterItemValues[0].ItemId = 5301
-        CharacterItemValues[0].Value = 5302
-        CharacterItemValues[1].CharacterId.Value = 57
-        CharacterItemValues[1].ListType = Cooldown
-        CharacterItemValues[1].SortOrder = 1
-        CharacterItemValues[1].ItemId = 5201
-        CharacterItemValues[1].Value = 5202
-        CharacterItemValues[2].CharacterId.Value = 57
-        CharacterItemValues[2].ListType = Effect
-        CharacterItemValues[2].SortOrder = 0
-        CharacterItemValues[2].ItemId = 5101
-        CharacterItemValues[2].Value = 5102
+        CharacterItemValues[0].ItemId = 5101
+        CharacterItemValues[0].Value = 5102
         EquipmentLocks[0].CharacterId.Value = 57
         EquipmentLocks[0].EquipmentLockId = 2
         EquipmentLocks[0].ContainerType = Avatar

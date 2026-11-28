@@ -25,7 +25,7 @@ public sealed record LostLandConsumableRoomFacts(int MapId, MazeCell Cell,
     IReadOnlyDictionary<MazeCell, DungeonCellDefinition> Cells);
 public interface ILostLandConsumableRule
 {
-    ItemCooldownKey CooldownKey { get; }
+    ItemCooldownPolicy? Cooldown { get; }
     MazeCell? Destination { get; }
     ItemUsePlan? Build(BusinessSlot source, ItemReference item, ItemUseCandidate? character, DateTimeOffset at);
 }

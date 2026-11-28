@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Application.Inventory;
 
 namespace Dfo.Server.Application.Characters;
 
@@ -19,12 +20,15 @@ namespace Dfo.Server.Application.Characters;
 internal sealed class CharacterItemUseDomainService(
     ICharacterDomainService characters,
     IItemUseRuleService judgement,
-    IOnlineCharacterRuntimeDomainService onlineCharacters,
+    ConsumableCooldownDomainService cooldowns, TimeProvider clock,
     ITownAreaDomainService townAreas,
     IDungeonParticipationDomainService participation) : ICharacterItemUseDomainService
 {
-    public async ValueTask<ItemUsability> CanUseAsync(
-        CharacterId character, int itemId, CancellationToken cancellationToken)
+    public ValueTask<ItemUsability> CanUseAsync(CharacterId character, int itemId, CancellationToken cancellationToken) =>
+        CanUseAtAsync(character, itemId, clock.GetUtcNow(), cancellationToken);
+
+    public async ValueTask<ItemUsability> CanUseAtAsync(
+        CharacterId character, int itemId, DateTimeOffset at, CancellationToken cancellationToken)
     {
         var rule = await judgement.RuleForAsync(itemId, cancellationToken)
             .ConfigureAwait(false);
@@ -38,13 +42,13 @@ internal sealed class CharacterItemUseDomainService(
             return ItemUsability.NotAUsableItem;
         }
 
-        var facts = await FactsAsync(character, judgement.CooldownKeyFor(itemId, rule), cancellationToken)
+        var facts = await FactsAsync(character, judgement.CooldownFor(itemId, rule), at, cancellationToken)
             .ConfigureAwait(false);
         return facts is null ? ItemUsability.CharacterStateUnavailable : judgement.Judge(rule, facts);
     }
 
     public async ValueTask<ItemUseCandidate?> FactsAsync(
-        CharacterId character, ItemCooldownKey cooldown, CancellationToken cancellationToken)
+        CharacterId character, ItemCooldownPolicy? cooldown, DateTimeOffset at, CancellationToken cancellationToken)
     {
         var entity = characters.Get(character);
         if (townAreas.Find(character) is null && !InDungeon(character)
@@ -52,7 +56,7 @@ internal sealed class CharacterItemUseDomainService(
             || await entity.ProgressAsync(cancellationToken).ConfigureAwait(false) is not { } progress)
             return null;
         return new(progress.Level, CharacterJobFamilies.Resolve(identity.Job), Place(character),
-            onlineCharacters.IsCoolingDown(character, cooldown));
+            await cooldowns.IsActiveAsync(character, cooldown, at, cancellationToken).ConfigureAwait(false));
     }
 
     private bool InDungeon(CharacterId character) => participation.Find(character) is not null;

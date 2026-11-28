@@ -54,7 +54,7 @@ public sealed class PackageOpeningTests
     public async Task Reusable_package_grants_and_starts_cooldown_without_consuming_itself()
     {
         using var opening = new OpeningFixture();
-        opening.Content.UseRule = opening.Content.UseRule with { IsConsumedOnUse = false, CooldownMilliseconds = 5000 };
+        opening.Content.UseRule = opening.Content.UseRule with { IsConsumedOnUse = false, CooldownMilliseconds = 5000, CooldownMaintenance = new(true, true, true) };
         await opening.Host.Seed(80, 1001, 1);
         await opening.Package();
         Assert.Equal(1, opening.Host.Count(1001));
@@ -179,7 +179,7 @@ public sealed class PackageOpeningTests
     public async Task Item_use_restrictions_and_successful_cooldown_are_checked_but_failed_openings_start_no_cooldown()
     {
         using var opening = new OpeningFixture();
-        opening.Content.UseRule = opening.Content.UseRule with { MinimumLevel = 86, CooldownMilliseconds = 5000 };
+        opening.Content.UseRule = opening.Content.UseRule with { MinimumLevel = 86, CooldownMilliseconds = 5000, CooldownMaintenance = new(true, true, true) };
         await opening.Host.Seed(80, 1001, 3);
         var error = await Assert.ThrowsAsync<OpeningRejectedException>(() => opening.Package());
         Assert.Equal(OpeningRejection.ItemUnusable, error.Reason); Assert.Equal(3, opening.Host.Count(1001));
@@ -197,15 +197,11 @@ public sealed class PackageOpeningTests
     public async Task Store_failure_does_not_start_the_opening_cooldown()
     {
         using var opening = new OpeningFixture();
-        opening.Content.UseRule = opening.Content.UseRule with { CooldownMilliseconds = 5000 };
+        opening.Content.UseRule = opening.Content.UseRule with { CooldownMilliseconds = 5000, CooldownMaintenance = new(true, true, true) };
         await opening.Host.Seed(80, 1001, 1);
         opening.Host.Sql("CREATE TRIGGER fail_reward BEFORE INSERT ON item_slots BEGIN SELECT RAISE(ABORT,'forced reward failure'); END;");
         await Assert.ThrowsAsync<SqliteException>(() => opening.Package());
-        TestGameplay.Run(opening.Host.Services, () =>
-        {
-            Assert.False(opening.Host.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
-                .IsCoolingDown(opening.Host.Session.CharacterId, ItemCooldownKey.ForItem(1001)));
-        });
+        Assert.Equal(0, opening.Host.Scalar("SELECT COUNT(*) FROM character_consumable_cooldowns WHERE item_id=1001"));
         Assert.Equal(1, opening.Host.Count(1001));
         opening.Host.Sql("DROP TRIGGER fail_reward");
         await opening.Package(); Assert.Equal(0, opening.Host.Count(1001));

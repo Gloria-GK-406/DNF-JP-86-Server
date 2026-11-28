@@ -87,10 +87,7 @@ internal sealed class TeleportCooldownEncoder : GameNotiMessageEncoder<TeleportC
     protected override IReadOnlyList<GameMessagePayload> EncodePayloads(TeleportCooldownNotification message)
     {
         if (message.ItemId <= 0 || message.Seconds < 0) throw new InvalidDataException("Invalid teleport cooldown projection.");
-        var body = new byte[9]; body[0] = 1;
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(1), message.ItemId);
-        BinaryPrimitives.WriteInt32LittleEndian(body.AsSpan(5), message.Seconds);
-        return OnePayload(message, body);
+        return OnePayload(message, new ItemCooldownStateMessage([new(0, message.ItemId, message.Seconds)]).EncodeBody());
     }
 }
 public sealed record GameTeleportCommand(NetworkDispatchContext Dispatch, TeleportRequest Input) : IProtocolCommand<bool>
@@ -160,7 +157,7 @@ internal sealed partial class GameTeleportCommandHandler : ICommandHandler<GameT
         var wire = A21InventoryLayout.ToGameSlot(receipt.Source);
         var messages = new List<IGameServerMessage>();
         if (receipt.Cooldown > TimeSpan.Zero)
-            messages.Add(new TeleportCooldownNotification(receipt.ItemId, checked((int)Math.Ceiling(receipt.Cooldown.TotalSeconds))));
+            messages.Add(new TeleportCooldownNotification(receipt.ItemId, ItemUsageCooldownProjection.WireSeconds(receipt.Cooldown)));
         if (receipt.RemainingCore is null)
             messages.Add(GameInventoryDelivery.ClearedSlotNotification(wire.Space, wire.Index, receipt.At));
         else

@@ -6,6 +6,7 @@ using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Data.Characters;
 using Microsoft.Extensions.DependencyInjection;
 using Dfo.Server.Testing;
+using Dfo.Server.Application.Inventory;
 
 namespace Dfo.Server.Application.Tests.Inventory;
 
@@ -21,14 +22,24 @@ public sealed class ItemUsageTests
         public ValueTask<ItemUsageRule?> GetAsync(int id, CancellationToken token) =>
             ValueTask.FromResult<ItemUsageRule?>(id switch
             {
-                1 or 2 => new(1, 1000, true),
-                3 => new(-1, 86400000, true),
+                1 or 2 => new(1, 1000, true) { CooldownMaintenance = new(true, true, true) },
+                3 => new(-1, 86400000, true) { CooldownMaintenance = new(true, true, true) },
                 4 => new(1000, 0, true),
                 _ => null
             });
     }
     private static LearningFixture Fixture(Clock clock, string? existing = null) => new(existing: existing,
-        configure: s => { s.AddSingleton<TimeProvider>(clock); s.AddSingleton<IItemUsageRuleSource>(new Rules()); });
+        configure: s =>
+        {
+            s.AddSingleton<TimeProvider>(clock);
+            s.AddSingleton<IItemUsageRuleSource>(new Rules());
+            s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules(
+                (1, ItemUseRules.PersistentPotion() with { Action = "[add fatigue]" }),
+                (2, ItemUseRules.PersistentPotion() with { Action = "[add fatigue]" }),
+                (3, ItemUseRules.PersistentPotion() with { Action = "[add fatigue]" }),
+                (5, ItemUseRules.PersistentPotion(600_000)),
+                (6, ItemUseRules.Potion(600_000))));
+        });
     private static async Task Use(LearningFixture f, CharacterId id, int item)
     {
         await using var tx = f.Scope.Begin();
@@ -89,6 +100,46 @@ public sealed class ItemUsageTests
             Assert.Empty(await service.GetSnapshotAtAsync(id, clock.Now, default));
             await Use(restart, id, 3);
             Assert.Equal(until.AddDays(1), Assert.Single(await service.GetSnapshotAsync(id, default)).CooldownUntil);
+        });
+    }
+
+    [Fact]
+    public async Task Persistent_cooldown_keeps_its_absolute_deadline_and_filters_a_client_owned_source()
+    {
+        await TestGameplay.RunAsync(async () =>
+        {
+            var clock = new Clock();
+            await using var f = Fixture(clock);
+            await f.SeedAsync();
+            var session = f.Session;
+            var deadline = clock.Now.AddMinutes(10);
+            var policy = new ItemCooldownPolicy(ItemCooldownKey.ForItem(5), ItemCooldownScope.Persistent, TimeSpan.FromMinutes(10));
+
+            async Task Start()
+            {
+                await using var tx = f.Scope.Begin();
+                await f.Services.GetRequiredService<ConsumableCooldownDomainService>().StartAsync(session, 5, policy, clock.Now, default);
+                await tx.CommitAsync(default);
+            }
+
+            await Start();
+            clock.Now = clock.Now.AddMinutes(2);
+            Assert.Equal(ItemUsageRejection.CoolingDown, (await Assert.ThrowsAsync<ItemUsageRejectedException>(Start)).Reason);
+            await using (var tx = f.Scope.Begin())
+            {
+                var table = f.Services.GetRequiredService<IConsumableCooldownTable>();
+                Assert.True(await table.TryStartAsync(session.CharacterId, new(ItemCooldownKey.ForItem(6), 6, deadline), clock.Now, default));
+                await tx.CommitAsync(default);
+            }
+
+            await using var restart = Fixture(clock, f.Path);
+            var usage = restart.Services.GetRequiredService<IItemUsageDomainService>();
+            Assert.Equal(new ItemUsageState(5, 0, null, null, deadline),
+                Assert.Single(await usage.GetSnapshotAtAsync(session.CharacterId, clock.Now, default)));
+            clock.Now = deadline;
+            Assert.Empty(await usage.GetSnapshotAtAsync(session.CharacterId, clock.Now, default));
+            await Start();
+            Assert.Equal(deadline.AddMinutes(10), Assert.Single(await usage.GetSnapshotAsync(session.CharacterId, default)).CooldownUntil);
         });
     }
 

@@ -75,6 +75,30 @@ public sealed class TeleportConsumableTests
     }
 
     [Fact]
+    public async Task Marked_teleport_keeps_the_original_persistent_deadline_when_replayed()
+    {
+        using var f = Fixture(services => services.AddSingleton<IItemUseRuleDefinitionSource>(new UseRules(persistent: true)));
+        await f.Seed(65, 2000, 2);
+        var deadline = f.Clock.GetUtcNow().AddSeconds(10);
+
+        await Send(f);
+        Assert.Equal(10, Assert.Single(f.Sender.Messages.OfType<TeleportCooldownNotification>()).Seconds);
+        Assert.Equal(1, f.Count(2000));
+        TestGameplay.Run(f.Services, () =>
+            Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>()
+                .IsCoolingDown(f.Session.CharacterId, ItemCooldownKey.ForItem(2000))));
+
+        f.Clock.Advance(TimeSpan.FromSeconds(3));
+        await Send(f);
+        await Send(f, sequence: 8);
+        Assert.Equal(1, f.Count(2000));
+        Assert.Single(f.Sender.Messages.OfType<TeleportCooldownNotification>());
+        var snapshot = await TestGameplay.RunAsync(f.Services, () => f.Services.GetRequiredService<IItemUsageDomainService>()
+            .GetSnapshotAtAsync(f.Session.CharacterId, f.Clock.GetUtcNow(), default).AsTask());
+        Assert.Equal(deadline, Assert.Single(snapshot).CooldownUntil);
+    }
+
+    [Fact]
     public async Task Position_write_failure_preserves_the_store_until_retry_closes_its_exact_visit()
     {
         using var f = Fixture(); await f.Seed(65, 2000, 2);
@@ -237,10 +261,13 @@ public sealed class TeleportConsumableTests
         public ValueTask<TeleportConsumableDefinition?> GetAsync(int itemId, CancellationToken ct) =>
             ValueTask.FromResult<TeleportConsumableDefinition?>(itemId == 2000 ? new([11]) : null);
     }
-    private sealed class UseRules : IItemUseRuleDefinitionSource
+    private sealed class UseRules(bool persistent = false) : IItemUseRuleDefinitionSource
     {
         public ValueTask<ItemUseRule?> GetAsync(int itemId, CancellationToken ct) =>
-            ValueTask.FromResult<ItemUseRule?>(new(true, 10000, 0, 1, ItemJobRestriction.Any, ItemPlaceRestriction.Anywhere, false));
+            ValueTask.FromResult<ItemUseRule?>(new(true, 10000, 0, 1, ItemJobRestriction.Any, ItemPlaceRestriction.Anywhere, false)
+            {
+                CooldownMaintenance = new(false, false, persistent),
+            });
     }
     private sealed class Towns : ITownDefinitionSource
     {

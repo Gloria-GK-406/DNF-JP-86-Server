@@ -32,7 +32,7 @@ internal sealed class EntryAllowanceItemDomainService(IEntryAllowanceItemRuleSer
         var rule = await uses.RuleForAsync(item.ItemId, ct).ConfigureAwait(false);
         var at = clock.GetUtcNow();
         var facts = rule is null || !rule.IsReadable ? null : await itemUse.FactsAsync(session.CharacterId,
-            uses.CooldownKeyFor(item.ItemId, rule), ct).ConfigureAwait(false);
+            uses.CooldownFor(item.ItemId, rule), at, ct).ConfigureAwait(false);
         var plan = uses.Build(rule, source, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return Refuse(plan.Status);
         if (plan.Effects.OfType<ConsumeFromContainerEffect>().Count(x => x.Slot == source && x.ExpectedItemId == item.ItemId && x.Count == 1) != 1)

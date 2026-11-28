@@ -42,6 +42,9 @@ public sealed class ItemUsageProjectionTests
             Assert.Equal(2600026, BinaryPrimitives.ReadInt32LittleEndian(sender.Bodies[1].AsSpan(1)));
             Assert.Equal(Convert.FromHexString("015E1D000008510100"), sender.Bodies[2]);
             Assert.Empty(ItemUsageCooldownProjection.Snapshot([new(7518, 1, null, null, bus.At)], bus.At));
+            var max = Assert.Single(ItemUsageCooldownProjection.Snapshot(
+                [new(10005279, 0, null, null, bus.At.AddMilliseconds(int.MaxValue))], bus.At));
+            Assert.Equal(int.MaxValue / 1000, BinaryPrimitives.ReadInt32LittleEndian(max.EncodeBody().AsSpan(5)));
             var chunks = ItemUsageCooldownProjection.Snapshot(Enumerable.Range(1, 256)
                 .Select(id => new ItemUsageState(id, 1, null, null, bus.At.AddMilliseconds(1))).ToArray(), bus.At);
             Assert.Equal(2, chunks.Count);

@@ -33,7 +33,10 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement, IS
         if (itemId == GuildDungeonExtensionTicket.ItemId)
             return null;
         var rule = await RuleForAsync(itemId, ct).ConfigureAwait(false);
-        return rule?.Action == GuildDungeonExtensionTicket.Action ? null : rule;
+        var isLostLandAction = rule is { AllowedDungeonIds: [4000], Action: "[move map]" or "[riding]" };
+        return isLostLandAction || rule?.StackableType == "[teleport potion]"
+            || rule?.Action is GuildDungeonExtensionTicket.Action or "[add fatigue]" or "[random recovery fatigue]"
+            ? null : rule;
     }
 
     public async ValueTask<ItemUseRule?> GuildExtensionActionRuleAsync(int itemId, CancellationToken ct) =>
@@ -50,9 +53,10 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement, IS
             ? action.GuildDungeonExtensionCost : null;
     }
 
-    public ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule) => judgement.CooldownKeyFor(itemId, rule);
+    public ItemCooldownPolicy? CooldownFor(int itemId, ItemUseRule rule, bool useSessionCooldown = false) =>
+        judgement.CooldownFor(itemId, rule, useSessionCooldown);
     public ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
-        ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at)
+        ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at, bool useSessionCooldown = false)
     {
         if (rule is null || !rule.IsReadable || item.Count <= 0 || !item.IsPile || source.Index != item.SlotIndex
             || item.Snapshot.Lifetime.IsExpired(at)
@@ -64,8 +68,8 @@ internal sealed class ItemUseEffectRuleService(IItemUseRuleService judgement, IS
         if (item.ItemId == 24 && currentPetUid is null) return new(ItemUsability.PlaceNotAllowed, []);
         var effects = new List<DomainEffect>();
         if (rule.IsConsumedOnUse || item.ItemId == 24) effects.Add(new ConsumeFromContainerEffect(source, item.ItemId, 1));
-        if (rule.CooldownMilliseconds > 0)
-            effects.Add(new StartItemCooldownEffect(CooldownKeyFor(item.ItemId, rule), TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
+        if (CooldownFor(item.ItemId, rule, useSessionCooldown) is { } cooldown)
+            effects.Add(new StartItemCooldownEffect(item.ItemId, cooldown));
         if (rule.ExpBonusRate > 0 && rule.EffectDurationMilliseconds > 0)
             effects.Add(new StartSpiritPotionEffect(rule.ExpBonusRate, TimeSpan.FromMilliseconds(rule.EffectDurationMilliseconds)));
         if (item.ItemId == 24) effects.Add(new AddPetStomachEffect(currentPetUid!.Value, 30));

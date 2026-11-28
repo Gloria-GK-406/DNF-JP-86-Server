@@ -471,12 +471,45 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
     /// 6,254 items declare a <c>[cool time]</c> and none of them was ever enforced, so a potion
     /// could be drained by holding the key down.
     /// </remarks>
+    [Theory]
+    [InlineData("[add fatigue]", null)]
+    [InlineData("[random recovery fatigue]", null)]
+    [InlineData("[move map]", null)]
+    [InlineData("[riding]", null)]
+    [InlineData(null, "[teleport potion]")]
+    public async Task A_dedicated_consumable_cannot_be_drained_by_the_ordinary_command(string? action, string? stackableType)
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+        var rule = ItemUseRules.PersistentPotion() with
+        {
+            Action = action,
+            StackableType = stackableType,
+            AllowedDungeonIds = action is "[move map]" or "[riding]" ? [4000] : [],
+        };
+        var (handler, _) = Build(inventory, (8474, rule));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(5, inventory.Count);
+    }
+
+    [Fact]
+    public async Task An_unrelated_riding_template_keeps_the_ordinary_path()
+    {
+        var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
+        var (handler, _) = Build(inventory, (8474, ItemUseRules.Potion() with { Action = "[riding]" }));
+
+        await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
+
+        Assert.Equal(4, inventory.Count);
+    }
+
     [Fact]
     public async Task A_second_use_inside_the_cooldown_is_refused()
     {
 
             var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
-            var (handler, sender) = Build(inventory, (8474, ItemUseRules.Potion()));
+            var (handler, sender) = Build(inventory, (8474, ItemUseRules.PersistentPotion()));
 
             await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
             await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
@@ -505,8 +538,9 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             var inventory = new FakeInventory(slot: 3, itemId: 8474, count: 5, itemKind: 2);
             var (handler, sender) = Build(
                 inventory,
-                (8474, ItemUseRules.Potion(3_000, cooltimeGroup: 70)),
-                (9000, ItemUseRules.Potion(3_000, cooltimeGroup: 70)));
+                (8474, ItemUseRules.ExperiencePotion()),
+                (9000, ItemUseRules.ExperiencePotion()),
+                (9001, ItemUseRules.Potion(3_000, cooltimeGroup: 99)));
 
             await handler.HandleAsync(Context, Request(3, 8474), CancellationToken.None);
             inventory.Reseed(slot: 3, itemId: 9000, count: 5, itemKind: 2);
@@ -515,6 +549,10 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
             Assert.Equal(
                 UseStackableResponse.CurrentlyUnusable,
                 ((UseStackableResponse)sender.Sent.Last()).ErrorCode);
+            inventory.Reseed(slot: 3, itemId: 9001, count: 5, itemKind: 2);
+            await handler.HandleAsync(Context, Request(3, 9001), CancellationToken.None);
+            await handler.HandleAsync(Context, Request(3, 9001), CancellationToken.None);
+            Assert.Equal(3, inventory.Count);
 
     }
 
@@ -633,6 +671,7 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
         TestGameplay.Run(() => cooldowns.Begin(OneSession.Session, new CharacterPositionState(1, 1, 0, 0, 0), 100));
         var potion = cooldowns;
+        var itemCooldowns = new ConsumableCooldownDomainService(new TestConsumableCooldownTable(), cooldowns, inventory.Scope);
         var sessions = new OneSession();
         var sender = new RecordingSender();
 
@@ -642,11 +681,11 @@ public sealed class UseStackableHandlerTests : IAsyncLifetime
         var characters = new CharacterItemUseDomainService(new OneCharacter(new PlayingCharacter(
             new CharacterId(60), new NoCarriedGold(), new StoredCarryLimitOnly(), CharacterRow.At(RowLevel),
             new NoSkillPointLedger(), null!, null!, new Dfo.Server.Application.Tests.Support.TestExperienceRules(), null!, Dfo.Server.Testing.TestRequired.InitialHonor, null!, null!)),
-            judgement, cooldowns, TestGameplay.Run(() => PresentCharacters.StandingInTown(new CharacterId(60))),
+            judgement, itemCooldowns, clock, TestGameplay.Run(() => PresentCharacters.StandingInTown(new CharacterId(60))),
             NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
         var apply = new Dfo.Server.Application.Effects.ApplyEffectsDomainService([
             new Dfo.Server.Application.Effects.ConsumeFromContainerEffectHandler(slots, inventory.Lifecycle),
-            new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(cooldowns, inventory.Scope),
+            new Dfo.Server.Application.Effects.StartItemCooldownEffectHandler(itemCooldowns),
             new Dfo.Server.Application.Effects.StartSpiritPotionEffectHandler(potion, inventory.Scope)], inventory.Scope,
                 new EffectCharacterStore(new(OneSession.Session.AccountId, OneSession.Session.CharacterId)), sessions, ConsumptionEffectPreflight.For(slots));
         var ruleService = new ItemUseEffectRuleService(judgement, Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());

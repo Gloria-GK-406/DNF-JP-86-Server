@@ -241,13 +241,6 @@ public interface ICharacterGoldLimitTable
         CharacterId characterId, CancellationToken cancellationToken);
 }
 
-/// <summary>How long until each of a character's items can be used again.</summary>
-public interface ICharacterItemCooldownTable
-{
-    ValueTask<IReadOnlyList<ItemValueRow>> ReadByCharacterAsync(
-        CharacterId characterId, CancellationToken cancellationToken);
-}
-
 /// <summary>How strong each of the effects a character's items are giving is.</summary>
 public interface ICharacterItemEffectTable
 {

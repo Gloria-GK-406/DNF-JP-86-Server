@@ -23,17 +23,18 @@ internal sealed class LostLandConsumableRuleService(ILostLandConsumableDefinitio
             || cell.MapCandidates.Count == 0)) return null;
         var rule = await uses.RuleForAsync(itemId, token).ConfigureAwait(false);
         if (rule?.Action != (kind == LostLandConsumableKind.Teleport ? "[move map]" : "[riding]")) return null;
-        return new Rule(rule, uses.CooldownKeyFor(itemId, rule), definition.Destination, uses);
+        var useSessionCooldown = kind == LostLandConsumableKind.Teleport;
+        return new Rule(rule, uses.CooldownFor(itemId, rule, useSessionCooldown), definition.Destination, uses, useSessionCooldown);
     }
 
-    private sealed class Rule(ItemUseRule rule, ItemCooldownKey key, MazeCell? destination,
-        IItemUseEffectRuleService uses) : ILostLandConsumableRule
+    private sealed class Rule(ItemUseRule rule, ItemCooldownPolicy? cooldown, MazeCell? destination,
+        IItemUseEffectRuleService uses, bool useSessionCooldown) : ILostLandConsumableRule
     {
-        public ItemCooldownKey CooldownKey => key;
+        public ItemCooldownPolicy? Cooldown => cooldown;
         public MazeCell? Destination => destination;
         public ItemUsePlan? Build(BusinessSlot source, ItemReference item, ItemUseCandidate? character, DateTimeOffset at)
         {
-            var plan = uses.Build(rule, source, item, character, null, at);
+            var plan = uses.Build(rule, source, item, character, null, at, useSessionCooldown);
             return plan.Status == ItemUsability.Allowed && plan.Effects.OfType<ConsumeFromContainerEffect>()
                 .Count(effect => effect.Slot == source && effect.ExpectedItemId == item.ItemId && effect.Count == 1) == 1
                     ? plan : null;

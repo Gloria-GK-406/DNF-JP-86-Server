@@ -113,7 +113,8 @@ public sealed class CharacterRepositoryProductsTests
     private static ICharacterItemUseDomainService ItemUse()
     {
         var (characters, judgement, cooldowns, presence) = Parts();
-        return new CharacterItemUseDomainService(characters, judgement, cooldowns, presence, NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
+        return new CharacterItemUseDomainService(characters, judgement,
+            new ConsumableCooldownDomainService(new TestConsumableCooldownTable(), cooldowns, null!), TimeProvider.System, presence, NobodyThere.Create<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>());
     }
 
     /// <summary>A table holding a row for character 60 and for nobody else.</summary>

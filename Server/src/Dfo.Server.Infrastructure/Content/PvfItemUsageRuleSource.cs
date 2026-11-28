@@ -50,7 +50,11 @@ internal sealed class PvfItemUsageRuleSource(PvfArchiveProvider provider) : IIte
                 ? PvfItemUseRuleDefinitionSource.FirstInt32(archive, ref reader, Fields.TotalUsableCountField, ref unreadable) : -1;
             var cooldown = PvfItemUseRuleDefinitionSource.FirstInt32(archive, ref reader,
                 Fields.CoolTimeField, ref unreadable);
-            found = new(limit, cooldown, !unreadable && limit >= -1 && cooldown >= 0);
+            var maintenance = PvfItemUseRuleDefinitionSource.ReadCooldownMaintenance(archive, ref reader, ref unreadable);
+            found = new(limit, cooldown, !unreadable && limit >= -1 && cooldown >= 0)
+            {
+                CooldownMaintenance = maintenance,
+            };
             cache[itemId] = found;
             return ValueTask.FromResult<ItemUsageRule?>(found);
         }

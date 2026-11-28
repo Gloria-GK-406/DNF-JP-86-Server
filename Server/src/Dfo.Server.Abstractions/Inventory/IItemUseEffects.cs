@@ -15,7 +15,15 @@ public readonly record struct ItemCooldownKey(bool IsShared, int Value)
 
 public sealed record ConsumeFromContainerEffect(BusinessSlot Slot, int ExpectedItemId, int Count,
     byte ExpectedEquipmentLockId = 0) : InventoryEffect;
-public sealed record StartItemCooldownEffect(ItemCooldownKey Key, TimeSpan Duration) : DomainEffect;
+public enum ItemCooldownScope
+{
+    Persistent,
+    SelectedSession,
+}
+
+public readonly record struct ItemCooldownPolicy(ItemCooldownKey Key, ItemCooldownScope Scope, TimeSpan Duration);
+
+public sealed record StartItemCooldownEffect(int ItemId, ItemCooldownPolicy Policy) : DomainEffect;
 public sealed record StartSpiritPotionEffect(double BonusRate, TimeSpan Duration) : DomainEffect;
 public sealed record AddPetStomachEffect(int ItemUid, int Amount) : DomainEffect;
 
@@ -39,9 +47,9 @@ public interface IItemUseEffectRuleService
     ValueTask<ItemUseRule?> GuildExtensionActionRuleAsync(int itemId, CancellationToken ct);
     ValueTask<int?> GuildExtensionCostAsync(int itemId, BusinessSlot source, ItemUsePlan plan, CancellationToken ct);
     ValueTask<ItemUseRule?> LuckyStarActionRuleAsync(int itemId, CancellationToken cancellationToken);
-    ItemCooldownKey CooldownKeyFor(int itemId, ItemUseRule rule);
+    ItemCooldownPolicy? CooldownFor(int itemId, ItemUseRule rule, bool useSessionCooldown = false);
     ItemUsePlan Build(ItemUseRule? rule, BusinessSlot source, ItemReference item,
-        ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at);
+        ItemUseCandidate? character, int? currentPetUid, DateTimeOffset at, bool useSessionCooldown = false);
 }
 
 public interface IItemUseEffectDomainService

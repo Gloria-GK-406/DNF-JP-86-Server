@@ -39,9 +39,8 @@ internal sealed class TeleportConsumableRuleService(ITeleportConsumableDefinitio
             checked((short)gate.Operand1), checked((short)gate.Operand2), 0);
         var effects = new List<DomainEffect> { new ConsumeFromContainerEffect(source, item.ItemId, 1),
             new MoveToTownEffect(standing, destination, !channel.IsTransient, sourceArea, channel.ChannelId) };
-        if (rule.Use.CooldownMilliseconds > 0)
-            effects.Add(new StartItemCooldownEffect(judgement.CooldownKeyFor(item.ItemId, rule.Use),
-                TimeSpan.FromMilliseconds(rule.Use.CooldownMilliseconds)));
+        if (judgement.CooldownFor(item.ItemId, rule.Use, useSessionCooldown: true) is { } cooldown)
+            effects.Add(new StartItemCooldownEffect(item.ItemId, cooldown));
         return new(ItemUsability.Allowed, effects.AsReadOnly());
     }
 }

@@ -15,7 +15,7 @@ namespace Dfo.Server.Application.Inventory;
 /// Nine tables between the two loads, and what makes them one inventory is not in any of them:
 /// which containers may appear where, that an avatar item without its facts is not an avatar while
 /// one in the account cargo never had any, that the locks table is read whole by both loads and then
-/// divided between them, and that the cooldowns and the effects arrive as one list in that order.
+/// divided between them, and that effects arrive in their stored order.
 /// Every one of those is a decision about inventories, so all of them are here; each table only
 /// knows how to read its own rows.
 ///
@@ -31,7 +31,6 @@ internal sealed class InventoryEntryAssembly(
     IAccountCargoStateTable cargoStates,
     ICharacterGoldLimitTable goldLimits,
     ICharacterCarriedGoldTable carriedGold,
-    ICharacterItemCooldownTable itemCooldowns,
     ICharacterItemEffectTable itemEffects,
     ICharacterItemLockTable itemLocks,
     ICharacterRentalTable rentals,
@@ -291,43 +290,19 @@ internal sealed class InventoryEntryAssembly(
             .Where(value => value.Value > 0).ToArray();
     }
 
-    /// <summary>The cooldowns and then the effects, which is the order the client expects.</summary>
-    /// <remarks>
-    /// One table used to hold both, with a column saying which a row was and the value meaning one
-    /// thing or the other accordingly. Two tables say it now, and the order that used to come out
-    /// of that column comes out of the order they are read in.
-    /// </remarks>
     private async ValueTask<IReadOnlyList<InventoryItemValueStorageRecord>> ReadItemValuesAsync(
         CharacterId characterId, CancellationToken cancellationToken)
     {
         var values = new List<InventoryItemValueStorageRecord>();
-        var seen = new HashSet<(InventoryItemValueListType ListType, int SortOrder)>();
-        foreach (var (listType, rows) in new[]
-                 {
-                     (InventoryItemValueListType.Cooldown,
-                         await itemCooldowns.ReadByCharacterAsync(characterId, cancellationToken)
-                             .ConfigureAwait(false)),
-                     (InventoryItemValueListType.Effect,
-                         await itemEffects.ReadByCharacterAsync(characterId, cancellationToken)
-                             .ConfigureAwait(false)),
-                 })
+        var seen = new HashSet<int>();
+        foreach (var row in await itemEffects.ReadByCharacterAsync(characterId, cancellationToken).ConfigureAwait(false))
         {
-            foreach (var row in rows)
-            {
-                var storedCharacterId = new CharacterId(row.CharacterId);
-                if (storedCharacterId != characterId
-                    || row.SortOrder < 0
-                    || !seen.Add((listType, row.SortOrder)))
-                {
-                    throw new InvalidDataException(
-                        "Character item values have invalid ownership, order, or duplicate entries.");
-                }
+            var storedCharacterId = new CharacterId(row.CharacterId);
+            if (storedCharacterId != characterId || row.SortOrder < 0 || !seen.Add(row.SortOrder))
+                throw new InvalidDataException("Character item effects have invalid ownership, order, or duplicate entries.");
 
-                values.Add(new InventoryItemValueStorageRecord(
-                    storedCharacterId, listType, row.SortOrder, row.ItemId, row.Value));
-            }
+            values.Add(new(storedCharacterId, InventoryItemValueListType.Effect, row.SortOrder, row.ItemId, row.Value));
         }
-
         return values;
     }
 

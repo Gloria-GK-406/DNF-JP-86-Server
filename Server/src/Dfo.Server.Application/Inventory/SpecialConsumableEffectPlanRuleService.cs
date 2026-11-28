@@ -40,7 +40,7 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         if (f.Usage?.UsedCount < 0) throw new InvalidDataException("Invalid item usage count.");
         var count = f.Usage?.LastUsedAt is { } last && days.IsCurrentPeriod(last, f.At) ? f.Usage.UsedCount : 0;
         if (usage.DailyLimit >= 0 && count >= usage.DailyLimit) throw Reject(nameof(ItemUsageRejection.DailyLimitReached));
-        if (f.Usage?.LastUsedAt?.AddMilliseconds(usage.CooldownMilliseconds) > f.At)
+        if (usage.CooldownUntil(f.Usage?.LastUsedAt) > f.At)
             throw Reject(nameof(ItemUsageRejection.CoolingDown));
         var result = await ConsumptionAsync(f.Source, f.Item, ct).ConfigureAwait(false);
         var recovery = random
@@ -162,8 +162,8 @@ internal sealed class SpecialConsumableEffectPlanRuleService(IStackableActionDef
         if (rule is not { IsReadable: true }) throw Reject("Unusable source declaration.");
         var result = ImmutableArray.CreateBuilder<DomainEffect>();
         result.Add(new ConsumeFromContainerEffect(source, item.ItemId, 1));
-        if (rule.CooldownMilliseconds > 0)
-            result.Add(new StartItemCooldownEffect(uses.CooldownKeyFor(item.ItemId, rule), TimeSpan.FromMilliseconds(rule.CooldownMilliseconds)));
+        if (uses.CooldownFor(item.ItemId, rule) is { } cooldown)
+            result.Add(new StartItemCooldownEffect(item.ItemId, cooldown));
         return result.ToImmutable();
     }
     private static OpeningRejectedException Reject(string message) => new(OpeningRejection.ItemUnusable, message);

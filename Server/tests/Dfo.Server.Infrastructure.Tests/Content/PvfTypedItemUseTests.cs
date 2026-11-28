@@ -9,10 +9,15 @@ public sealed class PvfTypedItemUseTests
     [InlineData("absent", true)]
     [InlineData("fatigue-action", true)]
     [InlineData("duration-target", true)]
+    [InlineData("maintenance-zero", true)]
+    [InlineData("maintenance-revive", true)]
+    [InlineData("maintenance-persist", true)]
+    [InlineData("maintenance-short", false)]
+    [InlineData("maintenance-long", false)]
     [InlineData("wrong-scalar", false)]
     [InlineData("empty-scalar", false)]
     [InlineData("extra-scalar", false)]
-    [InlineData("duplicate-scalar", false)]
+    [InlineData("duplicate-scalar", true)]
     [InlineData("integer-rate", false)]
     [InlineData("infinite-rate", false)]
     [InlineData("invalid-duration-target", false)]
@@ -29,6 +34,11 @@ public sealed class PvfTypedItemUseTests
             case "fatigue-action": script.Tag("[action type]").Quoted("[add fatigue]").Int(42); break;
             case "duration-target": script.Tag("[exp bonus rate]").Single(1)
                 .Tag("[stat change duration]").Int(7200000).Quoted("myself"); break;
+            case "maintenance-zero": script.Tag("[cooltime maintenance]").Int(0).Int(0).Int(0); break;
+            case "maintenance-revive": script.Tag("[cooltime maintenance]").Int(1).Int(0).Int(0); break;
+            case "maintenance-persist": script.Tag("[cooltime maintenance]").Int(1).Int(1).Int(1); break;
+            case "maintenance-short": script.Tag("[cooltime maintenance]").Int(0).Int(0); break;
+            case "maintenance-long": script.Tag("[cooltime maintenance]").Int(0).Int(0).Int(0).Int(0); break;
             case "wrong-scalar": script.Tag("[cool time]").Quoted("100"); break;
             case "empty-scalar": script.Tag("[cool time]"); break;
             case "extra-scalar": script.Tag("[cool time]").Int(100).Int(200); break;
@@ -57,6 +67,13 @@ public sealed class PvfTypedItemUseTests
                 Assert.True(action.IsReadable);
                 Assert.Equal(42, action.FatigueRecovery);
             }
+            if (shape is "absent" or "maintenance-zero")
+                Assert.Equal(default, rule.CooldownMaintenance);
+            if (shape == "maintenance-revive")
+                Assert.Equal(new(true, false, false), rule.CooldownMaintenance);
+            if (shape == "maintenance-persist")
+                Assert.Equal(new(true, true, true), rule.CooldownMaintenance);
+            if (shape == "duplicate-scalar") Assert.Equal(200, rule.CooldownMilliseconds);
             if (shape == "absent") Assert.Equal(0, rule.CooldownMilliseconds);
             if (shape == "duration-target") Assert.Equal((1d, 7200000), (rule.ExpBonusRate, rule.EffectDurationMilliseconds));
         }

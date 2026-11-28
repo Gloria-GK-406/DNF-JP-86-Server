@@ -34,6 +34,8 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             PvfField.Tokens("[action type]", optional: true);
         internal static readonly PvfField<int> SharedEffectField = PvfField.Int32("[shared effect]", optional: true);
         internal static readonly PvfField<int> CoolTimeField = PvfField.Int32("[cool time]", optional: true);
+        internal static readonly PvfField<IReadOnlyList<int>> CooltimeMaintenanceField =
+            PvfField.Int32List("[cooltime maintenance]", optional: true);
         internal static readonly PvfField<int> CooltimeGroupField = PvfField.Int32("[cooltime group]", optional: true);
         internal static readonly PvfField<int> MinimumLevelField = PvfField.Int32("[minimum level]", optional: true);
         internal static readonly PvfField<double> ExpBonusRateField = PvfField.Single("[exp bonus rate]", optional: true);
@@ -119,6 +121,7 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             : null;
         var shared = FirstInt32(archive, ref reader, Fields.SharedEffectField, ref unreadable);
         var cooldown = FirstInt32(archive, ref reader, Fields.CoolTimeField, ref unreadable);
+        var maintenance = ReadCooldownMaintenance(archive, ref reader, ref unreadable);
         var cooltimeGroup = FirstInt32(archive,
             ref reader, Fields.CooltimeGroupField, ref unreadable);
         var minimumLevel = FirstInt32(archive,
@@ -168,6 +171,8 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
         {
             AllowedDungeonIds = allowedDungeons,
             SummonsApc = summonsApc,
+            StackableType = stackableType,
+            CooldownMaintenance = maintenance,
             SharedEffectSelector = shared == 1 && stackableType is "[only effect]" or "[random reward item]" ? (byte)0 : null,
         };
     }
@@ -240,6 +245,17 @@ internal sealed class PvfItemUseRuleDefinitionSource(PvfArchiveProvider provider
             return field.Decode(archive, values, "item use rule");
         }
         catch (InvalidDataException) { unreadable = true; return 0; }
+    }
+
+    internal static ItemCooldownMaintenance ReadCooldownMaintenance(
+        PvfArchive archive, ref PvfTokenReader reader, ref bool unreadable)
+    {
+        var values = RootSectionValues(archive, ref reader, Fields.CooltimeMaintenanceField, out var duplicate, out _);
+        if (values is null) return default;
+        if (!duplicate && values.Count == 3 && values.All(value => value.Kind == PvfTokenKind.Int32))
+            return new(values[0].Value != 0, values[1].Value != 0, values[2].Value != 0);
+        unreadable = true;
+        return default;
     }
 
     internal static double FirstSingle(PvfArchive archive, ref PvfTokenReader reader,

@@ -39,8 +39,9 @@ internal sealed class LovePoints(IMarriageLovePointRuleService rules, IBusinessI
         if (item is null) return (-1, null);
         if (await rules.RuleForAsync(item.ItemId, ct).ConfigureAwait(false) is not { } rule) return (-1, null);
         if (points > rule.Maximum - rule.Amount) return (-2, null);
-        var facts = await itemUse.FactsAsync(actor.CharacterId, useRules.CooldownKeyFor(item.ItemId, rule.Use), ct).ConfigureAwait(false);
         var at = clock.GetUtcNow();
+        var facts = await itemUse.FactsAsync(actor.CharacterId, useRules.CooldownFor(item.ItemId, rule.Use), at, ct)
+            .ConfigureAwait(false);
         var plan = useRules.Build(rule.Use, slot, item, facts, null, at);
         if (plan.Status != ItemUsability.Allowed) return (-1, null);
         await effects.ApplyAsync(new(actor.AccountId, actor.CharacterId, at, footprint, actor), plan.Effects, ct).ConfigureAwait(false);

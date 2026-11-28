@@ -36,34 +36,21 @@ internal sealed class ConsumeFromContainerEffectHandler(IBusinessInventorySlotDo
     }
 }
 
-internal sealed class StartItemCooldownEffectHandler(IOnlineCharacterRuntimeDomainService runtime,
-    IDomainTransactionAccessor transactions) : EffectHandler<StartItemCooldownEffect>
+internal sealed class StartItemCooldownEffectHandler(ConsumableCooldownDomainService cooldowns)
+    : EffectHandler<StartItemCooldownEffect>
 {
     public override ValueTask ValidateAsync(EffectExecutionContext context, StartItemCooldownEffect effect, CancellationToken ct)
     {
-        if (context.Session is null || effect.Duration <= TimeSpan.Zero)
+        if (context.Session is null || effect.Policy.Duration <= TimeSpan.Zero)
             throw new InvalidOperationException("Item cooldown requires a selected session and positive duration.");
-        _ = context.At.Add(effect.Duration);
         return ValueTask.CompletedTask;
     }
-    public override ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, StartItemCooldownEffect effect, CancellationToken ct)
+
+    public override async ValueTask<EffectChange> ApplyAsync(EffectExecutionContext context, StartItemCooldownEffect effect, CancellationToken ct)
     {
         context.Footprint.DemandEffects(context.Owner);
-        transactions.Current!.Enlist(new object(), () => new Commit(runtime, context, effect));
-        return ValueTask.FromResult<EffectChange>(new ItemCooldownChange(effect.Key, effect.Duration));
-    }
-    private sealed class Commit(IOnlineCharacterRuntimeDomainService runtime,
-        EffectExecutionContext context, StartItemCooldownEffect effect) : ITransactionParticipant
-    {
-        public bool CommitCanFail => false;
-        public ValueTask PrepareAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask RollbackAsync(CancellationToken ct) => ValueTask.CompletedTask;
-        public ValueTask CommitAsync(CancellationToken ct)
-        {
-            // Only the session the cooldown was earned in gets it; a replaced one is ignored.
-            runtime.StartCooldown(context.Session!, effect.Key, effect.Duration);
-            return ValueTask.CompletedTask;
-        }
+        await cooldowns.StartAsync(context.Session!, effect.ItemId, effect.Policy, context.At, ct).ConfigureAwait(false);
+        return new ItemCooldownChange(effect.Policy.Key, effect.Policy.Duration);
     }
 }
 

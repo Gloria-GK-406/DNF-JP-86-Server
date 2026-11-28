@@ -28,12 +28,12 @@ internal sealed class ExperienceItemDomainService(
         var ordinaryRule = await itemUseRules.RuleForAsync(item.ItemId, cancellationToken)
             .ConfigureAwait(false);
         var character = characters.Get(session.CharacterId);
+        var at = clock.GetUtcNow();
         var facts = ordinaryRule is null || !ordinaryRule.IsReadable
             ? null
             : await itemUse.FactsAsync(session.CharacterId,
-                itemUseRules.CooldownKeyFor(item.ItemId, ordinaryRule), cancellationToken)
+                itemUseRules.CooldownFor(item.ItemId, ordinaryRule), at, cancellationToken)
                 .ConfigureAwait(false);
-        var at = clock.GetUtcNow();
         var ordinaryPlan = itemUseRules.Build(
             ordinaryRule, source, item, facts, currentPetUid: null, at);
         if (ordinaryPlan.Status != ItemUsability.Allowed)

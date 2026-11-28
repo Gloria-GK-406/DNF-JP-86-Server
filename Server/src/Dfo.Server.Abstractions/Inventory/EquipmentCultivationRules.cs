@@ -81,7 +81,6 @@ public interface IEquipmentRepairRuleService
 
 public interface IEquipmentRepairCouponRule
 {
-    ItemCooldownKey CooldownKey { get; }
-    TimeSpan Cooldown { get; }
+    ItemCooldownPolicy? Cooldown { get; }
     bool Allows(Dfo.Server.Abstractions.Characters.ItemUseCandidate candidate, int? dungeonId);
 }

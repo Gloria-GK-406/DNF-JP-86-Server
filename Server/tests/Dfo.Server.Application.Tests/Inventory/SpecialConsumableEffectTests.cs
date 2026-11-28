@@ -77,7 +77,7 @@ public sealed class SpecialConsumableEffectTests
             {
                 s.AddSingleton<IStackableActionDefinitionSource>(new ActionSource());
                 s.AddSingleton<IItemUsageRuleSource>(new UsageSource());
-                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2000,ItemUseRules.Potion(1000))));
+                s.AddSingleton<IItemUseRuleDefinitionSource>(new FakeItemUseRules((2000,ItemUseRules.PersistentPotion(1000) with { Action = "[add fatigue]" })));
             });
             await f.Seed(65,2000,2);
             var scope=(DomainTransactionScope)f.Services.GetRequiredService<IDomainTransactionAccessor>();
@@ -95,7 +95,9 @@ public sealed class SpecialConsumableEffectTests
             var balance=await fatigue.BalanceOfAsync(f.Session.CharacterId,default);
             Assert.Equal(fail?100:70,balance.Used);Assert.Equal(100,balance.ConsumedToday);
             Assert.Equal(fail?0:1,f.Scalar("SELECT COUNT(*) FROM character_daily_counters WHERE counter_key='consumable_used_2000'"));
-            Assert.Equal(!fail,f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000)));
+            Assert.False(f.Services.GetRequiredService<IOnlineCharacterRuntimeDomainService>().IsCoolingDown(f.Session.CharacterId,ItemCooldownKey.ForItem(2000)));
+            Assert.Equal(!fail, (await f.Services.GetRequiredService<IItemUsageDomainService>()
+                .GetAsync(f.Session.CharacterId, 2000, default)).CooldownUntil is not null);
         });
     }
 
@@ -190,7 +192,7 @@ public sealed class SpecialConsumableEffectTests
     }
     private sealed class UsageSource(int cooldown=1000) : IItemUsageRuleSource
     {
-        public ValueTask<ItemUsageRule?> GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<ItemUsageRule?>(new(3,cooldown,true));
+        public ValueTask<ItemUsageRule?> GetAsync(int id,CancellationToken ct)=>ValueTask.FromResult<ItemUsageRule?>(new(3,cooldown,true) { CooldownMaintenance = new(true, true, true) });
     }
 
     [Fact]
