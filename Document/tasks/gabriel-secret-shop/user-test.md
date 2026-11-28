@@ -4,9 +4,9 @@
 
 ## 测试配置
 
-- Host 发布目录为 `artifacts/gabriel-secret-shop/host/`。
+- Host 发布目录为 `artifacts/gabriel-secret-shop/host/`，候选二进制版本为 `0.3.5+5a9143e1c88502f42929a80fe22dcec7d58e3fa0`。
 - 测试 Host 的 `PVF_ARCHIVE_PATH` 指向 `artifacts/gabriel-secret-shop/Script.test.pvf`。该文件从 dev PVF 生成，只修改服务端用于抽取的 `etc/secretshop.etc`。SHA-256 为 `3DC9FBD7DC64282291FA39221E6F6B378FE4E6EDAFD6F16359606B6179C68686`。客户端仍用 ClientStore 的 dev 内容。
-- 使用已能进入天空之城这三张普通地图的角色。金币至少 400，准备两个哥布林铜雕像（道具 600）和空背包格。组队阶段准备第二个可进图角色。
+- 使用已能进入天空之城这三张普通地图的角色。金币至少 600，准备两个哥布林铜雕像（道具 600）和空背包格。双人测试使用两个不同账号的角色，每方另备 300 金币，以便分别观察各自的账号共享材料余额。
 
 | 测试地图 | 商人 | 商品 |
 |---|---|---|
