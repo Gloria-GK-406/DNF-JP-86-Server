@@ -44,12 +44,15 @@ internal sealed partial class AntonRaidDomainService
         return tickets;
     }
 
-    public ValueTask<AntonRaidStart> StartAsync(SelectedSessionIdentity leader, CancellationToken ct) =>
-        StartAsync(leader, automatic: false, ct);
+    public ValueTask<AntonRaidStart> StartAsync(SelectedSessionIdentity leader, CancellationToken ct)
+    {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(StartAsync));
+        return StartAsync(leader, automatic: false, ct);
+    }
 
     private async ValueTask<AntonRaidStart> StartAsync(SelectedSessionIdentity leader, bool automatic, CancellationToken ct)
     {
-        GameplayWriteAssertion.Writing(nameof(StartAsync));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(StartAsync));
         if (Of(leader) is not { CanEdit: true } raid || raid.Leader.Session != leader
             || raid.Members.Any(member => RecruitmentChannel(member.Session) != raid.Channel))
         {
@@ -80,7 +83,7 @@ internal sealed partial class AntonRaidDomainService
 
     public PartyOperationResult PrepareSquad(SelectedSessionIdentity sender, AntonRaidSquadSignal signal, SelectedSessionIdentity? peer = null)
     {
-        GameplayWriteAssertion.Writing(nameof(PrepareSquad));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(PrepareSquad));
         if (signal == AntonRaidSquadSignal.Settings && Of(sender) is { Stage: AntonRaidStage.Attacking or AntonRaidStage.Break } active
             && active.Lease.Keys.Contains(parties.KeyOf(sender.CharacterId)))
         {
@@ -128,7 +131,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask<AntonRaidPreparationOutcome> FinishPreparationAsync(AntonRaidDeadline deadline, CancellationToken ct)
     {
-        GameplayWriteAssertion.Writing(nameof(FinishPreparationAsync));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(FinishPreparationAsync));
         if (CurrentPreparation(deadline) is not { Preparation: { } preparation } raid || deadline.At > clock.GetUtcNow())
             return new();
         if (!raid.Members.SequenceEqual(preparation.Roster)
@@ -198,17 +201,20 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidPreparationOutcome CancelPreparation(AntonRaidDeadline deadline)
     {
-        GameplayWriteAssertion.Writing(nameof(CancelPreparation));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CancelPreparation));
         if (CurrentPreparation(deadline) is not { } raid)
             return new();
         RestoreFromPreparation(raid);
         return new(Change(raid) with { Squads = ReplaceSquads(raid) });
     }
 
-    public AntonRaidPreparationOutcome CancelPreparationFor(SelectedSessionIdentity session) =>
-        Of(session) is { Stage: AntonRaidStage.Preparing, Deadline: { } until } raid
+    public AntonRaidPreparationOutcome CancelPreparationFor(SelectedSessionIdentity session)
+    {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CancelPreparationFor));
+        return Of(session) is { Stage: AntonRaidStage.Preparing, Deadline: { } until } raid
             ? CancelPreparation(new(raid.Lease.Owner, raid.Number, raid.PreparationGeneration, until))
             : new();
+    }
 
     private Recruitment? CurrentPreparation(AntonRaidDeadline deadline) =>
         raids.TryGetValue(deadline.Number, out var raid) && raid.Lease.Owner == deadline.Instance

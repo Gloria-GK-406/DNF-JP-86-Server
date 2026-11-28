@@ -1,5 +1,9 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
+using Dfo.Server.Abstractions.Guilds;
+using Dfo.Server.Abstractions.Raids;
+using Dfo.Server.Data.Guilds;
+using Dfo.Server.Data.Raids;
 using Dfo.Server.Abstractions.Rental;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Data.Inventory;
@@ -15,7 +19,7 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
     ITownDefinitionSource, IDespairTowerContentSource, IEpicBookDefinitionSource,
     ICollectionBoxDefinitionSource, IDungeonDefinitionSource, IAltarDungeonContentSource,
     ITournamentDungeonContentSource, IGoldSilverHornContentSource, IDimensionDungeonContentSource, ILuckyStarRentalContentSource,
-    IExtraDropContentSource
+    IExtraDropContentSource, IAntonRaidContentSource, IGuildRedPacketRuleSource
 {
     internal static void Register(IServiceCollection services)
     {
@@ -41,6 +45,8 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
         services.AddSingleton<ITournamentDungeonContentSource>(content);
         services.AddSingleton<IGoldSilverHornContentSource>(content);
         services.AddSingleton<IExtraDropContentSource>(content);
+        services.AddSingleton<IAntonRaidContentSource>(content);
+        services.AddSingleton<IGuildRedPacketRuleSource>(content);
         services.AddSingleton<ICreatureEquipmentLifetimeSource, StubCreatureEquipmentLifetimeSource>();
     }
 
@@ -65,12 +71,17 @@ internal sealed class ShopFixtureContent : IGoldCarryLimitSource, IPremiumServic
         services.AddSingleton<ITournamentDungeonContentSource, PvfTournamentDungeonContentSource>();
         services.AddSingleton<IGoldSilverHornContentSource, PvfGoldSilverHornContentSource>();
         services.AddSingleton<IExtraDropContentSource, PvfExtraDropContentSource>();
+        services.AddSingleton<IAntonRaidContentSource, PvfAntonRaidContentSource>();
+        services.AddSingleton<IGuildRedPacketRuleSource, PvfGuildRedPacketRuleSource>();
         services.AddSingleton<ICreatureEquipmentLifetimeSource, PvfCreatureEquipmentLifetimeSource>();
     }
 
     // No dungeon is tagged for extra drops, so pickups and ancient-find announcements stay ordinary.
     ExtraDropContent IExtraDropContentSource.Load() => new(
         new Dictionary<(DropItemKind, int, ExtraDropDungeonType), DropItemPool>(), new Dictionary<int, ExtraDropDungeonType>(), 0);
+
+    AntonRaidRules IAntonRaidContentSource.Load() => new(4, 20, default, default, default, 0, 0, 0, 0, []);
+    GuildRedPacketRules? IGuildRedPacketRuleSource.Read() => null;
 
     LuckyStarRentalCatalog ILuckyStarRentalContentSource.Load() => new(400, 100_000, 0, new HashSet<int>(), []);
     public ValueTask<int?> RentPointsAsync(int id, CancellationToken ct) => ValueTask.FromResult<int?>(null);

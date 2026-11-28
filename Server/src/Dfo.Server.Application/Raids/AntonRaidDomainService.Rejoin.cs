@@ -12,7 +12,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentChange? Disconnected(SelectedSessionIdentity session)
     {
-        GameplayWriteAssertion.Writing(nameof(Disconnected));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Disconnected));
         InvalidateApprovals(session);
         if (Of(session) is not { } raid)
             return null;
@@ -42,7 +42,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentResult Rejoin(SelectedSessionIdentity session, uint number)
     {
-        GameplayWriteAssertion.Writing(nameof(Rejoin));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Rejoin));
         if (RejoinOffer(session) is not { } offer || offer.Number != number
             || RecruitmentChannel(session) != offer.Channel
             || !raids.TryGetValue(number, out var raid))
@@ -74,7 +74,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentChange? ExpireRejoin(AntonRaidRejoinExpiry expiry)
     {
-        GameplayWriteAssertion.Writing(nameof(ExpireRejoin));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(ExpireRejoin));
         if (expiry.At > clock.GetUtcNow() || !raids.TryGetValue(expiry.Number, out var raid)
             || raid.Lease.Owner != expiry.Instance
             || !raid.Members.Any(member => member.Session == expiry.DepartedSession && member.RejoinUntil == expiry.At))
@@ -86,7 +86,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentResult TransferLeadership(SelectedSessionIdentity sender, ushort target)
     {
-        GameplayWriteAssertion.Writing(nameof(TransferLeadership));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(TransferLeadership));
         if (Of(sender) is not { } raid || raid.Stage == AntonRaidStage.Preparing || raid.Leader.Session != sender
             || raid.Members.Find(member => member.Session.WireUserId == target && member.RejoinUntil is null) is not { } candidate
             || !sessions.IsInWorld(candidate.Session))
@@ -100,7 +100,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentResult ChangeTitle(SelectedSessionIdentity sender, ReadOnlyMemory<byte> title)
     {
-        GameplayWriteAssertion.Writing(nameof(ChangeTitle));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(ChangeTitle));
         if (Of(sender) is not { } raid || raid.Leader.Session != sender || raid.Stage == AntonRaidStage.Preparing
             || title.Length > byte.MaxValue)
         {
@@ -118,7 +118,7 @@ internal sealed partial class AntonRaidDomainService
 
     public IReadOnlyList<PartyNotificationPlan> RestoreAvailableSquads()
     {
-        GameplayWriteAssertion.Writing(nameof(RestoreAvailableSquads));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(RestoreAvailableSquads));
         restoreSquadsRequested = false;
         var changes = new List<PartyNotificationPlan>();
         foreach (var raid in raids.Values.Where(raid => raid.DeferredSquadMembers.Count != 0))

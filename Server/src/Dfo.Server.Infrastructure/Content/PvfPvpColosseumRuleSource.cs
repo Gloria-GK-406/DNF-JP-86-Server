@@ -4,10 +4,15 @@ using Dfo.Server.Abstractions.Pvp;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfPvpColosseumRuleSource(PvfArchiveProvider provider) : IPvpColosseumRuleSource
+internal sealed class PvfPvpColosseumRuleSource(PvfArchiveProvider provider) : IPvpColosseumRuleSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private const string Path = "etc/pvpcolosseum.etc";
     private readonly Lazy<PvpColosseumRules> data = new(() => Read(provider.Archive));
+
+    public string Name => "pvp-colosseum";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(Load().Rewards.Count);
 
     public PvpColosseumRules Load() => data.Value;
 

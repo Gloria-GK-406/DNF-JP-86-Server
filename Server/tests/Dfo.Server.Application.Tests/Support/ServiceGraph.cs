@@ -116,6 +116,7 @@ internal sealed class ServiceGraph(IServiceCollection services, IServiceProvider
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Database:Path"] = path }).Build();
             new PersistenceModule().ConfigureServices(Services, configuration);
             new InfrastructureModule().ConfigureServices(Services, configuration);
+            Services.AddSingleton(Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
             new ApplicationModule().ConfigureServices(Services, configuration);
             Provider = Services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = false, ValidateScopes = false });
             Graph = new(Services, Provider);

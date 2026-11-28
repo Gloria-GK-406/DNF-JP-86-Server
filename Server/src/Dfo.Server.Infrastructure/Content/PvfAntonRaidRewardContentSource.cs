@@ -5,9 +5,14 @@ using Dfo.Server.Abstractions.Raids;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfAntonRaidRewardContentSource(PvfArchiveProvider provider) : IAntonRaidRewardContentSource
+internal sealed class PvfAntonRaidRewardContentSource(PvfArchiveProvider provider) : IAntonRaidRewardContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<AntonRaidRewardDefinition> content = new(() => Read(provider.Archive));
+
+    public string Name => "anton-raid-rewards";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(Read().Phases.Count);
 
     public AntonRaidRewardDefinition Read() => content.Value;
 

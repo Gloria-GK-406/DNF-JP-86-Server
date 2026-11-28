@@ -42,12 +42,17 @@ internal sealed class GuildContributionDomainService(IGuildDomainStore guilds, I
             || run.ClearParticipants.FirstOrDefault(member => member.CharacterId == character && member.AccountId == account) is not { } participant)
             return null;
 
-        var (kind, rule) = run.Layout.Mode switch
+        var (kind, rule) = run.Layout.Mode.Kind switch
         {
-            DungeonRunMode.GuildDungeon => (GuildClearContributionKind.GuildDungeon, config.GuildDungeonContribution),
-            { Kind: DungeonRunKind.Ordinary } when run.Layout.ConsumesFatigue =>
+            DungeonRunKind.GuildDungeon => (GuildClearContributionKind.GuildDungeon, config.GuildDungeonContribution),
+            DungeonRunKind.Ordinary when run.Layout.ConsumesFatigue =>
                 (GuildClearContributionKind.PartyDungeon, config.PartyDungeonContribution),
-            _ => (default, null),
+            DungeonRunKind.Ordinary or DungeonRunKind.Dimension or DungeonRunKind.Hell or DungeonRunKind.Mirror
+                or DungeonRunKind.Sao or DungeonRunKind.Despair or DungeonRunKind.Tournament or DungeonRunKind.Altar
+                or DungeonRunKind.Guardian or DungeonRunKind.GiantDragon or DungeonRunKind.SouthernDale
+                or DungeonRunKind.TauKingdom or DungeonRunKind.SealedTreasure or DungeonRunKind.Heras
+                or DungeonRunKind.GoldSilverHorn or DungeonRunKind.Couple or DungeonRunKind.LostLand
+                or DungeonRunKind.DarkElfRuins or DungeonRunKind.AntonRaid => (default, null),
         };
         if (rule is null || await guilds.FindMembershipAsync(character, ct).ConfigureAwait(false) is not { } membership)
             return null;

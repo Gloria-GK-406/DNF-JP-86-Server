@@ -164,11 +164,12 @@ public sealed class ReplayStateSnapshotTests
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,original with { AccountId = new(999) }, new(ReplayProjectionNeeds.Inventory, []), null));
         fixture.Select(2);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,original, new(ReplayProjectionNeeds.Inventory, []), null));
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new((ReplayProjectionNeeds)4096, []), null));
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new((ReplayProjectionNeeds)(1 << 30), []), null));
         await Assert.ThrowsAsync<InventorySlotMappingException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new(ReplayProjectionNeeds.Inventory,
                 [new(BusinessInventorySpace.VirtualResource, 0)]), null));
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,fixture.Session, new(ReplayProjectionNeeds.Inventory,
-                [new(BusinessInventorySpace.GuardianGem, 0)]), null));
+        var snapshot = await Dfo.Server.Application.Tests.Support.ReplayStateFixture.ReadAsync(fixture.Services,
+            fixture.Session, new(ReplayProjectionNeeds.Inventory, [new(BusinessInventorySpace.GuardianGem, 0)]), null);
+        Assert.NotNull(snapshot.Inventory);
         Assert.Equal(100000, fixture.Gold);
     }
 
@@ -224,10 +225,15 @@ public sealed class ReplayStateSnapshotTests
     public async Task Replay_reads_skills_and_points_for_the_listener_group(bool duel, int slot, int remainingSp)
     {
         var channel = duel ? StubChannelEntryPolicy.FreeDuelChannel : StubChannelEntryPolicy.GeneralChannel;
-        await using var fixture = new LearningFixture(configure: services =>
+        var skillContent = new LearningContent();
+        await using var fixture = new LearningFixture(content: skillContent, configure: services =>
+        {
+            ShopFixtureContent.Register(services);
+            services.AddSingleton<ISkillRuleDefinitionSource>(skillContent);
             services.AddSingleton<IChannelEntryDomainService>(TestRequired.Absent<IChannelEntryDomainService>(
                 (method, _) => method.Name == nameof(IChannelEntryDomainService.ResolveAsync)
-                    ? ValueTask.FromResult(channel with { ListenerPort = 10011 }) : null)));
+                    ? ValueTask.FromResult(channel with { ListenerPort = 10011 }) : null));
+        });
         await fixture.SeedAsync();
         fixture.Sql("""
             INSERT INTO character_condition(character_id,pc_room_state) VALUES(71,0);

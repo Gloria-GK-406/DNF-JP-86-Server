@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Data.Characters;
 
 namespace Dfo.Server.Application.Raids;
@@ -12,6 +14,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
 
     public AntonRaidRewardSnapshot? Begin(AntonRaidRewardSettlementSeed seed, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidRewardSettlementDomainService) + "." + nameof(Begin));
         Validate(seed);
         lock (gate)
         {
@@ -37,6 +40,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
     public AntonRaidMovieResult? FinishMovie(Guid instance, byte phase, CharacterId character, byte flag,
         DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidRewardSettlementDomainService) + "." + nameof(FinishMovie));
         lock (gate)
         {
             var round = FindRound(instance, phase);
@@ -58,6 +62,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
     public AntonRaidRewardSelection Select(Guid instance, byte phase, CharacterId character, byte type, byte slot,
         DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidRewardSettlementDomainService) + "." + nameof(Select));
         lock (gate)
         {
             var round = FindRound(instance, phase);
@@ -96,6 +101,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
 
     public AntonRaidRewardAdvance? Advance(AntonRaidRewardDeadline expected, DateTimeOffset now)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidRewardSettlementDomainService) + "." + nameof(Advance));
         lock (gate)
         {
             var round = FindRound(expected.Instance, expected.Phase);
@@ -139,6 +145,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
 
     public bool Complete(Guid instance, byte phase)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidRewardSettlementDomainService) + "." + nameof(Complete));
         lock (gate)
         {
             var round = FindRound(instance, phase);
@@ -152,6 +159,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
 
     public void Forget(Guid instance)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidRewardSettlementDomainService) + "." + nameof(Forget));
         lock (gate)
             active.Remove(instance);
     }
@@ -179,7 +187,7 @@ internal sealed class AntonRaidRewardSettlementDomainService(
 
     private sealed class Round
     {
-        private static readonly AntonRaidRewardKind[] SelectableKinds = [AntonRaidRewardKind.PartyCard, AntonRaidRewardKind.Gold];
+        private static readonly ImmutableArray<AntonRaidRewardKind> SelectableKinds = [AntonRaidRewardKind.PartyCard, AntonRaidRewardKind.Gold];
         private readonly AntonRaidRewardItem retry;
         internal AntonRaidRewardSettlementSeed Seed { get; }
         internal Dictionary<CharacterId, Participant> Participants { get; } = [];

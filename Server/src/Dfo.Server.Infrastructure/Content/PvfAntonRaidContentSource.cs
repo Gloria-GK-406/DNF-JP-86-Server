@@ -7,9 +7,14 @@ using Dfo.Server.Data.World;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfAntonRaidContentSource(PvfArchiveProvider provider) : IAntonRaidContentSource
+internal sealed class PvfAntonRaidContentSource(PvfArchiveProvider provider) : IAntonRaidContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<AntonRaidRules> rules = new(() => Read(provider.Archive));
+
+    public string Name => "anton-raid";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(Load().Phases.Count);
 
     public AntonRaidRules Load() => rules.Value;
 

@@ -147,6 +147,8 @@ public sealed class GameplayStateCensusTests(ITestOutputHelper output)
     /// <summary>Write entries that hold no state of their own: they work on state their callers pass in, or their owner's.</summary>
     internal static readonly IReadOnlyDictionary<Type, string> StatelessEntries = new Dictionary<Type, string>
     {
+        [typeof(Dfo.Server.Application.Guilds.GuildAttendanceDomainService)] =
+            "stores attendance through the guild store in the caller's write transaction",
         [typeof(Dfo.Server.Protocol.Game.Joust.GameJoustBetCommandHandler)] =
             "writes through domain services and the request-owned EffectOperationEntry; has no static operation-id table or mutable state of its own",
         [typeof(DungeonRunStore.EntryService)] =

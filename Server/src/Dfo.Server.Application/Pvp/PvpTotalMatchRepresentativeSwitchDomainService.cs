@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Dfo.Server.Abstractions.Pvp;
+using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.Networking;
 
@@ -13,11 +14,15 @@ public sealed class PvpTotalMatchRepresentativeSwitchDomainService : IPvpTotalMa
     // A connection that closes before its next selection does not retain a transition.
     private readonly ConditionalWeakTable<NetworkConnectionContext, Pending> pending = new();
 
-    public void Expect(NetworkConnectionContext connection, AccountId account, byte rosterIndex) =>
+    public void Expect(NetworkConnectionContext connection, AccountId account, byte rosterIndex)
+    {
+        GameplayWriteAssertion.Writing(nameof(PvpTotalMatchRepresentativeSwitchDomainService) + "." + nameof(Expect));
         pending.AddOrUpdate(connection, new Pending(account, rosterIndex));
+    }
 
     public void PublishRoster(NetworkConnectionContext connection, AccountId account)
     {
+        GameplayWriteAssertion.Writing(nameof(PvpTotalMatchRepresentativeSwitchDomainService) + "." + nameof(PublishRoster));
         if (pending.TryGetValue(connection, out var expected) && expected.Account == account)
             pending.AddOrUpdate(connection, expected with { RosterPublished = true });
     }
@@ -27,6 +32,7 @@ public sealed class PvpTotalMatchRepresentativeSwitchDomainService : IPvpTotalMa
 
     public bool Consume(NetworkConnectionContext connection, AccountId account, ushort rosterIndex)
     {
+        GameplayWriteAssertion.Writing(nameof(PvpTotalMatchRepresentativeSwitchDomainService) + "." + nameof(Consume));
         if (!pending.TryGetValue(connection, out var expected)) return false;
         pending.Remove(connection);
         return expected.Account == account && expected.RosterIndex == rosterIndex && expected.RosterPublished;

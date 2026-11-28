@@ -54,6 +54,8 @@ public sealed class DungeonPickupTransactionTests
             services.AddSingleton<ILostLandFeverRuleService, LostLandFeverRuleService>();
             services.AddDungeonRuns().AddComposedDungeonRuns();
             services.AddAbsentDungeonRunDependencies();
+            services.AddSingleton<IDropMaterializationRuleService>(new DropMaterializationRuleService(
+                Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits));
             services.AddSingleton<IQuestDomainStore>(new SqliteQuestDomainStore(path));
             services.AddSingleton<IItemDomainStore>(new SqliteItemDomainStore(path, TestRequired.NoContentsEvents));
             services.AddFixtureCommand<StaleQuestPickupCommand, PickupReceipt,
