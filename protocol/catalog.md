@@ -886,7 +886,11 @@ P01–P10由用户确认通过；实例重构及常规事务回归已交付。�
 
 ## 2026-09-30 魔法封印装备候选实现
 
-[解封 `0x0191`](game/client-to-server/0x0191.md) 与[词条变更 `0x01B6`](game/client-to-server/0x01B6.md) 已按 A21 静态请求宽度及真实 PVF 规则接入服务端事务；本服解封推装备/金币刷新，变更另发静态读法支持的最小成功 ACK。`0x0191` 未注册客户端响应 handler，两个请求的非哨兵第二字段均安全拒绝且不扣材料；`0x01B6` 的实际 S2C 实帧仍缺。[重铸 `0x0197`](game/client-to-server/0x0197.md) 仍因布局/版本差异隔离；[重置 `0x01C8`](game/client-to-server/0x01C8.md) 于2026-10-09按指定词条品级重抽接入，实机待测。状态仅 `CurrentImplementation + ClientStatic + ContentStatic`，没有 `ClientVerified`。固定样本与人工验收见 [Human Test List](../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md)。
+[解封 `0x0191`](game/client-to-server/0x0191.md) 与[词条变更 `0x01B6`](game/client-to-server/0x01B6.md) 已按 A21 静态请求宽度及真实 PVF 规则接入服务端事务；本服解封推装备/金币刷新，变更另发静态读法支持的最小成功 ACK。`0x0191` 未注册客户端响应 handler，两个请求的非哨兵第二字段均安全拒绝且不扣材料；`0x01B6` 的实际 S2C 实帧仍缺。[重置 `0x01C8`](game/client-to-server/0x01C8.md) 于2026-10-09按指定词条品级重抽接入，实机待测。状态仅 `CurrentImplementation + ClientStatic + ContentStatic`，没有 `ClientVerified`。固定样本与人工验收见 [Human Test List](../Document/tasks/equipment-development/attempts/spec-003-magic-seal/Human-Test-List.md)。
+
+## 2026-11-28 赛利亚物品合成
+
+[请求 `0x0197`](game/client-to-server/0x0197.md) 的六字节单底材路径按 PVF 配方扣料并生成装备，八字节形状安全拒绝。[结果](game/server-to-client/CMD-0x0197.md) 在库存投影后发送结果槽位。用户实机试用后确认功能符合预期，放入普通上衣后显示产物候选的界面行为记为有限范围 `ClientVerified`。逐项验收边界见[验证记录](../Document/tasks/seria-equipment-compound/verification/completion-evidence.md#a21-反馈)。
 
 ## 2026-09-30 CMD0110 宝珠附魔取证
 

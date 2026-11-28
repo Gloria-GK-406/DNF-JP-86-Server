@@ -57,6 +57,8 @@ internal static class InventoryRegistration
         services.TryAddSingleton<IEpicBookRuleService, EpicBookRuleService>();
         services.TryAddSingleton<IEpicBookDomainService, EpicBookDomainService>();
         services.TryAddSingleton<IEpicCraftDomainService, EpicCraftDomainService>();
+        services.TryAddSingleton<EquipmentCompoundRuleService>();
+        services.TryAddSingleton<IEquipmentCompoundDomainService, EquipmentCompoundDomainService>();
         services.TryAddSingleton<IEquipmentQualitySeedSource, EquipmentQualitySeedSource>();
         services.TryAddSingleton<IEquipmentQualityRuleService, EquipmentQualityRuleService>();
         services.TryAddSingleton<IEquipmentMagicSealGradeRuleService, EquipmentMagicSealGradeRuleService>();
