@@ -55,6 +55,7 @@ public sealed class MarriageConsumableProtectionTests
         services.AddSingleton<IItemUseRuleDefinitionSource>(
             new FakeItemUseRules((itemId,
                 ItemUseRules.Potion(cooldownMilliseconds: 0) with { Action = action })));
+        services.AddSingleton(Dfo.Server.Testing.TestRequired.Absent<Dfo.Server.Abstractions.Content.IStackableActionDefinitionSource>());
         new ApplicationModule().ConfigureServices(services, new ConfigurationBuilder().Build());
         return services.BuildServiceProvider();
     }

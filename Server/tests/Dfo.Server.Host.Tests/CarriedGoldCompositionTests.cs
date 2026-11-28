@@ -35,6 +35,7 @@ public sealed class CarriedGoldCompositionTests
             { ["Database:Path"] = database.Path }).Build();
         new PersistenceModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
+        services.AddSingleton(Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
         new ApplicationModule().ConfigureServices(services, configuration);
 
         using var provider = services.BuildServiceProvider(
@@ -63,6 +64,7 @@ public sealed class CarriedGoldCompositionTests
             { ["Database:Path"] = database.Path }).Build();
         new PersistenceModule().ConfigureServices(services, configuration);
         new InfrastructureModule().ConfigureServices(services, configuration);
+        services.AddSingleton(Dfo.Server.Protocol.Game.DropMaterialization.DropMaterializationProtocolCapabilities.Limits);
         new ApplicationModule().ConfigureServices(services, configuration);
 
         using var provider = services.BuildServiceProvider(

@@ -584,7 +584,7 @@ internal sealed partial class PvpRoomDomainService(
 
     public bool RecordDailyHealth(SelectedSessionIdentity session, IReadOnlyList<ushort> missionIds)
     {
-        GameplayWriteAssertion.Writing(nameof(RecordDailyHealth));
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(RecordDailyHealth));
         var pending = Pending;
         if (Acting(pending, session) is not (var room, var seat)
             || room.Snapshot is not { Channel.SupportsMatchmaking: true, IsMatchmaking: true, Match: { } match }
@@ -615,7 +615,7 @@ internal sealed partial class PvpRoomDomainService(
 
     public bool RecordDailyWinPose(SelectedSessionIdentity session, ushort missionId, byte ordinal)
     {
-        GameplayWriteAssertion.Writing(nameof(RecordDailyWinPose));
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(RecordDailyWinPose));
         var pending = Pending;
         if (Acting(pending, session) is not (var room, var seat)
             || room.Snapshot is not { Channel.SupportsMatchmaking: true, IsMatchmaking: true, Match: { } match }
@@ -634,7 +634,7 @@ internal sealed partial class PvpRoomDomainService(
     public async ValueTask<bool> RecordDailySkillAsync(SelectedSessionIdentity session, ushort skillId,
         CancellationToken cancellationToken)
     {
-        GameplayWriteAssertion.Writing(nameof(RecordDailySkillAsync));
+        GameplayWriteAssertion.Writing(nameof(PvpRoomDomainService) + "." + nameof(RecordDailySkillAsync));
         var pending = Pending;
         if (Acting(pending, session) is not (var room, var seat)
             || room.Snapshot is not { Channel.SupportsMatchmaking: true, IsMatchmaking: true,

@@ -6,12 +6,17 @@ using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfGuildDungeonContentSource(PvfArchiveProvider provider, PvfContentOptions options) : IGuildDungeonContentSource
+internal sealed class PvfGuildDungeonContentSource(PvfArchiveProvider provider, PvfContentOptions options) : IGuildDungeonContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private const string Directory = "etc/guild/guilddungeon/";
     private const string StyleList = Directory + "guilddungeonstyle.lst";
     private readonly Lazy<GuildDungeonCatalog?> catalog = new(() =>
         options.ResolveArchivePath() is null ? null : Load(provider.Archive));
+
+    public string Name => "guild-dungeons";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(Read() is null ? 0 : 1);
 
     public GuildDungeonCatalog? Read() => catalog.Value;
 

@@ -37,6 +37,8 @@ public sealed partial class ContentWarmupTests
         "stackable-action-index", "teleport-consumable-index", "tutorial-rewards", "lucky-star-rental",
         "equipment-slot-index", "hell-dungeons", "lost-land-drops", "lost-land-consumable-index",
         "equipment-growth", "equipment-emancipate-index", "auction-item-index", "character-support-weapons",
+        "anton-raid", "anton-raid-rewards", "guild-compound", "guild-dungeons", "guild-economy",
+        "guild-red-packets", "pvp-colosseum", "pvp-daily-missions",
     ];
 
     /// <summary>
@@ -65,6 +67,14 @@ public sealed partial class ContentWarmupTests
         [Infra("PvfHellRewardDefinitionSource")] = Warmed<Abstractions.World.IHellRewardDefinitionSource>(),
         [Infra("PvfSaoTowerContentSource")] = Warmed<Abstractions.World.ISaoTowerContentSource>(),
         [Infra("PvfPvpGradeDefinitionSource")] = Warmed<Abstractions.Pvp.IPvpGradeDefinitionSource>(),
+        [Infra("PvfAntonRaidContentSource")] = Warmed<Abstractions.Raids.IAntonRaidContentSource>(),
+        [Infra("PvfAntonRaidRewardContentSource")] = Warmed<Abstractions.Raids.IAntonRaidRewardContentSource>(),
+        [Infra("PvfGuildCompoundContentSource")] = Warmed<Abstractions.Inventory.IGuildCompoundContentSource>(),
+        [Infra("PvfGuildDungeonContentSource")] = Warmed<Abstractions.Guilds.IGuildDungeonContentSource>(),
+        [Infra("PvfGuildEconomySource")] = Warmed<Abstractions.Guilds.IGuildEconomySource>(),
+        [Infra("PvfGuildRedPacketRuleSource")] = Warmed<Abstractions.Guilds.IGuildRedPacketRuleSource>(),
+        [Infra("PvfPvpColosseumRuleSource")] = Warmed<Abstractions.Pvp.IPvpColosseumRuleSource>(),
+        [Infra("PvfPvpDailyMissionDefinitionSource")] = Warmed<Abstractions.Pvp.IPvpDailyMissionDefinitionSource>(),
         [Infra("PvfPvpMapDefinitionSource")] = Warmed<Abstractions.Pvp.IPvpMapDefinitionSource>(),
         [Infra("PvfDarkElfRuinsContentSource")] = Warmed<Abstractions.World.IDarkElfRuinsContentSource>(),
         [Infra("PvfMarriageCeremonyContentSource")] = Warmed<Abstractions.Marriage.IMarriageCeremonyContentSource>(),

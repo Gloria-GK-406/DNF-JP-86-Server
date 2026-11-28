@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Guilds;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Guilds;
+using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.Guilds;
 
@@ -20,7 +21,7 @@ internal sealed class GuildRedPacketRuleService(IGuildRedPacketRuleSource conten
         {
             Charges = quote.Charges.Select(charge => PurchaseProduct(rules, charge) is not null
                 ? charge with { Mode = CeraShopPaymentMode.CeraOnly } : charge).ToImmutableArray(),
-            Grants = quote.Grants.Select(grant => grant.ExpireDate == 0 && rules.Products.ContainsKey(grant.Item.ItemId)
+            Grants = quote.Grants.Select(grant => ItemLifetime.At(grant.ExpireDate).IsPermanent && rules.Products.ContainsKey(grant.Item.ItemId)
                 ? grant with { ExpireDate = checked((int)now.AddDays(10).ToUnixTimeSeconds()) } : grant).ToImmutableArray(),
         };
     }

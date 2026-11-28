@@ -2,6 +2,7 @@ using Dfo.Server.Abstractions.Raids;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Raids;
 using Dfo.Server.Data.Characters;
+using Dfo.Server.Testing;
 using Xunit;
 
 namespace Dfo.Server.Application.Tests.Raids;
@@ -13,7 +14,7 @@ public sealed class AntonRaidRewardSettlementTests
     private static readonly DateTimeOffset End = Start.AddMinutes(1);
 
     [Fact]
-    public void ManualAndAutomaticSelectionShareSlotsAndOnlyGrantSupportedRewardTypes()
+    public void ManualAndAutomaticSelectionShareSlotsAndOnlyGrantSupportedRewardTypes() => TestGameplay.Run(() =>
     {
         var service = Create();
         var seed = Seed(true);
@@ -52,10 +53,10 @@ public sealed class AntonRaidRewardSettlementTests
         Assert.Equal(delivery.Grants, repeated.Grants);
         Assert.True(service.Complete(seed.Instance, 0));
         Assert.Empty(service.Deadlines());
-    }
+    });
 
     [Fact]
-    public void MovieFallbackStartsCardsAndFailureOnlyGrantsRetryCertificates()
+    public void MovieFallbackStartsCardsAndFailureOnlyGrantsRetryCertificates() => TestGameplay.Run(() =>
     {
         var service = Create();
         var success = Seed(true);
@@ -77,7 +78,7 @@ public sealed class AntonRaidRewardSettlementTests
             Assert.Equal(AntonRaidRewardKind.RetryCertificate, grant.Kind);
             Assert.Equal(new AntonRaidRewardItem(10099897, 1), grant.Item);
         });
-    }
+    });
 
     private static AntonRaidRewardAdvance Advance(IAntonRaidRewardSettlementDomainService service, AntonRaidRewardAdvanceKind kind)
     {

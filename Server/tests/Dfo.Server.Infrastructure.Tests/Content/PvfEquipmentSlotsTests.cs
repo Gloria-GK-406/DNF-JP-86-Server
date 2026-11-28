@@ -40,7 +40,7 @@ public sealed class PvfEquipmentSlotsTests
     }
 
     /// <summary>
-    /// Every name in the table is either a costume slot or a worn one, and the worn band is unchanged.
+    /// Costume slots, the legacy worn slots and the separate guild medal slot retain their layout.
     /// </summary>
     /// <remarks>
     /// Naming the creature could have been done by widening the container instead, and that would
@@ -65,7 +65,9 @@ public sealed class PvfEquipmentSlotsTests
         var costumes = PvfEquipmentSlots.ByName
             .Where(pair => pair.Key.EndsWith("avatar]", StringComparison.OrdinalIgnoreCase))
             .ToArray();
-        var worn = PvfEquipmentSlots.ByName.Except(costumes).ToArray();
+        var medal = Assert.Single(PvfEquipmentSlots.ByName, pair => pair.Key == "[flag]");
+        Assert.Equal(31, medal.Value);
+        var worn = PvfEquipmentSlots.ByName.Except(costumes).Where(pair => pair.Key != medal.Key).ToArray();
 
         Assert.Equal(11, costumes.Length);
         Assert.All(costumes, pair => Assert.InRange(pair.Value, (byte)0, (byte)10));

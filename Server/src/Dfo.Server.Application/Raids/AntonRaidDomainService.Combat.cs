@@ -49,6 +49,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask<DungeonEntryAttempt> EnterAsync(DungeonEntryContext context, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(EnterAsync));
         var source = context.Facts.Intent.RaidTransferFrom;
         if (!context.IsRaidChannel || context.Facts.Intent is not { Kind: DungeonEntryIntentKind.AntonRaid, Raid: { } identity }
             || context.RequestMode != 0 && (context.RequestMode != 2 || source is null)
@@ -107,6 +108,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask RegisterReadyAsync(SelectedSessionIdentity session, DungeonRunState run, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(RegisterReadyAsync));
         if (run.RoomVersion != 0 || !run.ReadyParticipants.Contains(session.CharacterId) || !sessions.IsInWorld(session)
             || RaidSortie(run) is not { } owned || Of(session) != owned.Raid
             || owned.Sortie.Participants.ContainsKey(session.CharacterId))
@@ -125,6 +127,7 @@ internal sealed partial class AntonRaidDomainService
     public async ValueTask CompleteClearAsync(DungeonActorDeathClaim death,
         IReadOnlyList<SelectedSessionIdentity> participants, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CompleteClearAsync));
         if (RaidSortie(death.Run) is not { } owned) return;
         var present = participants.Where(member => sessions.IsInWorld(member) && Of(member) == owned.Raid
                 && owned.Sortie.Participants.GetValueOrDefault(member.CharacterId) == member
@@ -138,6 +141,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask RegisterDeathAsync(SelectedSessionIdentity session, DungeonRunState run, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(RegisterDeathAsync));
         if (RaidSortie(run) is not { } owned || owned.Sortie.Participants.GetValueOrDefault(session.CharacterId) != session
             || !run.DeadParticipants.Contains(session.CharacterId))
             return;
@@ -155,6 +159,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask<bool> StageRevivalAsync(DungeonRunState run, CharacterId target, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(StageRevivalAsync));
         if (!CanRevive(run, target) || RaidSortie(run) is not { } owned)
             return false;
         var next = owned.Combat.Copy();
@@ -177,6 +182,7 @@ internal sealed partial class AntonRaidDomainService
     public async ValueTask<bool> ChangeShieldAsync(SelectedSessionIdentity session, uint symbol, uint value,
         AntonRaidShieldOperation operation, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(ChangeShieldAsync));
         if (dungeonRuns.Find(session.CharacterId) is not { } run || RaidSortie(run) is not { } owned
             || !sessions.IsInWorld(session)
             || owned.Sortie.Participants.GetValueOrDefault(session.CharacterId) != session
@@ -194,6 +200,7 @@ internal sealed partial class AntonRaidDomainService
     public async ValueTask<bool> UseCombatBuffAsync(SelectedSessionIdentity session, byte type, byte? squad,
         IReadOnlyList<CharacterId> targets, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(UseCombatBuffAsync));
         if (Of(session) is not { Stage: AntonRaidStage.Attacking, Combat: { } combat } raid
             || !sessions.IsInWorld(session) || raidRules.Current.Buffs.SingleOrDefault(buff => buff.Type == type) is not { } rule)
             return false;
@@ -221,6 +228,7 @@ internal sealed partial class AntonRaidDomainService
     public async ValueTask<bool> ReportMonsterStatusAsync(SelectedSessionIdentity session, IReadOnlyList<uint> hitPoints,
         CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(ReportMonsterStatusAsync));
         if (hitPoints.Count is < 1 or > 5 || dungeonRuns.Find(session.CharacterId) is not { } run
             || RaidSortie(run) is not { } owned || !owned.Combat.AttackOpenAt(clock.GetUtcNow()) || !sessions.IsInWorld(session)
             || owned.Sortie.Participants.GetValueOrDefault(session.CharacterId) != session)
@@ -246,6 +254,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask<bool> AdvanceCombatAsync(AntonRaidCombatDeadline deadline, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(AdvanceCombatAsync));
         if (!raids.TryGetValue(deadline.Number, out var raid) || raid.Lease.Owner != deadline.Instance
             || raid is not { Stage: AntonRaidStage.Attacking, Combat: { } combat } || combat.Phase != deadline.Phase)
             return false;
@@ -259,6 +268,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask<AntonRaidStart> FinishIntermissionAsync(AntonRaidCombatDeadline deadline, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(FinishIntermissionAsync));
         if (deadline.Kind != AntonRaidCombatDeadlineKind.Intermission || !raids.TryGetValue(deadline.Number, out var raid)
             || raid.Lease.Owner != deadline.Instance || raid.Stage != AntonRaidStage.Break
             || raid.Phase != deadline.Phase || raid.PreparationGeneration != deadline.Generation
@@ -282,7 +292,7 @@ internal sealed partial class AntonRaidDomainService
 
     public IReadOnlyList<AntonRaidRecruitmentChange> CleanTerminalRaids()
     {
-        GameplayWriteAssertion.Writing(nameof(CleanTerminalRaids));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CleanTerminalRaids));
         var changes = new List<AntonRaidRecruitmentChange>();
         foreach (var raid in raids.Values.Where(TerminalRaidHasReturned).ToArray())
         {
@@ -313,11 +323,15 @@ internal sealed partial class AntonRaidDomainService
 
     public IReadOnlyList<Guid> PendingRunReturns() => pendingReturns.ToArray();
 
-    public bool CompleteRunReturn(Guid run) => pendingReturns.Remove(run);
+    public bool CompleteRunReturn(Guid run)
+    {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CompleteRunReturn));
+        return pendingReturns.Remove(run);
+    }
 
     public void QueueMemberDeparture(AntonRaidMemberDeparture departure)
     {
-        GameplayWriteAssertion.Writing(nameof(QueueMemberDeparture));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(QueueMemberDeparture));
         var key = (departure.Run, departure.Session);
         if (!pendingMemberDepartures.TryGetValue(key, out var previous) || departure.EnableClear && !previous.EnableClear)
         {
@@ -330,7 +344,7 @@ internal sealed partial class AntonRaidDomainService
 
     public bool CompleteMemberDeparture(AntonRaidMemberDeparture departure)
     {
-        GameplayWriteAssertion.Writing(nameof(CompleteMemberDeparture));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CompleteMemberDeparture));
         var key = (departure.Run, departure.Session);
         if (pendingMemberDepartures.GetValueOrDefault(key) != departure)
             return false;
@@ -342,7 +356,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentChange? CompletePhaseSettlement(Guid instance, byte phase)
     {
-        GameplayWriteAssertion.Writing(nameof(CompletePhaseSettlement));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(CompletePhaseSettlement));
         var raid = raids.Values.FirstOrDefault(raid => raid.Lease.Owner == instance);
         if (raid is not { Stage: AntonRaidStage.Settling } || raid.Phase != phase
             || !raid.Outcomes.TryGetValue(phase, out var outcome))
@@ -362,6 +376,7 @@ internal sealed partial class AntonRaidDomainService
 
     public async ValueTask HandleAsync(DomainEventEnvelope<DungeonParticipantLeft> message, CancellationToken ct)
     {
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(HandleAsync));
         var departure = message.Payload;
         var runtime = dungeonRuns.Find(departure.RunId);
         if (runtime is null)

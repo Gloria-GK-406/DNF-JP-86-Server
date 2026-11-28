@@ -35,7 +35,7 @@ public sealed class PvpRoomTownReturnTests
         world.Views.Publish(leaver, InTown(leaver));
         ((ITownAreaDomainService)areas).Enter(new TownAreaMember(leaver, Area, new CharacterPositionState(3, 6, 0, 200, 1), true));
         ((ITownAreaDomainService)areas).LeaveExact(leaver, TownAreaDepartureReason.PvpRoom);
-        var transit = ProtocolAlgorithmFixture.Create<TownTransitDomainService>(areas, world.Sessions, SharedTownMovementDomainService.Instance);
+        var transit = ProtocolAlgorithmFixture.TownTransit(null, areas, world.Sessions, SharedTownMovementDomainService.Instance);
         var admitted = await transit.ReturnToTownAsync(
             [new TownReturnRequest(leaver, Area.ChannelId, new CharacterPositionState(3, 6, 100, 200, 1))], CancellationToken.None);
 

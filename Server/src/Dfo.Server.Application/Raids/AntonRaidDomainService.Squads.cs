@@ -10,7 +10,7 @@ internal sealed partial class AntonRaidDomainService
     public PartyOperationResult RequestSquadInvite(SelectedSessionIdentity inviter, SelectedSessionIdentity invitee,
         PartyInviteDisplayState display)
     {
-        GameplayWriteAssertion.Writing(nameof(RequestSquadInvite));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(RequestSquadInvite));
         if (PlanSquadInvite(inviter, invitee) is not { } plan)
             return PartyOperationResult.Reject(PartyFailureReason.RaidRecruiting);
 
@@ -24,7 +24,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentResult RespondSquadInvite(SelectedSessionIdentity invitee, SelectedSessionIdentity inviter, bool accepted)
     {
-        GameplayWriteAssertion.Writing(nameof(RespondSquadInvite));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(RespondSquadInvite));
         if (Of(invitee) is not { } raid || !raid.SquadInvites.Remove((inviter, invitee), out var pending)
             || pending.ExpiresAt <= clock.GetUtcNow() || pending.PreparationGeneration != raid.PreparationGeneration)
             return AntonRaidRecruitmentResult.Refused;
@@ -77,7 +77,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentResult LeaveSquad(SelectedSessionIdentity sender)
     {
-        GameplayWriteAssertion.Writing(nameof(LeaveSquad));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(LeaveSquad));
         if (Of(sender) is not { } raid || !CanEditActiveSquads(raid))
             return AntonRaidRecruitmentResult.Refused;
         var index = raid.Members.FindIndex(member => member.Session == sender);
@@ -86,7 +86,7 @@ internal sealed partial class AntonRaidDomainService
 
     public AntonRaidRecruitmentResult SetSquadLeader(SelectedSessionIdentity sender, SelectedSessionIdentity target)
     {
-        GameplayWriteAssertion.Writing(nameof(SetSquadLeader));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(SetSquadLeader));
         if (Of(sender) is not { } raid || Of(target) != raid || raid.Leader.Session != sender
             || !CanEditActiveSquads(raid) || RecruitmentChannel(sender) != raid.Channel
             || raid.Members.FirstOrDefault(member => member.Session == target) is not { Squad: > 0 } candidate

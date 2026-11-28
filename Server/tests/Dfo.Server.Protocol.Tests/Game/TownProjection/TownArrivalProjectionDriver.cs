@@ -15,7 +15,7 @@ namespace Dfo.Server.Protocol.Tests.Game.TownProjection;
 // The real public delivery always includes weakness; CMD coverage exercises that full boundary.
 internal sealed class TownArrivalProjectionDriver(params object?[] services)
 {
-    private readonly TownTransitDomainService transit = ProtocolAlgorithmFixture.Create<TownTransitDomainService>(services);
+    private readonly TownTransitDomainService transit = ProtocolAlgorithmFixture.TownTransit(null, services);
     private readonly TownAreaProjectionDelivery delivery = ProtocolAlgorithmFixture.Create<TownAreaProjectionDelivery>(services);
 
     public async ValueTask<int> EnterAsync(IReadOnlyList<TownAreaEntry> entries, CancellationToken token)

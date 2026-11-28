@@ -6,7 +6,7 @@ using Dfo.Server.Abstractions.Inventory;
 namespace Dfo.Server.Infrastructure.Content;
 
 internal sealed class PvfGuildCompoundContentSource(PvfArchiveProvider provider, PvfContentOptions options)
-    : IGuildCompoundContentSource
+    : IGuildCompoundContentSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private const string RulesPath = "etc/guilddungeoncompound.etc";
     private static readonly PvfField<int> Rarity = PvfField.Int32("[rarity]", minimum: 0, maximum: 6);
@@ -15,6 +15,11 @@ internal sealed class PvfGuildCompoundContentSource(PvfArchiveProvider provider,
 
     private readonly Lazy<IReadOnlyDictionary<GuildCompoundKind, Catalog>> content = new(() =>
         options.ResolveArchivePath() is null ? new Dictionary<GuildCompoundKind, Catalog>() : Read(provider.Archive));
+
+    public string Name => "guild-compound";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(content.Value.Count);
 
     public GuildCompoundRule? FindRule(GuildCompoundKind kind, int rarity) =>
         content.Value.GetValueOrDefault(kind)?.Rules.GetValueOrDefault(rarity);

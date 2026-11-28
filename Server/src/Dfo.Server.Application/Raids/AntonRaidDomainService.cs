@@ -67,7 +67,7 @@ internal sealed partial class AntonRaidDomainService(
 
     public AntonRaidRecruitmentResult Create(AntonRaidMember leader, ReadOnlyMemory<byte> title)
     {
-        GameplayWriteAssertion.Writing(nameof(Create));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Create));
         if (RecruitmentChannel(leader.Session) is not { } channel
             || Of(leader.Session) is { CanEdit: false }
             || lastRaidNumbers.GetValueOrDefault(channel) == ushort.MaxValue)
@@ -89,7 +89,7 @@ internal sealed partial class AntonRaidDomainService(
 
     public AntonRaidApproval? Request(AntonRaidMember sender, AntonRaidMember recipient)
     {
-        GameplayWriteAssertion.Writing(nameof(Request));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Request));
         var senderRaid = Of(sender.Session);
         var recipientRaid = Of(recipient.Session);
         var raid = senderRaid ?? recipientRaid;
@@ -116,7 +116,7 @@ internal sealed partial class AntonRaidDomainService(
 
     public AntonRaidRecruitmentResult Respond(SelectedSessionIdentity recipient, SelectedSessionIdentity sender, bool accepted)
     {
-        GameplayWriteAssertion.Writing(nameof(Respond));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Respond));
         if (!approvals.Remove((recipient, sender), out var approval)
             || approval.ExpiresAt <= clock.GetUtcNow()
             || !raids.TryGetValue(approval.Number, out var raid)
@@ -138,7 +138,7 @@ internal sealed partial class AntonRaidDomainService(
 
     public AntonRaidRecruitmentResult Assign(SelectedSessionIdentity sender, ushort target, uint squad)
     {
-        GameplayWriteAssertion.Writing(nameof(Assign));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Assign));
         if (Of(sender) is not { } raid || RecruitmentChannel(sender) != raid.Channel || squad > AntonRaidRuleService.SquadCount
             || (raid.Stage == AntonRaidStage.Recruiting
                 ? sender.WireUserId != target && raid.Leader.Session != sender
@@ -154,7 +154,7 @@ internal sealed partial class AntonRaidDomainService(
 
     public AntonRaidRecruitmentResult Leave(SelectedSessionIdentity sender, ushort target)
     {
-        GameplayWriteAssertion.Writing(nameof(Leave));
+        GameplayWriteAssertion.Writing(nameof(AntonRaidDomainService) + "." + nameof(Leave));
         if (Of(sender) is not { } raid
             || (sender.WireUserId != target && (!raid.CanEdit || raid.Leader.Session != sender)))
             return AntonRaidRecruitmentResult.Refused;

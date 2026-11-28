@@ -73,7 +73,7 @@ public sealed class CharacterBodyShapeTests
         "rating_grade", "win", "win_streak",
     ];
 
-    /// <summary>character_pvp_skill_state -- 2 columns.</summary>
+    /// <summary>character_pvp_skill_state -- 3 columns.</summary>
     /// <remarks>
     /// The ruling folded this flag into <c>character_pvp</c>. That table has since been split by
     /// concept: the grades went to the duel record, and whether the duel skill pages were seeded is
@@ -82,7 +82,7 @@ public sealed class CharacterBodyShapeTests
     /// </remarks>
     private static readonly string[] CharacterPvpSkillState =
     [
-        "character_id", "skills_initialized",
+        "active_skill_build", "character_id", "skills_initialized",
     ];
 
     /// <summary>character_settings -- 3 columns.</summary>

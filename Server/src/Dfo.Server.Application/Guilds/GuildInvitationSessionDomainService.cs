@@ -35,7 +35,7 @@ internal sealed class GuildInvitationSessionDomainService(ISelectedSessionDomain
 
     public bool TryOffer(GuildInvitationOffer offer)
     {
-        GameplayWriteAssertion.Writing(nameof(TryOffer));
+        GameplayWriteAssertion.Writing(nameof(GuildInvitationSessionDomainService) + "." + nameof(TryOffer));
         if (!sessions.IsInWorld(offer.Inviter) || !sessions.IsInWorld(offer.Invitee) || Find(offer.Invitee) is not null)
             return false;
         pending.Remove(offer.Invitee);
@@ -52,7 +52,7 @@ internal sealed class GuildInvitationSessionDomainService(ISelectedSessionDomain
 
     public void Remove(SelectedSessionIdentity invitee, GuildInvitation invitation)
     {
-        GameplayWriteAssertion.Writing(nameof(Remove));
+        GameplayWriteAssertion.Writing(nameof(GuildInvitationSessionDomainService) + "." + nameof(Remove));
         if (pending.TryGetValue(invitee, out var current) && ReferenceEquals(current, invitation))
             pending.Remove(invitee);
     }

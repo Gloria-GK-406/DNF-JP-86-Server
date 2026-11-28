@@ -37,7 +37,7 @@ public sealed class ItemCarrierShapeTests
         "avatar_expire_date", "avatar_jewel_socket",
         "created_at", "creature_field04", "creature_field_after_value", "creature_mode1_field0a",
         "creature_mode1_field0b", "creature_mode_flag", "creature_progress_value", "creature_tail_flag",
-        "creature_text", "item_core", "item_uid", "is_mirror", "mirror_source_uid", "updated_at",
+        "creature_text", "guardian_gem_keys", "item_core", "item_uid", "is_mirror", "mirror_source_uid", "updated_at",
     ];
 
     /// <summary>item_slots -- 8 columns, and the same eight whatever the slot holds.</summary>

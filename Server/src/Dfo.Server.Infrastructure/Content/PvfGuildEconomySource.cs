@@ -5,7 +5,7 @@ using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfGuildEconomySource(PvfArchiveProvider provider) : IGuildEconomySource
+internal sealed class PvfGuildEconomySource(PvfArchiveProvider provider) : IGuildEconomySource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private const string Path = "etc/(r)guild.etc";
     private const string MedalAuraPath = "etc/guild/insigniashapelist.etc";
@@ -48,6 +48,15 @@ internal sealed class PvfGuildEconomySource(PvfArchiveProvider provider) : IGuil
             || first.Value is < 0 or > GuildMarkPricing.MarkCount || price.Value <= 0)
             return null;
         return new GuildMarkPricing(first.Value, price.Value);
+    }
+
+    public string Name => "guild-economy";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken)
+    {
+        var loaded = new object?[] { ReadContentCatalog(), ReadMarkPricing(), ReadMedalAuraCatalog(),
+            ReadGoldCost(), ReadDonationGoldPerPoint(), ReadMonthlyContribution() };
+        return ValueTask.FromResult(loaded.Count(value => value is not null));
     }
 
     public GuildContentCatalog? ReadContentCatalog() => contents.Value;

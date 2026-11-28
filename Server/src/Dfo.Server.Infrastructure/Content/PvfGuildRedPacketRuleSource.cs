@@ -6,10 +6,15 @@ using Dfo.Server.Data.Guilds;
 
 namespace Dfo.Server.Infrastructure.Content;
 
-internal sealed class PvfGuildRedPacketRuleSource(PvfArchiveProvider provider) : IGuildRedPacketRuleSource
+internal sealed class PvfGuildRedPacketRuleSource(PvfArchiveProvider provider) : IGuildRedPacketRuleSource, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private const string Path = "etc/chn_hongbao/chn_hongbao.etc";
     private readonly Lazy<GuildRedPacketRules?> rules = new(() => Load(provider));
+
+    public string Name => "guild-red-packets";
+
+    public ValueTask<int> WarmAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(Read()?.Products.Count ?? 0);
 
     public GuildRedPacketRules? Read() => rules.Value;
 
