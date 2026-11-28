@@ -159,7 +159,8 @@ internal static class ProductionSelectionStages
         ICharacterRosterDomainService characters,ISelectedSessionCleanupDomainService cleanup) =>
         new(users,sessions,characters,TestRequired.InitialHonor,null!,new CleanupAdapter(cleanup),null!,null!,null!,null!,
             new Dfo.Server.Protocol.Game.Party.PartyProjectionStreamRegistry(),(Dfo.Server.Abstractions.Execution.IOutboundOrdering)ProtocolAlgorithmFixture.Default(typeof(Dfo.Server.Abstractions.Execution.IOutboundOrdering)),
-            representativeSwitch: new Dfo.Server.Application.Pvp.PvpTotalMatchRepresentativeSwitchDomainService(), raidSquads: null!);
+            representativeSwitch: new Dfo.Server.Application.Pvp.PvpTotalMatchRepresentativeSwitchDomainService(),
+            luckyCharacters: null!, raidSquads: null!);
     private sealed class InlineUnits : ICommandWorkUnits
     {
         public ValueTask<T> WriteAsync<T>(CommandExecutionContext context,CommandWorkUnitDeclaration declaration,Func<CommandWorkUnit,CancellationToken,ValueTask<T>> action,CancellationToken ct=default) where T:notnull => action(null!,ct);

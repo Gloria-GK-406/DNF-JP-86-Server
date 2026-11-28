@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -16,7 +17,8 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
     IQuestRewardRuleService rewards, IExperienceRuleService experience, ICarriedGoldRuleService gold,
     IItemPlacementRuleService placements, IAccountMaterialRuleService accounts,
     ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures,
-    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService stateRules)
+    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService stateRules,
+    ILuckyCharacterEventQuery luckyCharacters, TimeProvider clock)
     : IQuestCompletionEffectRuleService
 {
     private readonly IQuestStateRuleService stateRules = stateRules;
@@ -115,7 +117,12 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         effects.Add(new SetCarriedQuestEffect(target, null));
         effects.Add(new SetClearedQuestEffect(questId, facts.Quests.Cleared.FirstOrDefault(x => x.QuestId == questId)?.Mark, IQuestLog.ClearedMark));
         effects.AddRange(rewardEffects);
-        var xp = experience.DecideAward(facts.Progress, new ExperienceBreakdown(Base: reward.Experience));
+        var experienceBreakdown = new ExperienceBreakdown(Base: reward.Experience);
+        if (reward.Experience > 0
+            && (await luckyCharacters.ReadAtAsync(clock.GetUtcNow(), ct).ConfigureAwait(false)).Includes(facts.Identity.Job)
+            && await quests.FindAsync(questId, ct).ConfigureAwait(false) is { IsEventOnly: not true, Grade: QuestGrade.Epic or QuestGrade.Normal or QuestGrade.Side })
+            experienceBreakdown = experienceBreakdown with { LuckyCharacter = reward.Experience / 10 };
+        var xp = experience.DecideAward(facts.Progress, experienceBreakdown);
         effects.Add(new CharacterExperienceEffect(xp));
         byte? packedGrowType = reward.GrowType;
         if (reward.GrowType is { } grow)

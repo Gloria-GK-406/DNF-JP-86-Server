@@ -1,22 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import { App, Button, Drawer, Dropdown, Input, InputNumber, Popconfirm, Table, Typography } from 'antd';
+import { App, Button, Checkbox, Drawer, Dropdown, Input, InputNumber, Popconfirm, Select, Table, Typography } from 'antd';
 import { EllipsisOutlined, ReloadOutlined } from '@ant-design/icons';
 import { api, ApiError } from './api';
 import { activityView } from './events/activityViews';
 import { dropEntryGroups, dropEntryKeys, type DrawMultipliers } from './events/dropRateEntries';
-import { bjTime } from './format';
+import { bjTime, jobName } from './format';
 import { useNotiBar } from './NotiBar';
 import { Field, LockBanner, MoreToggle, PageHead, Panel, Pill, useExpanded, type PillKind } from './ui';
 import { useGmRead } from './useGmRead';
+
+type LuckyCharacterSettings = { allJobs: boolean; jobs: number[] };
+const luckyJobOptions = Array.from({ length: 14 }, (_, job) => ({ value: job, label: jobName(job) }));
 
 export type EventEntry = { eventId: number; type: string; revision: number; seasonId: string; enabled: boolean;
   status: 'active' | 'disabled' | 'scheduled' | 'expired' | 'unavailable'; title: string; shortName: string;
   description: string; startNotice: string; endNotice: string; startsAt: string | null; endsAt: string | null;
   available: boolean; unavailableReason: string | null; updatedAt: string | null; updatedBy: string | null;
-  appliedActive?: boolean | null; appliedRevision?: number | null; appliedAt?: string | null; drawMultipliers?: DrawMultipliers | null };
+  appliedActive?: boolean | null; appliedRevision?: number | null; appliedAt?: string | null; drawMultipliers?: DrawMultipliers | null;
+  luckyCharacter?: LuckyCharacterSettings | null };
 export type EventList = { entries: EventEntry[] };
 type Access = { onExpired: () => void; onDenied: () => void };
-type Configuration = Pick<EventEntry, 'title' | 'shortName' | 'description' | 'startNotice' | 'endNotice'> & { startsAt: string; endsAt: string; drawMultipliers?: DrawMultipliers };
+type Configuration = Pick<EventEntry, 'title' | 'shortName' | 'description' | 'startNotice' | 'endNotice'> & {
+  startsAt: string; endsAt: string; drawMultipliers?: DrawMultipliers; luckyCharacter?: LuckyCharacterSettings };
 type Action = 'configure' | 'enable' | 'disable' | 'new-season';
 const statuses: Record<EventEntry['status'], [string, PillKind]> = { active: ['生效中', 'ok'], disabled: ['已停用', 'attn'], scheduled: ['未开始', 'idle'], expired: ['已结束', 'idle'], unavailable: ['规则不可用', 'crit'] };
 const successes = { configure: '活动配置已保存，当前期次进度保留。', enable: '活动已启用，按配置时间生效。',
@@ -84,6 +89,9 @@ export function EventsView(access: Access) {
     : entry.type === 'unlimited-fatigue'
     ? (entry.enabled ? '停用后，后续进图、换房及竞技地下城每轮恢复扣除疲劳，现有余额保留。'
       : '有效期内暂停扣除疲劳，零疲劳角色也可进入地下城；不会补满余额。')
+    : entry.type === 'lucky-character'
+    ? (entry.enabled ? '停用后，新进副本和之后提交的任务取消幸运收益；进行中的副本按入场资格结算。'
+      : '有效期内为所选职业开启幸运角色福利。')
     : entry.type === 'joust'
     ? (entry.enabled ? '停用后禁止新下注；已有投注的轮次仍会继续结算并发放奖励。' : '活动仅在配置的有效期内允许下注；已有投注和奖励记录保留，不会重复发奖。')
     : entry.enabled ? '停用后玩家不能继续参与活动或领取活动奖励；本期进度和已领取记录保留。' : '活动仅在配置的有效期内生效；本期进度和已领取记录保留，不会重复发奖。';
@@ -100,7 +108,7 @@ export function EventsView(access: Access) {
       <Table<EventEntry> className="ledger" size="small" rowKey="eventId" dataSource={entries} loading={current.busy} pagination={false} scroll={{ x: 980 }}
         locale={{ emptyText: current.error ? '读取失败' : '没有已注册的活动' }} columns={[
           { title: '活动', key: 't', render: (_, e) => <span><span className="strong">{e.title}</span> <span className="faint small">{e.shortName}</span> <span className="id">#{e.eventId}</span></span> },
-          { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{e.type === 'unlimited-fatigue' ? '无限疲劳' : e.type === 'drop-rate' ? '爆率提升' : activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
+          { title: '类型 · 期次', key: 'k', render: (_, e) => <span>{e.type === 'unlimited-fatigue' ? '无限疲劳' : e.type === 'drop-rate' ? '爆率提升' : e.type === 'lucky-character' ? '幸运角色' : activityView(e.type)?.label ?? e.type} · <Typography.Text copyable={{ text: e.seasonId }} className="mono small">{e.seasonId.length > 14 ? `${e.seasonId.slice(0, 14)}…` : e.seasonId}</Typography.Text>
             <span className="faint small"> v{e.revision}</span></span> },
           { title: '状态', key: 's', width: 120, render: (_, e) => <span><Pill kind={statuses[e.status][1]}>{statuses[e.status][0]}</Pill>
             {e.type === 'unlimited-fatigue' && <div className="faint small">{e.status === 'active' ? '已暂停扣除疲劳' : '正常扣除疲劳'}</div>}
@@ -115,7 +123,7 @@ export function EventsView(access: Access) {
             <Popconfirm title={`${e.enabled ? '停用' : '启用'}「${e.title}」？`} description={toggleText(e)} okText={e.enabled ? '确认停用' : '确认启用'} cancelText="取消"
               onConfirm={() => change(e, e.enabled ? 'disable' : 'enable')} disabled={locked || (!e.enabled && (!e.available || !e.startsAt || !e.endsAt))}>
               <Button size="small" type="text" danger={e.enabled} disabled={locked || (!e.enabled && (!e.available || !e.startsAt || !e.endsAt))}>{e.enabled ? '停用' : '启用'}</Button></Popconfirm>
-            {e.type !== 'unlimited-fatigue' && e.type !== 'drop-rate' && <Dropdown trigger={['click']} disabled={locked} menu={{ items: [{ key: 'new-season', label: '新建期次' }], onClick: () => setEditor({ entry: structuredClone(e), action: 'new-season' }) }}>
+            {e.type !== 'unlimited-fatigue' && e.type !== 'drop-rate' && e.type !== 'lucky-character' && <Dropdown trigger={['click']} disabled={locked} menu={{ items: [{ key: 'new-season', label: '新建期次' }], onClick: () => setEditor({ entry: structuredClone(e), action: 'new-season' }) }}>
               <Button size="small" type="text" aria-label="更多" icon={<EllipsisOutlined />} /></Dropdown>}
           </span> },
         ]} />
@@ -134,6 +142,7 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
   const [form, setForm] = useState(() => ({ title: entry.title, shortName: entry.shortName, description: entry.description, startNotice: entry.startNotice,
     endNotice: entry.endNotice, startsAt: inputTime(entry.startsAt), endsAt: inputTime(entry.endsAt) }));
   const [multipliers, setMultipliers] = useState<DrawMultipliers>(() => Object.fromEntries(dropEntryKeys.map(key => [key, entry.drawMultipliers?.[key] ?? 1])));
+  const [lucky, setLucky] = useState<LuckyCharacterSettings>(entry.luckyCharacter ?? { allJobs: true, jobs: [] });
   const [allAt, setAllAt] = useState<number | null>(2);
   const [dirty, setDirty] = useState(false); const [touched, setTouched] = useState(false); const confirming = useRef(false);
   const set = (patch: Partial<typeof form>) => { setForm(old => ({ ...old, ...patch })); setDirty(true); };
@@ -158,6 +167,10 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
     const configuration: Configuration = { title: form.title.trim(), shortName: form.shortName.trim(), description: form.description.trim(),
       startNotice: form.startNotice.trim(), endNotice: form.endNotice.trim(), startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() };
     if (entry.type === 'drop-rate') configuration.drawMultipliers = multipliers;
+    if (entry.type === 'lucky-character') {
+      if (!lucky.allJobs && lucky.jobs.length === 0) { noti.error('请选择至少一个幸运职业。'); return; }
+      configuration.luckyCharacter = { allJobs: lucky.allJobs, jobs: lucky.allJobs ? [] : lucky.jobs };
+    }
     if (action === 'configure') { await onSave(configuration); return; }
     confirming.current = true;
     modal.confirm({ title: '确认新建活动期次？', content: '旧期次的进度、领取记录和已发邮件保留。新期次的玩家进度从头开始，创建后默认停用，需要另行启用。',
@@ -189,6 +202,15 @@ function EventEditor({ entry, action, busy, uncertain, onClose, onReload, onSave
         <Field label="结束时间（北京时间 UTC+8）" htmlFor="event-ends" err={touched ? errors.endsAt || undefined : undefined}><Input id="event-ends" type="datetime-local" step="1" disabled={disabled}
           value={form.endsAt} onChange={x => set({ endsAt: x.target.value })} /></Field>
       </div>
+      {entry.type === 'lucky-character' && <Field label="幸运职业" htmlFor="lucky-character-jobs">
+        <Checkbox checked={lucky.allJobs} disabled={disabled} onChange={e => {
+          setLucky(value => ({ ...value, allJobs: e.target.checked })); setDirty(true);
+        }}>全职业</Checkbox>
+        <Select id="lucky-character-jobs" mode="multiple" disabled={disabled || lucky.allJobs}
+          options={luckyJobOptions} value={lucky.jobs} onChange={jobs => {
+            setLucky(value => ({ ...value, jobs })); setDirty(true);
+          }} />
+      </Field>}
       {entry.type === 'drop-rate' && <>
         <span className="faint small">倍率增加的是抽取次数（1—100 倍，1 倍为原样），不改变单次概率，也不保证产出严格增长。只影响地面掉落；进行中的副本从新建的房间开始生效；单次击杀超过 255 条的部分会被丢弃，100 倍未经实机验证。</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><InputNumber aria-label="统一倍率" size="small" min={1} max={100} precision={0} disabled={disabled} value={allAt} onChange={value => setAllAt(value)} />

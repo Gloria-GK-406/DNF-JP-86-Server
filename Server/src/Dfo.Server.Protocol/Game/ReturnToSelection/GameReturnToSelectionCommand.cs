@@ -48,6 +48,7 @@ using Dfo.Server.Protocol.Game.HonorLevel;
 using Dfo.Server.Protocol.Game.Party;
 using Dfo.Server.Protocol.Game.PvpTotalMatchTeam;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.ReturnToSelection;
@@ -65,6 +66,7 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
     IPartyProjectionStateDomainService projectionState,
     IOutboundOrdering ordering,
     IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch,
+    LuckyCharacterRosterDelivery luckyCharacters,
     Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection raidSquads) : ICommandHandler<GameReturnToSelectionCommand, bool>
 {
 
@@ -85,6 +87,7 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
             if (prepared.ResetKnightDeck)
                 await outbox.RegisterNotiAsync(connectionId, new KnightShieldDeckMessage([0,0,0,0,0]), ct).ConfigureAwait(false);
             await outbox.RegisterCmdAsync(connectionId, new ReturnToSelectionResponse(), ct).ConfigureAwait(false);
+            await luckyCharacters.RegisterAsync(context.Connection, ct).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(connectionId, new AccountCharacterRosterResponse(prepared.Roster, AnswersRosterQuery: false), ct).ConfigureAwait(false);
             if (prepared.Session is not null)
                 representativeSwitch.PublishRoster(context.Connection, accountId);

@@ -14,6 +14,45 @@ namespace Dfo.Server.Application.Tests.World;
 /// <summary>What is frozen onto an actor while its cell is created.</summary>
 public sealed partial class MonsterDropDomainServiceTests
 {
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    public async Task Lucky_equipment_rolls_enter_the_shared_ground_table_once_for_the_party(int members)
+    {
+        var service = new MonsterDropDomainService(new CertainLuckyEquipment(), new NoDropRateAdjustment(), new NoQuestDrops(),
+            NullLogger<MonsterDropDomainService>.Instance, new NoWorldDrops(), new NoDeclaredDrops(),
+            new NoExtraDrops(), new NoIndependentDrops(), new NoGrowthPremiums(), CurrentCharacterStub.Domain(),
+            TestRequired.Absent<IDimensionDungeonRuleService>(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits));
+
+        var extraCount = 0;
+        for (var seed = 0; seed < 64; seed++)
+        {
+            var baseline = Kill(Run(), partyMemberCount: members) with { Seed = seed };
+            Assert.Empty(await service.GenerateGroundAsync(17, baseline, default));
+            var ground = await service.GenerateGroundAsync(17, baseline with { LuckyCharacterSharedDrops = true }, default);
+            Assert.InRange(ground.Count, 1, 2);
+            Assert.All(ground, item =>
+            {
+                Assert.Equal(CertainLuckyEquipment.Artifact, item);
+                Assert.Null(item.OwnerCharacterId);
+            });
+            extraCount += ground.Count;
+        }
+        Assert.InRange(extraCount, 65, 127);
+    }
+
+    private sealed class CertainLuckyEquipment : IDropRuleService
+    {
+        internal static readonly RolledDrop Artifact = new(12345, 1, DropRarity.Unique, DropItemKind.Equipment);
+
+        public DropRates? RatesFor(MonsterDropRequest request) => new([], Basis);
+
+        public IReadOnlyList<RolledDrop> DrawFor(MonsterDropRequest request, DropRates rates, bool includeItems = true,
+            int attempt = 0) => request.Draw.Round > DropDrawMultipliers.Maximum
+                ? [Artifact, new(12346, 1, DropRarity.Rare, DropItemKind.Equipment), new(12347, 1, DropRarity.Unique, DropItemKind.Stackable)]
+                : [];
+    }
+
     private sealed class NoGrowthPremiums(int bonus = 0) : Dfo.Server.Abstractions.Accounts.IPremiumServiceDomainService
     {
         public Dfo.Server.Abstractions.Accounts.IAccountPremiumServices For(AccountId id) => throw new NotSupportedException();

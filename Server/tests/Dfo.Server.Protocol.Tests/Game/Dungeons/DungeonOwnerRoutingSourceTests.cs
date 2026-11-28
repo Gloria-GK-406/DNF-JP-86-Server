@@ -75,6 +75,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
             "0x0017 coupon repair: rejects stale consumable requests in town or dungeon without routing by dungeon owner"),
         new(Rule.Stale, "Game/LearnSkill/GameSwitchSkillBuildCommand.cs", "HandleAsync", 1,
             "0x0104 A21 skill page toggle: rejects a stale frame before it can toggle the saved page again"),
+        new(Rule.Stale, "Game/LuckyCharacter/GameLuckyCharacterBurningCommand.cs", "HandleAsync", 1,
+            "0x0233 fatigue burning: an old enable or disable request cannot replace the current setting"),
         new(Rule.Stale, "Game/PvpMatchmaking/PvpMatchmakingCommands.cs",
             "HandleAsync(CommandExecutionContext, GameJoinPvpMatchmakingCommand, CancellationToken)", 1,
             "0x0209 cannot rejoin the queue from a replayed frame"),

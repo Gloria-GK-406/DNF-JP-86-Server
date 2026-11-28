@@ -16,7 +16,7 @@ internal sealed class ExperienceBonusDomainService(
     TimeProvider clock,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     IAdventureGroupDomainService adventureGroups,
-    IGuildBenefitDomainService benefits) : IExperienceBonusDomainService
+    IGuildBenefitDomainService benefits, IDungeonRunQueryDomainService runs) : IExperienceBonusDomainService
 {
     public async ValueTask<IReadOnlyList<ExperienceModifier>> CollectAsync(
         ExperienceOccasion occasion, CancellationToken cancellationToken)
@@ -56,6 +56,19 @@ internal sealed class ExperienceBonusDomainService(
         // first.
         if (adventureRate > 0)
             found.Add(new("adventure group", adventureRate, ExperienceBonusKind.AdventureGroup));
+        if (occasion.RunId is { } runId && runs.Find(occasion.Character) is
+            { Layout.Mode.Kind: DungeonRunKind.Ordinary, Participant: { } participant } run && run.RunId == runId)
+        {
+            if (participant.IsLuckyCharacter)
+                found.Add(new("lucky character", occasion.Event == ExperienceEvent.DungeonClear ? 0.15 : 0.10,
+                    ExperienceBonusKind.LuckyCharacter));
+            if (occasion.Event == ExperienceEvent.DungeonClear
+                && run.Participants.Any(member => member.CharacterId != occasion.Character && member.IsLuckyCharacter
+                    && run.ClearParticipants.Any(eligible => eligible.CharacterId == member.CharacterId)))
+                found.Add(new("lucky character party", 0.10, ExperienceBonusKind.LuckyCharacterParty));
+            if (participant.BurnsFatigue)
+                found.Add(new("fatigue burning", 1.0, ExperienceBonusKind.FatigueBurn));
+        }
         return found;
     }
 }

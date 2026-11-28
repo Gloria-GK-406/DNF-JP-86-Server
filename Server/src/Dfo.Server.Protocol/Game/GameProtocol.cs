@@ -45,6 +45,7 @@ internal static class GameProtocol
     public const ushort SortItemType = 0x0014;
 
     public const ushort LearnSkillType = 0x001D;
+    public const ushort LuckyCharacterListType = 0x0406;
 
     public const ushort LoginType = 0x0001;
 

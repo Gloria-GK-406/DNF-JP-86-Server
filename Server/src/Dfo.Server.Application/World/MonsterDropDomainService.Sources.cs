@@ -9,19 +9,43 @@ internal sealed partial class MonsterDropDomainService
     private static readonly ImmutableArray<DropDrawEntry> OrdinaryEntries =
         [DropDrawEntry.MonsterGold, DropDrawEntry.MonsterStackable, DropDrawEntry.MonsterEquipment];
 
-    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request, DropDrawMultipliers multipliers)
+    private IReadOnlyList<RolledDrop> GenerateRandomDrops(MonsterDropRequest request, DropDrawMultipliers multipliers,
+        out bool includeOrdinaryItems)
     {
+        includeOrdinaryItems = false;
         if (request.MonsterRank is < 0 or > 3 || request.Context.RandomDropCount == 0)
             return [];
         var result = new List<RolledDrop>();
         // One shared success flag across the entire Extra phase, not per-attempt fallback.
         for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
             result.AddRange(extraDrops.Draw(request, attempt));
-        var includeOrdinaryItems = result.Count == 0;
+        includeOrdinaryItems = result.Count == 0;
         for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
             result.AddRange(this.GenerateOrdinary(request, includeOrdinaryItems, attempt));
         result.AddRange(this.GenerateExtraRounds(request, multipliers));
         return result;
+    }
+
+    private IEnumerable<RolledDrop> GenerateLuckyCharacterSharedEquipment(MonsterDropRequest request)
+    {
+        if (dropRules.RatesFor(request) is not { } rawRates)
+            yield break;
+        var rates = adjuster.Adjust(request.CharacterId, rawRates);
+        var context = request.Context;
+        var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence);
+        var firstRound = DropDrawMultipliers.Maximum + 1;
+        var chance = new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.MonsterEquipment, firstRound)));
+        // One independent equipment roll plus a 50% chance of a second. The range is outside
+        // the configurable draw rounds, so enabling this event preserves every existing roll.
+        var extraRounds = chance.Next(2);
+        for (var extra = 1; extra <= extraRounds; extra++)
+        {
+            var bonusDraw = request with { Draw = new(DropDrawEntry.MonsterEquipment, firstRound + extra) };
+            for (var attempt = 0; attempt < context.RandomDropCount; attempt++)
+                foreach (var drop in dropRules.DrawFor(bonusDraw, rates, includeItems: true, attempt))
+                    if (drop.Kind == DropItemKind.Equipment && drop.Rarity == DropRarity.Unique)
+                        yield return drop with { OwnerCharacterId = null };
+        }
     }
 
     /// <remarks>

@@ -31,5 +31,10 @@ public interface ICharacterFatigueDomainService
         foreach (var character in characters)
             await SpendAsync(character, points, cancellationToken).ConfigureAwait(false);
     }
+    async ValueTask SpendBatchAsync(IReadOnlyList<(CharacterId Character, ushort Points)> charges, CancellationToken cancellationToken)
+    {
+        foreach (var (character, points) in charges)
+            await SpendAsync(character, points, cancellationToken).ConfigureAwait(false);
+    }
     ValueTask RefundAsync(CharacterId characterId, ushort points, CancellationToken cancellationToken);
 }

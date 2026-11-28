@@ -81,6 +81,7 @@ public sealed record MonsterDropContext(
 {
     /// <summary>Map monster's seventh integer; zero disables both random channels.</summary>
     public int RandomDropCount { get; init; } = 1;
+    public bool LuckyCharacterSharedDrops { get; init; }
     public IndependentDropSourceType SourceType { get; init; } = IndependentDropSourceType.Monster;
     public int PartyMemberCount => this.Participants.Length;
 }

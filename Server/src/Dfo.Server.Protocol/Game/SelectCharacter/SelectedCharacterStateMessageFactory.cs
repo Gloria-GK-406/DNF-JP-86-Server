@@ -3,6 +3,7 @@ using Dfo.Server.Data.Inventory;
 using Dfo.Server.Protocol.Game.GuildMemberInfo;
 using Dfo.Server.Protocol.Game.CharacterBuffs;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
 
 namespace Dfo.Server.Protocol.Game.SelectCharacter;
 
@@ -70,6 +71,8 @@ internal static class SelectedCharacterStateMessageFactory
         if (result.Character.Identity.Job == 12
             && result.CharacterEntry.Skills.KnightShieldDeck is { } knightDeck)
             messages.Add(new KnightShieldDeckMessage(knightDeck));
+        if (result.Events?.LuckyCharacters is { Revision: > 0 } lucky)
+            messages.Add(new LuckyCharacterListMessage(lucky));
         messages.Add(new SkillStateMessage(result.CharacterEntry.Skills));
         if (result.Character.Identity.Job == 9
             && result.CharacterEntry.Skills.DarkKnightCombos is { } combos)
@@ -137,8 +140,8 @@ internal static class SelectedCharacterStateMessageFactory
         messages.Add(new ChampionBreakStateMessage(result.CharacterEntry.Progression));
         messages.Add(new GoldLimitStateMessage(result.CharacterEntry.Progression.GoldLimitUpgradeLevel));
         messages.Add(new FatigueAccelerationStateMessage(
-            result.CharacterEntry.Progression.FatigueAccelerationValue,
-            result.CharacterEntry.Progression.FatigueAccelerationState));
+            result.Events?.LuckyFatigueState is not null ? (ushort)0 : result.CharacterEntry.Progression.FatigueAccelerationValue,
+            result.Events?.LuckyFatigueState ?? result.CharacterEntry.Progression.FatigueAccelerationState));
         messages.Add(new MailboxStateMessage(result.CharacterEntry.Features.Mailbox));
         messages.Add(new PvpMissionStateMessage(result.CharacterEntry.Features.PvpMissions));
 

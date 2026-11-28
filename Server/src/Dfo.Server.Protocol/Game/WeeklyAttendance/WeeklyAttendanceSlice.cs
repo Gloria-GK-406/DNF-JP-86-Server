@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.DomainEvents;
 using System.Buffers.Binary;
 using System.Text;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
@@ -11,6 +12,7 @@ using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Data.World;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
 namespace Dfo.Server.Protocol.Game.WeeklyAttendance;
 
 internal static class EventPayloadCodec
@@ -116,7 +118,8 @@ public sealed class WeeklyAttendanceHandler(ICommandBus commands) : ClientMessag
 }
 public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,IEventPlayerProjectionDomainService projection,
     Dfo.Server.Abstractions.Characters.ICharacterDomainService characters,
-    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService quests) : INotificationHandler<EventsChanged>
+    Dfo.Server.Abstractions.Quests.IQuestQueryDomainService quests,
+    ICharacterCurrentStateQueryDomainService currentState) : INotificationHandler<EventsChanged>
 {
     public async ValueTask<IReadOnlyList<IServerNetworkMessage>> ComposeAsync(NotificationRecipient recipient,EventsChanged notice,CancellationToken ct)
     {
@@ -136,6 +139,13 @@ public sealed class EventsChangedHandler(ISelectedSessionDomainService sessions,
             var offers = await quests
                 .ReadAvailableAsync(session.AccountId, session.CharacterId, ct).ConfigureAwait(false);
             messages.Add(new AvailableQuestListMessage(progress.Level, offers));
+        }
+        if (notice.RefreshLuckyCharacters && state.LuckyFatigueState is { } fatigue)
+        {
+            var current = await currentState.ReadAsync(session, ct).ConfigureAwait(false);
+            messages.Add(new LuckyCharacterListMessage(state.LuckyCharacters));
+            messages.Add(new SkillStateMessage(current.CharacterEntry.Skills));
+            messages.Add(new FatigueAccelerationStateMessage(0, fatigue));
         }
         return sessions.IsInWorld(session) ? messages : [];
     }

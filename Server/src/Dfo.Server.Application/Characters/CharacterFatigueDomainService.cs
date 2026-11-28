@@ -42,6 +42,14 @@ internal sealed class CharacterFatigueDomainService(ICharacterTable characters,
         foreach (var character in characters)
             await ChangeAsync(character, points, false, token).ConfigureAwait(false);
     }
+    public async ValueTask SpendBatchAsync(IReadOnlyList<(CharacterId Character, ushort Points)> charges, CancellationToken token)
+    {
+        if (transactions.Current is null || transactions.Current.IsReadOnly)
+            throw new InvalidOperationException("Fatigue changes require a writable transaction.");
+        if (!await consumption.ShouldConsumeAsync(token).ConfigureAwait(false)) return;
+        foreach (var (character, points) in charges)
+            await ChangeAsync(character, points, false, token).ConfigureAwait(false);
+    }
     public ValueTask RefundAsync(CharacterId id, ushort points, CancellationToken token) => ChangeAsync(id, points, true, token);
     private async ValueTask ChangeAsync(CharacterId id, ushort points, bool restore, CancellationToken token)
     {

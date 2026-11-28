@@ -21,7 +21,7 @@ internal sealed partial class DungeonRunStore
         private readonly ImmutableArray<DungeonRunParticipant> entryParticipants;
         // The entry roster: accounts of who entered, and the bound that keeps anyone else out of the
         // membership. It is not the membership; the party answers that.
-        private readonly ImmutableDictionary<CharacterId, AccountId> entryAccounts;
+        private readonly ImmutableDictionary<CharacterId, DungeonRunParticipant> entryRoster;
         // Fixed to the entrants at entry; only each entrant's progress changes.
         private readonly ImmutableDictionary<CharacterId, ParticipantProgress> progressByCharacter;
         private readonly List<DungeonKillRecord> kills = [];
@@ -53,8 +53,7 @@ internal sealed partial class DungeonRunStore
                 [initialCell.Cell] = this.CreateCell(initialCell),
             };
             this.VisitedCells = ImmutableHashSet.Create(layout.StartCell);
-            this.entryAccounts = participants.ToImmutableDictionary(
-                participant => participant.CharacterId, participant => participant.AccountId);
+            this.entryRoster = participants.ToImmutableDictionary(participant => participant.CharacterId);
             this.progressByCharacter = participants.ToImmutableDictionary(
                 participant => participant.CharacterId,
                 _ => new ParticipantProgress());
@@ -85,12 +84,12 @@ internal sealed partial class DungeonRunStore
                 if (membership is null)
                     return [];
                 return [.. membership.Members
-                    .Where(member => this.entryAccounts.ContainsKey(member.CharacterId))
-                    .Select(member => new DungeonRunParticipant(
-                        this.entryAccounts[member.CharacterId],
-                        member.CharacterId,
-                        member.Slot,
-                        member.CharacterId == membership.LeaderCharacterId))];
+                    .Where(member => this.entryRoster.ContainsKey(member.CharacterId))
+                    .Select(member => this.entryRoster[member.CharacterId] with
+                    {
+                        Slot = member.Slot,
+                        IsLeader = member.CharacterId == membership.LeaderCharacterId,
+                    })];
             }
         }
         public int EntryParticipantCount => this.entryParticipants.Length;

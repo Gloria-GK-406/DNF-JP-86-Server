@@ -33,9 +33,7 @@ public sealed class SelectCharacterPreparationService(
     ISessionAdjacentEntryDomainService sessionAdjacent,
     ISelectedSessionPositionPersistence positions,
     TimeProvider timeProvider,
-    Dfo.Server.Abstractions.Events.IEventManagementDomainService events,
-    Dfo.Server.Abstractions.Events.IWeeklyAttendanceDomainService attendance,
-    Dfo.Server.Abstractions.Events.IJoustProjectionDomainService joust,
+    Dfo.Server.Abstractions.Events.IEventPlayerProjectionDomainService events,
     IEpicBookDomainService epicBook,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService achievements,
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService titles,
@@ -232,10 +230,8 @@ public sealed class SelectCharacterPreparationService(
                 adjacent),
             roster,
             rosterEntry,
-            Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new(
-                await events.GetEventInfoListAsync(accountId,preparedAt,cancellationToken),
-                await attendance.StateAsync(accountId,preparedAt,cancellationToken),
-                await joust.ReadAsync(character.Identity.CharacterId,preparedAt,cancellationToken))),
+            await events.ReadAtAsync(accountId, character.Identity.CharacterId, character.Identity.Job,
+                channelPolicy.SkillGroup == SkillGroup.Duel, preparedAt, cancellationToken).ConfigureAwait(false),
             await epicBook.GetBalancesAsync(accountId, cancellationToken).ConfigureAwait(false),
             await marriage.SnapshotAsync(accountId, character.Identity.CharacterId, cancellationToken).ConfigureAwait(false));
 

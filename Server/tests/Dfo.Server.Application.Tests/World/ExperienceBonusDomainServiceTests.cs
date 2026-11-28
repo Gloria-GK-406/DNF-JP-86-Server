@@ -37,6 +37,39 @@ namespace Dfo.Server.Application.Tests.World;
 public sealed class ExperienceBonusDomainServiceTests
 {
     [Theory]
+    [InlineData(false, 1, false, ExperienceEvent.DungeonClear, 0, .10, 0)]
+    [InlineData(true, 0, false, ExperienceEvent.DungeonClear, .15, 0, 0)]
+    [InlineData(true, 2, false, ExperienceEvent.DungeonClear, .15, .10, 0)]
+    [InlineData(true, 2, true, ExperienceEvent.DungeonClear, .15, .10, 1)]
+    [InlineData(true, 1, true, ExperienceEvent.MonsterKill, .10, 0, 1)]
+    public async Task Run_members_keep_personal_and_shared_bonuses_on_their_own_awards(bool lucky, int luckyTeammates,
+        bool burns, ExperienceEvent occasion, double personalRate, double partyRate, double burnRate)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var runId = DungeonRunId.New();
+        var player = OneSession.Identity;
+        var self = new DungeonRunParticipant(player.AccountId, player.CharacterId, 0, true)
+            { IsLuckyCharacter = lucky, BurnsFatigue = burns };
+        var teammates = Enumerable.Range(1, luckyTeammates).Select(slot =>
+            new DungeonRunParticipant(new(100 + slot), new(100 + slot), (byte)slot, false) { IsLuckyCharacter = true });
+        DungeonRunParticipant[] members = [self, .. teammates];
+        var cell = new MazeCell(0, 0);
+        var layout = new DungeonLayout(CarriedDungeon, 0, 1, 1, cell, cell, 1, 1,
+            new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(1) });
+        var run = new DungeonRunState(layout, cell, 1, new HashSet<MazeCell> { cell }, now, RunId: runId,
+            Participant: self, Participants: members, CurrentCellState: DungeonCellSeed.CompleteEmpty(cell, 1).Snapshot())
+        {
+            ClearParticipants = [.. members.Select(member => new DungeonClearParticipant(member.AccountId, member.CharacterId, null))],
+        };
+        var runs = TestRequired.Absent<IDungeonRunQueryDomainService>((_, _) => run);
+        var service = Service(channels: ChannelExperienceCatalog.Empty, runs: runs);
+        var modifiers = await service.CollectAsync(new(occasion, player.AccountId, player.CharacterId, CarriedDungeon, RunId: runId), default);
+        Assert.Equal(personalRate, modifiers.Where(x => x.Kind == ExperienceBonusKind.LuckyCharacter).Sum(x => x.Rate));
+        Assert.Equal(partyRate, modifiers.Where(x => x.Kind == ExperienceBonusKind.LuckyCharacterParty).Sum(x => x.Rate));
+        Assert.Equal(burnRate, modifiers.Where(x => x.Kind == ExperienceBonusKind.FatigueBurn).Sum(x => x.Rate));
+    }
+
+    [Theory]
     [InlineData(ExperienceEvent.MonsterKill, true, false)]
     [InlineData(ExperienceEvent.DungeonClear, true, true)]
     [InlineData(ExperienceEvent.QuestCompletion, false, false)]
@@ -244,7 +277,7 @@ public sealed class ExperienceBonusDomainServiceTests
         IOnlineCharacterRuntimeDomainService? potions = null,
         bool blackDiamond = false,
         double adventureRate = 0,
-        double guildRate = 0) =>
+        double guildRate = 0, IDungeonRunQueryDomainService? runs = null) =>
         new ExperienceBonusDomainService(
             new OneSession(published),
             new PremiumServiceDomainService(new NoPremium(premiums ?? []), TestRequired.TransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
@@ -262,7 +295,8 @@ public sealed class ExperienceBonusDomainServiceTests
                     ? ValueTask.FromResult(adventureRate) : null),
             TestRequired.Absent<IGuildBenefitDomainService>((method, _) =>
                 method.Name == nameof(IGuildBenefitDomainService.ReadMonsterExperienceRateAsync)
-                    ? ValueTask.FromResult(guildRate) : null));
+                    ? ValueTask.FromResult(guildRate) : null),
+            runs ?? TestRequired.Absent<IDungeonRunQueryDomainService>());
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;

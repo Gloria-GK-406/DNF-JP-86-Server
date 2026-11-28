@@ -10,4 +10,5 @@ public interface IGmEventsDomainService
 public sealed record EventsChanged : INotification<EventsChanged>
 {
     public bool RefreshQuestOffers { get; init; }
+    public bool RefreshLuckyCharacters { get; init; }
 }

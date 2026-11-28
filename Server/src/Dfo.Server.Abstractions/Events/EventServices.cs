@@ -55,4 +55,8 @@ public interface IEventPersistence
 }
 
 public interface IEventPlayerProjectionDomainService
-{ ValueTask<EventPlayerSnapshot> ReadNowAsync(Dfo.Server.Data.World.SelectedSessionIdentity session,CancellationToken ct); }
+{
+    ValueTask<EventPlayerSnapshot> ReadNowAsync(Dfo.Server.Data.World.SelectedSessionIdentity session, CancellationToken ct);
+    ValueTask<EventPlayerSnapshot> ReadAtAsync(AccountId account, Dfo.Server.Data.Characters.CharacterId character,
+        int job, bool pvp, DateTimeOffset at, CancellationToken ct);
+}

@@ -50,9 +50,9 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## A21 燃烧状态与幸运角色的关系
 
-**ClientStatic / Confirmed（2026-11-28）**。`RVA 0x00DD83E0–0x00DD8527` 消费 `u16 value + u8 state`，正文共 3 字节。`state` 有 `0`、`1`、`2`、`3`、`4`、`5` 的显式分支，对应不同的界面状态。`RVA 0x00DD8446` 所在分支读取 [NOTI `0x0406`](NOTI-0x0406.md#a21-幸运角色名单) 所更新的活动对象，命中幸运角色会影响燃烧界面可用性。`value` 的具体口径、各非零状态的操作语义仍缺差分。
+**ClientStatic / Confirmed（2026-11-28）**。`RVA 0x00DD83E0–0x00DD8527` 消费 `u16 value + u8 state`，正文共 3 字节。状态涉及多个界面分支。VA `0x011D83C0` 对大于零的 `value` 检查疲劳阈值，VA `0x025D1360` 对 `state == 2` 预测普通地图双倍疲劳。状态 1 和 2 的按钮显示在 VA `0x011D84D1` 读取本地幸运标记。幸运标记来自 [NOTI `0x0406`](NOTI-0x0406.md#a21-幸运角色名单) 和随后技能重算。
 
-**CurrentImplementation**。本服在选角初始化通过 `FatigueAccelerationStateMessage` 发送这两个字段。玩家开关请求见 [CMD `0x0233`](../client-to-server/0x0233.md)。目前没有幸运角色启停的实机样本。[通知编码](../../../Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationMessages.cs#L426)
+**CurrentImplementation**。幸运活动发送 `value=0` 和状态 `0` 无资格、`1` 有资格且关闭、`2` 已开启。进城或刷新活动时排在名单和技能重算之后。玩家开关请求见 [CMD `0x0233`](../client-to-server/0x0233.md)。目前没有幸运角色启停的 A21 实机样本。[通知编码](../../../Server/src/Dfo.Server.Protocol/Game/StateSynchronization/StateSynchronizationMessages.cs#L413)
 
 <!-- rks:a12:begin -->
 
@@ -86,8 +86,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 ## 服务端实现映射
 
-尚未实现。**注意**：本协议已在实机流量里出现（见上方实测字段表），"尚未实现"指的是
-服务端侧没有对应 slice，不是"没观察到"。
+选角初始化和幸运角色开关共用 `FatigueAccelerationStateMessage`。上方运行时表来自 A12。A21 幸运角色的状态显示与跨场景行为待单独实机验证。
 
 ## 待实机补全
 

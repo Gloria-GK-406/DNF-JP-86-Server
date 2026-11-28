@@ -11,6 +11,7 @@ internal static class DungeonRunRegistration
     {
         services.TryAddSingleton<DungeonRunStore>();
         services.TryAddSingleton<DungeonSecretShopRuleService>();
+        services.TryAddSingleton<ILuckyDungeonEntryBenefits, LuckyDungeonEntryBenefits>();
         services.TryAddSingleton<IDungeonRunQueryDomainService>(sp => sp.GetRequiredService<DungeonRunStore>());
         services.TryAddSingleton<IDungeonRunEntryDomainService, DungeonRunStore.EntryService>();
         services.TryAddSingleton<IDungeonRunCombatDomainService, DungeonRunStore.CombatService>();

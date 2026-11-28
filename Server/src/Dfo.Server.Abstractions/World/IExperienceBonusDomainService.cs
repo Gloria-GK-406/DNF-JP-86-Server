@@ -30,7 +30,8 @@ public readonly record struct ExperienceOccasion(
     AccountId Account,
     CharacterId Character,
     int DungeonId,
-    bool AllowGuildExperience = true);
+    bool AllowGuildExperience = true,
+    DungeonRunId? RunId = null);
 
 /// <summary>
 /// Which source contributes an experience bonus; known sources also have client display lines.
@@ -117,6 +118,8 @@ public enum ExperienceBonusKind
     /// NOTI <c>0x0023</c> 第 7 格（body+45）。
     /// </summary>
     AdventureGroup,
+    LuckyCharacter,
+    LuckyCharacterParty,
 }
 
 /// <summary>One reason a character earns more than the occasion is worth.</summary>

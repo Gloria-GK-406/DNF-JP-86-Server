@@ -36,7 +36,7 @@ internal sealed partial class MonsterDropDomainService(
         var multipliers = context.DrawMultipliers;
         if (context.SourceType == IndependentDropSourceType.APC)
             return await IndependentAsync(request, 0, multipliers, cancellationToken).ConfigureAwait(false);
-        result.AddRange(this.GenerateRandomDrops(request, multipliers));
+        result.AddRange(this.GenerateRandomDrops(request, multipliers, out var includeOrdinaryItems));
         result.AddRange(GenerateMonsterDeclared(request, multipliers));
         var growthBonus = context.MonsterRank == 3
             ? await premiums.GetBossEquipmentDropBonusPercentAsync(
@@ -45,6 +45,8 @@ internal sealed partial class MonsterDropDomainService(
         result.AddRange(await IndependentAsync(request, growthBonus, multipliers, cancellationToken).ConfigureAwait(false));
         result.AddRange(Rounds(request, DropDrawEntry.World, multipliers, worldDrops.Draw));
         result.AddRange(GenerateSpecialMode(request));
+        if (context.LuckyCharacterSharedDrops && includeOrdinaryItems)
+            result.AddRange(GenerateLuckyCharacterSharedEquipment(request));
         return result;
     }
 

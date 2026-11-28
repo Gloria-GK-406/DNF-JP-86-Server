@@ -6,6 +6,7 @@ using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Networking;
 using Microsoft.Extensions.Logging;
 using Dfo.Server.Protocol.Game.AccountRoster;
+using Dfo.Server.Protocol.Game.LuckyCharacter;
 
 namespace Dfo.Server.Protocol.Game.CreateCharacter;
 
@@ -20,6 +21,7 @@ public sealed class GameCreateCharacterCommandHandler(
     IOnlineUserQueryDomainService onlineUsers,
     ICharacterRosterDomainService characters,
     IGameCommandOutbox outbox,
+    LuckyCharacterRosterDelivery luckyCharacters,
     ICommandWorkUnits workUnits,
     ILogger<GameCreateCharacterCommandHandler> logger) : ICommandHandler<GameCreateCharacterCommand, CharacterCreationResult>
 {
@@ -58,6 +60,7 @@ public sealed class GameCreateCharacterCommandHandler(
         }
 
         var roster = await characters.GetAccountRosterWithAppearanceAsync(accountId, cancellationToken).ConfigureAwait(false);
+        await luckyCharacters.RegisterAsync(command.Dispatch.Connection, cancellationToken).ConfigureAwait(false);
         await outbox.RegisterNotiAsync(
             command.Dispatch.Connection.ConnectionId,
             new AccountCharacterRosterResponse(roster, AnswersRosterQuery: false),

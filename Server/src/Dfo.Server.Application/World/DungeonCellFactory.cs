@@ -32,6 +32,7 @@ internal sealed class DungeonCellFactory(
         var participants = context.Participants
             .Select(participant => new MonsterDropParticipant(participant.AccountId, participant.CharacterId))
             .ToImmutableArray();
+        var luckyCharacterSharedDrops = context.Participants.Any(participant => participant.IsLuckyCharacter);
         var contents = await rooms.DescribeAsync(context, cancellationToken)
             .ConfigureAwait(false);
         if (context.Layout.Mode is DungeonRunMode.Guardian { Plan: var guardian })
@@ -89,6 +90,7 @@ internal sealed class DungeonCellFactory(
                     participants, context.DrawMultipliers)
                 {
                     RandomDropCount = described.Actor.RandomDropCount,
+                    LuckyCharacterSharedDrops = luckyCharacterSharedDrops,
                     SourceType = described.IsAiCharacter
                         ? IndependentDropSourceType.APC : IndependentDropSourceType.Monster,
                 };

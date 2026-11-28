@@ -20,9 +20,9 @@ CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应�
 [CMD `0x0128`](game/client-to-server/0x0128.md) 按 8 字节布局处理金币和道具购买。
 ClientVerified（有限范围）：用户确认赫顿玛尔旧街区单人结算后的金币商店路径符合预期。双人、道具支付和逐字段报文证据未在本轮确认。见 [实机记录](../Document/tasks/gabriel-secret-shop/user-test.md#本轮实机结果)。
 
-## 2026-11-28 A21 幸运角色（ClientStatic，待实机）
+## 2026-11-28 A21 幸运角色（ClientStatic、CurrentImplementation）
 
-[NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md) 已定位幸运角色职业名单和客户端激活路径。[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 已闭合本人和队友两笔通关经验到明细与合计的字段。[CMD `0x0233`](game/client-to-server/0x0233.md) 和 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 已静态识别为燃烧请求和状态同步。原生选角刷新时机和非零奖励待实机。
+GM 活动按有效期和职业名单驱动 [NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md)。随后用 `0x0013` 触发原生技能重算，再用 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 同步疲劳状态。[CMD `0x0233`](game/client-to-server/0x0233.md) 接受显式开关，[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 使用本人和组队两笔通关经验槽。原生客户端选角刷新、技能栏、燃烧状态及非零奖励面板待实机。[验收步骤](../Document/tasks/lucky-character-event/user-test.md)
 
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 

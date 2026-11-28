@@ -24,7 +24,7 @@ internal sealed class DungeonVisitDomainService(
     IDungeonSelectionRuleService selection,
     IDungeonCellFactory cells,
     ICharacterFatigueDomainService fatigue, IDungeonAdmissionDomainService admission,
-    IIllusionTowerDomainService tower,
+    IIllusionTowerDomainService tower, ILuckyDungeonEntryBenefits luckyCharacters, TimeProvider clock,
     ILogger<DungeonVisitDomainService> logger) : IDungeonVisitDomainService
 {
     private readonly ILogger<DungeonVisitDomainService> logger = logger;
@@ -98,7 +98,9 @@ internal sealed class DungeonVisitDomainService(
     {
         var difficulty = facts.Difficulty;
         var runId = DungeonRunId.New();
-        var startedAt = DateTimeOffset.UtcNow;
+        var startedAt = clock.GetUtcNow();
+        participants = await luckyCharacters.CaptureAsync(participants, layout, startedAt, cancellationToken)
+            .ConfigureAwait(false);
         var initialCell = await cells.CreateAsync(
             new DungeonCellCreationContext(
                 runId,
@@ -112,7 +114,7 @@ internal sealed class DungeonVisitDomainService(
         if (!tower.TryReserveOrdinaryEntry(participants.Select(x => x.CharacterId).ToArray()))
             return DungeonEntryAttempt.Refused(DungeonEntryFailure.AlreadyInDungeon);
         if (layout.ConsumesFatigue)
-            await fatigue.SpendBatchAsync(participants.Select(participant => participant.CharacterId).ToArray(),
+            await SpendFatigueAsync(participants,
                 layout.EntryOnlyFatigue ?? 1, cancellationToken).ConfigureAwait(false);
         var change = runs.PreparePartyEntry(
             participants, layout, difficulty, initialCell, runId, startedAt);
@@ -202,10 +204,16 @@ internal sealed class DungeonVisitDomainService(
                 characterId, entered.RunId, entered.Layout.DungeonId, entered.CurrentRoomMapId, entered.RoomVersion,
                 firstEntry, entered.CurrentCellState.Actors.Count, entered.CurrentCellState.Objects.Count);
         if (firstEntry && entered.Layout.ConsumesFatigue && entered.Layout.EntryOnlyFatigue is null)
-            await fatigue.SpendBatchAsync(entered.Participants.Select(participant => participant.CharacterId).ToArray(),
+            await SpendFatigueAsync(entered.Participants,
                 1, cancellationToken).ConfigureAwait(false);
         return new(this.DescribeCreatedCell(entered, firstEntry), null);
     }
+
+    private ValueTask SpendFatigueAsync(IReadOnlyList<DungeonRunParticipant> participants, ushort cost, CancellationToken ct) =>
+        participants.Any(participant => participant.BurnsFatigue)
+            ? fatigue.SpendBatchAsync(participants.Select(participant =>
+                (participant.CharacterId, participant.BurnsFatigue ? checked((ushort)(cost * 2)) : cost)).ToArray(), ct)
+            : fatigue.SpendBatchAsync(participants.Select(participant => participant.CharacterId).ToArray(), cost, ct);
 
     private DungeonRoomVisit DescribeCreatedCell(DungeonRunState run, bool firstEntry)
     {

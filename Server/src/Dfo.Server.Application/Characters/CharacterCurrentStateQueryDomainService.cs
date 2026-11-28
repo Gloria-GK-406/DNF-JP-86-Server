@@ -30,9 +30,7 @@ internal sealed class CharacterCurrentStateQueryDomainService(
     ISessionAdjacentEntryDomainService adjacent,
     IOnlineCharacterRuntimeDomainService onlineCharacters,
     TimeProvider timeProvider,
-    IEventManagementDomainService events,
-    IWeeklyAttendanceDomainService attendance,
-    IJoustProjectionDomainService joust,
+    IEventPlayerProjectionDomainService events,
     IEpicBookDomainService epicBook,
     Dfo.Server.Abstractions.Achievements.ITitleBookDomainService titles,
     Dfo.Server.Abstractions.Achievements.IAchievementDomainService achievements, ICollectionBoxDomainService collections,
@@ -128,10 +126,8 @@ internal sealed class CharacterCurrentStateQueryDomainService(
             new GameWorldEntryState(readAt, content, channelPolicy, contentSubject),
             new CharacterSessionEntryState(session.AccountId, session.CharacterId, adjacentState),
             roster, rosterEntry,
-            Dfo.Server.Application.Events.EventPlayerSnapshotProjection.WithScheduledDungeons(new EventPlayerSnapshot(
-                await events.GetEventInfoListAsync(session.AccountId, readAt, cancellationToken),
-                await attendance.StateAsync(session.AccountId, readAt, cancellationToken),
-                await joust.ReadAsync(session.CharacterId, readAt, cancellationToken))),
+            await events.ReadAtAsync(session.AccountId, session.CharacterId, character.Identity.Job,
+                channel.IsPvp, readAt, cancellationToken).ConfigureAwait(false),
             await epicBook.GetBalancesAsync(session.AccountId, cancellationToken).ConfigureAwait(false))
         { CollectionBoxes = await collections.ReadAsync(session.CharacterId, cancellationToken).ConfigureAwait(false) };
     }
