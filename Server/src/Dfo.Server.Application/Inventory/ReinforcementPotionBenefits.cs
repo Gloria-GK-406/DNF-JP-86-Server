@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Data.World;
 using Dfo.Server.Abstractions.Characters;
-using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Persistence;
 
 namespace Dfo.Server.Application.Inventory;
@@ -21,9 +20,7 @@ internal sealed class ReinforcementPotionBenefits(ITimedItemEffectTable rows, II
                 { IsReadable: true, ReinforcementPotion: { } potion })
                 continue;
             found.Add(new($"item-{item.ItemId}", potion.Name, 0,
-                new EquipmentReinforcementChanceBenefit(potion.SuccessUnits,
-                    potion.IsCrystal ? "reinforcement-crystal" : "reinforcement-secret-potion"),
-                EndsAt: item.ExpiresAt));
+                EquipmentUpgradeRuleService.PotionChanceBenefit(potion), EndsAt: item.ExpiresAt));
         }
         return new("reinforcement-potions", GameplayBenefitScope.For(session.CharacterId), found.ToImmutable());
     }

@@ -10,6 +10,27 @@ namespace Dfo.Server.Application.Tests.Inventory;
 public sealed class EquipmentUpgradeRuleServiceTests
 {
     [Theory]
+    [InlineData(5000, 499, false)]
+    [InlineData(5000, 500, true)]
+    [InlineData(4000, 0, true)]
+    public async Task Reinforcement_takes_the_best_potion_in_each_group_and_adds_independent_bonuses(
+        int failureWeight, int draw, bool succeeds)
+    {
+        var rules = Rules(new(80, 82, 2, "weapon", null), failureWeight);
+        var quote = await rules.QuoteReinforcementAsync(Piece(), default);
+        var rule = Assert.IsAssignableFrom<IEquipmentReinforcementRule>(quote.Rule);
+
+        Assert.True(rule.CanUseChanceBenefits);
+        Assert.Equal(succeeds, rule.TryReinforce(draw,
+        [
+            EquipmentUpgradeRuleService.PotionChanceBenefit(new("Secret potion", 1000, IsCrystal: false)),
+            EquipmentUpgradeRuleService.PotionChanceBenefit(new("Stronger secret potion", 2500, IsCrystal: false)),
+            EquipmentUpgradeRuleService.PotionChanceBenefit(new("Crystal", 1500, IsCrystal: true)),
+            new EquipmentReinforcementChanceBenefit(500),
+        ]));
+    }
+
+    [Theory]
     [InlineData(EquipmentUpgradeKind.Reinforcement, false, EquipmentReinforcementRejection.None)]
     [InlineData(EquipmentUpgradeKind.Amplification, false, EquipmentReinforcementRejection.InvalidRequest)]
     [InlineData(EquipmentUpgradeKind.Reinforcement, true, EquipmentReinforcementRejection.InvalidRequest)]
@@ -120,13 +141,13 @@ public sealed class EquipmentUpgradeRuleServiceTests
     private static ItemSnapshot Piece() => ItemSnapshot.FromCore(StackableItemCore.Create(1, 3000, 1000)
         with { Durability = 45, AmplifyValue = 5 }, false);
 
-    private static EquipmentUpgradeRuleService Rules(EquipmentDefinition definition)
+    private static EquipmentUpgradeRuleService Rules(EquipmentDefinition definition, int failureWeight = 0)
     {
-        var content = new Content(definition);
+        var content = new Content(definition, failureWeight);
         return new(content, content, content, content, NullLogger<EquipmentUpgradeRuleService>.Instance);
     }
 
-    private sealed class Content(EquipmentDefinition definition) : IEquipmentDefinitionSource,
+    private sealed class Content(EquipmentDefinition definition, int failureWeight) : IEquipmentDefinitionSource,
         IEquipmentReinforcementDefinitionSource, IEquipmentOutworldContentSource, IEquipmentForgingContentSource
     {
         public ValueTask<int> InitializeAsync(CancellationToken ct) => ValueTask.FromResult(1);
@@ -145,7 +166,7 @@ public sealed class EquipmentUpgradeRuleServiceTests
             (await GetNormalTableAsync(ct))! with { MedalMaterialWeights = [1, 1, 1] };
 
         public ValueTask<EquipmentReinforcementTable?> GetNormalTableAsync(CancellationToken ct) =>
-            ValueTask.FromResult<EquipmentReinforcementTable?>(new([new(1, new double[19], 0, 1, 0, 3037, 10)],
+            ValueTask.FromResult<EquipmentReinforcementTable?>(new([new(1, new double[19], failureWeight, 1, 0, 3037, 10)],
                 Enumerable.Repeat(100, 100).ToArray(), [1, 1, 1], Enumerable.Range(0, 12).Select(x => (double)x).ToArray(),
                 new Dictionary<int, double> { [0] = 1 }, new Dictionary<int, int>(), new Dictionary<int, int>(),
                 new(3243, 40, 10, new Dictionary<int, double>(), new Dictionary<int, int>()), 12));

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Data.Inventory;
@@ -61,7 +62,7 @@ internal sealed partial class EquipmentUpgradeRuleService
             ValueTask.FromResult<EquipmentReinforcementProtectionDefinition?>(null);
         public ValueTask<EquipmentProtectionChoice?> SelectAutomaticProtectionAsync(
             IReadOnlyList<EquipmentProtectionCandidate> candidates, CancellationToken ct) => ValueTask.FromResult<EquipmentProtectionChoice?>(null);
-        public bool TryReinforce(int draw, int successBonusUnits = 0)
+        public bool TryReinforce(int draw, ImmutableArray<EquipmentReinforcementChanceBenefit> chanceBenefits)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(draw);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(draw, RollUpperBound);

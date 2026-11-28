@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Application.Benefits;
@@ -113,21 +114,16 @@ internal sealed class EquipmentReinforcementDomainService(
                 protectionDefinition = selected.Definition;
             }
         }
-        var bonusUnits = 0;
-        if (!quote.IsTicket && kind == EquipmentUpgradeKind.Reinforcement && targetSlot.Space != BusinessInventorySpace.GuildMedal)
+        ImmutableArray<EquipmentReinforcementChanceBenefit> chanceBenefits = [];
+        if (rule.CanUseChanceBenefits)
         {
             var snapshot = await reinforcementBenefits.ReadAsync(session, ct, GameplayBenefitScope.Global,
                 GameplayBenefitScope.For(session.AccountId), GameplayBenefitScope.For(session.CharacterId)).ConfigureAwait(false);
-            var chanceBonuses = snapshot.Effects<EquipmentReinforcementChanceBenefit>().ToArray();
-            var independent = chanceBonuses.Where(effect => effect.ExclusiveGroup is null).Sum(effect => (long)effect.SuccessUnits);
-            var grouped = chanceBonuses.Where(effect => effect.ExclusiveGroup is not null)
-                .GroupBy(effect => effect.ExclusiveGroup, StringComparer.Ordinal)
-                .Sum(group => (long)group.Max(effect => effect.SuccessUnits));
-            bonusUnits = (int)Math.Min(rule.RollUpperBound, independent + grouped);
+            chanceBenefits = snapshot.Effects<EquipmentReinforcementChanceBenefit>().ToImmutableArray();
         }
         var draw = rolls.Next(rule.RollUpperBound);
         rule = rule.ResolveRoll(draw);
-        var succeeded = rule.TryReinforce(draw, bonusUnits);
+        var succeeded = rule.TryReinforce(draw, chanceBenefits);
         var plan = await plans.ReinforcementAsync(target, rule,
             new(materialLocation, rule.MaterialItemId, rule.MaterialCount),
             protectionSlot is { } ticket ? new(ticket, protectionItem!.ItemId, 1) : null,
