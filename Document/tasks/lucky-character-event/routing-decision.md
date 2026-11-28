@@ -1,7 +1,7 @@
 # Routing Decision
 
 - TaskContract: `./TaskContract.md`
-- Contract revision: `2`
+- Contract revision: `3`
 
 ## SDD Readiness
 
