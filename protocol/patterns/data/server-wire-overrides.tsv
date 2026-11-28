@@ -72,8 +72,12 @@ CMD	CollectionBoxAck	0x03E5	Game/CollectionBox/CollectionBoxSlice.cs	CollectionB
 CMD	CollectionBoxAck	0x03E6	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Put = 1; encoder emits 0x03E5 + Action
 CMD	CollectionBoxAck	0x03E7	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Withdraw = 2; encoder emits 0x03E5 + Action
 CMD	CollectionBoxAck	0x03E8	Game/CollectionBox/CollectionBoxSlice.cs	CollectionBoxAction.Extend = 3; refusal preserves the request type
+CMD	AntonRaidReply	0x0294	Game/AntonRaid/AntonRaidRewardCommands.cs	cutscene branch emits GameFinishAntonRaidMovieReply
+CMD	AntonRaidReply	0x0295	Game/AntonRaid/AntonRaidRewardCommands.cs	reward card branch emits GameSelectAntonRaidRewardReply
 CMD	AntonRaidReply	0x0299	Game/AntonRaid/AntonRaidCommand.cs	create branch emits GameCreateAntonRaidReply
 CMD	AntonRaidReply	0x029A	Game/AntonRaid/AntonRaidCommand.cs	leave branch emits GameLeaveAntonRaidReply
+CMD	AntonRaidReply	0x029B	Game/AntonRaid/AntonRaidCommand.cs	start branch emits GameStartAntonRaidReply
+CMD	AntonRaidReply	0x029D	Game/AntonRaid/AntonRaidCommand.cs	rejoin branch emits GameRejoinAntonRaidReply
 CMD	AntonRaidReply	0x0364	Game/AntonRaid/AntonRaidCommand.cs	precheck branch emits GameCheckAntonRaidUserReply
 NOTI	AntonRaidApprovalNotice	0x0007	Game/AntonRaid/AntonRaidFrames.cs	message identity is GamePartyInviteRequest with raid subtype 10
 NOTI	AntonRaidDirectoryNotice	0x024F	Game/AntonRaid/AntonRaidFrames.cs	message identity is GameAntonRaidDirectory

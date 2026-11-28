@@ -66,6 +66,3 @@ NOTI	0x0015	g1:0	一条可接任务的 questId	Confirmed	上游 QuestListBodyBui
 NOTI	0x02A7	0	深渊索引/等级记录数量count，控制后续循环；不是重连PartyId	Confirmed	ClientStatic：b1 SHA256 CA7ECA4E...388D14；RVA00D483D1读u32、00D483DB比较count、00D48449循环上限；Document/abyss-research-20261007/client.md
 NOTI	0x02A7	g1:0	hell index；具体索引到组/演员的映射尚未确认，不能直接命名monsterId	Confirmed	ClientStatic：RVA00D483EA读第一u32；00D48410引用解密日志hell index(%d) level(%d)；两值传RVA0134B4A0；Document/abyss-research-20261007/client.md
 NOTI	0x02A7	g1:4	level；客户端日志原名，等级缩放和用途尚待追踪	Confirmed	ClientStatic：RVA00D483F3读第二u32、00D48400提交pair；b1 SHA256 CA7ECA4E...388D14；Document/abyss-research-20261007/client.md
-NOTI	0x02A8	0	该可重连副本实例中一名参与者的 UserId；上游对候选实例的每个参与者各发一包	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:105-112 遍历 candidate.ParticipantUserIds
-NOTI	0x02A9	0	被取消重连的参与者 UserId	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:310-314 传 cancelled.ParticipantUserId
-NOTI	0x02AA	0	本次重连请求所针对的队伍 id PartyId	Confirmed	上游 DungeonRejoinNotificationBuilder.cs:24-29 BuildRejoinableDungeon 只写 WriteInt32(partyId)；调用点 DungeonRejoinCoordinator.cs:181-183 与 :243-245 传 request.PartyId

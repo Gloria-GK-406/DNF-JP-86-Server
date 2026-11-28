@@ -6,7 +6,6 @@ NOTI	0x027B	4	第 1 个成员的 userId（本布局固定段 11 字节对应成�
 NOTI	0x027B	6	该小队已消耗的复活币数 UsedCoinCount	High	上游 RaidPacketBuilder.cs:447 WriteUInt32(dungeon.UsedCoinCount)；RaidHandler.Situation.cs:369 GetAntonReportedUsedCoinCount
 NOTI	0x027B	10	尾部运行时数值个数，即 11+n×4 中的 n	High	上游 RaidPacketBuilder.cs:448 WriteByte((byte)dungeon.RuntimeValues.Count)；:449-450 随后写 n 个 u32
 NOTI	0x027B	g1:0	该小队的一个运行时数值 RuntimeValues[i]（本包名为 RAID_MONSTER_HP；上游把客户端上报的同名 CMD 数值缓存后原样广播）	High	上游 RaidPacketBuilder.cs:449-450 foreach runtimeValue WriteUInt32；RaidHandler.Situation.cs:370-372 RuntimeValues 取自 _raidMonsterRuntimeValues 缓存；:168 该缓存由 RAID_MONSTER_HP 请求写入
-CMD	0x0372	0	整条 21 字节租赁请求：上游按 u32@0=商店条目ID、u32@13=背包物品模板ID、u8@17=租赁天数(<=90)、u8@18=星币价的一半(<=50)、u8@19=价格档位(<=30) 解析	High	上游 RentalWeaponRequestCodec.cs:14-19 偏移常量 + :38-48 逐字段读取与取值范围校验；MinBodyLength=21 与本布局 21 字节一致
 CMD	0x0128	0	购买的物品模板 ID（上游 ItemId，要求 >0）	High	上游 SecretShopBuyRequest.cs:22 ToInt32(body,0)->ItemId；SecretShopHandler.cs:58 传入 TryPurchase。注意上游 :19 要求 body.Length==8，与本布局 20 字节(conditional-fields)不一致
 CMD	0x0128	4	购买数量（上游 RequestedCount，要求 >=0）	High	上游 SecretShopBuyRequest.cs:23 ToInt32(body,4)->RequestedCount；SecretShopHandler.cs:59 传入 TryPurchase。长度不一致同上
 NOTI	0x00B1	0	复活币当日领取标记：1=已领取，0=未领取	Confirmed	上游 InitPacketBuilderRegistry.cs:32 SimpleByteBodyBuilder(0x00B1, s=>s.ShopCoinEventFlag)；SqliteSelectCharacterDataSource.cs:266 IsClaimed?1:0；ShopCoinEventHandler.cs:35 领取成功后写 1

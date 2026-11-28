@@ -1,4 +1,4 @@
-# NOTI `0x02A8` `REJOIN_DUNGEON`
+# NOTI `0x02A8` `DISCONN_DUNGEON_INFO`
 
 <!-- rks:machine:begin -->
 
@@ -30,7 +30,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 4 | `u32` | 该可重连副本实例中一名参与者的 UserId；上游对候选实例的每个参与者各发一包 | Confirmed | 上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:105-112 遍历 candidate.ParticipantUserIds，取自 `[ebp - 1]` |
+| 0 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 1]` |
 | 4 | 4 | `u32` | unknown | — | 接收指令，取自 `[ebp - 0xc]` |
 | 8 | 1 | `u8` | unknown | — | 接收指令，取自 `[ebp - 1]` |
 
@@ -53,3 +53,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## A21 分类补记
+
+ClientStatic（High）：客户端重入管理器依次读取 u32、u32、u8，专项报告记为队伍索引、副本键和状态标记。原分片引用的参照构建器只写 u16，无从证实本号首项含义，现已撤回。实际登录/断线后的发送时机和三项值域待双端抓线。 [A21 读取](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/6f40e149ec10452dac9b599803aafc90e2f587f3/Docs/a21-units/unit-004.md#L67)

@@ -1,4 +1,4 @@
-# NOTI `0x02A9` `CANCEL_REJOIN_DUNGEON`
+# NOTI `0x02A9` `REJOIN_DUNGEON`
 
 <!-- rks:machine:begin -->
 
@@ -30,7 +30,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 | Offset | Size | Enc | 可能含义 | 置信度 | 证据 |
 |---:|---:|---|---|---|---|
-| 0 | 2 | `u16` | 被取消重连的参与者 UserId | Confirmed | 上游 DungeonRejoinNotificationBuilder.cs:17-22 BuildParticipant 只写 WriteUInt16(participantUserId)；调用点 DungeonRejoinCoordinator.cs:310-314 传 cancelled.ParticipantUserId，取自 `[ebp - 4]` |
+| 0 | 2 | `u16` | unknown | — | 接收指令，取自 `[ebp - 4]` |
 
 `可能含义` 为 `unknown` 表示**字段边界已确定但含义无证据**——这类未知靠实机改值做差分即可解决，与上面的「结构未知」不是一回事。
 
@@ -51,3 +51,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## A21 分类补记
+
+ClientStatic（Confirmed）：读取 u16 角色索引并调用 addReservedEntryInfo。取消提示由 [NOTI 0x02AA](NOTI-0x02AA.md) 消费，实际角色索引取值与推送时点待双端抓线。 [A21 读取](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/6f40e149ec10452dac9b599803aafc90e2f587f3/Docs/a21-units/unit-004.md#L68)
