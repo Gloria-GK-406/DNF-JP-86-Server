@@ -185,6 +185,7 @@ public sealed class InfrastructureModule : IServerModule
         services.TryAddSingleton<IAvatarCompoundDefinitionSource, PvfAvatarCompoundDefinitionSource>();
         services.TryAddSingleton<IAvatarAppearanceDefinitionSource, PvfAvatarAppearanceDefinitionSource>();
         services.TryAddSingleton<IEquipmentMagicSealGradeDefinitionSource, PvfEquipmentMagicSealGradeDefinitionSource>();
+        services.TryAddSingleton<IEquipmentCompoundDefinitionSource, PvfEquipmentCompoundDefinitionSource>();
         services.TryAddSingleton<IEquipmentReinforcementDefinitionSource,
             PvfEquipmentReinforcementDefinitionSource>();
         services.TryAddSingleton<PvfEquipmentEnchantContentSource>();

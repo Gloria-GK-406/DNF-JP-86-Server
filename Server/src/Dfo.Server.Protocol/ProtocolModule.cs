@@ -100,6 +100,7 @@ using Dfo.Server.Protocol.Game.MonsterCardUpgrade;
 using Dfo.Server.Protocol.Game.MagicSeal;
 using Dfo.Server.Protocol.Game.Outworld;
 using Dfo.Server.Protocol.Game.CompoundItem;
+using Dfo.Server.Protocol.Game.EquipmentCompound;
 using Dfo.Server.Protocol.Game.UpgradeChronicle;
 using Dfo.Server.Protocol.Game.EpicCraft;
 using Dfo.Server.Protocol.Game.ResetItemQuality;
@@ -326,6 +327,7 @@ public sealed class ProtocolModule : IServerModule
         services.AddVendingMachineSlice();
         services.AddLotteryOpeningSlice();
         services.AddCompoundItemSlice();
+        services.AddEquipmentCompoundSlice();
         services.AddUpgradeChronicleSlice();
         services.AddPackageOpeningSlice();
         services.AddReviveCoinSlice();
