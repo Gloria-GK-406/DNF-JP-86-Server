@@ -1,5 +1,11 @@
 # 协议清单
 
+## A21 Game 未接协议审计
+
+[逐号分类与 GitHub 功能任务](../Document/tasks/a21-protocol-backlog/README.md) 按方向、族与类型保留本轮初筛的 1,437 个身份。来源包含 ClientStatic、原有线证、同版参照与主线源码对账。本文的注册覆盖与各实际玩家操作的进度分别判读。
+
+本轮对账补齐攻坚的四个动态 CMD 应答，校正了普通组队副本重入、称号变更、装备租赁和收集箱的部分旧号语义。每项分类和适用边界可在[对应批次](../Document/tasks/a21-protocol-backlog/README.md#批次索引)中查到。 [待办功能](../Document/tasks/a21-protocol-backlog/function-backlog.md)
+
 ## 2026-11-28 选角每日副本提示（普通角色，本轮A21验收通过）
 
 ClientStatic：完成 [CMD02C1](game/client-to-server/0x02C1.md) 的27字节成功响应、角色列表索引、四类提示的显示条件及PVF边界。

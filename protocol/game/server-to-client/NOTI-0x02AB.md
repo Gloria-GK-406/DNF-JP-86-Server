@@ -1,4 +1,4 @@
-# NOTI `0x02AB` `PVP_CLEAR_COMBOMISSION_LIST`
+# NOTI `0x02AB` `REJOINABLE_DUNGEON`
 
 <!-- rks:machine:begin -->
 
@@ -51,3 +51,7 @@ BodyLength = 未知（字段集合已知不完整）
 
 本协议尚无观察记录。取得样本后按 `<type>-<日期>-<序号>.hex` 存入同级 `samples/`，
 并在此说明产生它的客户端动作。证据规则见 [evidence.md](../../evidence.md)。
+
+## A21 分类补记
+
+ClientStatic（High）：接收入口读取 u32 并进入可重入文案和窗口路径。A21 专项将其暂记为角色索引，参照构建器按队伍号发送，字段业务语义仍待通过不同角色和队伍的真实样本分辨。 [A21 读取](https://github.com/Gloria-GK-406/DNF-JP-86-ClientHack/blob/6f40e149ec10452dac9b599803aafc90e2f587f3/Docs/a21-units/unit-004.md#L70)
