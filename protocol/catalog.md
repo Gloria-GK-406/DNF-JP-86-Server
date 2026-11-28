@@ -20,9 +20,9 @@ CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应�
 [CMD `0x0128`](game/client-to-server/0x0128.md) 按 8 字节布局处理金币和道具购买。
 ClientVerified（有限范围）：用户确认赫顿玛尔旧街区单人结算后的金币商店路径符合预期。双人、道具支付和逐字段报文证据未在本轮确认。见 [实机记录](../Document/tasks/gabriel-secret-shop/user-test.md#本轮实机结果)。
 
-## 2026-11-28 A21 幸运角色（ClientStatic、CurrentImplementation）
+## 2026-11-28 A21 幸运角色（手动燃烧与选角标记已实机复测）
 
-GM 活动按有效期和职业名单驱动 [NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md)。随后用 `0x0013` 触发原生技能重算，再用 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 同步疲劳状态。[CMD `0x0233`](game/client-to-server/0x0233.md) 接受城镇和选图界面的显式开关。[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 使用本人和组队两笔通关经验槽。[NOTI `0x0025`](game/server-to-client/NOTI-0x0025.md#幸运角色与频道奖励明细2026-11-28) 的即时频道奖励没有幸运角色预设栏。[选角绿标](game/server-to-client/NOTI-0x0406.md#a21-选角绿色标记) 的素材存在，当前客户端静态路径缺少名单到可见性控件的连接。技能栏、燃烧状态及非零奖励面板待实机。[验收步骤](../Document/tasks/lucky-character-event/user-test.md)
+GM 活动按有效期和职业名单驱动 [NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md)。随后用 `0x0013` 触发原生技能重算，再用 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 同步疲劳状态。[CMD `0x0233`](game/client-to-server/0x0233.md) 接受城镇和选图界面的显式开关。[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 使用本人和组队两笔通关经验槽。[NOTI `0x0025`](game/server-to-client/NOTI-0x0025.md#幸运角色与频道奖励明细2026-11-28) 的即时频道奖励没有幸运角色预设栏。ClientVerified（有限范围）：用户确认手动燃烧行为及 ClientHack 选角绿标。见 [本轮实机结果](../Document/tasks/lucky-character-event/user-test.md#本轮实机结果)。
 
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
@@ -1496,6 +1496,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` | `0x0207` | `AvatarPackageOpeningDecoder` | 仅证明 decoder 已注册 | [0x0207](game/client-to-server/0x0207.md) |
 | `0x01` | `0x0211` | `EntranceSummonDecoder` | 仅证明 decoder 已注册 | [0x0211](game/client-to-server/0x0211.md) |
 | `0x01` | `0x0218` | `CrystalContractDecoder` | 仅证明 decoder 已注册 | [0x0218](game/client-to-server/0x0218.md) |
+| `0x01` | `0x0233` | `LuckyCharacterBurningDecoder` | 仅证明 decoder 已注册 | [0x0233](game/client-to-server/0x0233.md) |
 | `0x01` | `0x0239` | `SetTitleAppearanceDecoder` | 仅证明 decoder 已注册 | [0x0239](game/client-to-server/0x0239.md) |
 | `0x01` | `0x0252` | `SecurityStatusDecoder` | 仅证明 decoder 已注册 | [0x0252](game/client-to-server/0x0252.md) |
 | `0x01` | `0x0286` | `HiddenCharacterInfoMessageDecoder` | 仅证明 decoder 已注册 | [0x0286](game/client-to-server/0x0286.md) |
@@ -1662,6 +1663,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x01` CMD | `0x0207` | `AvatarPackageOpeningResponse` | 仅证明 encoder 可产生该 identity | [0x0207](game/client-to-server/0x0207.md) |
 | `0x01` CMD | `0x0211` | `EntranceSummonResponse` | 仅证明 encoder 可产生该 identity | [0x0211](game/client-to-server/0x0211.md) |
 | `0x01` CMD | `0x0218` | `CrystalContractResponse` | 仅证明 encoder 可产生该 identity | [0x0218](game/client-to-server/0x0218.md) |
+| `0x01` CMD | `0x0233` | `LuckyCharacterBurningResponse` | 仅证明 encoder 可产生该 identity | [0x0233](game/client-to-server/0x0233.md) |
 | `0x01` CMD | `0x0239` | `CloneTitleStateMessage`、`SetTitleAppearanceResponse` | 仅证明 encoder 可产生该 identity | [0x0239](game/client-to-server/0x0239.md) |
 | `0x01` CMD | `0x0252` | `SecurityStatusAcknowledgement` | 仅证明 encoder 可产生该 identity | [0x0252](game/client-to-server/0x0252.md) |
 | `0x01` CMD | `0x0286` | `HiddenCharacterInfoResponse` | 仅证明 encoder 可产生该 identity | [0x0286](game/client-to-server/0x0286.md) |
@@ -1883,6 +1885,7 @@ seq 只在真正发送时递增（第五次会话少发一帧，其后每个 seq
 | `0x00` NOTI | `0x03E0` | `CapsuleEnergyMessage` | 仅证明 encoder 可产生该 identity | [0x03E0](game/server-to-client/NOTI-0x03E0.md) |
 | `0x00` NOTI | `0x03E9` | `SaoCurrentFloorNotification` | 仅证明 encoder 可产生该 identity | [0x03E9](game/server-to-client/NOTI-0x03E9.md) |
 | `0x00` NOTI | `0x03EB` | `CollectionBoxContentsMessage` | 仅证明 encoder 可产生该 identity | [0x03EB](game/server-to-client/NOTI-0x03EB.md) |
+| `0x00` NOTI | `0x0406` | `LuckyCharacterListMessage` | 仅证明 encoder 可产生该 identity | [0x0406](game/server-to-client/NOTI-0x0406.md) |
 | `0x00` NOTI | `0x042B` | `GoldSilverHornQuotaMessage` | 仅证明 encoder 可产生该 identity | [0x042B](game/server-to-client/NOTI-0x042B.md) |
 | `0x00` NOTI | `0x042D` | `WeeklyAttendanceStateMessage` | 仅证明 encoder 可产生该 identity | [0x042D](game/server-to-client/NOTI-0x042D.md) |
 | `0x00` NOTI | `0x0465` | `EpicBookStateMessage` | 仅证明 encoder 可产生该 identity | [0x0465](game/server-to-client/NOTI-0x0465.md) |
