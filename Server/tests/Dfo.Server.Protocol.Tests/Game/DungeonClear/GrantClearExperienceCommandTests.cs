@@ -164,7 +164,9 @@ public sealed class GrantClearExperienceCommandTests
                 new ArchiveGrades(),
                 new NoProgression(),
                 new NoChannelExperience(),
-                ExperienceTuning.Default)), new NoBonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>())), difficulties ?? new RecordingDifficulty());
+                ExperienceTuning.Default, ExperienceEntitlementPolicy.None,
+                TestRequired.Absent<Dfo.Server.Abstractions.Accounts.IPremiumServiceRuleService>())),
+            new NoBonuses(), tower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerRewardRuleService>(), bossTower: TestRequired.Absent<Dfo.Server.Abstractions.World.BossTower.IBossTowerRewardRuleService>())), difficulties ?? new RecordingDifficulty());
 
     private static ClearExperienceAlgorithmDriver Handler(PricingGrant grant, ICharacterDungeonDifficultyDomainService difficulties) =>
         new(grant, grant, TimeProvider.System, difficulties);

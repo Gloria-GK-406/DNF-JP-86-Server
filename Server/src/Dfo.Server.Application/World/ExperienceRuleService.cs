@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Accounts;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.World;
 
@@ -15,7 +17,8 @@ internal sealed class ExperienceRuleService(
     IDungeonRankGradeSource rankGrades,
     IDungeonExperienceProgressionPolicySource progression,
     IChannelExperienceSource channels,
-    ExperienceTuning tuning) : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
+    ExperienceTuning tuning, ExperienceEntitlementPolicy entitlements, IPremiumServiceRuleService premiumRules)
+    : IExperienceRuleService, Dfo.Server.Abstractions.Content.IContentWarmup
 {
     private readonly Lazy<DungeonExperienceProgressionPolicy> policy = new(progression.Load);
     private CharacterExperienceScale? scale;
@@ -48,6 +51,23 @@ internal sealed class ExperienceRuleService(
     {
         var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
         ExperienceBonusRules.FromChannel(occasion, channels.Load().RateFor(channelId, dungeonId), found);
+        return found.ToImmutable();
+    }
+
+    internal ImmutableArray<GameplayBenefit> PremiumBenefits(IReadOnlyList<AccountPremiumEntryState> entries,
+        DateTimeOffset at, ExperienceEvent occasion, double blackDiamond)
+    {
+        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
+        ExperienceBonusRules.FromAccountEntitlements(entries, at, occasion, entitlements, found);
+        var growth = entries.SingleOrDefault(item => item.PremiumType == (int)PremiumServiceType.GrowthContract);
+        if (occasion is ExperienceEvent.MonsterKill or ExperienceEvent.DungeonClear
+            && growth is { } term && term.ExpiresAtUnixSeconds > at.ToUnixTimeSeconds()
+            && premiumRules.GrowthExperienceBonusRate is > 0 and var growthRate)
+            found.Add(DungeonExperienceBenefits.Entry("growth-contract", "growth contract", 200, occasion,
+                growthRate, ExperienceBonusKind.GrowthContract, DateTimeOffset.FromUnixTimeSeconds(term.ExpiresAtUnixSeconds)));
+        if (occasion == ExperienceEvent.DungeonClear && blackDiamond > 0)
+            found.Add(DungeonExperienceBenefits.Entry("black-diamond", "black diamond", 400, occasion,
+                blackDiamond, ExperienceBonusKind.BlackDiamond, basis: ExperienceBonusBasis.BaseAndClearRank));
         return found.ToImmutable();
     }
 

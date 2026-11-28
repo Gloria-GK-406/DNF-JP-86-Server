@@ -5,8 +5,6 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Achievements;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Effects;
-using Dfo.Server.Abstractions.Benefits;
-using Dfo.Server.Application.Benefits;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
@@ -19,8 +17,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
     IQuestRewardRuleService rewards, IExperienceRuleService experience, ICarriedGoldRuleService gold,
     IItemPlacementRuleService placements, IAccountMaterialRuleService accounts,
     ICharacterStatRuleService stats, ICharacterSkillRuleService skills, ICreatureDefinitionSource creatures,
-    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService stateRules,
-    GameplayBenefitsQuery<QuestExperienceBenefitContext> experienceBenefits)
+    IAchievementRuleService achievements, ITitleBookRuleService titleBook, IQuestStateRuleService stateRules)
     : IQuestCompletionEffectRuleService
 {
     private readonly IQuestStateRuleService stateRules = stateRules;
@@ -119,15 +116,8 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         effects.Add(new SetCarriedQuestEffect(target, null));
         effects.Add(new SetClearedQuestEffect(questId, facts.Quests.Cleared.FirstOrDefault(x => x.QuestId == questId)?.Mark, IQuestLog.ClearedMark));
         effects.AddRange(rewardEffects);
-        var experienceBreakdown = new ExperienceBreakdown(Base: reward.Experience);
-        if (reward.Experience > 0)
-        {
-            var declared = await experienceBenefits.ReadAsync(new(facts.Identity, questId), ct,
-                GameplayBenefitScope.Global, GameplayBenefitScope.For(facts.Identity.CharacterId)).ConfigureAwait(false);
-            experienceBreakdown = ExperienceCalculationDomainService.ApplyBonuses(experienceBreakdown,
-                declared.Effects<ExperienceBenefit>().Where(effect => effect.AppliesTo(ExperienceEvent.QuestCompletion))
-                    .Select(effect => effect.Modifier).ToArray());
-        }
+        var experienceBreakdown = ExperienceCalculationDomainService.ApplyBonuses(
+            new ExperienceBreakdown(Base: reward.Experience), facts.ExperienceModifiers);
         var xp = experience.DecideAward(facts.Progress, experienceBreakdown);
         effects.Add(new CharacterExperienceEffect(xp));
         byte? packedGrowType = reward.GrowType;

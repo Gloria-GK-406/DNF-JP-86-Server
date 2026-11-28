@@ -37,6 +37,7 @@ public sealed record QuestCompletionFacts(CharacterIdentityState Identity, Chara
 {
     public IReadOnlyList<ItemReference> SharedMaterials { get; init; } = [];
     public IReadOnlyDictionary<int, byte> ExpertSkillGrants { get; init; } = ImmutableDictionary<int, byte>.Empty;
+    public ImmutableArray<ExperienceModifier> ExperienceModifiers { get; init; } = [];
 }
 public sealed record QuestCompletionPlan(ushort QuestId, ImmutableArray<DomainEffect> Effects,
     ExperienceAward Award, QuestProgressSnapshot? Projection, byte? GrowType)

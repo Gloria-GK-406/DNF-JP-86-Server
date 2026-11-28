@@ -4,6 +4,7 @@ using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.Settlement;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Effects;
+using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Inventory;
@@ -11,6 +12,7 @@ using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Application.Transactions;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.Inventory;
+using Dfo.Server.Data.Events;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Tests.Inventory;
 using Dfo.Server.Protocol.Game.QuestCompletion;
@@ -62,6 +64,40 @@ public sealed class OrdinaryQuestEffectTests
     private static Task<QuestFinishOutcome> Finish(ShopFixture shop, ushort selection = ushort.MaxValue, ushort count = 1) =>
         new QuestTestCommands(shop).SendAsync(new QuestFinishTestInput(new(1),new(1),2001,selection,count,0)).AsTask();
     private static void Carry(ShopFixture shop, int trigger=0) => shop.Sql($"INSERT INTO character_active_quests(character_id,slot,quest_id,trigger_value) VALUES(1,0,2001,{trigger})");
+
+    [Theory]
+    [InlineData(false, 111u)]
+    [InlineData(true, 101u)]
+    public async Task Quest_preparation_applies_lucky_experience_from_the_completion_snapshot(bool eventOnly, uint expected)
+    {
+        var at = DateTimeOffset.UnixEpoch.AddDays(1);
+        var rules = new Rules
+        {
+            ParametersValue = new([100, 200], new Dictionary<char, int> { ['M'] = 10 }, 80, 30, 120, 140),
+        };
+        rules.Quest = rules.Quest with { IsEventOnly = eventOnly, PaysAtCharacterLevel = true, ItemRewards = QuestItemRewardDefinition.Empty };
+        using var shop = Shop(services =>
+        {
+            services.AddSingleton<IQuestContentRuleService>(rules);
+            services.AddSingleton(TestRequired.Absent<ILuckyCharacterEventQuery>((_, args) =>
+            {
+                Assert.Equal(at, Assert.IsType<DateTimeOffset>(args![0]));
+                return ValueTask.FromResult(new LuckyCharacterPeriod(1, [12]));
+            }));
+        });
+        Carry(shop);
+
+        await TestGameplay.RunAsync(shop.Services, async () =>
+        {
+            await using var transaction = shop.Services.GetRequiredService<DomainTransactionScope>().Begin();
+            var completion = shop.Services.GetRequiredService<IQuestCompletionDomainService>();
+            var result = await TestEffectFootprints.Run(new EffectFootprintOwner(new(1), new(1), null),
+                cap => completion.PrepareAsync(new(1), new(1), 2001, ushort.MaxValue, 1, at, cap, default));
+
+            Assert.True(result.Prepared);
+            Assert.Equal(expected, result.Plan!.Award.Gained);
+        });
+    }
 
     [Fact]
     public void Quest_planning_query_and_settlement_services_resolve_from_the_production_service_graph()

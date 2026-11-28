@@ -36,6 +36,15 @@ namespace Dfo.Server.Application.Tests.World;
 /// </remarks>
 public sealed class ExperienceBonusDomainServiceTests
 {
+    [Fact]
+    public void Configured_premium_experience_is_applied_to_active_account_entitlements()
+    {
+        var policy = new ExperienceEntitlementPolicy(new Dictionary<int, double> { [7] = 0.25, [8] = 0.75 });
+        var service = Service(premiums: [new(7, 4_000_000_000), new(8, 1)], policy: policy);
+
+        Assert.Equal(new ExperienceModifier("premium type 7", 0.25), Assert.Single(Collect(service, OtherDungeon)));
+    }
+
     [Theory]
     [InlineData(false, 1, false, ExperienceEvent.DungeonClear, 0, .10, 0)]
     [InlineData(true, 0, false, ExperienceEvent.DungeonClear, .15, 0, 0)]
@@ -281,7 +290,7 @@ public sealed class ExperienceBonusDomainServiceTests
         IOnlineCharacterRuntimeDomainService? potions = null,
         bool blackDiamond = false,
         double adventureRate = 0,
-        double guildRate = 0, IDungeonRunQueryDomainService? runs = null) =>
+        double guildRate = 0, IDungeonRunQueryDomainService? runs = null, ExperienceEntitlementPolicy? policy = null) =>
         BuildService(new OneSession(published),
             new PremiumServiceDomainService(new NoPremium(premiums ?? []), TestRequired.TransactionScope(), TimeProvider.System, new Rates(), new Dfo.Server.Infrastructure.Configuration.ServerConfigService(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Premium:BlackDiamondEnabled"] = blackDiamond.ToString() }).Build())),
             new OneChannel(channelId), new FixedChannelExperience(channels ?? TwoChannels),
@@ -292,19 +301,22 @@ public sealed class ExperienceBonusDomainServiceTests
             TestRequired.Absent<IGuildBenefitDomainService>((method, _) =>
                 method.Name == nameof(IGuildBenefitDomainService.ReadMonsterExperienceRateAsync)
                     ? ValueTask.FromResult(guildRate) : null),
-            runs ?? TestRequired.Absent<IDungeonRunQueryDomainService>());
+            runs ?? TestRequired.Absent<IDungeonRunQueryDomainService>(), policy);
 
     private static ExperienceBonusDomainService BuildService(ISelectedSessionDomainService sessions,
         IPremiumServiceDomainService premiums, IChannelEntryDomainService channels, IChannelExperienceSource rates,
         IOnlineCharacterRuntimeDomainService potions, IAdventureGroupDomainService adventureGroups,
-        IGuildBenefitDomainService guilds, IDungeonRunQueryDomainService runs) =>
-        new(sessions, TestGameplayBenefits.Query<DungeonExperienceBenefitContext>(
-            new PremiumExperienceBenefits(premiums, new Rates(), ExperienceEntitlementPolicy.None),
-            new ChannelExperienceBenefits(channels, new ExperienceRuleService(
-                new UnpricedKills(), new UngradedRanks(), new NoProgression(), rates, ExperienceTuning.Default)),
+        IGuildBenefitDomainService guilds, IDungeonRunQueryDomainService runs, ExperienceEntitlementPolicy? policy = null)
+    {
+        var rules = new ExperienceRuleService(new UnpricedKills(), new UngradedRanks(), new NoProgression(), rates,
+            ExperienceTuning.Default, policy ?? ExperienceEntitlementPolicy.None, new Rates());
+        return new(sessions, TestGameplayBenefits.Query<DungeonExperienceBenefitContext>(
+            new PremiumExperienceBenefits(premiums, rules),
+            new ChannelExperienceBenefits(channels, rules),
             new GuildExperienceBenefits(guilds),
             new SpiritPotionExperienceBenefits(potions), new AdventureGroupExperienceBenefits(adventureGroups),
             new RunExperienceBenefits(runs, TestGameplayBenefits.LuckyRules)));
+    }
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;

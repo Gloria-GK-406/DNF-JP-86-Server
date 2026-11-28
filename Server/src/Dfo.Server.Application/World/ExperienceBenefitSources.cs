@@ -19,8 +19,7 @@ internal static class DungeonExperienceBenefits
         new(key, name, order, new ExperienceBenefit(occasion, new(name, rate, kind, basis)), EndsAt: endsAt);
 }
 
-internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService premiums,
-    IPremiumServiceRuleService rules, ExperienceEntitlementPolicy entitlements)
+internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService premiums, ExperienceRuleService rules)
     : IGameplayBenefitSource<DungeonExperienceBenefitContext>
 {
     public async ValueTask<GameplayBenefitBatch> DescribeAsync(
@@ -29,19 +28,10 @@ internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService pre
         var occasion = context.Occasion;
         var account = premiums.For(occasion.Account);
         var entries = await account.ReadAtAsync(at, ct).ConfigureAwait(false);
-        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
-        ExperienceBonusRules.FromAccountEntitlements(entries, at, occasion.Event, entitlements, found);
-        var growth = entries.SingleOrDefault(item => item.PremiumType == (int)PremiumServiceType.GrowthContract);
-        if (occasion.Event is ExperienceEvent.MonsterKill or ExperienceEvent.DungeonClear
-            && growth is { } term && term.ExpiresAtUnixSeconds > at.ToUnixTimeSeconds() && rules.GrowthExperienceBonusRate > 0)
-            found.Add(DungeonExperienceBenefits.Entry("growth-contract", "growth contract", 200, occasion.Event,
-                rules.GrowthExperienceBonusRate, ExperienceBonusKind.GrowthContract,
-                DateTimeOffset.FromUnixTimeSeconds(term.ExpiresAtUnixSeconds)));
-        if (occasion.Event == ExperienceEvent.DungeonClear
-            && await account.GetBlackDiamondExperienceBonusRateAsync(ct).ConfigureAwait(false) is > 0 and var blackDiamond)
-            found.Add(DungeonExperienceBenefits.Entry("black-diamond", "black diamond", 400, occasion.Event,
-                blackDiamond, ExperienceBonusKind.BlackDiamond, basis: ExperienceBonusBasis.BaseAndClearRank));
-        return new("premium-services", GameplayBenefitScope.For(occasion.Account), found.ToImmutable());
+        var blackDiamond = occasion.Event == ExperienceEvent.DungeonClear
+            ? await account.GetBlackDiamondExperienceBonusRateAsync(ct).ConfigureAwait(false) : 0;
+        return new("premium-services", GameplayBenefitScope.For(occasion.Account),
+            rules.PremiumBenefits(entries, at, occasion.Event, blackDiamond));
     }
 }
 
