@@ -77,6 +77,8 @@ public sealed class DungeonOwnerRoutingSourceTests(ITestOutputHelper output)
             "0x0104 A21 skill page toggle: rejects a stale frame before it can toggle the saved page again"),
         new(Rule.Stale, "Game/LuckyCharacter/GameLuckyCharacterBurningCommand.cs", "HandleAsync", 1,
             "0x0233 fatigue burning: an old enable or disable request cannot replace the current setting"),
+        new(Rule.ParticipationLookup, "Game/LuckyCharacter/GameLuckyCharacterBurningCommand.cs", "SetAsync", 1,
+            "0x0233 can change the next entry's setting but cannot change a dungeon already in progress"),
         new(Rule.ParticipationLookup, "Game/WeeklyAttendance/WeeklyAttendanceSlice.cs",
             "ComposeAsync(NotificationRecipient, EventsChanged, CancellationToken)", 1,
             "A lucky character refresh preserves the entry skill state while the character occupies a dungeon"),

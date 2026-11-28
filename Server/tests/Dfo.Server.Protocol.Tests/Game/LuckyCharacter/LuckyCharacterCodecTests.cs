@@ -33,16 +33,17 @@ public sealed class LuckyCharacterCodecTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    public void Entry_projects_the_list_before_skill_recalculation_and_fatigue_state(byte state)
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(2, true)]
+    public void Entry_projects_the_list_before_skill_recalculation_and_fatigue_state(byte state, bool lucky)
     {
         var seed = SelectCharacterPayloadTestData.CreateComplete();
         var configured = seed with
         {
             Events = Dfo.Server.Data.Events.EventPlayerSnapshot.Empty with
             {
-                LuckyCharacters = new(2, state == 0 ? [] : [seed.Character.Identity.Job]),
+                LuckyCharacters = new(2, lucky ? [seed.Character.Identity.Job] : []),
                 LuckyFatigueState = state,
             },
         };

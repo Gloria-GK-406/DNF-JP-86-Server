@@ -31,24 +31,13 @@ internal sealed class ExperienceCalculationDomainService(
                     kill.Difficulty, kill.DungeonWeight, kill.PartyMemberCount, kill.IsNamedMonster));
                 var result = new ExperienceBreakdown(Base: worth);
                 if (worth == 0) return result;
-                foreach (var modifier in await bonuses.CollectAsync(kill.Occasion, cancellationToken)
-                    .ConfigureAwait(false))
-                    result = result.Add(modifier.Kind, Floor(worth * modifier.Rate));
-                _ = result.Total;
-                return result;
+                return ApplyDungeonBonuses(result, await bonuses.CollectAsync(kill.Occasion, cancellationToken)
+                    .ConfigureAwait(false));
             case ClearExperienceContext clear:
                 var calculated = valuation.WorthOfClear(clear.Clear with { CharacterLevel = characterLevel });
                 var settlement = new ExperienceBreakdown(Base: calculated.Base, ClearRank: calculated.RankBonus);
-                foreach (var modifier in await bonuses.CollectAsync(clear.Occasion, cancellationToken)
-                    .ConfigureAwait(false))
-                {
-                    // Black diamond includes rank, but never compounds other premium bonuses.
-                    var basis = modifier.Kind == ExperienceBonusKind.BlackDiamond
-                        ? (double)calculated.Base + calculated.RankBonus : calculated.Base;
-                    settlement = settlement.Add(modifier.Kind, Floor(basis * modifier.Rate));
-                }
-                _ = settlement.Total;
-                return settlement;
+                return ApplyDungeonBonuses(settlement, await bonuses.CollectAsync(clear.Occasion, cancellationToken)
+                    .ConfigureAwait(false));
             case TowerKillExperienceContext { Tower: DungeonParticipationMode.BossTower } kill:
                 var bossKillBase = await bossTower
                     .KillExperienceAsync(characterLevel, kill.ActorType, cancellationToken).ConfigureAwait(false);
@@ -82,6 +71,27 @@ internal sealed class ExperienceCalculationDomainService(
             default:
                 throw new ArgumentOutOfRangeException(nameof(context));
         }
+    }
+
+    private static ExperienceBreakdown ApplyDungeonBonuses(ExperienceBreakdown award, IReadOnlyList<ExperienceModifier> modifiers)
+    {
+        var burnRate = 0.0;
+        foreach (var modifier in modifiers)
+        {
+            if (modifier.Kind == ExperienceBonusKind.FatigueBurn)
+            {
+                burnRate += modifier.Rate;
+                continue;
+            }
+            // Black diamond includes rank. Other bonuses use the base before any bonus.
+            var basis = modifier.Kind == ExperienceBonusKind.BlackDiamond
+                ? (double)award.Base + award.ClearRank : award.Base;
+            award = award.Add(modifier.Kind, Floor(basis * modifier.Rate));
+        }
+        if (burnRate > 0)
+            award = award.Add(ExperienceBonusKind.FatigueBurn, Floor(award.Total * burnRate));
+        _ = award.Total;
+        return award;
     }
 
     private static uint Floor(double value) => value <= 0 || double.IsNaN(value) ? 0

@@ -3,6 +3,7 @@ using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Application.Dispatching;
 using Dfo.Server.Data.Networking;
@@ -45,7 +46,8 @@ public sealed record GameLuckyCharacterBurningCommand(NetworkDispatchContext Dis
 
 internal sealed class GameLuckyCharacterBurningCommandHandler(ISelectedSessionDomainService sessions,
     IOnlineCharacterRuntimeDomainService runtime, ILuckyCharacterEventQuery events, ILuckyCharacterBurning burning,
-    ICharacterDomainService characters, ICharacterFatigueDomainService fatigue, IChannelEntryDomainService channels, ICommandWorkUnits units,
+    ICharacterDomainService characters, ICharacterFatigueDomainService fatigue, IChannelEntryDomainService channels,
+    IDungeonEntryIntentDomainService entryIntents, IDungeonParticipationDomainService participation, ICommandWorkUnits units,
     IGameCommandOutbox outbox, TimeProvider clock) : ICommandHandler<GameLuckyCharacterBurningCommand, bool>
 {
     private const byte TownOnly = 0x13;
@@ -77,16 +79,20 @@ internal sealed class GameLuckyCharacterBurningCommandHandler(ISelectedSessionDo
     private async ValueTask<(byte Error, byte? FatigueState)> SetAsync(SelectedSessionIdentity session, bool enabled,
         CancellationToken ct)
     {
-        if (runtime.StandingOf(session) is null) return (TownOnly, null);
+        var inOrdinaryDungeonSelection = entryIntents.Find(session)?.Kind is
+            DungeonEntryIntentKind.Interactive or DungeonEntryIntentKind.Directed or DungeonEntryIntentKind.OrdinaryRechallenge;
+        if (participation.Find(session.CharacterId) is not null
+            || (runtime.StandingOf(session) is null && !inOrdinaryDungeonSelection))
+            return (TownOnly, null);
         if ((await channels.ResolveAsync(session.ListenerPort, ct).ConfigureAwait(false)).IsPvp) return (NotEligible, null);
         var now = clock.GetUtcNow();
         var period = await events.ReadAtAsync(now, ct).ConfigureAwait(false);
         var identity = await characters.Get(session.CharacterId).IdentityAsync(ct).ConfigureAwait(false);
         if (identity is null || !period.Includes(identity.Job)) return (NotEligible, 0);
         if (enabled && (await fatigue.BalanceAtAsync(session.CharacterId, now, ct).ConfigureAwait(false)).Remaining < 2)
-            return (InsufficientFatigue, null);
+            return (InsufficientFatigue, burning.IsEnabled(session.CharacterId, period.Revision) ? (byte)2 : (byte)0);
         if (!burning.TrySet(session, period.Revision, enabled)) return (TownOnly, null);
-        return (0, enabled ? (byte)2 : (byte)1);
+        return (0, enabled ? (byte)2 : (byte)0);
     }
 }
 

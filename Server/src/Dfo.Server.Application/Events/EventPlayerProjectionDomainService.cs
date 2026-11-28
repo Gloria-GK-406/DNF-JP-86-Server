@@ -38,7 +38,7 @@ internal sealed class EventPlayerProjectionDomainService(IEventManagementDomainS
             lucky = lucky with { Jobs = [] };
         else if (lucky.Revision > 0)
         {
-            fatigueState = !lucky.Includes(job) ? (byte)0 : burning.IsEnabled(character, lucky.Revision) ? (byte)2 : (byte)1;
+            fatigueState = lucky.Includes(job) && burning.IsEnabled(character, lucky.Revision) ? (byte)2 : (byte)0;
         }
         return EventPlayerSnapshotProjection.WithScheduledDungeons(new(information,
             await attendance.StateAsync(account, at, ct).ConfigureAwait(false),

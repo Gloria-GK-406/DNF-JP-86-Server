@@ -199,7 +199,7 @@ internal sealed partial class GameSelectDungeonCommandHandler
                 {
                     frames.Add(new Dfo.Server.Protocol.Game.LuckyCharacter.LuckyCharacterListMessage(lucky));
                     frames.Add(new SkillStateMessage(refreshed[receiver.Session.CharacterId].CharacterEntry.Skills));
-                    var state = entrant.BurnsFatigue ? (byte)2 : entrant.IsLuckyCharacter ? (byte)1 : (byte)0;
+                    var state = entrant.BurnsFatigue ? (byte)2 : (byte)0;
                     frames.Add(new FatigueAccelerationStateMessage(0, state));
                 }
                 frames.Add(new UserStateNotification(allWireUserIds, 0x01));

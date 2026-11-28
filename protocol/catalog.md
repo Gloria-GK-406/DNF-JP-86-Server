@@ -22,7 +22,7 @@ ClientVerified（有限范围）：用户确认赫顿玛尔旧街区单人结算
 
 ## 2026-11-28 A21 幸运角色（ClientStatic、CurrentImplementation）
 
-GM 活动按有效期和职业名单驱动 [NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md)。随后用 `0x0013` 触发原生技能重算，再用 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 同步疲劳状态。[CMD `0x0233`](game/client-to-server/0x0233.md) 接受显式开关，[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 使用本人和组队两笔通关经验槽。原生客户端选角刷新、技能栏、燃烧状态及非零奖励面板待实机。[验收步骤](../Document/tasks/lucky-character-event/user-test.md)
+GM 活动按有效期和职业名单驱动 [NOTI `0x0406`](game/server-to-client/NOTI-0x0406.md)。随后用 `0x0013` 触发原生技能重算，再用 [NOTI `0x01EB`](game/server-to-client/NOTI-0x01EB.md) 同步疲劳状态。[CMD `0x0233`](game/client-to-server/0x0233.md) 接受城镇和选图界面的显式开关。[NOTI `0x0023`](game/server-to-client/NOTI-0x0023.md#a21-幸运角色本次通关加成) 使用本人和组队两笔通关经验槽。[NOTI `0x0025`](game/server-to-client/NOTI-0x0025.md#幸运角色与频道奖励明细2026-11-28) 的即时频道奖励没有幸运角色预设栏。原生客户端选角标记、技能栏、燃烧状态及非零奖励面板待实机。[验收步骤](../Document/tasks/lucky-character-event/user-test.md)
 
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
