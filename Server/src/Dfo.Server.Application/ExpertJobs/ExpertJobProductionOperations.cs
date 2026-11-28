@@ -20,7 +20,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
     IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment,
     IOpeningEffectPlanRuleService materials, IPackageOpeningRuleService rewards, IInventoryEffectPreflightDomainService preflight,
     IApplyEffectsDomainService effects, IDomainTransactionAccessor transactions,
-    EnchanterStoreOperations enchanterStores, TimeProvider clock)
+    ExpertEnchantmentRuleService enchantmentRules, EnchanterStoreOperations enchanterStores, TimeProvider clock)
 {
     public IAlchemistDomainService BindAlchemist(CharacterId owner) => new Alchemist(this, owner);
     public IDollControllerDomainService BindDollController(CharacterId owner) => new DollController(this, owner);
@@ -121,7 +121,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         if (productionRules.BeadRecipe(enchantment, state, recipeId) is not { } recipe
             || !await HasSkillAsync(owner, recipe.RequiredSkill, ct).ConfigureAwait(false))
             return new(ExpertJobProductionRejection.InvalidRecipe);
-        var (refusal, rollRule) = productionRules.BeadRollRule(definition, enchantment, state.Experience, recipe);
+        var (refusal, rollRule) = enchantmentRules.BeadRollRule(definition, enchantment, state.Experience, recipe);
         if (rollRule is null) return new(refusal);
         if (!card.Space.IsCarriedItemSpace() || card.Space == BusinessInventorySpace.TowerQuickSlot)
             return new(ExpertJobProductionRejection.InvalidItem);
@@ -130,7 +130,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         if (cardItem is not { IsPile: true, Count: > 0 } || cardItem.Snapshot.IsMirror
             || cardItem.Snapshot.EquipmentLockId != 0 || cardItem.Snapshot.SortLockFlag != 0
             || cardItem.Snapshot.Lifetime.IsExpired(context.At)
-            || await productionRules.ResolveBeadProductAsync(recipe, cardItem.Snapshot, ct).ConfigureAwait(false) is not { } product)
+            || await enchantmentRules.ResolveBeadProductAsync(recipe, cardItem.Snapshot, ct).ConfigureAwait(false) is not { } product)
             return new(ExpertJobProductionRejection.InvalidItem);
 
         var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(card, cardItem.ItemId, 1) };
@@ -152,7 +152,7 @@ internal sealed class ExpertJobProductionOperations(IExpertJobStateStore states,
         // Validate capacity for the potential product before rolling, including the card and material debits.
         var rejection = await PreviewAsync(context, plan, limitRewards: false, ct).ConfigureAwait(false);
         if (rejection != ExpertJobProductionRejection.None) return new(rejection);
-        var outcome = productionRules.ResolveBead(rollRule, Random.Shared.Next());
+        var outcome = enchantmentRules.Roll(rollRule, Random.Shared.Next());
         if (!outcome.Success) plan.RemoveAt(plan.Count - 1);
         var receipt = await SettleAsync(context, plan, definition, state, outcome.ExperienceGain, ct).ConfigureAwait(false);
         return new(ExpertJobProductionRejection.None, receipt, new(product.Reward.ItemId, product.Reward.Count),

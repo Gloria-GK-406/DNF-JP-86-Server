@@ -7,7 +7,7 @@ using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.ExpertJobs;
 
-internal sealed class ExpertJobProductionRuleService(EquipmentDisjointRuleService equipment, IEquipmentEnchantRuleService enchant)
+internal sealed class ExpertJobProductionRuleService(EquipmentDisjointRuleService equipment)
 {
     internal (int Skill, bool LevelTooLow)? DrawingRequirements(ExpertJobDefinition definition, uint experience, int drawing)
     {
@@ -57,32 +57,6 @@ internal sealed class ExpertJobProductionRuleService(EquipmentDisjointRuleServic
             successes > 0 && production.Extractors.ContainsKey(recipe.Product.ItemId)));
     }
 
-    internal (ExpertJobProductionRejection Rejection, ExpertJobBeadRollRule? Rule) BeadRollRule(
-        ExpertJobDefinition definition, EnchanterDefinition enchantment, uint experience, EnchanterCardRecipe recipe)
-    {
-        var level = definition.LevelAt(experience);
-        if (level < recipe.RequiredLevel) return (ExpertJobProductionRejection.LevelTooLow, null);
-        return enchantment.CardRates.TryGetValue(level, out var rate)
-            ? (ExpertJobProductionRejection.None, new(rate.SuccessByQualification[recipe.Qualification], rate.Experience))
-            : (ExpertJobProductionRejection.InvalidRecipe, null);
-    }
-
-    internal async ValueTask<ExpertJobBeadProduct?> ResolveBeadProductAsync(EnchanterCardRecipe recipe, ItemSnapshot card,
-        CancellationToken ct)
-    {
-        if (!recipe.BeadsByCardId.TryGetValue(card.ItemId, out var bead)
-            || !await enchant.CanProduceExpertBeadAsync(card, bead, ct).ConfigureAwait(false))
-            return null;
-        return new(new(bead, 1), card.EnchantUpgradeCount);
-    }
-
-    internal (bool Success, int ExperienceGain) ResolveBead(ExpertJobBeadRollRule rule, int randomSeed)
-    {
-        var random = new Random(randomSeed);
-        var success = random.Next(100) < rule.SuccessPercent;
-        return (success, success ? ExpertJobEquipmentRules.Between(random, rule.Experience.Minimum, rule.Experience.Maximum) : 0);
-    }
-
     internal async ValueTask<(ExpertJobProductionRejection Rejection, ExpertJobExtractionPlan? Plan)> ResolveExtractionAsync(
         ExpertJobDefinition definition, ExpertJobProductionDefinition production, uint experience, int extractorId,
         ItemSnapshot item, int randomSeed, CancellationToken ct)
@@ -126,9 +100,5 @@ internal sealed class ExpertJobProductionRuleService(EquipmentDisjointRuleServic
 
 internal sealed record ExpertJobCraftPlan(int GoldCost, RecipeAmount AttemptedOutput, int Successes, int Failures,
     ImmutableArray<OpeningReward> Rewards, long ExperienceGain, bool ExtractorProduct);
-
-internal sealed record ExpertJobBeadRollRule(int SuccessPercent, ExpertJobExperienceRange Experience);
-
-internal sealed record ExpertJobBeadProduct(OpeningReward Reward, byte UpgradeCount);
 
 internal sealed record ExpertJobExtractionPlan(ImmutableArray<OpeningReward> Rewards, int ExperienceGain);

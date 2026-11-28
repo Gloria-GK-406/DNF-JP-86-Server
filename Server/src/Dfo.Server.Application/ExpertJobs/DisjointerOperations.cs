@@ -107,36 +107,12 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
             return new(ExpertMachineMaintenanceRejection.InvalidState);
         var context = new EffectExecutionContext(session.AccountId, owner, clock.GetUtcNow(), footprint, session);
         footprint.DemandEffects(context.Owner);
-        var grade = state.DisjointMachineGrade;
-        if (grade <= 0 || grade > machine.Repairs.Count) return new(ExpertMachineMaintenanceRejection.InvalidState);
-
         var character = characters.Get(owner);
         var gold = await character.GoldAsync(ct).ConfigureAwait(false);
-        var repair = machine.Repairs[grade - 1];
-        int cost;
-        int endurance;
-        if (upgrade)
-        {
-            var target = grade + 1;
-            if (state.DisjointMachineEndurance != repair.MaximumEndurance || target > machine.Repairs.Count
-                || definition.LevelAt(state.Experience) < target
-                || !machine.UpgradeCosts.TryGetValue(target, out cost) || cost <= 0
-                || !machine.MinimumCharacterLevels.TryGetValue(target, out var minLevel))
-                return new(ExpertMachineMaintenanceRejection.CannotUpgrade);
-            if (await character.ProgressAsync(ct).ConfigureAwait(false) is not { } progress || progress.Level < minLevel)
-                return new(ExpertMachineMaintenanceRejection.CharacterLevelTooLow);
-            if (gold < cost) return new(ExpertMachineMaintenanceRejection.InsufficientGold);
-            grade = target;
-            endurance = machine.Repairs[grade - 1].MaximumEndurance;
-        }
-        else if (ExpertMachineRepair.Quote(repair, state.DisjointMachineEndurance, gold) is { } quote)
-        {
-            (cost, endurance) = quote;
-        }
-        else
-        {
-            return new(ExpertMachineMaintenanceRejection.CannotRepair);
-        }
+        var characterLevel = upgrade ? (await character.ProgressAsync(ct).ConfigureAwait(false))?.Level : null;
+        var (refusal, maintenance) = machineRules.QuoteMaintenance(definition, machine, state, upgrade, characterLevel, gold);
+        if (maintenance is not { } quote) return new(refusal);
+        var (cost, endurance, grade) = quote;
 
         var applied = await effects.ApplyAsync(context, [new SpendGoldEffect(cost)], ct).ConfigureAwait(false);
         footprint.DemandEffects(context.Owner);
@@ -155,21 +131,6 @@ internal sealed class DisjointerOperations(IExpertJobStateStore states, IExpertJ
 
         public ValueTask<ExpertMachineMaintenanceResult> UpgradeAsync(SelectedSessionIdentity actor,
             IEffectFootprintRecorder footprint, CancellationToken ct) => operations.MaintainAsync(owner, actor, true, footprint, ct);
-    }
-}
-
-internal static class ExpertMachineRepair
-{
-    internal static (int Cost, int Endurance)? Quote(ExpertMachineRepairRule rule, int endurance, int gold)
-    {
-        if (endurance < 0 || endurance >= rule.MaximumEndurance || rule.FullCost <= 0 || gold <= 0)
-            return null;
-        var fullRepair = rule.FullCost - (int)((long)endurance * rule.FullCost / rule.MaximumEndurance);
-        if (gold >= fullRepair) return (fullRepair, rule.MaximumEndurance);
-        var unitCost = rule.FullCost / rule.MaximumEndurance;
-        if (unitCost <= 0 || gold < unitCost) return null;
-        var points = gold / unitCost;
-        return (points * unitCost, (int)Math.Min(rule.MaximumEndurance, (long)endurance + points));
     }
 }
 

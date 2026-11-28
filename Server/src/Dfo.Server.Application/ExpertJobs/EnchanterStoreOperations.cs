@@ -16,7 +16,7 @@ namespace Dfo.Server.Application.ExpertJobs;
 internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExpertJobRuleService rules,
     IExpertStoreGameplayDomainService gameplay, IExpertStoreDomainService stores, ISelectedSessionDomainService sessions,
     ITownAreaDomainService areas, IBusinessInventorySlotDomainService slots, IEquipmentDomainService equipment,
-    IEquipmentEnchantRuleService enchantRules, ICharacterDomainService characters, IInventoryEffectPreflightDomainService preflight,
+    ExpertEnchantmentRuleService enchantmentRules, ICharacterDomainService characters, IInventoryEffectPreflightDomainService preflight,
     IApplyEffectsDomainService effects, ICharacterBusinessInventoryDomainService bags,
     IOpeningEffectPlanRuleService materials, TimeProvider clock)
 {
@@ -27,13 +27,9 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
             || await gameplay.ValidateUseAsync(visit, ct).ConfigureAwait(false) is not { Type: ExpertJobType.Enchanter } state
             || await rules.FindAsync(state.Type, ct).ConfigureAwait(false) is not { Enchantment: { } enchantment } definition)
             return new(EnchanterStoreRejection.InvalidState);
-        var level = definition.LevelAt(state.Experience);
-        if (!enchantment.CardRecipes.TryGetValue(recipeId, out var recipe) || recipe.RequiredLevel > level
-            || !enchantment.CardRates.TryGetValue(level, out var rate))
-            return new(EnchanterStoreRejection.InvalidItem);
-        var wear = level >= enchantment.WearMinimumLevel ? enchantment.WearPerAttempt : 0;
-        if (state.EnchanterEndurance <= 0 || state.EnchanterEndurance < wear)
-            return new(EnchanterStoreRejection.Exhausted);
+        var (refusal, quote) = enchantmentRules.PrepareStoreUse(definition, enchantment, state.Experience,
+            state.EnchanterEndurance, recipeId);
+        if (quote is null) return new(refusal);
         if (cardSlot == targetSlot || !cardSlot.Space.IsCarriedItemSpace() || cardSlot.Space == BusinessInventorySpace.TowerQuickSlot
             || targetSlot.Space != BusinessInventorySpace.CarriedEquipment)
             return new(EnchanterStoreRejection.InvalidItem);
@@ -51,9 +47,7 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
         var target = instance is null ? null : await instance.ReadAsync(ct).ConfigureAwait(false);
         if (card is not { IsPile: true, Count: > 0 } || !CanUse(card.Snapshot, now)
             || target is null || !CanUse(target.Snapshot, now)
-            || !recipe.BeadsByCardId.ContainsKey(card.ItemId)
-            || !await enchantRules.AcceptsExpertCardAsync(card.Snapshot, target.ItemId, ct)
-                .ConfigureAwait(false))
+            || !await enchantmentRules.AcceptsStoreCardAsync(quote, card.Snapshot, target.ItemId, ct).ConfigureAwait(false))
             return new(EnchanterStoreRejection.InvalidItem);
 
         var guest = characters.Get(actor.CharacterId);
@@ -67,13 +61,13 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
             return new(EnchanterStoreRejection.InsufficientGold);
 
         var plan = new List<DomainEffect> { new ConsumeFromContainerEffect(cardSlot, card.ItemId, 1) };
-        if (recipe.Materials.Count > 0)
+        if (quote.Recipe.Materials.Count > 0)
         {
             try
             {
                 var standing = await ExpertJobMaterialInventory.ReadAsync(bags, actor.CharacterId, ct, excluded: cardSlot)
                     .ConfigureAwait(false);
-                var costs = materials.MaterialCosts(recipe.Materials, 1, standing, now);
+                var costs = materials.MaterialCosts(quote.Recipe.Materials, 1, standing, now);
                 plan.AddRange(costs.Items.Select(cost => new ConsumeFromContainerEffect(cost.Slot, cost.ItemId, cost.Count)));
             }
             catch (OpeningRejectedException error) when (error.Reason is OpeningRejection.MissingMaterial
@@ -84,8 +78,8 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
             }
         }
 
-        var random = Random.Shared;
-        var succeeded = random.Next(100) < rate.SuccessByQualification[recipe.Qualification];
+        var outcome = enchantmentRules.ResolveStoreUse(quote, Random.Shared.Next());
+        var succeeded = outcome.Success;
         if (price > 0) plan.Add(new SpendGoldEffect(price));
         if (succeeded) plan.Add(new SetEquipmentEnchantmentEffect(new(target, target.ItemId), card.ItemId, card.Snapshot.EnchantUpgradeCount));
         var prepared = await preflight.PreviewAsync(guestContext, plan, ct).ConfigureAwait(false);
@@ -93,9 +87,8 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
             return new(prepared.Rejection == InventoryEffectRejection.InsufficientAssets
                 ? EnchanterStoreRejection.InsufficientGold : EnchanterStoreRejection.InvalidItem);
 
-        var endurance = state.EnchanterEndurance - wear;
-        var gain = succeeded ? ExpertJobEquipmentRules.Between(random, rate.Experience.Minimum, rate.Experience.Maximum) : 0;
-        var progress = definition.Advance(state, gain);
+        var endurance = outcome.Endurance;
+        var progress = definition.Advance(state, outcome.ExperienceGain);
         var closure = endurance == 0 ? stores.StageClose(visit.Store)
             ?? throw new InvalidOperationException("The exhausting enchant shop could not be staged for closure.") : null;
         var applied = await effects.ApplyAsync(guestContext, plan, ct).ConfigureAwait(false);
@@ -122,11 +115,9 @@ internal sealed class EnchanterStoreOperations(IExpertJobStateStore states, IExp
             return new(ExpertMachineMaintenanceRejection.InvalidState);
         var context = new EffectExecutionContext(session.AccountId, owner, clock.GetUtcNow(), footprint, session);
         footprint.DemandEffects(context.Owner);
-        var level = definition.LevelAt(state.Experience);
-        if (level <= 0 || level > enchantment.Repairs.Count) return new(ExpertMachineMaintenanceRejection.InvalidState);
         var gold = await characters.Get(owner).GoldAsync(ct).ConfigureAwait(false);
-        if (ExpertMachineRepair.Quote(enchantment.Repairs[level - 1], state.EnchanterEndurance, gold) is not { } quote)
-            return new(ExpertMachineMaintenanceRejection.CannotRepair);
+        var (refusal, repair) = enchantmentRules.QuoteRepair(definition, enchantment, state.Experience, state.EnchanterEndurance, gold);
+        if (repair is not { } quote) return new(refusal);
         var (cost, endurance) = quote;
         var applied = await effects.ApplyAsync(context, [new SpendGoldEffect(cost)], ct).ConfigureAwait(false);
         footprint.DemandEffects(context.Owner);

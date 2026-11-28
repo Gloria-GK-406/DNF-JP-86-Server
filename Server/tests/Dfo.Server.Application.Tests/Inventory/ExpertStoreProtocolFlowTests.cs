@@ -171,6 +171,35 @@ public sealed class ExpertStoreProtocolFlowTests
             LastFrame(fixture, fixture.Connection, 0, StoreClosed).AsSpan(15)));
     }
 
+    [Theory]
+    [InlineData(ExpertJobType.Disjointer, 0x00EC, 990, 100, 1)]
+    [InlineData(ExpertJobType.Enchanter, 0x0264, 990, 100, 0)]
+    [InlineData(ExpertJobType.Disjointer, 0x00F0, 500, 200, 2)]
+    public async Task Device_maintenance_applies_the_rule_quote_to_gold_grade_and_endurance(
+        ExpertJobType type, ushort opcode, int cost, int endurance, int grade)
+    {
+        using var fixture = EquipmentDisjointTests.Fixture(configure: services =>
+        {
+            RegisterTown(services);
+            IExpertJobDefinitionSource definition = type == ExpertJobType.Enchanter
+                ? new EnchanterContent(true) : new DisjointerContent();
+            services.AddSingleton(definition);
+        });
+        var connection = new NetworkConnectionContext(new("expert-device"), NetworkEndpointKind.Game, 10011);
+        var owner = AddOwner(fixture, connection, type);
+        if (opcode == 0x00F0)
+            fixture.Sql("UPDATE character_expert_job SET expert_job_exp = 20, disjoint_machine_endurance = 100 WHERE character_id = 3;");
+
+        await Send(fixture, connection, opcode, []);
+
+        Assert.Equal(1, LastFrame(fixture, connection, 1, opcode)[15]);
+        Assert.Equal(100000 - cost, OwnerGold(fixture));
+        var state = await fixture.Services.GetRequiredService<IExpertJobDomainService>()
+            .Get(owner.CharacterId).GetStateAsync(default);
+        Assert.Equal(grade, state.DisjointMachineGrade);
+        Assert.Equal(endurance, type == ExpertJobType.Enchanter ? state.EnchanterEndurance : state.DisjointMachineEndurance);
+    }
+
     private static SelectedSessionIdentity AddOwner(ShopFixture fixture, NetworkConnectionContext connection,
         ExpertJobType type = ExpertJobType.Disjointer)
     {
@@ -282,7 +311,7 @@ public sealed class ExpertStoreProtocolFlowTests
                         new Dictionary<int, int> { [Card] = 2600313 }),
                 },
                 new Dictionary<int, EnchanterCardRate> { [1] = new([succeeds ? 100 : 0], new(2, 2)) },
-                1, 1, []),
+                1, 1, [new(1000, 100)]),
         };
 
         public ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct) =>
@@ -303,13 +332,14 @@ public sealed class ExpertStoreProtocolFlowTests
     private sealed class DisjointerContent : IExpertJobDefinitionSource
     {
         private static readonly ExpertJobDefinition Disjointer = new(
-            ExpertJobType.Disjointer, [20], [1000], new HashSet<int>(), new HashSet<int>(),
+            ExpertJobType.Disjointer, [20, 40], [1000], new HashSet<int>(), new HashSet<int>(),
             new Dictionary<int, byte>(), 0, 300, new Dictionary<int, int>(), new Dictionary<byte, int>())
         {
             MaximumStoreCharge = 1000,
             DisjointMachine = new(10, 1, 1, 2, 2, 0, 0, 0,
                 new Dictionary<(int, int, int), DisjointMachineMaterialRule> { [(0, 1, 0)] = new(1000, 1, 0, 0, 0) },
-                [], [], [], new Dictionary<int, int>(), new Dictionary<int, int>()),
+                [], [], [new(1000, 100), new(2000, 200)],
+                new Dictionary<int, int> { [2] = 500 }, new Dictionary<int, int> { [2] = 1 }),
         };
 
         public ValueTask<ExpertJobDefinition?> FindAsync(ExpertJobType type, CancellationToken ct) =>

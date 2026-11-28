@@ -1,6 +1,7 @@
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.ExpertJobs;
 using Dfo.Server.Application.Inventory;
+using Dfo.Server.Data.ExpertJobs;
 using Dfo.Server.Data.Inventory;
 
 namespace Dfo.Server.Application.ExpertJobs;
@@ -40,6 +41,33 @@ internal sealed class DisjointMachineRuleService(EquipmentDisjointRuleService eq
         var wear = ExpertJobEquipmentRules.Between(random, machine.MinimumWear, machine.MaximumWear);
         var experience = ExpertJobEquipmentRules.Between(random, machine.MinimumExperience, machine.MaximumExperience);
         return (DisjointMachineRejection.None, new(totalRewards, Math.Max(0, endurance - wear), experience));
+    }
+
+    internal (ExpertMachineMaintenanceRejection Rejection, (int Cost, int Endurance, int Grade)? Quote) QuoteMaintenance(
+        ExpertJobDefinition definition, DisjointMachineDefinition machine, ExpertJobState state, bool upgrade,
+        int? characterLevel, int gold)
+    {
+        var grade = state.DisjointMachineGrade;
+        if (grade <= 0 || grade > machine.Repairs.Count)
+            return (ExpertMachineMaintenanceRejection.InvalidState, null);
+
+        var repair = machine.Repairs[grade - 1];
+        if (!upgrade)
+            return ExpertMachineRepair.Quote(repair, state.DisjointMachineEndurance, gold) is { } quote
+                ? (ExpertMachineMaintenanceRejection.None, (quote.Cost, quote.Endurance, grade))
+                : (ExpertMachineMaintenanceRejection.CannotRepair, null);
+
+        var target = grade + 1;
+        if (state.DisjointMachineEndurance != repair.MaximumEndurance || target > machine.Repairs.Count
+            || definition.LevelAt(state.Experience) < target
+            || !machine.UpgradeCosts.TryGetValue(target, out var cost) || cost <= 0
+            || !machine.MinimumCharacterLevels.TryGetValue(target, out var minLevel))
+            return (ExpertMachineMaintenanceRejection.CannotUpgrade, null);
+        if (characterLevel is not { } level || level < minLevel)
+            return (ExpertMachineMaintenanceRejection.CharacterLevelTooLow, null);
+        if (gold < cost)
+            return (ExpertMachineMaintenanceRejection.InsufficientGold, null);
+        return (ExpertMachineMaintenanceRejection.None, (cost, machine.Repairs[target - 1].MaximumEndurance, target));
     }
 
     private static int PositiveCount(double value) => (int)Math.Clamp(Math.Floor(value), 1, int.MaxValue);
