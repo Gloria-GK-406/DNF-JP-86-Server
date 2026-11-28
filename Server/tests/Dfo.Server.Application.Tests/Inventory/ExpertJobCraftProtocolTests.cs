@@ -39,7 +39,8 @@ public sealed class ExpertJobCraftProtocolTests
 
         fixture.Sql($"""
             INSERT INTO character_condition(character_id,pc_room_state) VALUES(1,0);
-            INSERT INTO character_pvp(character_id) VALUES(1);
+            INSERT INTO character_pvp_record(character_id) VALUES(1);
+            INSERT INTO character_pvp_skill_state(character_id) VALUES(1);
             INSERT INTO character_settings(character_id) VALUES(1);
             INSERT INTO character_expert_job(character_id,expert_job_type) VALUES(1,{(byte)type});
             INSERT INTO character_expert_job_recipes(character_id,recipe_id) VALUES(1,{Recipe});

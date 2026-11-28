@@ -160,7 +160,8 @@ public sealed class ExpertStoreProtocolFlowTests
             INSERT INTO characters(character_id,account_id,name,job,level,slot_index) VALUES(3,2,'owner',12,20,0);
             INSERT INTO character_stats(character_id,carried_gold) VALUES(3,100000);
             INSERT INTO character_condition(character_id,pc_room_state) VALUES(3,0);
-            INSERT INTO character_pvp(character_id) VALUES(3);
+            INSERT INTO character_pvp_record(character_id) VALUES(3);
+            INSERT INTO character_pvp_skill_state(character_id) VALUES(3);
             INSERT INTO character_settings(character_id) VALUES(3);
             INSERT INTO character_expert_job(character_id,expert_job_type,disjoint_machine_endurance,
                 disjoint_machine_grade,enchanter_endurance)

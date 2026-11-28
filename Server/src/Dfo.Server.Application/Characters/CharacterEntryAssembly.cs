@@ -148,9 +148,6 @@ internal sealed class CharacterEntryAssembly(
         var pvpRow = settingsRow is null
             ? null
             : await pvp.FindGradesAsync(characterId, cancellationToken).ConfigureAwait(false);
-        var jobRow = pvpRow is null
-            ? null
-            : await expertJob.FindAsync(characterId, cancellationToken).ConfigureAwait(false);
         if (row is null || conditionRow is null || statsRow is null || settingsRow is null || pvpRow is null)
         {
             throw new InvalidDataException(
