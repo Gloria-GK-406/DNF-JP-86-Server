@@ -4,10 +4,12 @@ using Dfo.Server.Abstractions.DomainEvents;
 using Dfo.Server.Abstractions.Networking;
 using Dfo.Server.Abstractions.Notifications;
 using Dfo.Server.Abstractions.Sessions;
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Application.Commands;
 using Dfo.Server.Data.Inventory;
 using Dfo.Server.Data.Networking;
 using Dfo.Server.Protocol.Game.StateSynchronization;
+using Dfo.Server.Protocol.Game.Trade;
 using Microsoft.Extensions.Logging;
 
 namespace Dfo.Server.Protocol.Game.MoveItemSpace;
@@ -25,7 +27,7 @@ public sealed record GameMoveItemSpaceCommand(NetworkDispatchContext Dispatch, M
 /// The source echoes the request. The destination normally does too, except that an automatic
 /// cargo deposit reports the actual empty slot selected by the domain service.
 /// </remarks>
-public sealed class GameMoveItemSpaceCommandHandler(
+public sealed partial class GameMoveItemSpaceCommandHandler(
     ISelectedSessionDomainService selectedSessions,
     ISelectedCharacterCurrentViewDomainService currentViews,
     IInventoryMoveDomainService inventoryMoves,
@@ -36,7 +38,8 @@ public sealed class GameMoveItemSpaceCommandHandler(
     IAccountInventoryEntryDomainService accountInventories,
     TimeProvider time,
     Dfo.Server.Abstractions.Marriage.IMarriageHousingQueryDomainService housing,
-    ICharacterVisibleSessionDomainService visibility, ICommandProjections projections) : ICommandHandler<GameMoveItemSpaceCommand, bool>
+    ICharacterVisibleSessionDomainService visibility, ICommandProjections projections, IPlayerTradeDomainService trades)
+    : ICommandHandler<GameMoveItemSpaceCommand, bool>
 {
     public async ValueTask<bool> HandleAsync(
         CommandExecutionContext execution,
@@ -45,6 +48,18 @@ public sealed class GameMoveItemSpaceCommandHandler(
     {
         var context = command.Dispatch;
         var message = command.Input;
+        if (message.SourceSlot.Space == TradeSpace || message.DestinationSlot.Space == TradeSpace)
+        {
+            var change = await MoveTradeAsync(execution, context.Connection, message.Metadata, message.SourceSlot,
+                message.DestinationSlot, message.SourceInstanceValue, message.MoveCount, cancellationToken).ConfigureAwait(false);
+            var reply = change is null
+                ? MoveItemSpaceResponse.Failure(message.SourceSlot, message.DestinationSlot, MoveItemSpaceResponse.NotMovable)
+                : MoveItemSpaceResponse.Success(message.SourceSlot, message.MoveCount, change.Destination);
+            await outbox.RegisterCmdAsync(context.Connection.ConnectionId, reply, cancellationToken).ConfigureAwait(false);
+            if (change is not null)
+                await TradeProjection.SendAsync(selectedSessions, outbox, change.Opposite, change.Notice, cancellationToken).ConfigureAwait(false);
+            return change is not null;
+        }
         var identity = selectedSessions.FindByConnection(context.Connection.ConnectionId);
         var (response, result) = await ResolveAsync(execution, context, message, cancellationToken)
             .ConfigureAwait(false);

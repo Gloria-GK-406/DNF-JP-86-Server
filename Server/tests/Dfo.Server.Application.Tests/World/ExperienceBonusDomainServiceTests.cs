@@ -44,7 +44,7 @@ public sealed class ExperienceBonusDomainServiceTests
     {
         TestGameplay.Run(() =>
         {
-            var potions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var potions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             potions.Begin(OneSession.Identity, new Dfo.Server.Data.Characters.CharacterPositionState(1, 0, 0, 0, 0), 100);
             potions.ApplySpiritPotion(OneSession.Identity, 1, TimeSpan.FromHours(2));
             var found = Collect(Service(premiums: [new(84, 4_000_000_000)], potions: potions), OtherDungeon, occasion);
@@ -256,7 +256,7 @@ public sealed class ExperienceBonusDomainServiceTests
                 new FixedChannelExperience(channels ?? TwoChannels),
                 ExperienceTuning.Default,
                 ExperienceEntitlementPolicy.None),
-            TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()),
+            TimeProvider.System, potions ?? new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades),
             TestRequired.Absent<IAdventureGroupDomainService>((method, _) =>
                 method.Name == nameof(IAdventureGroupDomainService.ClearExperienceRateAsync)
                     ? ValueTask.FromResult(adventureRate) : null),

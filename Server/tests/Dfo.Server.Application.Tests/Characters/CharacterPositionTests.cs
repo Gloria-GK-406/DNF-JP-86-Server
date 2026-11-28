@@ -34,7 +34,7 @@ public sealed class CharacterPositionTests
     public void A_character_nobody_is_playing_is_standing_nowhere() =>
         TestGameplay.Run(() =>
         {
-            Assert.Null(new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService()).PositionOf(Who));
+            Assert.Null(new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades).PositionOf(Who));
         });
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
 
             positions.Begin(Session(), Gate, 100);
 
@@ -63,7 +63,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var session = Session();
             positions.Begin(session, Gate, 100);
 
@@ -87,7 +87,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var session = Session();
             positions.Begin(session, Gate, 100);
 
@@ -110,7 +110,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var session = Session();
             positions.Begin(session, Gate, 100);
 
@@ -132,7 +132,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var session = Session();
             positions.Begin(session, Gate, 100);
 
@@ -154,7 +154,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var displaced = Session(generation: 1);
             var replacement = Session(generation: 2);
             positions.Begin(replacement, Gate, 100);
@@ -176,7 +176,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var session = Session();
             positions.Begin(session, Gate, 100);
 
@@ -200,7 +200,7 @@ public sealed class CharacterPositionTests
     {
         TestGameplay.Run(() =>
         {
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var displaced = Session(generation: 1);
             var replacement = Session(generation: 2);
             positions.Begin(replacement, Gate, 100);

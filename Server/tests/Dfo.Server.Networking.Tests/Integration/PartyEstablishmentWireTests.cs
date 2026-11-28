@@ -26,7 +26,7 @@ public sealed class PartyEstablishmentWireTests
         using var second = member;
         var leaderStart = leader.Frames.Count();
         var memberStart = member.Frames.Count();
-        await leader.SendAsync(0x000A, [.. U16(member.WireUserId), 1, 64, 0, 0, 0], ct);
+        await leader.SendAsync(0x000A, [.. U16(member.WireUserId), 3, 64, 0, 0, 0], ct);
         await member.SendAsync(0x000B, [.. U16(leader.WireUserId), 2, 0, 0, 0, 0], ct);
         await FenceAllAsync(ct, leader, member);
         Assert.DoesNotContain(leader.Frames.Skip(leaderStart), IsParty);

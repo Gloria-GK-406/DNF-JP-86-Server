@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Execution;
 using Dfo.Server.Abstractions.Networking;
@@ -168,7 +169,7 @@ public sealed class PvpRoomInviteTests
                     ProtocolAlgorithmFixture.Default<IPartyProjectionStateDomainService>(),
                     ProtocolAlgorithmFixture.Default<IOutboundOrdering>(), ProtocolAlgorithmFixture.Default<IDungeonRunQueryDomainService>(),
                     DefaultAnswers.Create<Dfo.Server.Abstractions.Raids.IAntonRaidDomainService>(), Outbox, Rooms, rooms.Views, ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
-                    NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>()),
+                    NullLogger<GameRequestPeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(), DefaultAnswers.Create<IPlayerTradeDomainService>()),
                 new GameRequestPeerCommand(PvpRoomCommandTests.Dispatch(from),
                     new RequestPeerRequest(GameMessageMetadata.Empty, to.WireUserId, type, peer, tail ?? [])));
 
@@ -180,7 +181,7 @@ public sealed class PvpRoomInviteTests
                     ProtocolAlgorithmFixture.NoOnline(), DefaultAnswers.Create<IGameSessionEndpointDomainService>(),
                     ProtocolAlgorithmFixture.Default<IWeaknessDomainService>(), ProtocolAlgorithmFixture.Default<ICommandWorkUnits>(),
                     NullLogger<GameResponsePeerCommandHandler>.Instance, ProtocolAlgorithmFixture.Default<Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection>(),
-                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System),
+                    ProtocolAlgorithmFixture.Default<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchCandidateQueryDomainService>(), TimeProvider.System, DefaultAnswers.Create<IPlayerTradeDomainService>()),
                 new GameResponsePeerCommand(PvpRoomCommandTests.Dispatch(from),
                     new ResponsePeerRequest(GameMessageMetadata.Empty, inviter.WireUserId, type, peer, tail ?? [])));
 

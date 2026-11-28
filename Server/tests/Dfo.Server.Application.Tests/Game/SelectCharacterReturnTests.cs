@@ -41,7 +41,7 @@ public sealed partial class SelectCharacterLifecycleTests
             Assert.True(prepared.ResetKnightDeck);
 
             var presence = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations, TestRequired.NoPlayerTrades);
             presence.Admit(new SessionPresence(selected.CharacterId, 10011, 1, 2, true, selected));
             positions.Begin(selected, f.Result.Character.Position, 100);
             var stores = new ExpertStoreDomainService(TestRequired.TransactionScope());

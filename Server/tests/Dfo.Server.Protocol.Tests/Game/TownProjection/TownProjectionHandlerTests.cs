@@ -549,7 +549,7 @@ public sealed class TownProjectionHandlerTests
     private static OnlineCharacterRuntimeDomainService Standing(out SessionPresenceDomainService presence)
     {
         presence = new SessionPresenceDomainService();
-        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations);
+        var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations, TestRequired.NoPlayerTrades);
         positions.Begin(
             Identity,
             new TownAreaKey(10, PlacedTownId, PlacedAreaId),

@@ -42,7 +42,7 @@ public sealed class SelectCharacterProductionStateTests
             {
                 var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
                     new Dfo.Server.Data.Networking.NetworkConnectionId("achievement-read"), 1, 10011);
-                var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+                var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
                 positions.Begin(session, seed.Character.Position, 100);
                 result = await Query(sources, seed, positions, achievements).ReadAsync(session, default);
             }
@@ -102,7 +102,7 @@ public sealed class SelectCharacterProductionStateTests
             var session = SelectedSessionIdentity.Create(
                 seed.Account.AccountId, seed.Character.Identity.CharacterId,
                 new Dfo.Server.Data.Networking.NetworkConnectionId("current-view"), 1, 10011);
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             positions.Begin(session, seed.Character.Position, 100);
             var service = Query(sources, seed, positions);
             var equipment = seed.CharacterInventory.Containers.Single(container =>
@@ -142,7 +142,7 @@ public sealed class SelectCharacterProductionStateTests
             var session = SelectedSessionIdentity.Create(
                 seed.Account.AccountId, seed.Character.Identity.CharacterId,
                 new Dfo.Server.Data.Networking.NetworkConnectionId("time-gate"), 1, 10011);
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var standing = new CharacterPositionState(town, area, 185, 215, 2);
             positions.Begin(session, standing, 100);
 
@@ -174,7 +174,7 @@ public sealed class SelectCharacterProductionStateTests
                 seed.Account.AccountId, seed.Character.Identity.CharacterId,
                 new Dfo.Server.Data.Networking.NetworkConnectionId("missing-position"), 1, 10011);
             await Assert.ThrowsAsync<InvalidDataException>(async () =>
-                await Query(sources, seed, new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService())).ReadAsync(session, CancellationToken.None));
+                await Query(sources, seed, new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades)).ReadAsync(session, CancellationToken.None));
             Assert.Equal(0, sources.PlacementCalls);
         });
     }
@@ -196,7 +196,7 @@ public sealed class SelectCharacterProductionStateTests
             var sources = new Sources(seed, []);
             var session = SelectedSessionIdentity.Create(seed.Account.AccountId, seed.Character.Identity.CharacterId,
                 new Dfo.Server.Data.Networking.NetworkConnectionId("dungeon-appearance"), 1, 10011);
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService());
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             positions.Begin(session, seed.Character.Position, 100);
             var participation = new Participation();
             var query = Query(sources, seed, positions, participation: participation);

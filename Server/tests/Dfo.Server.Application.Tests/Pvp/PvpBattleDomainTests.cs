@@ -933,7 +933,7 @@ public sealed class PvpBattleDomainTests
         var parties = TestParties.Create(presence);
         return new SelectedSessionCleanupService(f.Sessions, new CharacterContainerDomainService(TestRequired.TransactionScope()),
             presence, new ExpertStoreDomainService(scope), f.Lobby, [],
-            new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations), new StubChannelEntryPolicy(),
+            new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations, TestRequired.NoPlayerTrades), new StubChannelEntryPolicy(),
             parties, TestParties.Runs(parties: parties), [], scope,
             creatures: TestRequired.Absent<Dfo.Server.Abstractions.Creatures.ICreatureRuntimeDomainService>(),
             illusionTower: TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(),

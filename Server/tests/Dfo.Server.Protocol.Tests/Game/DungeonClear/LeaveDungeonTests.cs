@@ -995,7 +995,7 @@ public sealed class LeaveDungeonTests
             {
                 if (inner is not null)
                     return inner;
-                inner = new(TimeProvider.System, locations);
+                inner = new(TimeProvider.System, locations, TestRequired.NoPlayerTrades);
                 if (locations.PositionOf(Identity) is null)
                 {
                     locations.Begin(Identity, new TownAreaKey(

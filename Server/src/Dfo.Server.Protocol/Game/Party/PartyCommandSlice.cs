@@ -126,7 +126,10 @@ internal sealed class RequestPeerDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        PartyCommandBody.RequireLength("REQUEST_PEER", body, 7, 9);
+        if (body.Length < 3 || body[2] != 1)
+            PartyCommandBody.RequireLength("REQUEST_PEER", body, 7, 9);
+        else if (body.Length is not (7 or 8 or 16))
+            return null;
         if (body[2] == 10)
             return body.Length == 9 ? new AntonRaidRequest(metadata, ClientMessageType.GameRequestAntonRaidPeer,
                 BinaryPrimitives.ReadUInt32LittleEndian(body[3..]), BinaryPrimitives.ReadUInt16LittleEndian(body)) : null;
@@ -143,7 +146,10 @@ internal sealed class ResponsePeerDecoder : IGameMessageDecoder
 {
     public IClientNetworkMessage? Decode(GameMessageMetadata metadata, ReadOnlySpan<byte> body)
     {
-        PartyCommandBody.RequireLength("RESPONSE_PEER", body, 7, 16);
+        if (body.Length < 3 || body[2] != 1)
+            PartyCommandBody.RequireLength("RESPONSE_PEER", body, 7, 16);
+        else if (body.Length is not (7 or 8 or 9 or 16))
+            return null;
         if (body[2] == 10)
             return body.Length == 7 ? new AntonRaidRequest(metadata, ClientMessageType.GameRespondAntonRaidPeer,
                 BinaryPrimitives.ReadUInt32LittleEndian(body[3..]), BinaryPrimitives.ReadUInt16LittleEndian(body)) : null;

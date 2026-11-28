@@ -1,5 +1,9 @@
 # 协议清单
 
+## 2026-11-28 玩家交易（#41，A21 正常路径通过）
+
+CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应答](game/client-to-server/0x000B.md) 的 type 1、[交易栏移位](game/client-to-server/0x0013.md) 和 [状态推进](game/client-to-server/0x0018.md)。双边最终确认触发一次交换事务，窗口关闭后返回权威背包。用户确认 A21 双端完成正常交易（ClientVerified）。拒绝及其他边界场景按后续 bug 反馈跟踪。[双端验收](../Document/tasks/player-trade-41/a21-user-test.md)
+
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
 公会分支已接 [验名](game/client-to-server/0x009C.md)、[宣传](game/client-to-server/0x02E2.md)、[单人许可请求](game/client-to-server/0x02E4.md)、取消与 [创建提交](game/client-to-server/0x0044.md)，并发送 [许可通知](game/server-to-client/NOTI-0x02AE.md) 和 [创建通知](game/server-to-client/NOTI-0x0047.md)。A21 实测创建了中文公会，库中记录唯一会长并扣除一次创建费。隔离线路已验证补发的 [当前角色职级](game/server-to-client/NOTI-0x007F.md)。身份相关的换角与重登观测见 [A21 验收](../Document/tasks/guild-system/attempts/spec-002-create-guild-in-a21/a21-user-test.md)。

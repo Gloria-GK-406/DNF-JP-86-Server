@@ -5,6 +5,7 @@ using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Inventory;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.World;
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Data.Characters;
 using Dfo.Server.Data.World;
 
@@ -24,7 +25,7 @@ namespace Dfo.Server.Application.Characters;
 /// </para>
 /// </remarks>
 internal sealed class OnlineCharacterRuntimeDomainService(
-    TimeProvider clock, OnlineCharacterLocationDomainService locations)
+    TimeProvider clock, OnlineCharacterLocationDomainService locations, IPlayerTradeDomainService trades)
     : IOnlineCharacterRuntimeDomainService
 {
     private readonly ConcurrentDictionary<CharacterId, Entry> entries = new();
@@ -49,6 +50,7 @@ internal sealed class OnlineCharacterRuntimeDomainService(
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(EndExact));
         ArgumentNullException.ThrowIfNull(session);
+        trades.Invalidate(session);
         var ended = locations.End(session);
         while (entries.TryGetValue(session.CharacterId, out var current) && current.Session == session)
         {
@@ -83,7 +85,9 @@ internal sealed class OnlineCharacterRuntimeDomainService(
             Y = y,
             Direction = direction ?? standing.Position.Direction,
         };
-        return locations.Transfer(session, destination, position, sharesTownPresence);
+        var change = locations.Transfer(session, destination, position, sharesTownPresence);
+        if (change is { Kind: TownAreaMembershipChangeKind.Transferred }) trades.Invalidate(session);
+        return change;
     }
 
     public TownAreaMovement? StepTo(SelectedSessionIdentity session, short x, short y, byte direction)
@@ -97,7 +101,9 @@ internal sealed class OnlineCharacterRuntimeDomainService(
     public TownAreaMembershipChange? LeaveTown(SelectedSessionIdentity session, TownAreaDepartureReason reason)
     {
         GameplayWriteAssertion.Writing(nameof(OnlineCharacterRuntimeDomainService) + "." + nameof(LeaveTown));
-        return locations.Depart(session, reason);
+        var change = locations.Depart(session, reason);
+        if (change is not null) trades.Invalidate(session);
+        return change;
     }
 
     public TownAreaMembershipChange? ReturnToTown(

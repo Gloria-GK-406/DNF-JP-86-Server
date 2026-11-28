@@ -1129,7 +1129,7 @@ public sealed class PartySelectDungeonHandlerTests
             {
                 if (inner is not null)
                     return inner;
-                inner = new(TimeProvider.System, locations);
+                inner = new(TimeProvider.System, locations, TestRequired.NoPlayerTrades);
                 foreach (var session in new[] { Leader, Member })
                 {
                     if (locations.PositionOf(session) is not null)

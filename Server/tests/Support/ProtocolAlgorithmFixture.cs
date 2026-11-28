@@ -127,7 +127,7 @@ internal static class ProtocolAlgorithmFixture
                 values.Add(locations);
             }
             if (locations is not null)
-                values.Add(new Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService(TimeProvider.System, locations));
+                values.Add(new Dfo.Server.Application.Characters.OnlineCharacterRuntimeDomainService(TimeProvider.System, locations, TestRequired.NoPlayerTrades));
         }
         // The party reads where its members stand from the same town areas.
         if (!values.Any(value => value is Dfo.Server.Abstractions.Parties.IPartyService)

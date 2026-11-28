@@ -1,3 +1,4 @@
+using Dfo.Server.Abstractions.Trade;
 using Dfo.Server.Abstractions.Marriage;
 using Dfo.Server.Application.Tests.Support;
 using Dfo.Server.Abstractions.Characters;
@@ -310,7 +311,8 @@ internal static class MoveWholeTestDriver
             housing ?? ProtocolAlgorithmFixture.Default<IMarriageHousingQueryDomainService>(),
             TestRequired.Absent<Dfo.Server.Abstractions.Characters.ICharacterVisibleSessionDomainService>((method, _) =>
                 method.Name == "Resolve" ? Array.Empty<Dfo.Server.Data.World.SelectedSessionIdentity>() : null),
-            TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>())));
+            TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.ICommandProjections>(),
+            TestRequired.Absent<IPlayerTradeDomainService>())));
     private sealed class Bus(GameMoveItemSpaceCommandHandler handler):ICommandBus
     {
         public ValueTask<TInternal> SendInternalAsync<TInternal>(ICommand<TInternal> command, InternalCommandOrigin origin, CancellationToken ct = default) where TInternal : notnull =>

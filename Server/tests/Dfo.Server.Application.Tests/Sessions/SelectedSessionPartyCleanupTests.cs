@@ -321,7 +321,7 @@ public sealed class SelectedSessionPartyCleanupTests
                 [new KeptPositions()],
                 failAfterPartyCleanup
                     ? new ThrowingRuntime(presence.Locations)
-                    : new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations),
+                    : new OnlineCharacterRuntimeDomainService(TimeProvider.System, presence.Locations, TestRequired.NoPlayerTrades),
                 new StubChannelEntryPolicy(),
                 Parties.Service,
                 TestParties.Runs(),
@@ -393,7 +393,7 @@ public sealed class SelectedSessionPartyCleanupTests
     private sealed class ThrowingRuntime(OnlineCharacterLocationDomainService? locations = null) : IOnlineCharacterRuntimeDomainService
     {
         private readonly OnlineCharacterRuntimeDomainService inner =
-            new(TimeProvider.System, locations ?? new OnlineCharacterLocationDomainService());
+            new(TimeProvider.System, locations ?? new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
 
         public TownAreaMembershipChange Begin(SelectedSessionIdentity session, TownAreaKey area, CharacterPositionState position, bool sharesTownPresence, byte hpPercent) => inner.Begin(session, area, position, sharesTownPresence, hpPercent);
         public bool EndExact(SelectedSessionIdentity session) =>

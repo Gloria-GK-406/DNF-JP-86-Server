@@ -159,7 +159,7 @@ public sealed class ApplyEffectsTests
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             var clock = new AdvanceableTimeProvider(Offline.At);
-            var runtime = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
+            var runtime = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var sessions = new Sessions();
             runtime.Begin(sessions.Current, InTown, 100);
             var key = ItemCooldownKey.ForItem(8474);
@@ -190,7 +190,7 @@ public sealed class ApplyEffectsTests
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             var clock = new AdvanceableTimeProvider(Offline.At);
-            var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
+            var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var potion = cooldowns;
             var sessions = new Sessions();
             cooldowns.Begin(sessions.Current, InTown, 100);
@@ -221,7 +221,7 @@ public sealed class ApplyEffectsTests
             var f = new Inventory();
             f.Seed(3, 8474, 5);
             var clock = new AdvanceableTimeProvider(Offline.At);
-            var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
+            var cooldowns = new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var potion = cooldowns;
             var sessions = new Sessions();
             cooldowns.Begin(sessions.Current, InTown, 100);
@@ -253,7 +253,7 @@ public sealed class ApplyEffectsTests
             using var footprint = new Dfo.Server.Application.Tests.Support.TestEffectFootprints.Lease(new EffectFootprintOwner(Offline.AccountId, Offline.CharacterId, null));
             var context = new EffectExecutionContext(Offline.AccountId, Offline.CharacterId, Offline.At, footprint);
             var f = new Inventory();
-            var cooldowns = new OnlineCharacterRuntimeDomainService(new AdvanceableTimeProvider(Offline.At), new OnlineCharacterLocationDomainService());
+            var cooldowns = new OnlineCharacterRuntimeDomainService(new AdvanceableTimeProvider(Offline.At), new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
             var sessions = new Sessions();
             cooldowns.Begin(sessions.Current, InTown, 100);
             var key = ItemCooldownKey.ForItem(8474);

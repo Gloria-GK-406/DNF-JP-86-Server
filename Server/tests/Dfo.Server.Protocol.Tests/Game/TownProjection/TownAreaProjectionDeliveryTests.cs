@@ -41,7 +41,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var guest = Session(3, "guest"); var outside = Session(4, "outside");
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var areas = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations, TestRequired.NoPlayerTrades);
             var views = new FixedCurrentViews();
             foreach (var actor in new[] { bride, groom, guest, outside })
             {
@@ -96,7 +96,7 @@ public sealed class TownAreaProjectionDeliveryTests
         {
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state);
             var areas = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations, TestRequired.NoPlayerTrades);
             var views = new FixedCurrentViews();
             foreach (var actor in new[] { bride, groom })
             {
@@ -180,7 +180,7 @@ public sealed class TownAreaProjectionDeliveryTests
             var sessions = Dfo.Server.Testing.TestSessions.Directory(out var state); sessions.EnterWorldWithConnection(state, first); sessions.EnterWorldWithConnection(state, second);
             var views = new FixedCurrentViews(); views.Publish(first, Entry(first, 100)); views.Publish(second, Entry(second, 300));
             var areas = new SessionPresenceDomainService();
-            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations);
+            var positions = new OnlineCharacterRuntimeDomainService(TimeProvider.System, areas.Locations, TestRequired.NoPlayerTrades);
             foreach (var session in new[] { first, second })
             {
                 positions.Begin(session, new(3, 6, 100, 200, 1), 100);

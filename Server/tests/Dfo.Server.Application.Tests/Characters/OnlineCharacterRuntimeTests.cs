@@ -231,7 +231,7 @@ public sealed class OnlineCharacterRuntimeTests
     private static OnlineCharacterRuntimeDomainService Runtime(out SteppedClock clock)
     {
         clock = new SteppedClock(new DateTimeOffset(2026, 10, 21, 0, 0, 0, TimeSpan.Zero));
-        return new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService());
+        return new OnlineCharacterRuntimeDomainService(clock, new OnlineCharacterLocationDomainService(), TestRequired.NoPlayerTrades);
     }
 
     private static SelectedSessionIdentity Session(string connection, long generation) =>
