@@ -1,8 +1,8 @@
 # 协议清单
 
-## 2026-11-28 玩家交易（#41，待 A21 实机）
+## 2026-11-28 玩家交易（#41，A21 正常路径通过）
 
-CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应答](game/client-to-server/0x000B.md) 的 type 1、[交易栏移位](game/client-to-server/0x0013.md) 和 [状态推进](game/client-to-server/0x0018.md)。双边最终确认触发一次交换事务，窗口关闭后返回权威背包。A21 静态、已有邀请实包及上游参照保留各自证据边界。[双端验收](../Document/tasks/player-trade-41/a21-user-test.md)
+CurrentImplementation 接入 [邀约](game/client-to-server/0x000A.md) 和 [应答](game/client-to-server/0x000B.md) 的 type 1、[交易栏移位](game/client-to-server/0x0013.md) 和 [状态推进](game/client-to-server/0x0018.md)。双边最终确认触发一次交换事务，窗口关闭后返回权威背包。用户确认 A21 双端完成正常交易（ClientVerified）。拒绝及其他边界场景按后续 bug 反馈跟踪。[双端验收](../Document/tasks/player-trade-41/a21-user-test.md)
 
 ## 2026-11-26 公会创建（#62，A21 已建会并设置推荐频道）
 
