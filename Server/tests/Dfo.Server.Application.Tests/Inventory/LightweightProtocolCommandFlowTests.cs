@@ -35,7 +35,7 @@ public sealed class LightweightProtocolCommandFlowTests(ITestOutputHelper output
         await Send(f,protocol);AssertWire(f,protocol,unattributed);
         Assert.All(trace.Calls,c=>Assert.True(c.WithoutTransaction));
         // 7 (CMD 0x01BA) asks whose adventure group to answer with; the roster screen asks too.
-        Assert.Equal(protocol is 0 or 3 or 5 or 6 or 7 or 8 or 10 or 11 or 13,
+        Assert.Equal(protocol is 0 or 3 or 5 or 6 or 7 or 8 or 10 or 11 or 12 or 13,
             trace.Calls.Any(c=>c.Name=="online.TryGetByConnection"));
         Assert.Equal(protocol is 1 or 2 or 4 or 13,
             trace.Calls.Any(c=>c.Name=="sessions.FindByConnection"));
@@ -153,6 +153,7 @@ public sealed class LightweightProtocolCommandFlowTests(ITestOutputHelper output
     private static ShopFixture Create(Trace trace,RemainingOpeningProtocolCommandFlowTests.SenderProbe? delivery=null)
     {
         var f=new ShopFixture(s=>{
+            RosterRuinsContent.Register(s);
             if(delivery is not null)s.AddSingleton<IOutboundSender>(delivery.Recorder);
             s.AddSingleton(p=>new GameplayOutboxes(p.GetRequiredService<IOutboundSender>(),p.GetRequiredService<GameplayCloseCauses>(),p.GetRequiredService<ILogger<GameplayOutbox>>()));
             var clock=s.Last(d=>d.ServiceType==typeof(TimeProvider));
@@ -181,7 +182,7 @@ public sealed class LightweightProtocolCommandFlowTests(ITestOutputHelper output
     {
         var frames=f.Sender.Outbound.Frames;if(p is 0 or 1 or 2 or 3 or 5 or 6 or 8 or 11){Assert.Empty(frames);return;}
         var frame=Assert.Single(frames);Assert.Equal(p==4?(byte)0:(byte)1,frame[0]);Assert.Equal(p==4?(ushort)0xAA:Wire[p],BinaryPrimitives.ReadUInt16LittleEndian(frame.AsSpan(1)));
-        byte[] expected=p switch {4=>[(byte)f.Session.WireUserId,(byte)(f.Session.WireUserId>>8),127,129],7=>unattributed?[1,0,0,0,0,0,0]:[1,3,0x42,0x54,0,0,0],9=>new byte[6],10=>[0,0],12=>[1,..new byte[18]],13=>unattributed?[0,0]:[1,0,0,0,0,0,0,0,0],14=>[1],_=>throw new InvalidOperationException()};Assert.Equal(expected,frame[15..]);
+        byte[] expected=p switch {4=>[(byte)f.Session.WireUserId,(byte)(f.Session.WireUserId>>8),127,129],7=>unattributed?[1,0,0,0,0,0,0]:[1,3,0x42,0x54,0,0,0],9=>new byte[6],10=>[0,0],12=>unattributed?[0,0]:Convert.FromHexString("010100000000000000000005000000000000000000000002000000"),13=>unattributed?[0,0]:[1,0,0,0,0,0,0,0,0],14=>[1],_=>throw new InvalidOperationException()};Assert.Equal(expected,frame[15..]);
     }
     private static byte[] Body(int p)
     {
