@@ -24,6 +24,25 @@ namespace Dfo.Server.Protocol.Tests.Game.SelectCharacter;
 public sealed class SelectCharacterPayloadCodecTests
 {
     [Fact]
+    [Trait("Category", "Unit")]
+    public void Item_effect_encoding_reserves_space_for_existing_effects()
+    {
+        var existing = Enumerable.Range(10, 254).Select(order => new InventoryItemValueState(order, 1000 + order, order));
+        InventoryItemValueState[] timed =
+        [
+            new(1, 2001, 60) { IsTimedEffect = true },
+            new(0, 2000, 90) { IsTimedEffect = true },
+        ];
+
+        var body = StateSynchronizationPayloadCodec.EncodeItemValues(existing.Concat(timed).ToArray());
+
+        Assert.Equal(255, body[0]);
+        Assert.Equal(1 + 255 * 8, body.Length);
+        Assert.Equal(2000, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(1, 4)));
+        Assert.Equal(1263, BinaryPrimitives.ReadInt32LittleEndian(body.AsSpan(body.Length - 8, 4)));
+    }
+
+    [Fact]
     public void Black_diamond_uses_ordinary_entry_list_and_does_not_occupy_devil_slots()
     {
         var result = SelectCharacterPayloadTestData.Create();

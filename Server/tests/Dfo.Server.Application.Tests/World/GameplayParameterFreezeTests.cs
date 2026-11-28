@@ -25,7 +25,7 @@ public sealed partial class DungeonCellFactoryTests
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(),
             new NoLostLandDrops(), query, new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits),
             NullLogger<DungeonCellFactory>.Instance,
-            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits(TestGameplayBenefits.LuckyRules)));
         var seed = await factory.CreateAsync(new(DungeonRunId.New(), layout, cell, 123, 0,
             DateTimeOffset.UnixEpoch, [new(new(1), new(10), 0, true), new(new(2), new(20), 1, false)]), default);
         Assert.Equal(3, Assert.Single(seed.GroundItems).Count);

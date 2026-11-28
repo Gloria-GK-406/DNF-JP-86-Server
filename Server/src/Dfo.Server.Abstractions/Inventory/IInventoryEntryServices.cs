@@ -25,7 +25,10 @@ public sealed record InventoryItemValueStorageRecord(
     InventoryItemValueListType ListType,
     int SortOrder,
     int ItemId,
-    int Value);
+    int Value)
+{
+    public bool IsTimedEffect { get; init; }
+}
 
 public sealed record InventoryEquipmentLockStorageRecord(
     CharacterId CharacterId,

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Abstractions.Quests;
@@ -41,6 +43,13 @@ internal sealed class ExperienceRuleService(
     }
 
     public DungeonExperienceProgressionPolicy Progression() => policy.Value;
+
+    internal ImmutableArray<GameplayBenefit> ChannelBenefits(ExperienceEvent occasion, int channelId, int dungeonId)
+    {
+        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
+        ExperienceBonusRules.FromChannel(occasion, channels.Load().RateFor(channelId, dungeonId), found);
+        return found.ToImmutable();
+    }
 
     public string Name => "experience-rules";
 

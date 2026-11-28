@@ -26,7 +26,7 @@ public sealed class GameAccountRosterCommandHandler(
     ICharacterRosterDomainService characters,
     IAccountHonorDomainService honor,
     IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch,
-    LuckyCharacterRosterDelivery luckyCharacters,
+    Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService luckyCharacters,
     IGameCommandOutbox outbox) : ICommandHandler<GameAccountRosterCommand, AccountCharacterRoster>
 {
     public async ValueTask<AccountCharacterRoster> HandleAsync(CommandExecutionContext context,
@@ -44,7 +44,7 @@ public sealed class GameAccountRosterCommandHandler(
         // select the newly saved representative twice before the first selection completes.
         if (!representativeSwitch.HasPublishedRoster(command.Dispatch.Connection, accountId))
         {
-            await luckyCharacters.RegisterAsync(command.Dispatch.Connection, cancellationToken).ConfigureAwait(false);
+            await LuckyCharacterRosterProjection.RegisterAsync(luckyCharacters, outbox, command.Dispatch.Connection, cancellationToken).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(
                 command.Dispatch.Connection.ConnectionId,
                 new AccountCharacterRosterResponse(roster, AnswersRosterQuery: true),

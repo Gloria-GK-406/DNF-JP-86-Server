@@ -110,7 +110,7 @@ public sealed partial class DungeonCellFactoryTests
         var factory = new Dfo.Server.Application.World.DungeonCellFactory(room, new NoPlacement(), new CapacityLoot(),
             new MonsterBoundary(), new RecordingQuestLoot(), new NoQuestBonus(), new NoHellRewards(),
             new NoLostLandDrops(), new FixedDrawMultipliers(), new DropMaterializationRuleService(DropMaterializationProtocolCapabilities.Limits), logger,
-            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits()));
+            TestGameplayBenefits.Query<DungeonCellCreationContext>(new LuckySharedDropBenefits(TestGameplayBenefits.LuckyRules)));
         var cell = new MazeCell(0, 0);
         var layout = new DungeonLayout(77, 0, 1, 1, cell, cell, 123, 456,
             new Dictionary<MazeCell, DungeonCellDefinition> { [cell] = DungeonCellDefinition.Fixed(123) });

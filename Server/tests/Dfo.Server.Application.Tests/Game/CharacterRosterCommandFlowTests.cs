@@ -268,9 +268,9 @@ public sealed class CharacterRosterCommandFlowTests
             var protocol = new ServiceCollection();
             new ProtocolModule().ConfigureServices(protocol, new ConfigurationBuilder().Build());
             ((IServiceCollection)services).Add(protocol.Single(row => row.ServiceType == typeof(IGameCommandOutbox)));
-            services.AddSingleton<Dfo.Server.Protocol.Game.LuckyCharacter.LuckyCharacterRosterDelivery>();
-            services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Events.ILuckyCharacterEventQuery>(
-                (_, _) => ValueTask.FromResult(Dfo.Server.Data.Events.LuckyCharacterPeriod.Closed)));
+            services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService>(
+                (method, _) => method.Name == "ReadRosterAsync"
+                    ? ValueTask.FromResult(Dfo.Server.Data.Events.LuckyCharacterPeriod.Closed) : null));
             services.AddSingleton(TestRequired.Absent<Dfo.Server.Abstractions.Channel.IChannelEntryDomainService>());
             services.AddSingleton<Dfo.Server.Abstractions.Pvp.IPvpTotalMatchRepresentativeSwitchDomainService,
                 Dfo.Server.Application.Pvp.PvpTotalMatchRepresentativeSwitchDomainService>();

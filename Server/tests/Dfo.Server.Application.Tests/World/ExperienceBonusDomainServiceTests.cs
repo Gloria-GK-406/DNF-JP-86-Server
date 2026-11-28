@@ -300,9 +300,11 @@ public sealed class ExperienceBonusDomainServiceTests
         IGuildBenefitDomainService guilds, IDungeonRunQueryDomainService runs) =>
         new(sessions, TestGameplayBenefits.Query<DungeonExperienceBenefitContext>(
             new PremiumExperienceBenefits(premiums, new Rates(), ExperienceEntitlementPolicy.None),
-            new ChannelExperienceBenefits(channels, rates), new GuildExperienceBenefits(guilds),
+            new ChannelExperienceBenefits(channels, new ExperienceRuleService(
+                new UnpricedKills(), new UngradedRanks(), new NoProgression(), rates, ExperienceTuning.Default)),
+            new GuildExperienceBenefits(guilds),
             new SpiritPotionExperienceBenefits(potions), new AdventureGroupExperienceBenefits(adventureGroups),
-            new RunExperienceBenefits(runs)));
+            new RunExperienceBenefits(runs, TestGameplayBenefits.LuckyRules)));
 
     /// <summary>What the other channel declares, which is deliberately not five percent.</summary>
     private const double OtherChannelRate = 0.20;

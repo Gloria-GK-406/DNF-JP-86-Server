@@ -5,18 +5,13 @@ using Dfo.Server.Data.Accounts;
 
 namespace Dfo.Server.Application.World;
 
-internal sealed class LuckySharedDropBenefits : IGameplayBenefitSource<DungeonCellCreationContext>
+internal sealed class LuckySharedDropBenefits(LuckyCharacterBenefitRuleService rules)
+    : IGameplayBenefitSource<DungeonCellCreationContext>
 {
     public ValueTask<GameplayBenefitBatch> DescribeAsync(
-        DungeonCellCreationContext context, DateTimeOffset at, CancellationToken ct)
-    {
-        var eligible = context.Participants.Any(participant => participant.IsLuckyCharacter);
-        return ValueTask.FromResult(new GameplayBenefitBatch("lucky-character", DropBenefitScopes.Run(context.RunId),
-            eligible
-                ? [new("shared-equipment", "lucky character shared Unique equipment", 0,
-                    new SharedEquipmentDropBenefit(DropRarity.Unique, 3))]
-                : []));
-    }
+        DungeonCellCreationContext context, DateTimeOffset at, CancellationToken ct) =>
+        ValueTask.FromResult(new GameplayBenefitBatch("lucky-character", DropBenefitScopes.Run(context.RunId),
+            rules.SharedDrops(context.Participants)));
 }
 
 internal sealed class GrowthBossDropBenefits(IPremiumServiceDomainService premiums)

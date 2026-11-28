@@ -7,20 +7,13 @@ namespace Dfo.Server.Application.World;
 
 internal readonly record struct DungeonFatigueContext(DungeonRunParticipant Participant, DungeonLayout Layout, bool IsEntry);
 
-internal static class FatigueBurningBenefit
-{
-    public const string Source = "dungeon-run";
-    public static GameplayBenefit Declaration { get; } = new("fatigue-burning", "fatigue burning", 900,
-        [new FatigueCostMultiplier(2, RequireFullCharge: true), new ExperienceBenefit([ExperienceEvent.MonsterKill, ExperienceEvent.DungeonClear],
-            new("fatigue burning", 1, ExperienceBonusKind.FatigueBurn, ExperienceBonusBasis.TotalAfterBaseBonuses))]);
-}
-
-internal sealed class DungeonFatigueBurningBenefits : IGameplayBenefitSource<DungeonFatigueContext>
+internal sealed class DungeonFatigueBurningBenefits(LuckyCharacterBenefitRuleService rules)
+    : IGameplayBenefitSource<DungeonFatigueContext>
 {
     public ValueTask<GameplayBenefitBatch> DescribeAsync(DungeonFatigueContext context, DateTimeOffset at, CancellationToken ct) =>
-        ValueTask.FromResult(new GameplayBenefitBatch(FatigueBurningBenefit.Source,
+        ValueTask.FromResult(new GameplayBenefitBatch(LuckyCharacterBenefitRuleService.RunSource,
             GameplayBenefitScope.For(context.Participant.CharacterId),
-            context.Participant.BurnsFatigue ? [FatigueBurningBenefit.Declaration] : []));
+            context.Participant.BurnsFatigue ? [rules.Burning] : []));
 }
 
 internal readonly record struct DungeonFatiguePayment(CharacterFatigueCharge Charge, bool BurnsFatigue = false);
@@ -62,7 +55,8 @@ internal sealed class DungeonFatigueCosts(
                 && (await fatigue.BalanceAtAsync(character, at, ct).ConfigureAwait(false)).Remaining >= fullCost)
             {
                 var includesBurning = snapshot.Active.Any(entry =>
-                    entry.Source == FatigueBurningBenefit.Source && entry.Benefit.Key == FatigueBurningBenefit.Declaration.Key);
+                    entry.Source == LuckyCharacterBenefitRuleService.RunSource
+                    && entry.Benefit.Key == LuckyCharacterBenefitRuleService.BurningKey);
                 payments.Add(new(new(character, (ushort)fullCost, RequireFullCharge: true), includesBurning));
             }
             else

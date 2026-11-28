@@ -27,6 +27,8 @@ internal static class EventsRegistration
         services.AddSingleton<LuckyCharacterEventDomainService>();
         services.AddSingleton<Dfo.Server.Abstractions.Events.IManagedEventDomainService>(sp => sp.GetRequiredService<LuckyCharacterEventDomainService>());
         services.AddSingleton<Dfo.Server.Abstractions.Events.ILuckyCharacterEventQuery>(sp => sp.GetRequiredService<LuckyCharacterEventDomainService>());
+        services.TryAddSingleton<Dfo.Server.Application.World.LuckyCharacterBenefitRuleService>();
+        services.TryAddSingleton<Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService, LuckyCharacterPlayerDomainService>();
         services.TryAddSingleton<Dfo.Server.Abstractions.Events.IManagedEventLifecycleDomainService, ManagedEventLifecycleDomainService>();
         services.AddInternalCommandHandler<InitializeManagedEventsCommand, bool, InitializeManagedEventsCommandHandler>();
         services.AddScoped<ManagedEventLifecycleTask>();

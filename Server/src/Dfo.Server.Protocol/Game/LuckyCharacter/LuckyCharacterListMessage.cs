@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using Dfo.Server.Abstractions.Channel;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Data.Events;
 using Dfo.Server.Data.Networking;
@@ -36,17 +35,13 @@ internal sealed record LuckyCharacterListMessage(LuckyCharacterPeriod Period)
     }
 }
 
-public sealed class LuckyCharacterRosterDelivery(ILuckyCharacterEventQuery events, TimeProvider clock,
-    IChannelEntryDomainService channels,
-    IGameCommandOutbox outbox)
+internal static class LuckyCharacterRosterProjection
 {
-    public async ValueTask RegisterAsync(NetworkConnectionContext connection, CancellationToken ct)
+    public static async ValueTask RegisterAsync(ILuckyCharacterPlayerDomainService luckyCharacters, IGameCommandOutbox outbox,
+        NetworkConnectionContext connection, CancellationToken ct)
     {
-        var period = await events.ReadAtAsync(clock.GetUtcNow(), ct).ConfigureAwait(false);
+        var period = await luckyCharacters.ReadRosterAsync(connection.ListenerPort, ct).ConfigureAwait(false);
         if (period.Revision <= 0) return;
-        var channel = await channels.ResolveAsync(connection.ListenerPort, ct).ConfigureAwait(false);
-        if (channel.IsPvp)
-            period = period with { Jobs = [] };
         await outbox.RegisterNotiAsync(connection.ConnectionId, new LuckyCharacterListMessage(period), ct).ConfigureAwait(false);
     }
 }

@@ -66,7 +66,7 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
     IPartyProjectionStateDomainService projectionState,
     IOutboundOrdering ordering,
     IPvpTotalMatchRepresentativeSwitchDomainService representativeSwitch,
-    LuckyCharacterRosterDelivery luckyCharacters,
+    Dfo.Server.Abstractions.Events.ILuckyCharacterPlayerDomainService luckyCharacters,
     Dfo.Server.Protocol.Game.AntonRaid.AntonRaidSquadProjection raidSquads) : ICommandHandler<GameReturnToSelectionCommand, bool>
 {
 
@@ -87,7 +87,7 @@ internal sealed partial class GameReturnToSelectionCommandHandler(IOnlineUserQue
             if (prepared.ResetKnightDeck)
                 await outbox.RegisterNotiAsync(connectionId, new KnightShieldDeckMessage([0,0,0,0,0]), ct).ConfigureAwait(false);
             await outbox.RegisterCmdAsync(connectionId, new ReturnToSelectionResponse(), ct).ConfigureAwait(false);
-            await luckyCharacters.RegisterAsync(context.Connection, ct).ConfigureAwait(false);
+            await LuckyCharacterRosterProjection.RegisterAsync(luckyCharacters, outbox, context.Connection, ct).ConfigureAwait(false);
             await outbox.RegisterNotiAsync(connectionId, new AccountCharacterRosterResponse(prepared.Roster, AnswersRosterQuery: false), ct).ConfigureAwait(false);
             if (prepared.Session is not null)
                 representativeSwitch.PublishRoster(context.Connection, accountId);

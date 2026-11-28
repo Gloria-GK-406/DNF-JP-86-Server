@@ -311,12 +311,11 @@ internal sealed class InventoryEntryAssembly(
         var sortOrder = 0;
         foreach (var effect in await timedItemEffects.ReadActiveAsync(characterId, at, cancellationToken).ConfigureAwait(false))
         {
-            // The entry effect list uses a one-byte count. Honor existing entries first.
-            if (values.Count >= byte.MaxValue) break;
             if (!announced.Add(effect.ItemId)) continue;
             while (!seen.Add(sortOrder)) sortOrder++;
             var remaining = checked((int)Math.Ceiling((effect.ExpiresAt - at).TotalSeconds));
-            values.Add(new(characterId, InventoryItemValueListType.Effect, sortOrder, effect.ItemId, remaining));
+            values.Add(new(characterId, InventoryItemValueListType.Effect, sortOrder, effect.ItemId, remaining)
+                { IsTimedEffect = true });
         }
         return values;
     }

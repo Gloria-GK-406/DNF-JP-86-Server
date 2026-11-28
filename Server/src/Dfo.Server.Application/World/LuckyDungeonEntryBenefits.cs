@@ -14,7 +14,7 @@ internal interface ILuckyDungeonEntryBenefits
 
 internal sealed class LuckyDungeonEntryBenefits(ILuckyCharacterEventQuery events, ILuckyCharacterBurning burning,
     ICharacterDomainService characters, IFatigueConsumptionQuery consumption,
-    IFatigueBurningDungeonContentSource dungeonRestrictions)
+    LuckyCharacterBenefitRuleService rules)
     : ILuckyDungeonEntryBenefits
 {
     public async ValueTask<(IReadOnlyList<DungeonRunParticipant> Participants, LuckyCharacterPeriod Period)> CaptureAsync(
@@ -35,7 +35,7 @@ internal sealed class LuckyDungeonEntryBenefits(ILuckyCharacterEventQuery events
             var identity = await characters.Get(participant.CharacterId).IdentityAsync(ct).ConfigureAwait(false);
             var lucky = identity is not null && period.Includes(identity.Job);
             var burnsFatigue = lucky && canBurn && burning.IsEnabled(participant.CharacterId, period.Revision)
-                && !dungeonRestrictions.LoadProhibitedDungeons().Contains(layout.DungeonId);
+                && rules.AllowsDungeonBurning(layout.DungeonId);
             result.Add(participant with { IsLuckyCharacter = lucky, BurnsFatigue = burnsFatigue });
         }
         return (result, period);

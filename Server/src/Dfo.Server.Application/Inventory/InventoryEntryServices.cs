@@ -322,7 +322,7 @@ internal static class InventoryEntryProjection
     }
 
     private static InventoryItemValueState ToItemValueState(InventoryItemValueStorageRecord item) =>
-        new(item.SortOrder, item.ItemId, item.Value);
+        new(item.SortOrder, item.ItemId, item.Value) { IsTimedEffect = item.IsTimedEffect };
 
     private static CharacterRentalEntryState NormalizeRentals(
         IReadOnlyList<CharacterRentalStorageRecord> source,

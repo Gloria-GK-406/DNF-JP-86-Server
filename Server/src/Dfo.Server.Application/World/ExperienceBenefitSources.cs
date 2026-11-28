@@ -45,7 +45,7 @@ internal sealed class PremiumExperienceBenefits(IPremiumServiceDomainService pre
     }
 }
 
-internal sealed class ChannelExperienceBenefits(IChannelEntryDomainService channels, IChannelExperienceSource rates)
+internal sealed class ChannelExperienceBenefits(IChannelEntryDomainService channels, ExperienceRuleService rules)
     : IGameplayBenefitSource<DungeonExperienceBenefitContext>
 {
     public async ValueTask<GameplayBenefitBatch> DescribeAsync(
@@ -53,10 +53,8 @@ internal sealed class ChannelExperienceBenefits(IChannelEntryDomainService chann
     {
         var occasion = context.Occasion;
         var channel = await channels.ResolveAsync(context.ListenerPort, ct).ConfigureAwait(false);
-        var rate = rates.Load().RateFor(channel.ChannelId, occasion.DungeonId);
-        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
-        ExperienceBonusRules.FromChannel(occasion.Event, rate, found);
-        return new("channel", GameplayBenefitScope.For(occasion.Character), found.ToImmutable());
+        return new("channel", GameplayBenefitScope.For(occasion.Character),
+            rules.ChannelBenefits(occasion.Event, channel.ChannelId, occasion.DungeonId));
     }
 }
 
@@ -105,30 +103,15 @@ internal sealed class AdventureGroupExperienceBenefits(IAdventureGroupDomainServ
     }
 }
 
-internal sealed class RunExperienceBenefits(IDungeonRunQueryDomainService runs)
+internal sealed class RunExperienceBenefits(IDungeonRunQueryDomainService runs, LuckyCharacterBenefitRuleService rules)
     : IGameplayBenefitSource<DungeonExperienceBenefitContext>
 {
     public ValueTask<GameplayBenefitBatch> DescribeAsync(
         DungeonExperienceBenefitContext context, DateTimeOffset at, CancellationToken ct)
     {
         var occasion = context.Occasion;
-        var found = ImmutableArray.CreateBuilder<GameplayBenefit>();
-        if (occasion.RunId is { } runId && runs.Find(occasion.Character) is
-            { Layout.Mode.Kind: DungeonRunKind.Ordinary, Participant: { } participant } run && run.RunId == runId)
-        {
-            if (participant.IsLuckyCharacter)
-                found.Add(DungeonExperienceBenefits.Entry("lucky-character", "lucky character", 700, occasion.Event,
-                    occasion.Event == ExperienceEvent.DungeonClear ? 0.15 : 0.10, ExperienceBonusKind.LuckyCharacter));
-            if (occasion.Event == ExperienceEvent.DungeonClear
-                && run.Participants.Any(member => member.CharacterId != occasion.Character && member.IsLuckyCharacter
-                    && run.ClearParticipants.Any(eligible => eligible.CharacterId == member.CharacterId)))
-                found.Add(DungeonExperienceBenefits.Entry("lucky-teammate", "lucky character party", 800, occasion.Event,
-                    0.10, ExperienceBonusKind.LuckyCharacterParty));
-            if (participant.BurnsFatigue && (occasion.Event == ExperienceEvent.DungeonClear
-                || run.Layout.EntryOnlyFatigue is not null || run.CurrentCellState.FatigueBurnedBy.Contains(occasion.Character)))
-                found.Add(FatigueBurningBenefit.Declaration);
-        }
-        return ValueTask.FromResult(new GameplayBenefitBatch(FatigueBurningBenefit.Source, GameplayBenefitScope.For(occasion.Character),
-            found.ToImmutable()));
+        var run = occasion.RunId is not null ? runs.Find(occasion.Character) : null;
+        return ValueTask.FromResult(new GameplayBenefitBatch(LuckyCharacterBenefitRuleService.RunSource,
+            GameplayBenefitScope.For(occasion.Character), rules.RunExperience(occasion, run)));
     }
 }

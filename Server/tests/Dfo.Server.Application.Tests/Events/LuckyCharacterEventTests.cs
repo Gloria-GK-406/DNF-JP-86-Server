@@ -1,7 +1,12 @@
+using Dfo.Server.Abstractions.Channel;
+using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Events;
+using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Events;
 using Dfo.Server.Application.Tests.Characters;
+using Dfo.Server.Application.Tests.World;
 using Dfo.Server.Data.Events;
+using Dfo.Server.Data.World;
 using Dfo.Server.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +14,26 @@ namespace Dfo.Server.Application.Tests.Events;
 
 public sealed class LuckyCharacterEventTests
 {
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task Burning_cannot_change_while_a_character_occupies_a_dungeon()
+    {
+        var owner = new DungeonParticipationOwner(DungeonParticipationMode.Ordinary, Guid.NewGuid());
+        var player = new LuckyCharacterPlayerDomainService(
+            TestRequired.Absent<ILuckyCharacterEventQuery>(), TestRequired.Absent<ILuckyCharacterBurning>(),
+            TestRequired.Absent<IChannelEntryDomainService>(), TestRequired.Absent<IOnlineCharacterRuntimeDomainService>(),
+            TestRequired.Absent<ICharacterDomainService>(), TestRequired.Absent<ICharacterFatigueDomainService>(),
+            TestRequired.Absent<IDungeonEntryIntentDomainService>(),
+            TestRequired.Absent<IDungeonParticipationDomainService>((method, _) =>
+                method.Name == nameof(IDungeonParticipationDomainService.Find) ? owner : null),
+            TestGameplayBenefits.LuckyRules, TimeProvider.System);
+        var session = new SelectedSessionIdentity(new(1), new(1), new("lucky-character"), 1, 1, 10011);
+
+        var result = await player.SetBurningAsync(session, true, default);
+
+        Assert.Equal(new(LuckyCharacterBurningError.OutsideTown), result);
+    }
+
     [Fact]
     public async Task Saved_period_is_closed_by_default_and_applies_only_at_configured_boundaries() =>
         await TestGameplay.RunAsync(async () =>
