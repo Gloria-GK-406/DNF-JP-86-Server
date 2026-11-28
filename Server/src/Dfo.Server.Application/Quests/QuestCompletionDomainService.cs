@@ -9,6 +9,7 @@ using Dfo.Server.Abstractions.Persistence;
 using Dfo.Server.Abstractions.Quests;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Benefits;
+using Dfo.Server.Application.World;
 using Dfo.Server.Data.Accounts;
 using Dfo.Server.Data.World;
 using Dfo.Server.Data.Characters;
@@ -82,9 +83,8 @@ internal sealed class QuestCompletionDomainService(ICharacterDomainService chara
                 GameplayBenefitScope.Global, GameplayBenefitScope.For(id)).ConfigureAwait(false);
             facts = facts with
             {
-                ExperienceModifiers = declared.Effects<ExperienceBenefit>()
-                    .Where(effect => effect.AppliesTo(ExperienceEvent.QuestCompletion))
-                    .Select(effect => effect.Modifier).ToImmutableArray(),
+                ExperienceModifiers = ExperienceRuleService.ModifiersFor(ExperienceEvent.QuestCompletion,
+                    declared.Effects<ExperienceBenefit>().ToImmutableArray()),
             };
         }
         var plan = await rules.CompleteAsync(quest, reward.Plan, facts, rewards, inventory.Holdings!, ct).ConfigureAwait(false);

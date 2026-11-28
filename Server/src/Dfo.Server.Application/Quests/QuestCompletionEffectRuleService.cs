@@ -116,7 +116,7 @@ internal sealed class QuestCompletionEffectRuleService(IQuestContentRuleService 
         effects.Add(new SetCarriedQuestEffect(target, null));
         effects.Add(new SetClearedQuestEffect(questId, facts.Quests.Cleared.FirstOrDefault(x => x.QuestId == questId)?.Mark, IQuestLog.ClearedMark));
         effects.AddRange(rewardEffects);
-        var experienceBreakdown = ExperienceCalculationDomainService.ApplyBonuses(
+        var experienceBreakdown = ExperienceRuleService.ApplyBonuses(
             new ExperienceBreakdown(Base: reward.Experience), facts.ExperienceModifiers);
         var xp = experience.DecideAward(facts.Progress, experienceBreakdown);
         effects.Add(new CharacterExperienceEffect(xp));

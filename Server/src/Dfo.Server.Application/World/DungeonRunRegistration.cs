@@ -14,6 +14,7 @@ internal static class DungeonRunRegistration
         services.TryAddSingleton<DungeonSecretShopRuleService>();
         services.TryAddSingleton<ILuckyDungeonEntryBenefits, LuckyDungeonEntryBenefits>();
         services.TryAddSingleton<DungeonFatigueCosts>();
+        services.TryAddSingleton<DungeonFatigueRuleService>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IGameplayBenefitSource<DungeonFatigueContext>, DungeonFatigueBurningBenefits>());
         services.TryAddSingleton<IDungeonRunQueryDomainService>(sp => sp.GetRequiredService<DungeonRunStore>());
         services.TryAddSingleton<IDungeonRunEntryDomainService, DungeonRunStore.EntryService>();

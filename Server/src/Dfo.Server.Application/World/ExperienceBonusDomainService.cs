@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Sessions;
 using Dfo.Server.Abstractions.World;
@@ -19,8 +20,7 @@ internal sealed class ExperienceBonusDomainService(
             GameplayBenefitScope.Global, GameplayBenefitScope.For(occasion.Account), GameplayBenefitScope.For(occasion.Character))
             .ConfigureAwait(false);
         return sessions.IsInWorld(session)
-            ? snapshot.Effects<ExperienceBenefit>().Where(effect => effect.AppliesTo(occasion.Event))
-                .Select(effect => effect.Modifier).ToArray()
+            ? ExperienceRuleService.ModifiersFor(occasion.Event, snapshot.Effects<ExperienceBenefit>().ToImmutableArray())
             : [];
     }
 }

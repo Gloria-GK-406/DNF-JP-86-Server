@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.World;
@@ -19,13 +20,13 @@ internal sealed class DungeonFatigueBurningBenefits(LuckyCharacterBenefitRuleSer
 internal readonly record struct DungeonFatiguePayment(CharacterFatigueCharge Charge, bool BurnsFatigue = false);
 
 internal sealed class DungeonFatigueCosts(
-    ICharacterFatigueDomainService fatigue, IFatigueConsumptionQuery consumption, GameplayBenefitsQuery<DungeonFatigueContext> benefits)
+    ICharacterFatigueDomainService fatigue, IFatigueConsumptionQuery consumption,
+    GameplayBenefitsQuery<DungeonFatigueContext> benefits, DungeonFatigueRuleService rules)
 {
     public async ValueTask<IReadOnlyList<DungeonFatiguePayment>> PrepareAsync(
         IReadOnlyList<DungeonRunParticipant> participants, DungeonLayout layout, bool isEntry, DateTimeOffset at, CancellationToken ct)
     {
-        if (!layout.ConsumesFatigue || (!isEntry && layout.EntryOnlyFatigue is not null)) return [];
-        var baseCost = layout.EntryOnlyFatigue ?? 1;
+        if (rules.BaseCost(layout, isEntry) is not { } baseCost) return [];
         var payments = new List<DungeonFatiguePayment>(participants.Count);
         bool? shouldConsume = null;
         foreach (var participant in participants)
@@ -33,34 +34,12 @@ internal sealed class DungeonFatigueCosts(
             var character = participant.CharacterId;
             var snapshot = await benefits.ReadAtAsync(new(participant, layout, isEntry), at, ct, GameplayBenefitScope.Global,
                 GameplayBenefitScope.For(participant.AccountId), GameplayBenefitScope.For(character)).ConfigureAwait(false);
-            decimal regular = baseCost;
-            decimal fullChargeFactor = 1;
-            var requiresFullCharge = false;
-            foreach (var effect in snapshot.Effects<FatigueCostMultiplier>())
-            {
-                if (effect.Factor <= 0)
-                    throw new InvalidOperationException("Fatigue cost multipliers must be positive.");
-                if (effect.RequireFullCharge)
-                {
-                    fullChargeFactor *= effect.Factor;
-                    requiresFullCharge = true;
-                }
-                else
-                    regular *= effect.Factor;
-            }
-
-            var fullCost = decimal.Ceiling(regular * fullChargeFactor);
-            if (requiresFullCharge && fullCost is > 0 and <= ushort.MaxValue
-                && (shouldConsume ??= await consumption.ShouldConsumeAsync(ct).ConfigureAwait(false))
-                && (await fatigue.BalanceAtAsync(character, at, ct).ConfigureAwait(false)).Remaining >= fullCost)
-            {
-                var includesBurning = snapshot.Active.Any(entry =>
-                    entry.Source == LuckyCharacterBenefitRuleService.RunSource
-                    && entry.Benefit.Key == LuckyCharacterBenefitRuleService.BurningKey);
-                payments.Add(new(new(character, (ushort)fullCost, RequireFullCharge: true), includesBurning));
-            }
-            else
-                payments.Add(new(new(character, checked((ushort)decimal.Ceiling(regular)))));
+            var chargeRule = rules.Quote(baseCost, snapshot.Effects<FatigueCostMultiplier>().ToImmutableArray());
+            ushort? remaining = null;
+            if (chargeRule.FullCost.HasValue && (shouldConsume ??= await consumption.ShouldConsumeAsync(ct).ConfigureAwait(false)))
+                remaining = (await fatigue.BalanceAtAsync(character, at, ct).ConfigureAwait(false)).Remaining;
+            var charge = chargeRule.Resolve(character, remaining);
+            payments.Add(new(charge, LuckyCharacterBenefitRuleService.BurningWasCharged(snapshot, charge)));
         }
         return payments;
     }

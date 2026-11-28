@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Benefits;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.World;
@@ -22,19 +23,13 @@ internal sealed class DropDrawMultiplierBenefits(IEventPersistence sources, Game
     }
 }
 
-internal sealed class DropDrawMultiplierDomainService(GameplayBenefitsQuery<GlobalDropBenefitContext> benefits)
+internal sealed class DropDrawMultiplierDomainService(
+    GameplayBenefitsQuery<GlobalDropBenefitContext> benefits, GameplayParameterRuleService rules)
     : IDropDrawMultiplierDomainService
 {
     public async ValueTask<DropDrawMultipliers> CurrentAsync(CancellationToken ct)
     {
         var declared = await benefits.ReadAsync(new(), ct, GameplayBenefitScope.Global).ConfigureAwait(false);
-        var multipliers = declared.Effects<DropDrawMultiplierBenefit>().Select(effect => effect.Multipliers).ToArray();
-        return multipliers.Length switch
-        {
-            0 => DropDrawMultipliers.Default,
-            1 => multipliers[0],
-            _ => new(DropDrawEntries.All.ToDictionary(entry => entry, entry => multipliers.Aggregate(1,
-                (result, multiplier) => Math.Min(DropDrawMultipliers.Maximum, result * multiplier.For(entry))))),
-        };
+        return rules.ComposeDropMultipliers(declared.Effects<DropDrawMultiplierBenefit>().ToImmutableArray());
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Abstractions.Content;
 using Dfo.Server.Data.Characters;
@@ -44,8 +45,8 @@ internal sealed partial class MonsterDropDomainService(
         {
             var declared = await dropBenefits.ReadAsync(context, cancellationToken, GameplayBenefitScope.Global,
                 DropBenefitScopes.Run(context.RunId)).ConfigureAwait(false);
-            bossEquipmentBonus = (int)Math.Min(int.MaxValue, declared.Effects<BossEquipmentDropBenefit>()
-                .Sum(effect => (long)Math.Max(effect.Percent, 0)));
+            bossEquipmentBonus = IndependentDropRuleService.BossEquipmentBonusPercent(
+                declared.Effects<BossEquipmentDropBenefit>().ToImmutableArray());
         }
         result.AddRange(await IndependentAsync(request, bossEquipmentBonus, multipliers, cancellationToken).ConfigureAwait(false));
         result.AddRange(Rounds(request, DropDrawEntry.World, multipliers, worldDrops.Draw));

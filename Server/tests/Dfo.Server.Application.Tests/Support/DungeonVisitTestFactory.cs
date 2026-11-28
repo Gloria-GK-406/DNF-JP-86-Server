@@ -22,7 +22,8 @@ internal static class DungeonVisitTestFactory
             transactions: transactions ?? TestRequired.TransactionScope(), quotas: TestRequired.Absent<Dfo.Server.Abstractions.UsageQuotas.IUsageQuotaDomainService>(), events: TestRequired.Absent<Dfo.Server.Abstractions.DomainEvents.IEventService>(), sessions: TestRequired.Absent<Dfo.Server.Abstractions.Sessions.ISelectedSessionDomainService>(), onlineCharacters: TestRequired.Absent<Dfo.Server.Abstractions.Characters.IOnlineCharacterRuntimeDomainService>(), runs: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonRunDomainService>(), admissionRules: TestRequired.AdmissionRulesFrom(layouts), participation: TestRequired.Absent<Dfo.Server.Abstractions.World.IDungeonParticipationDomainService>(), couples: new Dfo.Server.Application.World.CoupleDungeonRule(TestRequired.Absent<Dfo.Server.Application.Marriage.IMarriageRelations>()), quests: TestRequired.Absent<Dfo.Server.Abstractions.Quests.ICharacterQuestLogDomainService>()), tower ?? TestRequired.Absent<Dfo.Server.Abstractions.World.IllusionTower.IIllusionTowerDomainService>(), luckyCharacters: luckyCharacters ?? new NoLuckyCharacters(), fatigueCosts: fatigueCosts ?? WithoutFatigueBenefits(fatigue), clock: TimeProvider.System, logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<Dfo.Server.Application.World.DungeonVisitDomainService>.Instance);
 
     internal static DungeonFatigueCosts WithoutFatigueBenefits(ICharacterFatigueDomainService fatigue) =>
-        new(fatigue, TestRequired.Absent<IFatigueConsumptionQuery>(), new(new GameplayBenefitRegistry(), [], TimeProvider.System));
+        new(fatigue, TestRequired.Absent<IFatigueConsumptionQuery>(),
+            new(new GameplayBenefitRegistry(), [], TimeProvider.System), new DungeonFatigueRuleService());
 
     internal sealed class NoLuckyCharacters : ILuckyDungeonEntryBenefits
     {

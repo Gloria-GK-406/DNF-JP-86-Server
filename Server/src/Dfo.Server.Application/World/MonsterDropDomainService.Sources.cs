@@ -31,25 +31,12 @@ internal sealed partial class MonsterDropDomainService
         if (dropRules.RatesFor(request) is not { } rawRates)
             yield break;
         var rates = adjuster.Adjust(request.CharacterId, rawRates);
-        var context = request.Context;
-        var seed = DropRandom.SeedFor(context.Seed, context.MapId, context.Cell.X, context.Cell.Y, context.ActorSequence);
-        var firstRound = DropDrawMultipliers.Maximum + 1;
-        var chance = new DropRandom(DropRandom.ForRound(seed, new(DropDrawEntry.MonsterEquipment, firstRound)));
-        // The bonus stream is separate from configurable base draws. Reuse each bonus round
-        // across rarities and filter its items once, so a shared item has only one ground copy.
-        var halfRound = chance.Next(2) == 2 ? 1 : 0;
-        var roundsByRarity = context.SharedEquipmentBonuses.GroupBy(benefit => benefit.Rarity)
-            .ToDictionary(group => group.Key, group =>
-            {
-                var units = Math.Min(DropDrawMultipliers.Maximum * 2L, group.Sum(benefit => (long)benefit.HalfRounds));
-                return (int)((units + halfRound) / 2);
-            });
-        for (var extra = 1; extra <= roundsByRarity.Values.Max(); extra++)
+        foreach (var round in DropRuleService.SharedEquipmentRounds(request))
         {
-            var bonusDraw = request with { Draw = new(DropDrawEntry.MonsterEquipment, firstRound + extra) };
-            for (var attempt = 0; attempt < context.RandomDropCount; attempt++)
+            var bonusDraw = request with { Draw = round.Draw };
+            for (var attempt = 0; attempt < request.Context.RandomDropCount; attempt++)
                 foreach (var drop in dropRules.DrawFor(bonusDraw, rates, includeItems: true, attempt))
-                    if (drop.Kind == DropItemKind.Equipment && roundsByRarity.GetValueOrDefault(drop.Rarity) >= extra)
+                    if (round.Includes(drop))
                         yield return drop with { OwnerCharacterId = null };
         }
     }

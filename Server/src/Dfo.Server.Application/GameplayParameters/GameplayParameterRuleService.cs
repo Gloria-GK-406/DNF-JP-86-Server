@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.World;
 using Dfo.Server.Application.Events;
@@ -13,6 +14,16 @@ internal sealed class GameplayParameterRuleService(IEventPeriodRuleService perio
 
     public bool ShouldConsume(EventConfiguration? configuration, DateTimeOffset at) =>
         !periods.IsActive(configuration, at);
+
+    public DropDrawMultipliers ComposeDropMultipliers(ImmutableArray<DropDrawMultiplierBenefit> effects) =>
+        effects.Length switch
+        {
+            0 => DropDrawMultipliers.Default,
+            1 => effects[0].Multipliers,
+            _ => new(DropDrawEntries.All.ToDictionary(entry => entry,
+                entry => effects.Aggregate(DropDrawMultipliers.Minimum, (result, effect) =>
+                    Math.Min(DropDrawMultipliers.Maximum, result * effect.Multipliers.For(entry))))),
+        };
 
     public DropDrawMultipliers Multipliers(EventConfiguration? configuration, DateTimeOffset at)
     {

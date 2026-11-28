@@ -1,6 +1,8 @@
 using Dfo.Server.Abstractions.Characters;
 using Dfo.Server.Abstractions.Events;
 using Dfo.Server.Abstractions.World;
+using Dfo.Server.Application.Events;
+using Dfo.Server.Application.GameplayParameters;
 using Dfo.Server.Application.Tests.Characters;
 using Dfo.Server.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +11,30 @@ namespace Dfo.Server.Application.Tests.Events;
 
 public sealed class GameplayParameterBoundaryTests
 {
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Draw_multiplier_rules_compose_per_entry_and_cap_the_product()
+    {
+        var rules = new GameplayParameterRuleService(new EventPeriodRuleService());
+        var first = new DropDrawMultipliers(new Dictionary<DropDrawEntry, int>
+        {
+            [DropDrawEntry.World] = 50,
+            [DropDrawEntry.MonsterEquipment] = 3,
+        });
+        var second = new DropDrawMultipliers(new Dictionary<DropDrawEntry, int>
+        {
+            [DropDrawEntry.World] = 3,
+            [DropDrawEntry.MonsterEquipment] = 5,
+        });
+
+        Assert.Same(DropDrawMultipliers.Default, rules.ComposeDropMultipliers([]));
+        Assert.Same(first, rules.ComposeDropMultipliers([new(first)]));
+        var result = rules.ComposeDropMultipliers([new(first), new(second)]);
+        Assert.Equal(DropDrawMultipliers.Maximum, result.For(DropDrawEntry.World));
+        Assert.Equal(15, result.For(DropDrawEntry.MonsterEquipment));
+        Assert.Equal(1, result.For(DropDrawEntry.MonsterGold));
+    }
+
     [Fact]
     public async Task New_spending_changes_at_period_boundaries_and_refunds_keep_the_actual_ledger()
     {

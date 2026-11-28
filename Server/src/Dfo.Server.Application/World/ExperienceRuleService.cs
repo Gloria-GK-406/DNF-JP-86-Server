@@ -47,6 +47,33 @@ internal sealed class ExperienceRuleService(
 
     public DungeonExperienceProgressionPolicy Progression() => policy.Value;
 
+    internal static ImmutableArray<ExperienceModifier> ModifiersFor(
+        ExperienceEvent occasion, ImmutableArray<ExperienceBenefit> effects) =>
+        effects.Where(effect => effect.AppliesTo(occasion)).Select(effect => effect.Modifier).ToImmutableArray();
+
+    internal static ExperienceBreakdown ApplyBonuses(ExperienceBreakdown award, IReadOnlyList<ExperienceModifier> modifiers,
+        uint? limit = null)
+    {
+        uint Cap(uint amount) => limit is { } maximum ? Math.Min(maximum - award.Total, amount) : amount;
+
+        foreach (var modifier in modifiers)
+        {
+            if (modifier.Basis == ExperienceBonusBasis.TotalAfterBaseBonuses) continue;
+            var basis = modifier.Basis == ExperienceBonusBasis.BaseAndClearRank
+                ? (double)award.Base + award.ClearRank : award.Base;
+            award = award.Add(modifier.Kind, Cap(Floor(basis * modifier.Rate)));
+        }
+        var subtotal = award.Total;
+        foreach (var group in modifiers.Where(modifier => modifier.Basis == ExperienceBonusBasis.TotalAfterBaseBonuses)
+            .GroupBy(modifier => modifier.Kind))
+            award = award.Add(group.Key, Cap(Floor(subtotal * group.Sum(modifier => modifier.Rate))));
+        _ = award.Total;
+        return award;
+    }
+
+    private static uint Floor(double value) => value <= 0 || double.IsNaN(value) ? 0
+        : checked((uint)Math.Floor(value));
+
     internal ImmutableArray<GameplayBenefit> ChannelBenefits(ExperienceEvent occasion, int channelId, int dungeonId)
     {
         var found = ImmutableArray.CreateBuilder<GameplayBenefit>();

@@ -10,7 +10,7 @@ namespace Dfo.Server.Application.World;
 internal sealed class LuckyCharacterBenefitRuleService(IFatigueBurningDungeonContentSource restrictions)
 {
     internal const string RunSource = "dungeon-run";
-    internal const string BurningKey = "fatigue-burning";
+    private const string BurningKey = "fatigue-burning";
     private const int FatigueMultiplier = 2;
     private const double KillAndQuestRate = 0.10;
 
@@ -20,6 +20,9 @@ internal sealed class LuckyCharacterBenefitRuleService(IFatigueBurningDungeonCon
                 new("fatigue burning", 1, ExperienceBonusKind.FatigueBurn, ExperienceBonusBasis.TotalAfterBaseBonuses))]);
 
     public bool CanEnableBurning(ushort remaining) => remaining >= FatigueMultiplier;
+
+    public static bool BurningWasCharged(GameplayBenefitSnapshot benefits, CharacterFatigueCharge charge) =>
+        charge.RequireFullCharge && benefits.Active.Any(entry => entry.Source == RunSource && entry.Benefit.Key == BurningKey);
 
     public bool AllowsDungeonBurning(int dungeonId) => !restrictions.LoadProhibitedDungeons().Contains(dungeonId);
 
